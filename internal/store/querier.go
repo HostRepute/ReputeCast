@@ -7,6 +7,7 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -74,6 +75,9 @@ type Querier interface {
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
+	// Access requests from the "403 · no permission" screen (internal/accessrequests).
+	// The member's latest request for this role in the last day (one a day).
+	LastAccessRequest(ctx context.Context, arg LastAccessRequestParams) (time.Time, error)
 	ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
 	ListCampaignIncidentSummaries(ctx context.Context, campaignIds []uuid.UUID) ([]ListCampaignIncidentSummariesRow, error)

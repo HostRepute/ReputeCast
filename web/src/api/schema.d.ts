@@ -265,6 +265,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/access-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for the role that grants a missing permission
+         * @description Notifies the members who can change roles, with your note. One request per role a day. Recorded as access.request.
+         */
+        post: operations["request-access"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/access-requests/suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Which role grants a missing permission, and who can grant it */
+        get: operations["suggest-access"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns": {
         parameters: {
             query?: never;
@@ -320,6 +357,33 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccessRequestResult: {
+            /** @description Members who received the request */
+            notified: string[];
+            roleName: string;
+        };
+        AccessSuggestion: {
+            /**
+             * @description What the permission allows, as a sentence subject
+             * @example Managing providers
+             */
+            action: string;
+            managers: string[];
+            owners: string[];
+            /** @description The missing permission */
+            permission: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            /**
+             * @description Smallest built-in role that grants it
+             * @example editor
+             */
+            roleKey: string;
+            /** @example Editor */
+            roleName: string;
+            /** @example Viewer */
+            yourRole: string;
+        };
         "Auth-identifyRequest": {
             /** Format: email */
             email: string;
@@ -573,6 +637,15 @@ export interface components {
         };
         RecoveryCodes: {
             codes: string[];
+        };
+        RequestInputBody: {
+            /** @description Why you need it; shown to whoever decides */
+            note?: string;
+            /**
+             * @description The missing permission
+             * @example providers:manage
+             */
+            permission: string;
         };
         RouteShare: {
             /** @example ses */
@@ -1170,6 +1243,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CreatedWorkspace"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "request-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestInputBody"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessRequestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "suggest-access": {
+        parameters: {
+            query: {
+                /** @description The missing permission, from a 403 problem */
+                permission: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessSuggestion"];
                 };
             };
             /** @description Error */
