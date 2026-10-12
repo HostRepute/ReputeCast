@@ -1,0 +1,1142 @@
+/*
+ * reputecast.com · the Landing board (design/boards/Landing.dc.html), value for value.
+ *
+ * Layers:
+ *   tokens       the design tokens shared with the app (web/src/styles/tokens.css,
+ *                generated from design/design-system/tokens.json)
+ *   @theme       exposes the tokens to Tailwind utilities (text-ink-2, bg-ground-2…)
+ *   components   the board's <helmet> classes (.wrap, .btn, .badge, .feat, .tbl…)
+ *   utilities    Tailwind, used for the board's inline styles
+ *
+ * Tailwind's preflight is not loaded on purpose: the board renders on browser
+ * defaults (content-box sizing, list markers), and matching it pixel for
+ * pixel is the point.
+ *
+ * Motion has three switches:
+ *   prefers-reduced-motion   everything renders its final state
+ *   html[data-motion=paused] the visible "Pause motion" control: loops freeze
+ *                            in place, scroll reveals and counters show their
+ *                            final state
+ *   html[data-settled]       set the first time motion is paused, so one-shot
+ *                            entrances never replay when it plays again
+ *   html.js                  set before first paint; without JavaScript the
+ *                            flow canvas renders statically
+ */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@import '../../../web/src/styles/tokens.css';
+@import './fonts.css';
+@import './flow-pulse.css';
+
+@theme inline {
+  --font-sans: var(--font-family-sans);
+  --font-mono: var(--font-family-mono);
+
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-ink-nav: var(--ink-nav);
+  --color-ground: var(--ground);
+  --color-ground-2: var(--ground-2);
+  --color-ground-3: var(--ground-3);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-line-strong: var(--line-strong);
+  --color-line-hover: var(--line-hover);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-tint: var(--accent-tint);
+  --color-accent-line: var(--accent-line);
+  --color-ok-bar: var(--ok-bar);
+  --color-bad-line: var(--bad-line);
+  --color-bad-tint: var(--bad-tint);
+  --color-dark-surface: var(--dark-surface);
+  --color-dark-line: var(--dark-line);
+  --color-dark-text: var(--dark-text);
+  --color-dark-muted: var(--dark-muted);
+  --color-chart-ses: var(--chart-ses);
+  --color-chart-postal: var(--chart-postal);
+  --color-chart-postmark: var(--chart-postmark);
+}
+
+/* ------------------------------------------------------------------ base */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    background: #fff;
+    color: var(--ink);
+    font-family: var(--font-family-sans);
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--accent-hover);
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--accent-glow);
+  }
+  [hidden] {
+    display: none !important;
+  }
+}
+
+/* ------------------------------------------------------------- components */
+@layer components {
+  .mono {
+    font-family: var(--font-family-mono);
+  }
+  .wrap {
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 0 24px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .wrap > * {
+    min-width: 0;
+  }
+
+  /* Buttons: 44px on the landing page; they lift on hover (the app's don't). */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: 10px;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    box-sizing: border-box;
+    transition:
+      transform var(--duration-fast) ease,
+      box-shadow var(--duration-fast) ease,
+      background var(--duration-fast) ease;
+  }
+  .btn:hover {
+    background: var(--ground);
+    color: var(--ink);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  .btn.pri {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.pri:hover {
+    background: var(--accent-hover);
+    color: #fff;
+    box-shadow: var(--shadow-accent);
+  }
+  .btn.dark {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .btn.dark:hover {
+    background: var(--dark-line);
+    color: #fff;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 9px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .ok {
+    background: var(--ok-bg);
+    color: var(--ok-fg);
+  }
+  .warn {
+    background: var(--warn-bg);
+    color: var(--warn-fg);
+  }
+  .bad {
+    background: var(--bad-bg);
+    color: var(--bad-fg);
+  }
+  .mut {
+    background: var(--neutral-bg);
+    color: var(--neutral-fg);
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    display: inline-block;
+    flex: none;
+  }
+  .k {
+    font-size: 13px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .n {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  h2.sec {
+    margin: 0;
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+  }
+  .lead {
+    margin: 0;
+    font-size: 18px;
+    color: var(--ink-2);
+    max-width: 720px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  pre {
+    margin: 0;
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: var(--ink);
+    color: var(--dark-text);
+    font-family: var(--font-family-mono);
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+
+  .tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .tbl th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--ink-3);
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+  .tbl td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-2);
+    vertical-align: top;
+  }
+  .tbl tr:last-child td {
+    border-bottom: 0;
+  }
+  .tbl td.c {
+    text-align: center;
+  }
+  .tbl td:nth-child(2),
+  .tbl th:nth-child(2) {
+    background: var(--accent-tint);
+  }
+
+  .feat {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #fff;
+    transition:
+      transform var(--duration-base) ease,
+      box-shadow var(--duration-base) ease,
+      border-color var(--duration-base) ease;
+  }
+  .feat:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--line-hover);
+  }
+  /* The three "before / while / any provider" cards keep their teal border on
+     hover (the board sets it inline, which wins over the hover colour). */
+  .feat.hi,
+  .feat.hi:hover {
+    border-color: var(--accent-line);
+    background: var(--accent-tint);
+  }
+  .feat h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .feat p {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--ink-2);
+  }
+
+  .in {
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid var(--line-input);
+    border-radius: 9px;
+    background: #fff;
+    font: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    box-sizing: border-box;
+    min-width: 0;
+    width: 100%;
+  }
+  .row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 14px;
+  }
+  .bar {
+    height: 10px;
+    border-radius: 5px;
+    background: var(--line-2);
+    overflow: hidden;
+  }
+  .bar i {
+    display: block;
+    height: 100%;
+    border-radius: 5px;
+    transition: width var(--duration-slow) var(--ease-out-soft);
+  }
+
+  /* Accessibility helpers (shared with every board). */
+  .vh {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .skip {
+    position: absolute;
+    left: -9999px;
+    top: 8px;
+    z-index: 100;
+    background: #fff;
+    color: var(--ink);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .skip:focus {
+    left: 8px;
+  }
+  /* Links inside running text are underlined so colour is never the only cue. */
+  p a:not(.btn),
+  li a:not(.btn),
+  label a,
+  .k a,
+  .lead a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+  /* Standalone navigation links keep a 24px target. */
+  nav a:not(.btn),
+  footer a:not(.btn) {
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
+  }
+  main:focus {
+    outline: none;
+  }
+
+  /* Counters reserve the width of their final value, so counting never
+     moves the text around them. */
+  .count {
+    display: inline-grid;
+  }
+  .count > .count-w,
+  .count > .count-v {
+    grid-area: 1 / 1;
+  }
+  .count > .count-w {
+    visibility: hidden;
+  }
+  .count > .count-v {
+    justify-self: end;
+  }
+  /* Until the script takes over a counter that will count up, hide the final
+     value it was prerendered with (it would otherwise flash before dropping
+     to zero). If the script never runs, the value appears after 4 s. */
+  @media (prefers-reduced-motion: no-preference) {
+    .js:not([data-motion='paused']) .count:not([data-live]) > .count-v {
+      visibility: hidden;
+      animation: count-fallback 0s linear 4s forwards;
+    }
+  }
+
+  /* Terminals: the hero command fits its column exactly, so only the cursor
+     overflows; hide the scrollbar that classic scrollbars would draw. */
+  pre.term {
+    scrollbar-width: none;
+  }
+  pre.term::-webkit-scrollbar {
+    display: none;
+  }
+}
+@keyframes count-fallback {
+  to {
+    visibility: visible;
+  }
+}
+
+/* ------------------------------------------------------------------ motion */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes grow {
+  from {
+    width: 0;
+  }
+}
+@keyframes scan {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(185, 28, 28, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(185, 28, 28, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(185, 28, 28, 0);
+  }
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes drift {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(18px, -14px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@layer components {
+  .rise {
+    animation: rise var(--duration-slow) var(--ease-out-soft) both;
+  }
+  .d1 {
+    animation-delay: 0.05s;
+  }
+  .d2 {
+    animation-delay: 0.14s;
+  }
+  .d3 {
+    animation-delay: 0.24s;
+  }
+  .d4 {
+    animation-delay: 0.34s;
+  }
+  .d5 {
+    animation-delay: 0.44s;
+  }
+  .d6 {
+    animation-delay: 0.3s;
+  }
+  .chk {
+    animation: rise 0.5s var(--ease-out-soft) both;
+  }
+  .chk .badge {
+    animation: pop 0.45s var(--ease-out-soft) both;
+    animation-delay: inherit;
+  }
+  .c1 {
+    animation-delay: 0.9s;
+  }
+  .c2 {
+    animation-delay: 1.2s;
+  }
+  .c3 {
+    animation-delay: 1.5s;
+  }
+  .c4 {
+    animation-delay: 1.8s;
+  }
+  .c5 {
+    animation-delay: 2.1s;
+  }
+  .verdict {
+    animation: pop 0.5s var(--ease-out-soft) 2.5s both;
+  }
+  .live {
+    animation: rise 0.6s var(--ease-out-soft) 2.7s both;
+  }
+  .held {
+    animation: rise 0.6s var(--ease-out-soft) 3.4s both;
+  }
+  .pulse {
+    animation: pulse var(--duration-loop) ease-out 3.6s infinite;
+  }
+  .scan {
+    position: relative;
+    overflow: hidden;
+  }
+  .scan::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(15, 118, 110, 0), rgba(15, 118, 110, 0.9), rgba(15, 118, 110, 0));
+    animation: scan 3.2s ease-in-out 0.6s 1 both;
+    pointer-events: none;
+  }
+  .typed {
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    vertical-align: bottom;
+    animation: typing 2.2s steps(62, end) 0.5s both;
+  }
+  .cursor {
+    display: inline-block;
+    width: 9px;
+    height: 17px;
+    background: var(--dark-cursor);
+    vertical-align: -2px;
+    margin-left: 2px;
+    animation: blink 1s step-end infinite;
+  }
+  .grow i {
+    animation: grow 1.2s var(--ease-out-soft) both;
+  }
+  .g1 i {
+    animation-delay: 0.2s;
+  }
+  .g2 i {
+    animation-delay: 0.45s;
+  }
+  .g3 i {
+    animation-delay: 0.7s;
+  }
+  .marquee {
+    position: relative;
+    height: 40px;
+    padding: 1px 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+  .track {
+    position: absolute;
+    left: 0;
+    top: 1px;
+    display: flex;
+    gap: 10px;
+    width: max-content;
+    animation: marquee 38s linear infinite;
+  }
+  .marquee:hover .track {
+    animation-play-state: paused;
+  }
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--accent-glow);
+    opacity: 0.55;
+    filter: blur(2px);
+    animation: drift 14s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .reveal {
+    opacity: 1;
+  }
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: rise 0.8s var(--ease-out-soft) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 30%;
+    }
+    .grow i {
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+      animation-delay: 0s;
+    }
+  }
+}
+
+/* -------------------------------------------------------- flow canvas */
+@keyframes nodeIn {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+    scale: 0.97;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes drawV {
+  from {
+    scale: 1 0;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+@keyframes drawH {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+@keyframes labIn {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  70% {
+    opacity: 1;
+    scale: 1.08;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+@keyframes livepulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(15, 118, 110, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0);
+  }
+}
+
+@layer components {
+  .flowwrap {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background-color: var(--ground);
+    background-image: radial-gradient(var(--line-strong) 1px, transparent 1px);
+    background-size: 20px 20px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    box-sizing: border-box;
+    /* The 760px stage scales to the card (0.6 to 1), computed in CSS so the
+       prerendered page already has its final size. */
+    container-type: inline-size;
+  }
+  .flowbox {
+    --flow-scale: clamp(0.6, tan(atan2(100cqw, 760px)), 1);
+    position: relative;
+    overflow: hidden;
+    margin: 0 auto;
+    width: calc(760px * var(--flow-scale));
+    height: calc(760px * var(--flow-scale));
+  }
+  .flowstage {
+    position: relative;
+    width: 760px;
+    height: 760px;
+    transform-origin: top left;
+    transform: scale(var(--flow-scale));
+    font-family: var(--font-family-sans);
+    color: var(--ink);
+    text-align: left;
+  }
+  .fn {
+    position: absolute;
+    width: 200px;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(11, 18, 32, 0.08);
+    box-sizing: border-box;
+    padding: 9px 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    z-index: 2;
+    font-size: 12.5px;
+    line-height: 1.35;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  .fn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(11, 18, 32, 0.14);
+  }
+  .fn .hd {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.25;
+  }
+  .fn .t {
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .fn .st {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+  .fn .hb {
+    position: absolute;
+    left: 50%;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #6b7280;
+    transform: translateX(-50%);
+  }
+  .fn .hb.i {
+    top: -6px;
+  }
+  .fn .hb.o {
+    bottom: -6px;
+  }
+  .fn.sel {
+    border-color: #1d4ed8;
+    box-shadow: 0 0 0 3px var(--info-bg);
+  }
+  .fe {
+    position: absolute;
+    background: var(--color-muted-line, #9aa3b2);
+    transform-origin: top center;
+  }
+  .fe.h {
+    transform-origin: center;
+  }
+  .flab {
+    position: absolute;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-nav);
+    white-space: nowrap;
+  }
+  /* With JavaScript the nodes wait for the canvas to scroll into view; the
+     fallback animation shows them anyway if the script never arrives. */
+  .js .flowstage:not(.go) :is(.fn, .fe, .flab) {
+    opacity: 0;
+    animation: flow-fallback 0s linear 8s forwards;
+  }
+  .go .fn {
+    animation: nodeIn 0.55s var(--ease-out-soft) both;
+  }
+  .go .fe {
+    animation: drawV 0.45s ease-out both;
+  }
+  .go .fe.h {
+    animation: drawH 0.45s ease-out both;
+  }
+  .go .flab {
+    animation: labIn 0.5s var(--ease-out-soft) both;
+  }
+  .go .hd .dot.live {
+    animation: livepulse var(--duration-loop) ease-out 1.4s infinite;
+  }
+  .f1 {
+    animation-delay: 0.1s;
+  }
+  .f2 {
+    animation-delay: 0.25s;
+  }
+  .f3 {
+    animation-delay: 0.4s;
+  }
+  .f4 {
+    animation-delay: 0.55s;
+  }
+  .f5,
+  .f7 {
+    animation-delay: 0.75s;
+  }
+  .f8 {
+    animation-delay: 0.9s;
+  }
+  .f6,
+  .f9 {
+    animation-delay: 1.05s;
+  }
+  .e1 {
+    animation-delay: 0.2s;
+  }
+  .e2 {
+    animation-delay: 0.35s;
+  }
+  .e3 {
+    animation-delay: 0.5s;
+  }
+  .e5 {
+    animation-delay: 0.62s;
+  }
+  .e4 {
+    animation-delay: 0.68s;
+  }
+  .e6,
+  .e7 {
+    animation-delay: 0.74s;
+  }
+  .e9 {
+    animation-delay: 0.88s;
+  }
+  .e8 {
+    animation-delay: 0.92s;
+  }
+  .e10 {
+    animation-delay: 1s;
+  }
+  .l1,
+  .l2 {
+    animation-delay: 0.95s;
+  }
+  .flowkey {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    padding: 10px 14px;
+    border-top: 1px solid var(--line);
+    background: #fff;
+  }
+  .flowkey span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Flow pulse: a contact moving through the flow; each step lights up as it arrives. */
+  .pu {
+    position: absolute;
+    z-index: 1;
+    width: 4px;
+    height: 18px;
+    border-radius: 3px;
+    background: var(--accent);
+    box-shadow: 0 0 6px 1px rgba(15, 118, 110, 0.6);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .pu.h {
+    width: 18px;
+    height: 4px;
+  }
+  .fn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    box-shadow:
+      inset 0 0 0 2px var(--accent),
+      0 0 0 4px rgba(15, 118, 110, 0.22),
+      0 8px 18px rgba(15, 118, 110, 0.18);
+  }
+  .go .pu.p1 { animation: pu1 11s linear 3.2s infinite; }
+  .go .pu.p2 { animation: pu2 11s linear 3.2s infinite; }
+  .go .pu.p3 { animation: pu3 11s linear 3.2s infinite; }
+  .go .pu.p4 { animation: pu4 11s linear 3.2s infinite; }
+  .go .pu.p5 { animation: pu5 11s linear 3.2s infinite; }
+  .go .pu.p6 { animation: pu6 11s linear 3.2s infinite; }
+  .go .pu.p7 { animation: pu7 11s linear 3.2s infinite; }
+  .go .pu.p8 { animation: pu8 11s linear 3.2s infinite; }
+  .go .pu.p9 { animation: pu9 11s linear 3.2s infinite; }
+  .go .pu.p10 { animation: pu10 11s linear 3.2s infinite; }
+  .go .pu.p11 { animation: pu11 11s linear 3.2s infinite; }
+  .go .f1::after { animation: hit-f1 11s linear 3.2s infinite; }
+  .go .f1 .hb.i { animation: hin-f1 11s linear 3.2s infinite; }
+  .go .f1 .hb.o { animation: hout-f1 11s linear 3.2s infinite; }
+  .go .f2::after { animation: hit-f2 11s linear 3.2s infinite; }
+  .go .f2 .hb.i { animation: hin-f2 11s linear 3.2s infinite; }
+  .go .f2 .hb.o { animation: hout-f2 11s linear 3.2s infinite; }
+  .go .f3::after { animation: hit-f3 11s linear 3.2s infinite; }
+  .go .f3 .hb.i { animation: hin-f3 11s linear 3.2s infinite; }
+  .go .f3 .hb.o { animation: hout-f3 11s linear 3.2s infinite; }
+  .go .f4::after { animation: hit-f4 11s linear 3.2s infinite; }
+  .go .f4 .hb.i { animation: hin-f4 11s linear 3.2s infinite; }
+  .go .f4 .hb.o { animation: hout-f4 11s linear 3.2s infinite; }
+  .go .f5::after { animation: hit-f5 11s linear 3.2s infinite; }
+  .go .f5 .hb.i { animation: hin-f5 11s linear 3.2s infinite; }
+  .go .f5 .hb.o { animation: hout-f5 11s linear 3.2s infinite; }
+  .go .f6::after { animation: hit-f6 11s linear 3.2s infinite; }
+  .go .f6 .hb.i { animation: hin-f6 11s linear 3.2s infinite; }
+  .go .f6 .hb.o { animation: hout-f6 11s linear 3.2s infinite; }
+  .go .f7::after { animation: hit-f7 11s linear 3.2s infinite; }
+  .go .f7 .hb.i { animation: hin-f7 11s linear 3.2s infinite; }
+  .go .f7 .hb.o { animation: hout-f7 11s linear 3.2s infinite; }
+  .go .f8::after { animation: hit-f8 11s linear 3.2s infinite; }
+  .go .f8 .hb.i { animation: hin-f8 11s linear 3.2s infinite; }
+  .go .f8 .hb.o { animation: hout-f8 11s linear 3.2s infinite; }
+  .go .f9::after { animation: hit-f9 11s linear 3.2s infinite; }
+  .go .f9 .hb.i { animation: hin-f9 11s linear 3.2s infinite; }
+  .go .f9 .hb.o { animation: hout-f9 11s linear 3.2s infinite; }
+}
+@keyframes flow-fallback {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ------------------------------------------------------------ phones ≤767px */
+@layer components {
+  @media (max-width: 767px) {
+    .wrap h1 {
+      font-size: 34px !important;
+    }
+    h2.sec {
+      font-size: 26px !important;
+    }
+    .lead {
+      font-size: 16px !important;
+    }
+    pre {
+      font-size: 12px !important;
+    }
+    .wrap {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    .typed {
+      animation: none;
+      white-space: normal;
+    }
+    /* The prototype's phone rules for every screen: long words break, badges
+       and buttons may wrap. Badges and buttons inside a row keep their word
+       whole (the prototype squeezes them to "Pas/s" and "Exclu/de"). */
+    .site {
+      overflow-wrap: anywhere;
+    }
+    .site table,
+    .site td,
+    .site th {
+      overflow-wrap: normal;
+    }
+    .site .badge {
+      white-space: normal;
+      height: auto;
+      min-height: 22px;
+      line-height: 1.25;
+      padding-top: 2px;
+      padding-bottom: 2px;
+    }
+    .site .btn {
+      white-space: normal;
+      max-width: 100%;
+    }
+    .site .row > .badge,
+    .site .row > .btn {
+      flex: none;
+      overflow-wrap: normal;
+    }
+  }
+}
+
+/* ------------------------------------------------- reduced motion: final state */
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .chk,
+  .chk .badge,
+  .verdict,
+  .live,
+  .held,
+  .pulse,
+  .typed,
+  .grow i,
+  .track,
+  .blob,
+  .reveal,
+  .cursor,
+  .go .hd .dot.live {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+  .scan::after {
+    display: none;
+  }
+  .bar i,
+  .btn,
+  .feat,
+  .fn {
+    transition: none;
+  }
+  .flowstage :is(.fn, .fe, .flab) {
+    opacity: 1 !important;
+    animation: none !important;
+    translate: none;
+    scale: none;
+  }
+  .pu,
+  .fn::after {
+    display: none !important;
+  }
+  .fn .hb {
+    animation: none !important;
+  }
+}
+
+/* --------------------------------------------- the visible Pause motion control */
+/* Loops (marquee, drifting blobs, flow pulses, the paused dot, cursors) freeze
+   where they are; anything that reveals content shows its final state, so
+   pausing can never leave a section invisible. */
+[data-motion='paused'] *,
+[data-motion='paused'] *::before,
+[data-motion='paused'] *::after {
+  animation-play-state: paused !important;
+}
+[data-motion='paused'] .bar i {
+  transition: none;
+}
+[data-motion='paused'] :is(.reveal, .grow i) {
+  animation: none !important;
+  opacity: 1;
+}
+/* Once motion has been paused, one-shot entrances stay finished even when it
+   plays again (they would otherwise restart from the beginning). */
+[data-settled] :is(.rise, .chk, .chk .badge, .verdict, .live, .held, .typed) {
+  animation: none !important;
+  opacity: 1;
+  transform: none;
+}
+[data-settled] .scan::after {
+  display: none;
+}
+[data-settled] .flowstage :is(.fn, .fe, .flab) {
+  animation: none !important;
+  opacity: 1 !important;
+}
+/* The control's label follows the state, which is known before first paint. */
+.motion-toggle .when-paused,
+[data-motion='paused'] .motion-toggle .when-playing {
+  display: none;
+}
+[data-motion='paused'] .motion-toggle .when-paused {
+  display: inline;
+}
