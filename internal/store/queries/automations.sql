@@ -340,7 +340,7 @@ WHERE r.status = 'waiting' AND r.next_at > @now AND r.state ->> 'wait' = 'branch
   AND EXISTS (
     SELECT 1 FROM delivery_events de
     WHERE de.message_id = (r.state ->> 'message')::uuid
-      AND ((r.state ->> 'want' = 'opened' AND de.type = 'open' AND (NOT (r.state ->> 'human')::boolean OR NOT de.machine))
+      AND ((r.state ->> 'want' = 'opened' AND de.type = 'open' AND (NOT coalesce((r.state ->> 'human')::boolean, false) OR NOT de.machine))
         OR (r.state ->> 'want' = 'clicked' AND de.type = 'click')));
 
 -- name: ContactForRun :one
@@ -511,3 +511,70 @@ SELECT r.version, r.node_id, r.status, r.state, count(*)::bigint AS n
 FROM automation_runs r
 WHERE r.automation_id = @automation_id AND r.status IN ('active', 'waiting')
 GROUP BY r.version, r.node_id, r.status, r.state;
+
+-- name: ActiveRunVersions :many
+-- Live flows' versions that still have contacts in them (goal detection).
+SELECT DISTINCT r.automation_id, r.version, a.workspace_id, v.graph
+FROM automation_runs r
+JOIN automations a ON a.id = r.automation_id
+JOIN automation_versions v ON v.automation_id = r.automation_id AND v.version = r.version
+WHERE r.status IN ('active', 'waiting') AND a.status = 'live' AND a.deleted_at IS NULL;
+
+-- name: GoalRunsEngaged :many
+-- Runs whose contact opened or clicked an email of this flow since entering.
+SELECT r.id, r.node_id FROM automation_runs r
+WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN ('active', 'waiting')
+  AND EXISTS (
+    SELECT 1 FROM delivery_events de
+    JOIN messages m ON m.id = de.message_id
+    WHERE de.contact_id = r.contact_id AND m.automation_id = r.automation_id AND de.occurred_at >= r.entered_at
+      AND ((@want::text = 'opened' AND de.type = 'open' AND (NOT @human_only::boolean OR NOT de.machine))
+        OR (@want::text = 'clicked' AND de.type = 'click' AND (@url_contains::text = '' OR de.url ILIKE '%' || @url_contains::text || '%'))))
+LIMIT 1000
+FOR UPDATE OF r SKIP LOCKED;
+
+-- name: GoalRunsTagged :many
+SELECT r.id, r.node_id FROM automation_runs r
+JOIN contacts c ON c.id = r.contact_id
+WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN ('active', 'waiting')
+  AND @tag::text = ANY (c.tags)
+LIMIT 1000
+FOR UPDATE OF r SKIP LOCKED;
+
+-- name: GoalRunsInList :many
+SELECT r.id, r.node_id FROM automation_runs r
+WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN ('active', 'waiting')
+  AND EXISTS (SELECT 1 FROM list_memberships lm WHERE lm.list_id = @list_id AND lm.contact_id = r.contact_id AND lm.status = 'subscribed')
+LIMIT 1000
+FOR UPDATE OF r SKIP LOCKED;
+
+-- name: GoalRunsEvent :many
+SELECT r.id, r.node_id FROM automation_runs r
+JOIN automations a ON a.id = r.automation_id
+WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN ('active', 'waiting')
+  AND EXISTS (SELECT 1 FROM automation_events e
+              WHERE e.workspace_id = a.workspace_id AND e.contact_id = r.contact_id AND e.kind = 'api_event'
+                AND e.ref = @event::text AND e.occurred_at >= r.entered_at)
+LIMIT 1000
+FOR UPDATE OF r SKIP LOCKED;
+
+-- name: LiveDateTriggers :many
+SELECT a.id, a.workspace_id, a.trigger, w.timezone
+FROM automations a
+JOIN workspaces w ON w.id = a.workspace_id
+WHERE a.status = 'live' AND a.deleted_at IS NULL AND a.trigger ->> 'kind' = 'date_field';
+
+-- name: LostWebhookRuns :many
+-- Runs waiting on a webhook call whose job never ran (lost or not enqueued).
+SELECT id, automation_id, version, node_id FROM automation_runs
+WHERE status = 'waiting' AND next_at IS NULL AND state ->> 'wait' = 'webhook' AND node_entered_at < @before
+LIMIT 500;
+
+-- name: TouchRunNextAt :exec
+UPDATE automation_runs SET next_at = @next_at WHERE id = @id;
+
+-- name: MessageForStats :one
+SELECT m.automation_id, m.automation_node, a.live_version, a.draft_version
+FROM messages m
+JOIN automations a ON a.id = m.automation_id
+WHERE m.id = @id;

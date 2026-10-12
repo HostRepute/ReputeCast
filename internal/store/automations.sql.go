@@ -55,6 +55,47 @@ func (q *Queries) ActiveRunNodes(ctx context.Context, automationID uuid.UUID) ([
 	return items, nil
 }
 
+const activeRunVersions = `-- name: ActiveRunVersions :many
+SELECT DISTINCT r.automation_id, r.version, a.workspace_id, v.graph
+FROM automation_runs r
+JOIN automations a ON a.id = r.automation_id
+JOIN automation_versions v ON v.automation_id = r.automation_id AND v.version = r.version
+WHERE r.status IN ('active', 'waiting') AND a.status = 'live' AND a.deleted_at IS NULL
+`
+
+type ActiveRunVersionsRow struct {
+	AutomationID uuid.UUID       `json:"automationId"`
+	Version      int32           `json:"version"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	Graph        json.RawMessage `json:"graph"`
+}
+
+// Live flows' versions that still have contacts in them (goal detection).
+func (q *Queries) ActiveRunVersions(ctx context.Context) ([]ActiveRunVersionsRow, error) {
+	rows, err := q.db.Query(ctx, activeRunVersions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ActiveRunVersionsRow{}
+	for rows.Next() {
+		var i ActiveRunVersionsRow
+		if err := rows.Scan(
+			&i.AutomationID,
+			&i.Version,
+			&i.WorkspaceID,
+			&i.Graph,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const addContactTag = `-- name: AddContactTag :exec
 UPDATE contacts SET tags = array_append(tags, $1::text), updated_at = now()
 WHERE id = $2 AND NOT ($1::text = ANY (tags))
@@ -979,6 +1020,180 @@ func (q *Queries) GetStepSecret(ctx context.Context, arg GetStepSecretParams) ([
 	return secret_enc, err
 }
 
+const goalRunsEngaged = `-- name: GoalRunsEngaged :many
+SELECT r.id, r.node_id FROM automation_runs r
+WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
+  AND EXISTS (
+    SELECT 1 FROM delivery_events de
+    JOIN messages m ON m.id = de.message_id
+    WHERE de.contact_id = r.contact_id AND m.automation_id = r.automation_id AND de.occurred_at >= r.entered_at
+      AND (($3::text = 'opened' AND de.type = 'open' AND (NOT $4::boolean OR NOT de.machine))
+        OR ($3::text = 'clicked' AND de.type = 'click' AND ($5::text = '' OR de.url ILIKE '%' || $5::text || '%'))))
+LIMIT 1000
+FOR UPDATE OF r SKIP LOCKED
+`
+
+type GoalRunsEngagedParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	Version      int32     `json:"version"`
+	Want         string    `json:"want"`
+	HumanOnly    bool      `json:"humanOnly"`
+	UrlContains  string    `json:"urlContains"`
+}
+
+type GoalRunsEngagedRow struct {
+	ID     uuid.UUID `json:"id"`
+	NodeID string    `json:"nodeId"`
+}
+
+// Runs whose contact opened or clicked an email of this flow since entering.
+func (q *Queries) GoalRunsEngaged(ctx context.Context, arg GoalRunsEngagedParams) ([]GoalRunsEngagedRow, error) {
+	rows, err := q.db.Query(ctx, goalRunsEngaged,
+		arg.AutomationID,
+		arg.Version,
+		arg.Want,
+		arg.HumanOnly,
+		arg.UrlContains,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GoalRunsEngagedRow{}
+	for rows.Next() {
+		var i GoalRunsEngagedRow
+		if err := rows.Scan(&i.ID, &i.NodeID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const goalRunsEvent = `-- name: GoalRunsEvent :many
+SELECT r.id, r.node_id FROM automation_runs r
+JOIN automations a ON a.id = r.automation_id
+WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
+  AND EXISTS (SELECT 1 FROM automation_events e
+              WHERE e.workspace_id = a.workspace_id AND e.contact_id = r.contact_id AND e.kind = 'api_event'
+                AND e.ref = $3::text AND e.occurred_at >= r.entered_at)
+LIMIT 1000
+FOR UPDATE OF r SKIP LOCKED
+`
+
+type GoalRunsEventParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	Version      int32     `json:"version"`
+	Event        string    `json:"event"`
+}
+
+type GoalRunsEventRow struct {
+	ID     uuid.UUID `json:"id"`
+	NodeID string    `json:"nodeId"`
+}
+
+func (q *Queries) GoalRunsEvent(ctx context.Context, arg GoalRunsEventParams) ([]GoalRunsEventRow, error) {
+	rows, err := q.db.Query(ctx, goalRunsEvent, arg.AutomationID, arg.Version, arg.Event)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GoalRunsEventRow{}
+	for rows.Next() {
+		var i GoalRunsEventRow
+		if err := rows.Scan(&i.ID, &i.NodeID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const goalRunsInList = `-- name: GoalRunsInList :many
+SELECT r.id, r.node_id FROM automation_runs r
+WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
+  AND EXISTS (SELECT 1 FROM list_memberships lm WHERE lm.list_id = $3 AND lm.contact_id = r.contact_id AND lm.status = 'subscribed')
+LIMIT 1000
+FOR UPDATE OF r SKIP LOCKED
+`
+
+type GoalRunsInListParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	Version      int32     `json:"version"`
+	ListID       uuid.UUID `json:"listId"`
+}
+
+type GoalRunsInListRow struct {
+	ID     uuid.UUID `json:"id"`
+	NodeID string    `json:"nodeId"`
+}
+
+func (q *Queries) GoalRunsInList(ctx context.Context, arg GoalRunsInListParams) ([]GoalRunsInListRow, error) {
+	rows, err := q.db.Query(ctx, goalRunsInList, arg.AutomationID, arg.Version, arg.ListID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GoalRunsInListRow{}
+	for rows.Next() {
+		var i GoalRunsInListRow
+		if err := rows.Scan(&i.ID, &i.NodeID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const goalRunsTagged = `-- name: GoalRunsTagged :many
+SELECT r.id, r.node_id FROM automation_runs r
+JOIN contacts c ON c.id = r.contact_id
+WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
+  AND $3::text = ANY (c.tags)
+LIMIT 1000
+FOR UPDATE OF r SKIP LOCKED
+`
+
+type GoalRunsTaggedParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	Version      int32     `json:"version"`
+	Tag          string    `json:"tag"`
+}
+
+type GoalRunsTaggedRow struct {
+	ID     uuid.UUID `json:"id"`
+	NodeID string    `json:"nodeId"`
+}
+
+func (q *Queries) GoalRunsTagged(ctx context.Context, arg GoalRunsTaggedParams) ([]GoalRunsTaggedRow, error) {
+	rows, err := q.db.Query(ctx, goalRunsTagged, arg.AutomationID, arg.Version, arg.Tag)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GoalRunsTaggedRow{}
+	for rows.Next() {
+		var i GoalRunsTaggedRow
+		if err := rows.Scan(&i.ID, &i.NodeID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertAutomationEmailVersion = `-- name: InsertAutomationEmailVersion :exec
 INSERT INTO automation_email_versions (email_id, version, subject, preheader, mjml, html, plain_text, created_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -1613,6 +1828,45 @@ func (q *Queries) LiveAutomationsForTrigger(ctx context.Context, arg LiveAutomat
 	return items, nil
 }
 
+const liveDateTriggers = `-- name: LiveDateTriggers :many
+SELECT a.id, a.workspace_id, a.trigger, w.timezone
+FROM automations a
+JOIN workspaces w ON w.id = a.workspace_id
+WHERE a.status = 'live' AND a.deleted_at IS NULL AND a.trigger ->> 'kind' = 'date_field'
+`
+
+type LiveDateTriggersRow struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Trigger     json.RawMessage `json:"trigger"`
+	Timezone    string          `json:"timezone"`
+}
+
+func (q *Queries) LiveDateTriggers(ctx context.Context) ([]LiveDateTriggersRow, error) {
+	rows, err := q.db.Query(ctx, liveDateTriggers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []LiveDateTriggersRow{}
+	for rows.Next() {
+		var i LiveDateTriggersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Trigger,
+			&i.Timezone,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockAutomation = `-- name: LockAutomation :one
 SELECT id, workspace_id, name, description, status, template_key, live_version, draft_version, trigger, created_by, created_at, updated_at, deleted_at, paused_at, paused_by, pause_reason, draft_revision, updated_by FROM automations WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR UPDATE
 `
@@ -1677,6 +1931,45 @@ func (q *Queries) LookupWorkspaceLists(ctx context.Context, workspaceID uuid.UUI
 	return items, nil
 }
 
+const lostWebhookRuns = `-- name: LostWebhookRuns :many
+SELECT id, automation_id, version, node_id FROM automation_runs
+WHERE status = 'waiting' AND next_at IS NULL AND state ->> 'wait' = 'webhook' AND node_entered_at < $1
+LIMIT 500
+`
+
+type LostWebhookRunsRow struct {
+	ID           uuid.UUID `json:"id"`
+	AutomationID uuid.UUID `json:"automationId"`
+	Version      int32     `json:"version"`
+	NodeID       string    `json:"nodeId"`
+}
+
+// Runs waiting on a webhook call whose job never ran (lost or not enqueued).
+func (q *Queries) LostWebhookRuns(ctx context.Context, before time.Time) ([]LostWebhookRunsRow, error) {
+	rows, err := q.db.Query(ctx, lostWebhookRuns, before)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []LostWebhookRunsRow{}
+	for rows.Next() {
+		var i LostWebhookRunsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.AutomationID,
+			&i.Version,
+			&i.NodeID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const markEventProcessed = `-- name: MarkEventProcessed :exec
 UPDATE automation_events SET processed_at = now(), enrolled = $1 WHERE id = $2
 `
@@ -1716,6 +2009,32 @@ func (q *Queries) MessageEngaged(ctx context.Context, arg MessageEngagedParams) 
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const messageForStats = `-- name: MessageForStats :one
+SELECT m.automation_id, m.automation_node, a.live_version, a.draft_version
+FROM messages m
+JOIN automations a ON a.id = m.automation_id
+WHERE m.id = $1
+`
+
+type MessageForStatsRow struct {
+	AutomationID   *uuid.UUID `json:"automationId"`
+	AutomationNode *string    `json:"automationNode"`
+	LiveVersion    *int32     `json:"liveVersion"`
+	DraftVersion   int32      `json:"draftVersion"`
+}
+
+func (q *Queries) MessageForStats(ctx context.Context, id uuid.UUID) (MessageForStatsRow, error) {
+	row := q.db.QueryRow(ctx, messageForStats, id)
+	var i MessageForStatsRow
+	err := row.Scan(
+		&i.AutomationID,
+		&i.AutomationNode,
+		&i.LiveVersion,
+		&i.DraftVersion,
+	)
+	return i, err
 }
 
 const openAlert = `-- name: OpenAlert :exec
@@ -2294,6 +2613,20 @@ func (q *Queries) StepStatsSince(ctx context.Context, arg StepStatsSinceParams) 
 	return items, nil
 }
 
+const touchRunNextAt = `-- name: TouchRunNextAt :exec
+UPDATE automation_runs SET next_at = $1 WHERE id = $2
+`
+
+type TouchRunNextAtParams struct {
+	NextAt *time.Time `json:"nextAt"`
+	ID     uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) TouchRunNextAt(ctx context.Context, arg TouchRunNextAtParams) error {
+	_, err := q.db.Exec(ctx, touchRunNextAt, arg.NextAt, arg.ID)
+	return err
+}
+
 const unsubscribeAllLists = `-- name: UnsubscribeAllLists :exec
 UPDATE list_memberships SET status = 'unsubscribed', unsubscribed_at = now()
 WHERE contact_id = $1 AND status <> 'unsubscribed'
@@ -2431,7 +2764,7 @@ WHERE r.status = 'waiting' AND r.next_at > $1 AND r.state ->> 'wait' = 'branch'
   AND EXISTS (
     SELECT 1 FROM delivery_events de
     WHERE de.message_id = (r.state ->> 'message')::uuid
-      AND ((r.state ->> 'want' = 'opened' AND de.type = 'open' AND (NOT (r.state ->> 'human')::boolean OR NOT de.machine))
+      AND ((r.state ->> 'want' = 'opened' AND de.type = 'open' AND (NOT coalesce((r.state ->> 'human')::boolean, false) OR NOT de.machine))
         OR (r.state ->> 'want' = 'clicked' AND de.type = 'click')))
 `
 

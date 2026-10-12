@@ -1,0 +1,117 @@
+package automations
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"strings"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+
+	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/store"
+)
+
+// EmitFormSubmitted queues a "form submitted" trigger event. The forms
+// domain calls it inside the transaction that records the submission (after
+// double opt-in when the form asks for it). List joins and new tags need no
+// call: database triggers queue them.
+func EmitFormSubmitted(ctx context.Context, q *store.Queries, workspaceID, contactID, formID uuid.UUID) error {
+	return q.InsertAutomationEvent(ctx, store.InsertAutomationEventParams{
+		WorkspaceID: workspaceID, Kind: TriggerFormSubmitted, ContactID: contactID, Ref: formID.String(),
+		Payload: json.RawMessage(`{}`), OccurredAt: nowUTC(ctx),
+	})
+}
+
+// APIEvent is an event sent through the API for one contact.
+type APIEvent struct {
+	Event      string
+	Email      string
+	ContactID  string
+	Properties map[string]any
+}
+
+// APIEventResult says which contact the event was recorded for.
+type APIEventResult struct {
+	Accepted  bool   `json:"accepted"`
+	ContactID string `json:"contactId"`
+	// Flows lists the live automations listening to this event.
+	Flows int `json:"flows" doc:"Live automations triggered by this event"`
+}
+
+// SendEvent records an API event ("workspace.created") for a contact. Flows
+// triggered by it enroll the contact on the next engine tick (seconds), and
+// goals and branches waiting for it see it.
+func (s *Service) SendEvent(ctx context.Context, ws *store.Workspace, ev APIEvent) (APIEventResult, error) {
+	var out APIEventResult
+	name := strings.TrimSpace(ev.Event)
+	if !reEvent.MatchString(name) {
+		return out, api.Invalid("body.event", "Name the event with letters, numbers and . _ : -, like workspace.created.")
+	}
+	props, _ := json.Marshal(ev.Properties)
+	if ev.Properties == nil {
+		props = []byte(`{}`)
+	}
+	if len(props) > 16<<10 {
+		return out, api.Invalid("body.properties", "Keep event properties under 16 KB.")
+	}
+	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		var contactID uuid.UUID
+		var status string
+		switch {
+		case ev.ContactID != "":
+			id, err := uuid.Parse(ev.ContactID)
+			if err != nil {
+				return api.Invalid("body.contactId", "That isn't a contact id.")
+			}
+			c, err := q.ContactInWorkspace(ctx, store.ContactInWorkspaceParams{WorkspaceID: ws.ID, ID: id})
+			if errors.Is(err, pgx.ErrNoRows) {
+				return api.NotFound("Contact")
+			}
+			if err != nil {
+				return err
+			}
+			contactID, status = c.ID, c.Status
+		case ev.Email != "":
+			c, err := q.ContactByEmail(ctx, store.ContactByEmailParams{WorkspaceID: ws.ID, Email: strings.ToLower(strings.TrimSpace(ev.Email))})
+			if errors.Is(err, pgx.ErrNoRows) {
+				return api.Err(404, api.CodeNotFound, "No contact with that email in this workspace. Add the contact first, then send the event.")
+			}
+			if err != nil {
+				return err
+			}
+			contactID, status = c.ID, c.Status
+		default:
+			return api.Invalid("body.email", "Say who the event is about: email or contactId.")
+		}
+		if err := q.InsertAutomationEvent(ctx, store.InsertAutomationEventParams{
+			WorkspaceID: ws.ID, Kind: TriggerAPIEvent, ContactID: contactID, Ref: name, Payload: props, OccurredAt: s.now(),
+		}); err != nil {
+			return err
+		}
+		flows, err := q.LiveAutomationsForTrigger(ctx, store.LiveAutomationsForTriggerParams{WorkspaceID: ws.ID, Kind: TriggerAPIEvent})
+		if err != nil {
+			return err
+		}
+		for _, f := range flows {
+			var t TriggerConfig
+			if json.Unmarshal(f.Trigger, &t) == nil && t.Event == name {
+				out.Flows++
+			}
+		}
+		out.Accepted = true
+		out.ContactID = contactID.String()
+		_ = status
+		// Events are contact activity, like opens and clicks: the event row
+		// is the record, not the audit log (an integration may send
+		// thousands a day).
+		return nil
+	})
+	if err == nil && out.Flows > 0 {
+		s.kick(ctx, nil)
+	}
+	return out, err
+}

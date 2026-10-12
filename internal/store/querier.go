@@ -16,6 +16,8 @@ type Querier interface {
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) error
 	// Where contacts are, per version and step (publish impact).
 	ActiveRunNodes(ctx context.Context, automationID uuid.UUID) ([]ActiveRunNodesRow, error)
+	// Live flows' versions that still have contacts in them (goal detection).
+	ActiveRunVersions(ctx context.Context) ([]ActiveRunVersionsRow, error)
 	AddContactTag(ctx context.Context, arg AddContactTagParams) error
 	AddListMembership(ctx context.Context, arg AddListMembershipParams) error
 	// Whether the contact opened or clicked any email of this flow since a time.
@@ -105,6 +107,11 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
+	// Runs whose contact opened or clicked an email of this flow since entering.
+	GoalRunsEngaged(ctx context.Context, arg GoalRunsEngagedParams) ([]GoalRunsEngagedRow, error)
+	GoalRunsEvent(ctx context.Context, arg GoalRunsEventParams) ([]GoalRunsEventRow, error)
+	GoalRunsInList(ctx context.Context, arg GoalRunsInListParams) ([]GoalRunsInListRow, error)
+	GoalRunsTagged(ctx context.Context, arg GoalRunsTaggedParams) ([]GoalRunsTaggedRow, error)
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
 	InsertAutomationEmailVersion(ctx context.Context, arg InsertAutomationEmailVersionParams) error
 	InsertAutomationEvent(ctx context.Context, arg InsertAutomationEventParams) error
@@ -148,10 +155,14 @@ type Querier interface {
 	ListWorkspaces(ctx context.Context) ([]Workspace, error)
 	// Live flows a trigger event enrolls into.
 	LiveAutomationsForTrigger(ctx context.Context, arg LiveAutomationsForTriggerParams) ([]LiveAutomationsForTriggerRow, error)
+	LiveDateTriggers(ctx context.Context) ([]LiveDateTriggersRow, error)
 	LockAutomation(ctx context.Context, arg LockAutomationParams) (Automation, error)
 	LookupWorkspaceLists(ctx context.Context, workspaceID uuid.UUID) ([]LookupWorkspaceListsRow, error)
+	// Runs waiting on a webhook call whose job never ran (lost or not enqueued).
+	LostWebhookRuns(ctx context.Context, before time.Time) ([]LostWebhookRunsRow, error)
 	MarkEventProcessed(ctx context.Context, arg MarkEventProcessedParams) error
 	MessageEngaged(ctx context.Context, arg MessageEngagedParams) (bool, error)
+	MessageForStats(ctx context.Context, id uuid.UUID) (MessageForStatsRow, error)
 	// Records a failure: opens the alert or adds to the open one.
 	OpenAlert(ctx context.Context, arg OpenAlertParams) error
 	OpenSendingHeldAlerts(ctx context.Context) ([]OpenSendingHeldAlertsRow, error)
@@ -211,6 +222,7 @@ type Querier interface {
 	TouchIdentity(ctx context.Context, id uuid.UUID) error
 	TouchMemberActive(ctx context.Context, arg TouchMemberActiveParams) error
 	TouchPasskey(ctx context.Context, arg TouchPasskeyParams) error
+	TouchRunNextAt(ctx context.Context, arg TouchRunNextAtParams) error
 	TouchSession(ctx context.Context, id uuid.UUID) error
 	TouchUserActive(ctx context.Context, id uuid.UUID) error
 	UnsubscribeAllLists(ctx context.Context, contactID uuid.UUID) error
