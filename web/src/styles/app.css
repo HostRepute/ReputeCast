@@ -108,6 +108,21 @@
 
 /* ------------------------------------------------------------------ base */
 @layer base {
+  /* The boards were drawn with the browser's default box model: content-box,
+     except form controls and tables. Tailwind's preflight makes everything
+     border-box; restoring the default means a width, height or flex-basis
+     copied from a board renders at the same size. Components that are
+     border-box on the boards (.btn, .in, .ws, .menu, .side…) say so below. */
+  *,
+  ::before,
+  ::after,
+  ::backdrop {
+    box-sizing: content-box;
+  }
+  :where(button, input, select, textarea, meter, progress, table),
+  ::file-selector-button {
+    box-sizing: border-box;
+  }
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -388,12 +403,6 @@
     border-collapse: collapse;
     font-size: 13px;
   }
-  /* Cells keep the prototype's content-box sizing, so a min-width copied
-     from a board means the same width here. */
-  .tbl th,
-  .tbl td {
-    box-sizing: content-box;
-  }
   .tbl th {
     text-align: left;
     font-weight: 600;
@@ -448,7 +457,10 @@
   .tbl tbody tr.clickable:hover td {
     background: var(--ground-3);
   }
+  /* position: relative keeps visually hidden labels in header cells inside
+     the scroller, so they never widen the page. */
   .tscroll {
+    position: relative;
     overflow-x: auto;
     max-width: 100%;
     contain: inline-size;
@@ -1246,11 +1258,12 @@
     font-size: 15px;
     letter-spacing: -0.01em;
   }
+  /* 8px on the 40 product boards; the 35 team and access boards use 4px. */
   .nav {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    margin-top: 4px;
+    margin-top: 8px;
   }
   .nav a {
     display: flex;
