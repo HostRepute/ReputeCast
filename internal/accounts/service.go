@@ -1,6 +1,7 @@
-// Package accounts implements sign-in (identifier first, password, two-factor,
-// recovery codes), sessions, the signed-in person's profile and security
-// settings, password resets and the first sign-in setup of an instance.
+// Package accounts implements sign-in (identifier first, password, passkeys,
+// two-factor, recovery codes), sessions, password resets, accepting
+// invitations, the signed-in person's profile and security settings, and
+// the first sign-in setup of an instance.
 package accounts
 
 import (
@@ -10,6 +11,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -48,9 +50,31 @@ func (s *Service) now() time.Time {
 	return time.Now()
 }
 
+func (s *Service) mail() mailer.Sender {
+	if s.Mail == nil {
+		return mailer.Unavailable{}
+	}
+	return s.Mail
+}
+
 // policy loads the instance authentication policy.
 func (s *Service) policy(ctx context.Context) (store.InstanceSetting, error) {
 	return s.Q.GetInstanceSettings(ctx)
+}
+
+// publicURL is the address people open (instance settings, then config),
+// without a trailing slash.
+func (s *Service) publicURL(ctx context.Context) string {
+	if st, err := s.policy(ctx); err == nil && st.PublicUrl != "" {
+		return strings.TrimRight(st.PublicUrl, "/")
+	}
+	return strings.TrimRight(s.Cfg.HTTP.PublicURL, "/")
+}
+
+// methodAllowed reports whether the instance allows a sign-in method
+// (password, passkey, social, sso).
+func methodAllowed(st store.InstanceSetting, method string) bool {
+	return len(st.AllowedMethods) == 0 || slices.Contains(st.AllowedMethods, method)
 }
 
 // totpAD is the associated data binding a user's TOTP secret to the user.
@@ -81,11 +105,11 @@ func (s *Service) secureCookies() bool {
 	return strings.HasPrefix(s.Cfg.HTTP.PublicURL, "https://") || (s.Cfg.Auth.CookieSecure && !s.Cfg.IsDevelopment())
 }
 
-// newSession stores a session and returns its cookie.
-func (s *Service) newSession(ctx context.Context, q *store.Queries, u store.User, method string, mfa, remember bool) (http.Cookie, error) {
+// newSession stores a session and returns its cookie and id.
+func (s *Service) newSession(ctx context.Context, q *store.Queries, u store.User, method string, mfa, remember bool) (http.Cookie, uuid.UUID, error) {
 	pol, err := s.policy(ctx)
 	if err != nil {
-		return http.Cookie{}, err
+		return http.Cookie{}, uuid.Nil, err
 	}
 	lifetime := pol.SessionLifetime
 	if !remember && pol.SessionIdle < lifetime {
@@ -94,7 +118,7 @@ func (s *Service) newSession(ctx context.Context, q *store.Queries, u store.User
 	token, hash := authn.NewToken()
 	req := audit.RequestFrom(ctx)
 	expires := s.now().Add(lifetime)
-	if _, err := q.CreateSession(ctx, store.CreateSessionParams{
+	sess, err := q.CreateSession(ctx, store.CreateSessionParams{
 		ID:          uuid.Must(uuid.NewV7()),
 		UserID:      u.ID,
 		TokenHash:   hash,
@@ -103,10 +127,11 @@ func (s *Service) newSession(ctx context.Context, q *store.Queries, u store.User
 		Ip:          req.IP,
 		UserAgent:   req.UserAgent,
 		ExpiresAt:   expires,
-	}); err != nil {
-		return http.Cookie{}, err
+	})
+	if err != nil {
+		return http.Cookie{}, uuid.Nil, err
 	}
-	return s.cookie(token, expires, remember), nil
+	return s.cookie(token, expires, remember), sess.ID, nil
 }
 
 // actorFor builds an audit actor for a user who is not yet signed in.
@@ -152,6 +177,16 @@ func (s *Service) enforcingProvider(ctx context.Context, email string) (*store.S
 	return nil, rows.Err()
 }
 
+// ssoStart builds the link that starts single sign-on with a provider. The
+// OIDC flow itself lives in the SSO domain.
+func ssoStart(p *store.SsoProvider, loginHint string) SSOStart {
+	u := "/api/v1/auth/sso/" + p.ID.String() + "/start"
+	if loginHint != "" {
+		u += "?login_hint=" + urlEscape(loginHint)
+	}
+	return SSOStart{ProviderID: p.ID.String(), Name: p.Name, Preset: p.Preset, StartURL: u}
+}
+
 // nextPath tells the web app where to go after signing in.
 func (s *Service) nextPath(ctx context.Context, u store.User) string {
 	if u.MustChangePassword {
@@ -169,7 +204,7 @@ func (s *Service) nextPath(ctx context.Context, u store.User) string {
 	if u.IsInstanceAdmin {
 		return "/setup"
 	}
-	return "/account"
+	return "/workspaces/new"
 }
 
 var errNotFound = errors.New("not found")
@@ -185,4 +220,83 @@ func mustJSON(v any) json.RawMessage {
 func lockMessage(until time.Time, failures int32) *api.Problem {
 	return api.Err(http.StatusTooManyRequests, api.CodeLocked, "Sign-in is locked after too many attempts. Try again after "+until.Format("15:04")+", reset your password, or use a passkey.").
 		WithMeta("lockedUntil", until, "failures", failures)
+}
+
+// currentUser returns the signed-in person or a 401 problem.
+func currentUser(ctx context.Context) (*store.User, error) {
+	u := api.UserFrom(ctx)
+	if u == nil {
+		return nil, api.Err(http.StatusUnauthorized, api.CodeUnauthenticated, "Sign in to continue.")
+	}
+	return u, nil
+}
+
+// signInMethods counts the ways a person can sign in, to protect the last one.
+type signInMethods struct {
+	password   bool
+	passkeys   int
+	identities int
+	totp       bool
+}
+
+func (m signInMethods) total() int {
+	n := m.passkeys + m.identities
+	if m.password {
+		n++
+	}
+	return n
+}
+
+func (s *Service) methodsOf(ctx context.Context, u store.User) signInMethods {
+	m := signInMethods{password: u.PasswordHash != nil, totp: u.TotpEnabledAt != nil}
+	if pk, err := s.Q.ListPasskeys(ctx, u.ID); err == nil {
+		m.passkeys = len(pk)
+	}
+	if ids, err := s.Q.ListIdentities(ctx, u.ID); err == nil {
+		m.identities = len(ids)
+	}
+	return m
+}
+
+// twoFactorRequired reports whether the instance policy requires a second
+// factor for the person, and why ("Your role can send campaigns").
+func (s *Service) twoFactorRequired(ctx context.Context, u store.User, st store.InstanceSetting) (bool, string) {
+	switch st.TwofaEnforcement {
+	case "everyone":
+		return true, "This instance requires two-factor for everyone."
+	case "off":
+		return false, ""
+	}
+	wss, _ := s.Q.ListUserWorkspaces(ctx, u.ID)
+	for _, w := range wss {
+		m, err := s.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: w.ID, UserID: u.ID})
+		if err != nil {
+			continue
+		}
+		if perms := authz.Effective(m.RoleKey, m.RoleBuiltin, m.RolePermissions); perms.HasSensitive() {
+			return true, sensitiveReason(perms)
+		}
+	}
+	return false, ""
+}
+
+// sensitiveReason names the most familiar sensitive permission a role holds.
+func sensitiveReason(perms authz.Set) string {
+	for _, c := range []struct {
+		perm authz.Permission
+		what string
+	}{
+		{authz.CampaignsSend, "send campaigns"},
+		{authz.CampaignsApprove, "approve campaigns"},
+		{authz.ProvidersManage, "manage sending providers"},
+		{authz.SubscribersExport, "export contacts"},
+		{authz.TeamManage, "manage the team"},
+		{authz.AutomationsPublish, "publish automations"},
+		{authz.APIKeysManage, "manage API keys"},
+	} {
+		if perms.Has(c.perm) {
+			return "Your role can " + c.what + ", so two-factor is required."
+		}
+	}
+	return "Your role holds sensitive permissions, so two-factor is required."
 }

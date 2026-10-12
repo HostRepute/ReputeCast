@@ -50,7 +50,8 @@ func (s *Service) Identify(ctx context.Context, email string) (IdentifyResult, e
 	if p != nil {
 		res.Next = "sso"
 		res.BreakGlass = true
-		res.SSO = &SSOStart{ProviderID: p.ID.String(), Name: p.Name, Preset: p.Preset, StartURL: "/api/v1/auth/sso/" + p.ID.String() + "/start?login_hint=" + urlEscape(email)}
+		start := ssoStart(p, email)
+		res.SSO = &start
 	}
 	return res, nil
 }
@@ -61,7 +62,10 @@ type SignInResult struct {
 	// Challenge continues a two-factor sign-in (opaque, single use, 10 minutes).
 	Challenge string   `json:"challenge,omitempty"`
 	Methods   []string `json:"methods,omitempty" doc:"Second factors available: totp, passkey, recovery"`
-	Email     string   `json:"email"`
+	// PasskeyHint names the person's most recently used passkey for the
+	// "Confirm with your passkey" step ("MacBook Pro · Touch ID").
+	PasskeyHint string `json:"passkeyHint,omitempty"`
+	Email       string `json:"email"`
 	// Next is where the web app should go after signing in.
 	Next string `json:"next,omitempty"`
 	// RecoveryCodesLeft is set when a recovery code was used.
@@ -96,7 +100,10 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 	if exists {
 		if p, _ := s.enforcingProvider(ctx, email); p != nil && !u.BreakGlass {
 			return SignInResult{}, nil, api.Err(http.StatusForbidden, "sso_required", email[strings.Index(email, "@")+1:]+" signs in with "+p.Name+". Password sign-in is turned off for this domain.").
-				WithMeta("providerId", p.ID.String(), "provider", p.Name)
+				WithMeta("providerId", p.ID.String(), "provider", p.Name, "preset", p.Preset)
+		}
+		if !methodAllowed(pol, "password") && !u.BreakGlass {
+			return SignInResult{}, nil, api.Err(http.StatusForbidden, "method_disabled", "Password sign-in is turned off on this instance. Use a passkey or single sign-on.")
 		}
 	}
 	ok := false
@@ -133,7 +140,7 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 			_ = s.Q.SetUserPassword(ctx, store.SetUserPasswordParams{ID: u.ID, PasswordHash: &h, MustChangePassword: u.MustChangePassword})
 		}
 	}
-	methods := s.secondFactors(ctx, u)
+	methods, hint := s.secondFactors(ctx, u)
 	if len(methods) > 0 {
 		token, hash := authn.NewToken()
 		uid := u.ID
@@ -147,40 +154,57 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 		}); err != nil {
 			return SignInResult{}, nil, err
 		}
-		return SignInResult{Status: "two_factor", Challenge: token, Methods: methods, Email: u.Email}, nil, nil
+		return SignInResult{Status: "two_factor", Challenge: token, Methods: methods, PasskeyHint: hint, Email: u.Email}, nil, nil
 	}
-	cookie, err := s.completeSignIn(ctx, u, "password", false, remember)
+	cookie, err := s.completeSignIn(ctx, u, "password", false, remember, nil)
 	if err != nil {
 		return SignInResult{}, nil, err
 	}
 	return SignInResult{Status: "signed_in", Email: u.Email, Next: s.nextPath(ctx, u)}, &cookie, nil
 }
 
-func (s *Service) secondFactors(ctx context.Context, u store.User) []string {
+// secondFactors lists the second factors a person can use, and the name of
+// their most recently used passkey.
+func (s *Service) secondFactors(ctx context.Context, u store.User) ([]string, string) {
 	var m []string
+	hint := ""
 	if u.TotpEnabledAt != nil {
 		m = append(m, "totp")
 	}
 	if pk, err := s.Q.ListPasskeys(ctx, u.ID); err == nil && len(pk) > 0 {
 		m = append(m, "passkey")
+		last := pk[0]
+		for _, p := range pk[1:] {
+			if p.LastUsedAt != nil && (last.LastUsedAt == nil || p.LastUsedAt.After(*last.LastUsedAt)) {
+				last = p
+			}
+		}
+		hint = last.Name
 	}
 	if len(m) > 0 {
 		if n, err := s.Q.CountUnusedRecoveryCodes(ctx, u.ID); err == nil && n > 0 {
 			m = append(m, "recovery")
 		}
 	}
-	return m
+	return m, hint
 }
 
-func (s *Service) completeSignIn(ctx context.Context, u store.User, method string, mfa, remember bool) (http.Cookie, error) {
+// completeSignIn creates the session and records the sign-in. passkeyID
+// names the passkey the person used, if any.
+func (s *Service) completeSignIn(ctx context.Context, u store.User, method string, mfa, remember bool, passkeyID *uuid.UUID) (http.Cookie, error) {
 	var cookie http.Cookie
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		c, err := s.newSession(ctx, q, u, method, mfa, remember)
+		c, sid, err := s.newSession(ctx, q, u, method, mfa, remember)
 		if err != nil {
 			return err
 		}
 		cookie = c
+		if passkeyID != nil {
+			if err := q.SetSessionPasskey(ctx, store.SetSessionPasskeyParams{ID: sid, PasskeyID: passkeyID}); err != nil {
+				return err
+			}
+		}
 		if err := q.RecordSignInSuccess(ctx, u.ID); err != nil {
 			return err
 		}
@@ -190,58 +214,68 @@ func (s *Service) completeSignIn(ctx context.Context, u store.User, method strin
 	return cookie, err
 }
 
-// TwoFactor completes a sign-in with an authenticator code or a recovery code.
-func (s *Service) TwoFactor(ctx context.Context, challenge, method, code string) (SignInResult, *http.Cookie, error) {
+// loadTwoFactor finds a pending two-factor sign-in.
+func (s *Service) loadTwoFactor(ctx context.Context, challenge string) (store.AuthChallenge, store.User, twoFactorChallenge, error) {
+	expired := api.Err(http.StatusUnauthorized, "challenge_expired", "This sign-in expired. Start again with your email.")
 	ch, err := s.Q.GetChallenge(ctx, store.GetChallengeParams{TokenHash: authn.HashToken(challenge), Kind: "two_factor"})
-	if err != nil {
-		return SignInResult{}, nil, api.Err(http.StatusUnauthorized, "challenge_expired", "This sign-in expired. Start again with your email.")
-	}
-	if ch.UserID == nil {
-		return SignInResult{}, nil, api.Err(http.StatusUnauthorized, "challenge_expired", "This sign-in expired. Start again with your email.")
+	if err != nil || ch.UserID == nil {
+		return store.AuthChallenge{}, store.User{}, twoFactorChallenge{}, expired
 	}
 	u, err := s.Q.GetUser(ctx, *ch.UserID)
 	if err != nil || u.Status != "active" {
-		return SignInResult{}, nil, api.Err(http.StatusUnauthorized, "challenge_expired", "This sign-in expired. Start again with your email.")
+		return store.AuthChallenge{}, store.User{}, twoFactorChallenge{}, expired
 	}
 	var data twoFactorChallenge
 	_ = json.Unmarshal(ch.Data, &data)
-	const maxAttempts = 5
-	fail := func(detail string) (SignInResult, *http.Cookie, error) {
-		n, _ := s.Q.BumpChallengeAttempts(ctx, ch.ID)
-		left := maxAttempts - int(n)
-		if left <= 0 {
-			_ = s.Q.DeleteChallenge(ctx, ch.ID)
-			_ = s.Audit.Log(ctx, audit.Event{Action: "auth.two_factor", Result: audit.Denied, Reason: "too many wrong codes", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u)})
-			return SignInResult{}, nil, api.Err(http.StatusUnauthorized, "challenge_expired", "Too many wrong codes. Start again with your email.")
-		}
-		return SignInResult{}, nil, api.Err(http.StatusUnauthorized, "invalid_code", fmt.Sprintf("%s %d %s left.", detail, left, plural(left, "attempt", "attempts"))).WithMeta("attemptsLeft", left)
+	return ch, u, data, nil
+}
+
+const maxTwoFactorAttempts = 5
+
+// failTwoFactor counts a wrong second factor; after five the sign-in ends.
+func (s *Service) failTwoFactor(ctx context.Context, ch store.AuthChallenge, u store.User, detail string) error {
+	n, _ := s.Q.BumpChallengeAttempts(ctx, ch.ID)
+	left := maxTwoFactorAttempts - int(n)
+	if left <= 0 {
+		_ = s.Q.DeleteChallenge(ctx, ch.ID)
+		_ = s.Audit.Log(ctx, audit.Event{Action: "auth.two_factor", Result: audit.Denied, Reason: "too many wrong codes", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u)})
+		return api.Err(http.StatusUnauthorized, "challenge_expired", "Too many wrong codes. Start again with your email.")
+	}
+	return api.Err(http.StatusUnauthorized, "invalid_code", fmt.Sprintf("%s %d %s left.", detail, left, plural(left, "attempt", "attempts"))).WithMeta("attemptsLeft", left)
+}
+
+// TwoFactor completes a sign-in with an authenticator code or a recovery code.
+func (s *Service) TwoFactor(ctx context.Context, challenge, method, code string) (SignInResult, *http.Cookie, error) {
+	ch, u, data, err := s.loadTwoFactor(ctx, challenge)
+	if err != nil {
+		return SignInResult{}, nil, err
 	}
 	var left *int
 	switch method {
 	case "totp":
 		if u.TotpSecretEnc == nil {
-			return fail("That code didn't work.")
+			return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, "That code didn't work.")
 		}
 		secret, err := s.Box.OpenString(u.TotpSecretEnc, totpAD(u.ID))
 		if err != nil {
 			return SignInResult{}, nil, err
 		}
 		if !authn.VerifyTOTP(secret, code, s.now()) {
-			return fail("That code didn't work. Codes change every 30 seconds; check that your phone's clock is set automatically.")
+			return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, "That code didn't work. Codes change every 30 seconds; check that your phone's clock is set automatically.")
 		}
 	case "recovery":
 		if _, err := s.Q.UseRecoveryCode(ctx, store.UseRecoveryCodeParams{UserID: u.ID, CodeHash: hashRecovery(code)}); err != nil {
-			return fail("That recovery code isn't valid or was already used.")
+			return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, "That recovery code isn't valid or was already used.")
 		}
 		n, _ := s.Q.CountUnusedRecoveryCodes(ctx, u.ID)
 		v := int(n)
 		left = &v
 		_ = s.Audit.Log(ctx, audit.Event{Action: "auth.recovery_code_used", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u), Metadata: map[string]any{"remaining": v}})
 	default:
-		return SignInResult{}, nil, api.BadRequest("Unknown method. Use totp or recovery; passkeys use /auth/passkey.")
+		return SignInResult{}, nil, api.BadRequest("Unknown method. Use totp or recovery; passkeys use /auth/two-factor/passkey.")
 	}
 	_ = s.Q.DeleteChallenge(ctx, ch.ID)
-	cookie, err := s.completeSignIn(ctx, u, data.Method+"+"+method, true, data.Remember)
+	cookie, err := s.completeSignIn(ctx, u, data.Method+"+"+method, true, data.Remember, nil)
 	if err != nil {
 		return SignInResult{}, nil, err
 	}

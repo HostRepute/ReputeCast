@@ -1,0 +1,505 @@
+package accounts
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+
+	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/authn"
+	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/notify"
+	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/workspaces"
+)
+
+// Invitation links are /invite/<token>; the invitations table stores the
+// SHA-256 of the token (authn.HashToken). The Team screens create them.
+
+// InvitationView is what the invitee sees before joining (A5 §5.4).
+type InvitationView struct {
+	Status        string `json:"status" enum:"pending,expired,revoked,accepted"`
+	Email         string `json:"email"`
+	WorkspaceName string `json:"workspaceName"`
+	WorkspaceSlug string `json:"workspaceSlug"`
+	InviterName   string `json:"inviterName"`
+	RoleKey       string `json:"roleKey"`
+	RoleName      string `json:"roleName"`
+	// Scope restricts the role ("Beta Program list only"); empty for everything.
+	Scope string `json:"scope,omitempty"`
+	// Description says what the role can do, in one or two sentences.
+	Description string     `json:"description"`
+	Message     string     `json:"message,omitempty" doc:"Personal message from the inviter"`
+	SentAt      time.Time  `json:"sentAt"`
+	ExpiresAt   time.Time  `json:"expiresAt"`
+	RevokedAt   *time.Time `json:"revokedAt,omitempty"`
+	AcceptedAt  *time.Time `json:"acceptedAt,omitempty"`
+	// AccountExists: the email already has an account, so the invitee signs
+	// in to accept instead of creating a password.
+	AccountExists bool `json:"accountExists"`
+	// SignedInAs is the email of the browser's current session, if any.
+	SignedInAs string `json:"signedInAs,omitempty"`
+	// Password sign-up is unavailable when the domain enforces SSO.
+	PasswordAllowed bool          `json:"passwordAllowed"`
+	PasswordPolicy  InvitePolicy  `json:"passwordPolicy"`
+	Social          []string      `json:"social" doc:"Social sign-in providers to join with: google, microsoft, github"`
+	SSO             *SSOStart     `json:"sso,omitempty"`
+	TwoFactor       InviteTwoFactor `json:"twoFactor"`
+}
+
+// InvitePolicy is the password policy shown while creating a password.
+type InvitePolicy struct {
+	MinLength     int  `json:"minLength"`
+	BreachedCheck bool `json:"breachedCheck"`
+}
+
+// InviteTwoFactor says whether the new member must set up two-factor.
+type InviteTwoFactor struct {
+	Required   bool       `json:"required"`
+	Reason     string     `json:"reason,omitempty"`
+	GraceDays  int        `json:"graceDays"`
+	GraceUntil *time.Time `json:"graceUntil,omitempty"`
+}
+
+func inviteNotFound() *api.Problem {
+	return api.Err(http.StatusNotFound, "invite_not_found", "This invitation link isn't valid. Check that you copied the whole link, or ask for a new invite.")
+}
+
+func (s *Service) loadInvitation(ctx context.Context, token string) (store.GetInvitationViewRow, error) {
+	inv, err := s.Q.GetInvitationView(ctx, authn.HashToken(token))
+	if err != nil {
+		if isNoRows(err) {
+			return inv, inviteNotFound()
+		}
+		return inv, err
+	}
+	return inv, nil
+}
+
+func inviteStatus(inv store.GetInvitationViewRow, now time.Time) string {
+	switch {
+	case inv.AcceptedAt != nil:
+		return "accepted"
+	case inv.RevokedAt != nil:
+		return "revoked"
+	case !inv.ExpiresAt.After(now):
+		return "expired"
+	}
+	return "pending"
+}
+
+// Invitation describes an invitation for its link.
+func (s *Service) Invitation(ctx context.Context, token string) (InvitationView, error) {
+	inv, err := s.loadInvitation(ctx, token)
+	if err != nil {
+		return InvitationView{}, err
+	}
+	st, err := s.policy(ctx)
+	if err != nil {
+		return InvitationView{}, err
+	}
+	now := s.now()
+	sent := inv.CreatedAt
+	if inv.LastSentAt != nil {
+		sent = *inv.LastSentAt
+	}
+	v := InvitationView{
+		Status: inviteStatus(inv, now), Email: inv.Email, WorkspaceName: inv.WorkspaceName, WorkspaceSlug: inv.WorkspaceSlug,
+		InviterName: inv.InvitedByName, RoleKey: inv.RoleKey, RoleName: inv.RoleName, Message: inv.Message,
+		SentAt: sent, ExpiresAt: inv.ExpiresAt, RevokedAt: inv.RevokedAt, AcceptedAt: inv.AcceptedAt,
+		PasswordAllowed: methodAllowed(st, "password"),
+		PasswordPolicy:  InvitePolicy{MinLength: int(st.PasswordMinLength), BreachedCheck: st.BreachedCheck},
+		Social:          []string{},
+	}
+	if v.InviterName == "" {
+		v.InviterName = "An admin of " + inv.WorkspaceName
+	}
+	perms := authz.Effective(inv.RoleKey, inv.RoleBuiltin, inv.RolePermissions)
+	scope, listNames := s.scopeOf(ctx, inv.WorkspaceID, inv.Scope)
+	v.Scope = scope
+	v.Description = roleDescription(inv.RoleKey, inv.WorkspaceName, perms, listNames, inv.WorkspaceApprovalPolicy)
+	if _, err := s.Q.GetUserByEmail(ctx, inv.Email); err == nil {
+		v.AccountExists = true
+	}
+	if u := api.UserFrom(ctx); u != nil {
+		v.SignedInAs = u.Email
+	}
+	if p, _ := s.enforcingProvider(ctx, inv.Email); p != nil {
+		v.PasswordAllowed = false
+		start := ssoStart(p, inv.Email)
+		start.StartURL += "&invite=" + urlEscape(token)
+		v.SSO = &start
+	} else if methodAllowed(st, "social") {
+		var social map[string]struct {
+			Enabled bool `json:"enabled"`
+		}
+		_ = json.Unmarshal(st.SocialProviders, &social)
+		for _, k := range []string{"google", "microsoft", "github"} {
+			if social[k].Enabled {
+				v.Social = append(v.Social, k)
+			}
+		}
+	}
+	v.TwoFactor = inviteTwoFactor(st, perms)
+	return v, nil
+}
+
+func inviteTwoFactor(st store.InstanceSetting, perms authz.Set) InviteTwoFactor {
+	t := InviteTwoFactor{GraceDays: int(st.TwofaGraceDays)}
+	switch {
+	case st.TwofaEnforcement == "everyone":
+		t.Required, t.Reason = true, "This instance requires two-factor for everyone."
+	case st.TwofaEnforcement == "sensitive" && perms.HasSensitive():
+		t.Required, t.Reason = true, sensitiveReason(perms)
+	}
+	return t
+}
+
+// scopeOf describes a member scope ("Beta Program list only") and returns
+// the list names.
+func (s *Service) scopeOf(ctx context.Context, workspaceID uuid.UUID, raw []byte) (string, []string) {
+	var sc authz.Scope
+	if json.Unmarshal(raw, &sc) != nil || sc.IsZero() {
+		return "", nil
+	}
+	var names []string
+	if len(sc.Lists) > 0 {
+		if rows, err := s.Q.ListNamesOfLists(ctx, store.ListNamesOfListsParams{WorkspaceID: workspaceID, Ids: sc.Lists}); err == nil {
+			for _, r := range rows {
+				names = append(names, r.Name)
+			}
+		}
+	}
+	var parts []string
+	if len(names) > 0 {
+		parts = append(parts, andJoin(names)+plural(len(names), " list", " lists"))
+	}
+	if len(sc.SenderDomains) > 0 {
+		parts = append(parts, andJoin(sc.SenderDomains)+plural(len(sc.SenderDomains), " sender domain", " sender domains"))
+	}
+	if len(parts) == 0 {
+		return "", names
+	}
+	return strings.Join(parts, " and ") + " only", names
+}
+
+func andJoin(xs []string) string {
+	switch len(xs) {
+	case 0:
+		return ""
+	case 1:
+		return xs[0]
+	}
+	return strings.Join(xs[:len(xs)-1], ", ") + " and " + xs[len(xs)-1]
+}
+
+// roleDescription explains a role in plain words for the invitee.
+func roleDescription(roleKey, workspace string, perms authz.Set, lists []string, approvalPolicy []byte) string {
+	switch roleKey {
+	case authz.RoleOwner:
+		return "You'll have full access to " + workspace + ", including its team, sending providers and settings."
+	case authz.RoleAdmin:
+		return "You'll be able to manage campaigns, contacts, sending providers and the team of " + workspace + "."
+	}
+	var what string
+	switch {
+	case perms.Has(authz.CampaignsSend) && perms.Has(authz.CampaignsEdit):
+		what = "create, edit and send campaigns"
+	case perms.Has(authz.CampaignsEdit):
+		what = "create and edit campaigns, and ask for approval to send them"
+	default:
+		return "You'll be able to view campaigns, reports and settings. Nothing you do can change them, and secrets are never shown."
+	}
+	where := ""
+	if len(lists) > 0 {
+		where = " for the " + andJoin(lists) + plural(len(lists), " list", " lists")
+	}
+	out := "You'll be able to " + what + where + "."
+	if perms.Has(authz.CampaignsSend) {
+		var pol struct {
+			Rules struct {
+				AudienceMin struct {
+					Enabled bool `json:"enabled"`
+					N       int  `json:"n"`
+				} `json:"audience_min"`
+			} `json:"rules"`
+		}
+		if json.Unmarshal(approvalPolicy, &pol) == nil && pol.Rules.AudienceMin.Enabled && pol.Rules.AudienceMin.N > 0 {
+			out += fmt.Sprintf(" Sends over %s recipients need a second person's approval.", thousands(pol.Rules.AudienceMin.N))
+		}
+	}
+	return out
+}
+
+func thousands(n int) string {
+	s := fmt.Sprint(n)
+	var b strings.Builder
+	for i, c := range s {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			b.WriteByte(',')
+		}
+		b.WriteRune(c)
+	}
+	return b.String()
+}
+
+// AcceptInviteInput creates the account of a new member. Existing accounts
+// accept while signed in and send no body.
+type AcceptInviteInput struct {
+	Name     string `json:"name,omitempty" maxLength:"80"`
+	Password string `json:"password,omitempty" maxLength:"1024"`
+}
+
+// InviteAccepted is returned after joining.
+type InviteAccepted struct {
+	Workspace     string `json:"workspace" doc:"Workspace slug"`
+	WorkspaceName string `json:"workspaceName"`
+	RoleName      string `json:"roleName"`
+	Email         string `json:"email"`
+	// NewAccount is true when joining created the account (and signed in).
+	NewAccount bool `json:"newAccount"`
+	// HasSecondFactor tells the app whether to offer passkey and 2FA setup.
+	HasSecondFactor bool            `json:"hasSecondFactor"`
+	TwoFactor       InviteTwoFactor `json:"twoFactor"`
+	Next            string          `json:"next"`
+}
+
+func inviteClosed(status string, inv store.GetInvitationViewRow) *api.Problem {
+	switch status {
+	case "expired":
+		return api.Err(http.StatusGone, "invite_expired", "This invitation has expired. Ask "+orAdmin(inv)+" for a new one.")
+	case "revoked":
+		return api.Err(http.StatusGone, "invite_revoked", "This invitation was revoked. The link no longer works.")
+	default:
+		return api.Err(http.StatusGone, "invite_accepted", "This invitation was already used. Sign in to continue.")
+	}
+}
+
+func orAdmin(inv store.GetInvitationViewRow) string {
+	if inv.InvitedByName != "" {
+		return inv.InvitedByName
+	}
+	return "an admin of " + inv.WorkspaceName
+}
+
+// AcceptInvitation joins the workspace. Signed-in people accept with their
+// account (it must be the invited email); new people create an account
+// with a password, which signs them in.
+func (s *Service) AcceptInvitation(ctx context.Context, token string, in AcceptInviteInput) (InviteAccepted, *http.Cookie, error) {
+	inv, err := s.loadInvitation(ctx, token)
+	if err != nil {
+		return InviteAccepted{}, nil, err
+	}
+	now := s.now()
+	if status := inviteStatus(inv, now); status != "pending" {
+		return InviteAccepted{}, nil, inviteClosed(status, inv)
+	}
+	st, err := s.policy(ctx)
+	if err != nil {
+		return InviteAccepted{}, nil, err
+	}
+	perms := authz.Effective(inv.RoleKey, inv.RoleBuiltin, inv.RolePermissions)
+	out := InviteAccepted{Workspace: inv.WorkspaceSlug, WorkspaceName: inv.WorkspaceName, RoleName: inv.RoleName, Email: inv.Email, TwoFactor: inviteTwoFactor(st, perms),
+		Next: "/w/" + inv.WorkspaceSlug}
+
+	var user store.User
+	signedIn := api.UserFrom(ctx)
+	switch {
+	case signedIn != nil && signedIn.Email != inv.Email:
+		return InviteAccepted{}, nil, api.Err(http.StatusConflict, "invite_wrong_account", "This invite is for "+inv.Email+", but you're signed in as "+signedIn.Email+". Sign out and continue, or ask for an invite for "+signedIn.Email+".").
+			WithMeta("invited", inv.Email, "signedInAs", signedIn.Email)
+	case signedIn != nil:
+		user = *signedIn
+	default:
+		if _, err := s.Q.GetUserByEmail(ctx, inv.Email); err == nil {
+			return InviteAccepted{}, nil, api.Err(http.StatusConflict, "invite_sign_in", inv.Email+" already has an account. Sign in to accept the invitation.").WithMeta("email", inv.Email)
+		}
+		if p, _ := s.enforcingProvider(ctx, inv.Email); p != nil {
+			return InviteAccepted{}, nil, api.Err(http.StatusForbidden, "sso_required", emailDomain(inv.Email)+" signs in with "+p.Name+". Join with "+p.Name+" instead of a password.")
+		}
+		if !methodAllowed(st, "password") {
+			return InviteAccepted{}, nil, api.Err(http.StatusForbidden, "method_disabled", "Password sign-in is turned off on this instance. Join with single sign-on or a social account.")
+		}
+		name := strings.TrimSpace(in.Name)
+		if name == "" {
+			return InviteAccepted{}, nil, api.Invalid("body.name", "Enter your name as the team should see it.")
+		}
+		if p := authn.PasswordProblem(in.Password, int(st.PasswordMinLength)); p != "" {
+			return InviteAccepted{}, nil, api.Invalid("body.password", p)
+		}
+		if st.BreachedCheck {
+			if hit, err := s.Breach.Breached(ctx, in.Password); err == nil && hit {
+				return InviteAccepted{}, nil, api.Invalid("body.password", "This password appears in known data breaches. Choose another one.")
+			}
+		}
+		hash, err := authn.HashPassword(in.Password)
+		if err != nil {
+			return InviteAccepted{}, nil, err
+		}
+		tz := st.DefaultTimezone
+		if tz == "" {
+			tz = "UTC"
+		}
+		user = store.User{ID: uuid.Must(uuid.NewV7()), Email: inv.Email, Name: name, Timezone: tz, PasswordHash: &hash}
+		out.NewAccount = true
+	}
+	if m, err := s.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: inv.WorkspaceID, UserID: user.ID}); err == nil {
+		if m.Status == "active" {
+			return InviteAccepted{}, nil, api.Conflict("You're already a member of " + inv.WorkspaceName + ".")
+		}
+		return InviteAccepted{}, nil, api.Conflict("Your membership in " + inv.WorkspaceName + " was deactivated. Ask an admin to reactivate it.")
+	}
+
+	var cookie *http.Cookie
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if out.NewAccount {
+			created, err := q.CreateUser(ctx, store.CreateUserParams{
+				ID: user.ID, Email: user.Email, Name: user.Name, Timezone: user.Timezone, PasswordHash: user.PasswordHash, PasswordSetAt: &now,
+				AvatarColor: avatarColorFor(user.Email),
+			})
+			if err != nil {
+				return err
+			}
+			user = created
+		}
+		n, err := q.AcceptPendingInvitation(ctx, store.AcceptPendingInvitationParams{ID: inv.ID, AcceptedBy: &user.ID})
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return inviteClosed("accepted", inv)
+		}
+		if _, err := q.CreateMember(ctx, store.CreateMemberParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: inv.WorkspaceID, UserID: user.ID, RoleID: inv.RoleID,
+			Scope: inv.Scope, Source: "invite", InvitedBy: inv.InvitedBy}); err != nil {
+			return err
+		}
+		if out.TwoFactor.Required {
+			if err := workspaces.EnsureTwoFAGrace(ctx, tx, user.ID); err != nil {
+				return err
+			}
+		}
+		wsID := inv.WorkspaceID
+		actor := actorFor(user)
+		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "invitation.accept", TargetType: "invitation", TargetID: inv.ID.String(), TargetName: inv.Email, Actor: actor,
+			After: map[string]any{"role": inv.RoleKey, "scope": json.RawMessage(inv.Scope)}, Metadata: map[string]any{"new_account": out.NewAccount}}); err != nil {
+			return err
+		}
+		note := notify.Notification{WorkspaceID: &wsID, Kind: notify.KindInviteAccepted, Severity: "ok", Title: "Invite accepted",
+			Summary: fmt.Sprintf("%s joined %s as %s", displayName(user), inv.WorkspaceName, inv.RoleName),
+			Body:    fmt.Sprintf("%s joined %s as %s.", displayName(user), inv.WorkspaceName, inv.RoleName),
+			Link:    "/w/" + inv.WorkspaceSlug + "/settings/team"}
+		if inv.InvitedBy != nil && inv.InvitedByStatus == "active" {
+			if err := notify.ToUser(ctx, tx, *inv.InvitedBy, note); err != nil {
+				return err
+			}
+		} else if err := notify.ToMembersWith(ctx, tx, inv.WorkspaceID, authz.TeamManage, note); err != nil {
+			return err
+		}
+		if out.NewAccount {
+			c, _, err := s.newSession(ctx, q, user, "password", false, true)
+			if err != nil {
+				return err
+			}
+			cookie = &c
+			if err := q.RecordSignInSuccess(ctx, user.ID); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return InviteAccepted{}, nil, err
+	}
+	fresh, err := s.Q.GetUser(ctx, user.ID)
+	if err == nil {
+		user = fresh
+	}
+	m := s.methodsOf(ctx, user)
+	out.HasSecondFactor = m.totp || m.passkeys > 0
+	if out.TwoFactor.Required && !out.HasSecondFactor {
+		out.TwoFactor.GraceUntil = user.TwofaGraceUntil
+	}
+	return out, cookie, nil
+}
+
+// InviteRequestResult says whether the inviter was asked.
+type InviteRequestResult struct {
+	Status  string `json:"status" enum:"sent,already_sent"`
+	Inviter string `json:"inviter"`
+}
+
+// RequestNewInvite asks the inviter for a new invitation: for an expired
+// one, or for the signed-in email when the invitation was for another.
+// One request per invitation per day.
+func (s *Service) RequestNewInvite(ctx context.Context, token string) (InviteRequestResult, error) {
+	inv, err := s.loadInvitation(ctx, token)
+	if err != nil {
+		return InviteRequestResult{}, err
+	}
+	status := inviteStatus(inv, s.now())
+	signedIn := api.UserFrom(ctx)
+	other := signedIn != nil && signedIn.Email != inv.Email
+	if status != "expired" && !(status == "pending" && other) {
+		return InviteRequestResult{}, api.Conflict("This invitation doesn't need a new one.")
+	}
+	res := InviteRequestResult{Status: "sent", Inviter: orAdmin(inv)}
+	wsID := inv.WorkspaceID
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		n, err := q.MarkReinviteRequested(ctx, inv.ID)
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			res.Status = "already_sent"
+			return nil
+		}
+		note := notify.Notification{WorkspaceID: &wsID, Kind: notify.KindInviteRequested, Severity: "info", Title: "New invite requested",
+			Link: "/w/" + inv.WorkspaceSlug + "/settings/team"}
+		requester := inv.Email
+		if other {
+			requester = signedIn.Email
+			note.Summary = fmt.Sprintf("%s asked to be invited to %s instead of %s", signedIn.Email, inv.WorkspaceName, inv.Email)
+			note.Body = fmt.Sprintf("%s opened the invitation for %s while signed in and asked for an invitation to %s for their own email.", signedIn.Email, inv.Email, inv.WorkspaceName)
+		} else {
+			note.Summary = fmt.Sprintf("%s asked for a new invitation to %s", inv.Email, inv.WorkspaceName)
+			note.Body = fmt.Sprintf("%s asked for a new invitation to %s; the last one expired on %s.", inv.Email, inv.WorkspaceName, inv.ExpiresAt.Format("Jan 2"))
+		}
+		if inv.InvitedBy != nil && inv.InvitedByStatus == "active" {
+			if err := notify.ToUser(ctx, tx, *inv.InvitedBy, note); err != nil {
+				return err
+			}
+		} else if err := notify.ToMembersWith(ctx, tx, inv.WorkspaceID, authz.TeamInvite, note); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "invitation.reinvite_request", TargetType: "invitation", TargetID: inv.ID.String(), TargetName: inv.Email,
+			Actor: anonActor(requester), Metadata: map[string]any{"requested_for": requester}})
+	})
+	return res, err
+}
+
+func displayName(u store.User) string {
+	if strings.TrimSpace(u.Name) != "" {
+		return u.Name
+	}
+	return u.Email
+}
+
+// avatarColorFor picks a stable initials colour for a new account.
+func avatarColorFor(email string) string {
+	colors := []string{"info", "ok", "purple", "warn", "neutral"}
+	h := 0
+	for _, c := range email {
+		h = (h*31 + int(c)) % 1000003
+	}
+	return colors[h%len(colors)]
+}
