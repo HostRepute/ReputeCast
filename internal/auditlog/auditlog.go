@@ -1,0 +1,868 @@
+// Package auditlog serves the workspace audit log (A5 §3.10, §5.14): the
+// event list with filters (actor type, actor, action, target, result, date
+// range), event detail with before/after values, IP, user agent and request
+// id, streamed CSV/JSON exports, streaming to a webhook and the retention
+// setting. Entries are immutable; the instance-level view belongs to the
+// instance admin domain.
+package auditlog
+
+import (
+	"bytes"
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/netip"
+	"net/url"
+	"regexp"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/netguard"
+	"github.com/hostrepute/reputecast/internal/secrets"
+	"github.com/hostrepute/reputecast/internal/store"
+)
+
+// Service holds the audit log domain dependencies.
+type Service struct {
+	Pool   *pgxpool.Pool
+	Q      *store.Queries
+	Audit  *audit.Logger
+	Box    *secrets.Box
+	Policy netguard.Policy
+	Now    func() time.Time
+	// HTTP overrides the stream client (tests).
+	HTTP *http.Client
+}
+
+func (s *Service) now() time.Time {
+	if s.Now != nil {
+		return s.Now()
+	}
+	return time.Now()
+}
+
+// AuditActor is who acted.
+type AuditActor struct {
+	Type        string `json:"type" enum:"user,api_key,mcp_agent,system"`
+	ID          string `json:"id,omitempty"`
+	Name        string `json:"name"`
+	AvatarColor string `json:"avatarColor,omitempty"`
+	// Label is "member", "API key", "MCP agent" or "automatic".
+	Label string `json:"label"`
+	// Role is the member's current role in the workspace ("Admin").
+	Role string `json:"role,omitempty"`
+}
+
+// AuditSource is where the action came from: "web · 203.0.113.9",
+// "mcp · rc_agent_7a…c2", "guard · threshold".
+type AuditSource struct {
+	Channel string `json:"channel"`
+	Detail  string `json:"detail,omitempty"`
+}
+
+// AuditEventItem is one row of the event list.
+type AuditEventItem struct {
+	ID         string     `json:"id"`
+	OccurredAt time.Time  `json:"occurredAt"`
+	Actor      AuditActor `json:"actor"`
+	Action     string     `json:"action"`
+	TargetType string     `json:"targetType"`
+	TargetID   string     `json:"targetId"`
+	TargetName string     `json:"targetName"`
+	// Target is the line under the action ("Routing rule · Broadcasts").
+	Target string `json:"target"`
+	// Summary is the details line ("SES 95% / Postal 5% → SES 90% / Postal 10%").
+	Summary   string      `json:"summary"`
+	Source    AuditSource `json:"source"`
+	Result    string      `json:"result" enum:"allowed,denied,error"`
+	Reason    string      `json:"reason,omitempty"`
+	RequestID string      `json:"requestId,omitempty"`
+}
+
+// AuditEventList is one page of the log.
+type AuditEventList struct {
+	Items      []AuditEventItem `json:"items"`
+	NextCursor string           `json:"nextCursor,omitempty"`
+	// Total is the number of entries kept for the workspace.
+	Total         int64             `json:"total"`
+	RetentionDays int32             `json:"retentionDays"`
+	Stream        AuditStreamStatus `json:"stream"`
+	Actors        []AuditActorRef   `json:"actors"`
+	ActionGroups  []string          `json:"actionGroups"`
+}
+
+// AuditActorRef is an actor seen in the log, for the actor filter.
+type AuditActorRef struct {
+	Type string `json:"type"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// Filter narrows the log.
+type Filter struct {
+	Search    string
+	ActorType string
+	ActorID   string
+	Action    string // prefix: "routing" or exact "routing.updated"
+	Result    string
+	Range     string // 24h, 7d, 30d, 90d, all
+	Since     *time.Time
+	Until     *time.Time
+	Cursor    string
+	Limit     int
+}
+
+func (f Filter) params(wsID uuid.UUID, now time.Time) (store.AuditLogListParams, error) {
+	p := store.AuditLogListParams{WorkspaceID: &wsID, Lim: int32(f.Limit)}
+	if p.Lim <= 0 {
+		p.Lim = 50
+	}
+	if v := strings.TrimSpace(f.Search); v != "" {
+		p.Search = &v
+	}
+	if f.ActorType != "" {
+		p.ActorType = &f.ActorType
+	}
+	if f.ActorID != "" {
+		id, err := uuid.Parse(f.ActorID)
+		if err != nil {
+			return p, api.Invalid("query.actor", "Unknown actor.")
+		}
+		p.ActorID = &id
+	}
+	if f.Action != "" {
+		p.ActionPrefix = &f.Action
+	}
+	if f.Result != "" {
+		p.Result = &f.Result
+	}
+	since := f.Since
+	if since == nil {
+		var d time.Duration
+		switch f.Range {
+		case "24h":
+			d = 24 * time.Hour
+		case "", "7d":
+			d = 7 * 24 * time.Hour
+		case "30d":
+			d = 30 * 24 * time.Hour
+		case "90d":
+			d = 90 * 24 * time.Hour
+		}
+		if d > 0 {
+			t := now.Add(-d)
+			since = &t
+		}
+	}
+	p.Since = since
+	p.Until = f.Until
+	if f.Cursor != "" {
+		at, id, err := decodeCursor(f.Cursor)
+		if err != nil {
+			return p, api.Invalid("query.cursor", "This page link expired. Reload the log.")
+		}
+		p.CursorAt, p.CursorID = &at, &id
+	}
+	return p, nil
+}
+
+func encodeCursor(at time.Time, id uuid.UUID) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(at.UTC().Format(time.RFC3339Nano) + "|" + id.String()))
+}
+
+func decodeCursor(c string) (time.Time, uuid.UUID, error) {
+	b, err := base64.RawURLEncoding.DecodeString(c)
+	if err != nil {
+		return time.Time{}, uuid.Nil, err
+	}
+	at, id, ok := strings.Cut(string(b), "|")
+	if !ok {
+		return time.Time{}, uuid.Nil, fmt.Errorf("bad cursor")
+	}
+	t, err := time.Parse(time.RFC3339Nano, at)
+	if err != nil {
+		return time.Time{}, uuid.Nil, err
+	}
+	u, err := uuid.Parse(id)
+	return t, u, err
+}
+
+type meta struct {
+	Summary  string `json:"summary"`
+	Detail   string `json:"detail"`
+	Source   string `json:"source"`
+	Via      string `json:"via"`
+	What     string `json:"what"`
+	Target   string `json:"target"`
+	Related  string `json:"related"`
+	Perm     string `json:"permission"`
+	Tool     string `json:"tool"`
+	Note     string `json:"note"`
+	LinkPath string `json:"link"`
+}
+
+func parseMeta(raw json.RawMessage) meta {
+	var m meta
+	if len(raw) > 0 {
+		_ = json.Unmarshal(raw, &m)
+	}
+	return m
+}
+
+func actorLabel(t string) string {
+	switch t {
+	case "user":
+		return "member"
+	case "api_key":
+		return "API key"
+	case "mcp_agent":
+		return "MCP agent"
+	}
+	return "automatic"
+}
+
+func source(actorType string, ip string, m meta) AuditSource {
+	if m.Source != "" {
+		return AuditSource{Channel: m.Source, Detail: m.Via}
+	}
+	switch actorType {
+	case "user":
+		return AuditSource{Channel: "web", Detail: ip}
+	case "api_key":
+		return AuditSource{Channel: "api", Detail: ip}
+	case "mcp_agent":
+		if m.Via != "" {
+			return AuditSource{Channel: "mcp", Detail: m.Via}
+		}
+		return AuditSource{Channel: "mcp", Detail: ip}
+	}
+	return AuditSource{Channel: "system", Detail: m.Via}
+}
+
+func targetLine(targetType, targetName string, m meta) string {
+	if m.Target != "" {
+		return m.Target
+	}
+	if targetName != "" {
+		return targetName
+	}
+	return strings.ReplaceAll(targetType, "_", " ")
+}
+
+func item(id uuid.UUID, at time.Time, actorType string, actorID *uuid.UUID, actorName, color, role, action, targetType, targetID, targetName, result, reason string, ip string, requestID string, rawMeta json.RawMessage, before, after json.RawMessage) AuditEventItem {
+	m := parseMeta(rawMeta)
+	it := AuditEventItem{
+		ID: id.String(), OccurredAt: at, Action: action, TargetType: targetType, TargetID: targetID, TargetName: targetName,
+		Target: targetLine(targetType, targetName, m), Result: result, Reason: reason, RequestID: requestID,
+		Actor:  AuditActor{Type: actorType, Name: actorName, AvatarColor: color, Label: actorLabel(actorType), Role: role},
+		Source: source(actorType, ip, m),
+	}
+	if actorID != nil {
+		it.Actor.ID = actorID.String()
+	}
+	if it.Actor.Name == "" {
+		it.Actor.Name = "System"
+	}
+	switch {
+	case m.Summary != "":
+		it.Summary = m.Summary
+	case m.Detail != "":
+		it.Summary = m.Detail
+	case reason != "":
+		it.Summary = reason
+	default:
+		it.Summary = diffSummary(before, after)
+	}
+	return it
+}
+
+// List returns one page of the workspace log.
+func (s *Service) List(ctx context.Context, ws *store.Workspace, f Filter) (AuditEventList, error) {
+	p, err := f.params(ws.ID, s.now())
+	if err != nil {
+		return AuditEventList{}, err
+	}
+	p.Lim++ // one extra row tells whether there is a next page
+	rows, err := s.Q.AuditLogList(ctx, p)
+	if err != nil {
+		return AuditEventList{}, err
+	}
+	out := AuditEventList{Items: []AuditEventItem{}, RetentionDays: ws.AuditRetentionDays, Actors: []AuditActorRef{}, ActionGroups: []string{}}
+	limit := int(p.Lim) - 1
+	for i, r := range rows {
+		if i == limit {
+			last := rows[i-1]
+			out.NextCursor = encodeCursor(last.OccurredAt, last.ID)
+			break
+		}
+		out.Items = append(out.Items, item(r.ID, r.OccurredAt, r.ActorType, r.ActorID, r.ActorName, r.ActorColor, r.ActorRole, r.Action, r.TargetType, r.TargetID, r.TargetName, r.Result, r.Reason, ipString(r.Ip), r.RequestID, r.Metadata, nil, nil))
+	}
+	if out.Total, err = s.Q.AuditLogCount(ctx, &ws.ID); err != nil {
+		return AuditEventList{}, err
+	}
+	actors, err := s.Q.AuditLogActors(ctx, &ws.ID)
+	if err != nil {
+		return AuditEventList{}, err
+	}
+	for _, a := range actors {
+		if a.ActorID == nil {
+			continue
+		}
+		out.Actors = append(out.Actors, AuditActorRef{Type: a.ActorType, ID: a.ActorID.String(), Name: a.ActorName})
+	}
+	sort.Slice(out.Actors, func(i, j int) bool { return out.Actors[i].Name < out.Actors[j].Name })
+	groups, err := s.Q.AuditLogActionGroups(ctx, &ws.ID)
+	if err != nil {
+		return AuditEventList{}, err
+	}
+	for _, g := range groups {
+		out.ActionGroups = append(out.ActionGroups, g.Grp)
+	}
+	out.Stream = s.streamStatus(ws)
+	return out, nil
+}
+
+func ipString(ip *netip.Addr) string {
+	if ip == nil || !ip.IsValid() {
+		return ""
+	}
+	return ip.String()
+}
+
+// DiffLine is one line of the before → after view.
+type DiffLine struct {
+	Kind string `json:"kind" enum:"same,del,add"`
+	Text string `json:"text"`
+}
+
+// AuditEventDetail is the event detail panel.
+type AuditEventDetail struct {
+	Event AuditEventItem `json:"event"`
+	// What is a sentence: "Changed the Broadcasts routing rule".
+	What      string `json:"what"`
+	Workspace string `json:"workspace"`
+	IP        string `json:"ip,omitempty"`
+	UserAgent string `json:"userAgent,omitempty"`
+	// Client is the user agent in words: "Chrome 141 on macOS 26".
+	Client string `json:"client,omitempty"`
+	// Permission is the permission the action needed (providers:manage).
+	Permission string          `json:"permission,omitempty"`
+	Before     json.RawMessage `json:"before,omitempty"`
+	After      json.RawMessage `json:"after,omitempty"`
+	Diff       []DiffLine      `json:"diff"`
+	Related    []string        `json:"related"`
+	// Link is the app path of the target, with its label ("Open routing").
+	Link      string `json:"link,omitempty"`
+	LinkLabel string `json:"linkLabel,omitempty"`
+	// JSON is the full entry for "Copy JSON".
+	JSON json.RawMessage `json:"json"`
+}
+
+// Get returns one entry of the workspace log.
+func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (AuditEventDetail, error) {
+	e, err := s.Q.AuditLogGet(ctx, store.AuditLogGetParams{ID: id, WorkspaceID: &ws.ID})
+	if err != nil {
+		return AuditEventDetail{}, api.MapError(err, "Audit entry")
+	}
+	m := parseMeta(e.Metadata)
+	it := item(e.ID, e.OccurredAt, e.ActorType, e.ActorID, e.ActorName, e.ActorColor, e.ActorRole, e.Action, e.TargetType, e.TargetID, e.TargetName, e.Result, e.Reason, ipString(e.Ip), e.RequestID, e.Metadata, e.Before, e.After)
+	out := AuditEventDetail{
+		Event: it, Workspace: e.WorkspaceName, IP: ipString(e.Ip), UserAgent: e.UserAgent, Client: Client(e.UserAgent),
+		Permission: m.Perm, Before: nonEmpty(e.Before), After: nonEmpty(e.After), Diff: Diff(e.Before, e.After), Related: []string{},
+	}
+	if out.Diff == nil {
+		out.Diff = []DiffLine{}
+	}
+	out.What = m.What
+	if out.What == "" {
+		out.What = Describe(e.Action, e.TargetType, e.TargetName)
+	}
+	if m.Related != "" {
+		out.Related = append(out.Related, m.Related)
+	} else {
+		rel, err := s.Q.AuditLogRelated(ctx, store.AuditLogRelatedParams{WorkspaceID: &ws.ID, ID: e.ID, TargetID: e.TargetID, TargetType: e.TargetType, TargetName: e.TargetName,
+			Since: e.OccurredAt.Add(-24 * time.Hour), Until: e.OccurredAt.Add(24 * time.Hour)})
+		if err == nil {
+			for _, r := range rel {
+				rm := parseMeta(r.Metadata)
+				line := r.Action + " by " + r.ActorName + " at " + r.OccurredAt.In(loc(ws.Timezone)).Format("15:04")
+				if rm.Summary != "" {
+					line = rm.Summary + " (" + line + ")"
+				}
+				out.Related = append(out.Related, line)
+			}
+		}
+	}
+	out.Link, out.LinkLabel = link(ws.Slug, e.TargetType, e.TargetID, m.LinkPath)
+	full, _ := json.Marshal(map[string]any{
+		"id": e.ID, "occurred_at": e.OccurredAt, "workspace": ws.Slug, "actor": map[string]any{"type": e.ActorType, "id": e.ActorID, "name": e.ActorName},
+		"action": e.Action, "target": map[string]any{"type": e.TargetType, "id": e.TargetID, "name": e.TargetName},
+		"result": e.Result, "reason": e.Reason, "ip": out.IP, "user_agent": e.UserAgent, "request_id": e.RequestID,
+		"before": nonEmpty(e.Before), "after": nonEmpty(e.After), "metadata": nonEmpty(e.Metadata),
+	})
+	out.JSON = full
+	return out, nil
+}
+
+func nonEmpty(raw json.RawMessage) json.RawMessage {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil
+	}
+	return raw
+}
+
+func loc(tz string) *time.Location {
+	if l, err := time.LoadLocation(tz); err == nil {
+		return l
+	}
+	return time.UTC
+}
+
+// link maps a target to the screen that shows it.
+func link(ws, targetType, targetID, override string) (string, string) {
+	base := "/w/" + ws
+	if override != "" {
+		return base + override, "Open"
+	}
+	switch targetType {
+	case "routing_rule", "routing":
+		return base + "/providers/routing", "Open routing"
+	case "provider":
+		return base + "/providers", "Open providers"
+	case "campaign":
+		if targetID != "" {
+			return base + "/campaigns/" + targetID + "/report", "Open campaign"
+		}
+	case "member":
+		if targetID != "" {
+			return base + "/settings/team/" + targetID, "Open member"
+		}
+	case "invitation":
+		return base + "/settings/team", "Open team"
+	case "role":
+		if targetID != "" {
+			return base + "/settings/roles/" + targetID, "Open role"
+		}
+	case "api_key", "mcp_agent":
+		return base + "/settings/keys", "Open keys"
+	case "webhook", "webhook_delivery":
+		return base + "/settings/webhooks", "Open webhooks"
+	case "workspace":
+		return base + "/settings", "Open settings"
+	case "approval_request":
+		if targetID != "" {
+			return base + "/approvals/" + targetID, "Open approval"
+		}
+	case "contacts", "contact":
+		return base + "/audience", "Open audience"
+	}
+	return "", ""
+}
+
+// verbs turn the last part of an action into a past-tense phrase.
+var verbs = map[string]string{
+	"created": "Created", "updated": "Changed", "deleted": "Deleted", "revoked": "Revoked", "rotated": "Rotated", "replaced": "Replaced",
+	"invited": "Invited", "requested": "Requested approval for", "approved": "Approved", "rejected": "Rejected", "read": "Read",
+	"export": "Exported", "exported": "Exported", "paused": "Paused", "resumed": "Resumed", "auto_paused": "Automatically paused",
+	"completed": "Finished sending", "scheduled": "Scheduled", "role_changed": "Changed the role of", "deactivated": "Deactivated",
+	"reactivated": "Reactivated", "removed": "Removed", "signed_out": "Signed out", "invite_revoked": "Revoked the invitation of",
+	"invite_resent": "Resent the invitation of", "transferred": "Transferred ownership of", "sign_in": "Signed in to", "tested": "Tested",
+	"retried": "Retried deliveries of", "secret_rotated": "Rotated the signing secret of", "settings_updated": "Changed the settings of",
+}
+
+// Describe writes "Changed the Broadcasts routing rule" style sentences from an action.
+func Describe(action, targetType, targetName string) string {
+	noun, verb, ok := strings.Cut(action, ".")
+	if !ok {
+		return strings.ReplaceAll(action, "-", " ")
+	}
+	v := verbs[verb]
+	if v == "" {
+		v = strings.ToUpper(verb[:1]) + strings.ReplaceAll(verb[1:], "_", " ")
+	}
+	obj := strings.ReplaceAll(targetType, "_", " ")
+	if obj == "" {
+		obj = strings.ReplaceAll(noun, "_", " ")
+	}
+	if targetName != "" {
+		if targetType == "routing_rule" {
+			return fmt.Sprintf("%s the %s routing rule", v, targetName)
+		}
+		return fmt.Sprintf("%s %s %s", v, obj, quoteName(targetName))
+	}
+	return fmt.Sprintf("%s %s", v, obj)
+}
+
+func quoteName(n string) string {
+	if strings.ContainsAny(n, "@/") || strings.HasPrefix(n, "“") {
+		return n
+	}
+	return "“" + n + "”"
+}
+
+var (
+	reChrome  = regexp.MustCompile(`(?:Chrome|CriOS)/(\d+)`)
+	reEdge    = regexp.MustCompile(`Edg(?:e|A|iOS)?/(\d+)`)
+	reFirefox = regexp.MustCompile(`(?:Firefox|FxiOS)/(\d+)`)
+	reSafari  = regexp.MustCompile(`Version/(\d+)(?:\.\d+)*.*Safari/`)
+	reMac     = regexp.MustCompile(`Mac OS X (\d+)[_.](\d+)`)
+	reIOS     = regexp.MustCompile(`(?:iPhone|CPU) OS (\d+)`)
+	reAndroid = regexp.MustCompile(`Android (\d+)`)
+	reWindows = regexp.MustCompile(`Windows NT (\d+\.\d+)`)
+)
+
+// Client turns a User-Agent into "Chrome 141 on macOS 26".
+func Client(ua string) string {
+	if ua == "" {
+		return ""
+	}
+	browser := ""
+	if m := reEdge.FindStringSubmatch(ua); m != nil {
+		browser = "Edge " + m[1]
+	} else if m := reFirefox.FindStringSubmatch(ua); m != nil {
+		browser = "Firefox " + m[1]
+	} else if m := reChrome.FindStringSubmatch(ua); m != nil {
+		browser = "Chrome " + m[1]
+	} else if m := reSafari.FindStringSubmatch(ua); m != nil {
+		browser = "Safari " + m[1]
+	}
+	osName := ""
+	switch {
+	case reIOS.MatchString(ua):
+		osName = "iOS " + reIOS.FindStringSubmatch(ua)[1]
+	case reMac.MatchString(ua):
+		m := reMac.FindStringSubmatch(ua)
+		if m[1] == "10" {
+			osName = "macOS"
+		} else {
+			osName = "macOS " + m[1]
+		}
+	case reAndroid.MatchString(ua):
+		osName = "Android " + reAndroid.FindStringSubmatch(ua)[1]
+	case reWindows.MatchString(ua):
+		osName = "Windows"
+	case strings.Contains(ua, "Linux"):
+		osName = "Linux"
+	}
+	switch {
+	case browser != "" && osName != "":
+		return browser + " on " + osName
+	case browser != "":
+		return browser
+	case osName != "":
+		return osName
+	}
+	tok := strings.Fields(ua)[0]
+	if len(tok) > 60 {
+		tok = tok[:60]
+	}
+	return tok
+}
+
+// diffSummary is a short line for entries without a summary: "role: Editor → Viewer".
+func diffSummary(before, after json.RawMessage) string {
+	b, a := orderedObject(before), orderedObject(after)
+	var parts []string
+	for _, kv := range a {
+		bv, ok := lookup(b, kv.key)
+		if ok && bytes.Equal(compact(bv), compact(kv.val)) {
+			continue
+		}
+		if ok {
+			parts = append(parts, kv.key+": "+short(bv)+" → "+short(kv.val))
+		} else {
+			parts = append(parts, kv.key+": "+short(kv.val))
+		}
+		if len(parts) == 3 {
+			break
+		}
+	}
+	return strings.Join(parts, " · ")
+}
+
+func short(v json.RawMessage) string {
+	var s string
+	if json.Unmarshal(v, &s) == nil {
+		if len(s) > 60 {
+			s = s[:60] + "…"
+		}
+		return s
+	}
+	out := Format(v)
+	if len(out) > 60 {
+		out = out[:60] + "…"
+	}
+	return out
+}
+
+type kv struct {
+	key string
+	val json.RawMessage
+}
+
+// orderedObject reads a JSON object keeping key order.
+func orderedObject(raw json.RawMessage) []kv {
+	if len(raw) == 0 {
+		return nil
+	}
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	tok, err := dec.Token()
+	if err != nil || tok != json.Delim('{') {
+		return nil
+	}
+	var out []kv
+	for dec.More() {
+		k, err := dec.Token()
+		if err != nil {
+			return out
+		}
+		var v json.RawMessage
+		if err := dec.Decode(&v); err != nil {
+			return out
+		}
+		out = append(out, kv{fmt.Sprint(k), v})
+	}
+	return out
+}
+
+func lookup(obj []kv, key string) (json.RawMessage, bool) {
+	for _, e := range obj {
+		if e.key == key {
+			return e.val, true
+		}
+	}
+	return nil, false
+}
+
+func compact(v json.RawMessage) []byte {
+	var b bytes.Buffer
+	if err := json.Compact(&b, v); err != nil {
+		return v
+	}
+	return b.Bytes()
+}
+
+// Format renders a JSON value on one line with the spacing of the detail
+// panel: { "ses_us_east_1": 95, "postal_mta": 5 }.
+func Format(v json.RawMessage) string {
+	v = bytes.TrimSpace(v)
+	if len(v) == 0 {
+		return "null"
+	}
+	switch v[0] {
+	case '{':
+		obj := orderedObject(v)
+		if len(obj) == 0 {
+			return "{}"
+		}
+		parts := make([]string, len(obj))
+		for i, e := range obj {
+			parts[i] = strconv.Quote(e.key) + ": " + Format(e.val)
+		}
+		return "{ " + strings.Join(parts, ", ") + " }"
+	case '[':
+		var arr []json.RawMessage
+		if json.Unmarshal(v, &arr) != nil || len(arr) == 0 {
+			return "[]"
+		}
+		parts := make([]string, len(arr))
+		for i, e := range arr {
+			parts[i] = Format(e)
+		}
+		return "[" + strings.Join(parts, ", ") + "]"
+	}
+	return string(compact(v))
+}
+
+// Diff lists the top-level keys of before and after, one per line, marking
+// changed keys as a removed and an added line.
+func Diff(before, after json.RawMessage) []DiffLine {
+	b, a := orderedObject(before), orderedObject(after)
+	if b == nil && a == nil {
+		return nil
+	}
+	keys := []string{}
+	seen := map[string]bool{}
+	for _, e := range a {
+		if !seen[e.key] {
+			seen[e.key] = true
+			keys = append(keys, e.key)
+		}
+	}
+	for _, e := range b {
+		if !seen[e.key] {
+			seen[e.key] = true
+			keys = append(keys, e.key)
+		}
+	}
+	var out []DiffLine
+	for i, k := range keys {
+		comma := ","
+		if i == len(keys)-1 {
+			comma = ""
+		}
+		bv, inB := lookup(b, k)
+		av, inA := lookup(a, k)
+		switch {
+		case inB && inA && bytes.Equal(compact(bv), compact(av)):
+			out = append(out, DiffLine{Kind: "same", Text: strconv.Quote(k) + ": " + Format(av) + comma})
+		default:
+			if inB {
+				out = append(out, DiffLine{Kind: "del", Text: strconv.Quote(k) + ": " + Format(bv) + comma})
+			}
+			if inA {
+				out = append(out, DiffLine{Kind: "add", Text: strconv.Quote(k) + ": " + Format(av) + comma})
+			}
+		}
+	}
+	return out
+}
+
+// AuditStreamStatus describes the webhook stream of the log.
+type AuditStreamStatus struct {
+	Enabled bool `json:"enabled"`
+	// Host is where entries go ("warehouse.acme.io"); the full URL is in Settings.
+	Host         string     `json:"host,omitempty"`
+	URL          string     `json:"url,omitempty"`
+	HasSecret    bool       `json:"hasSecret"`
+	LastOKAt     *time.Time `json:"lastOkAt,omitempty"`
+	FailingSince *time.Time `json:"failingSince,omitempty"`
+	LastError    string     `json:"lastError,omitempty"`
+	Delivered    int64      `json:"delivered"`
+}
+
+type streamState struct {
+	LastOKAt     *time.Time `json:"last_ok_at,omitempty"`
+	FailingSince *time.Time `json:"failing_since,omitempty"`
+	LastError    string     `json:"last_error,omitempty"`
+	Delivered    int64      `json:"delivered"`
+}
+
+func (s *Service) streamStatus(ws *store.Workspace) AuditStreamStatus {
+	st := AuditStreamStatus{Enabled: ws.AuditStreamEnabled, HasSecret: len(ws.AuditStreamSecretEnc) > 0}
+	if ws.AuditStreamUrl != nil {
+		st.URL = *ws.AuditStreamUrl
+		if u, err := url.Parse(*ws.AuditStreamUrl); err == nil {
+			st.Host = u.Hostname()
+		}
+	}
+	var state streamState
+	_ = json.Unmarshal(ws.AuditStreamStatus, &state)
+	st.LastOKAt, st.FailingSince, st.LastError, st.Delivered = state.LastOKAt, state.FailingSince, state.LastError, state.Delivered
+	return st
+}
+
+// AuditSettings is the retention and stream configuration.
+type AuditSettings struct {
+	RetentionDays int32             `json:"retentionDays"`
+	Stream        AuditStreamStatus `json:"stream"`
+	Total         int64             `json:"total"`
+	CanManage     bool              `json:"canManage" doc:"Changing settings needs workspace:manage"`
+}
+
+// Settings returns the audit settings of the workspace.
+func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Principal) (AuditSettings, error) {
+	total, err := s.Q.AuditLogCount(ctx, &ws.ID)
+	if err != nil {
+		return AuditSettings{}, err
+	}
+	return AuditSettings{RetentionDays: ws.AuditRetentionDays, Stream: s.streamStatus(ws), Total: total, CanManage: p.Can(authz.WorkspaceManage)}, nil
+}
+
+// SettingsInput changes retention and the stream.
+type SettingsInput struct {
+	RetentionDays *int32 `json:"retentionDays,omitempty" minimum:"30" maximum:"3650"`
+	Stream        *struct {
+		Enabled bool   `json:"enabled"`
+		URL     string `json:"url,omitempty" maxLength:"500"`
+		// RotateSecret issues a new signing secret (shown once).
+		RotateSecret bool `json:"rotateSecret,omitempty"`
+	} `json:"stream,omitempty"`
+}
+
+// SettingsResult carries a new stream secret, shown once.
+type SettingsResult struct {
+	Settings AuditSettings `json:"settings"`
+	Secret   string        `json:"secret,omitempty" doc:"New signing secret, shown only in this response"`
+}
+
+// UpdateSettings changes retention and the stream configuration.
+func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, p *authz.Principal, in SettingsInput) (SettingsResult, error) {
+	var res SettingsResult
+	before := map[string]any{"retention_days": ws.AuditRetentionDays, "stream_enabled": ws.AuditStreamEnabled, "stream_url": ws.AuditStreamUrl}
+	after := map[string]any{}
+	tx, err := s.Pool.Begin(ctx)
+	if err != nil {
+		return res, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	q := store.New(tx)
+	if in.RetentionDays != nil {
+		if err := q.AuditSetRetention(ctx, store.AuditSetRetentionParams{ID: ws.ID, Days: *in.RetentionDays}); err != nil {
+			return res, err
+		}
+		after["retention_days"] = *in.RetentionDays
+	}
+	if in.Stream != nil {
+		u := strings.TrimSpace(in.Stream.URL)
+		if u == "" && ws.AuditStreamUrl != nil {
+			u = *ws.AuditStreamUrl
+		}
+		if in.Stream.Enabled && u == "" {
+			return res, api.Invalid("body.stream.url", "Add the URL that receives the audit stream.")
+		}
+		if u != "" {
+			pu, err := s.Policy.ValidateURL(u)
+			if err != nil {
+				msg := err.Error()
+				return res, api.Invalid("body.stream.url", strings.ToUpper(msg[:1])+msg[1:]+".")
+			}
+			u = pu.String()
+		}
+		var enc []byte
+		if in.Stream.RotateSecret || (in.Stream.Enabled && len(ws.AuditStreamSecretEnc) == 0) {
+			res.Secret = newSecret()
+			if enc, err = s.Box.SealString(res.Secret, streamAD(ws.ID)); err != nil {
+				return res, err
+			}
+		}
+		var urlPtr *string
+		if u != "" {
+			urlPtr = &u
+		}
+		reset := in.Stream.Enabled && (!ws.AuditStreamEnabled || ws.AuditStreamUrl == nil || *ws.AuditStreamUrl != u)
+		if err := q.AuditStreamConfigure(ctx, store.AuditStreamConfigureParams{ID: ws.ID, Enabled: in.Stream.Enabled, Url: urlPtr, SecretEnc: enc, ResetCursor: reset}); err != nil {
+			return res, err
+		}
+		after["stream_enabled"] = in.Stream.Enabled
+		after["stream_url"] = u
+		if res.Secret != "" {
+			after["stream_secret"] = "rotated"
+		}
+	}
+	if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "audit.settings_updated", TargetType: "workspace", TargetID: ws.ID.String(), TargetName: ws.Name,
+		Before: before, After: after, Metadata: map[string]any{"permission": string(authz.WorkspaceManage)}}); err != nil {
+		return res, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return res, err
+	}
+	fresh, err := s.Q.GetWorkspace(ctx, ws.ID)
+	if err != nil {
+		return res, err
+	}
+	res.Settings, err = s.Settings(ctx, &fresh, p)
+	return res, err
+}
+
+func streamAD(wsID uuid.UUID) string { return "workspace:" + wsID.String() + ":audit_stream_secret" }

@@ -23,6 +23,29 @@ WHERE e.workspace_id = @workspace_id
 ORDER BY e.occurred_at DESC, e.id DESC
 LIMIT @lim;
 
+-- name: AuditLogExport :many
+-- Same filters as AuditLogList, with before/after for exports.
+SELECT e.id, e.workspace_id, e.occurred_at, e.actor_type, e.actor_id, e.actor_name, e.action, e.target_type, e.target_id,
+       e.target_name, e.result, e.reason, e.ip, e.user_agent, e.request_id, e.before, e.after, e.metadata,
+       coalesce(u.avatar_color, '')::text AS actor_color, coalesce(r.name, '')::text AS actor_role
+FROM audit_events e
+LEFT JOIN users u ON e.actor_type = 'user' AND u.id = e.actor_id
+LEFT JOIN workspace_members m ON e.actor_type = 'user' AND m.workspace_id = e.workspace_id AND m.user_id = e.actor_id
+LEFT JOIN roles r ON r.id = m.role_id
+WHERE e.workspace_id = @workspace_id
+  AND (sqlc.narg(actor_type)::text IS NULL OR e.actor_type = sqlc.narg(actor_type))
+  AND (sqlc.narg(actor_id)::uuid IS NULL OR e.actor_id = sqlc.narg(actor_id))
+  AND (sqlc.narg(action_prefix)::text IS NULL OR e.action = sqlc.narg(action_prefix) OR e.action LIKE sqlc.narg(action_prefix) || '.%')
+  AND (sqlc.narg(result)::text IS NULL OR e.result = sqlc.narg(result))
+  AND (sqlc.narg(since)::timestamptz IS NULL OR e.occurred_at >= sqlc.narg(since))
+  AND (sqlc.narg(until)::timestamptz IS NULL OR e.occurred_at < sqlc.narg(until))
+  AND (sqlc.narg(search)::text IS NULL OR e.target_name ILIKE '%' || sqlc.narg(search)::text || '%' OR e.target_id = sqlc.narg(search)::text
+       OR e.request_id = sqlc.narg(search)::text OR e.actor_name ILIKE '%' || sqlc.narg(search)::text || '%')
+  AND (sqlc.narg(cursor_at)::timestamptz IS NULL OR e.occurred_at < sqlc.narg(cursor_at)::timestamptz
+       OR (e.occurred_at = sqlc.narg(cursor_at)::timestamptz AND e.id < sqlc.narg(cursor_id)::uuid))
+ORDER BY e.occurred_at DESC, e.id DESC
+LIMIT @lim;
+
 -- name: AuditLogGet :one
 SELECT e.id, e.workspace_id, e.occurred_at, e.actor_type, e.actor_id, e.actor_name, e.action, e.target_type, e.target_id,
        e.target_name, e.result, e.reason, e.ip, e.user_agent, e.request_id, e.before, e.after, e.metadata,

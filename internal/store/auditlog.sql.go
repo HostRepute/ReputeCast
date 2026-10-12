@@ -99,6 +99,120 @@ func (q *Queries) AuditLogCount(ctx context.Context, workspaceID *uuid.UUID) (in
 	return count, err
 }
 
+const auditLogExport = `-- name: AuditLogExport :many
+SELECT e.id, e.workspace_id, e.occurred_at, e.actor_type, e.actor_id, e.actor_name, e.action, e.target_type, e.target_id,
+       e.target_name, e.result, e.reason, e.ip, e.user_agent, e.request_id, e.before, e.after, e.metadata,
+       coalesce(u.avatar_color, '')::text AS actor_color, coalesce(r.name, '')::text AS actor_role
+FROM audit_events e
+LEFT JOIN users u ON e.actor_type = 'user' AND u.id = e.actor_id
+LEFT JOIN workspace_members m ON e.actor_type = 'user' AND m.workspace_id = e.workspace_id AND m.user_id = e.actor_id
+LEFT JOIN roles r ON r.id = m.role_id
+WHERE e.workspace_id = $1
+  AND ($2::text IS NULL OR e.actor_type = $2)
+  AND ($3::uuid IS NULL OR e.actor_id = $3)
+  AND ($4::text IS NULL OR e.action = $4 OR e.action LIKE $4 || '.%')
+  AND ($5::text IS NULL OR e.result = $5)
+  AND ($6::timestamptz IS NULL OR e.occurred_at >= $6)
+  AND ($7::timestamptz IS NULL OR e.occurred_at < $7)
+  AND ($8::text IS NULL OR e.target_name ILIKE '%' || $8::text || '%' OR e.target_id = $8::text
+       OR e.request_id = $8::text OR e.actor_name ILIKE '%' || $8::text || '%')
+  AND ($9::timestamptz IS NULL OR e.occurred_at < $9::timestamptz
+       OR (e.occurred_at = $9::timestamptz AND e.id < $10::uuid))
+ORDER BY e.occurred_at DESC, e.id DESC
+LIMIT $11
+`
+
+type AuditLogExportParams struct {
+	WorkspaceID  *uuid.UUID `json:"workspaceId"`
+	ActorType    *string    `json:"actorType"`
+	ActorID      *uuid.UUID `json:"actorId"`
+	ActionPrefix *string    `json:"actionPrefix"`
+	Result       *string    `json:"result"`
+	Since        *time.Time `json:"since"`
+	Until        *time.Time `json:"until"`
+	Search       *string    `json:"search"`
+	CursorAt     *time.Time `json:"cursorAt"`
+	CursorID     *uuid.UUID `json:"cursorId"`
+	Lim          int32      `json:"lim"`
+}
+
+type AuditLogExportRow struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID *uuid.UUID      `json:"workspaceId"`
+	OccurredAt  time.Time       `json:"occurredAt"`
+	ActorType   string          `json:"actorType"`
+	ActorID     *uuid.UUID      `json:"actorId"`
+	ActorName   string          `json:"actorName"`
+	Action      string          `json:"action"`
+	TargetType  string          `json:"targetType"`
+	TargetID    string          `json:"targetId"`
+	TargetName  string          `json:"targetName"`
+	Result      string          `json:"result"`
+	Reason      string          `json:"reason"`
+	Ip          *netip.Addr     `json:"ip"`
+	UserAgent   string          `json:"userAgent"`
+	RequestID   string          `json:"requestId"`
+	Before      json.RawMessage `json:"before"`
+	After       json.RawMessage `json:"after"`
+	Metadata    json.RawMessage `json:"metadata"`
+	ActorColor  string          `json:"actorColor"`
+	ActorRole   string          `json:"actorRole"`
+}
+
+// Same filters as AuditLogList, with before/after for exports.
+func (q *Queries) AuditLogExport(ctx context.Context, arg AuditLogExportParams) ([]AuditLogExportRow, error) {
+	rows, err := q.db.Query(ctx, auditLogExport,
+		arg.WorkspaceID,
+		arg.ActorType,
+		arg.ActorID,
+		arg.ActionPrefix,
+		arg.Result,
+		arg.Since,
+		arg.Until,
+		arg.Search,
+		arg.CursorAt,
+		arg.CursorID,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AuditLogExportRow{}
+	for rows.Next() {
+		var i AuditLogExportRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.OccurredAt,
+			&i.ActorType,
+			&i.ActorID,
+			&i.ActorName,
+			&i.Action,
+			&i.TargetType,
+			&i.TargetID,
+			&i.TargetName,
+			&i.Result,
+			&i.Reason,
+			&i.Ip,
+			&i.UserAgent,
+			&i.RequestID,
+			&i.Before,
+			&i.After,
+			&i.Metadata,
+			&i.ActorColor,
+			&i.ActorRole,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const auditLogGet = `-- name: AuditLogGet :one
 SELECT e.id, e.workspace_id, e.occurred_at, e.actor_type, e.actor_id, e.actor_name, e.action, e.target_type, e.target_id,
        e.target_name, e.result, e.reason, e.ip, e.user_agent, e.request_id, e.before, e.after, e.metadata,

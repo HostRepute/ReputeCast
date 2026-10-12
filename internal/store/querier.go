@@ -18,6 +18,8 @@ type Querier interface {
 	// Actors seen in the workspace log, for the actor filter.
 	AuditLogActors(ctx context.Context, workspaceID *uuid.UUID) ([]AuditLogActorsRow, error)
 	AuditLogCount(ctx context.Context, workspaceID *uuid.UUID) (int64, error)
+	// Same filters as AuditLogList, with before/after for exports.
+	AuditLogExport(ctx context.Context, arg AuditLogExportParams) ([]AuditLogExportRow, error)
 	AuditLogGet(ctx context.Context, arg AuditLogGetParams) (AuditLogGetRow, error)
 	// Workspace audit log views, export and stream (W03). The instance-level
 	// view lives with the instance admin domain.
