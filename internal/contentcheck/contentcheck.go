@@ -271,7 +271,7 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentReport, error) {
 		}
 	}
 	if len(in.Fields) > 0 {
-		known := map[string]bool{}
+		known := map[string]bool{"unsubscribe_url": true, "preferences_url": true, "view_in_browser_url": true}
 		for _, f := range in.Fields {
 			known[f] = true
 		}

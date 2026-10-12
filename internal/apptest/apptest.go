@@ -248,3 +248,28 @@ func (c *Client) SignInDemo(email string) {
 	u2, _ := url.Parse(c.env.Server.URL)
 	c.http.Jar.SetCookies(u2, []*http.Cookie{{Name: c.env.App.Cfg.Auth.CookieName, Value: token, Path: "/"}})
 }
+
+// DoRaw sends a request with a raw body and content type (multipart
+// uploads) to path under /api/v1, or to a non-API path as is ("/media/…").
+func (c *Client) DoRaw(method, path, contentType string, body io.Reader) *Response {
+	c.env.T.Helper()
+	target := c.env.Server.URL + path
+	if strings.HasPrefix(path, "/workspaces/") {
+		target = c.env.Server.URL + "/api/v1" + path
+	}
+	req, err := http.NewRequest(method, target, body)
+	if err != nil {
+		c.env.T.Fatal(err)
+	}
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		c.env.T.Fatalf("%s %s: %v", method, path, err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return &Response{Status: resp.StatusCode, Header: resp.Header, Body: b}
+}

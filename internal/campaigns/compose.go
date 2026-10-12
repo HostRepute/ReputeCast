@@ -49,13 +49,13 @@ type TestRecipient struct {
 
 // ComposerContext is the workspace data the composer needs once.
 type ComposerContext struct {
-	Senders         []SenderOption   `json:"senders"`
-	DefaultSenderID string           `json:"defaultSenderId,omitempty"`
-	Lists           []AudienceOption `json:"lists"`
-	Segments        []AudienceOption `json:"segments"`
-	Tokens          []liquid.PersonalizationToken   `json:"tokens"`
-	Members         []TestRecipient  `json:"members"`
-	BroadcastRoute  ComposerRoute    `json:"broadcastRoute"`
+	Senders         []SenderOption                `json:"senders"`
+	DefaultSenderID string                        `json:"defaultSenderId,omitempty"`
+	Lists           []AudienceOption              `json:"lists"`
+	Segments        []AudienceOption              `json:"segments"`
+	Tokens          []liquid.PersonalizationToken `json:"tokens"`
+	Members         []TestRecipient               `json:"members"`
+	BroadcastRoute  ComposerRoute                 `json:"broadcastRoute"`
 	// PostalAddress is the workspace's address for footers, if set.
 	PostalAddress string `json:"postalAddress"`
 	// PublicURL is where images and links point once an email leaves ReputeCast.
@@ -229,9 +229,9 @@ type Preview struct {
 	Contact   *PreviewContact `json:"contact,omitempty"`
 	Tokens    []TokenValue    `json:"tokens"`
 	// MissingFirstName counts audience contacts with no first name (they see the fallback).
-	MissingFirstName *int64           `json:"missingFirstName,omitempty"`
+	MissingFirstName *int64                 `json:"missingFirstName,omitempty"`
 	Problems         []liquid.LiquidProblem `json:"problems"`
-	RenderedAt       time.Time        `json:"renderedAt"`
+	RenderedAt       time.Time              `json:"renderedAt"`
 }
 
 var systemLinks = map[string]bool{"unsubscribe_url": true, "preferences_url": true, "view_in_browser_url": true}
@@ -511,9 +511,9 @@ func (s *Service) mailer() mailer.Sender {
 
 // CheckContent is content to check (unsaved edits included).
 type CheckContent struct {
-	Subject    string `json:"subject" maxLength:"998"`
-	Preheader  string `json:"preheader" maxLength:"500"`
-	MJML       string `json:"mjml" maxLength:"2000000"`
+	Subject    string `json:"subject,omitempty" maxLength:"998"`
+	Preheader  string `json:"preheader,omitempty" maxLength:"500"`
+	MJML       string `json:"mjml,omitempty" maxLength:"2000000"`
 	HTML       string `json:"html,omitempty" maxLength:"2500000"`
 	ProbeLinks bool   `json:"probeLinks,omitempty" doc:"Also request every link (slower; Send Readiness does it)"`
 }

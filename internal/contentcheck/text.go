@@ -141,6 +141,7 @@ func PlainText(src string) string {
 		lines[i] = strings.TrimSpace(l)
 	}
 	out := blankLineRe.ReplaceAllString(strings.Join(lines, "\n"), "\n\n")
+	out = strings.ReplaceAll(out, "--\n\n", "--\n")
 	return strings.TrimSpace(out)
 }
 

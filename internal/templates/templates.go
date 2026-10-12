@@ -199,7 +199,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id, address stri
 
 // SaveTemplate is a new or changed template or saved section.
 type SaveTemplate struct {
-	Kind             string `json:"kind" enum:"template,section" default:"template"`
+	Kind             string `json:"kind,omitempty" enum:"template,section" default:"template"`
 	Name             string `json:"name" minLength:"1" maxLength:"120"`
 	Description      string `json:"description,omitempty" maxLength:"300"`
 	MJML             string `json:"mjml" minLength:"1" maxLength:"2000000"`

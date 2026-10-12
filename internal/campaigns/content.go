@@ -34,9 +34,9 @@ type SaveContent struct {
 	// BaseVersion is the version the editor started from. Saving on top of
 	// someone else's newer version fails with 409 unless Force is set.
 	BaseVersion int    `json:"baseVersion" minimum:"1"`
-	Subject     string `json:"subject" maxLength:"998"`
-	Preheader   string `json:"preheader" maxLength:"500"`
-	MJML        string `json:"mjml" maxLength:"2000000"`
+	Subject     string `json:"subject,omitempty" maxLength:"998"`
+	Preheader   string `json:"preheader,omitempty" maxLength:"500"`
+	MJML        string `json:"mjml,omitempty" maxLength:"2000000"`
 	// HTML compiled by the composer (mjml-browser). Empty: the server
 	// compiles the MJML with gomjml.
 	HTML   string  `json:"html,omitempty" maxLength:"2500000"`

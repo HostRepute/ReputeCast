@@ -33,6 +33,18 @@ type AudienceDef struct {
 	ExcludeSegments []string `json:"excludeSegments"`
 }
 
+// AudienceInput is an audience in requests (every part optional).
+type AudienceInput struct {
+	Lists           []string `json:"lists,omitempty" maxItems:"100"`
+	Segments        []string `json:"segments,omitempty" maxItems:"100"`
+	ExcludeLists    []string `json:"excludeLists,omitempty" maxItems:"100"`
+	ExcludeSegments []string `json:"excludeSegments,omitempty" maxItems:"100"`
+}
+
+func (in AudienceInput) def() AudienceDef {
+	return AudienceDef{Lists: in.Lists, Segments: in.Segments, ExcludeLists: in.ExcludeLists, ExcludeSegments: in.ExcludeSegments}
+}
+
 // dbAudience is the stored shape of campaigns.audience.
 type dbAudience struct {
 	Lists           []string `json:"lists,omitempty"`
@@ -180,33 +192,33 @@ type ComposerAccess struct {
 
 // CampaignDetail is everything the composer loads.
 type CampaignDetail struct {
-	ID              string            `json:"id"`
-	Name            string            `json:"name"`
-	Status          string            `json:"status" enum:"draft,approval,approved,scheduled,sending,paused,sent,cancelled,failed"`
-	Subject         string            `json:"subject"`
-	Preheader       string            `json:"preheader"`
-	Sender          *SenderRef        `json:"sender,omitempty"`
-	ReplyTo         string            `json:"replyTo"`
-	Audience        AudienceDef       `json:"audience"`
-	AudienceLabel   string            `json:"audienceLabel"`
-	AudienceCount   *int64            `json:"audienceCount,omitempty"`
-	EditorMode      string            `json:"editorMode" enum:"visual,mjml,html"`
-	MJML            string            `json:"mjml"`
-	HTML            string            `json:"html"`
-	PlainText       string            `json:"plainText"`
-	Version         int               `json:"version"`
-	VersionCount    int               `json:"versionCount"`
-	ContentHash     string            `json:"contentHash"`
-	ABTest          *ABTest           `json:"abTest,omitempty"`
-	Settings        ContentSettings   `json:"settings"`
-	ScheduledAt     *time.Time        `json:"scheduledAt,omitempty"`
-	CreatedAt       time.Time         `json:"createdAt"`
-	UpdatedAt       time.Time         `json:"updatedAt"`
-	UpdatedBy       string            `json:"updatedBy"`
-	AutosavedAt     *time.Time        `json:"autosavedAt,omitempty"`
-	Route           ComposerRoute     `json:"route"`
-	Readiness       *ReadinessSummary `json:"readiness,omitempty"`
-	Access          ComposerAccess    `json:"access"`
+	ID            string            `json:"id"`
+	Name          string            `json:"name"`
+	Status        string            `json:"status" enum:"draft,approval,approved,scheduled,sending,paused,sent,cancelled,failed"`
+	Subject       string            `json:"subject"`
+	Preheader     string            `json:"preheader"`
+	Sender        *SenderRef        `json:"sender,omitempty"`
+	ReplyTo       string            `json:"replyTo"`
+	Audience      AudienceDef       `json:"audience"`
+	AudienceLabel string            `json:"audienceLabel"`
+	AudienceCount *int64            `json:"audienceCount,omitempty"`
+	EditorMode    string            `json:"editorMode" enum:"visual,mjml,html"`
+	MJML          string            `json:"mjml"`
+	HTML          string            `json:"html"`
+	PlainText     string            `json:"plainText"`
+	Version       int               `json:"version"`
+	VersionCount  int               `json:"versionCount"`
+	ContentHash   string            `json:"contentHash"`
+	ABTest        *ABTest           `json:"abTest,omitempty"`
+	Settings      ContentSettings   `json:"settings"`
+	ScheduledAt   *time.Time        `json:"scheduledAt,omitempty"`
+	CreatedAt     time.Time         `json:"createdAt"`
+	UpdatedAt     time.Time         `json:"updatedAt"`
+	UpdatedBy     string            `json:"updatedBy"`
+	AutosavedAt   *time.Time        `json:"autosavedAt,omitempty"`
+	Route         ComposerRoute     `json:"route"`
+	Readiness     *ReadinessSummary `json:"readiness,omitempty"`
+	Access        ComposerAccess    `json:"access"`
 }
 
 var editableStatuses = map[string]bool{"draft": true, "approval": true, "approved": true, "scheduled": true}
@@ -450,7 +462,7 @@ type UpdateCampaign struct {
 	Name     *string          `json:"name,omitempty" minLength:"1" maxLength:"200"`
 	SenderID *string          `json:"senderId,omitempty" doc:"A sender id, or empty to clear"`
 	ReplyTo  *string          `json:"replyTo,omitempty" maxLength:"254"`
-	Audience *AudienceDef     `json:"audience,omitempty"`
+	Audience *AudienceInput   `json:"audience,omitempty"`
 	Settings *ContentSettings `json:"settings,omitempty"`
 }
 
@@ -503,7 +515,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			replyTo = strings.TrimSpace(*in.ReplyTo)
 		}
 		if in.Audience != nil {
-			def := normalizeAudience(*in.Audience)
+			def := normalizeAudience(in.Audience.def())
 			if err := s.checkAudience(ctx, q, ws, p, def); err != nil {
 				return err
 			}

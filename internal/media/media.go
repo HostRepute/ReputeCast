@@ -84,7 +84,10 @@ func URL(id uuid.UUID, fileName string) string {
 	return PathPrefix + id.String() + "/" + fileName
 }
 
-var unsafeName = regexp.MustCompile(`[^a-z0-9._-]+`)
+var (
+	unsafeName = regexp.MustCompile(`[^a-z0-9._-]+`)
+	dashes     = regexp.MustCompile(`-{2,}`)
+)
 
 // SafeFileName keeps a readable, URL-safe file name with the extension the
 // content type implies.
@@ -97,7 +100,7 @@ func SafeFileName(name, contentType string) string {
 		}
 		return r
 	}, base)
-	base = strings.Trim(unsafeName.ReplaceAllString(base, "-"), "-.")
+	base = strings.Trim(dashes.ReplaceAllString(unsafeName.ReplaceAllString(base, "-"), "-"), "-.")
 	if len(base) > 80 {
 		base = base[:80]
 	}

@@ -201,7 +201,8 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 			it.HumanOpens = pct(r.OpenedHuman, r.Delivered)
 			it.Clicks = pct(r.Clicked, r.Delivered)
 		}
-		if len(r.AbTest) > 0 {
+		// A/B notes describe a test that ran; drafts set one up in the composer.
+		if len(r.AbTest) > 0 && r.StartedAt != nil {
 			var ab struct {
 				Kind   string `json:"kind"`
 				Winner string `json:"winner"`

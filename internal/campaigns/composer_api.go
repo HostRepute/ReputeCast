@@ -11,12 +11,13 @@ import (
 	"github.com/hostrepute/reputecast/internal/mjml"
 )
 
-type campaignInput struct {
+// CampaignPath is the {workspace}/{campaignId} part of composer operations.
+type CampaignPath struct {
 	api.WorkspaceInput
 	CampaignID string `path:"campaignId" format:"uuid"`
 }
 
-func (in campaignInput) id() (uuid.UUID, error) {
+func (in CampaignPath) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(in.CampaignID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("Campaign")
@@ -30,47 +31,48 @@ type createCampaignInput struct {
 }
 
 type updateCampaignInput struct {
-	campaignInput
+	CampaignPath
 	Body UpdateCampaign
 }
 
 type saveContentInput struct {
-	campaignInput
+	CampaignPath
 	Body SaveContent
 }
 
 type versionsInput struct {
-	campaignInput
+	CampaignPath
 	Limit int `query:"limit" minimum:"1" maximum:"300" default:"50"`
 }
 
-type versionInput struct {
-	campaignInput
+// VersionPath adds a {version}.
+type VersionPath struct {
+	CampaignPath
 	Version int `path:"version" minimum:"1"`
 }
 
 type restoreInput struct {
-	versionInput
+	VersionPath
 	Body RestoreVersion
 }
 
 type testSendInput struct {
-	campaignInput
+	CampaignPath
 	Body TestSend
 }
 
 type previewInput struct {
-	campaignInput
+	CampaignPath
 	Body PreviewRequest
 }
 
 type previewContactsInput struct {
-	campaignInput
+	CampaignPath
 	Query string `query:"q" maxLength:"200"`
 }
 
 type checksInput struct {
-	campaignInput
+	CampaignPath
 	Body CheckContent
 }
 
@@ -80,7 +82,7 @@ type contextInput struct {
 
 type audienceCountInput struct {
 	api.WorkspaceInput
-	Body AudienceDef
+	Body AudienceInput
 }
 
 // CompileMJML is MJML to compile on the server.
@@ -90,11 +92,11 @@ type CompileMJML struct {
 
 // CompiledMJML is the server-side compile result (gomjml, MJML 4.15).
 type CompiledMJML struct {
-	HTML       string         `json:"html"`
+	HTML       string             `json:"html"`
 	Errors     []mjml.MJMLProblem `json:"errors"`
 	Warnings   []mjml.MJMLProblem `json:"warnings"`
-	SizeBytes  int            `json:"sizeBytes"`
-	DurationMs int64          `json:"durationMs"`
+	SizeBytes  int                `json:"sizeBytes"`
+	DurationMs int64              `json:"durationMs"`
 }
 
 type compileInput struct {
@@ -115,7 +117,7 @@ func RegisterComposer(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "get-campaign", Path: "/workspaces/{workspace}/campaigns/{campaignId}", Summary: "Get a campaign with its content, audience, sender and route",
 		Tags: tags, Access: view},
-		func(ctx context.Context, in *campaignInput) (*api.Body[CampaignDetail], error) {
+		func(ctx context.Context, in *CampaignPath) (*api.Body[CampaignDetail], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -156,7 +158,7 @@ func RegisterComposer(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "get-campaign-version", Path: "/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}", Summary: "One version with its content",
 		Tags: tags, Access: view},
-		func(ctx context.Context, in *versionInput) (*api.Body[CampaignVersionDetail], error) {
+		func(ctx context.Context, in *VersionPath) (*api.Body[CampaignVersionDetail], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -176,7 +178,7 @@ func RegisterComposer(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "duplicate-campaign", Path: "/workspaces/{workspace}/campaigns/{campaignId}/duplicate", Summary: "Copy a campaign into a new draft",
 		Tags: tags, Access: edit, Status: 201},
-		func(ctx context.Context, in *campaignInput) (*api.Body[CampaignDetail], error) {
+		func(ctx context.Context, in *CampaignPath) (*api.Body[CampaignDetail], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -235,7 +237,7 @@ func RegisterComposer(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "count-campaign-audience", Path: "/workspaces/{workspace}/campaigns/audience-count", Summary: "Live recipient count of an audience definition",
 		Tags: tags, Access: view},
 		func(ctx context.Context, in *audienceCountInput) (*api.Body[AudienceCount], error) {
-			out, err := s.CountAudience(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
+			out, err := s.CountAudience(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body.def())
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "compile-mjml", Path: "/workspaces/{workspace}/mjml/compile", Summary: "Compile MJML to HTML on the server (gomjml, MJML 4)",
