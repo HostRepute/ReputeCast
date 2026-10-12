@@ -108,7 +108,10 @@ seeder in `init()` (`func init() { seedAudience = seedAudienceImpl }`); the
 order is fixed in `demo.go`. Use `s.Ago(d)` / `s.designDay(daysAgo, h, m)`
 for times (relative to now), `demo.Split` so breakdowns add up exactly, and
 the shared maps (`s.Users`, `s.Lists`, `s.Providers`, `s.Campaigns`…) to link
-data. Use the sample data from the specs and the boards (names, numbers,
+data. Rows that need IDs from a seeder later in the order go in
+`s.After(func(ctx, s) error)`, which runs once every seeder is done. Before
+inserting a shared row (a domain, a contact, a campaign), look it up in the
+maps first: another seeder may already have created it. Use the sample data from the specs and the boards (names, numbers,
 copy). Keep totals internally consistent: when a board's numbers contradict
 each other, keep the per-row numbers and let totals be computed.
 
