@@ -57,7 +57,7 @@ UPDATE api_keys SET last_used_at = now(), last_used_ip = @ip, last_used_client =
 WHERE id = @id;
 
 -- name: KeysByToken :one
-SELECT k.id, k.workspace_id, k.kind, k.name, k.permissions, k.scope, k.created_by, k.expires_at, k.revoked_at,
+SELECT k.id, k.workspace_id, k.kind, k.name, k.prefix, k.permissions, k.scope, k.created_by, k.expires_at, k.revoked_at,
        w.slug AS workspace_slug, w.name AS workspace_name, w.mcp_settings
 FROM api_keys k JOIN workspaces w ON w.id = k.workspace_id AND w.deleted_at IS NULL
 WHERE k.token_hash = @token_hash;

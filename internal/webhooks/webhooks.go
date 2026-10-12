@@ -58,15 +58,15 @@ const MaxAttempts = 8
 // eight attempts span six hours.
 var Backoff = []time.Duration{time.Minute, 2 * time.Minute, 4 * time.Minute, 8 * time.Minute, 30 * time.Minute, 90 * time.Minute, 225 * time.Minute}
 
-// EventInfo describes an event endpoints can subscribe to.
-type EventInfo struct {
+// WebhookEventInfo describes an event endpoints can subscribe to.
+type WebhookEventInfo struct {
 	Name        string `json:"name" example:"email.bounced"`
 	Group       string `json:"group" example:"Email"`
 	Description string `json:"description"`
 }
 
 // Events is the catalogue of events, in display order.
-var Events = []EventInfo{
+var Events = []WebhookEventInfo{
 	{"contact.subscribed", "Contacts", "A contact joined a list (after double opt-in when it's on)."},
 	{"contact.unsubscribed", "Contacts", "A contact left a list or unsubscribed from everything."},
 	{"contact.updated", "Contacts", "Fields, tags or preferences changed."},
@@ -104,7 +104,7 @@ func ValidEvent(name string) bool {
 		}
 		return false
 	}
-	return slices.ContainsFunc(Events, func(e EventInfo) bool { return e.Name == name })
+	return slices.ContainsFunc(Events, func(e WebhookEventInfo) bool { return e.Name == name })
 }
 
 // Service holds the webhooks domain dependencies.
@@ -114,8 +114,10 @@ type Service struct {
 	Audit  *audit.Logger
 	Box    *secrets.Box
 	Jobs   *jobs.Client
-	Policy netguard.Policy
-	Now    func() time.Time
+	// AllowPrivate reports whether endpoints may resolve to private
+	// networks (webhooks.allow_private_networks); read at each use.
+	AllowPrivate func() bool
+	Now          func() time.Time
 	// HTTP overrides the delivery client (tests).
 	HTTP *http.Client
 }
@@ -131,7 +133,7 @@ func (s *Service) client() *http.Client {
 	if s.HTTP != nil {
 		return s.HTTP
 	}
-	return s.Policy.Client(10 * time.Second)
+	return s.policy().Client(10 * time.Second)
 }
 
 // Envelope is the JSON body of every delivery.
@@ -226,7 +228,7 @@ type WebhookView struct {
 // WebhookList is the outgoing webhooks card.
 type WebhookList struct {
 	Items  []WebhookView `json:"items"`
-	Events []EventInfo   `json:"events"`
+	Events []WebhookEventInfo   `json:"events"`
 	// Headers name the signature headers for the "Verify a signature" card.
 	SignatureHeader string `json:"signatureHeader"`
 	TimestampHeader string `json:"timestampHeader"`
@@ -291,7 +293,7 @@ type WebhookCreated struct {
 }
 
 func (s *Service) validate(in WebhookInput) (string, []string, error) {
-	u, err := s.Policy.ValidateURL(in.URL)
+	u, err := s.policy().ValidateURL(in.URL)
 	if err != nil {
 		msg := err.Error()
 		return "", nil, api.Invalid("body.url", strings.ToUpper(msg[:1])+msg[1:]+".")
@@ -387,21 +389,21 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	})
 }
 
-// SecretResult carries a new signing secret, shown once.
-type SecretResult struct {
+// WebhookSecretResult carries a new signing secret, shown once.
+type WebhookSecretResult struct {
 	Secret string `json:"secret"`
 }
 
 // RotateSecret replaces the signing secret. Deliveries sign with the new one at once.
-func (s *Service) RotateSecret(ctx context.Context, ws *store.Workspace, id uuid.UUID) (SecretResult, error) {
+func (s *Service) RotateSecret(ctx context.Context, ws *store.Workspace, id uuid.UUID) (WebhookSecretResult, error) {
 	old, err := s.Q.HooksGet(ctx, store.HooksGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
-		return SecretResult{}, api.MapError(err, "Webhook")
+		return WebhookSecretResult{}, api.MapError(err, "Webhook")
 	}
 	secret := newSecret()
 	enc, err := s.Box.SealString(secret, secretAD(id))
 	if err != nil {
-		return SecretResult{}, err
+		return WebhookSecretResult{}, err
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -411,7 +413,7 @@ func (s *Service) RotateSecret(ctx context.Context, ws *store.Workspace, id uuid
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "webhook.secret_rotated", TargetType: "webhook", TargetID: id.String(), TargetName: old.Url,
 			Metadata: map[string]any{"permission": string(authz.WebhooksManage)}})
 	})
-	return SecretResult{Secret: secret}, err
+	return WebhookSecretResult{Secret: secret}, err
 }
 
 // SetEnabled pauses or resumes an endpoint. Events keep queuing while it is
@@ -448,8 +450,8 @@ func (s *Service) SetEnabled(ctx context.Context, ws *store.Workspace, id uuid.U
 	return err
 }
 
-// DeliveryView is one row of the delivery log.
-type DeliveryView struct {
+// WebhookDeliveryView is one row of the delivery log.
+type WebhookDeliveryView struct {
 	ID        string `json:"id"`
 	WebhookID string `json:"webhookId"`
 	Endpoint  string `json:"endpoint" doc:"Host and path, e.g. api.acme.io/hooks/reputecast"`
@@ -470,9 +472,9 @@ type DeliveryView struct {
 	BackoffMinutes *int `json:"backoffMinutes,omitempty"`
 }
 
-// DeliveryList is the delivery log.
-type DeliveryList struct {
-	Items []DeliveryView `json:"items"`
+// WebhookDeliveryList is the delivery log.
+type WebhookDeliveryList struct {
+	Items []WebhookDeliveryView `json:"items"`
 	// Queued counts deliveries waiting per endpoint id.
 	Queued map[string]int64 `json:"queued"`
 }
@@ -485,8 +487,8 @@ func endpointLabel(raw string) string {
 	return strings.TrimSuffix(u.Host+u.EscapedPath(), "/")
 }
 
-func deliveryView(id, webhookID uuid.UUID, hookURL, event, subtype, state string, code, dur *int32, errText string, attempts, maxAttempts int32, created time.Time, last, next *time.Time) DeliveryView {
-	v := DeliveryView{ID: id.String(), WebhookID: webhookID.String(), Endpoint: endpointLabel(hookURL), Event: event, Subtype: subtype, State: state,
+func deliveryView(id, webhookID uuid.UUID, hookURL, event, subtype, state string, code, dur *int32, errText string, attempts, maxAttempts int32, created time.Time, last, next *time.Time) WebhookDeliveryView {
+	v := WebhookDeliveryView{ID: id.String(), WebhookID: webhookID.String(), Endpoint: endpointLabel(hookURL), Event: event, Subtype: subtype, State: state,
 		StatusCode: code, DurationMs: dur, Error: errText, Attempts: attempts, MaxAttempts: maxAttempts, CreatedAt: created, LastAttemptAt: last}
 	if code != nil {
 		v.StatusText = http.StatusText(int(*code))
@@ -502,22 +504,22 @@ func deliveryView(id, webhookID uuid.UUID, hookURL, event, subtype, state string
 }
 
 // Deliveries returns the latest deliveries, newest first.
-func (s *Service) Deliveries(ctx context.Context, ws *store.Workspace, webhookID *uuid.UUID, state string, limit int) (DeliveryList, error) {
+func (s *Service) Deliveries(ctx context.Context, ws *store.Workspace, webhookID *uuid.UUID, state string, limit int) (WebhookDeliveryList, error) {
 	var st *string
 	if state != "" {
 		st = &state
 	}
 	rows, err := s.Q.HooksDeliveries(ctx, store.HooksDeliveriesParams{WorkspaceID: ws.ID, WebhookID: webhookID, State: st, Lim: int32(limit)})
 	if err != nil {
-		return DeliveryList{}, err
+		return WebhookDeliveryList{}, err
 	}
-	out := DeliveryList{Items: []DeliveryView{}, Queued: map[string]int64{}}
+	out := WebhookDeliveryList{Items: []WebhookDeliveryView{}, Queued: map[string]int64{}}
 	for _, r := range rows {
 		out.Items = append(out.Items, deliveryView(r.ID, r.WebhookID, r.WebhookUrl, r.Event, r.Subtype, r.State, r.StatusCode, r.DurationMs, r.Error, r.Attempt, r.MaxAttempts, r.CreatedAt, r.LastAttemptAt, r.NextAttemptAt))
 	}
 	hooks, err := s.Q.HooksList(ctx, ws.ID)
 	if err != nil {
-		return DeliveryList{}, err
+		return WebhookDeliveryList{}, err
 	}
 	for _, h := range hooks {
 		out.Queued[h.ID.String()] = h.Queued
@@ -525,18 +527,18 @@ func (s *Service) Deliveries(ctx context.Context, ws *store.Workspace, webhookID
 	return out, nil
 }
 
-// DeliveryDetail adds the payload and the endpoint's response.
-type DeliveryDetail struct {
-	Delivery DeliveryView    `json:"delivery"`
+// WebhookDeliveryDetail adds the payload and the endpoint's response.
+type WebhookDeliveryDetail struct {
+	Delivery WebhookDeliveryView    `json:"delivery"`
 	Payload  json.RawMessage `json:"payload"`
 	Response string          `json:"response" doc:"First kilobyte of the endpoint's last response"`
 }
 
 // Delivery returns one delivery with its payload.
-func (s *Service) Delivery(ctx context.Context, ws *store.Workspace, id uuid.UUID) (DeliveryDetail, error) {
+func (s *Service) Delivery(ctx context.Context, ws *store.Workspace, id uuid.UUID) (WebhookDeliveryDetail, error) {
 	d, err := s.Q.HooksGetDelivery(ctx, store.HooksGetDeliveryParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
-		return DeliveryDetail{}, api.MapError(err, "Delivery")
+		return WebhookDeliveryDetail{}, api.MapError(err, "Delivery")
 	}
 	var sub struct {
 		Data struct {
@@ -544,21 +546,21 @@ func (s *Service) Delivery(ctx context.Context, ws *store.Workspace, id uuid.UUI
 		} `json:"data"`
 	}
 	_ = json.Unmarshal(d.Payload, &sub)
-	return DeliveryDetail{
+	return WebhookDeliveryDetail{
 		Delivery: deliveryView(d.ID, d.WebhookID, d.WebhookUrl, d.Event, sub.Data.Subtype, d.State, d.StatusCode, d.DurationMs, d.Error, d.Attempt, d.MaxAttempts, d.CreatedAt, d.LastAttemptAt, d.NextAttemptAt),
 		Payload:  d.Payload, Response: d.Response,
 	}, nil
 }
 
-// RetryResult counts the deliveries queued again.
-type RetryResult struct {
+// WebhookRetryResult counts the deliveries queued again.
+type WebhookRetryResult struct {
 	Queued int `json:"queued"`
 }
 
 // Retry queues failed deliveries for an immediate attempt: one delivery,
 // every failed one of an endpoint, or every failed one of the workspace.
 // Dead-lettered deliveries start a fresh round of attempts (replay).
-func (s *Service) Retry(ctx context.Context, ws *store.Workspace, deliveryID, webhookID *uuid.UUID) (RetryResult, error) {
+func (s *Service) Retry(ctx context.Context, ws *store.Workspace, deliveryID, webhookID *uuid.UUID) (WebhookRetryResult, error) {
 	var ids []uuid.UUID
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -584,22 +586,22 @@ func (s *Service) Retry(ctx context.Context, ws *store.Workspace, deliveryID, we
 			Metadata: map[string]any{"summary": fmt.Sprintf("%d %s queued again", len(ids), plural(len(ids), "delivery", "deliveries")), "permission": string(authz.WebhooksManage)}})
 	})
 	if err != nil {
-		return RetryResult{}, err
+		return WebhookRetryResult{}, err
 	}
 	s.kick(ctx, ids)
-	return RetryResult{Queued: len(ids)}, nil
+	return WebhookRetryResult{Queued: len(ids)}, nil
 }
 
-// TestResult is the outcome of a test delivery.
-type TestResult struct {
-	Delivery DeliveryView `json:"delivery"`
+// WebhookTestResult is the outcome of a test delivery.
+type WebhookTestResult struct {
+	Delivery WebhookDeliveryView `json:"delivery"`
 }
 
 // Test sends a webhook.test event right away and returns the result.
-func (s *Service) Test(ctx context.Context, ws *store.Workspace, id uuid.UUID) (TestResult, error) {
+func (s *Service) Test(ctx context.Context, ws *store.Workspace, id uuid.UUID) (WebhookTestResult, error) {
 	h, err := s.Q.HooksGet(ctx, store.HooksGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
-		return TestResult{}, api.MapError(err, "Webhook")
+		return WebhookTestResult{}, api.MapError(err, "Webhook")
 	}
 	eventID := uuid.Must(uuid.NewV7())
 	body, _ := json.Marshal(Envelope{ID: eventID.String(), Type: "webhook.test", CreatedAt: s.now().UTC(), Workspace: ws.Slug, Data: map[string]any{
@@ -608,18 +610,18 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, id uuid.UUID) (
 	deliveryID := uuid.Must(uuid.NewV7())
 	now := s.now()
 	if err := s.Q.HooksInsertDelivery(ctx, store.HooksInsertDeliveryParams{ID: deliveryID, WebhookID: h.ID, Event: "webhook.test", EventID: &eventID, Payload: body, State: "pending", NextAttemptAt: &now, MaxAttempts: 1}); err != nil {
-		return TestResult{}, err
+		return WebhookTestResult{}, err
 	}
 	if _, err := s.Attempt(ctx, deliveryID); err != nil {
-		return TestResult{}, err
+		return WebhookTestResult{}, err
 	}
 	d, err := s.Delivery(ctx, ws, deliveryID)
 	if err != nil {
-		return TestResult{}, err
+		return WebhookTestResult{}, err
 	}
 	_ = s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "webhook.tested", TargetType: "webhook", TargetID: h.ID.String(), TargetName: h.Url,
 		Result: map[bool]string{true: audit.Allowed, false: audit.Failed}[d.Delivery.State == "delivered"], Metadata: map[string]any{"status": d.Delivery.StatusCode}})
-	return TestResult{Delivery: d.Delivery}, nil
+	return WebhookTestResult{Delivery: d.Delivery}, nil
 }
 
 // Attempt makes one delivery attempt and records the result. It returns
@@ -699,4 +701,8 @@ func plural(n int, one, many string) string {
 		return one
 	}
 	return many
+}
+
+func (s *Service) policy() netguard.Policy {
+	return netguard.Policy{AllowPrivate: s.AllowPrivate != nil && s.AllowPrivate()}
 }

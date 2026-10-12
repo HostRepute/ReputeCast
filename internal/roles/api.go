@@ -77,7 +77,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "role-impact", Path: base + "/impact", Summary: "Preview who gains or loses what before saving a role", Tags: tags, Access: api.Workspace(authz.TeamManage)},
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput
-			Body ImpactInput
+			Body RoleImpactInput
 		}) (*api.Body[RoleImpact], error) {
 			out, err := s.Impact(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err

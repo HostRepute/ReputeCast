@@ -35,8 +35,8 @@ const CodeNoSystemProvider = "no_system_provider"
 type TeamInvitation struct {
 	ID        string           `json:"id"`
 	Email     string           `json:"email"`
-	Role      RoleRef          `json:"role"`
-	Scope     access.ScopeView `json:"scope"`
+	Role      TeamRoleRef          `json:"role"`
+	Scope     access.ScopeSummary `json:"scope"`
 	Message   string           `json:"message"`
 	InvitedBy string           `json:"invitedBy"`
 	// SentVia is the provider that delivered the email ("Postmark"); empty
@@ -54,13 +54,13 @@ type TeamInvitationList struct {
 	// DefaultDays is the default expiry ("Links work for 7 days by default").
 	DefaultDays int `json:"defaultDays"`
 	// JIT describes SSO domains whose people can join on their own.
-	JIT []JITHint `json:"jit"`
+	JIT []TeamJITHint `json:"jit"`
 	// CanInvite reflects team:invite (resend, copy link and revoke are hidden without it).
 	CanInvite bool `json:"canInvite"`
 }
 
-// JITHint is "acme.io users can also join automatically with Google Workspace".
-type JITHint struct {
+// TeamJITHint is "acme.io users can also join automatically with Google Workspace".
+type TeamJITHint struct {
 	Domain   string `json:"domain"`
 	Provider string `json:"provider"`
 	Preset   string `json:"preset"`
@@ -80,7 +80,7 @@ func (s *Service) Invitations(ctx context.Context, ws *store.Workspace, p *authz
 	out := TeamInvitationList{Items: []TeamInvitation{}, DefaultDays: DefaultInviteDays, CanInvite: p.Can(authz.TeamInvite)}
 	for _, r := range rows {
 		inv := TeamInvitation{
-			ID: r.ID.String(), Email: r.Email, Role: RoleRef{ID: r.RoleID.String(), Key: r.RoleKey, Name: r.RoleName, Builtin: r.RoleBuiltin},
+			ID: r.ID.String(), Email: r.Email, Role: TeamRoleRef{ID: r.RoleID.String(), Key: r.RoleKey, Name: r.RoleName, Builtin: r.RoleBuiltin},
 			Scope: access.View(access.ParseScope(r.Scope), lists, true), Message: r.Message, InvitedBy: r.InvitedByName,
 			CreatedAt: r.CreatedAt, LastSentAt: r.LastSentAt, ExpiresAt: r.ExpiresAt, Expired: !r.ExpiresAt.After(s.now()),
 		}
@@ -95,12 +95,12 @@ func (s *Service) Invitations(ctx context.Context, ws *store.Workspace, p *authz
 	return out, nil
 }
 
-func (s *Service) jitHints(ctx context.Context, wsID uuid.UUID) ([]JITHint, error) {
+func (s *Service) jitHints(ctx context.Context, wsID uuid.UUID) ([]TeamJITHint, error) {
 	rows, err := s.Q.TeamJITProviders(ctx, &wsID)
 	if err != nil {
 		return nil, err
 	}
-	out := []JITHint{}
+	out := []TeamJITHint{}
 	for _, r := range rows {
 		role := "Viewer"
 		if b, ok := authz.Builtin(r.JitRoleKey); ok {
@@ -111,14 +111,14 @@ func (s *Service) jitHints(ctx context.Context, wsID uuid.UUID) ([]JITHint, erro
 			}
 		}
 		for _, d := range r.AllowedDomains {
-			out = append(out, JITHint{Domain: d, Provider: r.Name, Preset: r.Preset, RoleName: role})
+			out = append(out, TeamJITHint{Domain: d, Provider: r.Name, Preset: r.Preset, RoleName: role})
 		}
 	}
 	return out, nil
 }
 
-// InviteRole is a role offered in the invite dialog.
-type InviteRole struct {
+// TeamInviteRole is a role offered in the invite dialog.
+type TeamInviteRole struct {
 	ID        string `json:"id"`
 	Key       string `json:"key"`
 	Name      string `json:"name"`
@@ -132,15 +132,15 @@ type InviteRole struct {
 	Hint string `json:"hint"`
 }
 
-// InviteOptions feeds the invite dialog.
-type InviteOptions struct {
+// TeamInviteOptions feeds the invite dialog.
+type TeamInviteOptions struct {
 	Workspace string       `json:"workspace"`
-	Roles     []InviteRole `json:"roles"`
+	Roles     []TeamInviteRole `json:"roles"`
 	// DefaultRoleID is Editor when grantable, otherwise the broadest grantable role.
 	DefaultRoleID string             `json:"defaultRoleId"`
-	Lists         []access.ScopeList `json:"lists"`
+	Lists         []access.ScopedList `json:"lists"`
 	SenderDomains []string           `json:"senderDomains"`
-	JIT           []JITHint          `json:"jit"`
+	JIT           []TeamJITHint          `json:"jit"`
 	// SystemProvider names the provider of the System stream ("Postmark").
 	// Empty when invitations can't be emailed yet; the dialog then offers links.
 	SystemProvider string `json:"systemProvider"`
@@ -152,8 +152,8 @@ type InviteOptions struct {
 }
 
 // Options returns what the invite dialog needs.
-func (s *Service) Options(ctx context.Context, ws *store.Workspace, p *authz.Principal) (InviteOptions, error) {
-	out := InviteOptions{Workspace: ws.Name, Roles: []InviteRole{}, Lists: []access.ScopeList{}, SenderDomains: []string{}, DefaultDays: DefaultInviteDays, ExpiryOptions: []int{1, 3, 7, 14, 30}}
+func (s *Service) Options(ctx context.Context, ws *store.Workspace, p *authz.Principal) (TeamInviteOptions, error) {
+	out := TeamInviteOptions{Workspace: ws.Name, Roles: []TeamInviteRole{}, Lists: []access.ScopedList{}, SenderDomains: []string{}, DefaultDays: DefaultInviteDays, ExpiryOptions: []int{1, 3, 7, 14, 30}}
 	roles, err := s.Q.ListRoles(ctx, ws.ID)
 	if err != nil {
 		return out, err
@@ -161,7 +161,7 @@ func (s *Service) Options(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	pol := s.policy(ctx)
 	for _, r := range roles {
 		perms := authz.Effective(r.Key, r.Builtin, r.Permissions)
-		ir := InviteRole{ID: r.ID.String(), Key: r.Key, Name: r.Name, Builtin: r.Builtin, Sensitive: perms.HasSensitive()}
+		ir := TeamInviteRole{ID: r.ID.String(), Key: r.Key, Name: r.Name, Builtin: r.Builtin, Sensitive: perms.HasSensitive()}
 		ir.Grantable, ir.Reason = canGrantRole(p.Permissions, r.Key, r.Builtin, perms)
 		ir.Hint = roleHint(r.Name, perms, pol)
 		out.Roles = append(out.Roles, ir)
@@ -183,7 +183,7 @@ func (s *Service) Options(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	for _, l := range lists {
 		if p.Scope.AllowsList(l.ID) {
-			out.Lists = append(out.Lists, access.ScopeList{ID: l.ID.String(), Name: l.Name})
+			out.Lists = append(out.Lists, access.ScopedList{ID: l.ID.String(), Name: l.Name})
 		}
 	}
 	domains, err := s.Q.TeamWorkspaceSenderDomains(ctx, ws.ID)
@@ -266,19 +266,19 @@ func signInSummary(pol store.InstanceSetting) string {
 	return "Invitees pick a password or continue with " + access.OrList(social) + "."
 }
 
-// InviteInput creates invitations.
-type InviteInput struct {
+// TeamInviteInput creates invitations.
+type TeamInviteInput struct {
 	Emails        []string           `json:"emails" minItems:"1" maxItems:"50"`
 	RoleID        string             `json:"roleId" format:"uuid"`
-	Scope         *access.ScopeInput `json:"scope,omitempty"`
+	Scope         *access.ScopeRequest `json:"scope,omitempty"`
 	ExpiresInDays int                `json:"expiresInDays,omitempty" minimum:"1" maximum:"30" doc:"Defaults to 7"`
 	Message       string             `json:"message,omitempty" maxLength:"1000"`
 	// SendEmail false only creates the links (the "copy links" fallback).
 	SendEmail *bool `json:"sendEmail,omitempty"`
 }
 
-// CreatedInvitation is one created invitation with its link.
-type CreatedInvitation struct {
+// TeamCreatedInvitation is one created invitation with its link.
+type TeamCreatedInvitation struct {
 	ID    string `json:"id"`
 	Email string `json:"email"`
 	// Link is the invitation URL. It is shown to the inviter so it can be
@@ -287,9 +287,9 @@ type CreatedInvitation struct {
 	Emailed bool   `json:"emailed"`
 }
 
-// InviteResult reports what was created and whether email went out.
-type InviteResult struct {
-	Invitations []CreatedInvitation `json:"invitations"`
+// TeamInviteResult reports what was created and whether email went out.
+type TeamInviteResult struct {
+	Invitations []TeamCreatedInvitation `json:"invitations"`
 	Emailed     bool                `json:"emailed"`
 	// Fallback is "no_system_provider" when email couldn't be sent.
 	Fallback string `json:"fallback,omitempty"`
@@ -300,14 +300,14 @@ var errNoMail = errors.New("no mailer")
 
 // Invite creates one invitation per email, then emails them through the
 // System stream. Without a System provider the links are returned instead.
-func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Principal, in InviteInput) (InviteResult, error) {
+func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Principal, in TeamInviteInput) (TeamInviteResult, error) {
 	roleID, err := uuid.Parse(in.RoleID)
 	if err != nil {
-		return InviteResult{}, api.Invalid("body.roleId", "Pick a role.")
+		return TeamInviteResult{}, api.Invalid("body.roleId", "Pick a role.")
 	}
 	role, err := s.Q.GetRole(ctx, roleID)
 	if err != nil || role.WorkspaceID != ws.ID {
-		return InviteResult{}, api.Invalid("body.roleId", "That role doesn't exist in this workspace.")
+		return TeamInviteResult{}, api.Invalid("body.roleId", "That role doesn't exist in this workspace.")
 	}
 	perms := authz.Effective(role.Key, role.Builtin, role.Permissions)
 	if ok, reason := canGrantRole(p.Permissions, role.Key, role.Builtin, perms); !ok {
@@ -315,40 +315,40 @@ func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if m := p.Permissions.Missing(perms); len(m) > 0 {
 			pr.Permission = string(m[0])
 		}
-		return InviteResult{}, pr
+		return TeamInviteResult{}, pr
 	}
 	lists, err := access.ListNames(ctx, s.Q, ws.ID)
 	if err != nil {
-		return InviteResult{}, err
+		return TeamInviteResult{}, err
 	}
 	domains, err := s.Q.TeamWorkspaceSenderDomains(ctx, ws.ID)
 	if err != nil {
-		return InviteResult{}, err
+		return TeamInviteResult{}, err
 	}
 	scope, err := in.Scope.Resolve(lists, domains)
 	if err != nil {
-		return InviteResult{}, api.Invalid("body.scope", capitalize(err.Error())+".")
+		return TeamInviteResult{}, api.Invalid("body.scope", capitalize(err.Error())+".")
 	}
 	if !scope.Within(p.Scope) {
-		return InviteResult{}, api.Err(http.StatusForbidden, api.CodeEscalation, "You can only invite people within your own scope.")
+		return TeamInviteResult{}, api.Err(http.StatusForbidden, api.CodeEscalation, "You can only invite people within your own scope.")
 	}
 	emails, err := normalizeEmails(in.Emails)
 	if err != nil {
-		return InviteResult{}, err
+		return TeamInviteResult{}, err
 	}
 	members, err := s.Q.TeamMemberEmails(ctx, store.TeamMemberEmailsParams{WorkspaceID: ws.ID, Emails: emails})
 	if err != nil {
-		return InviteResult{}, err
+		return TeamInviteResult{}, err
 	}
 	if len(members) > 0 {
-		return InviteResult{}, api.Invalid("body.emails", fmt.Sprintf("%s already %s a member of %s.", access.AndList(members), plural(len(members), "is", "are"), ws.Name))
+		return TeamInviteResult{}, api.Invalid("body.emails", fmt.Sprintf("%s already %s a member of %s.", access.AndList(members), plural(len(members), "is", "are"), ws.Name))
 	}
 	pending, err := s.Q.TeamPendingInviteEmails(ctx, store.TeamPendingInviteEmailsParams{WorkspaceID: ws.ID, Emails: emails})
 	if err != nil {
-		return InviteResult{}, err
+		return TeamInviteResult{}, err
 	}
 	if len(pending) > 0 {
-		return InviteResult{}, api.Invalid("body.emails", fmt.Sprintf("%s already %s a pending invitation. Resend it instead.", access.AndList(pending), plural(len(pending), "has", "have")))
+		return TeamInviteResult{}, api.Invalid("body.emails", fmt.Sprintf("%s already %s a pending invitation. Resend it instead.", access.AndList(pending), plural(len(pending), "has", "have")))
 	}
 	days := in.ExpiresInDays
 	if days == 0 {
@@ -394,13 +394,13 @@ func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		return nil
 	})
 	if err != nil {
-		return InviteResult{}, err
+		return TeamInviteResult{}, err
 	}
-	res := InviteResult{Invitations: []CreatedInvitation{}, Emailed: sendEmail}
+	res := TeamInviteResult{Invitations: []TeamCreatedInvitation{}, Emailed: sendEmail}
 	base := s.base(ctx)
 	stop := !sendEmail
 	for _, c := range made {
-		ci := CreatedInvitation{ID: c.id.String(), Email: c.email, Link: base + "/invite/" + c.token}
+		ci := TeamCreatedInvitation{ID: c.id.String(), Email: c.email, Link: base + "/invite/" + c.token}
 		if !stop {
 			provider, err := s.sendInvite(ctx, ws, p, c.email, c.token, role.Name, in.Message, expires)
 			if err == nil {
@@ -460,33 +460,33 @@ func (s *Service) base(ctx context.Context) string {
 
 func tokenAD(id uuid.UUID) string { return "invitation:" + id.String() + ":token" }
 
-// InviteLink is a copyable invitation link.
-type InviteLink struct {
+// TeamInviteLink is a copyable invitation link.
+type TeamInviteLink struct {
 	Link      string    `json:"link"`
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
 // Link returns the link of a pending invitation (the emailed link stays valid).
-func (s *Service) Link(ctx context.Context, ws *store.Workspace, id uuid.UUID) (InviteLink, error) {
+func (s *Service) Link(ctx context.Context, ws *store.Workspace, id uuid.UUID) (TeamInviteLink, error) {
 	inv, err := s.Q.TeamGetInvitation(ctx, store.TeamGetInvitationParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
-		return InviteLink{}, api.MapError(err, "Invitation")
+		return TeamInviteLink{}, api.MapError(err, "Invitation")
 	}
 	if len(inv.TokenEnc) == 0 {
-		return InviteLink{}, api.Conflict("This invitation was created before links could be copied. Resend it to get a new link.")
+		return TeamInviteLink{}, api.Conflict("This invitation was created before links could be copied. Resend it to get a new link.")
 	}
 	token, err := s.Box.OpenString(inv.TokenEnc, tokenAD(inv.ID))
 	if err != nil {
-		return InviteLink{}, err
+		return TeamInviteLink{}, err
 	}
 	if err := s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "team.invite_link_copied", TargetType: "invitation", TargetID: inv.ID.String(), TargetName: inv.Email}); err != nil {
-		return InviteLink{}, err
+		return TeamInviteLink{}, err
 	}
-	return InviteLink{Link: s.base(ctx) + "/invite/" + token, ExpiresAt: inv.ExpiresAt}, nil
+	return TeamInviteLink{Link: s.base(ctx) + "/invite/" + token, ExpiresAt: inv.ExpiresAt}, nil
 }
 
-// ResendResult reports a resend.
-type ResendResult struct {
+// TeamResendResult reports a resend.
+type TeamResendResult struct {
 	Emailed   bool      `json:"emailed"`
 	SentVia   string    `json:"sentVia,omitempty"`
 	Link      string    `json:"link"`
@@ -495,19 +495,19 @@ type ResendResult struct {
 }
 
 // Resend emails a pending invitation again and restarts its expiry.
-func (s *Service) Resend(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (ResendResult, error) {
+func (s *Service) Resend(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (TeamResendResult, error) {
 	inv, err := s.Q.TeamGetInvitation(ctx, store.TeamGetInvitationParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
-		return ResendResult{}, api.MapError(err, "Invitation")
+		return TeamResendResult{}, api.MapError(err, "Invitation")
 	}
 	perms := authz.Effective(inv.RoleKey, inv.RoleBuiltin, inv.RolePermissions)
 	if ok, reason := canGrantRole(p.Permissions, inv.RoleKey, inv.RoleBuiltin, perms); !ok {
-		return ResendResult{}, api.Err(http.StatusForbidden, api.CodeEscalation, reason)
+		return TeamResendResult{}, api.Err(http.StatusForbidden, api.CodeEscalation, reason)
 	}
 	var token string
 	if len(inv.TokenEnc) > 0 {
 		if token, err = s.Box.OpenString(inv.TokenEnc, tokenAD(inv.ID)); err != nil {
-			return ResendResult{}, err
+			return TeamResendResult{}, err
 		}
 	} else {
 		// Older invitations without a sealed token get a new one.
@@ -515,10 +515,10 @@ func (s *Service) Resend(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		token, hash = authn.NewToken()
 		enc, err := s.Box.SealString(token, tokenAD(inv.ID))
 		if err != nil {
-			return ResendResult{}, err
+			return TeamResendResult{}, err
 		}
 		if _, err := s.Pool.Exec(ctx, `UPDATE invitations SET token_hash = $2, token_enc = $3 WHERE id = $1`, inv.ID, hash, enc); err != nil {
-			return ResendResult{}, err
+			return TeamResendResult{}, err
 		}
 	}
 	days := int(inv.ExpiresDays)
@@ -526,7 +526,7 @@ func (s *Service) Resend(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		days = DefaultInviteDays
 	}
 	expires := s.now().Add(time.Duration(days) * 24 * time.Hour)
-	res := ResendResult{Link: s.base(ctx) + "/invite/" + token, ExpiresAt: expires}
+	res := TeamResendResult{Link: s.base(ctx) + "/invite/" + token, ExpiresAt: expires}
 	provider, mailErr := s.sendInvite(ctx, ws, p, inv.Email, token, inv.RoleName, inv.Message, expires)
 	var via *string
 	if mailErr == nil {

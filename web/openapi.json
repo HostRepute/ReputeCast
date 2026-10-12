@@ -1,6 +1,646 @@
 {
   "components": {
     "schemas": {
+      "APIKeyCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "description": "Client label, e.g. Claude Desktop",
+            "maxLength": 120,
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 60,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "permissions"
+        ],
+        "type": "object"
+      },
+      "APIKeyCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "endpoint": {
+            "type": "string"
+          },
+          "key": {
+            "$ref": "#/components/schemas/APIKeyView"
+          },
+          "secret": {
+            "description": "The full key. Shown only in this response.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "secret",
+          "endpoint"
+        ],
+        "type": "object"
+      },
+      "APIKeyCreator": {
+        "additionalProperties": false,
+        "properties": {
+          "avatarColor": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "avatarColor"
+        ],
+        "type": "object"
+      },
+      "APIKeyList": {
+        "additionalProperties": false,
+        "properties": {
+          "endpoint": {
+            "type": "string"
+          },
+          "groups": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "held": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/APIKeyView"
+            },
+            "type": "array"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/ScopedList"
+            },
+            "type": "array"
+          },
+          "locked": {
+            "items": {
+              "$ref": "#/components/schemas/APIKeyLockedPermission"
+            },
+            "type": "array"
+          },
+          "permissions": {
+            "items": {
+              "$ref": "#/components/schemas/PermissionInfo"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "permissions",
+          "groups",
+          "held",
+          "locked",
+          "lists",
+          "endpoint"
+        ],
+        "type": "object"
+      },
+      "APIKeyLockedPermission": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "APIKeyRejections": {
+        "additionalProperties": false,
+        "properties": {
+          "calls": {
+            "description": "In the last 7 days",
+            "format": "int64",
+            "type": "integer"
+          },
+          "client": {
+            "description": "Client label of that address",
+            "type": "string"
+          },
+          "ip": {
+            "description": "Busiest client address",
+            "type": "string"
+          },
+          "since": {
+            "description": "First rejected call",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "calls"
+        ],
+        "type": "object"
+      },
+      "APIKeyView": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/APIKeyCreator"
+          },
+          "description": {
+            "description": "Client label for agents (Claude Desktop)",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "api_key",
+              "mcp_agent"
+            ],
+            "type": "string"
+          },
+          "lastCall": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastUsedClient": {
+            "type": "string"
+          },
+          "lastUsedIp": {
+            "type": "string"
+          },
+          "masked": {
+            "examples": [
+              "rc_live_8f2c…a91d"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rejections": {
+            "$ref": "#/components/schemas/APIKeyRejections"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ScopeSummary"
+          },
+          "sensitive": {
+            "description": "The ⚑ permissions among them",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "expired"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "description",
+          "masked",
+          "permissions",
+          "sensitive",
+          "scope",
+          "createdBy",
+          "createdAt",
+          "status"
+        ],
+        "type": "object"
+      },
+      "AuditActor": {
+        "additionalProperties": false,
+        "properties": {
+          "avatarColor": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "user",
+              "api_key",
+              "mcp_agent",
+              "system"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "label"
+        ],
+        "type": "object"
+      },
+      "AuditActorRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "AuditDiffLine": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "same",
+              "del",
+              "add"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ],
+        "type": "object"
+      },
+      "AuditEventDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {},
+          "before": {},
+          "client": {
+            "type": "string"
+          },
+          "diff": {
+            "items": {
+              "$ref": "#/components/schemas/AuditDiffLine"
+            },
+            "type": "array"
+          },
+          "event": {
+            "$ref": "#/components/schemas/AuditEventItem"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "json": {},
+          "link": {
+            "type": "string"
+          },
+          "linkLabel": {
+            "type": "string"
+          },
+          "permission": {
+            "type": "string"
+          },
+          "related": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "userAgent": {
+            "type": "string"
+          },
+          "what": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "what",
+          "workspace",
+          "diff",
+          "related",
+          "json"
+        ],
+        "type": "object"
+      },
+      "AuditEventItem": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/AuditActor"
+          },
+          "id": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "allowed",
+              "denied",
+              "error"
+            ],
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/AuditSource"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "targetName": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "occurredAt",
+          "actor",
+          "action",
+          "targetType",
+          "targetId",
+          "targetName",
+          "target",
+          "summary",
+          "source",
+          "result"
+        ],
+        "type": "object"
+      },
+      "AuditEventList": {
+        "additionalProperties": false,
+        "properties": {
+          "actionGroups": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "actors": {
+            "items": {
+              "$ref": "#/components/schemas/AuditActorRef"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventItem"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "type": "string"
+          },
+          "retentionDays": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "stream": {
+            "$ref": "#/components/schemas/AuditStreamStatus"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "retentionDays",
+          "stream",
+          "actors",
+          "actionGroups"
+        ],
+        "type": "object"
+      },
+      "AuditSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "description": "Changing settings needs workspace:manage",
+            "type": "boolean"
+          },
+          "retentionDays": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "stream": {
+            "$ref": "#/components/schemas/AuditStreamStatus"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "retentionDays",
+          "stream",
+          "total",
+          "canManage"
+        ],
+        "type": "object"
+      },
+      "AuditSettingsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "retentionDays": {
+            "format": "int32",
+            "maximum": 3650,
+            "minimum": 30,
+            "type": "integer"
+          },
+          "stream": {
+            "$ref": "#/components/schemas/AuditStreamInput"
+          }
+        },
+        "type": "object"
+      },
+      "AuditSettingsResult": {
+        "additionalProperties": false,
+        "properties": {
+          "secret": {
+            "description": "New signing secret, shown only in this response",
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/AuditSettings"
+          }
+        },
+        "required": [
+          "settings"
+        ],
+        "type": "object"
+      },
+      "AuditSource": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel"
+        ],
+        "type": "object"
+      },
+      "AuditStreamInput": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "rotateSecret": {
+            "type": "boolean"
+          },
+          "url": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "AuditStreamStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "failingSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "hasSecret": {
+            "type": "boolean"
+          },
+          "host": {
+            "type": "string"
+          },
+          "lastError": {
+            "type": "string"
+          },
+          "lastOkAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "hasSecret",
+          "delivered"
+        ],
+        "type": "object"
+      },
       "Auth-identifyRequest": {
         "additionalProperties": false,
         "properties": {
@@ -509,6 +1149,265 @@
         ],
         "type": "object"
       },
+      "MCPAgentAction": {
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "allowed",
+              "denied",
+              "error"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "tool": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "occurredAt",
+          "agent",
+          "tool",
+          "target",
+          "result"
+        ],
+        "type": "object"
+      },
+      "MCPAgentActionList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MCPAgentAction"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "MCPAgentRow": {
+        "additionalProperties": false,
+        "properties": {
+          "cells": {
+            "items": {
+              "$ref": "#/components/schemas/MCPCapabilityCell"
+            },
+            "type": "array"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "masked": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "expired"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "masked",
+          "createdBy",
+          "permissions",
+          "cells",
+          "status"
+        ],
+        "type": "object"
+      },
+      "MCPCapabilityCell": {
+        "additionalProperties": false,
+        "properties": {
+          "capability": {
+            "type": "string"
+          },
+          "label": {
+            "examples": [
+              "Pause only · never start"
+            ],
+            "type": "string"
+          },
+          "level": {
+            "enum": [
+              "allow",
+              "approve",
+              "partial",
+              "deny"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "capability",
+          "level",
+          "label"
+        ],
+        "type": "object"
+      },
+      "MCPOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "agents": {
+            "items": {
+              "$ref": "#/components/schemas/MCPAgentRow"
+            },
+            "type": "array"
+          },
+          "approvalExpiryHours": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "prompts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rateLimitPerMinute": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "resources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/MCPToolInfo"
+            },
+            "type": "array"
+          },
+          "transport": {
+            "enum": [
+              "streamable_http"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "endpoint",
+          "transport",
+          "rateLimitPerMinute",
+          "approvalExpiryHours",
+          "capabilities",
+          "agents",
+          "tools",
+          "resources",
+          "prompts",
+          "canManage"
+        ],
+        "type": "object"
+      },
+      "MCPSettingsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "approvalExpiryHours": {
+            "format": "int64",
+            "maximum": 168,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "rateLimitPerMinute": {
+            "format": "int64",
+            "maximum": 6000,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "rateLimitPerMinute",
+          "approvalExpiryHours"
+        ],
+        "type": "object"
+      },
+      "MCPToolInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permission": {
+            "type": "string"
+          },
+          "writes": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "permission",
+          "writes"
+        ],
+        "type": "object"
+      },
       "Me": {
         "additionalProperties": false,
         "properties": {
@@ -664,6 +1563,110 @@
         ],
         "type": "object"
       },
+      "MemberSignInMethod": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "password",
+              "passkey",
+              "sso",
+              "google",
+              "microsoft",
+              "github"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "preset": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "label"
+        ],
+        "type": "object"
+      },
+      "MemberTwoFA": {
+        "additionalProperties": false,
+        "properties": {
+          "graceDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "graceUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "on",
+              "off",
+              "idp",
+              "required"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "type": "object"
+      },
+      "PermissionInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "group": {
+            "examples": [
+              "Campaigns"
+            ],
+            "type": "string"
+          },
+          "implies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "key": {
+            "examples": [
+              "campaigns:send"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "examples": [
+              "Send or schedule campaigns"
+            ],
+            "type": "string"
+          },
+          "ownerOnly": {
+            "type": "boolean"
+          },
+          "sensitive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "group",
+          "label",
+          "description",
+          "sensitive",
+          "implies",
+          "ownerOnly"
+        ],
+        "type": "object"
+      },
       "Problem": {
         "additionalProperties": false,
         "properties": {
@@ -793,6 +1796,450 @@
         ],
         "type": "object"
       },
+      "RoleCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "RoleDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "groups": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "held": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "permissions": {
+            "items": {
+              "$ref": "#/components/schemas/PermissionInfo"
+            },
+            "type": "array"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RoleSummary"
+          }
+        },
+        "required": [
+          "role",
+          "permissions",
+          "groups",
+          "held",
+          "canManage",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "RoleImpact": {
+        "additionalProperties": false,
+        "properties": {
+          "added": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "addedSensitive": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "agents": {
+            "description": "MCP agents that lose permissions",
+            "format": "int64",
+            "type": "integer"
+          },
+          "apiKeys": {
+            "description": "API keys that lose permissions",
+            "format": "int64",
+            "type": "integer"
+          },
+          "approvals": {
+            "type": "string"
+          },
+          "graceDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "keys": {
+            "items": {
+              "$ref": "#/components/schemas/RoleImpactKey"
+            },
+            "type": "array"
+          },
+          "locked": {
+            "items": {
+              "$ref": "#/components/schemas/RoleLockedPermission"
+            },
+            "type": "array"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/RoleImpactMember"
+            },
+            "type": "array"
+          },
+          "membersAffected": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pendingApprovals": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "removed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "removedSensitive": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sensitive": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "added",
+          "removed",
+          "addedSensitive",
+          "removedSensitive",
+          "members",
+          "membersAffected",
+          "keys",
+          "apiKeys",
+          "agents",
+          "sensitive",
+          "approvals",
+          "pendingApprovals",
+          "summary",
+          "locked",
+          "graceDays"
+        ],
+        "type": "object"
+      },
+      "RoleImpactInput": {
+        "additionalProperties": false,
+        "properties": {
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "roleId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "permissions"
+        ],
+        "type": "object"
+      },
+      "RoleImpactKey": {
+        "additionalProperties": false,
+        "properties": {
+          "effect": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "api_key",
+              "mcp_agent"
+            ],
+            "type": "string"
+          },
+          "loses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "loses",
+          "effect"
+        ],
+        "type": "object"
+      },
+      "RoleImpactMember": {
+        "additionalProperties": false,
+        "properties": {
+          "avatarColor": {
+            "type": "string"
+          },
+          "effect": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "gains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "loses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "avatarColor",
+          "gains",
+          "loses",
+          "effect"
+        ],
+        "type": "object"
+      },
+      "RoleInput": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "permissions"
+        ],
+        "type": "object"
+      },
+      "RoleList": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "groups": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "held": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "permissions": {
+            "items": {
+              "$ref": "#/components/schemas/PermissionInfo"
+            },
+            "type": "array"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/RoleSummary"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "roles",
+          "permissions",
+          "groups",
+          "held",
+          "canManage",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "RoleLockedPermission": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "RoleMemberRef": {
+        "additionalProperties": false,
+        "properties": {
+          "avatarColor": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "description": "Membership id",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "deactivated"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "avatarColor",
+          "status"
+        ],
+        "type": "object"
+      },
+      "RoleSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "builtin": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "deactivated": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "invited": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/RoleMemberRef"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sensitive": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "description",
+          "builtin",
+          "permissions",
+          "sensitive",
+          "members",
+          "active",
+          "deactivated",
+          "invited",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "RouteShare": {
         "additionalProperties": false,
         "properties": {
@@ -915,6 +2362,73 @@
         },
         "type": "object"
       },
+      "ScopeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "lists": {
+            "description": "List ids",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "senderDomains": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ScopeSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "all": {
+            "type": "boolean"
+          },
+          "label": {
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/ScopedList"
+            },
+            "type": "array"
+          },
+          "senderDomains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "lists",
+          "senderDomains",
+          "label",
+          "all"
+        ],
+        "type": "object"
+      },
+      "ScopedList": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "Setup-check-urlRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1024,6 +2538,897 @@
         ],
         "type": "object"
       },
+      "TeamBulkInput": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "change_role",
+              "require_2fa",
+              "deactivate"
+            ],
+            "type": "string"
+          },
+          "memberIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "type": "array"
+          },
+          "reason": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "revokeKeys": {
+            "description": "For deactivate",
+            "type": "boolean"
+          },
+          "roleId": {
+            "description": "For change_role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memberIds",
+          "action"
+        ],
+        "type": "object"
+      },
+      "TeamBulkResult": {
+        "additionalProperties": false,
+        "properties": {
+          "changed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "skipped": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "changed",
+          "skipped"
+        ],
+        "type": "object"
+      },
+      "TeamCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deactivated": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invited": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "members": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "members",
+          "active",
+          "deactivated",
+          "invited"
+        ],
+        "type": "object"
+      },
+      "TeamCreatedInvitation": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "emailed": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "link",
+          "emailed"
+        ],
+        "type": "object"
+      },
+      "TeamDeactivateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "description": "Recorded in the audit log",
+            "maxLength": 500,
+            "type": "string"
+          },
+          "revokeKeys": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "revokeKeys"
+        ],
+        "type": "object"
+      },
+      "TeamDeactivateResult": {
+        "additionalProperties": false,
+        "properties": {
+          "keysRevoked": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sessionsRevoked": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sessionsRevoked",
+          "keysRevoked"
+        ],
+        "type": "object"
+      },
+      "TeamEffectivePermission": {
+        "additionalProperties": false,
+        "properties": {
+          "granted": {
+            "type": "boolean"
+          },
+          "group": {
+            "type": "string"
+          },
+          "includedBy": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "sensitive": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "group",
+          "label",
+          "sensitive",
+          "granted",
+          "source",
+          "scope"
+        ],
+        "type": "object"
+      },
+      "TeamInvitation": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "expired": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "invitedBy": {
+            "type": "string"
+          },
+          "lastSentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/TeamRoleRef"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ScopeSummary"
+          },
+          "sentVia": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "scope",
+          "message",
+          "invitedBy",
+          "sentVia",
+          "createdAt",
+          "expiresAt",
+          "expired"
+        ],
+        "type": "object"
+      },
+      "TeamInvitationList": {
+        "additionalProperties": false,
+        "properties": {
+          "canInvite": {
+            "type": "boolean"
+          },
+          "defaultDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TeamInvitation"
+            },
+            "type": "array"
+          },
+          "jit": {
+            "items": {
+              "$ref": "#/components/schemas/TeamJITHint"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "defaultDays",
+          "jit",
+          "canInvite"
+        ],
+        "type": "object"
+      },
+      "TeamInviteInput": {
+        "additionalProperties": false,
+        "properties": {
+          "emails": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array"
+          },
+          "expiresInDays": {
+            "description": "Defaults to 7",
+            "format": "int64",
+            "maximum": 30,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "message": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "roleId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ScopeRequest"
+          },
+          "sendEmail": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "emails",
+          "roleId"
+        ],
+        "type": "object"
+      },
+      "TeamInviteLink": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "link",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "TeamInviteOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "canEmail": {
+            "type": "boolean"
+          },
+          "defaultDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "defaultRoleId": {
+            "type": "string"
+          },
+          "expiryOptions": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "jit": {
+            "items": {
+              "$ref": "#/components/schemas/TeamJITHint"
+            },
+            "type": "array"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/ScopedList"
+            },
+            "type": "array"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/TeamInviteRole"
+            },
+            "type": "array"
+          },
+          "senderDomains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "signInSummary": {
+            "type": "string"
+          },
+          "systemProvider": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace",
+          "roles",
+          "defaultRoleId",
+          "lists",
+          "senderDomains",
+          "jit",
+          "systemProvider",
+          "canEmail",
+          "defaultDays",
+          "expiryOptions",
+          "signInSummary"
+        ],
+        "type": "object"
+      },
+      "TeamInviteResult": {
+        "additionalProperties": false,
+        "properties": {
+          "emailed": {
+            "type": "boolean"
+          },
+          "fallback": {
+            "type": "string"
+          },
+          "invitations": {
+            "items": {
+              "$ref": "#/components/schemas/TeamCreatedInvitation"
+            },
+            "type": "array"
+          },
+          "sentVia": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "invitations",
+          "emailed"
+        ],
+        "type": "object"
+      },
+      "TeamInviteRole": {
+        "additionalProperties": false,
+        "properties": {
+          "builtin": {
+            "type": "boolean"
+          },
+          "grantable": {
+            "type": "boolean"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "sensitive": {
+            "description": "Holders need two-factor",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "builtin",
+          "sensitive",
+          "grantable",
+          "hint"
+        ],
+        "type": "object"
+      },
+      "TeamJITHint": {
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "preset": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "domain",
+          "provider",
+          "preset",
+          "roleName"
+        ],
+        "type": "object"
+      },
+      "TeamMember": {
+        "additionalProperties": false,
+        "properties": {
+          "accountDeactivated": {
+            "type": "boolean"
+          },
+          "avatarColor": {
+            "type": "string"
+          },
+          "deactivatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "description": "Membership id",
+            "type": "string"
+          },
+          "joinedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastActiveAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastOwner": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "role": {
+            "$ref": "#/components/schemas/TeamRoleRef"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ScopeSummary"
+          },
+          "signIn": {
+            "items": {
+              "$ref": "#/components/schemas/MemberSignInMethod"
+            },
+            "type": "array"
+          },
+          "source": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "deactivated"
+            ],
+            "type": "string"
+          },
+          "twoFA": {
+            "$ref": "#/components/schemas/MemberTwoFA"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "you": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "name",
+          "email",
+          "avatarColor",
+          "role",
+          "scope",
+          "notes",
+          "signIn",
+          "twoFA",
+          "status",
+          "accountDeactivated",
+          "joinedAt",
+          "source",
+          "you",
+          "lastOwner"
+        ],
+        "type": "object"
+      },
+      "TeamMemberAPIKey": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "api_key",
+              "mcp_agent"
+            ],
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "masked": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "expired",
+              "revoked"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "masked",
+          "permissions",
+          "status"
+        ],
+        "type": "object"
+      },
+      "TeamMemberActivity": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "allowed",
+              "denied",
+              "error"
+            ],
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "occurredAt",
+          "action",
+          "target",
+          "result"
+        ],
+        "type": "object"
+      },
+      "TeamMemberApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "campaign": {
+            "type": "string"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "status": {
+            "description": "approve, request_changes, reject (given) or the request status (requested)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaign",
+          "status",
+          "at"
+        ],
+        "type": "object"
+      },
+      "TeamMemberChangeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "roleId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ScopeRequest"
+          }
+        },
+        "required": [
+          "roleId"
+        ],
+        "type": "object"
+      },
+      "TeamMemberDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "activity": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMemberActivity"
+            },
+            "type": "array"
+          },
+          "apiKeys": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMemberAPIKey"
+            },
+            "type": "array"
+          },
+          "approvalsGiven": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMemberApproval"
+            },
+            "type": "array"
+          },
+          "approvalsRequested": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMemberApproval"
+            },
+            "type": "array"
+          },
+          "canApprove": {
+            "type": "boolean"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "groups": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "keysNote": {
+            "type": "string"
+          },
+          "member": {
+            "$ref": "#/components/schemas/TeamMember"
+          },
+          "permissions": {
+            "items": {
+              "$ref": "#/components/schemas/TeamEffectivePermission"
+            },
+            "type": "array"
+          },
+          "sessions": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "ssoDomain": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "member",
+          "permissions",
+          "groups",
+          "apiKeys",
+          "approvalsGiven",
+          "approvalsRequested",
+          "canApprove",
+          "sessions",
+          "activity",
+          "canManage",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "TeamMemberList": {
+        "additionalProperties": false,
+        "properties": {
+          "canInvite": {
+            "type": "boolean"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/TeamCounts"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/TeamRoleRef"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "counts",
+          "roles",
+          "canInvite",
+          "canManage",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "TeamResendResult": {
+        "additionalProperties": false,
+        "properties": {
+          "emailed": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fallback": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          },
+          "sentVia": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "emailed",
+          "link",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "TeamRoleRef": {
+        "additionalProperties": false,
+        "properties": {
+          "builtin": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "builtin"
+        ],
+        "type": "object"
+      },
+      "TeamSignOutResult": {
+        "additionalProperties": false,
+        "properties": {
+          "sessionsRevoked": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sessionsRevoked"
+        ],
+        "type": "object"
+      },
       "Totp-confirmRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1069,6 +3474,530 @@
         ],
         "type": "object"
       },
+      "WebhookCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "secret": {
+            "description": "The signing secret. Shown only in this response.",
+            "type": "string"
+          },
+          "webhook": {
+            "$ref": "#/components/schemas/WebhookView"
+          }
+        },
+        "required": [
+          "webhook",
+          "secret"
+        ],
+        "type": "object"
+      },
+      "WebhookDeliveryDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "delivery": {
+            "$ref": "#/components/schemas/WebhookDeliveryView"
+          },
+          "payload": {},
+          "response": {
+            "description": "First kilobyte of the endpoint's last response",
+            "type": "string"
+          }
+        },
+        "required": [
+          "delivery",
+          "payload",
+          "response"
+        ],
+        "type": "object"
+      },
+      "WebhookDeliveryList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WebhookDeliveryView"
+            },
+            "type": "array"
+          },
+          "queued": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "items",
+          "queued"
+        ],
+        "type": "object"
+      },
+      "WebhookDeliveryView": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "backoffMinutes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "durationMs": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "endpoint": {
+            "description": "Host and path, e.g. api.acme.io/hooks/reputecast",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastAttemptAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "maxAttempts": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "nextAttemptAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "pending",
+              "delivering",
+              "delivered",
+              "retrying",
+              "dead",
+              "held"
+            ],
+            "type": "string"
+          },
+          "statusCode": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "statusText": {
+            "description": "Bad Gateway",
+            "type": "string"
+          },
+          "subtype": {
+            "type": "string"
+          },
+          "webhookId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "webhookId",
+          "endpoint",
+          "event",
+          "state",
+          "attempts",
+          "maxAttempts",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "WebhookEventInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "group": {
+            "examples": [
+              "Email"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "email.bounced"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "group",
+          "description"
+        ],
+        "type": "object"
+      },
+      "WebhookInput": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 40,
+            "minItems": 1,
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 80,
+            "type": "string"
+          },
+          "url": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "url",
+          "events"
+        ],
+        "type": "object"
+      },
+      "WebhookList": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/WebhookEventInfo"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WebhookView"
+            },
+            "type": "array"
+          },
+          "maxAttempts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "signatureHeader": {
+            "type": "string"
+          },
+          "timestampHeader": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "events",
+          "signatureHeader",
+          "timestampHeader",
+          "maxAttempts"
+        ],
+        "type": "object"
+      },
+      "WebhookRetryInput": {
+        "additionalProperties": false,
+        "properties": {
+          "webhookId": {
+            "description": "Only this endpoint; empty retries every endpoint",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "WebhookRetryResult": {
+        "additionalProperties": false,
+        "properties": {
+          "queued": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "queued"
+        ],
+        "type": "object"
+      },
+      "WebhookSecretResult": {
+        "additionalProperties": false,
+        "properties": {
+          "secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "secret"
+        ],
+        "type": "object"
+      },
+      "WebhookTestResult": {
+        "additionalProperties": false,
+        "properties": {
+          "delivery": {
+            "$ref": "#/components/schemas/WebhookDeliveryView"
+          }
+        },
+        "required": [
+          "delivery"
+        ],
+        "type": "object"
+      },
+      "WebhookView": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "failingSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastDeliveryAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastStatus": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "queued": {
+            "description": "Deliveries waiting for an attempt or a retry",
+            "format": "int64",
+            "type": "integer"
+          },
+          "secretRotatedAt": {
+            "description": "Set when the secret was replaced after creation",
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "healthy",
+              "failing",
+              "paused"
+            ],
+            "type": "string"
+          },
+          "success24h": {
+            "description": "Percent delivered in the last 24 hours",
+            "format": "double",
+            "type": "number"
+          },
+          "total24h": {
+            "description": "Deliveries attempted in the last 24 hours",
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "url",
+          "events",
+          "enabled",
+          "status",
+          "createdAt",
+          "total24h",
+          "queued"
+        ],
+        "type": "object"
+      },
+      "WorkspaceApprovals": {
+        "additionalProperties": false,
+        "properties": {
+          "approvalsRequired": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "approvers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "automations": {
+            "description": "Publishing automations needs approval",
+            "type": "boolean"
+          },
+          "bypass": {
+            "description": "Owners can bypass with a reason",
+            "type": "boolean"
+          },
+          "pending": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rules": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "rules",
+          "approvers",
+          "approvalsRequired",
+          "automations",
+          "bypass",
+          "pending"
+        ],
+        "type": "object"
+      },
+      "WorkspaceDanger": {
+        "additionalProperties": false,
+        "properties": {
+          "agents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "apiKeys": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "automations": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "campaigns": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lists": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "providers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "restoreDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "scheduled": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "segments": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "templates": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "contacts",
+          "lists",
+          "segments",
+          "campaigns",
+          "automations",
+          "templates",
+          "providers",
+          "scheduled",
+          "apiKeys",
+          "agents",
+          "restoreDays"
+        ],
+        "type": "object"
+      },
+      "WorkspaceDeleteInput": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm": {
+            "description": "The workspace name, typed exactly",
+            "maxLength": 80,
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "type": "object"
+      },
+      "WorkspaceDeleteResult": {
+        "additionalProperties": false,
+        "properties": {
+          "cancelled": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "restoreUntil": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "restoreUntil",
+          "cancelled"
+        ],
+        "type": "object"
+      },
+      "WorkspaceGeneralInput": {
+        "additionalProperties": false,
+        "properties": {
+          "defaultSenderId": {
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "timezone"
+        ],
+        "type": "object"
+      },
       "WorkspaceMe": {
         "additionalProperties": false,
         "properties": {
@@ -1110,6 +4039,209 @@
           "permissions",
           "scope",
           "unread"
+        ],
+        "type": "object"
+      },
+      "WorkspaceMembersSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "builtin": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "custom": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "deactivated": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invited": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "signIn": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "active",
+          "invited",
+          "deactivated",
+          "builtin",
+          "custom",
+          "signIn"
+        ],
+        "type": "object"
+      },
+      "WorkspaceSender": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "verifiedOn": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "verifiedOn"
+        ],
+        "type": "object"
+      },
+      "WorkspaceSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "approvals": {
+            "$ref": "#/components/schemas/WorkspaceApprovals"
+          },
+          "canDelete": {
+            "type": "boolean"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "canTransfer": {
+            "type": "boolean"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceTransferCandidate"
+            },
+            "type": "array"
+          },
+          "danger": {
+            "$ref": "#/components/schemas/WorkspaceDanger"
+          },
+          "defaultSenderId": {
+            "type": "string"
+          },
+          "hasPassword": {
+            "type": "boolean"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "members": {
+            "$ref": "#/components/schemas/WorkspaceMembersSummary"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "senders": {
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceSender"
+            },
+            "type": "array"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "timezone",
+          "senders",
+          "approvals",
+          "members",
+          "danger",
+          "candidates",
+          "canManage",
+          "canTransfer",
+          "canDelete",
+          "hasPassword",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "WorkspaceTransferCandidate": {
+        "additionalProperties": false,
+        "properties": {
+          "eligible": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": "string"
+          },
+          "memberId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "twoFA": {
+            "$ref": "#/components/schemas/MemberTwoFA"
+          }
+        },
+        "required": [
+          "memberId",
+          "name",
+          "email",
+          "roleName",
+          "twoFA",
+          "eligible"
+        ],
+        "type": "object"
+      },
+      "WorkspaceTransferInput": {
+        "additionalProperties": false,
+        "properties": {
+          "memberId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "password": {
+            "description": "The caller's password (re-authentication)",
+            "maxLength": 1024,
+            "type": "string"
+          }
+        },
+        "required": [
+          "memberId"
         ],
         "type": "object"
       }
@@ -1680,6 +4812,668 @@
         "x-access": "user"
       }
     },
+    "/api/v1/workspaces/{workspace}/api-keys": {
+      "get": {
+        "operationId": "list-api-keys",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List API keys with permissions, scope, creator, last use and expiry",
+        "tags": [
+          "API keys"
+        ],
+        "x-access": "workspace",
+        "x-permission": "apikeys:manage"
+      },
+      "post": {
+        "operationId": "create-api-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/APIKeyCreateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyCreated"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Create an API key; the secret is shown once",
+        "tags": [
+          "API keys"
+        ],
+        "x-access": "workspace",
+        "x-permission": "apikeys:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/api-keys/{keyId}": {
+      "delete": {
+        "operationId": "delete-api-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "keyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an expired or revoked API key",
+        "tags": [
+          "API keys"
+        ],
+        "x-access": "workspace",
+        "x-permission": "apikeys:manage"
+      },
+      "get": {
+        "operationId": "get-api-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "keyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One API key with the calls rejected since it expired",
+        "tags": [
+          "API keys"
+        ],
+        "x-access": "workspace",
+        "x-permission": "apikeys:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/api-keys/{keyId}/revoke": {
+      "post": {
+        "operationId": "revoke-api-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "keyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke an API key immediately",
+        "tags": [
+          "API keys"
+        ],
+        "x-access": "workspace",
+        "x-permission": "apikeys:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/api-keys/{keyId}/rotate": {
+      "post": {
+        "operationId": "rotate-api-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "keyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyCreated"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Rotate (or replace an expired) API key; the new secret is shown once",
+        "tags": [
+          "API keys"
+        ],
+        "x-access": "workspace",
+        "x-permission": "apikeys:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/audit": {
+      "get": {
+        "operationId": "list-audit-events",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "format": "int64",
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditEventList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List audit entries with filters, newest first",
+        "tags": [
+          "Audit log"
+        ],
+        "x-access": "workspace",
+        "x-permission": "audit:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/audit/events/{eventId}": {
+      "get": {
+        "operationId": "get-audit-event",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "eventId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditEventDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One audit entry with before/after values, IP, user agent and request id",
+        "tags": [
+          "Audit log"
+        ],
+        "x-access": "workspace",
+        "x-permission": "audit:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/audit/export": {
+      "get": {
+        "operationId": "export-audit-events",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "default": "csv",
+              "enum": [
+                "csv",
+                "json"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export matching entries as CSV or JSON (streamed)",
+        "tags": [
+          "Audit log"
+        ],
+        "x-access": "workspace",
+        "x-permission": "audit:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/audit/settings": {
+      "get": {
+        "operationId": "get-audit-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Retention and the webhook stream of the audit log",
+        "tags": [
+          "Audit log"
+        ],
+        "x-access": "workspace",
+        "x-permission": "audit:view"
+      },
+      "put": {
+        "operationId": "update-audit-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditSettingsResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change retention or stream the log to a webhook",
+        "tags": [
+          "Audit log"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
+      }
+    },
     "/api/v1/workspaces/{workspace}/campaigns": {
       "get": {
         "operationId": "list-campaigns",
@@ -1856,6 +5650,1024 @@
         "x-permission": "campaigns:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/delete": {
+      "post": {
+        "operationId": "delete-workspace",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceDeleteInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceDeleteResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Delete the workspace (typed confirmation; restorable for 7 days)",
+        "tags": [
+          "Workspaces"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:delete"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/export": {
+      "get": {
+        "operationId": "export-workspace",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Export everything: contacts with consent, campaigns as MJML, reports as CSV, audit log as JSON (ZIP, streamed)",
+        "tags": [
+          "Workspaces"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:export"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/invitations": {
+      "get": {
+        "operationId": "list-invitations",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamInvitationList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List pending invitations",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:view"
+      },
+      "post": {
+        "operationId": "create-invitations",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamInviteInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamInviteResult"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Invite people by email or copyable link",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:invite"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/invitations/options": {
+      "get": {
+        "operationId": "invitation-options",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamInviteOptions"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Roles you can grant, scopes, SSO hints and whether email can be sent",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:invite"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/invitations/{invitationId}": {
+      "delete": {
+        "operationId": "revoke-invitation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "invitationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Revoke a pending invitation",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:invite"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/invitations/{invitationId}/link": {
+      "post": {
+        "operationId": "invitation-link",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "invitationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamInviteLink"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Copy the link of a pending invitation",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:invite"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/invitations/{invitationId}/resend": {
+      "post": {
+        "operationId": "resend-invitation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "invitationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResendResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Email a pending invitation again and restart its expiry",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:invite"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp": {
+      "get": {
+        "operationId": "get-mcp-server",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPOverview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "MCP server endpoint, settings, tools and what each agent may do",
+        "tags": [
+          "MCP agents"
+        ],
+        "x-access": "workspace",
+        "x-permission": "mcp:manage"
+      },
+      "put": {
+        "operationId": "update-mcp-server",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MCPSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPOverview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Turn the MCP server on or off, set the rate limit and proposal expiry",
+        "tags": [
+          "MCP agents"
+        ],
+        "x-access": "workspace",
+        "x-permission": "mcp:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp-agents": {
+      "get": {
+        "operationId": "list-mcp-agents",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List MCP agents with permissions, scope, creator, last use and expiry",
+        "tags": [
+          "MCP agents"
+        ],
+        "x-access": "workspace",
+        "x-permission": "mcp:manage"
+      },
+      "post": {
+        "operationId": "create-mcp-agent",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/APIKeyCreateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyCreated"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Create an MCP agent; the secret is shown once",
+        "tags": [
+          "MCP agents"
+        ],
+        "x-access": "workspace",
+        "x-permission": "mcp:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp-agents/actions": {
+      "get": {
+        "operationId": "list-agent-actions",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPAgentActionList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Recent MCP agent tool calls from the audit log",
+        "tags": [
+          "MCP agents"
+        ],
+        "x-access": "workspace",
+        "x-permission": "mcp:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp-agents/{keyId}": {
+      "delete": {
+        "operationId": "delete-mcp-agent",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "keyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an expired or revoked MCP agent",
+        "tags": [
+          "MCP agents"
+        ],
+        "x-access": "workspace",
+        "x-permission": "mcp:manage"
+      },
+      "get": {
+        "operationId": "get-mcp-agent",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "keyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One MCP agent with the calls rejected since it expired",
+        "tags": [
+          "MCP agents"
+        ],
+        "x-access": "workspace",
+        "x-permission": "mcp:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp-agents/{keyId}/revoke": {
+      "post": {
+        "operationId": "revoke-mcp-agent",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "keyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke an MCP agent immediately",
+        "tags": [
+          "MCP agents"
+        ],
+        "x-access": "workspace",
+        "x-permission": "mcp:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp-agents/{keyId}/rotate": {
+      "post": {
+        "operationId": "rotate-mcp-agent",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "keyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyCreated"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Rotate (or replace an expired) MCP agent; the new secret is shown once",
+        "tags": [
+          "MCP agents"
+        ],
+        "x-access": "workspace",
+        "x-permission": "mcp:manage"
+      }
+    },
     "/api/v1/workspaces/{workspace}/me": {
       "get": {
         "operationId": "get-workspace-me",
@@ -1910,6 +6722,1788 @@
           "Account"
         ],
         "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/members": {
+      "get": {
+        "operationId": "list-members",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Search name or email",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Search name or email",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Role id or key",
+            "explode": false,
+            "in": "query",
+            "name": "role",
+            "schema": {
+              "description": "Role id or key",
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "active",
+                "deactivated"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "twofa",
+            "schema": {
+              "enum": [
+                "on",
+                "off",
+                "idp",
+                "required"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamMemberList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List members with role, scope, sign-in methods and two-factor status",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/members/bulk": {
+      "post": {
+        "operationId": "bulk-members",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamBulkInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamBulkResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change the role of, require two-factor for, or deactivate several members",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/members/{memberId}": {
+      "delete": {
+        "operationId": "remove-member",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a member (the audit log keeps their history)",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:manage"
+      },
+      "get": {
+        "operationId": "get-member",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamMemberDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Member detail: effective permissions and where each comes from, keys, approvals, activity",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:view"
+      },
+      "patch": {
+        "operationId": "update-member",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamMemberChangeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change a member's role or scope",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/members/{memberId}/deactivate": {
+      "post": {
+        "operationId": "deactivate-member",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamDeactivateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamDeactivateResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Deactivate a member: keeps history, signs out everywhere, keeps or revokes their API keys",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/members/{memberId}/reactivate": {
+      "post": {
+        "operationId": "reactivate-member",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Reactivate a deactivated member",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/members/{memberId}/sign-out": {
+      "post": {
+        "operationId": "sign-out-member",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSignOutResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "End every session of a member",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/roles": {
+      "get": {
+        "operationId": "list-roles",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List roles with members, and the permission catalogue",
+        "tags": [
+          "Roles"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:view"
+      },
+      "post": {
+        "operationId": "create-role",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleCreated"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Create a custom role (only permissions you hold)",
+        "tags": [
+          "Roles"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/roles/impact": {
+      "post": {
+        "operationId": "role-impact",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleImpactInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleImpact"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview who gains or loses what before saving a role",
+        "tags": [
+          "Roles"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/roles/{roleId}": {
+      "delete": {
+        "operationId": "delete-role",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "roleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Delete a custom role nobody holds",
+        "tags": [
+          "Roles"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:manage"
+      },
+      "get": {
+        "operationId": "get-role",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "roleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One role for the role editor",
+        "tags": [
+          "Roles"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:view"
+      },
+      "put": {
+        "operationId": "update-role",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Update a custom role; changes apply to its members at once",
+        "tags": [
+          "Roles"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/settings": {
+      "get": {
+        "operationId": "get-workspace-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "General settings, approval and team summaries, danger-zone counts",
+        "tags": [
+          "Workspaces"
+        ],
+        "x-access": "workspace"
+      },
+      "put": {
+        "operationId": "update-workspace-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceGeneralInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change the name, timezone and default sender",
+        "tags": [
+          "Workspaces"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transfer": {
+      "post": {
+        "operationId": "transfer-workspace",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceTransferInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Make another member the Owner; you become an Admin",
+        "tags": [
+          "Workspaces"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:transfer"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/webhooks": {
+      "get": {
+        "operationId": "list-webhooks",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List outgoing webhook endpoints with 24-hour delivery stats",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-access": "workspace",
+        "x-permission": "webhooks:manage"
+      },
+      "post": {
+        "operationId": "create-webhook",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookCreated"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add an endpoint; the signing secret is shown once",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-access": "workspace",
+        "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/webhooks/deliveries": {
+      "get": {
+        "operationId": "list-webhook-deliveries",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only this endpoint",
+            "explode": false,
+            "in": "query",
+            "name": "webhookId",
+            "schema": {
+              "description": "Only this endpoint",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "enum": [
+                "pending",
+                "delivered",
+                "retrying",
+                "dead",
+                "held",
+                "failed"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "format": "int64",
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookDeliveryList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The delivery log, newest first",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-access": "workspace",
+        "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/webhooks/deliveries/{deliveryId}": {
+      "get": {
+        "operationId": "get-webhook-delivery",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deliveryId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookDeliveryDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One delivery with its payload and the endpoint's response",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-access": "workspace",
+        "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/webhooks/deliveries/{deliveryId}/retry": {
+      "post": {
+        "operationId": "retry-webhook-delivery",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deliveryId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookRetryResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Retry a failed delivery now, or replay one from the dead-letter queue",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-access": "workspace",
+        "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/webhooks/retry-failed": {
+      "post": {
+        "operationId": "retry-failed-webhooks",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookRetryInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookRetryResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Retry every failed delivery (of one endpoint, or all)",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-access": "workspace",
+        "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/webhooks/{webhookId}": {
+      "delete": {
+        "operationId": "delete-webhook",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "webhookId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an endpoint and its delivery log",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-access": "workspace",
+        "x-permission": "webhooks:manage"
+      },
+      "put": {
+        "operationId": "update-webhook",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change an endpoint's URL, name or events",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-access": "workspace",
+        "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/webhooks/{webhookId}/pause": {
+      "post": {
+        "operationId": "pause-webhook",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "webhookId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pause an endpoint; events keep queuing",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-access": "workspace",
+        "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/webhooks/{webhookId}/resume": {
+      "post": {
+        "operationId": "resume-webhook",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "webhookId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resume an endpoint and deliver what queued, in order",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-access": "workspace",
+        "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/webhooks/{webhookId}/rotate-secret": {
+      "post": {
+        "operationId": "rotate-webhook-secret",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "webhookId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSecretResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Replace the signing secret; the new one is shown once",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-access": "workspace",
+        "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/webhooks/{webhookId}/test": {
+      "post": {
+        "operationId": "test-webhook",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "webhookId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookTestResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send a webhook.test event now and return the result",
+        "tags": [
+          "Webhooks"
+        ],
+        "x-access": "workspace",
+        "x-permission": "webhooks:manage"
       }
     }
   }

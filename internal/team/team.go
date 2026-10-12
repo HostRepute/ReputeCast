@@ -46,8 +46,8 @@ func (s *Service) now() time.Time {
 	return time.Now()
 }
 
-// RoleRef names a member's role.
-type RoleRef struct {
+// TeamRoleRef names a member's role.
+type TeamRoleRef struct {
 	ID      string `json:"id"`
 	Key     string `json:"key"`
 	Name    string `json:"name"`
@@ -61,12 +61,12 @@ type TeamMember struct {
 	Name        string           `json:"name"`
 	Email       string           `json:"email"`
 	AvatarColor string           `json:"avatarColor"`
-	Role        RoleRef          `json:"role"`
-	Scope       access.ScopeView `json:"scope"`
+	Role        TeamRoleRef          `json:"role"`
+	Scope       access.ScopeSummary `json:"scope"`
 	// Notes follow the role: "instance admin", "break-glass".
 	Notes        []string              `json:"notes"`
-	SignIn       []access.SignInMethod `json:"signIn"`
-	TwoFA        access.TwoFA          `json:"twoFA"`
+	SignIn       []access.MemberSignInMethod `json:"signIn"`
+	TwoFA        access.MemberTwoFA          `json:"twoFA"`
 	LastActiveAt *time.Time            `json:"lastActiveAt,omitempty"`
 	Status       string                `json:"status" enum:"active,deactivated"`
 	// Deactivated members of the instance (not only of this workspace).
@@ -94,7 +94,7 @@ type TeamMemberList struct {
 	Items  []TeamMember `json:"items"`
 	Counts TeamCounts   `json:"counts"`
 	// Roles available in the role filter and the bulk role select.
-	Roles []RoleRef `json:"roles"`
+	Roles []TeamRoleRef `json:"roles"`
 	// CanInvite / CanManage reflect the caller's team:invite and team:manage.
 	CanInvite bool `json:"canInvite"`
 	CanManage bool `json:"canManage"`
@@ -154,7 +154,7 @@ func (s *Service) toMember(r memberRow, ids []access.Identity, lists map[uuid.UU
 	required := pol.TwofaEnforcement == "everyone" || (pol.TwofaEnforcement == "sensitive" && perms.HasSensitive())
 	m := TeamMember{
 		ID: r.ID.String(), UserID: r.UserID.String(), Name: displayName(r.UserName, r.Email), Email: r.Email, AvatarColor: r.AvatarColor,
-		Role:   RoleRef{ID: r.RoleID.String(), Key: r.RoleKey, Name: r.RoleName, Builtin: r.RoleBuiltin},
+		Role:   TeamRoleRef{ID: r.RoleID.String(), Key: r.RoleKey, Name: r.RoleName, Builtin: r.RoleBuiltin},
 		Scope:  access.View(access.ParseScope(r.Scope), lists, true),
 		Notes:  []string{},
 		SignIn: access.SignInMethods(r.HasPassword, r.PasskeyCount, ids),
@@ -183,8 +183,8 @@ func (s *Service) toMember(r memberRow, ids []access.Identity, lists map[uuid.UU
 		m.Notes = append(m.Notes, "break-glass")
 	}
 	if m.Status != "active" {
-		m.SignIn = []access.SignInMethod{}
-		m.TwoFA = access.TwoFA{State: "off"}
+		m.SignIn = []access.MemberSignInMethod{}
+		m.TwoFA = access.MemberTwoFA{State: "off"}
 	}
 	m.LastOwner = r.RoleKey == authz.RoleOwner && r.RoleBuiltin && r.Status == "active" && owners <= 1
 	return m
@@ -224,7 +224,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		return TeamMemberList{}, err
 	}
 	pol := s.policy(ctx)
-	out := TeamMemberList{Items: []TeamMember{}, Roles: []RoleRef{}, Helpers: access.Helpers(ctx, s.Q, ws.ID, authz.TeamManage)}
+	out := TeamMemberList{Items: []TeamMember{}, Roles: []TeamRoleRef{}, Helpers: access.Helpers(ctx, s.Q, ws.ID, authz.TeamManage)}
 	q := strings.ToLower(strings.TrimSpace(f.Query))
 	for _, r := range rows {
 		m := s.toMember(fromListRow(r), idents[r.UserID], lists, pol, p.UserID, owners)
@@ -258,7 +258,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		return TeamMemberList{}, err
 	}
 	for _, r := range roles {
-		out.Roles = append(out.Roles, RoleRef{ID: r.ID.String(), Key: r.Key, Name: r.Name, Builtin: r.Builtin})
+		out.Roles = append(out.Roles, TeamRoleRef{ID: r.ID.String(), Key: r.Key, Name: r.Name, Builtin: r.Builtin})
 	}
 	out.CanInvite = p.Can(authz.TeamInvite)
 	out.CanManage = p.Can(authz.TeamManage)
@@ -276,8 +276,8 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	return out, nil
 }
 
-// EffectivePermission is one row of the member detail's permission table.
-type EffectivePermission struct {
+// TeamEffectivePermission is one row of the member detail's permission table.
+type TeamEffectivePermission struct {
 	Key       string `json:"key"`
 	Group     string `json:"group"`
 	Label     string `json:"label"`
@@ -291,8 +291,8 @@ type EffectivePermission struct {
 	Scope string `json:"scope"`
 }
 
-// MemberAPIKey is a key or agent the member created.
-type MemberAPIKey struct {
+// TeamMemberAPIKey is a key or agent the member created.
+type TeamMemberAPIKey struct {
 	ID          string     `json:"id"`
 	Kind        string     `json:"kind" enum:"api_key,mcp_agent"`
 	Name        string     `json:"name"`
@@ -302,16 +302,16 @@ type MemberAPIKey struct {
 	LastUsedAt  *time.Time `json:"lastUsedAt,omitempty"`
 }
 
-// MemberApproval is an approval the member gave or requested.
-type MemberApproval struct {
+// TeamMemberApproval is an approval the member gave or requested.
+type TeamMemberApproval struct {
 	Campaign   string    `json:"campaign"`
 	CampaignID string    `json:"campaignId,omitempty"`
 	Status     string    `json:"status" doc:"approve, request_changes, reject (given) or the request status (requested)"`
 	At         time.Time `json:"at"`
 }
 
-// MemberActivity is one recent audit entry by the member.
-type MemberActivity struct {
+// TeamMemberActivity is one recent audit entry by the member.
+type TeamMemberActivity struct {
 	ID         string    `json:"id"`
 	OccurredAt time.Time `json:"occurredAt"`
 	Action     string    `json:"action"`
@@ -323,18 +323,18 @@ type MemberActivity struct {
 // TeamMemberDetail is the member page (A5 §5.8 member detail).
 type TeamMemberDetail struct {
 	Member      TeamMember            `json:"member"`
-	Permissions []EffectivePermission `json:"permissions"`
+	Permissions []TeamEffectivePermission `json:"permissions"`
 	Groups      []string              `json:"groups"`
-	APIKeys     []MemberAPIKey        `json:"apiKeys"`
+	APIKeys     []TeamMemberAPIKey        `json:"apiKeys"`
 	// KeysNote explains an empty list ("Creating API keys needs apikeys:manage…").
 	KeysNote           string           `json:"keysNote,omitempty"`
-	ApprovalsGiven     []MemberApproval `json:"approvalsGiven"`
-	ApprovalsRequested []MemberApproval `json:"approvalsRequested"`
+	ApprovalsGiven     []TeamMemberApproval `json:"approvalsGiven"`
+	ApprovalsRequested []TeamMemberApproval `json:"approvalsRequested"`
 	CanApprove         bool             `json:"canApprove"`
 	Sessions           int64            `json:"sessions"`
 	// SSODomain is the email domain used with SSO ("acme.io").
 	SSODomain string           `json:"ssoDomain,omitempty"`
-	Activity  []MemberActivity `json:"activity"`
+	Activity  []TeamMemberActivity `json:"activity"`
 	CanManage bool             `json:"canManage"`
 	// Helpers are members who hold team:manage.
 	Helpers []string `json:"helpers"`
@@ -371,13 +371,13 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 		source = "SSO group mapping · " + r.RoleName
 	}
 	out := TeamMemberDetail{
-		Member: m, Permissions: []EffectivePermission{}, Groups: access.Groups(),
-		APIKeys: []MemberAPIKey{}, ApprovalsGiven: []MemberApproval{}, ApprovalsRequested: []MemberApproval{}, Activity: []MemberActivity{},
+		Member: m, Permissions: []TeamEffectivePermission{}, Groups: access.Groups(),
+		APIKeys: []TeamMemberAPIKey{}, ApprovalsGiven: []TeamMemberApproval{}, ApprovalsRequested: []TeamMemberApproval{}, Activity: []TeamMemberActivity{},
 		CanApprove: perms.Has(authz.CampaignsApprove), CanManage: p.Can(authz.TeamManage),
 		Helpers: access.Helpers(ctx, s.Q, ws.ID, authz.TeamManage),
 	}
 	for _, d := range authz.Defs {
-		ep := EffectivePermission{Key: string(d.Key), Group: d.Group, Label: d.Label, Sensitive: d.Sensitive, Source: "not granted"}
+		ep := TeamEffectivePermission{Key: string(d.Key), Group: d.Group, Label: d.Label, Sensitive: d.Sensitive, Source: "not granted"}
 		if perms.Has(d.Key) && m.Status == "active" {
 			ep.Granted = true
 			ep.Source = source
@@ -403,7 +403,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 		if st == "revoked" {
 			continue
 		}
-		out.APIKeys = append(out.APIKeys, MemberAPIKey{ID: k.ID.String(), Kind: k.Kind, Name: k.Name, Masked: k.Prefix, Permissions: nonNil(k.Permissions), Status: st, LastUsedAt: k.LastUsedAt})
+		out.APIKeys = append(out.APIKeys, TeamMemberAPIKey{ID: k.ID.String(), Kind: k.Kind, Name: k.Name, Masked: k.Prefix, Permissions: nonNil(k.Permissions), Status: st, LastUsedAt: k.LastUsedAt})
 	}
 	if len(out.APIKeys) == 0 {
 		if !perms.Has(authz.APIKeysManage) {
@@ -417,14 +417,14 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 		return TeamMemberDetail{}, err
 	}
 	for _, g := range given {
-		out.ApprovalsGiven = append(out.ApprovalsGiven, MemberApproval{Campaign: g.CampaignName, CampaignID: idString(g.CampaignID), Status: g.Decision, At: g.CreatedAt})
+		out.ApprovalsGiven = append(out.ApprovalsGiven, TeamMemberApproval{Campaign: g.CampaignName, CampaignID: idString(g.CampaignID), Status: g.Decision, At: g.CreatedAt})
 	}
 	req, err := s.Q.TeamApprovalsRequested(ctx, store.TeamApprovalsRequestedParams{WorkspaceID: ws.ID, UserID: &r.UserID})
 	if err != nil {
 		return TeamMemberDetail{}, err
 	}
 	for _, a := range req {
-		out.ApprovalsRequested = append(out.ApprovalsRequested, MemberApproval{Campaign: a.CampaignName, CampaignID: idString(a.CampaignID), Status: a.Status, At: a.RequestedAt})
+		out.ApprovalsRequested = append(out.ApprovalsRequested, TeamMemberApproval{Campaign: a.CampaignName, CampaignID: idString(a.CampaignID), Status: a.Status, At: a.RequestedAt})
 	}
 	if out.Sessions, err = s.Q.TeamActiveSessionCount(ctx, r.UserID); err != nil {
 		return TeamMemberDetail{}, err
@@ -441,7 +441,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 		return TeamMemberDetail{}, err
 	}
 	for _, a := range acts {
-		out.Activity = append(out.Activity, MemberActivity{ID: a.ID.String(), OccurredAt: a.OccurredAt, Action: a.Action, Target: activityTarget(a), Result: a.Result, Reason: a.Reason})
+		out.Activity = append(out.Activity, TeamMemberActivity{ID: a.ID.String(), OccurredAt: a.OccurredAt, Action: a.Action, Target: activityTarget(a), Result: a.Result, Reason: a.Reason})
 	}
 	return out, nil
 }

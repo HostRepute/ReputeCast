@@ -49,23 +49,23 @@ func (s *Service) now() time.Time {
 	return time.Now()
 }
 
-// KeyCreator is who created a key.
-type KeyCreator struct {
+// APIKeyCreator is who created a key.
+type APIKeyCreator struct {
 	ID          string `json:"id,omitempty"`
 	Name        string `json:"name"`
 	AvatarColor string `json:"avatarColor"`
 }
 
-// KeyRejections counts calls refused because the key expired or was revoked.
-type KeyRejections struct {
+// APIKeyRejections counts calls refused because the key expired or was revoked.
+type APIKeyRejections struct {
 	Calls  int64      `json:"calls" doc:"In the last 7 days"`
 	Since  *time.Time `json:"since,omitempty" doc:"First rejected call"`
 	IP     string     `json:"ip,omitempty" doc:"Busiest client address"`
 	Client string     `json:"client,omitempty" doc:"Client label of that address"`
 }
 
-// KeyView is an API key or MCP agent as listed. The secret is never returned.
-type KeyView struct {
+// APIKeyView is an API key or MCP agent as listed. The secret is never returned.
+type APIKeyView struct {
 	ID          string           `json:"id"`
 	Kind        string           `json:"kind" enum:"api_key,mcp_agent"`
 	Name        string           `json:"name"`
@@ -73,8 +73,8 @@ type KeyView struct {
 	Masked      string           `json:"masked" example:"rc_live_8f2c…a91d"`
 	Permissions []string         `json:"permissions"`
 	Sensitive   []string         `json:"sensitive" doc:"The ⚑ permissions among them"`
-	Scope       access.ScopeView `json:"scope"`
-	CreatedBy   KeyCreator       `json:"createdBy"`
+	Scope       access.ScopeSummary `json:"scope"`
+	CreatedBy   APIKeyCreator       `json:"createdBy"`
 	CreatedAt   time.Time        `json:"createdAt"`
 	ExpiresAt   *time.Time       `json:"expiresAt,omitempty"`
 	LastUsedAt  *time.Time       `json:"lastUsedAt,omitempty"`
@@ -84,24 +84,24 @@ type KeyView struct {
 	// LastCall is the MCP tool of an agent's last call.
 	LastCall   string         `json:"lastCall,omitempty"`
 	Status     string         `json:"status" enum:"active,expired"`
-	Rejections *KeyRejections `json:"rejections,omitempty"`
+	Rejections *APIKeyRejections `json:"rejections,omitempty"`
 }
 
-// KeyList is the API keys or MCP agents card.
-type KeyList struct {
-	Items []KeyView `json:"items"`
+// APIKeyList is the API keys or MCP agents card.
+type APIKeyList struct {
+	Items []APIKeyView `json:"items"`
 	// Permissions, Held, Locked and Lists feed the create dialog.
 	Permissions []access.PermissionInfo `json:"permissions"`
 	Groups      []string                `json:"groups"`
 	Held        []string                `json:"held"`
-	Locked      []LockedKeyPermission   `json:"locked"`
-	Lists       []access.ScopeList      `json:"lists"`
+	Locked      []APIKeyLockedPermission   `json:"locked"`
+	Lists       []access.ScopedList      `json:"lists"`
 	// Endpoint is the API base URL (or the MCP endpoint for agents).
 	Endpoint string `json:"endpoint"`
 }
 
-// LockedKeyPermission is a permission the caller can't put on a key.
-type LockedKeyPermission struct {
+// APIKeyLockedPermission is a permission the caller can't put on a key.
+type APIKeyLockedPermission struct {
 	Key    string `json:"key"`
 	Reason string `json:"reason"`
 }
@@ -113,13 +113,13 @@ func (s *Service) base(ctx context.Context) string {
 	return ""
 }
 
-func view(r store.KeysListRow, lists map[uuid.UUID]string, now time.Time) KeyView {
+func view(r store.KeysListRow, lists map[uuid.UUID]string, now time.Time) APIKeyView {
 	perms := authz.ParseSet(r.Permissions)
-	v := KeyView{
+	v := APIKeyView{
 		ID: r.ID.String(), Kind: r.Kind, Name: r.Name, Description: r.Description, Masked: r.Prefix,
 		Permissions: storedOrder(r.Permissions), Sensitive: []string{},
 		Scope:     access.View(access.ParseScope(r.Scope), lists, false),
-		CreatedBy: KeyCreator{Name: r.CreatedByName, AvatarColor: r.CreatedByColor}, CreatedAt: r.CreatedAt,
+		CreatedBy: APIKeyCreator{Name: r.CreatedByName, AvatarColor: r.CreatedByColor}, CreatedAt: r.CreatedAt,
 		ExpiresAt: r.ExpiresAt, LastUsedAt: r.LastUsedAt, LastUsedClient: r.LastUsedClient, LastCall: r.LastCall, Status: "active",
 	}
 	if r.CreatedBy != nil {
@@ -170,16 +170,16 @@ func containsStr(xs []string, x string) bool {
 }
 
 // List returns the keys (or agents) of the workspace.
-func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind string) (KeyList, error) {
+func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind string) (APIKeyList, error) {
 	rows, err := s.Q.KeysList(ctx, store.KeysListParams{WorkspaceID: ws.ID, Kind: kind})
 	if err != nil {
-		return KeyList{}, err
+		return APIKeyList{}, err
 	}
 	lists, err := access.ListNames(ctx, s.Q, ws.ID)
 	if err != nil {
-		return KeyList{}, err
+		return APIKeyList{}, err
 	}
-	out := KeyList{Items: []KeyView{}, Permissions: access.Catalog(), Groups: access.Groups(), Held: p.Permissions.Strings(), Locked: []LockedKeyPermission{}, Lists: []access.ScopeList{}}
+	out := APIKeyList{Items: []APIKeyView{}, Permissions: access.Catalog(), Groups: access.Groups(), Held: p.Permissions.Strings(), Locked: []APIKeyLockedPermission{}, Lists: []access.ScopedList{}}
 	now := s.now()
 	for _, r := range rows {
 		v := view(r, lists, now)
@@ -194,15 +194,15 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		if d.OwnerOnly || p.Permissions.Has(d.Key) {
 			continue
 		}
-		out.Locked = append(out.Locked, LockedKeyPermission{Key: string(d.Key), Reason: access.CantGrant(d.Key, access.Helpers(ctx, s.Q, ws.ID, d.Key))})
+		out.Locked = append(out.Locked, APIKeyLockedPermission{Key: string(d.Key), Reason: access.CantGrant(d.Key, access.Helpers(ctx, s.Q, ws.ID, d.Key))})
 	}
 	tl, err := s.Q.TeamWorkspaceLists(ctx, ws.ID)
 	if err != nil {
-		return KeyList{}, err
+		return APIKeyList{}, err
 	}
 	for _, l := range tl {
 		if p.Scope.AllowsList(l.ID) {
-			out.Lists = append(out.Lists, access.ScopeList{ID: l.ID.String(), Name: l.Name})
+			out.Lists = append(out.Lists, access.ScopedList{ID: l.ID.String(), Name: l.Name})
 		}
 	}
 	if kind == KindAgent {
@@ -213,12 +213,12 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	return out, nil
 }
 
-func (s *Service) rejections(ctx context.Context, id uuid.UUID) (KeyRejections, error) {
+func (s *Service) rejections(ctx context.Context, id uuid.UUID) (APIKeyRejections, error) {
 	r, err := s.Q.KeysRejections(ctx, id)
 	if err != nil {
-		return KeyRejections{}, err
+		return APIKeyRejections{}, err
 	}
-	out := KeyRejections{Calls: r.Calls, IP: r.TopIp, Client: r.TopClient}
+	out := APIKeyRejections{Calls: r.Calls, IP: r.TopIp, Client: r.TopClient}
 	if r.Calls > 0 {
 		if first, err := s.Q.KeysFirstRejection(ctx, id); err == nil {
 			out.Since = &first
@@ -228,14 +228,14 @@ func (s *Service) rejections(ctx context.Context, id uuid.UUID) (KeyRejections, 
 }
 
 // Get returns one key with its rejected calls.
-func (s *Service) Get(ctx context.Context, ws *store.Workspace, kind string, id uuid.UUID) (KeyView, error) {
+func (s *Service) Get(ctx context.Context, ws *store.Workspace, kind string, id uuid.UUID) (APIKeyView, error) {
 	r, err := s.Q.KeysGet(ctx, store.KeysGetParams{ID: id, WorkspaceID: ws.ID, Kind: kind})
 	if err != nil {
-		return KeyView{}, api.MapError(err, noun(kind))
+		return APIKeyView{}, api.MapError(err, noun(kind))
 	}
 	lists, err := access.ListNames(ctx, s.Q, ws.ID)
 	if err != nil {
-		return KeyView{}, err
+		return APIKeyView{}, err
 	}
 	v := view(store.KeysListRow(r), lists, s.now())
 	if rj, err := s.rejections(ctx, r.ID); err == nil && rj.Calls > 0 {
@@ -265,8 +265,8 @@ func prefixFor(kind string) string {
 	return authn.APIKeyPrefix
 }
 
-// CreateKeyInput creates a key or agent.
-type CreateKeyInput struct {
+// APIKeyCreateInput creates a key or agent.
+type APIKeyCreateInput struct {
 	Name        string   `json:"name" minLength:"1" maxLength:"80"`
 	Description string   `json:"description,omitempty" maxLength:"120" doc:"Client label, e.g. Claude Desktop"`
 	Permissions []string `json:"permissions" minItems:"1" maxItems:"60"`
@@ -275,19 +275,19 @@ type CreateKeyInput struct {
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 }
 
-// CreatedKey is shown exactly once.
-type CreatedKey struct {
-	Key    KeyView `json:"key"`
+// APIKeyCreated is shown exactly once.
+type APIKeyCreated struct {
+	Key    APIKeyView `json:"key"`
 	Secret string  `json:"secret" doc:"The full key. Shown only in this response."`
 	// Usage is "Authorization: Bearer rc_live_… against https://…/api/v1".
 	Endpoint string `json:"endpoint"`
 }
 
 // Create makes a key or agent with permissions the caller holds.
-func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind string, in CreateKeyInput) (CreatedKey, error) {
+func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind string, in APIKeyCreateInput) (APIKeyCreated, error) {
 	lists, err := access.ListNames(ctx, s.Q, ws.ID)
 	if err != nil {
-		return CreatedKey{}, err
+		return APIKeyCreated{}, err
 	}
 	wanted := make([]authz.Permission, 0, len(in.Permissions))
 	for _, k := range in.Permissions {
@@ -295,20 +295,20 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	set, err := s.checkGrant(ctx, ws, p, wanted)
 	if err != nil {
-		return CreatedKey{}, err
+		return APIKeyCreated{}, err
 	}
-	scope, err := (&access.ScopeInput{Lists: in.Lists}).Resolve(lists, nil)
+	scope, err := (&access.ScopeRequest{Lists: in.Lists}).Resolve(lists, nil)
 	if err != nil {
-		return CreatedKey{}, api.Invalid("body.lists", strings.ToUpper(err.Error()[:1])+err.Error()[1:]+".")
+		return APIKeyCreated{}, api.Invalid("body.lists", strings.ToUpper(err.Error()[:1])+err.Error()[1:]+".")
 	}
 	if !scope.Within(p.Scope) {
-		return CreatedKey{}, api.Err(http.StatusForbidden, api.CodeEscalation, "A key can't reach lists outside your own scope.")
+		return APIKeyCreated{}, api.Err(http.StatusForbidden, api.CodeEscalation, "A key can't reach lists outside your own scope.")
 	}
 	if in.ExpiresAt != nil && !in.ExpiresAt.After(s.now()) {
-		return CreatedKey{}, api.Invalid("body.expiresAt", "Pick an expiry date in the future.")
+		return APIKeyCreated{}, api.Invalid("body.expiresAt", "Pick an expiry date in the future.")
 	}
 	stored := set.Strings()
-	var out CreatedKey
+	var out APIKeyCreated
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		var err error
 		out, err = s.insert(ctx, store.New(tx), ws, p, kind, strings.TrimSpace(in.Name), strings.TrimSpace(in.Description), stored, scope, in.ExpiresAt, nil, lists)
@@ -322,7 +322,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		})
 	})
 	if err != nil {
-		return CreatedKey{}, err
+		return APIKeyCreated{}, err
 	}
 	return out, nil
 }
@@ -334,14 +334,14 @@ func managePerm(kind string) authz.Permission {
 	return authz.APIKeysManage
 }
 
-func scopeLabel(v access.ScopeView) string {
+func scopeLabel(v access.ScopeSummary) string {
 	if v.All {
 		return "all lists"
 	}
 	return v.Label
 }
 
-func keySummary(v KeyView) string {
+func keySummary(v APIKeyView) string {
 	parts := []string{strings.Join(v.Permissions, ", "), scopeLabel(v.Scope)}
 	if v.ExpiresAt != nil {
 		parts = append(parts, "expires "+v.ExpiresAt.Format("Jan 2, 2006"))
@@ -371,9 +371,9 @@ func (s *Service) checkGrant(ctx context.Context, ws *store.Workspace, p *authz.
 	return set, nil
 }
 
-func (s *Service) insert(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, kind, name, desc string, perms []string, scope authz.Scope, expires *time.Time, rotatedFrom *uuid.UUID, lists map[uuid.UUID]string) (CreatedKey, error) {
+func (s *Service) insert(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, kind, name, desc string, perms []string, scope authz.Scope, expires *time.Time, rotatedFrom *uuid.UUID, lists map[uuid.UUID]string) (APIKeyCreated, error) {
 	if name == "" {
-		return CreatedKey{}, api.Invalid("body.name", "Give the key a name.")
+		return APIKeyCreated{}, api.Invalid("body.name", "Give the key a name.")
 	}
 	secret, hash, masked := authn.NewAPIKey(prefixFor(kind))
 	creator := p.UserID
@@ -383,7 +383,7 @@ func (s *Service) insert(ctx context.Context, q *store.Queries, ws *store.Worksp
 		Permissions: perms, Scope: access.ScopeJSON(scope), CreatedBy: &creator, ExpiresAt: expires, RotatedFrom: rotatedFrom,
 	})
 	if err != nil {
-		return CreatedKey{}, err
+		return APIKeyCreated{}, err
 	}
 	u, _ := q.GetUser(ctx, creator)
 	v := view(store.KeysListRow{
@@ -394,15 +394,15 @@ func (s *Service) insert(ctx context.Context, q *store.Queries, ws *store.Worksp
 	if kind == KindAgent {
 		ep = s.base(ctx) + "/mcp"
 	}
-	return CreatedKey{Key: v, Secret: secret, Endpoint: ep}, nil
+	return APIKeyCreated{Key: v, Secret: secret, Endpoint: ep}, nil
 }
 
 // Rotate replaces a key (active or expired) with a new secret that has the
 // same name, permissions and scope. The old one stops working at once.
-func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind string, id uuid.UUID) (CreatedKey, error) {
+func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind string, id uuid.UUID) (APIKeyCreated, error) {
 	old, err := s.Q.KeysGet(ctx, store.KeysGetParams{ID: id, WorkspaceID: ws.ID, Kind: kind})
 	if err != nil {
-		return CreatedKey{}, api.MapError(err, noun(kind))
+		return APIKeyCreated{}, api.MapError(err, noun(kind))
 	}
 	wanted := make([]authz.Permission, 0, len(old.Permissions))
 	for _, k := range old.Permissions {
@@ -411,15 +411,15 @@ func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 	}
 	if _, err := s.checkGrant(ctx, ws, p, wanted); err != nil {
-		return CreatedKey{}, err
+		return APIKeyCreated{}, err
 	}
 	scope := access.ParseScope(old.Scope)
 	if !scope.Within(p.Scope) {
-		return CreatedKey{}, api.Err(http.StatusForbidden, api.CodeEscalation, "This key reaches lists outside your scope, so you can't rotate it.")
+		return APIKeyCreated{}, api.Err(http.StatusForbidden, api.CodeEscalation, "This key reaches lists outside your scope, so you can't rotate it.")
 	}
 	lists, err := access.ListNames(ctx, s.Q, ws.ID)
 	if err != nil {
-		return CreatedKey{}, err
+		return APIKeyCreated{}, err
 	}
 	var expires *time.Time
 	if old.ExpiresAt != nil {
@@ -431,7 +431,7 @@ func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		expires = &e
 	}
 	expired := old.ExpiresAt != nil && !old.ExpiresAt.After(s.now())
-	var out CreatedKey
+	var out APIKeyCreated
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if _, err := q.KeysRevoke(ctx, store.KeysRevokeParams{ID: old.ID, WorkspaceID: ws.ID, Kind: kind}); err != nil {
@@ -496,8 +496,8 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, kind string, 
 	})
 }
 
-// AgentAction is one recent MCP tool call.
-type AgentAction struct {
+// MCPAgentAction is one recent MCP tool call.
+type MCPAgentAction struct {
 	ID         string    `json:"id"`
 	OccurredAt time.Time `json:"occurredAt"`
 	AgentID    string    `json:"agentId,omitempty"`
@@ -512,18 +512,18 @@ type AgentAction struct {
 	Summary string `json:"summary,omitempty"`
 }
 
-// AgentActionList is the recent agent actions card.
-type AgentActionList struct {
-	Items []AgentAction `json:"items"`
+// MCPAgentActionList is the recent agent actions card.
+type MCPAgentActionList struct {
+	Items []MCPAgentAction `json:"items"`
 }
 
 // AgentActions lists the latest MCP calls from the audit log.
-func (s *Service) AgentActions(ctx context.Context, ws *store.Workspace, limit int) (AgentActionList, error) {
+func (s *Service) AgentActions(ctx context.Context, ws *store.Workspace, limit int) (MCPAgentActionList, error) {
 	rows, err := s.Q.KeysAgentActions(ctx, store.KeysAgentActionsParams{WorkspaceID: &ws.ID, Lim: int32(limit)})
 	if err != nil {
-		return AgentActionList{}, err
+		return MCPAgentActionList{}, err
 	}
-	out := AgentActionList{Items: []AgentAction{}}
+	out := MCPAgentActionList{Items: []MCPAgentAction{}}
 	for _, r := range rows {
 		var meta struct {
 			Tool    string `json:"tool"`
@@ -533,7 +533,7 @@ func (s *Service) AgentActions(ctx context.Context, ws *store.Workspace, limit i
 			Perm    string `json:"permission"`
 		}
 		_ = json.Unmarshal(r.Metadata, &meta)
-		a := AgentAction{ID: r.ID.String(), OccurredAt: r.OccurredAt, Agent: r.ActorName, Tool: meta.Tool, Result: r.Result, Summary: meta.Summary}
+		a := MCPAgentAction{ID: r.ID.String(), OccurredAt: r.OccurredAt, Agent: r.ActorName, Tool: meta.Tool, Result: r.Result, Summary: meta.Summary}
 		if r.ActorID != nil {
 			a.AgentID = r.ActorID.String()
 		}

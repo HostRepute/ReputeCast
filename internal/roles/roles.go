@@ -386,14 +386,14 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	})
 }
 
-// ImpactInput is a proposed permission set, for a new role (no roleId) or an existing one.
-type ImpactInput struct {
+// RoleImpactInput is a proposed permission set, for a new role (no roleId) or an existing one.
+type RoleImpactInput struct {
 	RoleID      string   `json:"roleId,omitempty"`
 	Permissions []string `json:"permissions" maxItems:"100"`
 }
 
-// ImpactMember is a member whose access changes.
-type ImpactMember struct {
+// RoleImpactMember is a member whose access changes.
+type RoleImpactMember struct {
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
 	Email       string   `json:"email"`
@@ -403,8 +403,8 @@ type ImpactMember struct {
 	Effect      string   `json:"effect"`
 }
 
-// ImpactKey is an API key or agent whose access changes.
-type ImpactKey struct {
+// RoleImpactKey is an API key or agent whose access changes.
+type RoleImpactKey struct {
 	ID     string   `json:"id"`
 	Name   string   `json:"name"`
 	Kind   string   `json:"kind" enum:"api_key,mcp_agent"`
@@ -412,8 +412,8 @@ type ImpactKey struct {
 	Effect string   `json:"effect"`
 }
 
-// LockedPermission is one the caller can't grant.
-type LockedPermission struct {
+// RoleLockedPermission is one the caller can't grant.
+type RoleLockedPermission struct {
 	Key    string `json:"key"`
 	Reason string `json:"reason"`
 }
@@ -425,10 +425,10 @@ type RoleImpact struct {
 	AddedSensitive   []string `json:"addedSensitive"`
 	RemovedSensitive []string `json:"removedSensitive"`
 	// Members holding the role (all of them, with what changes for each).
-	Members []ImpactMember `json:"members"`
+	Members []RoleImpactMember `json:"members"`
 	// MembersAffected counts members whose permissions change.
 	MembersAffected int         `json:"membersAffected"`
-	Keys            []ImpactKey `json:"keys"`
+	Keys            []RoleImpactKey `json:"keys"`
 	APIKeys         int         `json:"apiKeys" doc:"API keys that lose permissions"`
 	Agents          int         `json:"agents" doc:"MCP agents that lose permissions"`
 	// Sensitive is "None selected · two-factor not required" or the flagged keys.
@@ -439,13 +439,13 @@ type RoleImpact struct {
 	PendingApprovals int `json:"pendingApprovals"`
 	// Summary is "4 members and 1 API key will lose campaigns:send." (empty without losses).
 	Summary string             `json:"summary"`
-	Locked  []LockedPermission `json:"locked"`
+	Locked  []RoleLockedPermission `json:"locked"`
 	// GraceDays is the two-factor grace period for new holders of ⚑ permissions.
 	GraceDays int `json:"graceDays"`
 }
 
 // Impact computes who gains or loses what if the role had these permissions.
-func (s *Service) Impact(ctx context.Context, ws *store.Workspace, p *authz.Principal, in ImpactInput) (RoleImpact, error) {
+func (s *Service) Impact(ctx context.Context, ws *store.Workspace, p *authz.Principal, in RoleImpactInput) (RoleImpact, error) {
 	keys := make([]authz.Permission, 0, len(in.Permissions))
 	for _, k := range in.Permissions {
 		if pk := authz.Permission(k); authz.Valid(pk) && authz.Grantable(pk) {
@@ -453,7 +453,7 @@ func (s *Service) Impact(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 	}
 	next := authz.NewSet(keys...)
-	out := RoleImpact{Added: []string{}, Removed: []string{}, AddedSensitive: []string{}, RemovedSensitive: []string{}, Members: []ImpactMember{}, Keys: []ImpactKey{}, Locked: []LockedPermission{}}
+	out := RoleImpact{Added: []string{}, Removed: []string{}, AddedSensitive: []string{}, RemovedSensitive: []string{}, Members: []RoleImpactMember{}, Keys: []RoleImpactKey{}, Locked: []RoleLockedPermission{}}
 	if st, err := s.Q.GetInstanceSettings(ctx); err == nil {
 		out.GraceDays = int(st.TwofaGraceDays)
 	}
@@ -498,7 +498,7 @@ func (s *Service) Impact(ctx context.Context, ws *store.Workspace, p *authz.Prin
 				continue
 			}
 			holders = append(holders, m.UserID)
-			im := ImpactMember{ID: m.MemberID.String(), Name: name(m.Name, m.Email), Email: m.Email, AvatarColor: m.AvatarColor, Gains: strs(added), Loses: strs(removed)}
+			im := RoleImpactMember{ID: m.MemberID.String(), Name: name(m.Name, m.Email), Email: m.Email, AvatarColor: m.AvatarColor, Gains: strs(added), Loses: strs(removed)}
 			im.Effect = memberEffect(next, added, removed, m.TotpEnabledAt != nil || m.PasskeyCount > 0, m.SsoIdentities > 0, out.GraceDays)
 			if len(added)+len(removed) > 0 {
 				out.MembersAffected++
@@ -521,7 +521,7 @@ func (s *Service) Impact(ctx context.Context, ws *store.Workspace, p *authz.Prin
 				if len(loses) == 0 {
 					continue
 				}
-				out.Keys = append(out.Keys, ImpactKey{ID: k.ID.String(), Name: k.Name, Kind: k.Kind, Loses: strs(loses), Effect: keyEffect(loses)})
+				out.Keys = append(out.Keys, RoleImpactKey{ID: k.ID.String(), Name: k.Name, Kind: k.Kind, Loses: strs(loses), Effect: keyEffect(loses)})
 				if k.Kind == "mcp_agent" {
 					out.Agents++
 				} else {
@@ -568,7 +568,7 @@ func (s *Service) Impact(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if d.OwnerOnly || p.Permissions.Has(d.Key) {
 			continue
 		}
-		out.Locked = append(out.Locked, LockedPermission{Key: string(d.Key), Reason: access.CantGrant(d.Key, access.Helpers(ctx, s.Q, ws.ID, d.Key))})
+		out.Locked = append(out.Locked, RoleLockedPermission{Key: string(d.Key), Reason: access.CantGrant(d.Key, access.Helpers(ctx, s.Q, ws.ID, d.Key))})
 	}
 	return out, nil
 }

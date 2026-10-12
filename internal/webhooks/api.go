@@ -35,6 +35,11 @@ type deliveriesInput struct {
 	Limit     int    `query:"limit" minimum:"1" maximum:"200" default:"50"`
 }
 
+// WebhookRetryInput limits "Retry all failed" to one endpoint.
+type WebhookRetryInput struct {
+	WebhookID string `json:"webhookId,omitempty" doc:"Only this endpoint; empty retries every endpoint"`
+}
+
 // Register adds the webhooks operations.
 func Register(h huma.API, s *Service) {
 	tags := []string{"Webhooks"}
@@ -79,7 +84,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "rotate-webhook-secret", Path: base + "/{webhookId}/rotate-secret", Summary: "Replace the signing secret; the new one is shown once", Tags: tags, Access: api.WorkspaceHuman(authz.WebhooksManage)},
-		func(ctx context.Context, in *hookInput) (*api.Body[SecretResult], error) {
+		func(ctx context.Context, in *hookInput) (*api.Body[WebhookSecretResult], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -107,7 +112,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "test-webhook", Path: base + "/{webhookId}/test", Summary: "Send a webhook.test event now and return the result", Tags: tags, Access: access},
-		func(ctx context.Context, in *hookInput) (*api.Body[TestResult], error) {
+		func(ctx context.Context, in *hookInput) (*api.Body[WebhookTestResult], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -117,7 +122,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Get(h, api.Op{ID: "list-webhook-deliveries", Path: base + "/deliveries", Summary: "The delivery log, newest first", Tags: tags, Access: access},
-		func(ctx context.Context, in *deliveriesInput) (*api.Body[DeliveryList], error) {
+		func(ctx context.Context, in *deliveriesInput) (*api.Body[WebhookDeliveryList], error) {
 			var hook *uuid.UUID
 			if in.WebhookID != "" {
 				id, err := uuid.Parse(in.WebhookID)
@@ -131,7 +136,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Get(h, api.Op{ID: "get-webhook-delivery", Path: base + "/deliveries/{deliveryId}", Summary: "One delivery with its payload and the endpoint's response", Tags: tags, Access: access},
-		func(ctx context.Context, in *deliveryInput) (*api.Body[DeliveryDetail], error) {
+		func(ctx context.Context, in *deliveryInput) (*api.Body[WebhookDeliveryDetail], error) {
 			id, err := uuid.Parse(in.DeliveryID)
 			if err != nil {
 				return nil, api.NotFound("Delivery")
@@ -141,7 +146,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "retry-webhook-delivery", Path: base + "/deliveries/{deliveryId}/retry", Summary: "Retry a failed delivery now, or replay one from the dead-letter queue", Tags: tags, Access: access},
-		func(ctx context.Context, in *deliveryInput) (*api.Body[RetryResult], error) {
+		func(ctx context.Context, in *deliveryInput) (*api.Body[WebhookRetryResult], error) {
 			id, err := uuid.Parse(in.DeliveryID)
 			if err != nil {
 				return nil, api.NotFound("Delivery")
@@ -153,10 +158,8 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "retry-failed-webhooks", Path: base + "/retry-failed", Summary: "Retry every failed delivery (of one endpoint, or all)", Tags: tags, Access: access},
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput
-			Body struct {
-				WebhookID string `json:"webhookId,omitempty"`
-			}
-		}) (*api.Body[RetryResult], error) {
+			Body WebhookRetryInput
+		}) (*api.Body[WebhookRetryResult], error) {
 			var hook *uuid.UUID
 			if in.Body.WebhookID != "" {
 				id, err := uuid.Parse(in.Body.WebhookID)

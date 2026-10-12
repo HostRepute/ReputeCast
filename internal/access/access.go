@@ -89,15 +89,15 @@ func ScopeJSON(s authz.Scope) json.RawMessage {
 	return b
 }
 
-// ScopeList is one list in a scope.
-type ScopeList struct {
+// ScopedList is one list in a scope.
+type ScopedList struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
-// ScopeView is a scope as shown in the UI.
-type ScopeView struct {
-	Lists         []ScopeList `json:"lists"`
+// ScopeSummary is a scope as shown in the UI.
+type ScopeSummary struct {
+	Lists         []ScopedList `json:"lists"`
 	SenderDomains []string    `json:"senderDomains"`
 	// Label is "" for no restriction, otherwise "Beta Program list only",
 	// "Weekly Digest only" or "2 lists · news.acme.io".
@@ -122,10 +122,10 @@ func ListNames(ctx context.Context, q *store.Queries, wsID uuid.UUID) (map[uuid.
 // View describes a scope with list names. listWord adds " list" after a single
 // list name ("Beta Program list only", used for members) or not ("Weekly
 // Digest only", used for keys).
-func View(s authz.Scope, names map[uuid.UUID]string, listWord bool) ScopeView {
-	v := ScopeView{Lists: []ScopeList{}, SenderDomains: []string{}, All: s.IsZero()}
+func View(s authz.Scope, names map[uuid.UUID]string, listWord bool) ScopeSummary {
+	v := ScopeSummary{Lists: []ScopedList{}, SenderDomains: []string{}, All: s.IsZero()}
 	for _, id := range s.Lists {
-		v.Lists = append(v.Lists, ScopeList{ID: id.String(), Name: names[id]})
+		v.Lists = append(v.Lists, ScopedList{ID: id.String(), Name: names[id]})
 	}
 	v.SenderDomains = append(v.SenderDomains, s.SenderDomains...)
 	switch {
@@ -157,15 +157,15 @@ func View(s authz.Scope, names map[uuid.UUID]string, listWord bool) ScopeView {
 	return v
 }
 
-// ScopeInput is the request shape of a scope.
-type ScopeInput struct {
+// ScopeRequest is the request shape of a scope.
+type ScopeRequest struct {
 	Lists         []string `json:"lists,omitempty" maxItems:"100" doc:"List ids"`
 	SenderDomains []string `json:"senderDomains,omitempty" maxItems:"20"`
 }
 
 // Resolve validates a requested scope against the workspace's lists and
 // sender domains.
-func (in *ScopeInput) Resolve(lists map[uuid.UUID]string, domains []string) (authz.Scope, error) {
+func (in *ScopeRequest) Resolve(lists map[uuid.UUID]string, domains []string) (authz.Scope, error) {
 	var s authz.Scope
 	if in == nil {
 		return s, nil
@@ -196,8 +196,8 @@ func (in *ScopeInput) Resolve(lists map[uuid.UUID]string, domains []string) (aut
 	return s, nil
 }
 
-// SignInMethod is one way a person signs in.
-type SignInMethod struct {
+// MemberSignInMethod is one way a person signs in.
+type MemberSignInMethod struct {
 	Kind string `json:"kind" enum:"password,passkey,sso,google,microsoft,github"`
 	// Label is "Password", "passkey" or "Google Workspace SSO".
 	Label string `json:"label"`
@@ -213,8 +213,8 @@ type Identity struct {
 }
 
 // SignInMethods lists how a person signs in, password first.
-func SignInMethods(hasPassword bool, passkeys int64, ids []Identity) []SignInMethod {
-	out := []SignInMethod{}
+func SignInMethods(hasPassword bool, passkeys int64, ids []Identity) []MemberSignInMethod {
+	out := []MemberSignInMethod{}
 	for _, id := range ids {
 		switch id.Kind {
 		case "sso":
@@ -222,32 +222,32 @@ func SignInMethods(hasPassword bool, passkeys int64, ids []Identity) []SignInMet
 			if id.ProviderName != "" {
 				label = id.ProviderName + " SSO"
 			}
-			out = append(out, SignInMethod{Kind: "sso", Label: label, Preset: id.ProviderPreset})
+			out = append(out, MemberSignInMethod{Kind: "sso", Label: label, Preset: id.ProviderPreset})
 		case "google":
-			out = append(out, SignInMethod{Kind: "google", Label: "Google", Preset: "google"})
+			out = append(out, MemberSignInMethod{Kind: "google", Label: "Google", Preset: "google"})
 		case "microsoft":
-			out = append(out, SignInMethod{Kind: "microsoft", Label: "Microsoft", Preset: "microsoft"})
+			out = append(out, MemberSignInMethod{Kind: "microsoft", Label: "Microsoft", Preset: "microsoft"})
 		case "github":
-			out = append(out, SignInMethod{Kind: "github", Label: "GitHub", Preset: "github"})
+			out = append(out, MemberSignInMethod{Kind: "github", Label: "GitHub", Preset: "github"})
 		}
 	}
-	var head []SignInMethod
+	var head []MemberSignInMethod
 	if hasPassword {
-		head = append(head, SignInMethod{Kind: "password", Label: "Password"})
+		head = append(head, MemberSignInMethod{Kind: "password", Label: "Password"})
 	}
 	if passkeys > 0 {
 		label := "passkey"
 		if !hasPassword {
 			label = "Passkey"
 		}
-		head = append(head, SignInMethod{Kind: "passkey", Label: label})
+		head = append(head, MemberSignInMethod{Kind: "passkey", Label: label})
 	}
 	return append(head, out...)
 }
 
-// TwoFA is a member's two-factor status (A5 §5.8): On, Off, Via IdP or
+// MemberTwoFA is a member's two-factor status (A5 §5.8): On, Off, Via IdP or
 // "Required, grace ends in N days".
-type TwoFA struct {
+type MemberTwoFA struct {
 	State string `json:"state" enum:"on,off,idp,required"`
 	// Method is "TOTP" or "passkey" when on.
 	Method     string     `json:"method,omitempty"`
@@ -267,16 +267,16 @@ type TwoFAInput struct {
 }
 
 // TwoFAStatus computes the badge shown in the members list.
-func TwoFAStatus(in TwoFAInput) TwoFA {
+func TwoFAStatus(in TwoFAInput) MemberTwoFA {
 	switch {
 	case in.TOTP:
-		return TwoFA{State: "on", Method: "TOTP"}
+		return MemberTwoFA{State: "on", Method: "TOTP"}
 	case in.Passkeys > 0:
-		return TwoFA{State: "on", Method: "passkey"}
+		return MemberTwoFA{State: "on", Method: "passkey"}
 	case in.SSOOnly:
-		return TwoFA{State: "idp"}
+		return MemberTwoFA{State: "idp"}
 	case in.Required || (in.GraceUntil != nil && in.GraceUntil.After(in.Now)):
-		t := TwoFA{State: "required", GraceUntil: in.GraceUntil}
+		t := MemberTwoFA{State: "required", GraceUntil: in.GraceUntil}
 		if in.GraceUntil != nil {
 			d := int(in.GraceUntil.Sub(in.Now).Hours() / 24)
 			if d < 0 {
@@ -289,7 +289,7 @@ func TwoFAStatus(in TwoFAInput) TwoFA {
 		}
 		return t
 	}
-	return TwoFA{State: "off"}
+	return MemberTwoFA{State: "off"}
 }
 
 // Helpers names up to two active members who hold perm, Owners first

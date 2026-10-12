@@ -18,10 +18,10 @@ import (
 	"github.com/hostrepute/reputecast/internal/workspaces"
 )
 
-// ChangeInput changes a member's role and scope.
-type ChangeInput struct {
+// TeamMemberChangeInput changes a member's role and scope.
+type TeamMemberChangeInput struct {
 	RoleID string             `json:"roleId" format:"uuid"`
-	Scope  *access.ScopeInput `json:"scope,omitempty"`
+	Scope  *access.ScopeRequest `json:"scope,omitempty"`
 }
 
 // lastOwner is the 409 for removing, demoting or deactivating the last Owner.
@@ -62,13 +62,13 @@ func outrankError(name string, missing []authz.Permission) *api.Problem {
 }
 
 // ChangeRole gives a member another role and scope.
-func (s *Service) ChangeRole(ctx context.Context, ws *store.Workspace, p *authz.Principal, memberID uuid.UUID, in ChangeInput) error {
+func (s *Service) ChangeRole(ctx context.Context, ws *store.Workspace, p *authz.Principal, memberID uuid.UUID, in TeamMemberChangeInput) error {
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		return s.changeRole(ctx, store.New(tx), tx, ws, p, memberID, in)
 	})
 }
 
-func (s *Service) changeRole(ctx context.Context, q *store.Queries, tx pgx.Tx, ws *store.Workspace, p *authz.Principal, memberID uuid.UUID, in ChangeInput) error {
+func (s *Service) changeRole(ctx context.Context, q *store.Queries, tx pgx.Tx, ws *store.Workspace, p *authz.Principal, memberID uuid.UUID, in TeamMemberChangeInput) error {
 	m, err := q.TeamGetMember(ctx, store.TeamGetMemberParams{ID: memberID, WorkspaceID: ws.ID})
 	if err != nil {
 		return api.MapError(err, "Member")
@@ -177,23 +177,23 @@ func hasSSO(ids []access.Identity) bool {
 	return false
 }
 
-// DeactivateInput deactivates a member.
-type DeactivateInput struct {
+// TeamDeactivateInput deactivates a member.
+type TeamDeactivateInput struct {
 	// RevokeKeys revokes the API keys and agents the member created; false keeps them working.
 	RevokeKeys bool   `json:"revokeKeys"`
 	Reason     string `json:"reason,omitempty" maxLength:"500" doc:"Recorded in the audit log"`
 }
 
-// DeactivateResult says what happened.
-type DeactivateResult struct {
+// TeamDeactivateResult says what happened.
+type TeamDeactivateResult struct {
 	SessionsRevoked int64    `json:"sessionsRevoked"`
 	KeysRevoked     []string `json:"keysRevoked"`
 }
 
 // Deactivate keeps the member's history, signs them out everywhere and
 // keeps or revokes the API keys they created.
-func (s *Service) Deactivate(ctx context.Context, ws *store.Workspace, p *authz.Principal, memberID uuid.UUID, in DeactivateInput) (DeactivateResult, error) {
-	var res DeactivateResult
+func (s *Service) Deactivate(ctx context.Context, ws *store.Workspace, p *authz.Principal, memberID uuid.UUID, in TeamDeactivateInput) (TeamDeactivateResult, error) {
+	var res TeamDeactivateResult
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		var err error
 		res, err = s.deactivate(ctx, store.New(tx), ws, p, memberID, in)
@@ -202,8 +202,8 @@ func (s *Service) Deactivate(ctx context.Context, ws *store.Workspace, p *authz.
 	return res, err
 }
 
-func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, memberID uuid.UUID, in DeactivateInput) (DeactivateResult, error) {
-	res := DeactivateResult{KeysRevoked: []string{}}
+func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, memberID uuid.UUID, in TeamDeactivateInput) (TeamDeactivateResult, error) {
+	res := TeamDeactivateResult{KeysRevoked: []string{}}
 	m, err := q.TeamGetMember(ctx, store.TeamGetMemberParams{ID: memberID, WorkspaceID: ws.ID})
 	if err != nil {
 		return res, api.MapError(err, "Member")
@@ -365,14 +365,14 @@ func (s *Service) Remove(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	})
 }
 
-// SignOutResult reports a forced sign-out.
-type SignOutResult struct {
+// TeamSignOutResult reports a forced sign-out.
+type TeamSignOutResult struct {
 	SessionsRevoked int64 `json:"sessionsRevoked"`
 }
 
 // SignOut ends every session of the member.
-func (s *Service) SignOut(ctx context.Context, ws *store.Workspace, p *authz.Principal, memberID uuid.UUID) (SignOutResult, error) {
-	var res SignOutResult
+func (s *Service) SignOut(ctx context.Context, ws *store.Workspace, p *authz.Principal, memberID uuid.UUID) (TeamSignOutResult, error) {
+	var res TeamSignOutResult
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		m, err := q.TeamGetMember(ctx, store.TeamGetMemberParams{ID: memberID, WorkspaceID: ws.ID})
@@ -392,8 +392,8 @@ func (s *Service) SignOut(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	return res, err
 }
 
-// BulkInput applies one action to several members.
-type BulkInput struct {
+// TeamBulkInput applies one action to several members.
+type TeamBulkInput struct {
 	MemberIDs  []string `json:"memberIds" minItems:"1" maxItems:"200"`
 	Action     string   `json:"action" enum:"change_role,require_2fa,deactivate"`
 	RoleID     string   `json:"roleId,omitempty" doc:"For change_role"`
@@ -401,8 +401,8 @@ type BulkInput struct {
 	Reason     string   `json:"reason,omitempty" maxLength:"500"`
 }
 
-// BulkResult reports how many members changed.
-type BulkResult struct {
+// TeamBulkResult reports how many members changed.
+type TeamBulkResult struct {
 	Changed int `json:"changed"`
 	// Skipped names members already in the requested state.
 	Skipped []string `json:"skipped"`
@@ -410,8 +410,8 @@ type BulkResult struct {
 
 // Bulk changes roles, requires two-factor now or deactivates several members
 // in one transaction: all of them or none.
-func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, p *authz.Principal, in BulkInput) (BulkResult, error) {
-	res := BulkResult{Skipped: []string{}}
+func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, p *authz.Principal, in TeamBulkInput) (TeamBulkResult, error) {
+	res := TeamBulkResult{Skipped: []string{}}
 	ids := make([]uuid.UUID, 0, len(in.MemberIDs))
 	for _, raw := range in.MemberIDs {
 		id, err := uuid.Parse(raw)
@@ -436,7 +436,7 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, p *authz.Princi
 					res.Skipped = append(res.Skipped, displayName(m.UserName, m.Email))
 					continue
 				}
-				if err := s.changeRole(ctx, q, tx, ws, p, id, ChangeInput{RoleID: in.RoleID}); err != nil {
+				if err := s.changeRole(ctx, q, tx, ws, p, id, TeamMemberChangeInput{RoleID: in.RoleID}); err != nil {
 					return err
 				}
 				res.Changed++
@@ -481,7 +481,7 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, p *authz.Princi
 					res.Skipped = append(res.Skipped, displayName(m.UserName, m.Email))
 					continue
 				}
-				if _, err := s.deactivate(ctx, q, ws, p, id, DeactivateInput{RevokeKeys: in.RevokeKeys, Reason: in.Reason}); err != nil {
+				if _, err := s.deactivate(ctx, q, ws, p, id, TeamDeactivateInput{RevokeKeys: in.RevokeKeys, Reason: in.Reason}); err != nil {
 					return err
 				}
 				res.Changed++

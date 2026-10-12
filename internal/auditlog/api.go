@@ -95,8 +95,8 @@ func Register(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "update-audit-settings", Path: base + "/settings", Summary: "Change retention or stream the log to a webhook", Tags: tags, Access: api.WorkspaceHuman(authz.WorkspaceManage)},
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput
-			Body SettingsInput
-		}) (*api.Body[SettingsResult], error) {
+			Body AuditSettingsInput
+		}) (*api.Body[AuditSettingsResult], error) {
 			out, err := s.UpdateSettings(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err
 		})

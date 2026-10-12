@@ -27,7 +27,7 @@ func Register(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "update-workspace-settings", Path: base + "/settings", Summary: "Change the name, timezone and default sender", Tags: tags, Access: api.Workspace(authz.WorkspaceManage), Status: 204},
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput
-			Body GeneralInput
+			Body WorkspaceGeneralInput
 		}) (*api.Empty, error) {
 			return api.NoContent, s.UpdateGeneral(ctx, api.WorkspaceFrom(ctx), in.Body)
 		})
@@ -35,7 +35,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "transfer-workspace", Path: base + "/transfer", Summary: "Make another member the Owner; you become an Admin", Tags: tags, Access: api.WorkspaceHuman(authz.WorkspaceTransfer), Status: 204},
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput
-			Body TransferInput
+			Body WorkspaceTransferInput
 		}) (*api.Empty, error) {
 			return api.NoContent, s.Transfer(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 		})
@@ -43,8 +43,8 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "delete-workspace", Path: base + "/delete", Summary: "Delete the workspace (typed confirmation; restorable for 7 days)", Tags: tags, Access: api.WorkspaceHuman(authz.WorkspaceDelete)},
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput
-			Body DeleteInput
-		}) (*api.Body[DeleteResult], error) {
+			Body WorkspaceDeleteInput
+		}) (*api.Body[WorkspaceDeleteResult], error) {
 			out, err := s.Delete(ctx, api.WorkspaceFrom(ctx), in.Body)
 			return api.OK(out), err
 		})

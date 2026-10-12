@@ -38,8 +38,10 @@ type Service struct {
 	Q      *store.Queries
 	Audit  *audit.Logger
 	Box    *secrets.Box
-	Policy netguard.Policy
-	Now    func() time.Time
+	// AllowPrivate reports whether endpoints may resolve to private
+	// networks (webhooks.allow_private_networks); read at each use.
+	AllowPrivate func() bool
+	Now          func() time.Time
 	// HTTP overrides the stream client (tests).
 	HTTP *http.Client
 }
@@ -339,8 +341,8 @@ func ipString(ip *netip.Addr) string {
 	return ip.String()
 }
 
-// DiffLine is one line of the before → after view.
-type DiffLine struct {
+// AuditDiffLine is one line of the before → after view.
+type AuditDiffLine struct {
 	Kind string `json:"kind" enum:"same,del,add"`
 	Text string `json:"text"`
 }
@@ -359,7 +361,7 @@ type AuditEventDetail struct {
 	Permission string          `json:"permission,omitempty"`
 	Before     json.RawMessage `json:"before,omitempty"`
 	After      json.RawMessage `json:"after,omitempty"`
-	Diff       []DiffLine      `json:"diff"`
+	Diff       []AuditDiffLine      `json:"diff"`
 	Related    []string        `json:"related"`
 	// Link is the app path of the target, with its label ("Open routing").
 	Link      string `json:"link,omitempty"`
@@ -381,7 +383,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (A
 		Permission: m.Perm, Before: nonEmpty(e.Before), After: nonEmpty(e.After), Diff: Diff(e.Before, e.After), Related: []string{},
 	}
 	if out.Diff == nil {
-		out.Diff = []DiffLine{}
+		out.Diff = []AuditDiffLine{}
 	}
 	out.What = m.What
 	if out.What == "" {
@@ -686,7 +688,7 @@ func Format(v json.RawMessage) string {
 
 // Diff lists the top-level keys of before and after, one per line, marking
 // changed keys as a removed and an added line.
-func Diff(before, after json.RawMessage) []DiffLine {
+func Diff(before, after json.RawMessage) []AuditDiffLine {
 	b, a := orderedObject(before), orderedObject(after)
 	if b == nil && a == nil {
 		return nil
@@ -705,7 +707,7 @@ func Diff(before, after json.RawMessage) []DiffLine {
 			keys = append(keys, e.key)
 		}
 	}
-	var out []DiffLine
+	var out []AuditDiffLine
 	for i, k := range keys {
 		comma := ","
 		if i == len(keys)-1 {
@@ -715,13 +717,13 @@ func Diff(before, after json.RawMessage) []DiffLine {
 		av, inA := lookup(a, k)
 		switch {
 		case inB && inA && bytes.Equal(compact(bv), compact(av)):
-			out = append(out, DiffLine{Kind: "same", Text: strconv.Quote(k) + ": " + Format(av) + comma})
+			out = append(out, AuditDiffLine{Kind: "same", Text: strconv.Quote(k) + ": " + Format(av) + comma})
 		default:
 			if inB {
-				out = append(out, DiffLine{Kind: "del", Text: strconv.Quote(k) + ": " + Format(bv) + comma})
+				out = append(out, AuditDiffLine{Kind: "del", Text: strconv.Quote(k) + ": " + Format(bv) + comma})
 			}
 			if inA {
-				out = append(out, DiffLine{Kind: "add", Text: strconv.Quote(k) + ": " + Format(av) + comma})
+				out = append(out, AuditDiffLine{Kind: "add", Text: strconv.Quote(k) + ": " + Format(av) + comma})
 			}
 		}
 	}
@@ -779,26 +781,29 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	return AuditSettings{RetentionDays: ws.AuditRetentionDays, Stream: s.streamStatus(ws), Total: total, CanManage: p.Can(authz.WorkspaceManage)}, nil
 }
 
-// SettingsInput changes retention and the stream.
-type SettingsInput struct {
-	RetentionDays *int32 `json:"retentionDays,omitempty" minimum:"30" maximum:"3650"`
-	Stream        *struct {
-		Enabled bool   `json:"enabled"`
-		URL     string `json:"url,omitempty" maxLength:"500"`
-		// RotateSecret issues a new signing secret (shown once).
-		RotateSecret bool `json:"rotateSecret,omitempty"`
-	} `json:"stream,omitempty"`
+// AuditSettingsInput changes retention and the stream.
+type AuditSettingsInput struct {
+	RetentionDays *int32            `json:"retentionDays,omitempty" minimum:"30" maximum:"3650"`
+	Stream        *AuditStreamInput `json:"stream,omitempty"`
 }
 
-// SettingsResult carries a new stream secret, shown once.
-type SettingsResult struct {
+// AuditStreamInput configures streaming the log to a webhook.
+type AuditStreamInput struct {
+	Enabled bool   `json:"enabled"`
+	URL     string `json:"url,omitempty" maxLength:"500"`
+	// RotateSecret issues a new signing secret (shown once).
+	RotateSecret bool `json:"rotateSecret,omitempty"`
+}
+
+// AuditSettingsResult carries a new stream secret, shown once.
+type AuditSettingsResult struct {
 	Settings AuditSettings `json:"settings"`
 	Secret   string        `json:"secret,omitempty" doc:"New signing secret, shown only in this response"`
 }
 
 // UpdateSettings changes retention and the stream configuration.
-func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, p *authz.Principal, in SettingsInput) (SettingsResult, error) {
-	var res SettingsResult
+func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AuditSettingsInput) (AuditSettingsResult, error) {
+	var res AuditSettingsResult
 	before := map[string]any{"retention_days": ws.AuditRetentionDays, "stream_enabled": ws.AuditStreamEnabled, "stream_url": ws.AuditStreamUrl}
 	after := map[string]any{}
 	tx, err := s.Pool.Begin(ctx)
@@ -822,7 +827,7 @@ func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, p *au
 			return res, api.Invalid("body.stream.url", "Add the URL that receives the audit stream.")
 		}
 		if u != "" {
-			pu, err := s.Policy.ValidateURL(u)
+			pu, err := s.policy().ValidateURL(u)
 			if err != nil {
 				msg := err.Error()
 				return res, api.Invalid("body.stream.url", strings.ToUpper(msg[:1])+msg[1:]+".")
@@ -866,3 +871,7 @@ func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, p *au
 }
 
 func streamAD(wsID uuid.UUID) string { return "workspace:" + wsID.String() + ":audit_stream_secret" }
+
+func (s *Service) policy() netguard.Policy {
+	return netguard.Policy{AllowPrivate: s.AllowPrivate != nil && s.AllowPrivate()}
+}

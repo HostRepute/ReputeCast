@@ -179,7 +179,7 @@ func (s *Service) client() *http.Client {
 	if s.HTTP != nil {
 		return s.HTTP
 	}
-	return s.Policy.Client(15 * time.Second)
+	return s.policy().Client(15 * time.Second)
 }
 
 // streamOnce sends the next batch for one workspace.

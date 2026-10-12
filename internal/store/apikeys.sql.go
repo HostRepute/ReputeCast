@@ -74,7 +74,7 @@ func (q *Queries) KeysAgentActions(ctx context.Context, arg KeysAgentActionsPara
 }
 
 const keysByToken = `-- name: KeysByToken :one
-SELECT k.id, k.workspace_id, k.kind, k.name, k.permissions, k.scope, k.created_by, k.expires_at, k.revoked_at,
+SELECT k.id, k.workspace_id, k.kind, k.name, k.prefix, k.permissions, k.scope, k.created_by, k.expires_at, k.revoked_at,
        w.slug AS workspace_slug, w.name AS workspace_name, w.mcp_settings
 FROM api_keys k JOIN workspaces w ON w.id = k.workspace_id AND w.deleted_at IS NULL
 WHERE k.token_hash = $1
@@ -85,6 +85,7 @@ type KeysByTokenRow struct {
 	WorkspaceID   uuid.UUID       `json:"workspaceId"`
 	Kind          string          `json:"kind"`
 	Name          string          `json:"name"`
+	Prefix        string          `json:"prefix"`
 	Permissions   []string        `json:"permissions"`
 	Scope         json.RawMessage `json:"scope"`
 	CreatedBy     *uuid.UUID      `json:"createdBy"`
@@ -103,6 +104,7 @@ func (q *Queries) KeysByToken(ctx context.Context, tokenHash []byte) (KeysByToke
 		&i.WorkspaceID,
 		&i.Kind,
 		&i.Name,
+		&i.Prefix,
 		&i.Permissions,
 		&i.Scope,
 		&i.CreatedBy,

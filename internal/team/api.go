@@ -76,7 +76,7 @@ func Register(h huma.API, s *Service) {
 	api.Patch(h, api.Op{ID: "update-member", Path: base + "/members/{memberId}", Summary: "Change a member's role or scope", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage), Status: 204},
 		func(ctx context.Context, in *struct {
 			memberInput
-			Body ChangeInput
+			Body TeamMemberChangeInput
 		}) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
@@ -88,8 +88,8 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "deactivate-member", Path: base + "/members/{memberId}/deactivate", Summary: "Deactivate a member: keeps history, signs out everywhere, keeps or revokes their API keys", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage)},
 		func(ctx context.Context, in *struct {
 			memberInput
-			Body DeactivateInput
-		}) (*api.Body[DeactivateResult], error) {
+			Body TeamDeactivateInput
+		}) (*api.Body[TeamDeactivateResult], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -117,7 +117,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "sign-out-member", Path: base + "/members/{memberId}/sign-out", Summary: "End every session of a member", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage)},
-		func(ctx context.Context, in *memberInput) (*api.Body[SignOutResult], error) {
+		func(ctx context.Context, in *memberInput) (*api.Body[TeamSignOutResult], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -129,8 +129,8 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "bulk-members", Path: base + "/members/bulk", Summary: "Change the role of, require two-factor for, or deactivate several members", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage)},
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput
-			Body BulkInput
-		}) (*api.Body[BulkResult], error) {
+			Body TeamBulkInput
+		}) (*api.Body[TeamBulkResult], error) {
 			out, err := s.Bulk(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), api.MapError(err, "Member")
 		})
@@ -142,7 +142,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Get(h, api.Op{ID: "invitation-options", Path: base + "/invitations/options", Summary: "Roles you can grant, scopes, SSO hints and whether email can be sent", Tags: tags, Access: api.WorkspaceHuman(authz.TeamInvite)},
-		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Body[InviteOptions], error) {
+		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Body[TeamInviteOptions], error) {
 			out, err := s.Options(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx))
 			return api.OK(out), err
 		})
@@ -150,14 +150,14 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "create-invitations", Path: base + "/invitations", Summary: "Invite people by email or copyable link", Tags: tags, Access: api.WorkspaceHuman(authz.TeamInvite), Status: 201},
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput
-			Body InviteInput
-		}) (*api.Body[InviteResult], error) {
+			Body TeamInviteInput
+		}) (*api.Body[TeamInviteResult], error) {
 			out, err := s.Invite(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), api.MapError(err, "Invitation")
 		})
 
 	api.Post(h, api.Op{ID: "resend-invitation", Path: base + "/invitations/{invitationId}/resend", Summary: "Email a pending invitation again and restart its expiry", Tags: tags, Access: api.WorkspaceHuman(authz.TeamInvite)},
-		func(ctx context.Context, in *invitationInput) (*api.Body[ResendResult], error) {
+		func(ctx context.Context, in *invitationInput) (*api.Body[TeamResendResult], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -167,7 +167,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "invitation-link", Path: base + "/invitations/{invitationId}/link", Summary: "Copy the link of a pending invitation", Tags: tags, Access: api.WorkspaceHuman(authz.TeamInvite)},
-		func(ctx context.Context, in *invitationInput) (*api.Body[InviteLink], error) {
+		func(ctx context.Context, in *invitationInput) (*api.Body[TeamInviteLink], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err

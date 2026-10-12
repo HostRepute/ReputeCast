@@ -90,13 +90,13 @@ type WorkspaceDanger struct {
 	RestoreDays int   `json:"restoreDays"`
 }
 
-// TransferCandidate is a member who could become the Owner.
-type TransferCandidate struct {
+// WorkspaceTransferCandidate is a member who could become the Owner.
+type WorkspaceTransferCandidate struct {
 	MemberID string       `json:"memberId"`
 	Name     string       `json:"name"`
 	Email    string       `json:"email"`
 	RoleName string       `json:"roleName"`
-	TwoFA    access.TwoFA `json:"twoFA"`
+	TwoFA    access.MemberTwoFA `json:"twoFA"`
 	// Eligible members are active and have two-factor (their own or the IdP's).
 	Eligible bool   `json:"eligible"`
 	Reason   string `json:"reason,omitempty"`
@@ -115,7 +115,7 @@ type WorkspaceSettings struct {
 	Approvals       WorkspaceApprovals      `json:"approvals"`
 	Members         WorkspaceMembersSummary `json:"members"`
 	Danger          WorkspaceDanger         `json:"danger"`
-	Candidates      []TransferCandidate     `json:"candidates"`
+	Candidates      []WorkspaceTransferCandidate     `json:"candidates"`
 	CanManage       bool                    `json:"canManage"`
 	CanTransfer     bool                    `json:"canTransfer"`
 	CanDelete       bool                    `json:"canDelete"`
@@ -198,7 +198,7 @@ func thousands(n int64) string {
 // Settings returns the general settings with the summaries of the page.
 func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Principal) (WorkspaceSettings, error) {
 	out := WorkspaceSettings{
-		ID: ws.ID.String(), Slug: ws.Slug, Name: ws.Name, Timezone: ws.Timezone, Senders: []WorkspaceSender{}, Candidates: []TransferCandidate{},
+		ID: ws.ID.String(), Slug: ws.Slug, Name: ws.Name, Timezone: ws.Timezone, Senders: []WorkspaceSender{}, Candidates: []WorkspaceTransferCandidate{},
 		CanManage: p.Can(authz.WorkspaceManage), CanTransfer: p.Can(authz.WorkspaceTransfer) && p.IsHuman(), CanDelete: p.Can(authz.WorkspaceDelete) && p.IsHuman(),
 		Helpers: access.Helpers(ctx, s.Q, ws.ID, authz.WorkspaceManage),
 	}
@@ -347,7 +347,7 @@ func (s *Service) signIn(ctx context.Context, ws *store.Workspace) string {
 }
 
 // candidates lists who can become the Owner.
-func (s *Service) candidates(ctx context.Context, ws *store.Workspace, p *authz.Principal) ([]TransferCandidate, error) {
+func (s *Service) candidates(ctx context.Context, ws *store.Workspace, p *authz.Principal) ([]WorkspaceTransferCandidate, error) {
 	rows, err := s.Q.TeamListMembers(ctx, ws.ID)
 	if err != nil {
 		return nil, err
@@ -366,14 +366,14 @@ func (s *Service) candidates(ctx context.Context, ws *store.Workspace, p *authz.
 			sso[i.UserID] = i.ProviderName
 		}
 	}
-	out := []TransferCandidate{}
+	out := []WorkspaceTransferCandidate{}
 	for _, r := range rows {
 		if r.UserID == p.UserID || r.Status != "active" || r.UserStatus != "active" {
 			continue
 		}
 		_, viaIdP := sso[r.UserID]
 		t := access.TwoFAStatus(access.TwoFAInput{TOTP: r.TotpEnabledAt != nil, Passkeys: r.PasskeyCount, SSOOnly: viaIdP && !r.HasPassword && r.PasskeyCount == 0, GraceUntil: r.TwofaGraceUntil, Now: s.now()})
-		c := TransferCandidate{MemberID: r.ID.String(), Name: displayName(r.UserName, r.Email), Email: r.Email, RoleName: r.RoleName, TwoFA: t}
+		c := WorkspaceTransferCandidate{MemberID: r.ID.String(), Name: displayName(r.UserName, r.Email), Email: r.Email, RoleName: r.RoleName, TwoFA: t}
 		switch t.State {
 		case "on":
 			c.Eligible = true
@@ -400,15 +400,15 @@ func displayName(name, email string) string {
 	return email
 }
 
-// GeneralInput changes the general settings.
-type GeneralInput struct {
+// WorkspaceGeneralInput changes the general settings.
+type WorkspaceGeneralInput struct {
 	Name            string `json:"name" minLength:"1" maxLength:"80"`
 	Timezone        string `json:"timezone" minLength:"1" maxLength:"64"`
 	DefaultSenderID string `json:"defaultSenderId,omitempty"`
 }
 
 // UpdateGeneral saves name, timezone and default sender.
-func (s *Service) UpdateGeneral(ctx context.Context, ws *store.Workspace, in GeneralInput) error {
+func (s *Service) UpdateGeneral(ctx context.Context, ws *store.Workspace, in WorkspaceGeneralInput) error {
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
 		return api.Invalid("body.name", "Give the workspace a name.")
@@ -443,14 +443,14 @@ func (s *Service) UpdateGeneral(ctx context.Context, ws *store.Workspace, in Gen
 	})
 }
 
-// TransferInput hands the workspace to another member.
-type TransferInput struct {
+// WorkspaceTransferInput hands the workspace to another member.
+type WorkspaceTransferInput struct {
 	MemberID string `json:"memberId" format:"uuid"`
 	Password string `json:"password,omitempty" maxLength:"1024" doc:"The caller's password (re-authentication)"`
 }
 
 // Transfer makes another member the Owner; the caller becomes an Admin.
-func (s *Service) Transfer(ctx context.Context, ws *store.Workspace, p *authz.Principal, in TransferInput) error {
+func (s *Service) Transfer(ctx context.Context, ws *store.Workspace, p *authz.Principal, in WorkspaceTransferInput) error {
 	u := api.UserFrom(ctx)
 	if u == nil {
 		return api.Err(http.StatusForbidden, api.CodeHumansOnly, "Only a signed-in Owner can transfer ownership.")
@@ -471,7 +471,7 @@ func (s *Service) Transfer(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	if err != nil {
 		return err
 	}
-	var target *TransferCandidate
+	var target *WorkspaceTransferCandidate
 	for i := range cands {
 		if cands[i].MemberID == memberID.String() {
 			target = &cands[i]
@@ -518,13 +518,13 @@ func (s *Service) Transfer(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	})
 }
 
-// DeleteInput confirms deleting the workspace.
-type DeleteInput struct {
+// WorkspaceDeleteInput confirms deleting the workspace.
+type WorkspaceDeleteInput struct {
 	Confirm string `json:"confirm" maxLength:"80" doc:"The workspace name, typed exactly"`
 }
 
-// DeleteResult says until when an instance admin can restore it.
-type DeleteResult struct {
+// WorkspaceDeleteResult says until when an instance admin can restore it.
+type WorkspaceDeleteResult struct {
 	RestoreUntil time.Time `json:"restoreUntil"`
 	// Cancelled counts scheduled sends that stopped.
 	Cancelled int64 `json:"cancelled"`
@@ -532,11 +532,11 @@ type DeleteResult struct {
 
 // Delete soft-deletes the workspace: scheduled sends stop at once, keys and
 // agents stop working, and the data is purged after the restore hold.
-func (s *Service) Delete(ctx context.Context, ws *store.Workspace, in DeleteInput) (DeleteResult, error) {
+func (s *Service) Delete(ctx context.Context, ws *store.Workspace, in WorkspaceDeleteInput) (WorkspaceDeleteResult, error) {
 	if in.Confirm != ws.Name {
-		return DeleteResult{}, api.Invalid("body.confirm", fmt.Sprintf("Type %s exactly to confirm.", ws.Name))
+		return WorkspaceDeleteResult{}, api.Invalid("body.confirm", fmt.Sprintf("Type %s exactly to confirm.", ws.Name))
 	}
-	res := DeleteResult{RestoreUntil: s.now().Add(RestoreDays * 24 * time.Hour)}
+	res := WorkspaceDeleteResult{RestoreUntil: s.now().Add(RestoreDays * 24 * time.Hour)}
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		var err error
