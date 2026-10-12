@@ -42,6 +42,12 @@ func seedAccountImpl(ctx context.Context, s *Seeder) error {
 		return err
 	}
 	s.Extra[SSOGoogleKey] = google
+	// The account and invitation screens say passwords are "checked against
+	// known breaches" (k-anonymity range API; the instance seeder owns the
+	// rest of the authentication policy).
+	if _, err := s.Tx.Exec(ctx, `UPDATE instance_settings SET breached_check = true`); err != nil {
+		return err
+	}
 
 	// Linh: password changed Aug 3 (70 days before the design's today), the
 	// authenticator set up the same day in 1Password, recovery codes saved.

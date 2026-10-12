@@ -141,7 +141,8 @@ SELECT id, name FROM lists WHERE workspace_id = @workspace_id AND id = ANY(@ids:
 -- name: ListMembershipsOfUser :many
 SELECT m.id AS member_id, m.status, w.id AS workspace_id, w.slug, w.name, r.key AS role_key, r.name AS role_name,
        r.builtin AS role_builtin, r.permissions AS role_permissions,
-       (SELECT count(*) FROM workspace_members m2 WHERE m2.workspace_id = w.id AND m2.status = 'active') AS member_count,
+       -- Members as the team list counts them: deactivated members included.
+       (SELECT count(*) FROM workspace_members m2 WHERE m2.workspace_id = w.id) AS member_count,
        (SELECT count(*) FROM workspace_members m3 JOIN roles r3 ON r3.id = m3.role_id
          WHERE m3.workspace_id = w.id AND m3.status = 'active' AND r3.key = 'owner') AS owner_count
 FROM workspace_members m

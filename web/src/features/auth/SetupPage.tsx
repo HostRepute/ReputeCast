@@ -633,13 +633,17 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
           <Skeleton w="75%" h={14} />
         </div>
       ) : null}
-      <label className="chk-row cursor-pointer items-start" htmlFor={ids.upd}>
-        <input type="checkbox" id={ids.upd} className="mt-0.5" checked={updateCheck} onChange={(e) => setUpdateCheck(e.target.checked)} />
+      <div className="chk-row items-start">
+        <input type="checkbox" id={ids.upd} className="mt-0.5 cursor-pointer" checked={updateCheck} onChange={(e) => setUpdateCheck(e.target.checked)} aria-describedby={`${ids.upd}-hint`} />
         <span className="flex flex-col gap-0.5">
-          <span className="font-semibold">Check GitHub for new releases once a day</span>
-          <span className="k">Only the version number is fetched. ReputeCast never sends usage data anywhere. You can turn this off for offline installs.</span>
+          <label htmlFor={ids.upd} className="cursor-pointer font-semibold">
+            Check GitHub for new releases once a day
+          </label>
+          <span className="k" id={`${ids.upd}-hint`}>
+            Only the version number is fetched. ReputeCast never sends usage data anywhere. You can turn this off for offline installs.
+          </span>
         </span>
-      </label>
+      </div>
       <Footer>
         <Button onClick={onBack}>Back</Button>
         <Button type="submit" variant="primary" loading={busy}>

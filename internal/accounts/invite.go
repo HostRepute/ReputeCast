@@ -48,11 +48,11 @@ type InvitationView struct {
 	// SignedInAs is the email of the browser's current session, if any.
 	SignedInAs string `json:"signedInAs,omitempty"`
 	// Password sign-up is unavailable when the domain enforces SSO.
-	PasswordAllowed bool            `json:"passwordAllowed"`
-	PasswordPolicy  InvitationPasswordPolicy    `json:"passwordPolicy"`
-	Social          []string        `json:"social" doc:"Social sign-in providers to join with: google, microsoft, github"`
-	SSO             *SSOStart       `json:"sso,omitempty"`
-	TwoFactor       InvitationTwoFactor `json:"twoFactor"`
+	PasswordAllowed bool                     `json:"passwordAllowed"`
+	PasswordPolicy  InvitationPasswordPolicy `json:"passwordPolicy"`
+	Social          []string                 `json:"social" doc:"Social sign-in providers to join with: google, microsoft, github"`
+	SSO             *SSOStart                `json:"sso,omitempty"`
+	TwoFactor       InvitationTwoFactor      `json:"twoFactor"`
 }
 
 // InvitationPasswordPolicy is the password policy shown while creating a password.
@@ -267,9 +267,9 @@ type InvitationAccepted struct {
 	// NewAccount is true when joining created the account (and signed in).
 	NewAccount bool `json:"newAccount"`
 	// HasSecondFactor tells the app whether to offer passkey and 2FA setup.
-	HasSecondFactor bool            `json:"hasSecondFactor"`
+	HasSecondFactor bool                `json:"hasSecondFactor"`
 	TwoFactor       InvitationTwoFactor `json:"twoFactor"`
-	Next            string          `json:"next"`
+	Next            string              `json:"next"`
 }
 
 func inviteClosed(status string, inv store.GetInvitationViewRow) *api.Problem {

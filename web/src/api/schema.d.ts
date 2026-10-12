@@ -910,6 +910,8 @@ export interface components {
             /** Format: int64 */
             recoveryTotal: number;
             required: boolean;
+            /** @enum {string} */
+            requiredBy?: "everyone" | "sensitive";
             requiredReason?: string;
             totp: boolean;
             /** @example 1Password */

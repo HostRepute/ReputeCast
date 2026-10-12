@@ -186,8 +186,8 @@ type NotificationEmailDelivery struct {
 type NotificationPreferences struct {
 	Events     []NotificationEventPreference `json:"events"`
 	QuietHours *NotificationQuietHours       `json:"quietHours,omitempty"`
-	Digest     string            `json:"digest" enum:"immediate,hourly,daily"`
-	Timezone   string            `json:"timezone"`
+	Digest     string                        `json:"digest" enum:"immediate,hourly,daily"`
+	Timezone   string                        `json:"timezone"`
 	Email      NotificationEmailDelivery     `json:"email"`
 }
 
@@ -200,9 +200,9 @@ type NotificationEventChoice struct {
 
 // NotificationPreferencesInput is PUT /me/notification-preferences.
 type NotificationPreferencesInput struct {
-	Events []NotificationEventChoice `json:"events" maxItems:"20"`
-	QuietHours *NotificationQuietHours `json:"quietHours,omitempty" doc:"Omit or null to turn quiet hours off"`
-	Digest     string      `json:"digest" enum:"immediate,hourly,daily"`
+	Events     []NotificationEventChoice `json:"events" maxItems:"20"`
+	QuietHours *NotificationQuietHours   `json:"quietHours,omitempty" doc:"Omit or null to turn quiet hours off"`
+	Digest     string                    `json:"digest" enum:"immediate,hourly,daily"`
 }
 
 // Preferences returns a person's notification settings. workspaceID, when

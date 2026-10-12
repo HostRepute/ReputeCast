@@ -469,6 +469,13 @@
           "required": {
             "type": "boolean"
           },
+          "requiredBy": {
+            "enum": [
+              "everyone",
+              "sensitive"
+            ],
+            "type": "string"
+          },
           "requiredReason": {
             "type": "string"
           },

@@ -24,24 +24,24 @@ import (
 
 // AccountOverview is the Account & security screen (A5 §5.6).
 type AccountOverview struct {
-	Profile       AccountProfile       `json:"profile"`
-	Password      AccountPassword      `json:"password"`
-	Passkeys      []AccountPasskey     `json:"passkeys"`
-	TwoFactor     AccountTwoFactor     `json:"twoFactor"`
-	Identities    []AccountIdentity    `json:"identities"`
-	Workspaces    []AccountWorkspace   `json:"workspaces"`
-	Notifications notify.NotificationSummary       `json:"notifications"`
-	SessionPolicy AccountSessionPolicy `json:"sessionPolicy"`
+	Profile       AccountProfile             `json:"profile"`
+	Password      AccountPassword            `json:"password"`
+	Passkeys      []AccountPasskey           `json:"passkeys"`
+	TwoFactor     AccountTwoFactor           `json:"twoFactor"`
+	Identities    []AccountIdentity          `json:"identities"`
+	Workspaces    []AccountWorkspace         `json:"workspaces"`
+	Notifications notify.NotificationSummary `json:"notifications"`
+	SessionPolicy AccountSessionPolicy       `json:"sessionPolicy"`
 }
 
 // AccountProfile is how the person appears to the team.
 type AccountProfile struct {
-	Name            string        `json:"name"`
-	Email           string        `json:"email"`
-	Timezone        string        `json:"timezone"`
-	AvatarColor     string        `json:"avatarColor"`
-	AvatarURL       string        `json:"avatarUrl,omitempty"`
-	IsInstanceAdmin bool          `json:"isInstanceAdmin"`
+	Name            string               `json:"name"`
+	Email           string               `json:"email"`
+	Timezone        string               `json:"timezone"`
+	AvatarColor     string               `json:"avatarColor"`
+	AvatarURL       string               `json:"avatarUrl,omitempty"`
+	IsInstanceAdmin bool                 `json:"isInstanceAdmin"`
 	PendingEmail    *AccountPendingEmail `json:"pendingEmail,omitempty"`
 }
 
@@ -82,8 +82,10 @@ type AccountTwoFactor struct {
 	TOTP      bool       `json:"totp"`
 	TOTPSetAt *time.Time `json:"totpSetAt,omitempty"`
 	TOTPLabel string     `json:"totpLabel,omitempty" example:"1Password"`
-	// Required is true when the instance policy requires a second factor.
+	// Required is true when the instance policy requires a second factor:
+	// for everyone, or because the person holds a sensitive permission.
 	Required       bool       `json:"required"`
+	RequiredBy     string     `json:"requiredBy,omitempty" enum:"everyone,sensitive"`
 	RequiredReason string     `json:"requiredReason,omitempty"`
 	GraceUntil     *time.Time `json:"graceUntil,omitempty"`
 	// ViaIdP is true for SSO-only accounts: the identity provider enforces it.
@@ -245,8 +247,14 @@ func (s *Service) Overview(ctx context.Context) (AccountOverview, error) {
 	required, reason := s.twoFactorRequired(ctx, u, st)
 	out.TwoFactor = AccountTwoFactor{TOTP: u.TotpEnabledAt != nil, TOTPSetAt: u.TotpEnabledAt, TOTPLabel: u.TotpLabel, Required: required, RequiredReason: reason,
 		ViaIdP: out.Password.SSOOnly}
-	if required && u.TotpEnabledAt == nil && len(keys) == 0 {
-		out.TwoFactor.GraceUntil = u.TwofaGraceUntil
+	if required {
+		out.TwoFactor.RequiredBy = "sensitive"
+		if st.TwofaEnforcement == "everyone" {
+			out.TwoFactor.RequiredBy = "everyone"
+		}
+		if u.TotpEnabledAt == nil && len(keys) == 0 {
+			out.TwoFactor.GraceUntil = u.TwofaGraceUntil
+		}
 	}
 	if rc, err := s.Q.RecoveryCodeStats(ctx, u.ID); err == nil {
 		out.TwoFactor.RecoveryRemaining, out.TwoFactor.RecoveryTotal = int(rc.Remaining), int(rc.Total)
