@@ -30,6 +30,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/server"
@@ -57,6 +58,9 @@ type App struct {
 	Sending sending.Starter
 	// Links signs open, click, unsubscribe and preference tokens in emails.
 	Links *linktoken.Signer
+	// URLs builds public links (tracking, unsubscribe, preferences, archive,
+	// shared reports) on the configured public URL.
+	URLs publicurl.Builder
 
 	httpMetrics *server.HTTPMetrics
 
@@ -93,7 +97,9 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		JobReg:  jobs.NewRegistry(),
 		Metrics: prometheus.NewRegistry(),
 		Mail:    mailer.Unavailable{},
+		Sending: sending.Unavailable{},
 		Links:   links,
+		URLs:    publicurl.New(cfg.HTTP.PublicURL),
 	}
 	a.Metrics.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	a.Auth = &api.Authenticator{
