@@ -43,7 +43,7 @@ const (
 // Capabilities are the badges shown on each provider (spec 5.2).
 type Capabilities struct {
 	Bulk            BulkPolicy `json:"bulk"`
-	Webhooks        string     `json:"webhooks"` // "SNS", "Registered", "Bounce mailbox", ""
+	Webhooks        string     `json:"webhooks"`  // "SNS", "Registered", "Bounce mailbox", ""
 	DomainAPI       string     `json:"domainApi"` // "full", "dkim_only", ""
 	SuppressionSync bool       `json:"suppressionSync"`
 	BatchSize       int        `json:"batchSize"` // messages per API call; 1 = no batching
@@ -59,14 +59,14 @@ type Capabilities struct {
 
 // Message is one email to one recipient, already rendered and personalized.
 type Message struct {
-	ID       uuid.UUID // ReputeCast message id; also used in Message-ID and tracking
-	Stream   Stream
-	From     mail.Address
-	ReplyTo  *mail.Address
-	To       mail.Address
-	Subject  string
-	HTML     string
-	Text     string
+	ID      uuid.UUID // ReputeCast message id; also used in Message-ID and tracking
+	Stream  Stream
+	From    mail.Address
+	ReplyTo *mail.Address
+	To      mail.Address
+	Subject string
+	HTML    string
+	Text    string
 	// Headers include List-Unsubscribe, List-Unsubscribe-Post (RFC 8058),
 	// Feedback-ID and X-ReputeCast-Message.
 	Headers map[string]string
@@ -173,8 +173,8 @@ type WebhookRegistrar interface {
 
 // Quota is a provider's sending allowance.
 type Quota struct {
-	Kind    string  // rolling_24h, monthly_plan, warmup_daily
-	Max     int64   // 0 = unknown/unlimited
+	Kind    string // rolling_24h, monthly_plan, warmup_daily
+	Max     int64  // 0 = unknown/unlimited
 	Used    int64
 	MaxRate float64 // per second, 0 = unknown
 	Sandbox bool

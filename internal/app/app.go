@@ -220,6 +220,9 @@ func (a *App) Handler() http.Handler {
 
 	r.Group(func(r chi.Router) {
 		r.Use(cop.Handler)
+		if a.Cfg.HTTP.RateLimitAPI > 0 {
+			r.Use(server.RateLimits{AuthPerMinute: a.Cfg.HTTP.RateLimitAuth, APIPerMinute: a.Cfg.HTTP.RateLimitAPI}.Middleware())
+		}
 		r.Use(middleware.Compress(5, "application/json", "application/problem+json", "text/html", "text/css", "text/plain", "application/javascript", "image/svg+xml"))
 		if a.Cfg.HasRole(config.RoleWeb) {
 			hapi := humachi.New(r, NewHumaConfig())

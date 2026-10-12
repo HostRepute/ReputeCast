@@ -47,6 +47,8 @@ func New(t testing.TB) *Env {
 	cfg.Roles = []string{config.RoleWeb, config.RoleIngest}
 	cfg.Secrets.Key = secrets.GenerateKey()
 	cfg.Auth.CookieSecure = false
+	cfg.HTTP.RateLimitAuth = 10000
+	cfg.HTTP.RateLimitAPI = 100000
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	if testing.Verbose() {
 		log = slog.New(slog.NewTextHandler(&testWriter{t}, &slog.HandlerOptions{Level: slog.LevelWarn}))

@@ -55,7 +55,11 @@ type HTTPConfig struct {
 	// webhooks, SSO redirects, passkeys (relying party) and public pages.
 	PublicURL string `koanf:"public_url"`
 	// TrustedProxies lists CIDRs whose X-Forwarded-For header is trusted.
-	TrustedProxies  []string      `koanf:"trusted_proxies"`
+	TrustedProxies []string `koanf:"trusted_proxies"`
+	// RateLimitAuth and RateLimitAPI are requests per minute: sign-in
+	// endpoints per client IP, and the API per key (or IP for sessions).
+	RateLimitAuth   int           `koanf:"rate_limit_auth"`
+	RateLimitAPI    int           `koanf:"rate_limit_api"`
 	ReadTimeout     time.Duration `koanf:"read_timeout"`
 	WriteTimeout    time.Duration `koanf:"write_timeout"`
 	ShutdownTimeout time.Duration `koanf:"shutdown_timeout"`
@@ -123,6 +127,8 @@ func Defaults() Config {
 		HTTP: HTTPConfig{
 			Addr:            ":8080",
 			PublicURL:       "http://localhost:8080",
+			RateLimitAuth:   30,
+			RateLimitAPI:    600,
 			ReadTimeout:     30 * time.Second,
 			WriteTimeout:    60 * time.Second,
 			ShutdownTimeout: 20 * time.Second,
