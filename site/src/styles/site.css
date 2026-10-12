@@ -30,8 +30,8 @@
 @import './flow-pulse.css';
 
 @theme inline {
-  --font-sans: var(--font-family-sans);
-  --font-mono: var(--font-family-mono);
+  --font-sans: var(--font-site-sans);
+  --font-mono: var(--font-site-mono);
 
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
@@ -64,6 +64,12 @@
 
 /* ------------------------------------------------------------------ base */
 @layer base {
+  :root {
+    /* The tokens' stacks plus metric-matched stand-ins (fonts.css), so the
+       swap to IBM Plex never moves text. */
+    --font-site-sans: 'IBM Plex Sans', 'IBM Plex Sans Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-site-mono: 'IBM Plex Mono', 'IBM Plex Mono Fallback', ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -72,7 +78,7 @@
     margin: 0;
     background: #fff;
     color: var(--ink);
-    font-family: var(--font-family-sans);
+    font-family: var(--font-site-sans);
     font-size: 16px;
     line-height: 1.55;
   }
@@ -98,7 +104,7 @@
 /* ------------------------------------------------------------- components */
 @layer components {
   .mono {
-    font-family: var(--font-family-mono);
+    font-family: var(--font-site-mono);
   }
   .wrap {
     max-width: 1160px;
@@ -240,7 +246,7 @@
     border-radius: 12px;
     background: var(--ink);
     color: var(--dark-text);
-    font-family: var(--font-family-mono);
+    font-family: var(--font-site-mono);
     font-size: 14px;
     line-height: 1.6;
     overflow-x: auto;
@@ -419,17 +425,19 @@
   /* Counters reserve the width of their final value, so counting never
      moves the text around them. */
   .count {
-    display: inline-grid;
-  }
-  .count > .count-w,
-  .count > .count-v {
-    grid-area: 1 / 1;
+    position: relative;
+    display: inline-block;
   }
   .count > .count-w {
     visibility: hidden;
   }
+  /* The drawn value sits over the reserved box, right-aligned, so its box
+     never moves while the digits change. */
   .count > .count-v {
-    justify-self: end;
+    position: absolute;
+    inset: 0;
+    text-align: right;
+    white-space: nowrap;
   }
   /* Until the script takes over a counter that will count up, hide the final
      value it was prerendered with (it would otherwise flash before dropping
@@ -486,9 +494,11 @@
     width: 0;
   }
 }
+/* The board animates top, width and left; these move the same pixels with
+   transform and clip-path so the animations never count as layout shifts. */
 @keyframes scan {
   0% {
-    top: 0;
+    transform: translateY(0);
     opacity: 0;
   }
   8% {
@@ -498,7 +508,7 @@
     opacity: 1;
   }
   100% {
-    top: 100%;
+    transform: translateY(100%);
     opacity: 0;
   }
 }
@@ -518,12 +528,21 @@
     opacity: 0;
   }
 }
+/* 62 characters typed one per step; the cursor rides on the last one. */
 @keyframes typing {
   from {
-    width: 0;
+    clip-path: inset(0 100% 0 0);
   }
   to {
-    width: 100%;
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes typing-cursor {
+  from {
+    transform: translateX(-62ch);
+  }
+  to {
+    transform: none;
   }
 }
 @keyframes marquee {
@@ -603,13 +622,16 @@
     position: relative;
     overflow: hidden;
   }
+  /* A 2px line sweeping down the card: the pseudo-element covers the card and
+     draws the line along its top edge, so translateY(100%) is the card height. */
   .scan::after {
     content: '';
     position: absolute;
     left: 0;
     right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, rgba(15, 118, 110, 0), rgba(15, 118, 110, 0.9), rgba(15, 118, 110, 0));
+    top: 0;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(15, 118, 110, 0), rgba(15, 118, 110, 0.9), rgba(15, 118, 110, 0)) top / 100% 2px no-repeat;
     animation: scan 3.2s ease-in-out 0.6s 1 both;
     pointer-events: none;
   }
@@ -629,6 +651,11 @@
     vertical-align: -2px;
     margin-left: 2px;
     animation: blink 1s step-end infinite;
+  }
+  .typed + .cursor {
+    animation:
+      blink 1s step-end infinite,
+      typing-cursor 2.2s steps(62, end) 0.5s both;
   }
   .grow i {
     animation: grow 1.2s var(--ease-out-soft) both;
@@ -773,7 +800,7 @@
     height: 760px;
     transform-origin: top left;
     transform: scale(var(--flow-scale));
-    font-family: var(--font-family-sans);
+    font-family: var(--font-site-sans);
     color: var(--ink);
     text-align: left;
   }
@@ -1048,6 +1075,9 @@
       animation: none;
       white-space: normal;
     }
+    .typed + .cursor {
+      animation: blink 1s step-end infinite;
+    }
     /* The prototype's phone rules for every screen: long words break, badges
        and buttons may wrap. Badges and buttons inside a row keep their word
        whole (the prototype squeezes them to "Pas/s" and "Exclu/de"). */
@@ -1148,6 +1178,9 @@
 }
 [data-settled] .scan::after {
   display: none;
+}
+[data-settled] .typed + .cursor {
+  animation: blink 1s step-end infinite;
 }
 [data-settled] .flowstage :is(.fn, .fe, .flab) {
   animation: none !important;
