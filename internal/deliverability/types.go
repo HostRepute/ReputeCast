@@ -241,21 +241,22 @@ type PostmasterPanel struct {
 	// Series is the spam rate in two-day buckets, oldest first.
 	Series []PostmasterPoint `json:"series"`
 	Peak   *PostmasterPeak   `json:"peak,omitempty"`
-	From   time.Time         `json:"from"`
-	To     time.Time         `json:"to"`
+	// From and To are dates (YYYY-MM-DD) in the workspace's timezone.
+	From string `json:"from" format:"date"`
+	To   string `json:"to" format:"date"`
 }
 
 // PostmasterPoint is the average spam rate of a bucket of days.
 type PostmasterPoint struct {
-	From     time.Time `json:"from"`
-	To       time.Time `json:"to"`
-	SpamRate *float64  `json:"spamRate,omitempty"`
+	From     string   `json:"from" format:"date"`
+	To       string   `json:"to" format:"date"`
+	SpamRate *float64 `json:"spamRate,omitempty"`
 }
 
 // PostmasterPeak is the highest daily spam rate of the period.
 type PostmasterPeak struct {
-	Day      time.Time `json:"day"`
-	SpamRate float64   `json:"spamRate"`
+	Day      string  `json:"day" format:"date"`
+	SpamRate float64 `json:"spamRate"`
 	// Note explains the peak from the timeline ("first send after migration").
 	Note string `json:"note,omitempty"`
 }

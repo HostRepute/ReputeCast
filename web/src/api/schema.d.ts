@@ -72,6 +72,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrations/hostrepute/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * OAuth return from HostRepute (browser redirect)
+         * @description Exchanges the code, stores the encrypted tokens and redirects to the connect screen. Requires the signed-in person who started the handoff, holding integrations:hostrepute in its workspace.
+         */
+        get: operations["hostrepute-oauth-callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -259,6 +279,273 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/deliverability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Domain, IP and provider health, blocklists, Postmaster, SNDS, DMARC and incidents */
+        get: operations["get-deliverability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/deliverability/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run all checks now
+         * @description Asks HostRepute to re-check every source when it is connected, otherwise runs the built-in checks. Returns the run in progress when one is already running.
+         */
+        post: operations["run-deliverability-checks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/deliverability/checks/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Progress of a check run */
+        get: operations["get-deliverability-check"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/deliverability/delistings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request delisting through HostRepute */
+        post: operations["request-delisting"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/deliverability/dmarc/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a DMARC aggregate report (XML, .xml.gz or .zip) */
+        post: operations["upload-dmarc-report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/deliverability/dmarc/sources/{ip}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the DMARC reports say about one sending IP */
+        get: operations["get-dmarc-source"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/deliverability/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export the deliverability report as CSV */
+        get: operations["export-deliverability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/deliverability/reputation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Blocklist verdict used by Send Readiness (pass, warn, block or unknown) */
+        get: operations["get-deliverability-reputation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Settings › Integrations: HostRepute, webhooks, MCP, Postmaster and SNDS */
+        get: operations["get-integrations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/hostrepute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Disconnect HostRepute
+         * @description Forgets (and revokes) the token and the data synced from HostRepute. The HostRepute team keeps monitoring on hostrepute.com.
+         */
+        delete: operations["disconnect-hostrepute"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/hostrepute/api-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connect HostRepute with an API key */
+        post: operations["connect-hostrepute-api-key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/hostrepute/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a domain, IP or hostname to HostRepute monitoring
+         * @description Answers 409 with code monitor_limit_reached (meta: limit, used, team, asset, swap) when the HostRepute plan is full.
+         */
+        post: operations["add-hostrepute-asset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/hostrepute/assets/swap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop monitoring one asset and monitor another instead */
+        post: operations["swap-hostrepute-asset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/hostrepute/oauth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start connecting HostRepute (OAuth 2 with PKCE)
+         * @description Returns HostRepute's consent URL. The browser comes back to /api/v1/integrations/hostrepute/callback.
+         */
+        post: operations["start-hostrepute-oauth"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/hostrepute/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync HostRepute data now */
+        post: operations["sync-hostrepute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/me": {
         parameters: {
             query?: never;
@@ -280,6 +567,49 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AddAssetInputBody: {
+            /** @description A sending domain, organization domain, dedicated IP or server hostname of this workspace */
+            asset: string;
+        };
+        AssetBlocklists: {
+            /** Format: date-time */
+            checkedAt?: string;
+            highImpact: boolean;
+            /** Format: int64 */
+            listed: number;
+            listings: string[];
+            /** Format: int64 */
+            sources: number;
+            /** @enum {string} */
+            via: "hostrepute" | "builtin" | "none";
+        };
+        AssetHealth: {
+            asset: string;
+            auth?: components["schemas"]["DomainAuthSummary"];
+            blocklists: components["schemas"]["AssetBlocklists"];
+            /** Format: double */
+            dmarcAligned?: number;
+            fallback?: components["schemas"]["AssetBlocklists"];
+            gmailReputation?: string;
+            provider?: string;
+            providerId?: string;
+            providerStatus?: string;
+            reverseDns?: components["schemas"]["ReverseDNS"];
+            /** @enum {string} */
+            role: "sending_domain" | "dedicated_ip";
+            /** Format: int64 */
+            score?: number;
+            snds?: components["schemas"]["SNDSBrief"];
+            /** Format: date-time */
+            stale?: string;
+            /** @enum {string} */
+            tone: "ok" | "warn" | "bad" | "neutral";
+            /** @enum {string} */
+            type: "domain" | "ip";
+            usedBy: string[];
+            verdict?: string;
+            warmup?: components["schemas"]["WarmupProgress"];
+        };
         "Auth-identifyRequest": {
             /** Format: email */
             email: string;
@@ -295,6 +625,39 @@ export interface components {
             code: string;
             /** @enum {string} */
             method: "totp" | "recovery";
+        };
+        BlocklistSourceResult: {
+            assets: string[];
+            delistUrl?: string;
+            /** @enum {string} */
+            delisting?: "requested" | "pending" | "delisted" | "denied";
+            /** Format: date-time */
+            delistingAt?: string;
+            detail?: string;
+            /** @enum {string} */
+            impact: "high" | "medium" | "low";
+            listed: boolean;
+            listedAssets: string[];
+            /** Format: date-time */
+            since?: string;
+            source: string;
+        };
+        BlocklistStatus: {
+            assets: string[];
+            /** Format: date-time */
+            checkedAt?: string;
+            /** Format: int64 */
+            clean: number;
+            /** @enum {string} */
+            interval: "hourly" | "daily";
+            /** Format: int64 */
+            listed: number;
+            results: components["schemas"]["BlocklistSourceResult"][];
+            /** Format: int64 */
+            sources: number;
+            stale: boolean;
+            /** @enum {string} */
+            via: "hostrepute" | "builtin" | "none";
         };
         CampaignList: {
             counts: components["schemas"]["CampaignStatusCounts"];
@@ -386,6 +749,31 @@ export interface components {
             /** @enum {string} */
             status: "ok" | "warn" | "bad" | "skipped";
         };
+        CheckRun: {
+            /** Format: int32 */
+            answered: number;
+            assets: string[];
+            error?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            /** Format: int32 */
+            listed: number;
+            /** Format: date-time */
+            startedAt: string;
+            /** @enum {string} */
+            status: "running" | "done" | "failed";
+            /** Format: int32 */
+            total: number;
+            /** @enum {string} */
+            trigger: "schedule" | "manual" | "connect" | "fallback";
+            /** @enum {string} */
+            via: "hostrepute" | "builtin";
+        };
+        ConnectAPIKeyInputBody: {
+            /** @description A HostRepute API key (hr_live_…) with the monitor:read, alerts:read and assets:write scopes. Write-only: it is stored encrypted and never returned. */
+            apiKey: string;
+        };
         "Create-workspaceRequest": {
             name: string;
             timezone?: string;
@@ -395,6 +783,145 @@ export interface components {
             name: string;
             slug: string;
         };
+        DMARCSourceDetail: {
+            disposition: string;
+            dkim: string;
+            dkimDomains: string[];
+            /** Format: date-time */
+            firstSeen: string;
+            headerFrom: string[];
+            ip: string;
+            known: boolean;
+            /** Format: date-time */
+            lastSeen: string;
+            /** Format: int64 */
+            messages: number;
+            policy?: string;
+            provider?: string;
+            ptr?: string;
+            reporters: string[];
+            /** Format: int64 */
+            reports: number;
+            spf: string;
+            spfDomains: string[];
+        };
+        DMARCSourceRow: {
+            adapter?: string;
+            dkim: string;
+            ip?: string;
+            known: boolean;
+            /** @description Amazon SES, Postal · 203.0.113.25, Unknown · 198.51.100.77 */
+            label: string;
+            /** Format: int64 */
+            messages: number;
+            providerId?: string;
+            /** @enum {string} */
+            result: "pass" | "quarantined" | "rejected" | "fail";
+            /** @description aligned, or the raw result: fail, softfail, none… */
+            spf: string;
+        };
+        DMARCSummary: {
+            /** Format: int64 */
+            days: number;
+            domain?: string;
+            /** Format: int64 */
+            messages: number;
+            /** Format: double */
+            passRate?: number;
+            policy?: string;
+            /** Format: int64 */
+            reports: number;
+            rua?: string;
+            sources: components["schemas"]["DMARCSourceRow"][];
+            unknown?: components["schemas"]["DMARCSourceRow"];
+            /** @enum {string} */
+            via: "hostrepute" | "upload" | "none";
+        };
+        DMARCUpload: {
+            domain: string;
+            /** Format: date-time */
+            from: string;
+            /** Format: int64 */
+            messages: number;
+            orgName: string;
+            /** Format: int64 */
+            records: number;
+            reportId: string;
+            /** Format: date-time */
+            to: string;
+        };
+        DataSourceSummary: {
+            /** @enum {string} */
+            via: "hostrepute" | "direct" | "none";
+        };
+        DelistInputBody: {
+            asset: string;
+            /** @description One blocklist; every list the asset is on when omitted */
+            source?: string;
+        };
+        DelistingOutcome: {
+            already: boolean;
+            /** Format: date-time */
+            requestedAt: string;
+            source: string;
+            /** @enum {string} */
+            status: "requested" | "pending" | "delisted" | "denied";
+            url?: string;
+        };
+        DelistingRequest: {
+            asset: string;
+            requests: components["schemas"]["DelistingOutcome"][];
+        };
+        DeliverabilityChecks: {
+            /** Format: int64 */
+            builtinSources: number;
+            /** @enum {string} */
+            interval: "hourly" | "daily";
+            /** Format: date-time */
+            lastAt?: string;
+            /** Format: date-time */
+            nextAt?: string;
+            running?: components["schemas"]["CheckRun"];
+            /** @enum {string} */
+            via: "hostrepute" | "builtin";
+        };
+        DeliverabilityHostRepute: {
+            dmarcRua?: string;
+            /** Format: int32 */
+            intervalMinutes: number;
+            /** Format: date-time */
+            lastSyncAt?: string;
+            /** Format: int32 */
+            sources: number;
+            /** @enum {string} */
+            status: "not_connected" | "connected" | "revoked" | "expired" | "error";
+            teamName?: string;
+            /** Format: date-time */
+            tokenRejectedAt?: string;
+            unreachable?: components["schemas"]["HostReputeOutage"];
+        };
+        DeliverabilityOverview: {
+            assets: components["schemas"]["AssetHealth"][];
+            blocklists: components["schemas"]["BlocklistStatus"];
+            checks: components["schemas"]["DeliverabilityChecks"];
+            dmarc: components["schemas"]["DMARCSummary"];
+            hostRepute: components["schemas"]["DeliverabilityHostRepute"];
+            incidents: components["schemas"]["IncidentTimeline"];
+            pools: components["schemas"]["PoolHealth"][];
+            postmaster?: components["schemas"]["PostmasterPanel"];
+            providers: components["schemas"]["ProviderAccountHealth"][];
+            snds?: components["schemas"]["SNDSPanel"];
+        };
+        DomainAuthSummary: {
+            bimi: string;
+            /** Format: date-time */
+            checkedAt?: string;
+            dkim: string;
+            /** @description Policy (none, quarantine, reject) or missing / invalid */
+            dmarc: string;
+            returnPath: string;
+            spf: string;
+        };
         ErrorDetail: {
             /** @description Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id' */
             location?: string;
@@ -403,12 +930,114 @@ export interface components {
             /** @description The value at the given location */
             value?: unknown;
         };
+        HostReputeAsset: {
+            asset: string;
+            /**
+             * Format: double
+             * @description Percent of DMARC-aligned mail in the last 7 days
+             */
+            dmarcAligned?: number;
+            dmarcPolicy?: string;
+            /** Format: date-time */
+            lastSyncAt?: string;
+            listings: string[];
+            monitored: boolean;
+            postmasterReputation?: string;
+            provider?: string;
+            /** @enum {string} */
+            role: "sending_domain" | "organization_domain" | "dedicated_ip" | "server_hostname" | "other";
+            /** Format: int64 */
+            score?: number;
+            /** Format: int64 */
+            sources: number;
+            /** @enum {string} */
+            status?: "synced" | "pending" | "error";
+            /** @enum {string} */
+            type: "domain" | "ip" | "hostname";
+            verdict?: string;
+        };
+        HostReputeConnection: {
+            accountEmail?: string;
+            alertsToNotifications: boolean;
+            assets: components["schemas"]["HostReputeAsset"][];
+            /** Format: int32 */
+            checkIntervalMinutes: number;
+            /** Format: date-time */
+            connectedAt?: string;
+            connectedBy?: string;
+            demo: boolean;
+            dmarcRua?: string;
+            /** Format: date-time */
+            lastCheckAt?: string;
+            /** Format: date-time */
+            lastSyncAt?: string;
+            /** @enum {string} */
+            method?: "oauth" | "api_key";
+            /** Format: int32 */
+            monitorLimit?: number;
+            /** Format: int64 */
+            monitorUsed: number;
+            plan?: string;
+            scopes: components["schemas"]["HostReputeScope"][];
+            shared: components["schemas"]["HostReputeShared"];
+            /** Format: int32 */
+            sources: number;
+            /** @enum {string} */
+            status: "not_connected" | "connected" | "revoked" | "expired" | "error";
+            syncError?: string;
+            /** Format: date-time */
+            syncErrorAt?: string;
+            syncing: boolean;
+            teamName?: string;
+            /** Format: date-time */
+            tokenRejectedAt?: string;
+        };
+        HostReputeOutage: {
+            /** @description Couldn't reach api.hostrepute.com (timeout after 30 s, 3 attempts) */
+            message: string;
+            /** Format: date-time */
+            since?: string;
+        };
+        HostReputeScope: {
+            granted: boolean;
+            key: string;
+            use: string;
+        };
+        HostReputeShared: {
+            domains: string[];
+            ips: string[];
+        };
         IdentifyResult: {
             breakGlass: boolean;
             email: string;
             /** @enum {string} */
             next: "password" | "sso";
             sso?: components["schemas"]["SSOStart"];
+        };
+        IncidentItem: {
+            detail: string;
+            id: string;
+            kind: string;
+            links: components["schemas"]["IncidentLink"][];
+            /** Format: date-time */
+            occurredAt: string;
+            /** @enum {string} */
+            severity: "info" | "ok" | "warn" | "bad";
+            /** @enum {string} */
+            source: "reputecast" | "hostrepute" | "builtin";
+            title: string;
+        };
+        IncidentLink: {
+            id?: string;
+            /** @enum {string} */
+            kind: "warmup" | "campaign" | "campaign_report" | "provider" | "provider_events" | "import" | "deliverability";
+            label: string;
+        };
+        IncidentTimeline: {
+            fromHostRepute: boolean;
+            items: components["schemas"]["IncidentItem"][];
+            /** Format: int64 */
+            total: number;
         };
         InstanceBasics: {
             name: string;
@@ -431,6 +1060,17 @@ export interface components {
             sso: components["schemas"]["SSOOption"][];
             /** @example v1.4.2 */
             version: string;
+        };
+        IntegrationsOverview: {
+            hostRepute: components["schemas"]["HostReputeConnection"];
+            mcp: components["schemas"]["MCPSummary"];
+            postmaster: components["schemas"]["DataSourceSummary"];
+            snds: components["schemas"]["DataSourceSummary"];
+            webhooks: components["schemas"]["WebhooksSummary"];
+        };
+        MCPSummary: {
+            /** Format: int64 */
+            agents: number;
         };
         Me: {
             instance: components["schemas"]["MeInstance"];
@@ -477,6 +1117,72 @@ export interface components {
             /** Format: int64 */
             subscribers: number;
         };
+        OAuthStart: {
+            /** Format: uri */
+            authorizeUrl: string;
+        };
+        PoolHealth: {
+            accountStatus: string;
+            adapter: string;
+            /** Format: double */
+            bounceRate?: number;
+            /** Format: double */
+            complaintRate?: number;
+            dedicatedIpOption?: string;
+            gmailIpReputation?: string;
+            managedReputation: boolean;
+            /** @enum {string} */
+            onlyStream?: "broadcast" | "automation" | "system";
+            provider: string;
+            providerId: string;
+            region?: string;
+            short: string;
+            status: string;
+            /** Format: int64 */
+            volumeThisMonth?: number;
+        };
+        PostmasterPanel: {
+            /** Format: double */
+            dkim?: number;
+            /** Format: double */
+            dmarc?: number;
+            domain: string;
+            domainReputation?: string;
+            /** Format: int64 */
+            feedbackLoopFlagged?: number;
+            /** Format: date */
+            from: string;
+            ipReputation?: string;
+            ipReputationPool?: string;
+            peak?: components["schemas"]["PostmasterPeak"];
+            series: components["schemas"]["PostmasterPoint"][];
+            /** Format: double */
+            spamRate?: number;
+            /** Format: double */
+            spf?: number;
+            stale: boolean;
+            /** Format: double */
+            tls?: number;
+            /** Format: date */
+            to: string;
+            /** @enum {string} */
+            via: "hostrepute" | "direct";
+        };
+        PostmasterPeak: {
+            /** Format: date */
+            day: string;
+            note?: string;
+            /** Format: double */
+            spamRate: number;
+        };
+        PostmasterPoint: {
+            /** Format: date */
+            from: string;
+            /** Format: double */
+            spamRate?: number;
+            /** Format: date */
+            to: string;
+        };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
             code?: string;
@@ -519,11 +1225,40 @@ export interface components {
              */
             type: string;
         };
+        ProviderAccountHealth: {
+            adapter: string;
+            /** @description Healthy · no enforcement */
+            badge: string;
+            bounce: components["schemas"]["RateLimit"];
+            complaint: components["schemas"]["RateLimit"];
+            /** @description Postal (self-hosted) */
+            name: string;
+            note?: components["schemas"]["ProviderNote"];
+            providerId: string;
+            status: string;
+            /** @enum {string} */
+            tone: "ok" | "warn" | "bad" | "info" | "neutral";
+        };
         ProviderCost: {
             /** Format: double */
             cost: number;
             provider: string;
             short: string;
+        };
+        ProviderNote: {
+            label: string;
+            value: string;
+        };
+        RateLimit: {
+            /** @description Bounce rate, Complaint rate, Spam complaint rate */
+            label: string;
+            thresholds: string;
+            /** @enum {string} */
+            tone: "ok" | "warn" | "bad";
+            /** Format: double */
+            usage: number;
+            /** Format: double */
+            value?: number;
         };
         ReadinessSummary: {
             /** Format: int64 */
@@ -533,6 +1268,31 @@ export interface components {
         };
         RecoveryCodes: {
             codes: string[];
+        };
+        Reputation: {
+            /** Format: date-time */
+            checkedAt?: string;
+            listings: components["schemas"]["ReputationListing"][];
+            reason?: string;
+            /** Format: int64 */
+            sources: number;
+            /** @enum {string} */
+            status: "pass" | "warn" | "block" | "unknown";
+            /** @enum {string} */
+            via: "hostrepute" | "builtin" | "none";
+        };
+        ReputationListing: {
+            asset: string;
+            delistUrl?: string;
+            impact: string;
+            /** Format: date-time */
+            since?: string;
+            source: string;
+        };
+        ReverseDNS: {
+            matches: boolean;
+            ptr?: string;
+            status: string;
         };
         RouteShare: {
             /** @example ses */
@@ -548,6 +1308,27 @@ export interface components {
             sent: number;
             /** @example SES */
             short: string;
+        };
+        SNDSBrief: {
+            filterResult: string;
+            /** Format: int64 */
+            trapHits: number;
+        };
+        SNDSPanel: {
+            /** Format: double */
+            complaintRate?: number;
+            /** @enum {string} */
+            filterResult: "green" | "yellow" | "red" | "";
+            ip: string;
+            /** Format: int64 */
+            jmrpReports: number;
+            /** Format: int64 */
+            messages7d: number;
+            stale: boolean;
+            /** Format: int64 */
+            trapHits: number;
+            /** @enum {string} */
+            via: "hostrepute" | "direct";
         };
         SSOOption: {
             id: string;
@@ -589,6 +1370,15 @@ export interface components {
             /** @enum {string} */
             status: "signed_in" | "two_factor";
         };
+        SwapAssetInputBody: {
+            add: string;
+            remove: string;
+        };
+        SyncQueued: {
+            runId: string;
+            /** Format: date-time */
+            startedAt: string;
+        };
         TOTPSetup: {
             account: string;
             /** @description Pass back with the first code to confirm */
@@ -609,6 +1399,18 @@ export interface components {
             dns: components["schemas"]["CheckLine"];
             reachable: components["schemas"]["CheckLine"];
             tls: components["schemas"]["CheckLine"];
+        };
+        WarmupProgress: {
+            /** Format: int64 */
+            day: number;
+            /** Format: int64 */
+            days: number;
+        };
+        WebhooksSummary: {
+            /** Format: int64 */
+            endpoints: number;
+            /** Format: int64 */
+            failing: number;
         };
         WorkspaceMe: {
             /** @enum {string} */
@@ -747,6 +1549,40 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SignInResult"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "hostrepute-oauth-callback": {
+        parameters: {
+            query?: {
+                code?: string;
+                state?: string;
+                error?: string;
+                error_description?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    "Cache-Control"?: string;
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -1095,6 +1931,511 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CampaignSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-deliverability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliverabilityOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "run-deliverability-checks": {
+        parameters: {
+            query?: {
+                /** @description Run the built-in checks even when HostRepute is connected (while HostRepute is unreachable) */
+                builtin?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckRun"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-deliverability-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckRun"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "request-delisting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DelistInputBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DelistingRequest"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-dmarc-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DMARCUpload"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-dmarc-source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                ip: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DMARCSourceDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-deliverability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-deliverability-reputation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reputation"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationsOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-hostrepute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-hostrepute-api-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectAPIKeyInputBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostReputeConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-hostrepute-asset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddAssetInputBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostReputeConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "swap-hostrepute-asset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SwapAssetInputBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostReputeConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-hostrepute-oauth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthStart"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sync-hostrepute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncQueued"];
                 };
             };
             /** @description Error */

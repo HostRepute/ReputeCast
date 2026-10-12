@@ -184,7 +184,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (Deliverabi
 		return out, err
 	}
 	if out.Postmaster != nil && out.Postmaster.Peak != nil {
-		out.Postmaster.Peak.Note = peakNote(out.Incidents.Items, out.Postmaster.Peak.Day)
+		out.Postmaster.Peak.Note = peakNote(out.Incidents.Items, out.Postmaster.Peak.Day, st.loc())
 	}
 	return out, nil
 }
@@ -579,12 +579,11 @@ func (st *state) postmasterPanel() *PostmasterPanel {
 		out.FeedbackLoopFlagged = &fbl
 	}
 	if peak != nil {
-		out.Peak = &PostmasterPeak{Day: peak.Day, SpamRate: round(*peak.SpamRate*100, 2)}
+		out.Peak = &PostmasterPeak{Day: peak.Day.Format(dateLayout), SpamRate: round(*peak.SpamRate*100, 2)}
 	}
 	// Two-day buckets from 30 days ago to yesterday.
-	out.From = st.today.AddDate(0, 0, -hostrepute.PostmasterDays)
-	out.To = st.today
-	start := out.From
+	start := st.today.AddDate(0, 0, -hostrepute.PostmasterDays)
+	out.From, out.To = start.Format(dateLayout), st.today.Format(dateLayout)
 	for b := 0; b < hostrepute.PostmasterDays/2; b++ {
 		from := start.AddDate(0, 0, b*2)
 		to := from.AddDate(0, 0, 2)
@@ -596,7 +595,7 @@ func (st *state) postmasterPanel() *PostmasterPanel {
 				k++
 			}
 		}
-		pt := PostmasterPoint{From: from, To: to.AddDate(0, 0, -1)}
+		pt := PostmasterPoint{From: from.Format(dateLayout), To: to.AddDate(0, 0, -1).Format(dateLayout)}
 		if k > 0 {
 			v := round(s/float64(k)*100, 3)
 			pt.SpamRate = &v
@@ -606,12 +605,12 @@ func (st *state) postmasterPanel() *PostmasterPanel {
 	return out
 }
 
+const dateLayout = "2006-01-02"
+
 // peakNote explains the spam-rate peak with an incident of that day.
-func peakNote(items []IncidentItem, day time.Time) string {
+func peakNote(items []IncidentItem, day string, zone *time.Location) string {
 	for _, it := range items {
-		y1, m1, d1 := it.OccurredAt.Date()
-		y2, m2, d2 := day.Date()
-		if y1 == y2 && m1 == m2 && d1 == d2 && (it.Kind == "reputation_change" || it.Kind == "migration") {
+		if it.OccurredAt.In(zone).Format(dateLayout) == day && (it.Kind == "reputation_change" || it.Kind == KindMigration) {
 			return "first send after migration"
 		}
 	}
