@@ -1,6 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { InvitePage } from '@/features/auth/InvitePage'
 
 export const Route = createFileRoute('/invite/$token')({
-  component: () => <NotBuilt screen="Accept invitation" />,
+  component: function InviteRoute() {
+    const { token } = Route.useParams()
+    return <InvitePage token={token} />
+  },
 })
