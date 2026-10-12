@@ -68,8 +68,11 @@ type SignInResult struct {
 	Email       string `json:"email"`
 	// Next is where the web app should go after signing in.
 	Next string `json:"next,omitempty"`
-	// RecoveryCodesLeft is set when a recovery code was used.
+	// RecoveryCodesLeft is set when a recovery code was used, and with the
+	// two-factor step ("Each code works once. 7 of 10 remain.").
 	RecoveryCodesLeft *int `json:"recoveryCodesLeft,omitempty"`
+	// RecoveryCodesTotal is how many codes the last set had.
+	RecoveryCodesTotal *int `json:"recoveryCodesTotal,omitempty"`
 }
 
 type twoFactorChallenge struct {
@@ -142,6 +145,11 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 	}
 	methods, hint := s.secondFactors(ctx, u)
 	if len(methods) > 0 {
+		var left, total *int
+		if rc, err := s.Q.RecoveryCodeStats(ctx, u.ID); err == nil && rc.Total > 0 {
+			l, t := int(rc.Remaining), int(rc.Total)
+			left, total = &l, &t
+		}
 		token, hash := authn.NewToken()
 		uid := u.ID
 		if _, err := s.Q.CreateChallenge(ctx, store.CreateChallengeParams{
@@ -154,7 +162,7 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 		}); err != nil {
 			return SignInResult{}, nil, err
 		}
-		return SignInResult{Status: "two_factor", Challenge: token, Methods: methods, PasskeyHint: hint, Email: u.Email}, nil, nil
+		return SignInResult{Status: "two_factor", Challenge: token, Methods: methods, PasskeyHint: hint, Email: u.Email, RecoveryCodesLeft: left, RecoveryCodesTotal: total}, nil, nil
 	}
 	cookie, err := s.completeSignIn(ctx, u, "password", false, remember, nil)
 	if err != nil {
@@ -250,7 +258,7 @@ func (s *Service) TwoFactor(ctx context.Context, challenge, method, code string)
 	if err != nil {
 		return SignInResult{}, nil, err
 	}
-	var left *int
+	var left, total *int
 	switch method {
 	case "totp":
 		if u.TotpSecretEnc == nil {
@@ -267,9 +275,9 @@ func (s *Service) TwoFactor(ctx context.Context, challenge, method, code string)
 		if _, err := s.Q.UseRecoveryCode(ctx, store.UseRecoveryCodeParams{UserID: u.ID, CodeHash: hashRecovery(code)}); err != nil {
 			return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, "That recovery code isn't valid or was already used.")
 		}
-		n, _ := s.Q.CountUnusedRecoveryCodes(ctx, u.ID)
-		v := int(n)
-		left = &v
+		rc, _ := s.Q.RecoveryCodeStats(ctx, u.ID)
+		v, tot := int(rc.Remaining), int(rc.Total)
+		left, total = &v, &tot
 		_ = s.Audit.Log(ctx, audit.Event{Action: "auth.recovery_code_used", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u), Metadata: map[string]any{"remaining": v}})
 	default:
 		return SignInResult{}, nil, api.BadRequest("Unknown method. Use totp or recovery; passkeys use /auth/two-factor/passkey.")
@@ -279,7 +287,7 @@ func (s *Service) TwoFactor(ctx context.Context, challenge, method, code string)
 	if err != nil {
 		return SignInResult{}, nil, err
 	}
-	return SignInResult{Status: "signed_in", Email: u.Email, Next: s.nextPath(ctx, u), RecoveryCodesLeft: left}, &cookie, nil
+	return SignInResult{Status: "signed_in", Email: u.Email, Next: s.nextPath(ctx, u), RecoveryCodesLeft: left, RecoveryCodesTotal: total}, &cookie, nil
 }
 
 // SignOut revokes the current session.

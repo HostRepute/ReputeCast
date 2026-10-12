@@ -778,9 +778,22 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        AcceptInviteInput: {
-            name?: string;
+        AccountAvatarInput: {
+            /** @description PNG or JPEG, up to 2 MB, base64 */
+            data: string;
+        };
+        AccountEmailChangeInput: {
+            /** Format: email */
+            email: string;
             password?: string;
+        };
+        AccountEmailChangeStarted: {
+            email: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        AccountEmailChanged: {
+            email: string;
         };
         AccountIdentity: {
             canUnlink: boolean;
@@ -803,7 +816,7 @@ export interface components {
         };
         AccountOverview: {
             identities: components["schemas"]["AccountIdentity"][];
-            notifications: components["schemas"]["Summary"];
+            notifications: components["schemas"]["NotificationSummary"];
             passkeys: components["schemas"]["AccountPasskey"][];
             password: components["schemas"]["AccountPassword"];
             profile: components["schemas"]["AccountProfile"];
@@ -835,13 +848,24 @@ export interface components {
             set: boolean;
             ssoOnly: boolean;
         };
+        AccountPendingEmail: {
+            email: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            sentAt: string;
+        };
         AccountProfile: {
             avatarColor: string;
             avatarUrl?: string;
             email: string;
             isInstanceAdmin: boolean;
             name: string;
-            pendingEmail?: components["schemas"]["PendingEmail"];
+            pendingEmail?: components["schemas"]["AccountPendingEmail"];
+            timezone: string;
+        };
+        AccountProfileInput: {
+            name: string;
             timezone: string;
         };
         AccountSession: {
@@ -863,11 +887,18 @@ export interface components {
             /** @example macOS 26 */
             os: string;
         };
+        AccountSessionList: {
+            items: components["schemas"]["AccountSession"][];
+        };
         AccountSessionPolicy: {
             /** @example 12 hours */
             idle: string;
             /** @example 14 days */
             lifetime: string;
+        };
+        AccountSessionsRevoked: {
+            /** Format: int64 */
+            revoked: number;
         };
         AccountTwoFactor: {
             /** Format: date-time */
@@ -936,10 +967,6 @@ export interface components {
             code: string;
             /** @enum {string} */
             method: "totp" | "recovery";
-        };
-        AvatarInput: {
-            /** @description PNG or JPEG, up to 2 MB, base64 */
-            data: string;
         };
         CampaignList: {
             counts: components["schemas"]["CampaignStatusCounts"];
@@ -1043,23 +1070,6 @@ export interface components {
             name: string;
             slug: string;
         };
-        EmailChangeInput: {
-            /** Format: email */
-            email: string;
-            password?: string;
-        };
-        EmailChangeStarted: {
-            email: string;
-            /** Format: date-time */
-            expiresAt: string;
-        };
-        EmailChanged: {
-            email: string;
-        };
-        EmailDelivery: {
-            available: boolean;
-            provider?: string;
-        };
         ErrorDetail: {
             /** @description Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id' */
             location?: string;
@@ -1067,13 +1077,6 @@ export interface components {
             message?: string;
             /** @description The value at the given location */
             value?: unknown;
-        };
-        EventPreference: {
-            audience?: string;
-            email: boolean;
-            inApp: boolean;
-            label: string;
-            type: string;
         };
         IdentifyResult: {
             breakGlass: boolean;
@@ -1104,6 +1107,39 @@ export interface components {
             /** @example v1.4.2 */
             version: string;
         };
+        InvitationAcceptInput: {
+            name?: string;
+            password?: string;
+        };
+        InvitationAccepted: {
+            email: string;
+            hasSecondFactor: boolean;
+            newAccount: boolean;
+            next: string;
+            roleName: string;
+            twoFactor: components["schemas"]["InvitationTwoFactor"];
+            /** @description Workspace slug */
+            workspace: string;
+            workspaceName: string;
+        };
+        InvitationPasswordPolicy: {
+            breachedCheck: boolean;
+            /** Format: int64 */
+            minLength: number;
+        };
+        InvitationRequestResult: {
+            inviter: string;
+            /** @enum {string} */
+            status: "sent" | "already_sent";
+        };
+        InvitationTwoFactor: {
+            /** Format: int64 */
+            graceDays: number;
+            /** Format: date-time */
+            graceUntil?: string;
+            reason?: string;
+            required: boolean;
+        };
         InvitationView: {
             /** Format: date-time */
             acceptedAt?: string;
@@ -1116,7 +1152,7 @@ export interface components {
             /** @description Personal message from the inviter */
             message?: string;
             passwordAllowed: boolean;
-            passwordPolicy: components["schemas"]["InvitePolicy"];
+            passwordPolicy: components["schemas"]["InvitationPasswordPolicy"];
             /** Format: date-time */
             revokedAt?: string;
             roleKey: string;
@@ -1130,47 +1166,9 @@ export interface components {
             sso?: components["schemas"]["SSOStart"];
             /** @enum {string} */
             status: "pending" | "expired" | "revoked" | "accepted";
-            twoFactor: components["schemas"]["InviteTwoFactor"];
+            twoFactor: components["schemas"]["InvitationTwoFactor"];
             workspaceName: string;
             workspaceSlug: string;
-        };
-        InviteAccepted: {
-            email: string;
-            hasSecondFactor: boolean;
-            newAccount: boolean;
-            next: string;
-            roleName: string;
-            twoFactor: components["schemas"]["InviteTwoFactor"];
-            /** @description Workspace slug */
-            workspace: string;
-            workspaceName: string;
-        };
-        InvitePolicy: {
-            breachedCheck: boolean;
-            /** Format: int64 */
-            minLength: number;
-        };
-        InviteRequestResult: {
-            inviter: string;
-            /** @enum {string} */
-            status: "sent" | "already_sent";
-        };
-        InviteTwoFactor: {
-            /** Format: int64 */
-            graceDays: number;
-            /** Format: date-time */
-            graceUntil?: string;
-            reason?: string;
-            required: boolean;
-        };
-        Item: {
-            email: boolean;
-            inApp: boolean;
-            type: string;
-        };
-        MarkAllResult: {
-            /** Format: int64 */
-            marked: number;
         };
         Me: {
             instance: components["schemas"]["MeInstance"];
@@ -1218,6 +1216,22 @@ export interface components {
             /** Format: int64 */
             subscribers: number;
         };
+        NotificationEmailDelivery: {
+            available: boolean;
+            provider?: string;
+        };
+        NotificationEventChoice: {
+            email: boolean;
+            inApp: boolean;
+            type: string;
+        };
+        NotificationEventPreference: {
+            audience?: string;
+            email: boolean;
+            inApp: boolean;
+            label: string;
+            type: string;
+        };
         NotificationItem: {
             /** @description Full sentence for the notification center */
             body: string;
@@ -1248,6 +1262,39 @@ export interface components {
             total: number;
             /** Format: int64 */
             unread: number;
+        };
+        NotificationPreferences: {
+            /** @enum {string} */
+            digest: "immediate" | "hourly" | "daily";
+            email: components["schemas"]["NotificationEmailDelivery"];
+            events: components["schemas"]["NotificationEventPreference"][];
+            quietHours?: components["schemas"]["NotificationQuietHours"];
+            timezone: string;
+        };
+        NotificationPreferencesInput: {
+            /** @enum {string} */
+            digest: "immediate" | "hourly" | "daily";
+            events: components["schemas"]["NotificationEventChoice"][];
+            /** @description Omit or null to turn quiet hours off */
+            quietHours?: components["schemas"]["NotificationQuietHours"];
+        };
+        NotificationQuietHours: {
+            /** @example 07:00 */
+            end: string;
+            /** @example 22:00 */
+            start: string;
+        };
+        NotificationSummary: {
+            /** @example Approvals, auto-pauses, provider down */
+            email: string;
+            /** @example All events */
+            inApp: string;
+            /** @example 22:00–07:00 America/New_York, email only */
+            quietHours: string;
+        };
+        NotificationsMarked: {
+            /** Format: int64 */
+            marked: number;
         };
         "Passkey-registerRequest": {
             challenge: string;
@@ -1280,28 +1327,6 @@ export interface components {
             sso?: components["schemas"]["SSOStart"];
             /** @enum {string} */
             status: "sent" | "email_unavailable" | "sso";
-        };
-        PendingEmail: {
-            email: string;
-            /** Format: date-time */
-            expiresAt: string;
-            /** Format: date-time */
-            sentAt: string;
-        };
-        Preferences: {
-            /** @enum {string} */
-            digest: "immediate" | "hourly" | "daily";
-            email: components["schemas"]["EmailDelivery"];
-            events: components["schemas"]["EventPreference"][];
-            quietHours?: components["schemas"]["QuietHours"];
-            timezone: string;
-        };
-        PreferencesInput: {
-            /** @enum {string} */
-            digest: "immediate" | "hourly" | "daily";
-            events: components["schemas"]["Item"][];
-            /** @description Omit or null to turn quiet hours off */
-            quietHours?: components["schemas"]["QuietHours"];
         };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
@@ -1345,21 +1370,11 @@ export interface components {
              */
             type: string;
         };
-        ProfileInput: {
-            name: string;
-            timezone: string;
-        };
         ProviderCost: {
             /** Format: double */
             cost: number;
             provider: string;
             short: string;
-        };
-        QuietHours: {
-            /** @example 07:00 */
-            end: string;
-            /** @example 22:00 */
-            start: string;
         };
         ReadinessSummary: {
             /** Format: int64 */
@@ -1372,10 +1387,6 @@ export interface components {
         };
         "Rename-passkeyRequest": {
             name: string;
-        };
-        RevokedSessions: {
-            /** Format: int64 */
-            revoked: number;
         };
         RouteShare: {
             /** @example ses */
@@ -1411,9 +1422,6 @@ export interface components {
         Scope: {
             lists?: string[];
             senderDomains?: string[];
-        };
-        SessionList: {
-            items: components["schemas"]["AccountSession"][];
         };
         "Setup-check-urlRequest": {
             /** Format: uri */
@@ -1485,16 +1493,10 @@ export interface components {
             passkeyHint?: string;
             /** Format: int64 */
             recoveryCodesLeft?: number;
+            /** Format: int64 */
+            recoveryCodesTotal?: number;
             /** @enum {string} */
             status: "signed_in" | "two_factor";
-        };
-        Summary: {
-            /** @example Approvals, auto-pauses, provider down */
-            email: string;
-            /** @example All events */
-            inApp: string;
-            /** @example 22:00–07:00 America/New_York, email only */
-            quietHours: string;
         };
         TOTPSetup: {
             account: string;
@@ -1937,7 +1939,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AcceptInviteInput"];
+                "application/json": components["schemas"]["InvitationAcceptInput"];
             };
         };
         responses: {
@@ -1948,7 +1950,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InviteAccepted"];
+                    "application/json": components["schemas"]["InvitationAccepted"];
                 };
             };
             /** @description Error */
@@ -1979,7 +1981,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InviteRequestResult"];
+                    "application/json": components["schemas"]["InvitationRequestResult"];
                 };
             };
             /** @description Error */
@@ -2060,7 +2062,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AvatarInput"];
+                "application/json": components["schemas"]["AccountAvatarInput"];
             };
         };
         responses: {
@@ -2120,7 +2122,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EmailChangeInput"];
+                "application/json": components["schemas"]["AccountEmailChangeInput"];
             };
         };
         responses: {
@@ -2130,7 +2132,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmailChangeStarted"];
+                    "application/json": components["schemas"]["AccountEmailChangeStarted"];
                 };
             };
             /** @description Error */
@@ -2190,7 +2192,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmailChanged"];
+                    "application/json": components["schemas"]["AccountEmailChanged"];
                 };
             };
             /** @description Error */
@@ -2251,7 +2253,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Preferences"];
+                    "application/json": components["schemas"]["NotificationPreferences"];
                 };
             };
             /** @description Error */
@@ -2274,7 +2276,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PreferencesInput"];
+                "application/json": components["schemas"]["NotificationPreferencesInput"];
             };
         };
         responses: {
@@ -2460,7 +2462,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ProfileInput"];
+                "application/json": components["schemas"]["AccountProfileInput"];
             };
         };
         responses: {
@@ -2555,7 +2557,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SessionList"];
+                    "application/json": components["schemas"]["AccountSessionList"];
                 };
             };
             /** @description Error */
@@ -2584,7 +2586,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RevokedSessions"];
+                    "application/json": components["schemas"]["AccountSessionsRevoked"];
                 };
             };
             /** @description Error */
@@ -3068,7 +3070,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MarkAllResult"];
+                    "application/json": components["schemas"]["NotificationsMarked"];
                 };
             };
             /** @description Error */

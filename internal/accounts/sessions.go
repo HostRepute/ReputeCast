@@ -30,20 +30,20 @@ type AccountSession struct {
 	Current      bool      `json:"current"`
 }
 
-// SessionList is GET /me/sessions.
-type SessionList struct {
+// AccountSessionList is GET /me/sessions.
+type AccountSessionList struct {
 	Items []AccountSession `json:"items"`
 }
 
 // Sessions lists the person's active sessions, the current one first.
-func (s *Service) Sessions(ctx context.Context) (SessionList, error) {
+func (s *Service) Sessions(ctx context.Context) (AccountSessionList, error) {
 	u, err := currentUser(ctx)
 	if err != nil {
-		return SessionList{}, err
+		return AccountSessionList{}, err
 	}
 	rows, err := s.Q.ListUserSessions(ctx, u.ID)
 	if err != nil {
-		return SessionList{}, err
+		return AccountSessionList{}, err
 	}
 	var current uuid.UUID
 	if sess := api.SessionFrom(ctx); sess != nil {
@@ -53,7 +53,7 @@ func (s *Service) Sessions(ctx context.Context) (SessionList, error) {
 	if st, err := s.policy(ctx); err == nil {
 		idle = st.SessionIdle
 	}
-	out := SessionList{Items: make([]AccountSession, 0, len(rows))}
+	out := AccountSessionList{Items: make([]AccountSession, 0, len(rows))}
 	for _, r := range rows {
 		// Sessions idle longer than the policy can't be used any more.
 		if r.ID != current && idle > 0 && s.now().Sub(r.LastSeenAt) > idle {
@@ -115,20 +115,20 @@ func (s *Service) RevokeSession(ctx context.Context, id uuid.UUID) error {
 	})
 }
 
-// RevokedSessions says how many sessions were signed out.
-type RevokedSessions struct {
+// AccountSessionsRevoked says how many sessions were signed out.
+type AccountSessionsRevoked struct {
 	Revoked int64 `json:"revoked"`
 }
 
 // RevokeOtherSessions signs out every session except this one.
-func (s *Service) RevokeOtherSessions(ctx context.Context) (RevokedSessions, error) {
+func (s *Service) RevokeOtherSessions(ctx context.Context) (AccountSessionsRevoked, error) {
 	u, err := currentUser(ctx)
 	if err != nil {
-		return RevokedSessions{}, err
+		return AccountSessionsRevoked{}, err
 	}
 	sess := api.SessionFrom(ctx)
 	if sess == nil {
-		return RevokedSessions{}, api.Err(http.StatusUnauthorized, api.CodeUnauthenticated, "Sign in to continue.")
+		return AccountSessionsRevoked{}, api.Err(http.StatusUnauthorized, api.CodeUnauthenticated, "Sign in to continue.")
 	}
 	var n int64
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -141,5 +141,5 @@ func (s *Service) RevokeOtherSessions(ctx context.Context) (RevokedSessions, err
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "account.sessions_revoke_others", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email,
 			Metadata: map[string]any{"revoked": n}})
 	})
-	return RevokedSessions{Revoked: n}, err
+	return AccountSessionsRevoked{Revoked: n}, err
 }

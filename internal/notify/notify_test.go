@@ -163,9 +163,9 @@ func TestPreferencesAndDelivery(t *testing.T) {
 }
 
 func TestSummarize(t *testing.T) {
-	p := notify.Preferences{Timezone: "America/New_York", QuietHours: &notify.QuietHours{Start: "22:00", End: "07:00"}}
+	p := notify.NotificationPreferences{Timezone: "America/New_York", QuietHours: &notify.NotificationQuietHours{Start: "22:00", End: "07:00"}}
 	for _, e := range notify.Events {
-		p.Events = append(p.Events, notify.EventPreference{Type: e.Key, InApp: true, Email: e.DefaultEmail})
+		p.Events = append(p.Events, notify.NotificationEventPreference{Type: e.Key, InApp: true, Email: e.DefaultEmail})
 	}
 	s := notify.Summarize(p)
 	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down" || s.QuietHours != "22:00–07:00 America/New_York, email only" {

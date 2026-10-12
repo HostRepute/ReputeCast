@@ -160,8 +160,8 @@ func (s *Service) MarkAllRead(ctx context.Context) (int64, error) {
 	return s.Q.MarkAllNotificationsRead(ctx, store.MarkAllNotificationsReadParams{UserID: userID, WorkspaceID: wsID})
 }
 
-// EventPreference is one row of the preferences table.
-type EventPreference struct {
+// NotificationEventPreference is one row of the preferences table.
+type NotificationEventPreference struct {
 	Type     string `json:"type"`
 	Label    string `json:"label"`
 	Audience string `json:"audience,omitempty"`
@@ -169,53 +169,56 @@ type EventPreference struct {
 	Email    bool   `json:"email"`
 }
 
-// QuietHours hold back non-urgent emails, in the person's timezone.
-type QuietHours struct {
+// NotificationQuietHours hold back non-urgent emails, in the person's timezone.
+type NotificationQuietHours struct {
 	Start string `json:"start" pattern:"^([01][0-9]|2[0-3]):[0-5][0-9]$" example:"22:00"`
 	End   string `json:"end" pattern:"^([01][0-9]|2[0-3]):[0-5][0-9]$" example:"07:00"`
 }
 
-// EmailDelivery says whether notification emails can go out right now.
-type EmailDelivery struct {
+// NotificationEmailDelivery says whether notification emails can go out right now.
+type NotificationEmailDelivery struct {
 	Available bool `json:"available"`
 	// Provider is the sending provider of the System stream ("Postmark").
 	Provider string `json:"provider,omitempty"`
 }
 
-// Preferences are the person's notification settings.
-type Preferences struct {
-	Events     []EventPreference `json:"events"`
-	QuietHours *QuietHours       `json:"quietHours,omitempty"`
+// NotificationPreferences are the person's notification settings.
+type NotificationPreferences struct {
+	Events     []NotificationEventPreference `json:"events"`
+	QuietHours *NotificationQuietHours       `json:"quietHours,omitempty"`
 	Digest     string            `json:"digest" enum:"immediate,hourly,daily"`
 	Timezone   string            `json:"timezone"`
-	Email      EmailDelivery     `json:"email"`
+	Email      NotificationEmailDelivery     `json:"email"`
 }
 
-// PreferencesInput is PUT /me/notification-preferences.
-type PreferencesInput struct {
-	Events []struct {
-		Type  string `json:"type" maxLength:"64"`
-		InApp bool   `json:"inApp"`
-		Email bool   `json:"email"`
-	} `json:"events" maxItems:"20"`
-	QuietHours *QuietHours `json:"quietHours,omitempty" doc:"Omit or null to turn quiet hours off"`
+// NotificationEventChoice turns one event type's channels on or off.
+type NotificationEventChoice struct {
+	Type  string `json:"type" maxLength:"64"`
+	InApp bool   `json:"inApp"`
+	Email bool   `json:"email"`
+}
+
+// NotificationPreferencesInput is PUT /me/notification-preferences.
+type NotificationPreferencesInput struct {
+	Events []NotificationEventChoice `json:"events" maxItems:"20"`
+	QuietHours *NotificationQuietHours `json:"quietHours,omitempty" doc:"Omit or null to turn quiet hours off"`
 	Digest     string      `json:"digest" enum:"immediate,hourly,daily"`
 }
 
 // Preferences returns a person's notification settings. workspaceID, when
 // set, names the workspace whose System-stream provider is shown.
-func (s *Service) Preferences(ctx context.Context, user store.User, workspaceID *uuid.UUID) (Preferences, error) {
+func (s *Service) Preferences(ctx context.Context, user store.User, workspaceID *uuid.UUID) (NotificationPreferences, error) {
 	rows, err := s.Q.ListNotificationPreferences(ctx, user.ID)
 	if err != nil {
-		return Preferences{}, err
+		return NotificationPreferences{}, err
 	}
 	saved := map[string]store.NotificationPreference{}
 	for _, r := range rows {
 		saved[r.EventType] = r
 	}
-	out := Preferences{Events: make([]EventPreference, 0, len(Events)), Digest: "immediate", Timezone: user.Timezone}
+	out := NotificationPreferences{Events: make([]NotificationEventPreference, 0, len(Events)), Digest: "immediate", Timezone: user.Timezone}
 	for _, e := range Events {
-		p := EventPreference{Type: e.Key, Label: e.Label, Audience: e.Audience, InApp: true, Email: e.DefaultEmail}
+		p := NotificationEventPreference{Type: e.Key, Label: e.Label, Audience: e.Audience, InApp: true, Email: e.DefaultEmail}
 		if r, ok := saved[e.Key]; ok {
 			p.InApp, p.Email = r.InApp, r.Email
 		}
@@ -226,10 +229,10 @@ func (s *Service) Preferences(ctx context.Context, user store.User, workspaceID 
 	case err == nil:
 		out.Digest = st.Digest
 		if st.QuietStart != nil && st.QuietEnd != nil {
-			out.QuietHours = &QuietHours{Start: hhmm(int(*st.QuietStart)), End: hhmm(int(*st.QuietEnd))}
+			out.QuietHours = &NotificationQuietHours{Start: hhmm(int(*st.QuietStart)), End: hhmm(int(*st.QuietEnd))}
 		}
 	case !errors.Is(err, pgx.ErrNoRows):
-		return Preferences{}, err
+		return NotificationPreferences{}, err
 	}
 	if s.Mail != nil {
 		out.Email.Available = s.Mail().SystemAvailable(ctx, workspaceID)
@@ -246,7 +249,7 @@ func (s *Service) Preferences(ctx context.Context, user store.User, workspaceID 
 }
 
 // SavePreferences stores the person's notification settings.
-func (s *Service) SavePreferences(ctx context.Context, user store.User, in PreferencesInput) error {
+func (s *Service) SavePreferences(ctx context.Context, user store.User, in NotificationPreferencesInput) error {
 	known := map[string]bool{}
 	for _, e := range Events {
 		known[e.Key] = true
@@ -295,16 +298,16 @@ func minutes(s string) (int16, error) {
 	return int16(t.Hour()*60 + t.Minute()), nil
 }
 
-// Summary is the Notification preferences card in Account & security.
-type Summary struct {
+// NotificationSummary is the Notification preferences card in Account & security.
+type NotificationSummary struct {
 	InApp      string `json:"inApp" example:"All events"`
 	Email      string `json:"email" example:"Approvals, auto-pauses, provider down"`
 	QuietHours string `json:"quietHours" example:"22:00–07:00 America/New_York, email only"`
 }
 
 // Summarize describes preferences in one line per channel.
-func Summarize(p Preferences) Summary {
-	pick := func(on func(EventPreference) bool) string {
+func Summarize(p NotificationPreferences) NotificationSummary {
+	pick := func(on func(NotificationEventPreference) bool) string {
 		var all, approvals = true, 0
 		var parts []string
 		for _, e := range p.Events {
@@ -339,9 +342,9 @@ func Summarize(p Preferences) Summary {
 		s := strings.Join(parts, ", ")
 		return strings.ToUpper(s[:1]) + s[1:]
 	}
-	out := Summary{
-		InApp: pick(func(e EventPreference) bool { return e.InApp }),
-		Email: pick(func(e EventPreference) bool { return e.Email }),
+	out := NotificationSummary{
+		InApp: pick(func(e NotificationEventPreference) bool { return e.InApp }),
+		Email: pick(func(e NotificationEventPreference) bool { return e.Email }),
 	}
 	if p.QuietHours != nil {
 		out.QuietHours = fmt.Sprintf("%s–%s %s, email only", p.QuietHours.Start, p.QuietHours.End, p.Timezone)

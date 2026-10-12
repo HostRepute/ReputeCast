@@ -30,7 +30,7 @@ type AccountOverview struct {
 	TwoFactor     AccountTwoFactor     `json:"twoFactor"`
 	Identities    []AccountIdentity    `json:"identities"`
 	Workspaces    []AccountWorkspace   `json:"workspaces"`
-	Notifications notify.Summary       `json:"notifications"`
+	Notifications notify.NotificationSummary       `json:"notifications"`
 	SessionPolicy AccountSessionPolicy `json:"sessionPolicy"`
 }
 
@@ -42,11 +42,11 @@ type AccountProfile struct {
 	AvatarColor     string        `json:"avatarColor"`
 	AvatarURL       string        `json:"avatarUrl,omitempty"`
 	IsInstanceAdmin bool          `json:"isInstanceAdmin"`
-	PendingEmail    *PendingEmail `json:"pendingEmail,omitempty"`
+	PendingEmail    *AccountPendingEmail `json:"pendingEmail,omitempty"`
 }
 
-// PendingEmail is an email change waiting for its verification link.
-type PendingEmail struct {
+// AccountPendingEmail is an email change waiting for its verification link.
+type AccountPendingEmail struct {
 	Email     string    `json:"email"`
 	SentAt    time.Time `json:"sentAt"`
 	ExpiresAt time.Time `json:"expiresAt"`
@@ -155,7 +155,7 @@ func (s *Service) Overview(ctx context.Context) (AccountOverview, error) {
 		SessionPolicy: AccountSessionPolicy{Lifetime: humanDuration(st.SessionLifetime), Idle: humanDuration(st.SessionIdle)},
 	}
 	if pe, err := s.Q.GetPendingEmailChange(ctx, u.ID); err == nil {
-		out.Profile.PendingEmail = &PendingEmail{Email: pe.NewEmail, SentAt: pe.CreatedAt, ExpiresAt: pe.ExpiresAt}
+		out.Profile.PendingEmail = &AccountPendingEmail{Email: pe.NewEmail, SentAt: pe.CreatedAt, ExpiresAt: pe.ExpiresAt}
 	}
 
 	var sessPasskey *uuid.UUID
@@ -320,14 +320,14 @@ func humanDuration(d time.Duration) string {
 	}
 }
 
-// ProfileInput changes the name and timezone.
-type ProfileInput struct {
+// AccountProfileInput changes the name and timezone.
+type AccountProfileInput struct {
 	Name     string `json:"name" minLength:"1" maxLength:"80"`
 	Timezone string `json:"timezone" minLength:"1" maxLength:"64"`
 }
 
 // UpdateProfile changes the name and timezone.
-func (s *Service) UpdateProfile(ctx context.Context, in ProfileInput) (AccountProfile, error) {
+func (s *Service) UpdateProfile(ctx context.Context, in AccountProfileInput) (AccountProfile, error) {
 	u, err := currentUser(ctx)
 	if err != nil {
 		return AccountProfile{}, err
@@ -356,15 +356,15 @@ func (s *Service) UpdateProfile(ctx context.Context, in ProfileInput) (AccountPr
 	return AccountProfile{Name: nu.Name, Email: nu.Email, Timezone: nu.Timezone, AvatarColor: nu.AvatarColor, AvatarURL: avatarURL(nu), IsInstanceAdmin: nu.IsInstanceAdmin}, nil
 }
 
-// EmailChangeInput asks to move the account to a new address.
-type EmailChangeInput struct {
+// AccountEmailChangeInput asks to move the account to a new address.
+type AccountEmailChangeInput struct {
 	Email string `json:"email" format:"email" maxLength:"254"`
 	// Password confirms the change for accounts that have one.
 	Password string `json:"password,omitempty" maxLength:"1024"`
 }
 
-// EmailChangeStarted says where the verification link went.
-type EmailChangeStarted struct {
+// AccountEmailChangeStarted says where the verification link went.
+type AccountEmailChangeStarted struct {
 	Email     string    `json:"email"`
 	ExpiresAt time.Time `json:"expiresAt"`
 }
@@ -373,30 +373,30 @@ const emailChangeTTL = 24 * time.Hour
 
 // RequestEmailChange sends a verification link to the new address; the
 // change applies when the person opens it.
-func (s *Service) RequestEmailChange(ctx context.Context, in EmailChangeInput) (EmailChangeStarted, error) {
+func (s *Service) RequestEmailChange(ctx context.Context, in AccountEmailChangeInput) (AccountEmailChangeStarted, error) {
 	u, err := currentUser(ctx)
 	if err != nil {
-		return EmailChangeStarted{}, err
+		return AccountEmailChangeStarted{}, err
 	}
 	email := strings.ToLower(strings.TrimSpace(in.Email))
 	if email == u.Email {
-		return EmailChangeStarted{}, api.Invalid("body.email", "That's already your email.")
+		return AccountEmailChangeStarted{}, api.Invalid("body.email", "That's already your email.")
 	}
 	if u.PasswordHash != nil {
 		ok, err := authn.VerifyPassword(in.Password, *u.PasswordHash)
 		if err != nil || !ok {
-			return EmailChangeStarted{}, api.Invalid("body.password", "Your current password isn't right.")
+			return AccountEmailChangeStarted{}, api.Invalid("body.password", "Your current password isn't right.")
 		}
 	}
 	if taken, err := s.Q.EmailTaken(ctx, store.EmailTakenParams{Email: email, UserID: u.ID}); err != nil {
-		return EmailChangeStarted{}, err
+		return AccountEmailChangeStarted{}, err
 	} else if taken {
-		return EmailChangeStarted{}, api.Invalid("body.email", "Another account uses this email.")
+		return AccountEmailChangeStarted{}, api.Invalid("body.email", "Another account uses this email.")
 	}
 	unsent := api.Err(http.StatusServiceUnavailable, api.CodeProviderUnavailable,
 		"The verification email for "+email+" couldn't be sent: the System stream has no healthy provider right now. Your current email stays active.").WithMeta("email", email)
 	if !s.mail().SystemAvailable(ctx, nil) {
-		return EmailChangeStarted{}, unsent
+		return AccountEmailChangeStarted{}, unsent
 	}
 	token, hash := authn.NewToken()
 	expires := s.now().Add(emailChangeTTL)
@@ -411,7 +411,7 @@ func (s *Service) RequestEmailChange(ctx context.Context, in EmailChangeInput) (
 	}
 	if _, err := s.mail().SendSystem(ctx, msg); err != nil {
 		s.Log.WarnContext(ctx, "email change verification not sent", "user", u.ID, "err", err)
-		return EmailChangeStarted{}, unsent
+		return AccountEmailChangeStarted{}, unsent
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -425,9 +425,9 @@ func (s *Service) RequestEmailChange(ctx context.Context, in EmailChangeInput) (
 			After: map[string]any{"new_email": email}})
 	})
 	if err != nil {
-		return EmailChangeStarted{}, err
+		return AccountEmailChangeStarted{}, err
 	}
-	return EmailChangeStarted{Email: email, ExpiresAt: expires}, nil
+	return AccountEmailChangeStarted{Email: email, ExpiresAt: expires}, nil
 }
 
 // accountPath is the Account & security path of the person's first workspace.
@@ -454,17 +454,17 @@ func (s *Service) CancelEmailChange(ctx context.Context) error {
 	})
 }
 
-// EmailChanged is returned after the new address is confirmed.
-type EmailChanged struct {
+// AccountEmailChanged is returned after the new address is confirmed.
+type AccountEmailChanged struct {
 	Email string `json:"email"`
 }
 
 // ConfirmEmailChange applies a pending change with the link from the email.
 // The person must be signed in to the same account.
-func (s *Service) ConfirmEmailChange(ctx context.Context, token string) (EmailChanged, error) {
+func (s *Service) ConfirmEmailChange(ctx context.Context, token string) (AccountEmailChanged, error) {
 	u, err := currentUser(ctx)
 	if err != nil {
-		return EmailChanged{}, err
+		return AccountEmailChanged{}, err
 	}
 	var ch store.EmailChange
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -486,14 +486,14 @@ func (s *Service) ConfirmEmailChange(ctx context.Context, token string) (EmailCh
 			Before: map[string]any{"email": u.Email}, After: map[string]any{"email": ch.NewEmail}})
 	})
 	if err != nil {
-		return EmailChanged{}, err
+		return AccountEmailChanged{}, err
 	}
 	// Tell the old address, so a takeover doesn't go unnoticed.
 	st, _ := s.policy(ctx)
 	_, _ = s.mail().SendSystem(ctx, mailer.Message{To: u.Email, ToName: u.Name, Kind: "email_changed",
 		Subject: "Your " + st.Name + " email was changed",
 		Text:    fmt.Sprintf("The account that used %s on %s now signs in with %s. If you didn't do this, contact your instance admin right away.\n", u.Email, st.Name, ch.NewEmail)})
-	return EmailChanged{Email: ch.NewEmail}, nil
+	return AccountEmailChanged{Email: ch.NewEmail}, nil
 }
 
 // UnlinkIdentity removes a social or SSO sign-in, unless it is the last way

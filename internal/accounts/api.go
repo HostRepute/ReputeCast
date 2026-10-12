@@ -61,7 +61,7 @@ type PathToken struct {
 
 type inviteAcceptOut struct {
 	SetCookie http.Cookie `header:"Set-Cookie"`
-	Body      InviteAccepted
+	Body      InvitationAccepted
 }
 
 // Register adds the accounts operations.
@@ -179,7 +179,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "accept-invitation", Path: "/invitations/{token}/accept", Summary: "Join the workspace (creates the account and signs in for new people)", Tags: inv, Access: api.Public},
 		func(ctx context.Context, in *struct {
 			PathToken
-			Body AcceptInviteInput
+			Body InvitationAcceptInput
 		}) (*inviteAcceptOut, error) {
 			r, cookie, err := s.AcceptInvitation(ctx, in.Token, in.Body)
 			if err != nil {
@@ -193,7 +193,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "request-invitation", Path: "/invitations/{token}/request", Summary: "Ask the inviter for a new invitation", Tags: inv, Access: api.Public},
-		func(ctx context.Context, in *PathToken) (*api.Body[InviteRequestResult], error) {
+		func(ctx context.Context, in *PathToken) (*api.Body[InvitationRequestResult], error) {
 			r, err := s.RequestNewInvite(ctx, in.Token)
 			return api.OK(r), err
 		})
@@ -218,13 +218,13 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Patch(h, api.Op{ID: "update-profile", Path: "/me/profile", Summary: "Change your name and timezone", Tags: me, Access: person},
-		func(ctx context.Context, in *struct{ Body ProfileInput }) (*api.Body[AccountProfile], error) {
+		func(ctx context.Context, in *struct{ Body AccountProfileInput }) (*api.Body[AccountProfile], error) {
 			r, err := s.UpdateProfile(ctx, in.Body)
 			return api.OK(r), err
 		})
 
 	api.Put(h, api.Op{ID: "set-avatar", Path: "/me/avatar", Summary: "Upload a profile photo (PNG or JPG, up to 2 MB)", Tags: me, Access: person, MaxBodyBytes: 3 << 20},
-		func(ctx context.Context, in *struct{ Body AvatarInput }) (*api.Body[AccountProfile], error) {
+		func(ctx context.Context, in *struct{ Body AccountAvatarInput }) (*api.Body[AccountProfile], error) {
 			r, err := s.SetAvatar(ctx, in.Body.Data)
 			return api.OK(r), err
 		})
@@ -244,7 +244,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "request-email-change", Path: "/me/email", Summary: "Change your email: a verification link goes to the new address", Tags: me, Access: person},
-		func(ctx context.Context, in *struct{ Body EmailChangeInput }) (*api.Body[EmailChangeStarted], error) {
+		func(ctx context.Context, in *struct{ Body AccountEmailChangeInput }) (*api.Body[AccountEmailChangeStarted], error) {
 			r, err := s.RequestEmailChange(ctx, in.Body)
 			return api.OK(r), err
 		})
@@ -259,7 +259,7 @@ func Register(h huma.API, s *Service) {
 			Body struct {
 				Token string `json:"token" minLength:"10" maxLength:"200"`
 			}
-		}) (*api.Body[EmailChanged], error) {
+		}) (*api.Body[AccountEmailChanged], error) {
 			r, err := s.ConfirmEmailChange(ctx, in.Body.Token)
 			return api.OK(r), err
 		})
@@ -353,7 +353,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Get(h, api.Op{ID: "list-sessions", Path: "/me/sessions", Summary: "Your active sessions, this one first", Tags: me, Access: person},
-		func(ctx context.Context, _ *struct{}) (*api.Body[SessionList], error) {
+		func(ctx context.Context, _ *struct{}) (*api.Body[AccountSessionList], error) {
 			r, err := s.Sessions(ctx)
 			return api.OK(r), err
 		})
@@ -368,7 +368,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "revoke-other-sessions", Path: "/me/sessions/revoke-others", Summary: "Sign out every other session", Tags: me, Access: person},
-		func(ctx context.Context, _ *struct{}) (*api.Body[RevokedSessions], error) {
+		func(ctx context.Context, _ *struct{}) (*api.Body[AccountSessionsRevoked], error) {
 			r, err := s.RevokeOtherSessions(ctx)
 			return api.OK(r), err
 		})

@@ -1,11 +1,26 @@
 {
   "components": {
     "schemas": {
-      "AcceptInviteInput": {
+      "AccountAvatarInput": {
         "additionalProperties": false,
         "properties": {
-          "name": {
-            "maxLength": 80,
+          "data": {
+            "contentEncoding": "base64",
+            "description": "PNG or JPEG, up to 2 MB, base64",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "AccountEmailChangeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "format": "email",
+            "maxLength": 254,
             "type": "string"
           },
           "password": {
@@ -13,6 +28,38 @@
             "type": "string"
           }
         },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
+      "AccountEmailChangeStarted": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "AccountEmailChanged": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
         "type": "object"
       },
       "AccountIdentity": {
@@ -95,7 +142,7 @@
             "type": "array"
           },
           "notifications": {
-            "$ref": "#/components/schemas/Summary"
+            "$ref": "#/components/schemas/NotificationSummary"
           },
           "passkeys": {
             "items": {
@@ -211,6 +258,28 @@
         ],
         "type": "object"
       },
+      "AccountPendingEmail": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "sentAt",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
       "AccountProfile": {
         "additionalProperties": false,
         "properties": {
@@ -230,7 +299,7 @@
             "type": "string"
           },
           "pendingEmail": {
-            "$ref": "#/components/schemas/PendingEmail"
+            "$ref": "#/components/schemas/AccountPendingEmail"
           },
           "timezone": {
             "type": "string"
@@ -242,6 +311,26 @@
           "timezone",
           "avatarColor",
           "isInstanceAdmin"
+        ],
+        "type": "object"
+      },
+      "AccountProfileInput": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "timezone"
         ],
         "type": "object"
       },
@@ -308,6 +397,21 @@
         ],
         "type": "object"
       },
+      "AccountSessionList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AccountSession"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "AccountSessionPolicy": {
         "additionalProperties": false,
         "properties": {
@@ -327,6 +431,19 @@
         "required": [
           "lifetime",
           "idle"
+        ],
+        "type": "object"
+      },
+      "AccountSessionsRevoked": {
+        "additionalProperties": false,
+        "properties": {
+          "revoked": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revoked"
         ],
         "type": "object"
       },
@@ -571,20 +688,6 @@
           "challenge",
           "method",
           "code"
-        ],
-        "type": "object"
-      },
-      "AvatarInput": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "contentEncoding": "base64",
-            "description": "PNG or JPEG, up to 2 MB, base64",
-            "type": "string"
-          }
-        },
-        "required": [
-          "data"
         ],
         "type": "object"
       },
@@ -908,68 +1011,6 @@
         ],
         "type": "object"
       },
-      "EmailChangeInput": {
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "format": "email",
-            "maxLength": 254,
-            "type": "string"
-          },
-          "password": {
-            "maxLength": 1024,
-            "type": "string"
-          }
-        },
-        "required": [
-          "email"
-        ],
-        "type": "object"
-      },
-      "EmailChangeStarted": {
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "expiresAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "email",
-          "expiresAt"
-        ],
-        "type": "object"
-      },
-      "EmailChanged": {
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "email"
-        ],
-        "type": "object"
-      },
-      "EmailDelivery": {
-        "additionalProperties": false,
-        "properties": {
-          "available": {
-            "type": "boolean"
-          },
-          "provider": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "available"
-        ],
-        "type": "object"
-      },
       "ErrorDetail": {
         "additionalProperties": false,
         "properties": {
@@ -985,33 +1026,6 @@
             "description": "The value at the given location"
           }
         },
-        "type": "object"
-      },
-      "EventPreference": {
-        "additionalProperties": false,
-        "properties": {
-          "audience": {
-            "type": "string"
-          },
-          "email": {
-            "type": "boolean"
-          },
-          "inApp": {
-            "type": "boolean"
-          },
-          "label": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "label",
-          "inApp",
-          "email"
-        ],
         "type": "object"
       },
       "IdentifyResult": {
@@ -1134,6 +1148,122 @@
         ],
         "type": "object"
       },
+      "InvitationAcceptInput": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 80,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "InvitationAccepted": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "hasSecondFactor": {
+            "type": "boolean"
+          },
+          "newAccount": {
+            "type": "boolean"
+          },
+          "next": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "twoFactor": {
+            "$ref": "#/components/schemas/InvitationTwoFactor"
+          },
+          "workspace": {
+            "description": "Workspace slug",
+            "type": "string"
+          },
+          "workspaceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace",
+          "workspaceName",
+          "roleName",
+          "email",
+          "newAccount",
+          "hasSecondFactor",
+          "twoFactor",
+          "next"
+        ],
+        "type": "object"
+      },
+      "InvitationPasswordPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "breachedCheck": {
+            "type": "boolean"
+          },
+          "minLength": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "minLength",
+          "breachedCheck"
+        ],
+        "type": "object"
+      },
+      "InvitationRequestResult": {
+        "additionalProperties": false,
+        "properties": {
+          "inviter": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "sent",
+              "already_sent"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "inviter"
+        ],
+        "type": "object"
+      },
+      "InvitationTwoFactor": {
+        "additionalProperties": false,
+        "properties": {
+          "graceDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "graceUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "required",
+          "graceDays"
+        ],
+        "type": "object"
+      },
       "InvitationView": {
         "additionalProperties": false,
         "properties": {
@@ -1165,7 +1295,7 @@
             "type": "boolean"
           },
           "passwordPolicy": {
-            "$ref": "#/components/schemas/InvitePolicy"
+            "$ref": "#/components/schemas/InvitationPasswordPolicy"
           },
           "revokedAt": {
             "format": "date-time",
@@ -1207,7 +1337,7 @@
             "type": "string"
           },
           "twoFactor": {
-            "$ref": "#/components/schemas/InviteTwoFactor"
+            "$ref": "#/components/schemas/InvitationTwoFactor"
           },
           "workspaceName": {
             "type": "string"
@@ -1232,142 +1362,6 @@
           "passwordPolicy",
           "social",
           "twoFactor"
-        ],
-        "type": "object"
-      },
-      "InviteAccepted": {
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "hasSecondFactor": {
-            "type": "boolean"
-          },
-          "newAccount": {
-            "type": "boolean"
-          },
-          "next": {
-            "type": "string"
-          },
-          "roleName": {
-            "type": "string"
-          },
-          "twoFactor": {
-            "$ref": "#/components/schemas/InviteTwoFactor"
-          },
-          "workspace": {
-            "description": "Workspace slug",
-            "type": "string"
-          },
-          "workspaceName": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "workspace",
-          "workspaceName",
-          "roleName",
-          "email",
-          "newAccount",
-          "hasSecondFactor",
-          "twoFactor",
-          "next"
-        ],
-        "type": "object"
-      },
-      "InvitePolicy": {
-        "additionalProperties": false,
-        "properties": {
-          "breachedCheck": {
-            "type": "boolean"
-          },
-          "minLength": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "minLength",
-          "breachedCheck"
-        ],
-        "type": "object"
-      },
-      "InviteRequestResult": {
-        "additionalProperties": false,
-        "properties": {
-          "inviter": {
-            "type": "string"
-          },
-          "status": {
-            "enum": [
-              "sent",
-              "already_sent"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "status",
-          "inviter"
-        ],
-        "type": "object"
-      },
-      "InviteTwoFactor": {
-        "additionalProperties": false,
-        "properties": {
-          "graceDays": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "graceUntil": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "reason": {
-            "type": "string"
-          },
-          "required": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "required",
-          "graceDays"
-        ],
-        "type": "object"
-      },
-      "Item": {
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "boolean"
-          },
-          "inApp": {
-            "type": "boolean"
-          },
-          "type": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "inApp",
-          "email"
-        ],
-        "type": "object"
-      },
-      "MarkAllResult": {
-        "additionalProperties": false,
-        "properties": {
-          "marked": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "marked"
         ],
         "type": "object"
       },
@@ -1529,6 +1523,69 @@
         ],
         "type": "object"
       },
+      "NotificationEmailDelivery": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "type": "object"
+      },
+      "NotificationEventChoice": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "boolean"
+          },
+          "inApp": {
+            "type": "boolean"
+          },
+          "type": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "inApp",
+          "email"
+        ],
+        "type": "object"
+      },
+      "NotificationEventPreference": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "email": {
+            "type": "boolean"
+          },
+          "inApp": {
+            "type": "boolean"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "label",
+          "inApp",
+          "email"
+        ],
+        "type": "object"
+      },
       "NotificationItem": {
         "additionalProperties": false,
         "properties": {
@@ -1635,6 +1692,136 @@
           "unread",
           "total",
           "retentionDays"
+        ],
+        "type": "object"
+      },
+      "NotificationPreferences": {
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "enum": [
+              "immediate",
+              "hourly",
+              "daily"
+            ],
+            "type": "string"
+          },
+          "email": {
+            "$ref": "#/components/schemas/NotificationEmailDelivery"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationEventPreference"
+            },
+            "type": "array"
+          },
+          "quietHours": {
+            "$ref": "#/components/schemas/NotificationQuietHours"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "events",
+          "digest",
+          "timezone",
+          "email"
+        ],
+        "type": "object"
+      },
+      "NotificationPreferencesInput": {
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "enum": [
+              "immediate",
+              "hourly",
+              "daily"
+            ],
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationEventChoice"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "quietHours": {
+            "$ref": "#/components/schemas/NotificationQuietHours",
+            "description": "Omit or null to turn quiet hours off"
+          }
+        },
+        "required": [
+          "events",
+          "digest"
+        ],
+        "type": "object"
+      },
+      "NotificationQuietHours": {
+        "additionalProperties": false,
+        "properties": {
+          "end": {
+            "examples": [
+              "07:00"
+            ],
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "type": "string"
+          },
+          "start": {
+            "examples": [
+              "22:00"
+            ],
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ],
+        "type": "object"
+      },
+      "NotificationSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "examples": [
+              "Approvals, auto-pauses, provider down"
+            ],
+            "type": "string"
+          },
+          "inApp": {
+            "examples": [
+              "All events"
+            ],
+            "type": "string"
+          },
+          "quietHours": {
+            "examples": [
+              "22:00–07:00 America/New_York, email only"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "inApp",
+          "email",
+          "quietHours"
+        ],
+        "type": "object"
+      },
+      "NotificationsMarked": {
+        "additionalProperties": false,
+        "properties": {
+          "marked": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "marked"
         ],
         "type": "object"
       },
@@ -1748,92 +1935,6 @@
         ],
         "type": "object"
       },
-      "PendingEmail": {
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "expiresAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "sentAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "email",
-          "sentAt",
-          "expiresAt"
-        ],
-        "type": "object"
-      },
-      "Preferences": {
-        "additionalProperties": false,
-        "properties": {
-          "digest": {
-            "enum": [
-              "immediate",
-              "hourly",
-              "daily"
-            ],
-            "type": "string"
-          },
-          "email": {
-            "$ref": "#/components/schemas/EmailDelivery"
-          },
-          "events": {
-            "items": {
-              "$ref": "#/components/schemas/EventPreference"
-            },
-            "type": "array"
-          },
-          "quietHours": {
-            "$ref": "#/components/schemas/QuietHours"
-          },
-          "timezone": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "events",
-          "digest",
-          "timezone",
-          "email"
-        ],
-        "type": "object"
-      },
-      "PreferencesInput": {
-        "additionalProperties": false,
-        "properties": {
-          "digest": {
-            "enum": [
-              "immediate",
-              "hourly",
-              "daily"
-            ],
-            "type": "string"
-          },
-          "events": {
-            "items": {
-              "$ref": "#/components/schemas/Item"
-            },
-            "maxItems": 20,
-            "type": "array"
-          },
-          "quietHours": {
-            "$ref": "#/components/schemas/QuietHours",
-            "description": "Omit or null to turn quiet hours off"
-          }
-        },
-        "required": [
-          "events",
-          "digest"
-        ],
-        "type": "object"
-      },
       "Problem": {
         "additionalProperties": false,
         "properties": {
@@ -1905,26 +2006,6 @@
         },
         "type": "object"
       },
-      "ProfileInput": {
-        "additionalProperties": false,
-        "properties": {
-          "name": {
-            "maxLength": 80,
-            "minLength": 1,
-            "type": "string"
-          },
-          "timezone": {
-            "maxLength": 64,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "timezone"
-        ],
-        "type": "object"
-      },
       "ProviderCost": {
         "additionalProperties": false,
         "properties": {
@@ -1943,30 +2024,6 @@
           "provider",
           "short",
           "cost"
-        ],
-        "type": "object"
-      },
-      "QuietHours": {
-        "additionalProperties": false,
-        "properties": {
-          "end": {
-            "examples": [
-              "07:00"
-            ],
-            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
-            "type": "string"
-          },
-          "start": {
-            "examples": [
-              "22:00"
-            ],
-            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
-            "type": "string"
-          }
-        },
-        "required": [
-          "start",
-          "end"
         ],
         "type": "object"
       },
@@ -2018,19 +2075,6 @@
         },
         "required": [
           "name"
-        ],
-        "type": "object"
-      },
-      "RevokedSessions": {
-        "additionalProperties": false,
-        "properties": {
-          "revoked": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "revoked"
         ],
         "type": "object"
       },
@@ -2165,21 +2209,6 @@
             "type": "array"
           }
         },
-        "type": "object"
-      },
-      "SessionList": {
-        "additionalProperties": false,
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/AccountSession"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "items"
-        ],
         "type": "object"
       },
       "Setup-check-urlRequest": {
@@ -2437,6 +2466,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "recoveryCodesTotal": {
+            "format": "int64",
+            "type": "integer"
+          },
           "status": {
             "enum": [
               "signed_in",
@@ -2448,35 +2481,6 @@
         "required": [
           "status",
           "email"
-        ],
-        "type": "object"
-      },
-      "Summary": {
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "examples": [
-              "Approvals, auto-pauses, provider down"
-            ],
-            "type": "string"
-          },
-          "inApp": {
-            "examples": [
-              "All events"
-            ],
-            "type": "string"
-          },
-          "quietHours": {
-            "examples": [
-              "22:00–07:00 America/New_York, email only"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "inApp",
-          "email",
-          "quietHours"
         ],
         "type": "object"
       },
@@ -3176,7 +3180,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AcceptInviteInput"
+                "$ref": "#/components/schemas/InvitationAcceptInput"
               }
             }
           },
@@ -3187,7 +3191,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InviteAccepted"
+                  "$ref": "#/components/schemas/InvitationAccepted"
                 }
               }
             },
@@ -3238,7 +3242,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InviteRequestResult"
+                  "$ref": "#/components/schemas/InvitationRequestResult"
                 }
               }
             },
@@ -3371,7 +3375,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AvatarInput"
+                "$ref": "#/components/schemas/AccountAvatarInput"
               }
             }
           },
@@ -3446,7 +3450,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EmailChangeInput"
+                "$ref": "#/components/schemas/AccountEmailChangeInput"
               }
             }
           },
@@ -3457,7 +3461,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EmailChangeStarted"
+                  "$ref": "#/components/schemas/AccountEmailChangeStarted"
                 }
               }
             },
@@ -3504,7 +3508,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EmailChanged"
+                  "$ref": "#/components/schemas/AccountEmailChanged"
                 }
               }
             },
@@ -3594,7 +3598,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Preferences"
+                  "$ref": "#/components/schemas/NotificationPreferences"
                 }
               }
             },
@@ -3628,7 +3632,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PreferencesInput"
+                "$ref": "#/components/schemas/NotificationPreferencesInput"
               }
             }
           },
@@ -3882,7 +3886,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ProfileInput"
+                "$ref": "#/components/schemas/AccountProfileInput"
               }
             }
           },
@@ -3997,7 +4001,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionList"
+                  "$ref": "#/components/schemas/AccountSessionList"
                 }
               }
             },
@@ -4034,7 +4038,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RevokedSessions"
+                  "$ref": "#/components/schemas/AccountSessionsRevoked"
                 }
               }
             },
@@ -4854,7 +4858,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarkAllResult"
+                  "$ref": "#/components/schemas/NotificationsMarked"
                 }
               }
             },

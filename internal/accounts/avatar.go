@@ -25,8 +25,8 @@ const (
 	avatarMaxSide  = 6000 // refuse decompression bombs before decoding
 )
 
-// AvatarInput is a PNG or JPEG photo, base64-encoded in JSON.
-type AvatarInput struct {
+// AccountAvatarInput is a PNG or JPEG photo, base64-encoded in JSON.
+type AccountAvatarInput struct {
 	Data []byte `json:"data" doc:"PNG or JPEG, up to 2 MB, base64"`
 }
 

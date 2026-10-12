@@ -30,8 +30,8 @@ type notificationInput struct {
 	ID string `path:"id" format:"uuid"`
 }
 
-// MarkAllResult says how many notifications were marked as read.
-type MarkAllResult struct {
+// NotificationsMarked says how many notifications were marked as read.
+type NotificationsMarked struct {
 	Marked int64 `json:"marked"`
 }
 
@@ -58,13 +58,13 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "read-all-notifications", Path: "/workspaces/{workspace}/notifications/read-all", Summary: "Mark every notification in this workspace as read", Tags: tags, Access: member},
-		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Body[MarkAllResult], error) {
+		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Body[NotificationsMarked], error) {
 			n, err := s.MarkAllRead(ctx)
-			return api.OK(MarkAllResult{Marked: n}), err
+			return api.OK(NotificationsMarked{Marked: n}), err
 		})
 
 	api.Get(h, api.Op{ID: "get-notification-preferences", Path: "/me/notification-preferences", Summary: "Your notification preferences: in-app and email per event type", Tags: tags, Access: signedIn},
-		func(ctx context.Context, in *preferencesQuery) (*api.Body[Preferences], error) {
+		func(ctx context.Context, in *preferencesQuery) (*api.Body[NotificationPreferences], error) {
 			u := api.UserFrom(ctx)
 			var wsID *uuid.UUID
 			if in.Workspace != "" {
@@ -80,7 +80,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Put(h, api.Op{ID: "save-notification-preferences", Path: "/me/notification-preferences", Summary: "Save your notification preferences", Tags: tags, Access: signedIn, Status: http.StatusNoContent},
-		func(ctx context.Context, in *struct{ Body PreferencesInput }) (*api.Empty, error) {
+		func(ctx context.Context, in *struct{ Body NotificationPreferencesInput }) (*api.Empty, error) {
 			return api.NoContent, s.SavePreferences(ctx, *api.UserFrom(ctx), in.Body)
 		})
 }
