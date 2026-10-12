@@ -1,0 +1,37 @@
+# Build output
+/bin/
+/dist/
+/web/dist/*
+!/web/dist/.gitkeep
+/tmp/
+
+# Local data and secrets
+/data/
+.env
+*.local
+
+# Node
+node_modules/
+/web/.vite/
+/web/coverage/
+/web/test-results/
+/web/playwright-report/
+/site/dist/
+
+# Go
+*.test
+*.out
+coverage.*
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Local Claude Code launch configs (machine-specific paths)
+.claude/

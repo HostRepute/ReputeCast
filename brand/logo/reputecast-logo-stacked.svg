@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="200" viewBox="0 0 260 200" role="img" aria-label="ReputeCast">
+  <style>@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@700&amp;display=swap");</style>
+  <g transform="translate(90 16) scale(2.5)">
+    <rect width="32" height="32" rx="8" fill="#0F766E"/>
+    <path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="130" y="158" text-anchor="middle" font-family="'IBM Plex Sans', system-ui, sans-serif" font-size="38" font-weight="700" letter-spacing="-0.76" fill="#0B1220">ReputeCast</text>
+</svg>

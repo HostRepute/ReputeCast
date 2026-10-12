@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automation flow canvas</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:7px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.ic{width:32px;padding:0}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.in{height:32px;padding:0 9px;border:1px solid #D4D8DF;border-radius:7px;background:#fff;font:inherit;font-size:12.5px;color:#0B1220;box-sizing:border-box;min-width:0}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.grp{padding:10px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472}
+.pal{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:12.5px;font-weight:500;cursor:grab}
+.pal .sw{width:10px;height:10px;border-radius:3px;flex:none}
+.node{position:absolute;width:224px;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 1px 3px rgba(11,18,32,.08);box-sizing:border-box;padding:9px 11px;display:flex;flex-direction:column;gap:4px}
+.node .hd{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.node .t{font-weight:600;font-size:13px;line-height:1.3}
+.node .st{display:flex;gap:8px;flex-wrap:wrap;font-size:11.5px;color:#4B5563}
+.node .hb{position:absolute;left:50%;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid #6B7280;transform:translateX(-50%)}
+.node .hb.i{top:-6px}.node .hb.o{bottom:-6px}
+.node.sel{border-color:#1D4ED8;box-shadow:0 0 0 3px #DBEAFE}
+.edge{position:absolute;background:#9AA3B2}
+.elab{position:absolute;padding:1px 7px;border-radius:999px;background:#fff;border:1px solid #D4D8DF;font-size:11px;font-weight:600;color:#374151;white-space:nowrap}
+.prop{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid #EEF0F3}
+.prop .tt{font-size:12px;font-weight:600}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+
+/* flow motion */
+@keyframes nodeIn{from{opacity:0;translate:0 10px;scale:.97}to{opacity:1;translate:0 0;scale:1}}
+@keyframes drawV{from{scale:1 0}to{scale:1 1}}
+@keyframes drawH{from{scale:0 1}to{scale:1 1}}
+@keyframes labIn{0%{opacity:0;scale:.6}70%{opacity:1;scale:1.08}100%{opacity:1;scale:1}}
+@keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(15,118,110,.5)}70%{box-shadow:0 0 0 7px rgba(15,118,110,0)}100%{box-shadow:0 0 0 0 rgba(15,118,110,0)}}
+.node{z-index:2;animation:nodeIn .55s cubic-bezier(.2,.7,.2,1) both;transition:transform .2s ease,box-shadow .2s ease}
+.node:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(11,18,32,.14)}
+.edge{transform-origin:top center;animation:drawV .45s ease-out both}
+.edge.h{transform-origin:center;animation:drawH .45s ease-out both}
+.elab{animation:labIn .5s cubic-bezier(.2,.7,.2,1) both}
+.hd .dot.live{animation:livepulse 1.8s ease-out 1.4s infinite}
+.n1{animation-delay:.1s}.n2{animation-delay:.25s}.n3{animation-delay:.4s}.n4{animation-delay:.55s}.n5,.n11{animation-delay:.7s}.n6,.n12{animation-delay:.85s}.n7,.n13{animation-delay:1s}.n8,.n9{animation-delay:1.15s}.n10{animation-delay:1.3s}
+.e1{animation-delay:.2s}.e2{animation-delay:.35s}.e3{animation-delay:.5s}.e4{animation-delay:.62s}.e5{animation-delay:.7s}.e6,.e7{animation-delay:.78s}.e8,.e18{animation-delay:.9s}.e9,.e19{animation-delay:1.05s}.e10{animation-delay:1.15s}.e11{animation-delay:1.22s}.e12,.e13{animation-delay:1.3s}.e14,.e15{animation-delay:1.4s}.e16{animation-delay:1.48s}.e17{animation-delay:1.55s}
+.l1,.l2{animation-delay:1s}.l3,.l4{animation-delay:1.5s}
+@media (prefers-reduced-motion:reduce){.node,.node.sel,.edge,.edge.h,.elab,.hd .dot.live{animation:none!important;opacity:1;translate:none;scale:none}.pu{display:none}}
+
+.still *{animation-play-state:paused!important}
+
+
+/* flow pulse */
+.pu{position:absolute;z-index:1;width:4px;height:18px;border-radius:3px;background:#0F766E;box-shadow:0 0 6px 1px rgba(15,118,110,.6);opacity:0;pointer-events:none}
+.pu.h{width:18px;height:4px}
+.node::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;box-shadow:inset 0 0 0 2px #0F766E,0 0 0 4px rgba(15,118,110,.22),0 8px 18px rgba(15,118,110,.18)}
+.still *::after,.still *::before{animation-play-state:paused!important}
+@media (prefers-reduced-motion:reduce){.pu,.node::after{display:none}.node .hb{animation:none!important}}
+.pu.p1{animation:pu1 18s linear 3.2s infinite}
+.pu.p2{animation:pu2 18s linear 3.2s infinite}
+.pu.p3{animation:pu3 18s linear 3.2s infinite}
+.pu.p4{animation:pu4 18s linear 3.2s infinite}
+.pu.p5{animation:pu5 18s linear 3.2s infinite}
+.pu.p6{animation:pu6 18s linear 3.2s infinite}
+.pu.p7{animation:pu7 18s linear 3.2s infinite}
+.pu.p8{animation:pu8 18s linear 3.2s infinite}
+.pu.p9{animation:pu9 18s linear 3.2s infinite}
+.pu.p10{animation:pu10 18s linear 3.2s infinite}
+.pu.p11{animation:pu11 18s linear 3.2s infinite}
+.pu.p12{animation:pu12 18s linear 3.2s infinite}
+.pu.p13{animation:pu13 18s linear 3.2s infinite}
+.pu.p14{animation:pu14 18s linear 3.2s infinite}
+.pu.p15{animation:pu15 18s linear 3.2s infinite}
+.pu.p16{animation:pu16 18s linear 3.2s infinite}
+.pu.p17{animation:pu17 18s linear 3.2s infinite}
+.pu.p18{animation:pu18 18s linear 3.2s infinite}
+.pu.p19{animation:pu19 18s linear 3.2s infinite}
+.pu.p20{animation:pu20 18s linear 3.2s infinite}
+.pu.p21{animation:pu21 18s linear 3.2s infinite}
+.pu.p22{animation:pu22 18s linear 3.2s infinite}
+.pu.p23{animation:pu23 18s linear 3.2s infinite}
+.n1::after{animation:hit-n1 18s linear 3.2s infinite}
+.node.n1 .hb.i{animation:hin-n1 18s linear 3.2s infinite}
+.node.n1 .hb.o{animation:hout-n1 18s linear 3.2s infinite}
+.n2::after{animation:hit-n2 18s linear 3.2s infinite}
+.node.n2 .hb.i{animation:hin-n2 18s linear 3.2s infinite}
+.node.n2 .hb.o{animation:hout-n2 18s linear 3.2s infinite}
+.n3::after{animation:hit-n3 18s linear 3.2s infinite}
+.node.n3 .hb.i{animation:hin-n3 18s linear 3.2s infinite}
+.node.n3 .hb.o{animation:hout-n3 18s linear 3.2s infinite}
+.n4::after{animation:hit-n4 18s linear 3.2s infinite}
+.node.n4 .hb.i{animation:hin-n4 18s linear 3.2s infinite}
+.node.n4 .hb.o{animation:hout-n4 18s linear 3.2s infinite}
+.n5::after{animation:hit-n5 18s linear 3.2s infinite}
+.node.n5 .hb.i{animation:hin-n5 18s linear 3.2s infinite}
+.node.n5 .hb.o{animation:hout-n5 18s linear 3.2s infinite}
+.n6::after{animation:hit-n6 18s linear 3.2s infinite}
+.node.n6 .hb.i{animation:hin-n6 18s linear 3.2s infinite}
+.node.n6 .hb.o{animation:hout-n6 18s linear 3.2s infinite}
+.n7::after{animation:hit-n7 18s linear 3.2s infinite}
+.node.n7 .hb.i{animation:hin-n7 18s linear 3.2s infinite}
+.node.n7 .hb.o{animation:hout-n7 18s linear 3.2s infinite}
+.n8::after{animation:hit-n8 18s linear 3.2s infinite}
+.node.n8 .hb.i{animation:hin-n8 18s linear 3.2s infinite}
+.node.n8 .hb.o{animation:hout-n8 18s linear 3.2s infinite}
+.n10::after{animation:hit-n10 18s linear 3.2s infinite}
+.node.n10 .hb.i{animation:hin-n10 18s linear 3.2s infinite}
+.node.n10 .hb.o{animation:hout-n10 18s linear 3.2s infinite}
+.n9::after{animation:hit-n9 18s linear 3.2s infinite}
+.node.n9 .hb.i{animation:hin-n9 18s linear 3.2s infinite}
+.node.n9 .hb.o{animation:hout-n9 18s linear 3.2s infinite}
+.n11::after{animation:hit-n11 18s linear 3.2s infinite}
+.node.n11 .hb.i{animation:hin-n11 18s linear 3.2s infinite}
+.node.n11 .hb.o{animation:hout-n11 18s linear 3.2s infinite}
+.n12::after{animation:hit-n12 18s linear 3.2s infinite}
+.node.n12 .hb.i{animation:hin-n12 18s linear 3.2s infinite}
+.node.n12 .hb.o{animation:hout-n12 18s linear 3.2s infinite}
+.n13::after{animation:hit-n13 18s linear 3.2s infinite}
+.node.n13 .hb.i{animation:hin-n13 18s linear 3.2s infinite}
+.node.n13 .hb.o{animation:hout-n13 18s linear 3.2s infinite}
+@keyframes pu1{0%{left:480px;top:108px;opacity:0}2.494%{left:480px;top:108px;opacity:0}2.5%{left:480px;top:108px;opacity:0.0}2.609%{left:480px;top:112px;opacity:1.0}3.3%{left:480px;top:139px;opacity:1.0}3.409%{left:480px;top:144px;opacity:0}52.494%{left:480px;top:108px;opacity:0}52.5%{left:480px;top:108px;opacity:0.0}52.609%{left:480px;top:112px;opacity:1.0}53.3%{left:480px;top:139px;opacity:1.0}53.409%{left:480px;top:144px;opacity:0}100%{left:480px;top:144px;opacity:0}}
+@keyframes pu2{0%{left:480px;top:179px;opacity:0}5.904%{left:480px;top:179px;opacity:0}5.909%{left:480px;top:179px;opacity:0.0}6.018%{left:480px;top:183px;opacity:1.0}6.709%{left:480px;top:210px;opacity:1.0}6.818%{left:480px;top:215px;opacity:0}55.904%{left:480px;top:179px;opacity:0}55.909%{left:480px;top:179px;opacity:0.0}56.018%{left:480px;top:183px;opacity:1.0}56.709%{left:480px;top:210px;opacity:1.0}56.818%{left:480px;top:215px;opacity:0}100%{left:480px;top:215px;opacity:0}}
+@keyframes pu3{0%{left:480px;top:363px;opacity:0}9.313%{left:480px;top:363px;opacity:0}9.318%{left:480px;top:363px;opacity:0.0}9.427%{left:480px;top:367px;opacity:1.0}10.118%{left:480px;top:394px;opacity:1.0}10.227%{left:480px;top:399px;opacity:0}59.313%{left:480px;top:363px;opacity:0}59.318%{left:480px;top:363px;opacity:0.0}59.427%{left:480px;top:367px;opacity:1.0}60.118%{left:480px;top:394px;opacity:1.0}60.227%{left:480px;top:399px;opacity:0}100%{left:480px;top:399px;opacity:0}}
+@keyframes pu4{0%{left:480px;top:459px;opacity:0}12.722%{left:480px;top:459px;opacity:0}12.727%{left:480px;top:459px;opacity:0.0}12.855%{left:480px;top:464px;opacity:1.0}13.661%{left:480px;top:495px;opacity:1.0}13.788%{left:480px;top:501px;opacity:0}62.722%{left:480px;top:459px;opacity:0}62.727%{left:480px;top:459px;opacity:0.0}62.855%{left:480px;top:464px;opacity:1.0}63.661%{left:480px;top:495px;opacity:1.0}63.788%{left:480px;top:501px;opacity:0}100%{left:480px;top:501px;opacity:0}}
+@keyframes pu5{0%{left:482px;top:499px;opacity:0}13.782%{left:482px;top:499px;opacity:0}13.788%{left:482px;top:499px;opacity:0.0}14.509%{left:453px;top:499px;opacity:1.0}19.077%{left:272px;top:499px;opacity:1.0}19.798%{left:244px;top:499px;opacity:0}63.782%{left:482px;top:499px;opacity:0}63.788%{left:482px;top:499px;opacity:0.0}64.509%{left:453px;top:499px;opacity:1.0}69.077%{left:272px;top:499px;opacity:1.0}69.798%{left:244px;top:499px;opacity:0}100%{left:244px;top:499px;opacity:0}}
+@keyframes pu6{0%{left:260px;top:483px;opacity:0}19.792%{left:260px;top:483px;opacity:0}19.798%{left:260px;top:483px;opacity:0.0}19.943%{left:260px;top:488px;opacity:1.0}20.865%{left:260px;top:525px;opacity:1.0}21.01%{left:260px;top:531px;opacity:0}69.792%{left:260px;top:483px;opacity:0}69.798%{left:260px;top:483px;opacity:0.0}69.943%{left:260px;top:488px;opacity:1.0}70.865%{left:260px;top:525px;opacity:1.0}71.01%{left:260px;top:531px;opacity:0}100%{left:260px;top:531px;opacity:0}}
+@keyframes pu7{0%{left:260px;top:587px;opacity:0}23.505%{left:260px;top:587px;opacity:0}23.51%{left:260px;top:587px;opacity:0.0}23.619%{left:260px;top:591px;opacity:1.0}24.31%{left:260px;top:618px;opacity:1.0}24.419%{left:260px;top:623px;opacity:0}73.505%{left:260px;top:587px;opacity:0}73.51%{left:260px;top:587px;opacity:0.0}73.619%{left:260px;top:591px;opacity:1.0}74.31%{left:260px;top:618px;opacity:1.0}74.419%{left:260px;top:623px;opacity:0}100%{left:260px;top:623px;opacity:0}}
+@keyframes pu8{0%{left:260px;top:683px;opacity:0}26.914%{left:260px;top:683px;opacity:0}26.919%{left:260px;top:683px;opacity:0.0}27.028%{left:260px;top:687px;opacity:1.0}27.719%{left:260px;top:714px;opacity:1.0}27.828%{left:260px;top:719px;opacity:0}76.914%{left:260px;top:683px;opacity:0}76.919%{left:260px;top:683px;opacity:0.0}77.028%{left:260px;top:687px;opacity:1.0}77.719%{left:260px;top:714px;opacity:1.0}77.828%{left:260px;top:719px;opacity:0}100%{left:260px;top:719px;opacity:0}}
+@keyframes pu9{0%{left:260px;top:754px;opacity:0}30.323%{left:260px;top:754px;opacity:0}30.328%{left:260px;top:754px;opacity:0.0}30.449%{left:260px;top:758px;opacity:1.0}31.217%{left:260px;top:789px;opacity:1.0}31.338%{left:260px;top:794px;opacity:0}80.323%{left:260px;top:754px;opacity:0}80.328%{left:260px;top:754px;opacity:0.0}80.449%{left:260px;top:758px;opacity:1.0}81.217%{left:260px;top:789px;opacity:1.0}81.338%{left:260px;top:794px;opacity:0}100%{left:260px;top:794px;opacity:0}}
+@keyframes pu10{0%{left:262px;top:792px;opacity:0}31.333%{left:262px;top:792px;opacity:0}31.338%{left:262px;top:792px;opacity:0.0}31.757%{left:245px;top:792px;opacity:1.0}34.405%{left:140px;top:792px;opacity:1.0}34.823%{left:124px;top:792px;opacity:0}81.333%{left:262px;top:792px;opacity:0}81.338%{left:262px;top:792px;opacity:0.0}81.757%{left:245px;top:792px;opacity:1.0}84.405%{left:140px;top:792px;opacity:1.0}84.823%{left:124px;top:792px;opacity:0}100%{left:124px;top:792px;opacity:0}}
+@keyframes pu11{0%{left:140px;top:776px;opacity:0}34.818%{left:140px;top:776px;opacity:0}34.823%{left:140px;top:776px;opacity:0.0}34.944%{left:140px;top:780px;opacity:1.0}35.712%{left:140px;top:811px;opacity:1.0}35.833%{left:140px;top:816px;opacity:0}84.818%{left:140px;top:776px;opacity:0}84.823%{left:140px;top:776px;opacity:0.0}84.944%{left:140px;top:780px;opacity:1.0}85.712%{left:140px;top:811px;opacity:1.0}85.833%{left:140px;top:816px;opacity:0}100%{left:140px;top:816px;opacity:0}}
+@keyframes pu12{0%{left:140px;top:876px;opacity:0}38.328%{left:140px;top:876px;opacity:0}38.333%{left:140px;top:876px;opacity:0.0}38.448%{left:140px;top:880px;opacity:1.0}39.178%{left:140px;top:909px;opacity:1.0}39.293%{left:140px;top:914px;opacity:0}88.328%{left:140px;top:876px;opacity:0}88.333%{left:140px;top:876px;opacity:0.0}88.448%{left:140px;top:880px;opacity:1.0}89.178%{left:140px;top:909px;opacity:1.0}89.293%{left:140px;top:914px;opacity:0}100%{left:140px;top:914px;opacity:0}}
+@keyframes pu13{0%{left:124px;top:912px;opacity:0}39.287%{left:124px;top:912px;opacity:0}39.293%{left:124px;top:912px;opacity:0.0}39.711%{left:140px;top:912px;opacity:1.0}42.36%{left:245px;top:912px;opacity:1.0}42.778%{left:262px;top:912px;opacity:0}89.287%{left:124px;top:912px;opacity:0}89.293%{left:124px;top:912px;opacity:0.0}89.711%{left:140px;top:912px;opacity:1.0}92.36%{left:245px;top:912px;opacity:1.0}92.778%{left:262px;top:912px;opacity:0}100%{left:262px;top:912px;opacity:0}}
+@keyframes pu14{0%{left:260px;top:896px;opacity:0}42.772%{left:260px;top:896px;opacity:0}42.778%{left:260px;top:896px;opacity:0.0}42.887%{left:260px;top:900px;opacity:1.0}43.578%{left:260px;top:927px;opacity:1.0}43.687%{left:260px;top:932px;opacity:0}92.772%{left:260px;top:896px;opacity:0}92.778%{left:260px;top:896px;opacity:0.0}92.887%{left:260px;top:900px;opacity:1.0}93.578%{left:260px;top:927px;opacity:1.0}93.687%{left:260px;top:932px;opacity:0}100%{left:260px;top:932px;opacity:0}}
+@keyframes pu15{0%{left:244px;top:792px;opacity:0}31.333%{left:244px;top:792px;opacity:0}31.338%{left:244px;top:792px;opacity:0.0}31.757%{left:260px;top:792px;opacity:1.0}34.405%{left:365px;top:792px;opacity:1.0}34.823%{left:382px;top:792px;opacity:0}81.333%{left:244px;top:792px;opacity:0}81.338%{left:244px;top:792px;opacity:0.0}81.757%{left:260px;top:792px;opacity:1.0}84.405%{left:365px;top:792px;opacity:1.0}84.823%{left:382px;top:792px;opacity:0}100%{left:382px;top:792px;opacity:0}}
+@keyframes pu16{0%{left:380px;top:776px;opacity:0}34.818%{left:380px;top:776px;opacity:0}34.823%{left:380px;top:776px;opacity:0.0}34.944%{left:380px;top:780px;opacity:1.0}35.712%{left:380px;top:811px;opacity:1.0}35.833%{left:380px;top:816px;opacity:0}84.818%{left:380px;top:776px;opacity:0}84.823%{left:380px;top:776px;opacity:0.0}84.944%{left:380px;top:780px;opacity:1.0}85.712%{left:380px;top:811px;opacity:1.0}85.833%{left:380px;top:816px;opacity:0}100%{left:380px;top:816px;opacity:0}}
+@keyframes pu17{0%{left:380px;top:876px;opacity:0}38.328%{left:380px;top:876px;opacity:0}38.333%{left:380px;top:876px;opacity:0.0}38.448%{left:380px;top:880px;opacity:1.0}39.178%{left:380px;top:909px;opacity:1.0}39.293%{left:380px;top:914px;opacity:0}88.328%{left:380px;top:876px;opacity:0}88.333%{left:380px;top:876px;opacity:0.0}88.448%{left:380px;top:880px;opacity:1.0}89.178%{left:380px;top:909px;opacity:1.0}89.293%{left:380px;top:914px;opacity:0}100%{left:380px;top:914px;opacity:0}}
+@keyframes pu18{0%{left:382px;top:912px;opacity:0}39.287%{left:382px;top:912px;opacity:0}39.293%{left:382px;top:912px;opacity:0.0}39.711%{left:365px;top:912px;opacity:1.0}42.36%{left:260px;top:912px;opacity:1.0}42.778%{left:244px;top:912px;opacity:0}89.287%{left:382px;top:912px;opacity:0}89.293%{left:382px;top:912px;opacity:0.0}89.711%{left:365px;top:912px;opacity:1.0}92.36%{left:260px;top:912px;opacity:1.0}92.778%{left:244px;top:912px;opacity:0}100%{left:244px;top:912px;opacity:0}}
+@keyframes pu19{0%{left:260px;top:896px;opacity:0}42.772%{left:260px;top:896px;opacity:0}42.778%{left:260px;top:896px;opacity:0.0}42.887%{left:260px;top:900px;opacity:1.0}43.578%{left:260px;top:927px;opacity:1.0}43.687%{left:260px;top:932px;opacity:0}92.772%{left:260px;top:896px;opacity:0}92.778%{left:260px;top:896px;opacity:0.0}92.887%{left:260px;top:900px;opacity:1.0}93.578%{left:260px;top:927px;opacity:1.0}93.687%{left:260px;top:932px;opacity:0}100%{left:260px;top:932px;opacity:0}}
+@keyframes pu20{0%{left:464px;top:499px;opacity:0}13.782%{left:464px;top:499px;opacity:0}13.788%{left:464px;top:499px;opacity:0.0}14.509%{left:492px;top:499px;opacity:0.55}19.077%{left:673px;top:499px;opacity:0.55}19.798%{left:702px;top:499px;opacity:0}63.782%{left:464px;top:499px;opacity:0}63.788%{left:464px;top:499px;opacity:0.0}64.509%{left:492px;top:499px;opacity:0.55}69.077%{left:673px;top:499px;opacity:0.55}69.798%{left:702px;top:499px;opacity:0}100%{left:702px;top:499px;opacity:0}}
+@keyframes pu21{0%{left:700px;top:483px;opacity:0}19.792%{left:700px;top:483px;opacity:0}19.798%{left:700px;top:483px;opacity:0.0}19.943%{left:700px;top:488px;opacity:0.55}20.865%{left:700px;top:525px;opacity:0.55}21.01%{left:700px;top:531px;opacity:0}69.792%{left:700px;top:483px;opacity:0}69.798%{left:700px;top:483px;opacity:0.0}69.943%{left:700px;top:488px;opacity:0.55}70.865%{left:700px;top:525px;opacity:0.55}71.01%{left:700px;top:531px;opacity:0}100%{left:700px;top:531px;opacity:0}}
+@keyframes pu22{0%{left:700px;top:587px;opacity:0}23.505%{left:700px;top:587px;opacity:0}23.51%{left:700px;top:587px;opacity:0.0}23.619%{left:700px;top:591px;opacity:0.55}24.31%{left:700px;top:618px;opacity:0.55}24.419%{left:700px;top:623px;opacity:0}73.505%{left:700px;top:587px;opacity:0}73.51%{left:700px;top:587px;opacity:0.0}73.619%{left:700px;top:591px;opacity:0.55}74.31%{left:700px;top:618px;opacity:0.55}74.419%{left:700px;top:623px;opacity:0}100%{left:700px;top:623px;opacity:0}}
+@keyframes pu23{0%{left:700px;top:699px;opacity:0}26.914%{left:700px;top:699px;opacity:0}26.919%{left:700px;top:699px;opacity:0.0}27.028%{left:700px;top:703px;opacity:0.55}27.719%{left:700px;top:730px;opacity:0.55}27.828%{left:700px;top:735px;opacity:0}76.914%{left:700px;top:699px;opacity:0}76.919%{left:700px;top:699px;opacity:0.0}77.028%{left:700px;top:703px;opacity:0.55}77.719%{left:700px;top:730px;opacity:0.55}77.828%{left:700px;top:735px;opacity:0}100%{left:700px;top:735px;opacity:0}}
+@keyframes hit-n1{0%{opacity:0}0.0%{opacity:0}0.444%{opacity:1.0}2.056%{opacity:1.0}3.167%{opacity:0}49.994%{opacity:0}50.444%{opacity:1.0}52.056%{opacity:1.0}53.167%{opacity:0}100%{opacity:0}}
+@keyframes hin-n1{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}0.0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}0.333%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}1.222%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}2.222%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}49.994%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}50.333%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}51.222%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}52.222%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-n1{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}2.494%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}2.833%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}3.722%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}4.722%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}52.494%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}52.833%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}53.722%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}54.722%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-n2{0%{opacity:0}3.404%{opacity:0}3.854%{opacity:1.0}5.465%{opacity:1.0}6.576%{opacity:0}53.404%{opacity:0}53.854%{opacity:1.0}55.465%{opacity:1.0}56.576%{opacity:0}100%{opacity:0}}
+@keyframes hin-n2{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}3.404%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}3.742%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}4.631%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}5.631%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}53.404%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}53.742%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}54.631%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}55.631%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-n2{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}5.904%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}6.242%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}7.131%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}8.131%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}55.904%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}56.242%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}57.131%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}58.131%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-n3{0%{opacity:0}6.813%{opacity:0}7.263%{opacity:1.0}8.874%{opacity:1.0}9.985%{opacity:0}56.813%{opacity:0}57.263%{opacity:1.0}58.874%{opacity:1.0}59.985%{opacity:0}100%{opacity:0}}
+@keyframes hin-n3{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}6.813%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}7.152%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}8.04%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}9.04%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}56.813%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}57.152%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}58.04%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}59.04%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-n3{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}9.313%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}9.652%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}10.54%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}11.54%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}59.313%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}59.652%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}60.54%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}61.54%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-n4{0%{opacity:0}10.222%{opacity:0}10.672%{opacity:1.0}12.283%{opacity:1.0}13.394%{opacity:0}60.222%{opacity:0}60.672%{opacity:1.0}62.283%{opacity:1.0}63.394%{opacity:0}100%{opacity:0}}
+@keyframes hin-n4{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}10.222%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}10.561%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}11.449%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}12.449%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}60.222%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}60.561%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}61.449%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}62.449%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-n4{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}12.722%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}13.061%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}13.949%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}14.949%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}62.722%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}63.061%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}63.949%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}64.949%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-n5{0%{opacity:0}21.005%{opacity:0}21.455%{opacity:1.0}23.066%{opacity:1.0}24.177%{opacity:0}71.005%{opacity:0}71.455%{opacity:1.0}73.066%{opacity:1.0}74.177%{opacity:0}100%{opacity:0}}
+@keyframes hin-n5{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}21.005%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}21.343%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}22.232%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}23.232%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}71.005%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}71.343%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}72.232%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}73.232%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-n5{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}23.505%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}23.843%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}24.732%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}25.732%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}73.505%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}73.843%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}74.732%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}75.732%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-n6{0%{opacity:0}24.414%{opacity:0}24.864%{opacity:1.0}26.475%{opacity:1.0}27.586%{opacity:0}74.414%{opacity:0}74.864%{opacity:1.0}76.475%{opacity:1.0}77.586%{opacity:0}100%{opacity:0}}
+@keyframes hin-n6{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}24.414%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}24.753%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}25.641%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}26.641%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}74.414%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}74.753%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}75.641%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}76.641%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-n6{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}26.914%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}27.253%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}28.141%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}29.141%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}76.914%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}77.253%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}78.141%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}79.141%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-n7{0%{opacity:0}27.823%{opacity:0}28.273%{opacity:1.0}29.884%{opacity:1.0}30.995%{opacity:0}77.823%{opacity:0}78.273%{opacity:1.0}79.884%{opacity:1.0}80.995%{opacity:0}100%{opacity:0}}
+@keyframes hin-n7{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}27.823%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}28.162%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}29.051%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}30.051%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}77.823%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}78.162%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}79.051%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}80.051%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-n7{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}30.323%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}30.662%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}31.551%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}32.551%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}80.323%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}80.662%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}81.551%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}82.551%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-n8{0%{opacity:0}35.828%{opacity:0}36.278%{opacity:1.0}37.889%{opacity:1.0}39.0%{opacity:0}85.828%{opacity:0}86.278%{opacity:1.0}87.889%{opacity:1.0}89.0%{opacity:0}100%{opacity:0}}
+@keyframes hin-n8{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}35.828%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}36.167%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}37.056%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}38.056%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}85.828%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}86.167%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}87.056%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}88.056%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-n8{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}38.328%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}38.667%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}39.556%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}40.556%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}88.328%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}88.667%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}89.556%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}90.556%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-n10{0%{opacity:0}43.681%{opacity:0}43.681%{opacity:0}44.131%{opacity:1.0}44.131%{opacity:1.0}45.742%{opacity:1.0}45.742%{opacity:1.0}46.854%{opacity:0}46.854%{opacity:0}93.681%{opacity:0}93.681%{opacity:0}94.131%{opacity:1.0}94.131%{opacity:1.0}95.742%{opacity:1.0}95.742%{opacity:1.0}96.854%{opacity:0}96.854%{opacity:0}100%{opacity:0}}
+@keyframes hin-n10{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}43.681%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}43.681%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}44.02%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}44.02%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}44.909%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}44.909%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}45.909%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}45.909%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}93.681%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}93.681%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}94.02%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}94.02%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}94.909%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}94.909%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}95.909%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}95.909%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-n10{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}46.181%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}46.181%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}46.52%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}46.52%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}47.409%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}47.409%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}48.409%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}48.409%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}96.181%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}96.181%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}96.52%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}96.52%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}97.409%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}97.409%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}98.409%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}98.409%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-n9{0%{opacity:0}35.828%{opacity:0}36.278%{opacity:1.0}37.889%{opacity:1.0}39.0%{opacity:0}85.828%{opacity:0}86.278%{opacity:1.0}87.889%{opacity:1.0}89.0%{opacity:0}100%{opacity:0}}
+@keyframes hin-n9{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}35.828%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}36.167%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}37.056%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}38.056%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}85.828%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}86.167%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}87.056%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}88.056%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-n9{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}38.328%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}38.667%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}39.556%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}40.556%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}88.328%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}88.667%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}89.556%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}90.556%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-n11{0%{opacity:0}21.005%{opacity:0}21.455%{opacity:0.55}23.066%{opacity:0.55}24.177%{opacity:0}71.005%{opacity:0}71.455%{opacity:0.55}73.066%{opacity:0.55}74.177%{opacity:0}100%{opacity:0}}
+@keyframes hin-n11{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}21.005%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}21.343%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}22.232%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}23.232%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}71.005%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}71.343%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}72.232%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}73.232%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-n11{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}23.505%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}23.843%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}24.732%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}25.732%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}73.505%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}73.843%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}74.732%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}75.732%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-n12{0%{opacity:0}24.414%{opacity:0}24.864%{opacity:0.55}26.475%{opacity:0.55}27.586%{opacity:0}74.414%{opacity:0}74.864%{opacity:0.55}76.475%{opacity:0.55}77.586%{opacity:0}100%{opacity:0}}
+@keyframes hin-n12{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}24.414%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}24.753%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}25.641%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}26.641%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}74.414%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}74.753%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}75.641%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}76.641%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-n12{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}26.914%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}27.253%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}28.141%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}29.141%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}76.914%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}77.253%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}78.141%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}79.141%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-n13{0%{opacity:0}27.823%{opacity:0}28.273%{opacity:0.55}29.884%{opacity:0.55}30.995%{opacity:0}77.823%{opacity:0}78.273%{opacity:0.55}79.884%{opacity:0.55}80.995%{opacity:0}100%{opacity:0}}
+@keyframes hin-n13{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}27.823%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}28.162%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}29.051%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}30.051%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}77.823%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}78.162%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}79.051%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}80.051%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-n13{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}30.323%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}30.662%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}31.551%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}32.551%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}80.323%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}80.662%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}81.551%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}82.551%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+/* end flow pulse */
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<h1 class="vh">Automation flow canvas</h1>
+<div style="min-height:100vh;display:flex;flex-direction:column">
+  <a href="#main" class="skip">Skip to content</a>
+  <header style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
+    <a href="AutomationsList.dc.html" class="btn ic" aria-label="Back to automations"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
+    <div style="display:flex;flex-direction:column;min-width:0"><span class="k" style="font-size:11px">Automation</span><span style="font-size:15px;font-weight:700">Welcome series</span></div>
+    <span class="badge ok"><span class="dot"></span>Live · v3 since 2 Oct</span>
+    <span class="badge warn">Unpublished changes · 3</span>
+    <span class="badge pur" style="margin-left:6px"><span class="dot" style="color:#4a3aa7"></span>Automations route · SES, failover Postmark</span>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn">Pause</button>
+      <a href="AutomationsStates.dc.html" class="btn">Version history</a>
+      <a href="AutomationPublish.dc.html" class="btn pri">Publish v4</a>
+    </div>
+  </header>
+
+  <div style="display:flex;flex-wrap:wrap;flex:1;align-items:stretch">
+    <aside class="cpanel" style="flex:1 1 240px;max-width:240px;background:#fff;border-right:1px solid #E3E6EB;display:flex;flex-direction:column">
+      <div class="ptab" role="tablist"><button class="on" role="tab">Steps</button><button role="tab">Stats</button></div>
+      <div class="grp">Triggers</div>
+      <div style="display:flex;flex-direction:column;gap:6px;padding:0 12px 8px">
+        <div class="pal" draggable="true"><span class="sw" style="background:#0F766E"></span>Joined list</div>
+        <div class="pal" draggable="true"><span class="sw" style="background:#0F766E"></span>Form submitted</div>
+        <div class="pal" draggable="true"><span class="sw" style="background:#0F766E"></span>Tag added</div>
+        <div class="pal" draggable="true"><span class="sw" style="background:#0F766E"></span>API event</div>
+        <div class="pal" draggable="true"><span class="sw" style="background:#0F766E"></span>Date field</div>
+      </div>
+      <div class="grp">Steps</div>
+      <div style="display:flex;flex-direction:column;gap:6px;padding:0 12px 8px">
+        <div class="pal" draggable="true"><span class="sw" style="background:#6B7280"></span>Delay</div>
+        <div class="pal" draggable="true"><span class="sw" style="background:#4a3aa7"></span>Send email</div>
+        <div class="pal" draggable="true"><span class="sw" style="background:#B45309"></span>Branch</div>
+        <div class="pal" draggable="true"><span class="sw" style="background:#B45309"></span>Filter</div>
+        <div class="pal" draggable="true"><span class="sw" style="background:#B45309"></span>A/B split</div>
+        <div class="pal" draggable="true"><span class="sw" style="background:#1D4ED8"></span>Webhook</div>
+        <div class="pal" draggable="true"><span class="sw" style="background:#1D4ED8"></span>List action</div>
+        <div class="pal" draggable="true"><span class="sw" style="background:#0B1220"></span>Goal / exit</div>
+      </div>
+      <div style="margin-top:auto;padding:10px 12px;border-top:1px solid #EEF0F3" class="k">Drag a step onto the canvas or onto an edge. Snap to grid is on.</div>
+    </aside>
+
+    <section role="main" id="main" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;background:#F3F4F6">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB">
+        <span class="k">Live stats · last 30 days · 1,284 entered</span>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;margin-left:8px"><input type="checkbox" checked>Show stats on nodes</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12.5px"><input type="checkbox" checked>Snap to grid</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12.5px"><input type="checkbox" checked="{{animChecked}}" onChange="{{onToggleAnim}}">Animate flow</label>
+        <span class="k" style="margin-left:auto">Zoom 100% · scroll to pan · ⌘ + wheel to zoom</span>
+      </div>
+
+      <div style="position:relative;flex:1;min-height:1056px;overflow:auto;background-color:#F3F4F6;background-image:radial-gradient(#D4D8DF 1px, transparent 1px);background-size:20px 20px" role="group" aria-label="Flow canvas">
+        <div class="{{animCls}}" style="position:relative;width:900px;height:1036px;margin:0 auto">
+          <span class="pu p1" aria-hidden="true"></span><span class="pu p2" aria-hidden="true"></span><span class="pu p3" aria-hidden="true"></span><span class="pu p4" aria-hidden="true"></span><span class="pu p5 h" aria-hidden="true"></span><span class="pu p6" aria-hidden="true"></span><span class="pu p7" aria-hidden="true"></span><span class="pu p8" aria-hidden="true"></span><span class="pu p9" aria-hidden="true"></span><span class="pu p10 h" aria-hidden="true"></span><span class="pu p11" aria-hidden="true"></span><span class="pu p12" aria-hidden="true"></span><span class="pu p13 h" aria-hidden="true"></span><span class="pu p14" aria-hidden="true"></span><span class="pu p15 h" aria-hidden="true"></span><span class="pu p16" aria-hidden="true"></span><span class="pu p17" aria-hidden="true"></span><span class="pu p18 h" aria-hidden="true"></span><span class="pu p19" aria-hidden="true"></span><span class="pu p20 h" aria-hidden="true"></span><span class="pu p21" aria-hidden="true"></span><span class="pu p22" aria-hidden="true"></span><span class="pu p23" aria-hidden="true"></span>
+          
+          
+
+          <div class="edge e1" style="left:481px;top:126px;width:2px;height:18px"></div>
+          <div class="edge e2" style="left:481px;top:197px;width:2px;height:18px"></div>
+          <div class="edge e3" style="left:481px;top:381px;width:2px;height:18px"></div>
+          <div class="edge e4" style="left:481px;top:477px;width:2px;height:24px"></div>
+          <div class="edge e5 h" style="left:261px;top:501px;width:442px;height:2px"></div>
+          <div class="edge e6" style="left:261px;top:501px;width:2px;height:30px"></div>
+          <div class="edge e7" style="left:701px;top:501px;width:2px;height:30px"></div>
+          <span class="elab l1" style="left:276px;top:490px;background:#DCFCE7;border-color:#86EFAC;color:#166534">Yes · 61%</span>
+          <span class="elab l2" style="left:716px;top:490px;background:#FEF3C7;border-color:#FDE68A;color:#92400E">No · 39%</span>
+          <div class="edge e8" style="left:261px;top:605px;width:2px;height:18px"></div>
+          <div class="edge e9" style="left:261px;top:701px;width:2px;height:18px"></div>
+          <div class="edge e10" style="left:261px;top:772px;width:2px;height:22px"></div>
+          <div class="edge e11 h" style="left:141px;top:794px;width:242px;height:2px"></div>
+          <div class="edge e12" style="left:141px;top:794px;width:2px;height:22px"></div>
+          <div class="edge e13" style="left:381px;top:794px;width:2px;height:22px"></div>
+          <span class="elab l3" style="left:150px;top:783px">A · 50%</span>
+          <span class="elab l4" style="left:390px;top:783px">B · 50%</span>
+          <div class="edge e14" style="left:141px;top:894px;width:2px;height:20px"></div>
+          <div class="edge e15" style="left:381px;top:894px;width:2px;height:20px"></div>
+          <div class="edge e16 h" style="left:141px;top:914px;width:242px;height:2px"></div>
+          <div class="edge e17" style="left:261px;top:914px;width:2px;height:18px"></div>
+          <div class="edge e18" style="left:701px;top:605px;width:2px;height:18px"></div>
+          <div class="edge e19" style="left:701px;top:717px;width:2px;height:18px"></div>
+
+          <div class="node n1" style="left:370px;top:24px;border-color:#0F766E">
+            <span class="hb o"></span>
+            <div class="hd" style="color:#0F766E"><span class="dot live"></span>Trigger · joined list</div>
+            <div class="t">Weekly Digest</div>
+            <div class="st"><span><b class="n">{{v.entered}}</b> entered · 30 d</span><span>double opt-in confirmed only</span></div>
+          </div>
+
+          <div class="node n2" style="left:370px;top:144px;padding:7px 11px">
+            <span class="hb i"></span><span class="hb o"></span>
+            <div class="hd" style="color:#6B7280"><span class="dot"></span>Delay</div>
+            <div class="t">Wait 10 minutes</div>
+          </div>
+
+          <div class="node sel n3" style="left:370px;top:215px">
+            <span class="hb i"></span><span class="hb o"></span>
+            <div class="hd" style="color:#4a3aa7"><span class="dot"></span>Send email · Automations route</div>
+            <div class="t">Welcome · step 1 "You're in"</div>
+            <div class="st"><span><b class="n">{{v.s1}}</b> sent</span><span><b class="n">{{v.o1}}</b> human opens</span><span><b class="n">{{v.c1}}</b> clicks</span></div>
+            <div class="st"><span class="badge pur" style="height:18px;font-size:10.5px">SES {{v.ses}}</span><span class="badge mut" style="height:18px;font-size:10.5px"><span class="dot" style="color:#008300"></span>Postmark {{v.pm}} · failover</span></div>
+          </div>
+
+          <div class="node n4" style="left:370px;top:399px;border-color:#F59E0B">
+            <span class="hb i"></span><span class="hb o"></span>
+            <div class="hd" style="color:#B45309"><span class="dot"></span>Branch</div>
+            <div class="t">Opened step 1 within 2 days?</div>
+            <div class="st"><span>human opens only</span></div>
+          </div>
+
+          <div class="node n5" style="left:150px;top:531px;padding:7px 11px">
+            <span class="hb i"></span><span class="hb o"></span>
+            <div class="hd" style="color:#6B7280"><span class="dot"></span>Delay</div>
+            <div class="t">Wait 2 days</div>
+            <div class="st"><span><b class="n">{{v.w2}}</b> waiting or passed</span></div>
+          </div>
+
+          <div class="node n6" style="left:150px;top:623px">
+            <span class="hb i"></span><span class="hb o"></span>
+            <div class="hd" style="color:#4a3aa7"><span class="dot"></span>Send email</div>
+            <div class="t">Step 2 "Three things to try first"</div>
+            <div class="st"><span><b class="n">{{v.s2}}</b> sent</span><span><b class="n">{{v.o2}}</b> opens</span><span><b class="n">{{v.c2}}</b> clicks</span></div>
+          </div>
+
+          <div class="node n7" style="left:150px;top:719px;padding:7px 11px;border-color:#F59E0B;border-style:dashed">
+            <span class="hb i"></span><span class="hb o"></span>
+            <div class="hd" style="color:#B45309"><span class="dot"></span>A/B split · new in v4</div>
+            <div class="t">50 / 50 on step 3</div>
+          </div>
+
+          <div class="node n8" style="left:30px;top:816px;border-style:dashed">
+            <span class="hb i"></span><span class="hb o"></span>
+            <div class="hd" style="color:#4a3aa7"><span class="dot"></span>Send email · A</div>
+            <div class="t">Step 3 "Set up your first flag"</div>
+            <div class="st"><span>no stats until published</span></div>
+          </div>
+
+          <div class="node n9" style="left:270px;top:816px;border-style:dashed">
+            <span class="hb i"></span><span class="hb o"></span>
+            <div class="hd" style="color:#4a3aa7"><span class="dot"></span>Send email · B</div>
+            <div class="t">Step 3 "A 5-minute walkthrough"</div>
+            <div class="st"><span>no stats until published</span></div>
+          </div>
+
+          <div class="node n10" style="left:150px;top:932px;padding:7px 11px;border-color:#0B1220">
+            <span class="hb i"></span>
+            <div class="hd" style="color:#0B1220"><span class="dot"></span>Goal</div>
+            <div class="t">Clicked a docs link</div>
+            <div class="st"><span><b class="n">{{v.goal}}</b> reached · {{v.goalPct}}</span></div>
+          </div>
+
+          <div class="node n11" style="left:590px;top:531px;padding:7px 11px">
+            <span class="hb i"></span><span class="hb o"></span>
+            <div class="hd" style="color:#6B7280"><span class="dot"></span>Delay</div>
+            <div class="t">Wait 3 days</div>
+            <div class="st"><span><b class="n">{{v.w3}}</b> waiting or passed</span></div>
+          </div>
+
+          <div class="node n12" style="left:590px;top:623px">
+            <span class="hb i"></span><span class="hb o"></span>
+            <div class="hd" style="color:#4a3aa7"><span class="dot"></span>Send email</div>
+            <div class="t">"Did you get our welcome?" · plain text</div>
+            <div class="st"><span><b class="n">{{v.s3}}</b> sent</span><span><b class="n">{{v.o3}}</b> opens</span><span><b class="n">{{v.c3}}</b> clicks</span></div>
+          </div>
+
+          <div class="node n13" style="left:590px;top:735px;padding:7px 11px;border-color:#0B1220">
+            <span class="hb i"></span>
+            <div class="hd" style="color:#0B1220"><span class="dot"></span>Exit</div>
+            <div class="t">Leave the flow · stays on the list</div>
+            <div class="st"><span><b class="n">{{v.exit}}</b> exited</span></div>
+          </div>
+        </div>
+
+        <div style="position:absolute;left:14px;top:14px;display:flex;flex-direction:column;gap:4px;background:#fff;border:1px solid #D4D8DF;border-radius:8px;padding:4px" role="group" aria-label="Canvas controls">
+          <button class="btn ic" aria-label="Zoom in">+</button><button class="btn ic" aria-label="Zoom out">−</button><button class="btn ic" aria-label="Fit view"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"></path></svg></button><button class="btn ic" aria-label="Lock canvas"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"></rect><path d="M5 7V5a3 3 0 0 1 6 0v2"></path></svg></button>
+        </div>
+        <div style="position:absolute;right:14px;bottom:14px;width:160px;height:110px;background:#fff;border:1px solid #D4D8DF;border-radius:8px;padding:8px;box-sizing:border-box" aria-label="Minimap" role="img">
+          <div style="position:relative;width:100%;height:100%">
+            <div style="position:absolute;left:52px;top:2px;width:36px;height:8px;background:#C9CED6;border-radius:2px"></div>
+            <div style="position:absolute;left:52px;top:14px;width:36px;height:6px;background:#C9CED6;border-radius:2px"></div>
+            <div style="position:absolute;left:52px;top:24px;width:36px;height:10px;background:#1D4ED8;border-radius:2px"></div>
+            <div style="position:absolute;left:52px;top:38px;width:36px;height:8px;background:#C9CED6;border-radius:2px"></div>
+            <div style="position:absolute;left:18px;top:52px;width:36px;height:8px;background:#C9CED6;border-radius:2px"></div><div style="position:absolute;left:88px;top:52px;width:36px;height:8px;background:#C9CED6;border-radius:2px"></div>
+            <div style="position:absolute;left:18px;top:64px;width:36px;height:10px;background:#C9CED6;border-radius:2px"></div><div style="position:absolute;left:88px;top:64px;width:36px;height:10px;background:#C9CED6;border-radius:2px"></div>
+            <div style="position:absolute;left:2px;top:80px;width:30px;height:8px;background:#C9CED6;border-radius:2px"></div><div style="position:absolute;left:36px;top:80px;width:30px;height:8px;background:#C9CED6;border-radius:2px"></div><div style="position:absolute;left:88px;top:78px;width:36px;height:6px;background:#C9CED6;border-radius:2px"></div>
+            <div style="position:absolute;left:0;top:0;width:100%;height:70%;border:1.5px solid #1D4ED8;border-radius:3px;box-sizing:border-box"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="cpanel" style="flex:1 1 300px;max-width:300px;background:#fff;border-left:1px solid #E3E6EB;display:flex;flex-direction:column">
+      <div class="ptab" role="tablist"><button class="on" role="tab">Step</button><button role="tab">Stats</button></div>
+      <div style="padding:10px 12px;border-bottom:1px solid #EEF0F3;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Send email · Welcome step 1</span><span class="k">Automations stream</span></div>
+      <div class="prop"><span class="tt">Email</span><select aria-label="Email" class="in"><option>Welcome · step 1 "You're in" · v5</option><option>Create new from template</option></select><div style="display:flex;gap:6px"><a href="Composer.dc.html" class="btn" style="min-height:28px;font-size:12px">Edit in composer</a><a href="ComposerPreview.dc.html" class="btn" style="min-height:28px;font-size:12px">Preview</a></div></div>
+      <div class="prop"><span class="tt">Subject</span><input aria-label="Subject" class="in" value="You're in. Here's what to expect from Acme"></div>
+      <div class="prop"><span class="tt">Sending route</span><select aria-label="Sending route" class="in"><option>Automations route · SES, failover Postmark (default)</option><option>Override: Postmark only</option><option>Override: Postal only</option></select><span class="k">Automations fail over automatically after 3 failed sends.</span></div>
+      <div class="prop"><span class="tt">Send window</span><label style="display:flex;gap:8px;align-items:center;font-size:12.5px"><input type="checkbox" checked>Only between 07:00 and 21:00 recipient-local; otherwise hold until morning</label></div>
+      <div class="prop"><span class="tt">Skip if</span><label style="display:flex;gap:8px;align-items:center;font-size:12.5px"><input type="checkbox" checked>Contact received any email in the last 4 hours</label><label style="display:flex;gap:8px;align-items:center;font-size:12.5px"><input type="checkbox">Contact is in the Beta Program list</label></div>
+      <div class="prop"><span class="tt">Live stats · 30 d</span><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;font-size:12.5px"><span>Sent <b class="n">1,276</b></span><span>Delivered <b class="n">99.3%</b></span><span>Human opens <b class="n">61.2%</b></span><span>Clicks <b class="n">14.0%</b></span><span>Bounces <b class="n">0.5%</b></span><span>Complaints <b class="n">0.02%</b></span></div></div>
+      <div style="padding:10px 12px;display:flex;gap:6px;margin-top:auto;border-top:1px solid #EEF0F3"><button class="btn" style="min-height:28px;font-size:12px">Duplicate step</button><button class="btn" style="min-height:28px;font-size:12px;color:#991B1B;border-color:#FCA5A5">Delete step</button></div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1153}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { t: 0, anim: true };
+  }
+  componentDidMount() {
+    var self = this;
+    var reduce = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { this.setState({ t: 1 }); return; }
+    var start = null, dur = 1500;
+    function step(ts) {
+      if (start === null) start = ts;
+      var p = Math.min(1, (ts - start) / dur);
+      self.setState({ t: 1 - Math.pow(1 - p, 3) });
+      if (p < 1) self._raf = requestAnimationFrame(step);
+    }
+    this._timer = setTimeout(function () { self._raf = requestAnimationFrame(step); }, 900);
+  }
+  componentWillUnmount() {
+    if (this._timer) clearTimeout(this._timer);
+    if (this._raf) cancelAnimationFrame(this._raf);
+  }
+  renderVals() {
+    var self = this;
+    var t = this.state.t;
+    function n(x) { return Math.round(x * t).toLocaleString('en-US'); }
+    function pc(x) { return Math.round(x * t) + '%'; }
+    return {
+      animCls: this.state.anim ? '' : 'still',
+      animChecked: this.state.anim,
+      onToggleAnim: function () { self.setState({ anim: !self.state.anim }); },
+      v: {
+        entered: n(1284), s1: n(1276), o1: pc(61), c1: pc(14), ses: n(1266), pm: n(10),
+        w2: n(778), s2: n(778), o2: pc(57), c2: pc(19), goal: n(312), goalPct: pc(24),
+        w3: n(498), s3: n(498), o3: pc(38), c3: pc(6), exit: n(436)
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

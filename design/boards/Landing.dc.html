@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReputeCast landing page</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:16px;line-height:1.55}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px;box-sizing:border-box}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:10px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.btn:hover{background:#F3F4F6;color:#0B1220;transform:translateY(-1px);box-shadow:0 6px 16px rgba(11,18,32,.08)}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#fff}.btn.pri:hover{background:#115E59;color:#fff;box-shadow:0 8px 20px rgba(15,118,110,.28)}
+.btn.dark{background:#0B1220;border-color:#0B1220;color:#fff}.btn.dark:hover{background:#1F2937;color:#fff}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:13px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.card{background:#fff;border:1px solid #E3E6EB;border-radius:14px}
+h2.sec{margin:0;font-size:34px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+.lead{margin:0;font-size:18px;color:#4B5563;max-width:720px}
+.chip{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-weight:600;font-size:14px;white-space:nowrap}
+pre{margin:0;padding:16px 18px;border-radius:12px;background:#0B1220;color:#E5E7EB;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14px;line-height:1.6;overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:12px 14px;border-bottom:1px solid #E3E6EB;font-size:12px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;vertical-align:bottom}
+.tbl td{padding:12px 14px;border-bottom:1px solid #EEF0F3;vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.c{text-align:center}
+.tbl td:nth-child(2),.tbl th:nth-child(2){background:#F0FDFA}
+.feat{display:flex;flex-direction:column;gap:8px;padding:22px;border:1px solid #E3E6EB;border-radius:14px;background:#fff;transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
+.feat:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(11,18,32,.08);border-color:#C9CED6}
+.feat h3{margin:0;font-size:17px;font-weight:700}
+.feat p{margin:0;font-size:14.5px;color:#4B5563}
+.in{height:42px;padding:0 12px;border:1px solid #D4D8DF;border-radius:9px;background:#fff;font:inherit;font-size:15px;color:#0B1220;box-sizing:border-box;min-width:0;width:100%}
+.row{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid #EEF0F3;font-size:14px}
+.bar{height:10px;border-radius:5px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:5px;transition:width .7s cubic-bezier(.2,.7,.2,1)}
+
+/* motion */
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.12);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes grow{from{width:0}}
+@keyframes scan{0%{top:0;opacity:0}8%{opacity:1}92%{opacity:1}100%{top:100%;opacity:0}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(185,28,28,.45)}70%{box-shadow:0 0 0 10px rgba(185,28,28,0)}100%{box-shadow:0 0 0 0 rgba(185,28,28,0)}}
+@keyframes blink{50%{opacity:0}}
+@keyframes typing{from{width:0}to{width:100%}}
+@keyframes marquee{to{transform:translateX(-50%)}}
+@keyframes drift{0%{transform:translate(0,0)}50%{transform:translate(18px,-14px)}100%{transform:translate(0,0)}}
+.rise{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+.d1{animation-delay:.05s}.d2{animation-delay:.14s}.d3{animation-delay:.24s}.d4{animation-delay:.34s}.d5{animation-delay:.44s}.d6{animation-delay:.3s}
+.chk{animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
+.chk .badge{animation:pop .45s cubic-bezier(.2,.7,.2,1) both;animation-delay:inherit}
+.c1{animation-delay:.9s}.c2{animation-delay:1.2s}.c3{animation-delay:1.5s}.c4{animation-delay:1.8s}.c5{animation-delay:2.1s}
+.verdict{animation:pop .5s cubic-bezier(.2,.7,.2,1) 2.5s both}
+.live{animation:rise .6s cubic-bezier(.2,.7,.2,1) 2.7s both}
+.paused{animation:rise .6s cubic-bezier(.2,.7,.2,1) 3.4s both}
+.pulse{animation:pulse 1.8s ease-out 3.6s infinite}
+.scan{position:relative;overflow:hidden}
+.scan::after{content:"";position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,rgba(15,118,110,0),rgba(15,118,110,.9),rgba(15,118,110,0));animation:scan 3.2s ease-in-out .6s 1 both;pointer-events:none}
+.typed{display:inline-block;max-width:100%;white-space:nowrap;overflow:hidden;vertical-align:bottom;animation:typing 2.2s steps(62,end) .5s both}
+.cursor{display:inline-block;width:9px;height:17px;background:#4ADE80;vertical-align:-2px;margin-left:2px;animation:blink 1s step-end infinite}
+.grow i{animation:grow 1.2s cubic-bezier(.2,.7,.2,1) both}
+.g1 i{animation-delay:.2s}.g2 i{animation-delay:.45s}.g3 i{animation-delay:.7s}
+.marquee{position:relative;height:40px;padding:1px 0;box-sizing:border-box;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.track{position:absolute;left:0;top:1px;display:flex;gap:10px;width:max-content;animation:marquee 38s linear infinite}
+.marquee:hover .track{animation-play-state:paused}
+.blob{position:absolute;border-radius:50%;background:#CCFBF1;opacity:.55;filter:blur(2px);animation:drift 14s ease-in-out infinite;pointer-events:none}
+.reveal{opacity:1}
+@supports (animation-timeline: view()){
+  .reveal{animation:rise .8s cubic-bezier(.2,.7,.2,1) both;animation-timeline:view();animation-range:entry 0% entry 30%}
+  .grow i{animation-timeline:view();animation-range:entry 0% entry 60%;animation-delay:0s}
+}
+@media (prefers-reduced-motion:reduce){
+  .rise,.chk,.chk .badge,.verdict,.live,.paused,.pulse,.scan::after,.typed,.grow i,.track,.blob,.reveal{animation:none!important;opacity:1;transform:none;width:auto}
+  .bar i{transition:none}
+}
+
+/* landing flow canvas */
+@keyframes nodeIn{from{opacity:0;translate:0 10px;scale:.97}to{opacity:1;translate:0 0;scale:1}}
+@keyframes drawV{from{scale:1 0}to{scale:1 1}}
+@keyframes drawH{from{scale:0 1}to{scale:1 1}}
+@keyframes labIn{0%{opacity:0;scale:.6}70%{opacity:1;scale:1.08}100%{opacity:1;scale:1}}
+@keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(15,118,110,.5)}70%{box-shadow:0 0 0 7px rgba(15,118,110,0)}100%{box-shadow:0 0 0 0 rgba(15,118,110,0)}}
+.flowwrap{position:relative;border:1px solid #E3E6EB;border-radius:14px;background-color:#F3F4F6;background-image:radial-gradient(#D4D8DF 1px,transparent 1px);background-size:20px 20px;overflow-x:auto;overflow-y:hidden;box-sizing:border-box}
+.flowbox{position:relative;overflow:hidden;margin:0 auto}
+.flowstage{position:relative;width:760px;height:760px;transform-origin:top left;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#0B1220;text-align:left}
+.fn{position:absolute;width:200px;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 1px 3px rgba(11,18,32,.08);box-sizing:border-box;padding:9px 11px;display:flex;flex-direction:column;gap:3px;z-index:2;opacity:0;font-size:12.5px;line-height:1.35;transition:transform .2s ease,box-shadow .2s ease}
+.fn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(11,18,32,.14)}
+.fn .hd{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:1.25}
+.fn .t{font-weight:600;font-size:13px}
+.fn .st{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#4B5563}
+.fn .hb{position:absolute;left:50%;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid #6B7280;transform:translateX(-50%)}
+.fn .hb.i{top:-6px}.fn .hb.o{bottom:-6px}
+.fn.sel{border-color:#1D4ED8;box-shadow:0 0 0 3px #DBEAFE}
+.fe{position:absolute;background:#9AA3B2;transform-origin:top center;opacity:0}
+.fe.h{transform-origin:center}
+.flab{position:absolute;padding:1px 7px;border-radius:999px;background:#fff;border:1px solid #D4D8DF;font-size:11px;font-weight:600;color:#374151;white-space:nowrap;opacity:0}
+.go .fn{animation:nodeIn .55s cubic-bezier(.2,.7,.2,1) both}
+.go .fe{opacity:1;animation:drawV .45s ease-out both}
+.go .fe.h{animation:drawH .45s ease-out both}
+.go .flab{animation:labIn .5s cubic-bezier(.2,.7,.2,1) both}
+.go .hd .dot.live{animation:livepulse 1.8s ease-out 1.4s infinite}
+.f1{animation-delay:.1s}.f2{animation-delay:.25s}.f3{animation-delay:.4s}.f4{animation-delay:.55s}.f5,.f7{animation-delay:.75s}.f8{animation-delay:.9s}.f6,.f9{animation-delay:1.05s}
+.e1{animation-delay:.2s}.e2{animation-delay:.35s}.e3{animation-delay:.5s}.e5{animation-delay:.62s}.e4{animation-delay:.68s}.e6,.e7{animation-delay:.74s}.e9{animation-delay:.88s}.e8{animation-delay:.92s}.e10{animation-delay:1s}
+.l1,.l2{animation-delay:.95s}
+.flowkey{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:#4B5563;padding:10px 14px;border-top:1px solid #E3E6EB;background:#fff}
+.flowkey span{display:inline-flex;align-items:center;gap:6px}
+@media (prefers-reduced-motion:reduce){.fn,.fe,.flab{opacity:1!important;animation:none!important;translate:none;scale:none}.pu{display:none!important}}
+
+.still *{animation-play-state:paused!important}
+.still .bar i{transition:none}
+
+
+/* flow pulse */
+.pu{position:absolute;z-index:1;width:4px;height:18px;border-radius:3px;background:#0F766E;box-shadow:0 0 6px 1px rgba(15,118,110,.6);opacity:0;pointer-events:none}
+.pu.h{width:18px;height:4px}
+.fn::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;box-shadow:inset 0 0 0 2px #0F766E,0 0 0 4px rgba(15,118,110,.22),0 8px 18px rgba(15,118,110,.18)}
+.still *::after,.still *::before{animation-play-state:paused!important}
+@media (prefers-reduced-motion:reduce){.pu,.fn::after{display:none}.fn .hb{animation:none!important}}
+.go .pu.p1{animation:pu1 11s linear 3.2s infinite}
+.go .pu.p2{animation:pu2 11s linear 3.2s infinite}
+.go .pu.p3{animation:pu3 11s linear 3.2s infinite}
+.go .pu.p4{animation:pu4 11s linear 3.2s infinite}
+.go .pu.p5{animation:pu5 11s linear 3.2s infinite}
+.go .pu.p6{animation:pu6 11s linear 3.2s infinite}
+.go .pu.p7{animation:pu7 11s linear 3.2s infinite}
+.go .pu.p8{animation:pu8 11s linear 3.2s infinite}
+.go .pu.p9{animation:pu9 11s linear 3.2s infinite}
+.go .pu.p10{animation:pu10 11s linear 3.2s infinite}
+.go .pu.p11{animation:pu11 11s linear 3.2s infinite}
+.go .f1::after{animation:hit-f1 11s linear 3.2s infinite}
+.go .f1 .hb.i{animation:hin-f1 11s linear 3.2s infinite}
+.go .f1 .hb.o{animation:hout-f1 11s linear 3.2s infinite}
+.go .f2::after{animation:hit-f2 11s linear 3.2s infinite}
+.go .f2 .hb.i{animation:hin-f2 11s linear 3.2s infinite}
+.go .f2 .hb.o{animation:hout-f2 11s linear 3.2s infinite}
+.go .f3::after{animation:hit-f3 11s linear 3.2s infinite}
+.go .f3 .hb.i{animation:hin-f3 11s linear 3.2s infinite}
+.go .f3 .hb.o{animation:hout-f3 11s linear 3.2s infinite}
+.go .f4::after{animation:hit-f4 11s linear 3.2s infinite}
+.go .f4 .hb.i{animation:hin-f4 11s linear 3.2s infinite}
+.go .f4 .hb.o{animation:hout-f4 11s linear 3.2s infinite}
+.go .f5::after{animation:hit-f5 11s linear 3.2s infinite}
+.go .f5 .hb.i{animation:hin-f5 11s linear 3.2s infinite}
+.go .f5 .hb.o{animation:hout-f5 11s linear 3.2s infinite}
+.go .f6::after{animation:hit-f6 11s linear 3.2s infinite}
+.go .f6 .hb.i{animation:hin-f6 11s linear 3.2s infinite}
+.go .f6 .hb.o{animation:hout-f6 11s linear 3.2s infinite}
+.go .f7::after{animation:hit-f7 11s linear 3.2s infinite}
+.go .f7 .hb.i{animation:hin-f7 11s linear 3.2s infinite}
+.go .f7 .hb.o{animation:hout-f7 11s linear 3.2s infinite}
+.go .f8::after{animation:hit-f8 11s linear 3.2s infinite}
+.go .f8 .hb.i{animation:hin-f8 11s linear 3.2s infinite}
+.go .f8 .hb.o{animation:hout-f8 11s linear 3.2s infinite}
+.go .f9::after{animation:hit-f9 11s linear 3.2s infinite}
+.go .f9 .hb.i{animation:hin-f9 11s linear 3.2s infinite}
+.go .f9 .hb.o{animation:hout-f9 11s linear 3.2s infinite}
+@keyframes pu1{0%{left:378px;top:70px;opacity:0}4.082%{left:378px;top:70px;opacity:0}4.091%{left:378px;top:70px;opacity:0.0}4.269%{left:378px;top:74px;opacity:1.0}5.4%{left:378px;top:101px;opacity:1.0}5.579%{left:378px;top:106px;opacity:0}54.082%{left:378px;top:70px;opacity:0}54.091%{left:378px;top:70px;opacity:0.0}54.269%{left:378px;top:74px;opacity:1.0}55.4%{left:378px;top:101px;opacity:1.0}55.579%{left:378px;top:106px;opacity:0}100%{left:378px;top:106px;opacity:0}}
+@keyframes pu2{0%{left:378px;top:142px;opacity:0}9.66%{left:378px;top:142px;opacity:0}9.669%{left:378px;top:142px;opacity:0.0}9.848%{left:378px;top:146px;opacity:1.0}10.979%{left:378px;top:173px;opacity:1.0}11.157%{left:378px;top:178px;opacity:0}59.66%{left:378px;top:142px;opacity:0}59.669%{left:378px;top:142px;opacity:0.0}59.848%{left:378px;top:146px;opacity:1.0}60.979%{left:378px;top:173px;opacity:1.0}61.157%{left:378px;top:178px;opacity:0}100%{left:378px;top:178px;opacity:0}}
+@keyframes pu3{0%{left:378px;top:267px;opacity:0}15.239%{left:378px;top:267px;opacity:0}15.248%{left:378px;top:267px;opacity:0.0}15.426%{left:378px;top:271px;opacity:1.0}16.557%{left:378px;top:298px;opacity:1.0}16.736%{left:378px;top:303px;opacity:0}65.239%{left:378px;top:267px;opacity:0}65.248%{left:378px;top:267px;opacity:0.0}65.426%{left:378px;top:271px;opacity:1.0}66.557%{left:378px;top:298px;opacity:1.0}66.736%{left:378px;top:303px;opacity:0}100%{left:378px;top:303px;opacity:0}}
+@keyframes pu4{0%{left:378px;top:374px;opacity:0}20.817%{left:378px;top:374px;opacity:0}20.826%{left:378px;top:374px;opacity:0.0}21.045%{left:378px;top:379px;opacity:1.0}22.426%{left:378px;top:412px;opacity:1.0}22.645%{left:378px;top:418px;opacity:0}70.817%{left:378px;top:374px;opacity:0}70.826%{left:378px;top:374px;opacity:0.0}71.045%{left:378px;top:379px;opacity:1.0}72.426%{left:378px;top:412px;opacity:1.0}72.645%{left:378px;top:418px;opacity:0}100%{left:378px;top:418px;opacity:0}}
+@keyframes pu5{0%{left:380px;top:416px;opacity:0}22.636%{left:380px;top:416px;opacity:0}22.645%{left:380px;top:416px;opacity:0.0}23.825%{left:351px;top:416px;opacity:1.0}31.299%{left:170px;top:416px;opacity:1.0}32.479%{left:142px;top:416px;opacity:0}72.636%{left:380px;top:416px;opacity:0}72.645%{left:380px;top:416px;opacity:0.0}73.825%{left:351px;top:416px;opacity:1.0}81.299%{left:170px;top:416px;opacity:1.0}82.479%{left:142px;top:416px;opacity:0}100%{left:142px;top:416px;opacity:0}}
+@keyframes pu6{0%{left:158px;top:400px;opacity:0}32.47%{left:158px;top:400px;opacity:0}32.479%{left:158px;top:400px;opacity:0.0}32.717%{left:158px;top:405px;opacity:1.0}34.225%{left:158px;top:442px;opacity:1.0}34.463%{left:158px;top:448px;opacity:0}82.47%{left:158px;top:400px;opacity:0}82.479%{left:158px;top:400px;opacity:0.0}82.717%{left:158px;top:405px;opacity:1.0}84.225%{left:158px;top:442px;opacity:1.0}84.463%{left:158px;top:448px;opacity:0}100%{left:158px;top:448px;opacity:0}}
+@keyframes pu7{0%{left:158px;top:519px;opacity:0}38.545%{left:158px;top:519px;opacity:0}38.554%{left:158px;top:519px;opacity:0.0}38.752%{left:158px;top:523px;opacity:1.0}40.008%{left:158px;top:554px;opacity:1.0}40.207%{left:158px;top:559px;opacity:0}88.545%{left:158px;top:519px;opacity:0}88.554%{left:158px;top:519px;opacity:0.0}88.752%{left:158px;top:523px;opacity:1.0}90.008%{left:158px;top:554px;opacity:1.0}90.207%{left:158px;top:559px;opacity:0}100%{left:158px;top:559px;opacity:0}}
+@keyframes pu8{0%{left:362px;top:416px;opacity:0}22.636%{left:362px;top:416px;opacity:0}22.645%{left:362px;top:416px;opacity:0.0}23.835%{left:390px;top:416px;opacity:0.55}31.372%{left:573px;top:416px;opacity:0.55}32.562%{left:602px;top:416px;opacity:0}72.636%{left:362px;top:416px;opacity:0}72.645%{left:362px;top:416px;opacity:0.0}73.835%{left:390px;top:416px;opacity:0.55}81.372%{left:573px;top:416px;opacity:0.55}82.562%{left:602px;top:416px;opacity:0}100%{left:602px;top:416px;opacity:0}}
+@keyframes pu9{0%{left:600px;top:400px;opacity:0}32.553%{left:600px;top:400px;opacity:0}32.562%{left:600px;top:400px;opacity:0.0}32.8%{left:600px;top:405px;opacity:0.55}34.307%{left:600px;top:442px;opacity:0.55}34.545%{left:600px;top:448px;opacity:0}82.553%{left:600px;top:400px;opacity:0}82.562%{left:600px;top:400px;opacity:0.0}82.8%{left:600px;top:405px;opacity:0.55}84.307%{left:600px;top:442px;opacity:0.55}84.545%{left:600px;top:448px;opacity:0}100%{left:600px;top:448px;opacity:0}}
+@keyframes pu10{0%{left:600px;top:502px;opacity:0}38.627%{left:600px;top:502px;opacity:0}38.636%{left:600px;top:502px;opacity:0.0}38.815%{left:600px;top:506px;opacity:0.55}39.945%{left:600px;top:533px;opacity:0.55}40.124%{left:600px;top:538px;opacity:0}88.627%{left:600px;top:502px;opacity:0}88.636%{left:600px;top:502px;opacity:0.0}88.815%{left:600px;top:506px;opacity:0.55}89.945%{left:600px;top:533px;opacity:0.55}90.124%{left:600px;top:538px;opacity:0}100%{left:600px;top:538px;opacity:0}}
+@keyframes pu11{0%{left:600px;top:609px;opacity:0}44.206%{left:600px;top:609px;opacity:0}44.215%{left:600px;top:609px;opacity:0.0}44.393%{left:600px;top:613px;opacity:0.55}45.524%{left:600px;top:640px;opacity:0.55}45.702%{left:600px;top:645px;opacity:0}94.206%{left:600px;top:609px;opacity:0}94.215%{left:600px;top:609px;opacity:0.0}94.393%{left:600px;top:613px;opacity:0.55}95.524%{left:600px;top:640px;opacity:0.55}95.702%{left:600px;top:645px;opacity:0}100%{left:600px;top:645px;opacity:0}}
+@keyframes hit-f1{0%{opacity:0}0.0%{opacity:0}0.727%{opacity:1.0}3.364%{opacity:1.0}5.182%{opacity:0}49.991%{opacity:0}50.727%{opacity:1.0}53.364%{opacity:1.0}55.182%{opacity:0}100%{opacity:0}}
+@keyframes hin-f1{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}0.0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}0.545%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}2.0%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}3.636%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}49.991%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}50.545%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}52.0%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}53.636%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-f1{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}4.082%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}4.636%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}6.091%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}7.727%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}54.082%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}54.636%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}56.091%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}57.727%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-f2{0%{opacity:0}5.569%{opacity:0}6.306%{opacity:1.0}8.942%{opacity:1.0}10.76%{opacity:0}55.569%{opacity:0}56.306%{opacity:1.0}58.942%{opacity:1.0}60.76%{opacity:0}100%{opacity:0}}
+@keyframes hin-f2{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}5.569%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}6.124%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}7.579%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}9.215%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}55.569%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}56.124%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}57.579%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}59.215%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-f2{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}9.66%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}10.215%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}11.669%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}13.306%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}59.66%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}60.215%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}61.669%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}63.306%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-f3{0%{opacity:0}11.148%{opacity:0}11.884%{opacity:1.0}14.521%{opacity:1.0}16.339%{opacity:0}61.148%{opacity:0}61.884%{opacity:1.0}64.521%{opacity:1.0}66.339%{opacity:0}100%{opacity:0}}
+@keyframes hin-f3{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}11.148%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}11.702%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}13.157%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}14.793%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}61.148%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}61.702%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}63.157%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}64.793%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-f3{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}15.239%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}15.793%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}17.248%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}18.884%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}65.239%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}65.793%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}67.248%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}68.884%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-f4{0%{opacity:0}16.726%{opacity:0}17.463%{opacity:1.0}20.099%{opacity:1.0}21.917%{opacity:0}66.726%{opacity:0}67.463%{opacity:1.0}70.099%{opacity:1.0}71.917%{opacity:0}100%{opacity:0}}
+@keyframes hin-f4{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}16.726%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}17.281%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}18.736%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}20.372%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}66.726%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}67.281%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}68.736%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}70.372%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-f4{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}20.817%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}21.372%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}22.826%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}24.463%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}70.817%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}71.372%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}72.826%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}74.463%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-f5{0%{opacity:0}34.454%{opacity:0}35.19%{opacity:1.0}37.826%{opacity:1.0}39.645%{opacity:0}84.454%{opacity:0}85.19%{opacity:1.0}87.826%{opacity:1.0}89.645%{opacity:0}100%{opacity:0}}
+@keyframes hin-f5{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}34.454%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}35.008%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}36.463%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}38.099%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}84.454%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}85.008%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}86.463%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}88.099%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-f5{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}38.545%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}39.099%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}40.554%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}42.19%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}88.545%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}89.099%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}90.554%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}92.19%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-f6{0%{opacity:0}40.198%{opacity:0}40.934%{opacity:1.0}43.57%{opacity:1.0}45.388%{opacity:0}90.198%{opacity:0}90.934%{opacity:1.0}93.57%{opacity:1.0}95.388%{opacity:0}100%{opacity:0}}
+@keyframes hin-f6{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}40.198%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}40.752%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}42.207%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}43.843%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}90.198%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}90.752%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}92.207%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}93.843%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-f6{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}44.288%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}44.843%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}46.298%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}47.934%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}94.288%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}94.843%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}96.298%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}97.934%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-f7{0%{opacity:0}34.536%{opacity:0}35.273%{opacity:0.55}37.909%{opacity:0.55}39.727%{opacity:0}84.536%{opacity:0}85.273%{opacity:0.55}87.909%{opacity:0.55}89.727%{opacity:0}100%{opacity:0}}
+@keyframes hin-f7{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}34.536%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}35.091%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}36.545%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}38.182%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}84.536%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}85.091%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}86.545%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}88.182%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-f7{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}38.627%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}39.182%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}40.636%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}42.273%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}88.627%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}89.182%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}90.636%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}92.273%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-f8{0%{opacity:0}40.115%{opacity:0}40.851%{opacity:0.55}43.488%{opacity:0.55}45.306%{opacity:0}90.115%{opacity:0}90.851%{opacity:0.55}93.488%{opacity:0.55}95.306%{opacity:0}100%{opacity:0}}
+@keyframes hin-f8{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}40.115%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}40.669%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}42.124%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}43.76%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}90.115%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}90.669%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}92.124%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}93.76%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-f8{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}44.206%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}44.76%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}46.215%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}47.851%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}94.206%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}94.76%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}96.215%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}97.851%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hit-f9{0%{opacity:0}45.693%{opacity:0}46.43%{opacity:0.55}49.066%{opacity:0.55}50.884%{opacity:0}95.693%{opacity:0}96.43%{opacity:0.55}99.066%{opacity:0.55}100.0%{opacity:0}100%{opacity:0}}
+@keyframes hin-f9{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}45.693%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}46.248%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}47.702%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}49.339%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}95.693%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}96.248%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}97.702%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}99.339%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+@keyframes hout-f9{0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}49.784%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}50.339%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}51.793%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}53.43%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}99.784%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100.0%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}100.0%{transform:translateX(-50%) scale(1.7);background:#0F766E;border-color:#0F766E}100.0%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}100%{transform:translateX(-50%) scale(1);background:#fff;border-color:#6B7280}}
+/* end flow pulse */
+
+/* responsive landing */
+@media (max-width:767px){
+  .wrap h1{font-size:34px!important}
+  h2.sec{font-size:26px!important}
+  .lead{font-size:16px!important}
+  pre{font-size:12px!important}
+  .wrap{padding-left:16px;padding-right:16px}
+  .typed{animation:none;white-space:normal}
+  #providers .card div[style*="display: flex"]{flex-wrap:wrap}
+  #providers .card span[style*="width: 200px"]{width:auto!important}
+  #automations .card{max-width:none!important}
+}
+.wrap{width:100%}
+.wrap > *{min-width:0}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<div class="{{rootCls}}" style="display:flex;flex-direction:column">
+  <header style="border-bottom:1px solid #EEF0F3;background:#fff;position:relative;z-index:2">
+    <div class="wrap" style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;height:auto;padding-top:14px;padding-bottom:14px">
+      <a href="Landing.dc.html" style="display:flex;align-items:center;gap:10px;color:#0B1220" aria-label="ReputeCast home"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span style="font-weight:700;font-size:17px;letter-spacing:-.01em">ReputeCast</span></a>
+      <nav style="display:flex;gap:18px;flex-wrap:wrap;font-size:14.5px;font-weight:500" aria-label="Site"><a href="#features" style="color:#374151">Features</a><a href="#providers" style="color:#374151">Providers</a><a href="#automations" style="color:#374151">Automations</a><a href="#compare" style="color:#374151">Compare</a><a href="#cost" style="color:#374151">Cost</a><a href="https://github.com/hostrepute/reputecast/tree/main/docs" style="color:#374151">Docs</a></nav>
+      <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" style="min-height:40px" onClick="{{onToggleMotion}}" aria-pressed="{{motionPressed}}">{{motionLabel}}</button>
+        <a href="https://discord.gg/reputecast" class="btn" style="min-height:40px">Discord</a>
+        <a href="https://github.com/hostrepute/reputecast" class="btn dark" style="min-height:40px"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .5a7.5 7.5 0 0 0-2.4 14.6c.4.1.5-.2.5-.4v-1.4c-2.1.5-2.5-.9-2.5-.9-.3-.9-.8-1.1-.8-1.1-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.2 1.8.8 2.2.6.1-.5.3-.8.5-1-1.7-.2-3.4-.8-3.4-3.7 0-.8.3-1.5.8-2-.1-.2-.3-1 .1-2 0 0 .6-.2 2.1.8a7 7 0 0 1 3.8 0c1.4-1 2.1-.8 2.1-.8.4 1 .2 1.8.1 2 .5.5.8 1.2.8 2 0 2.9-1.7 3.5-3.4 3.7.3.2.5.7.5 1.4v2.1c0 .2.1.5.5.4A7.5 7.5 0 0 0 8 .5z"></path></svg>GitHub · [STARS]</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" style="display:contents">
+  <section style="background:#F8FAFC;border-bottom:1px solid #EEF0F3;position:relative;overflow:hidden">
+    <div class="blob" style="width:420px;height:420px;right:-120px;top:-140px" aria-hidden="true"></div>
+    <div class="blob" style="width:260px;height:260px;left:-90px;bottom:-110px;animation-delay:-6s" aria-hidden="true"></div>
+    <div class="wrap" style="display:flex;flex-wrap:wrap;gap:40px;align-items:center;padding-top:72px;padding-bottom:72px;position:relative">
+      <div style="flex:1 1 460px;display:flex;flex-direction:column;gap:20px">
+        <span class="badge mut rise d1" style="align-self:flex-start"><span class="dot" style="color:#0F766E"></span>Open source · self-hosted · built by HostRepute</span>
+        <h1 class="rise d2" style="margin:0;font-size:52px;font-weight:700;letter-spacing:-.03em;line-height:1.05">The newsletter platform that protects your inbox placement.</h1>
+        <p class="lead rise d3" style="font-size:19px">ReputeCast tells you whether a campaign will reach the inbox before you send, and guards your sender reputation while it sends. It delivers through your own Amazon SES, Postmark, Mailgun, SendGrid, Resend, Postal or any SMTP server, with several providers at once and no lock-in.</p>
+        <div class="rise d4" style="display:flex;flex-direction:column;gap:10px">
+          <pre><span class="typed">docker compose -f https://get.reputecast.com/compose.yml up -d</span><span class="cursor" aria-hidden="true"></span></pre>
+          <span class="k">One command. Postgres, Redis and the app. Then open localhost:8080 and connect a provider in about 10 minutes.</span>
+        </div>
+        <div class="rise d5" style="display:flex;gap:10px;flex-wrap:wrap">
+          <a href="https://github.com/hostrepute/reputecast" class="btn pri">Star on GitHub</a>
+          <a href="https://discord.gg/reputecast" class="btn">Join the Discord</a>
+          <a href="Main.dc.html" class="btn">Try the live demo</a>
+        </div>
+      </div>
+      <div style="flex:1 1 420px;display:flex;flex-direction:column;gap:12px">
+        <div class="card scan rise d6" style="padding:20px 22px;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 50px rgba(11,18,32,.10)">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-weight:700">Send Readiness · Weekly Digest #142</span><span class="badge warn verdict"><span class="dot"></span>Ready with 2 warnings</span></div>
+          <div class="row chk c1" style="border-top:0"><span class="badge ok">Pass</span><span>news.acme.io clean on 84 of 84 blocklists</span></div>
+          <div class="row chk c2"><span class="badge ok">Pass</span><span>SPF, DKIM, DMARC aligned on SES and Postal</span></div>
+          <div class="row chk c3"><span class="badge ok">Pass</span><span>64 KB, under Gmail's 102 KB clipping limit</span></div>
+          <div class="row chk c4"><span class="badge warn">Warn</span><span>412 unengaged contacts in the audience</span><button class="btn" style="min-height:30px;padding:0 10px;font-size:12.5px;margin-left:auto">Exclude</button></div>
+          <div class="row chk c5"><span class="badge ok">Pass</span><span>Route SES 90% / Postal 10%, both healthy</span></div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;padding-top:6px;border-top:1px solid #EEF0F3;font-size:13.5px"><span><b class="n">{{countFmt}}</b> recipients</span><span><b class="n">$2.84</b> on SES</span><span><b class="n">34 min</b> at 14/s</span></div>
+        </div>
+        <div class="card live" style="padding:14px 18px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13.5px"><span style="font-weight:700;display:flex;align-items:center;gap:8px"><span class="dot" style="color:#15803D"></span>Sending · live</span><span class="k">SES 14 /s · Postal 2 /s</span></div>
+          <div class="bar" style="display:flex;gap:2px"><i style="width:{{sesPct}};background:#4a3aa7;border-radius:5px 0 0 5px"></i><i style="width:{{postalPct}};background:#e87ba4;border-radius:0"></i></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;flex-wrap:wrap;gap:6px"><span><b class="n">{{sentFmt}}</b> of 31,604 sent</span><span class="k">99.0% delivered · 0.60% bounced · 0.03% complaints</span></div>
+        </div>
+        <div class="card paused" style="padding:14px 18px;display:flex;align-items:center;gap:12px;border-color:#FCA5A5;background:#FFF5F5">
+          <span class="badge bad"><span class="dot pulse" style="border-radius:50%"></span>Auto-paused</span><span style="font-size:14px">Outlook complaints hit 0.18% (limit 0.10%). 2,522 held, everything else still sending.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" id="features" style="padding-top:72px;padding-bottom:24px;display:flex;flex-direction:column;gap:28px">
+    <div class="reveal" style="display:flex;flex-direction:column;gap:10px"><h2 class="sec">Nothing else checks deliverability before and during a send.</h2><p class="lead">Every newsletter tool sends. ReputeCast sends and keeps you in the inbox.</p></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+      <div class="feat reveal" style="border-color:#99F6E4;background:#F0FDFA"><span class="badge ok" style="align-self:flex-start">Before you send</span><h3>Send Readiness</h3><p>Blocklists across 80+ sources, SPF/DKIM/DMARC/BIMI against each provider's required records, spam triggers, Gmail's clipping limit, broken and blocklisted links, one-click unsubscribe, audience quality and routing health. Every check is Pass, Warn or Block, with a fix.</p></div>
+      <div class="feat reveal" style="border-color:#99F6E4;background:#F0FDFA"><span class="badge ok" style="align-self:flex-start">While you send</span><h3>Guarded sending</h3><p>Live delivered, bounced and complained counts per mailbox provider and per sending provider. Bounces or complaints over your thresholds pause the campaign, or just one route, and ReputeCast explains what happened and offers resume, adjust, fail over or cancel.</p></div>
+      <div class="feat reveal" style="border-color:#99F6E4;background:#F0FDFA"><span class="badge ok" style="align-self:flex-start">Any provider, several at once</span><h3>Pluggable sending providers</h3><p>Built-in adapters for SES, Mailgun, SendGrid, Postmark, Resend, SparkPost, Mailjet, Brevo, Azure, Postal and SMTP. Weighted splits for warm-up and migration, automatic failover, one shared suppression list, and an adapter SDK for anything else.</p></div>
+    </div>
+  </section>
+
+  <section class="wrap" id="providers" style="padding-top:40px;padding-bottom:40px;display:flex;flex-direction:column;gap:20px">
+    <div class="marquee reveal" aria-label="Supported sending providers">
+      <div class="track">
+        <span class="chip">Amazon SES</span><span class="chip">Postmark</span><span class="chip">Mailgun</span><span class="chip">SendGrid</span><span class="chip">Resend</span><span class="chip">SparkPost</span><span class="chip">Mailjet</span><span class="chip">Brevo</span><span class="chip">Azure Communication Services</span><span class="chip">Postal · self-hosted</span><span class="chip">Any SMTP server</span><span class="chip" style="border-style:dashed">+ community adapters</span>
+        <span class="chip" aria-hidden="true">Amazon SES</span><span class="chip" aria-hidden="true">Postmark</span><span class="chip" aria-hidden="true">Mailgun</span><span class="chip" aria-hidden="true">SendGrid</span><span class="chip" aria-hidden="true">Resend</span><span class="chip" aria-hidden="true">SparkPost</span><span class="chip" aria-hidden="true">Mailjet</span><span class="chip" aria-hidden="true">Brevo</span><span class="chip" aria-hidden="true">Azure Communication Services</span><span class="chip" aria-hidden="true">Postal · self-hosted</span><span class="chip" aria-hidden="true">Any SMTP server</span><span class="chip" aria-hidden="true" style="border-style:dashed">+ community adapters</span>
+      </div>
+    </div>
+    <div class="card reveal" style="padding:22px;display:flex;flex-wrap:wrap;gap:24px;align-items:center">
+      <div style="flex:1 1 300px;display:flex;flex-direction:column;gap:6px"><span style="font-weight:700;font-size:17px">Route each kind of mail where it belongs</span><span class="k">Broadcasts, Automations and System mail each get a primary, a fallback, conditions and weighted splits.</span></div>
+      <div style="flex:2 1 420px;display:flex;flex-direction:column;gap:10px;font-size:14px">
+        <div style="display:flex;gap:12px;align-items:center"><span style="width:110px;font-weight:600">Broadcasts</span><div class="grow g1" style="flex:1;display:flex;height:14px;gap:2px;border-radius:7px;overflow:hidden;background:#EEF0F3"><i style="width:90%;background:#4a3aa7;display:block"></i><i style="width:10%;background:#e87ba4;display:block"></i></div><span class="k" style="width:200px">SES 90% · Postal 10% warming up</span></div>
+        <div style="display:flex;gap:12px;align-items:center"><span style="width:110px;font-weight:600">Automations</span><div class="grow g2" style="flex:1;display:flex;height:14px;gap:2px;border-radius:7px;overflow:hidden;background:#EEF0F3"><i style="width:100%;background:#4a3aa7;display:block"></i></div><span class="k" style="width:200px">SES, failover Postmark</span></div>
+        <div style="display:flex;gap:12px;align-items:center"><span style="width:110px;font-weight:600">System</span><div class="grow g3" style="flex:1;display:flex;height:14px;gap:2px;border-radius:7px;overflow:hidden;background:#EEF0F3"><i style="width:100%;background:#008300;display:block"></i></div><span class="k" style="width:200px">Postmark, failover SES</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" id="automations" style="padding-top:40px;padding-bottom:40px;display:flex;flex-direction:column;gap:20px">
+    <div class="reveal" style="display:flex;flex-direction:column;gap:10px"><h2 class="sec">Automations you can watch.</h2><p class="lead">Build flows on a canvas: triggers, delays, emails, branches, A/B splits and goals. Every step shows live numbers from real events, and every email goes through the same readiness checks and guarded routes as a campaign.</p></div>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
+      <div class="card reveal" style="flex:1 1 280px;max-width:340px;padding:22px;display:flex;flex-direction:column;gap:14px">
+        <span style="font-weight:700;font-size:17px">What the canvas tells you</span>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:14px"><span class="badge ok" style="flex:none">1</span><span>Live numbers on every node: entered, sent, human opens, clicks, goal reached.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:14px"><span class="badge ok" style="flex:none">2</span><span>Branches use human opens only, so Apple Mail prefetches never fork a flow.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:14px"><span class="badge ok" style="flex:none">3</span><span>Each email step picks its route: SES first, Postmark as failover, with auto-pause if complaints spike.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:14px"><span class="badge ok" style="flex:none">4</span><span>Publish a new version and choose whether contacts mid-flow finish on v3 or move to v4.</span></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:6px"><a href="AutomationFlow.dc.html" class="btn pri" style="min-height:40px">Open the flow editor</a><a href="AutomationsList.dc.html" class="btn" style="min-height:40px">See automations</a></div>
+      </div>
+      <div class="reveal" style="flex:3 1 520px;min-width:0;display:flex;flex-direction:column;border:1px solid #E3E6EB;border-radius:14px;overflow:hidden;background:#fff">
+        <div class="flowwrap" id="flowwrap" style="border:0;border-radius:0;height:{{flowH}}px" aria-label="Animated automation flow: joined list, delay, welcome email, branch on opens, two follow-ups, goal and exit" role="img">
+          <div class="flowbox" style="width:{{flowW}}px;height:{{flowH}}px">
+          <div class="flowstage {{flowCls}}" id="flowstage" style="transform:scale({{flowScale}})">
+          <span class="pu p1" aria-hidden="true"></span><span class="pu p2" aria-hidden="true"></span><span class="pu p3" aria-hidden="true"></span><span class="pu p4" aria-hidden="true"></span><span class="pu p5 h" aria-hidden="true"></span><span class="pu p6" aria-hidden="true"></span><span class="pu p7" aria-hidden="true"></span><span class="pu p8 h" aria-hidden="true"></span><span class="pu p9" aria-hidden="true"></span><span class="pu p10" aria-hidden="true"></span><span class="pu p11" aria-hidden="true"></span>
+          
+            
+            <div class="fe e1" style="left:379px;top:88px;width:2px;height:18px"></div>
+            <div class="fe e2" style="left:379px;top:160px;width:2px;height:18px"></div>
+            <div class="fe e3" style="left:379px;top:285px;width:2px;height:18px"></div>
+            <div class="fe e5" style="left:379px;top:392px;width:2px;height:26px"></div>
+            <div class="fe e4 h" style="left:159px;top:418px;width:444px;height:2px"></div>
+            <div class="fe e6" style="left:159px;top:418px;width:2px;height:30px"></div>
+            <div class="fe e7" style="left:601px;top:418px;width:2px;height:30px"></div>
+            <div class="fe e8" style="left:159px;top:537px;width:2px;height:22px"></div>
+            <div class="fe e9" style="left:601px;top:520px;width:2px;height:18px"></div>
+            <div class="fe e10" style="left:601px;top:627px;width:2px;height:18px"></div>
+            <span class="flab l1" style="left:172px;top:407px;background:#DCFCE7;border-color:#86EFAC;color:#166534">Yes · 61%</span>
+            <span class="flab l2" style="left:614px;top:407px;background:#FEF3C7;border-color:#FDE68A;color:#92400E">No · 39%</span>
+            <div class="fn f1" style="left:280px;top:16px;border-color:#0F766E"><span class="hb o"></span><div class="hd" style="color:#0F766E"><span class="dot live"></span>Trigger · joined list</div><div class="t">Weekly Digest</div><div class="st"><span><b class="n">{{f.entered}}</b> entered · 30 d</span></div></div>
+            <div class="fn f2" style="left:280px;top:106px"><span class="hb i"></span><span class="hb o"></span><div class="hd" style="color:#6B7280"><span class="dot"></span>Delay</div><div class="t">Wait 10 minutes</div></div>
+            <div class="fn f3 sel" style="left:280px;top:178px"><span class="hb i"></span><span class="hb o"></span><div class="hd" style="color:#4a3aa7"><span class="dot"></span>Send email · SES, failover Postmark</div><div class="t">Welcome · step 1 "You're in"</div><div class="st"><span><b class="n">{{f.s1}}</b> sent</span><span><b class="n">{{f.o1}}</b> human opens</span><span><b class="n">{{f.c1}}</b> clicks</span></div></div>
+            <div class="fn f4" style="left:280px;top:303px;border-color:#F59E0B"><span class="hb i"></span><span class="hb o"></span><div class="hd" style="color:#B45309"><span class="dot"></span>Branch</div><div class="t">Opened step 1 within 2 days?</div><div class="st"><span>human opens only</span></div></div>
+            <div class="fn f5" style="left:60px;top:448px"><span class="hb i"></span><span class="hb o"></span><div class="hd" style="color:#4a3aa7"><span class="dot"></span>Send email</div><div class="t">Step 2 "Three things to try first"</div><div class="st"><span><b class="n">{{f.s2}}</b> sent</span><span><b class="n">{{f.o2}}</b> opens</span></div></div>
+            <div class="fn f6" style="left:60px;top:559px;border-color:#0B1220"><span class="hb i"></span><div class="hd" style="color:#0B1220"><span class="dot"></span>Goal</div><div class="t">Clicked a docs link</div><div class="st"><span><b class="n">{{f.goal}}</b> reached · {{f.goalPct}}</span></div></div>
+            <div class="fn f7" style="left:502px;top:448px"><span class="hb i"></span><span class="hb o"></span><div class="hd" style="color:#6B7280"><span class="dot"></span>Delay</div><div class="t">Wait 3 days</div><div class="st"><span><b class="n">{{f.w3}}</b> waiting or passed</span></div></div>
+            <div class="fn f8" style="left:502px;top:538px"><span class="hb i"></span><span class="hb o"></span><div class="hd" style="color:#4a3aa7"><span class="dot"></span>Send email</div><div class="t">"Did you get our welcome?" · plain text</div><div class="st"><span><b class="n">{{f.s3}}</b> sent</span><span><b class="n">{{f.o3}}</b> opens</span></div></div>
+            <div class="fn f9" style="left:502px;top:645px;border-color:#0B1220"><span class="hb i"></span><div class="hd" style="color:#0B1220"><span class="dot"></span>Exit</div><div class="t">Leave the flow · stays on the list</div><div class="st"><span><b class="n">{{f.exit}}</b> exited</span></div></div>
+          </div>
+          </div>
+        </div>
+        <div class="flowkey"><span><span class="dot" style="color:#0F766E"></span>A contact moving through the flow; each step lights up as it arrives</span><span><span class="dot" style="color:#86BFB4"></span>The No branch runs lighter: 39% of contacts</span><span><span class="dot" style="color:#1D4ED8"></span>Selected step: edit it in the side panel</span><span class="k" style="margin-left:auto">Numbers are the last 30 days of this flow</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" style="padding-top:40px;padding-bottom:40px;display:flex;flex-direction:column;gap:24px">
+    <div class="reveal" style="display:flex;flex-direction:column;gap:10px"><h2 class="sec">Everything a newsletter tool should have. All of it free.</h2><p class="lead">No paid tier, no feature flags behind a licence key. If it's in the product, it's yours.</p></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
+      <div class="feat reveal"><h3>Drag-and-drop composer</h3><p>Built on GrapesJS with MJML, so emails render in Outlook. Device, client and dark-mode previews, personalization with fallbacks, A/B variants, inline deliverability warnings.</p></div>
+      <div class="feat reveal"><h3>Visual automations</h3><p>Flows on React Flow: triggers, delays, emails, branches, A/B splits, webhooks, list actions and goals, with live stats on every step and versioned publishing.</p></div>
+      <div class="feat reveal"><h3>Honest analytics</h3><p>Human opens separated from Apple Mail prefetches, a click map, bounces mapped to one taxonomy with the provider's original code, results per mailbox and per sending provider.</p></div>
+      <div class="feat reveal"><h3>List health</h3><p>Active, Cooling, At risk and Sunset tiers, a sunset policy, and one suppression list shared by every provider.</p></div>
+      <div class="feat reveal"><h3>10-minute provider setup</h3><p>SES via CloudFormation with SNS and configuration sets created for you, API keys for the rest, a bounce mailbox for SMTP, DNS records with live verification, a test send.</p></div>
+      <div class="feat reveal"><h3>Migration that keeps consent</h3><p>Import from Brevo, Mailchimp, MailerLite, listmonk, Keila or CSV. Unsubscribed and bounced contacts stay suppressed, forever.</p></div>
+      <div class="feat reveal"><h3>Segments without SQL</h3><p>A condition builder with AND/OR groups and a live count. The generated SQL is one click away for people who want it.</p></div>
+      <div class="feat reveal"><h3>Forms and public pages</h3><p>Embedded, popup and hosted forms with double opt-in and spam protection; preference center, unsubscribe with a "fewer emails" option, public archive.</p></div>
+      <div class="feat reveal"><h3>Teams, API, MCP</h3><p>Roles with granular permissions, OIDC SSO, passkeys, scoped API keys, signed webhooks, an audit log, and an MCP server so AI agents can draft and report with approvals.</p></div>
+    </div>
+  </section>
+
+  <section class="wrap" id="compare" style="padding-top:40px;padding-bottom:40px;display:flex;flex-direction:column;gap:20px">
+    <div class="reveal" style="display:flex;flex-direction:column;gap:10px"><h2 class="sec">An honest comparison</h2><p class="lead">These are good products. Here's where each one shines and where ReputeCast is different. List prices change often, so check each provider; corrections welcome on GitHub.</p></div>
+    <div class="card reveal" style="overflow:hidden"><div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th scope="col"></th><th scope="col">ReputeCast</th><th scope="col">Mailchimp</th><th scope="col">Brevo</th><th scope="col">Kit</th><th scope="col">MailerLite</th><th scope="col">beehiiv</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600">Where it runs</td><td>Your server, your Postgres. Open source, free.</td><td>Their cloud</td><td>Their cloud</td><td>Their cloud</td><td>Their cloud</td><td>Their cloud</td></tr>
+          <tr><td style="font-weight:600">Who sends the mail</td><td>Your own providers: SES, Postmark, Mailgun, SendGrid, Resend, Postal or any SMTP</td><td>Their shared pools; dedicated IP as a paid add-on</td><td>Their infrastructure; dedicated IPs available</td><td>Their infrastructure</td><td>Their infrastructure</td><td>Their infrastructure</td></tr>
+          <tr><td style="font-weight:600">Several providers at once, weighted splits, failover</td><td class="c">✓</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td></tr>
+          <tr><td style="font-weight:600">Pre-send deliverability check</td><td>✓ Send Readiness: blocklists, authentication, links, audience, routing, one verdict</td><td>Previews and content checks</td><td>Previews and test sends</td><td>Previews and test sends</td><td>Previews and test sends</td><td>Previews and test sends</td></tr>
+          <tr><td style="font-weight:600">When bounces or complaints spike</td><td>Pauses the affected route, explains why, offers resume, adjust, fail over or cancel</td><td>Their sending policy applies to your account</td><td>Their sending policy applies to your account</td><td>Their sending policy applies to your account</td><td>Their sending policy applies to your account</td><td>Their sending policy applies to your account</td></tr>
+          <tr><td style="font-weight:600">Automations</td><td class="c">✓ visual flows</td><td class="c">✓ Customer Journeys</td><td class="c">✓</td><td class="c">✓ visual automations</td><td class="c">✓</td><td class="c">✓</td></tr>
+          <tr><td style="font-weight:600">Segments</td><td class="c">Builder + SQL</td><td class="c">Builder</td><td class="c">Builder</td><td class="c">Builder</td><td class="c">Builder</td><td class="c">Builder</td></tr>
+          <tr><td style="font-weight:600">Users, roles and granular permissions, OIDC SSO, 2FA, passkeys, audit log</td><td class="c">All included, free</td><td class="c">By plan</td><td class="c">By plan</td><td class="c">By plan</td><td class="c">By plan</td><td class="c">By plan</td></tr>
+          <tr><td style="font-weight:600">Your data</td><td>In your database; export or delete anything, any time</td><td>Exportable; lives in their cloud</td><td>Exportable; lives in their cloud</td><td>Exportable; lives in their cloud</td><td>Exportable; lives in their cloud</td><td>Exportable; lives in their cloud</td></tr>
+          <tr><td style="font-weight:600">Where it's better than ReputeCast</td><td class="k">Younger project; you run the server; no SMS or push</td><td class="k">Huge template and integration library, nothing to host</td><td class="k">Email, SMS, chat and CRM in one place</td><td class="k">Creator tools: paid newsletters, recommendations, a creator network</td><td class="k">Simple, affordable, polished editor</td><td class="k">Built for growth: referrals, boosts, an ad network</td></tr>
+          <tr><td style="font-weight:600">Typical monthly cost at 50,000 subscribers</td><td class="k">Your provider: about $5 on SES per 50,000 emails, plus a small server</td><td class="k">About $350 and up on Standard, by contacts</td><td class="k">About $70 to $250, by email volume</td><td class="k">About $300, by subscribers</td><td class="k">About $250 to $300, by subscribers</td><td class="k">About $100 to $250 on Scale, by subscribers</td></tr>
+        </tbody>
+      </table>
+    </div></div>
+  </section>
+
+  <section class="wrap" id="cost" style="padding-top:40px;padding-bottom:40px;display:flex;flex-direction:column;gap:20px">
+    <div class="reveal" style="display:flex;flex-direction:column;gap:10px"><h2 class="sec">What would your volume cost?</h2><p class="lead">Edit the volume and the prices. Defaults are example list prices for pay-as-you-go sending; plans, free tiers and dedicated IPs change the picture, so check each provider.</p></div>
+    <div class="card reveal" style="padding:24px;display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+      <div style="flex:1 1 300px;display:flex;flex-direction:column;gap:14px">
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600">Emails per month<input class="in" value="{{vol}}" onChange="{{onVol}}" inputmode="numeric"></label>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Amazon SES · $ per 1,000<input class="in" value="{{ses}}" onChange="{{onSes}}"></label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Resend · $ per 1,000<input class="in" value="{{resend}}" onChange="{{onResend}}"></label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Mailgun · $ per 1,000<input class="in" value="{{mailgun}}" onChange="{{onMailgun}}"></label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Postmark · $ per 1,000<input class="in" value="{{postmark}}" onChange="{{onPostmark}}"></label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Postal server · $ per month<input class="in" value="{{postal}}" onChange="{{onPostal}}"></label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Brevo plan · $ per month<input class="in" value="{{brevo}}" onChange="{{onBrevo}}"></label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Mailchimp plan · $ per month<input class="in" value="{{mailchimp}}" onChange="{{onMailchimp}}"></label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Kit plan · $ per month<input class="in" value="{{kit}}" onChange="{{onKit}}"></label>
+        </div>
+        <span class="k">ReputeCast itself is free. Add the server you run it on; a small VPS is usually enough for 100,000 contacts.</span>
+      </div>
+      <div style="flex:1.2 1 380px;display:flex;flex-direction:column;gap:10px">
+        <span style="font-weight:700">Monthly sending cost at {{volFmt}} emails</span>
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+          <div style="display:flex;flex-direction:column;gap:5px;padding:8px 0;border-top:1px solid #EEF0F3">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:14.5px"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:{{r.color}}"></span>{{r.name}}</span><span class="n">{{r.cost}}</span></div>
+            <div class="bar"><i style="width:{{r.pct}};background:{{r.color}}"></i></div>
+            <span class="k">{{r.note}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:#0B1220;color:#fff">
+    <div class="wrap" style="display:flex;flex-wrap:wrap;gap:40px;align-items:center;padding-top:64px;padding-bottom:64px">
+      <div class="reveal" style="flex:1 1 380px;display:flex;flex-direction:column;gap:14px">
+        <h2 class="sec" style="color:#fff">Install in one command</h2>
+        <p style="margin:0;color:#C3C2B7;font-size:17px">Docker Compose brings up Postgres, Redis, the app and the workers. Upgrades are one pull away. Backups are a pg_dump.</p>
+        <ol style="margin:0;padding-left:20px;color:#E5E7EB;display:flex;flex-direction:column;gap:6px;font-size:15px"><li>Run the compose command.</li><li>Open localhost:8080 and create the owner account.</li><li>Connect a sending provider: about 10 minutes, DNS included.</li><li>Import contacts with consent intact, send a test, go.</li></ol>
+      </div>
+      <div class="reveal" style="flex:1 1 420px;display:flex;flex-direction:column;gap:12px">
+<pre style="background:#111827;border:1px solid #1F2937">curl -fsSL https://get.reputecast.com/compose.yml -o compose.yml
+docker compose up -d
+# open http://localhost:8080 <span class="cursor" aria-hidden="true"></span></pre>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><a href="https://github.com/hostrepute/reputecast" class="btn" style="background:#fff">Read the install guide</a><a href="https://github.com/hostrepute/reputecast/releases" class="btn" style="background:transparent;color:#fff;border-color:#374151">Releases</a></div>
+        <span style="font-size:13px;color:#9CA3AF">Requirements: Docker 24+, 2 vCPU, 4 GB RAM, a domain you control. Helm chart and bare-metal guides in the docs.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" style="padding-top:64px;padding-bottom:64px;display:flex;flex-wrap:wrap;gap:32px;align-items:center">
+    <div class="reveal" style="flex:1 1 380px;display:flex;flex-direction:column;gap:12px">
+      <span class="badge mut" style="align-self:flex-start">Built by HostRepute</span>
+      <h2 class="sec">Made by the people who watch sender reputation for a living.</h2>
+      <p class="lead">HostRepute monitors domains and IPs across 80+ blocklists, Google Postmaster and Microsoft SNDS. ReputeCast is its sibling: the same checks, built into the moment you press send. Connecting HostRepute is optional and free; without it, ReputeCast still uses your providers' data and built-in checks.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><a href="https://hostrepute.com" class="btn">About HostRepute</a><a href="DeliverabilityNoHostRepute.dc.html" class="btn">See what works without it</a></div>
+    </div>
+    <div class="card reveal" style="flex:1 1 380px;padding:22px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700">news.acme.io</span><span class="badge ok"><span class="dot"></span>96 · Good</span></div>
+      <div class="row" style="border-top:0"><span style="flex:1">Domain blocklists</span><span class="n">0 of 84 listed</span></div>
+      <div class="row"><span style="flex:1">DMARC alignment, 7 days</span><span class="n">99.6%</span></div>
+      <div class="row"><span style="flex:1">Gmail domain reputation</span><span class="n">High</span></div>
+      <div class="row"><span style="flex:1">Postal IP 203.0.113.25</span><span class="badge warn">Listed on 1 · delisting requested</span></div>
+    </div>
+  </section>
+
+  </main>
+  <footer style="border-top:1px solid #EEF0F3;background:#F8FAFC">
+    <div class="wrap" style="display:flex;flex-wrap:wrap;gap:24px;align-items:center;padding-top:28px;padding-bottom:28px;font-size:14px;color:#5B6472">
+      <span style="display:flex;align-items:center;gap:8px;color:#0B1220;font-weight:700"><svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>ReputeCast</span>
+      <a href="https://github.com/hostrepute/reputecast" style="color:#5B6472">GitHub</a>
+      <a href="https://discord.gg/reputecast" style="color:#5B6472">Discord</a>
+      <a href="https://github.com/hostrepute/reputecast/tree/main/docs" style="color:#5B6472">Docs</a>
+      <a href="https://github.com/hostrepute/reputecast/tree/main/docs/adapter-sdk" style="color:#5B6472">Adapter SDK</a>
+      <a href="https://hostrepute.com" style="color:#5B6472">HostRepute</a>
+      <span style="margin-left:auto">Open-source licence: see the repository · Built by HostRepute</span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":6642}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { vol: '200000', ses: '0.10', resend: '0.40', mailgun: '0.80', postmark: '1.25', postal: '24', brevo: '120', mailchimp: '350', kit: '300', count: 0, sent: 0, flowScale: 1, flowOn: false, ft: 0, still: false };
+  }
+  componentDidMount() {
+    var self = this;
+    var reduce = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // flow canvas: scale the 760px stage to its container
+    var wrap = document.getElementById('flowwrap');
+    function fit() {
+      var w = wrap ? wrap.clientWidth : 760;
+      var sc = Math.min(1, w / 760);
+      if (sc < 0.6) sc = 0.6;
+      self.setState({ flowScale: Math.round(sc * 1000) / 1000 });
+    }
+    fit();
+    this._fitTimers = [setTimeout(fit, 400), setTimeout(fit, 1500)];
+    this._onResize = fit;
+    window.addEventListener('resize', fit);
+    function startFlow() {
+      if (self.state.flowOn) return;
+      self.setState({ flowOn: true });
+      var st = null;
+      function fstep(ts) {
+        if (st === null) st = ts;
+        var p = Math.min(1, (ts - st) / 1500);
+        self.setState({ ft: 1 - Math.pow(1 - p, 3) });
+        if (p < 1) self._raf2 = requestAnimationFrame(fstep);
+      }
+      self._timer2 = setTimeout(function () { self._raf2 = requestAnimationFrame(fstep); }, 900);
+    }
+    if (reduce) {
+      this.setState({ count: 31604, sent: 19594, flowOn: true, ft: 1 });
+      return;
+    }
+    if (wrap && 'IntersectionObserver' in window) {
+      this._io = new IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) if (entries[i].isIntersecting) { startFlow(); self._io.disconnect(); break; }
+      }, { threshold: 0.2 });
+      this._io.observe(wrap);
+      this._timer3 = setTimeout(startFlow, 3500);
+    } else {
+      startFlow();
+    }
+    var start = null, dur = 1600;
+    function step(ts) {
+      if (start === null) start = ts;
+      var p = Math.min(1, (ts - start) / dur);
+      var e = 1 - Math.pow(1 - p, 3);
+      self.setState({ count: Math.round(31604 * e), sent: Math.round(19594 * e) });
+      if (p < 1) self._raf = requestAnimationFrame(step);
+    }
+    this._timer = setTimeout(function () { self._raf = requestAnimationFrame(step); }, 2500);
+  }
+  componentWillUnmount() {
+    if (this._timer) clearTimeout(this._timer);
+    if (this._raf) cancelAnimationFrame(this._raf);
+    if (this._timer2) clearTimeout(this._timer2);
+    if (this._timer3) clearTimeout(this._timer3);
+    if (this._raf2) cancelAnimationFrame(this._raf2);
+    if (this._io) this._io.disconnect();
+    if (this._onResize) window.removeEventListener('resize', this._onResize);
+    if (this._fitTimers) this._fitTimers.forEach(clearTimeout);
+  }
+  renderVals() {
+    var s = this.state;
+    var self = this;
+    function num(v) { var n = parseFloat(String(v).replace(/[^0-9.]/g, '')); return isNaN(n) ? 0 : n; }
+    function money(n) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    var vol = num(s.vol);
+    var per = vol / 1000;
+    var rows = [
+      { name: 'Amazon SES', color: '#4a3aa7', value: per * num(s.ses), note: 'Pay as you go. Free tier may apply in your first year.' },
+      { name: 'Resend', color: '#1baf7a', value: per * num(s.resend), note: 'Plans with included volume are usually cheaper than per-1,000 at this size.' },
+      { name: 'Mailgun', color: '#eb6834', value: per * num(s.mailgun), note: 'Plans include volume; the per-1,000 rate is for overage.' },
+      { name: 'Postmark', color: '#008300', value: per * num(s.postmark), note: 'Plan-based; transactional streams only unless you use a Broadcast stream.' },
+      { name: 'Postal, self-hosted', color: '#e87ba4', value: num(s.postal), note: 'Flat server cost; a dedicated IP needs a 21-day warm-up, which ReputeCast runs for you.' },
+      { name: 'Brevo', color: '#8b94a3', value: num(s.brevo), note: 'A SaaS plan for comparison; priced by email volume, hosting included.' },
+      { name: 'Mailchimp', color: '#6b7280', value: num(s.mailchimp), note: 'A SaaS plan for comparison; priced by contacts, hosting included.' },
+      { name: 'Kit', color: '#4b5563', value: num(s.kit), note: 'A SaaS plan for comparison; priced by subscribers, hosting included.' }
+    ];
+    var max = 0;
+    for (var i = 0; i < rows.length; i++) if (rows[i].value > max) max = rows[i].value;
+    var out = rows.map(function (r) {
+      return { name: r.name, color: r.color, note: r.note, cost: money(r.value), pct: (max > 0 ? Math.max(2, Math.round(r.value / max * 100)) : 0) + '%' };
+    });
+    function setter(key) { return function (e) { var o = {}; o[key] = e.target.value; self.setState(o); }; }
+    var frac = s.sent / 31604;
+    var t = s.ft;
+    function fn(x) { return Math.round(x * t).toLocaleString('en-US'); }
+    function fpc(x) { return Math.round(x * t) + '%'; }
+    return {
+      flowCls: s.flowOn ? 'go' : '',
+      rootCls: s.still ? 'still' : '',
+      motionLabel: s.still ? 'Play motion' : 'Pause motion',
+      motionPressed: s.still ? 'true' : 'false',
+      onToggleMotion: function () { self.setState({ still: !self.state.still }); },
+      flowScale: String(s.flowScale),
+      flowH: Math.round(760 * s.flowScale),
+      flowW: Math.round(760 * s.flowScale),
+      f: { entered: fn(1284), s1: fn(1276), o1: fpc(61), c1: fpc(14), s2: fn(778), o2: fpc(57), goal: fn(312), goalPct: fpc(24), w3: fn(498), s3: fn(498), o3: fpc(38), exit: fn(436) },
+      vol: s.vol, ses: s.ses, resend: s.resend, mailgun: s.mailgun, postmark: s.postmark, postal: s.postal, brevo: s.brevo, mailchimp: s.mailchimp, kit: s.kit,
+      volFmt: vol.toLocaleString('en-US'),
+      rows: out,
+      countFmt: s.count.toLocaleString('en-US'),
+      sentFmt: s.sent.toLocaleString('en-US'),
+      sesPct: (frac * 90).toFixed(1) + '%',
+      postalPct: (frac * 10).toFixed(1) + '%',
+      onVol: setter('vol'), onSes: setter('ses'), onResend: setter('resend'), onMailgun: setter('mailgun'), onPostmark: setter('postmark'), onPostal: setter('postal'), onBrevo: setter('brevo'), onMailchimp: setter('mailchimp'), onKit: setter('kit')
+    };
+  }
+}
+</script>
+</body>
+</html>

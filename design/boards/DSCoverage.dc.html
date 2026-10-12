@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design system, UX coverage matrix</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.mut{background:#EEF0F3;color:#4B5563}.info{background:#DBEAFE;color:#1E40AF}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.page{max-width:1380px;margin:0 auto;padding:36px 40px 60px;display:flex;flex-direction:column;gap:24px;box-sizing:border-box}
+.hero h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+.hero p{margin:0;color:#4B5563;max-width:800px;font-size:15px}
+.ex{background:#fff;border:1px solid #E3E6EB;border-radius:10px;padding:6px 16px}
+.tscroll{overflow-x:auto;max-width:100%;contain:inline-size}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{text-align:left;font-size:11px;font-weight:600;color:#5B6472;text-transform:uppercase;letter-spacing:.05em;padding:8px 8px;border-bottom:1px solid #E3E6EB;vertical-align:bottom}
+.tbl td{padding:8px 6px;border-bottom:1px solid #EEF0F3;vertical-align:top;min-width:88px}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td:first-child{font-weight:600;min-width:120px}
+.c{display:flex;flex-wrap:wrap;gap:6px}
+.c a,.c span{display:inline-flex;align-items:center;min-height:24px;padding:2px 7px;border-radius:10px;background:#EEF0F3;color:#0B1220;font-size:11px;font-weight:500;line-height:1.25;text-align:left}
+.c a:hover{background:#E3F1EE;color:#0F766E}
+.c span.s{background:#DBEAFE;color:#1E40AF}
+.c span.n{background:transparent;color:#5B6472;padding:0}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:#4B5563;align-items:center}
+@media (max-width:767px){.page{padding:16px 12px 32px}}
+</style>
+</helmet>
+<main class="page">
+  <div class="hero" style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end;justify-content:space-between">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span class="badge mut" style="align-self:flex-start">Design system · coverage</span>
+      <h1>Every screen, every state: where it is designed</h1>
+      <p>Rows are the product areas from the spec plus the cross-cutting screens. Columns are the UX situations a screen can be in. A chip names the artboard that covers it; "shared" means the system-wide board covers it the same way for every screen; "n/a" means the situation cannot happen there.</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><a href="DSAccessibility.dc.html" class="badge mut" style="height:32px;padding:0 12px">← Accessibility</a><a href="Logo.dc.html" class="badge mut" style="height:32px;padding:0 12px">Logo →</a></div>
+  </div>
+  <div class="legend"><span class="c"><a href="Main.dc.html">Artboard</a></span><span class="c"><span class="s">shared · SystemStates / Feedback / Dialogs</span></span><span class="c"><span class="n">n/a</span></span><span>Click a chip to open the board.</span></div>
+  <div class="ex tscroll">
+    <table class="tbl">
+      <thead><tr><th scope="col">Area</th><th scope="col">Default</th><th scope="col">Empty · first run</th><th scope="col">Loading</th><th scope="col">Error · outage</th><th scope="col">Success · done</th><th scope="col">Permission</th><th scope="col">Offline · limits</th><th scope="col">Confirm · dialogs</th><th scope="col">Tablet 834</th><th scope="col">Phone 390</th></tr></thead>
+      <tbody>
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="16">
+          <tr>
+            <td>{{r.area}}</td>
+            <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="10">
+              <td><div class="c"><sc-for list="{{c.links}}" as="l" hint-placeholder-count="2"><a href="{{l.href}}">{{l.name}}</a></sc-for><sc-for list="{{c.shared}}" as="s" hint-placeholder-count="1"><span class="s">{{s.name}}</span></sc-for><sc-for list="{{c.na}}" as="x" hint-placeholder-count="1"><span class="n">n/a</span></sc-for></div></td>
+            </sc-for>
+          </tr>
+        </sc-for>
+      </tbody>
+    </table>
+  </div>
+  <span class="k">States live on the dedicated "States" board of each area (empty, loading, error, success in one place) so a developer sees them side by side; interactive and role-limited states are shown as banners and disabled controls rather than separate screens.</span>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3927}}'>
+class Component extends DCLogic {
+  renderVals() {
+    function cell(spec) {
+      // spec: list of names; 'shared:X' marks a shared board, 'na' marks not applicable
+      var links = [], shared = [], na = [];
+      for (var i = 0; i < spec.length; i++) {
+        var s = spec[i];
+        if (s === 'na') na.push({});
+        else if (s.indexOf('shared:') === 0) shared.push({ name: s.slice(7) });
+        else { var parts = s.split('|'); links.push({ name: parts[1] || parts[0], href: parts[0] + '.dc.html' }); }
+      }
+      return { links: links, shared: shared, na: na };
+    }
+    function row(area, cells) { return { area: area, cells: cells.map(cell) }; }
+    var rows = [
+      row('Overview', [['Main|Overview'], ['OverviewEmpty|First run'], ['OverviewStates|Loading'], ['OverviewStates|Provider API failed'], ['na'], ['shared:403 Viewer'], ['shared:Offline · quota'], ['na'], ['MainTablet|Overview'], ['MainPhone|Overview', 'OverviewEmptyPhone|First run']]),
+      row('Connect a provider', [['SetupCatalog|Catalog', 'SetupSES|SES', 'SetupSMTP|SMTP', 'SetupDomain|Domain', 'SetupTestSend|Test send', 'SetupStreams|Streams', 'SetupContacts|Contacts'], ['na'], ['SetupSES|Provisioning'], ['SetupError|API, webhooks, DNS'], ['SetupDone|Done'], ['shared:403 Viewer'], ['shared:Offline'], ['na'], ['SetupCatalogTablet|Catalog', 'SetupSESTablet|SES'], ['SetupCatalogPhone|Catalog', 'SetupSESPhone|SES', 'SetupDomainPhone|Domain']]),
+      row('Sending providers', [['Providers|Providers', 'ProvidersRouting|Routing', 'ProvidersWarmup|Warm-up', 'ProvidersEvents|Events', 'ProvidersAdapters|Adapters'], ['ProvidersStates|None connected'], ['ProvidersStates|Fetching health'], ['ProvidersStates|Rejected credentials', 'ProvidersOutage|Outage', 'ProvidersWebhooksSilent|Webhooks silent', 'ProvidersBulkWarning|Terms warning'], ['na'], ['shared:403 Viewer'], ['shared:Quota reached'], ['Dialogs|Remove provider'], ['ProvidersTablet|Providers', 'ProvidersRoutingTablet|Routing'], ['ProvidersPhone|Providers', 'ProvidersRoutingPhone|Routing']]),
+      row('Composer', [['Composer|Editing', 'ComposerCode|Code', 'ComposerPreview|Previews', 'ComposerWarnings|Warnings', 'ComposerMobile|Mobile preview'], ['ComposerEmpty|Blank canvas'], ['ComposerStates|Compiling MJML'], ['ComposerStates|Not saved, conflict, MJML error'], ['ComposerStates|Saved, versions'], ['shared:Editor hint'], ['shared:Offline autosave'], ['Dialogs|Unsaved changes'], ['ComposerTablet|Composer'], ['ComposerPhone|Composer']]),
+      row('Send Readiness', [['SendReadiness|Ready with warnings'], ['na'], ['SendReadinessStates|Running checks'], ['SendReadinessStates|HostRepute timeout', 'SendReadinessBlocked|Blocked'], ['SendReadinessConfirm|Confirm', 'SendReadinessStates|Scheduled'], ['shared:Editor needs approval'], ['shared:Quota reached'], ['SendReadinessConfirm|Schedule send'], ['SendReadinessTablet|Readiness'], ['SendReadinessPhone|Readiness', 'SendReadinessBlockedPhone|Blocked']]),
+      row('Live monitor', [['LiveMonitor|Sending'], ['LiveMonitorStates|Starting'], ['LiveMonitorStates|Connecting'], ['LiveMonitorStates|Stream lost', 'LiveMonitorOutage|Provider outage', 'LiveMonitorPaused|Auto-paused'], ['LiveMonitorStates|Complete'], ['shared:403 Viewer'], ['shared:Reconnecting'], ['Dialogs|Cancel send, resume'], ['LiveMonitorTablet|Monitor'], ['LiveMonitorMobile|Monitor', 'LiveMonitorPausedPhone|Paused']]),
+      row('Campaigns & report', [['Campaigns|List', 'Report|Report'], ['ReportStates|Not sent yet'], ['ReportStates|Aggregating'], ['ReportStates|Part unavailable'], ['na'], ['shared:403 Viewer'], ['shared:Offline'], ['na'], ['CampaignsTablet|Campaigns', 'ReportTablet|Report'], ['CampaignsPhone|Campaigns', 'ReportPhone|Report']]),
+      row('Deliverability', [['Deliverability|With HostRepute', 'DeliverabilityNoHostRepute|Without'], ['DeliverabilityNoHostRepute|Not connected'], ['DeliverabilityStates|Running lookups'], ['DeliverabilityStates|HostRepute unreachable'], ['na'], ['shared:403 Viewer'], ['shared:Offline'], ['na'], ['DeliverabilityTablet|Deliverability'], ['DeliverabilityPhone|Deliverability']]),
+      row('Audience', [['Contacts|Contacts', 'ContactProfile|Profile', 'SegmentBuilder|Segments', 'ListHealth|List health', 'Suppressions|Suppressions'], ['AudienceStates|No contacts'], ['AudienceStates|Fetching'], ['AudienceStates|Count timed out, bulk partly failed'], ['Dialogs|Bulk result'], ['shared:403 Viewer'], ['shared:Offline'], ['Dialogs|Delete list'], ['ContactsTablet|Contacts', 'SegmentBuilderTablet|Segments'], ['ContactsPhone|Contacts', 'ContactProfilePhone|Profile']]),
+      row('Automations', [['AutomationsList|List', 'AutomationFlow|Flow canvas'], ['AutomationsStates|Templates'], ['AutomationsStates|Fetching flows'], ['AutomationsStates|Paused itself, webhook 404'], ['AutomationPublish|Published v4'], ['shared:403 Viewer'], ['shared:Offline'], ['AutomationPublish|Publish version'], ['AutomationsListTablet|List', 'AutomationFlowTablet|Flow'], ['AutomationsListPhone|List', 'AutomationFlowPhone|Flow']]),
+      row('Migration & import', [['MigrationSource|Source', 'MigrationFields|Fields', 'MigrationConsent|Consent', 'MigrationPreview|Preview'], ['MigrationStates|Choose a file'], ['MigrationProgress|Importing'], ['MigrationStates|401, rate-limited, file errors'], ['MigrationDone|Summary'], ['shared:403 Viewer'], ['shared:Background job'], ['na'], ['MigrationSourceTablet|Source'], ['MigrationSourcePhone|Source', 'MigrationProgressPhone|Progress']]),
+      row('Forms & public pages', [['FormBuilder|Builder', 'PublicSubscribe|Subscribe', 'PublicPreferences|Preferences', 'PublicUnsubscribe|Unsubscribe', 'PublicArchive|Archive'], ['FormsStates|No forms'], ['FormsStates|Building preview'], ['FormsStates|Domain, spam, publish errors'], ['PublicConfirm|Confirmed'], ['shared:403 Viewer'], ['shared:Offline'], ['na'], ['FormBuilderTablet|Builder'], ['FormBuilderPhone|Builder', 'PublicSubscribePhone|Subscribe', 'PublicPreferencesPhone|Preferences']]),
+      row('Settings', [['SettingsSenders|Senders', 'SettingsProviders|Providers', 'WorkspaceSettings|General', 'SettingsTeam|Team', 'Roles|Roles', 'ApprovalPolicy|Approvals', 'SettingsKeys|Keys & MCP', 'SettingsAPI|Webhooks', 'SettingsIntegrations|Integrations', 'SettingsAudit|Audit'], ['SettingsStates|No keys, webhooks, agents'], ['SettingsStates|Fetching'], ['SettingsStates|SSO metadata, webhook failing'], ['na'], ['SettingsStates|Editor role'], ['shared:429 rate limit'], ['Dialogs|Revoke key, delete workspace'], ['SettingsSendersTablet|Senders'], ['SettingsSendersPhone|Senders', 'SettingsAPIPhone|API']]),
+      row('System-wide', [['SystemStates|404, 403, 500', 'Feedback|Toasts, validation'], ['Feedback|No results'], ['Feedback|Loading buttons, jobs'], ['SystemStates|500, 429'], ['Feedback|Saved, undo'], ['SystemStates|403', 'Feedback|Disabled with reason'], ['SystemStates|Offline, reconnecting, maintenance, quota'], ['Dialogs|All patterns'], ['na'], ['na']]),
+      row('Sign in & access', [['AuthScreens|Sign in, 2FA, invite, reset', 'SignInStates|Identifier first, SSO redirect', 'TwoFactorStates|2FA, recovery, reset fallbacks', 'InviteStates|Invitation'], ['na'], ['SignInStates|Redirecting to the IdP'], ['SignInStates|Wrong password, locked, deactivated, IdP error, no account', 'TwoFactorStates|Wrong code, last recovery code', 'InviteStates|Expired, revoked, wrong account'], ['InviteStates|Joined, security setup'], ['SignInStates|Break-glass Owner'], ['TwoFactorStates|CLI reset, SSO-only'], ['na'], ['na'], ['AuthScreensPhone|Sign in']]),
+      row('First sign-in & account', [['InstanceSetup|Instance setup', 'AccountSecurity|Account & security'], ['na'], ['AccountStates|Loading sessions'], ['AccountStates|Email change failed'], ['AccountStates|Profile saved, recovery codes'], ['AccountStates|SSO-only member'], ['na'], ['AccountStates|Authenticator setup, recovery codes'], ['AccountSecurityTablet|Account'], ['AccountSecurityPhone|Account']]),
+      row('Workspaces & team', [['ShellSwitcher|Workspace switcher', 'ShellUserMenu|User menu', 'WorkspaceSettings|Workspace settings', 'SettingsTeam|Team', 'TeamMember|Member detail'], ['TeamMember|No API keys'], ['na'], ['TeamDialogs|Last Owner guard'], ['TeamInvite|Invite sent'], ['TeamViewer|Viewer read-only'], ['TeamInviteNoProvider|No System provider'], ['TeamInvite|Invite', 'TeamDialogs|Deactivate', 'WorkspaceDialogs|Transfer, delete'], ['SettingsTeamTablet|Team'], ['SettingsTeamPhone|Team', 'WorkspaceSettingsPhone|Settings']]),
+      row('Roles & permissions', [['Roles|Roles, comparison', 'RoleEditor|Role editor'], ['RoleEditor|No members yet'], ['RoleEditorStates|Saving'], ['RoleEditorStates|Name taken, cannot delete'], ['RoleEditorStates|Saved'], ['RoleEditorStates|Escalation guard'], ['na'], ['RoleEditorStates|Impact preview'], ['RolesTablet|Roles'], ['RolesPhone|Roles']]),
+      row('Instance admin & SSO', [['InstanceUsers|Users', 'InstanceAuth|Authentication', 'InstanceSettings|Instance, updates', 'SSOSetup|SSO setup'], ['na'], ['na'], ['SSOStates|Discovery failed, groups missing'], ['SSOStates|Google Workspace enabled'], ['shared:Admins only'], ['InstanceSettings|Update check off'], ['InstanceUserDialogs|Reset 2FA, CLI reset, make admin', 'SSOStates|Enforce domain'], ['InstanceUsersTablet|Users', 'SSOSetupTablet|SSO'], ['InstanceUsersPhone|Users', 'SSOSetupPhone|SSO']]),
+      row('Send approvals', [['ApprovalPolicy|Policy', 'ApprovalReview|Review', 'ApprovalInbox|Inbox', 'SendReadinessApproval|Review & send states', 'ComposerRequestApproval|Composer as Content Writer'], ['ApprovalInbox|Nothing waiting'], ['na'], ['ApprovalStates|Recheck blocked'], ['SendReadinessApproval|Approved'], ['SendReadinessApproval|Approval required'], ['na'], ['ApprovalStates|Emergency bypass', 'ApprovalStates|Invalidated diff'], ['ApprovalReviewTablet|Review'], ['ApprovalReviewPhone|Review', 'ApprovalInboxPhone|Inbox']]),
+      row('Keys, audit & integrations', [['SettingsKeys|API keys & MCP', 'SettingsAudit|Audit log', 'AuditInstance|Instance audit', 'SettingsIntegrations|Integrations', 'ConnectHostRepute|Connect HostRepute'], ['AuditInstance|No events'], ['ConnectHostRepute|Redirecting'], ['SettingsKeysStates|Expired key', 'HostReputeStates|Token revoked', 'AuditInstance|Export failed'], ['SettingsKeysStates|Key shown once', 'ConnectHostRepute|Connected'], ['SettingsKeysStates|Escalation guard', 'SettingsAudit|Denied event'], ['HostReputeStates|Monitoring limit'], ['HostReputeStates|Disconnect'], ['SettingsKeysTablet|Keys'], ['SettingsKeysPhone|Keys']]),
+      row('Notifications', [['Notifications|Center & preferences', 'ShellNotifications|Popover'], ['Notifications|All caught up'], ['na'], ['na'], ['na'], ['na'], ['na'], ['na'], ['NotificationsTablet|Notifications'], ['NotificationsPhone|Notifications']]),
+      row('Landing & README', [['Landing|Landing', 'ReadmeBanner|README banner'], ['na'], ['na'], ['na'], ['na'], ['na'], ['na'], ['na'], ['LandingTablet|Landing'], ['LandingPhone|Landing']])
+    ];
+    return { rows: rows };
+  }
+}
+</script>
+</body>
+</html>

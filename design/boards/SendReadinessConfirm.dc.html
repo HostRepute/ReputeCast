@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confirm send</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav svg{width:16px;height:16px;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.in{height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.h2{margin:0;font-size:15px;font-weight:600}
+.sum{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+label.chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;cursor:pointer}
+label.chk input{margin-top:3px}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<h1 class="vh">Confirm send</h1>
+<div class="app" style="position:relative;min-height:100vh;display:flex;flex-wrap:wrap;align-items:stretch">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box;opacity:.5" aria-hidden="true">
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
+    </div>
+    <div class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px">
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Overview</span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;background:#E3F1EE;color:#0F766E;font-weight:500">Campaigns</span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Automations</span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Audience</span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Forms &amp; pages</span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Deliverability</span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Sending providers</span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Settings</span>
+    </div>
+  </aside>
+
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;opacity:.5" aria-hidden="true">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <span style="font-size:13px;color:#5B6472">Campaigns / Weekly Digest #142 / <span style="font-weight:600;color:#0B1220">Review &amp; send</span></span>
+          <div class="tools" style="margin-left:auto"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div>
+    </header>
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;background:#FFFBEB;border:1px solid #FCD34D">
+        <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:20px;font-weight:700;color:#78350F">Ready with warnings</span><span style="color:#78350F">27 checks passed, 2 warnings, 0 blocks.</span></div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+        <div class="card" style="flex:1 1 560px;height:520px"></div>
+        <div style="flex:1 1 340px;max-width:420px;display:flex;flex-direction:column;gap:16px"><div class="card" style="height:160px"></div><div class="card" style="height:200px"></div><div class="card" style="height:120px"></div></div>
+      </div>
+    </main>
+  </div>
+
+  <div style="position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:72px 16px;box-sizing:border-box">
+    <section class="card" role="dialog" aria-labelledby="confirm-title" style="width:100%;max-width:640px;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(11,18,32,.3)">
+      <div style="padding:22px 24px 16px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #EEF0F3">
+        <span class="badge warn" style="align-self:flex-start"><span class="dot"></span>Ready with warnings</span>
+        <h2 id="confirm-title" style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em">Schedule "Weekly Digest #142" for 31,604 people?</h2>
+        <span style="color:#4B5563">Tuesday 14 Oct 2026 at 09:00 America/New_York. Checks run again 15 minutes before the send, and the campaign pauses itself if any check turns to Block.</span>
+      </div>
+      <div style="padding:16px 24px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid #EEF0F3">
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 24px">
+          <div class="sum"><span class="k">From</span><span class="n">Acme Newsletter &lt;digest@news.acme.io&gt;</span></div>
+          <div class="sum"><span class="k">Reply-to</span><span class="n">hello@acme.io</span></div>
+          <div class="sum"><span class="k">Subject</span><span class="n" style="text-align:right">Three launches, one deprecation, and the roadmap for Q4</span></div>
+          <div class="sum"><span class="k">A/B</span><span class="n">Subject test · 2 variants · 20% sample</span></div>
+          <div class="sum"><span class="k">Route</span><span class="n">SES 28,444 · Postal 3,160</span></div>
+          <div class="sum"><span class="k">Cost · duration</span><span class="n">$2.84 · about 34 min</span></div>
+          <div class="sum"><span class="k">Auto-pause</span><span class="n">bounce 2.0% · complaint 0.10%</span></div>
+          <div class="sum"><span class="k">Excluded</span><span class="n">331 suppressed · 27 role · 26 duplicates</span></div>
+        </div>
+      </div>
+      <div style="padding:16px 24px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #EEF0F3">
+        <label class="chk"><input type="checkbox" checked><span>I understand 412 unengaged contacts are included. <a href="SendReadiness.dc.html">Exclude them instead</a></span></label>
+        <label class="chk"><input type="checkbox" checked><span>I understand the Postal IP is listed on UCEPROTECT L3, a low-impact list.</span></label>
+      </div>
+      <div style="padding:16px 24px 22px;display:flex;flex-direction:column;gap:12px">
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">Type the recipient count to confirm<input class="in mono" value="31604" style="height:44px;font-size:16px;letter-spacing:.08em"><span class="k" style="font-weight:500">This is deliberate: large sends can't be recalled once they leave the queue.</span></label>
+        <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+          <a href="SendReadiness.dc.html" class="btn" style="min-height:44px">Back</a>
+          <a href="SendReadinessStates.dc.html" class="btn pri" style="min-height:44px;padding:0 20px;font-size:14px">Schedule send</a>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":746}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

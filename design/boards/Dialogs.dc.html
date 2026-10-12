@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confirmation dialogs: destructive actions, unsaved changes, bulk results</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+a:not([class]):not(nav a){text-decoration:underline;text-underline-offset:2px}
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#fff}.btn.pri:hover{background:#115E59;color:#fff}
+.btn.dan{background:#B91C1C;border-color:#B91C1C;color:#fff}.btn.dan:hover{background:#991B1B;color:#fff}
+.btn.dis{opacity:.5;cursor:not-allowed}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.in{height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;width:100%}
+.wrap{max-width:1380px;margin:0 auto;padding:28px 40px 44px;display:flex;flex-direction:column;gap:22px;box-sizing:border-box}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec h2{margin:0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#0B1220;padding:8px 14px;border-radius:8px;display:flex;gap:10px;align-items:center}
+.sec h2 .dot{color:#0F766E}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:16px;align-items:start}
+.dlg{background:#fff;border:1px solid #E3E6EB;border-radius:12px;padding:20px 22px;display:flex;flex-direction:column;gap:12px;box-shadow:0 12px 30px rgba(11,18,32,.10)}
+.dlg h3{margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em}
+.dlg p{margin:0;color:#4B5563;font-size:13.5px}
+.row{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding-top:4px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;font-size:13px}
+.opt.on{border-color:#0F766E;background:#F0FDFA}
+.opt input{margin-top:3px}
+@media (max-width:767px){.wrap{padding:16px 12px 28px}.grid{grid-template-columns:1fr}}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<h1 class="vh">Confirmation dialogs: destructive actions, unsaved changes, bulk results</h1>
+<main class="wrap" id="main">
+  <div class="sec">
+    <h2><span class="dot"></span>Destructive actions · the dialog states the blast radius and asks for a deliberate step</h2>
+    <div class="grid">
+      <div class="dlg" role="dialog" aria-labelledby="d1">
+        <span class="badge bad" style="align-self:flex-start">Delete list</span>
+        <h3 id="d1">Delete "Product Updates"?</h3>
+        <p>14,110 contacts are on this list. 9,802 are also on Weekly Digest and stay subscribed there; 4,308 are on no other list and will become contacts without a subscription. Suppressions are never removed.</p>
+        <div class="row" style="border-top:0"><span class="badge warn">Affects</span><span>2 signup forms, 1 automation trigger ("Joined Product Updates") and 3 scheduled campaigns use this list. They will pause.</span></div>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:#4B5563">Type the list name to confirm<input class="in" value="Product Upd" aria-describedby="d1-h"><span class="k" id="d1-h">Deleted lists can be restored from the audit log for 30 days; sends in the meantime skip it.</span></label>
+        <div class="acts"><button class="btn">Cancel</button><button class="btn dan dis" aria-disabled="true">Delete list</button></div>
+      </div>
+      <div class="dlg" role="dialog" aria-labelledby="d2">
+        <span class="badge bad" style="align-self:flex-start">Cancel send</span>
+        <h3 id="d2">Cancel the rest of Weekly Digest #142?</h3>
+        <p>19,594 of 31,604 are already delivered and cannot be recalled. 12,010 are queued and will not be sent. The report keeps everything sent so far.</p>
+        <div class="opt on"><input type="radio" name="c" checked id="c1"><label for="c1"><b>Cancel the remaining 12,010</b><br><span class="k">Marks the campaign as partially sent. You can send the remainder later as a new campaign.</span></label></div>
+        <div class="opt"><input type="radio" name="c" id="c2"><label for="c2"><b>Pause instead</b><br><span class="k">Keeps the queue for 24 hours; resume from the monitor at any time.</span></label></div>
+        <div class="acts"><button class="btn">Keep sending</button><button class="btn dan">Cancel remaining sends</button></div>
+      </div>
+      <div class="dlg" role="dialog" aria-labelledby="d3">
+        <span class="badge bad" style="align-self:flex-start">Remove provider</span>
+        <h3 id="d3">Remove Postmark from this workspace?</h3>
+        <p>Postmark is the primary route for System mail and the failover for Automations. Removing it leaves those routes with no provider until you pick another.</p>
+        <div class="row" style="border-top:0"><span class="badge warn">System</span><span style="flex:1">Primary: Postmark → choose a replacement</span><select aria-label="Amazon SES" class="in" style="width:170px"><option>Amazon SES</option><option>Postal</option></select></div>
+        <div class="row"><span class="badge warn">Automations</span><span style="flex:1">Failover: Postmark → choose a replacement</span><select aria-label="Postal" class="in" style="width:170px"><option>Postal</option><option>None, pause and ask</option></select></div>
+        <div class="row"><span class="badge mut">Keeps</span><span>The 1,874 suppressions synced from Postmark stay in the shared list. Webhooks are unregistered for you.</span></div>
+        <div class="acts"><button class="btn">Cancel</button><button class="btn dan">Reassign routes and remove</button></div>
+      </div>
+      <div class="dlg" role="dialog" aria-labelledby="d4">
+        <span class="badge bad" style="align-self:flex-start">Delete workspace</span>
+        <h3 id="d4">Delete Acme Newsletter and all its data?</h3>
+        <p>48,213 contacts, 142 campaigns, 5 automations, 3 connected providers and 14 months of events. Public pages and forms stop working immediately. Export first if you need any of it.</p>
+        <div class="row" style="border-top:0"><span class="badge info">Grace period</span><span>Data is kept 30 days in a locked state, then erased. Only an Owner can delete; two owners must confirm within 24 hours.</span></div>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:#4B5563">Type <span class="mono">acme-newsletter</span> to confirm<input class="in" value=""></label>
+        <div class="acts"><a href="SettingsAudit.dc.html" class="btn">Export everything first</a><button class="btn">Cancel</button><button class="btn dan dis" aria-disabled="true">Delete workspace</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2><span class="dot"></span>Protective prompts · unsaved changes, revoking access, resuming after a pause</h2>
+    <div class="grid">
+      <div class="dlg" role="dialog" aria-labelledby="d5">
+        <span class="badge warn" style="align-self:flex-start">Unsaved changes</span>
+        <h3 id="d5">Leave the composer?</h3>
+        <p>You changed the subject line and two blocks since the last autosave 40 seconds ago. Leaving now keeps draft v16; saving creates v17.</p>
+        <div class="acts"><button class="btn">Stay</button><button class="btn">Leave without saving</button><button class="btn pri">Save as v17 and leave</button></div>
+      </div>
+      <div class="dlg" role="dialog" aria-labelledby="d6">
+        <span class="badge warn" style="align-self:flex-start">Revoke API key</span>
+        <h3 id="d6">Revoke "Product backend"?</h3>
+        <p>This key made 2,418 requests in the last 7 days from 2 IP addresses, the last one 4 minutes ago. Anything using it will get 401 immediately.</p>
+        <div class="opt on"><input type="checkbox" checked id="k1"><label for="k1">Create a replacement key with the same scopes and show it once</label></div>
+        <div class="acts"><button class="btn">Cancel</button><button class="btn dan">Revoke key</button></div>
+      </div>
+      <div class="dlg" role="dialog" aria-labelledby="d7">
+        <span class="badge ok" style="align-self:flex-start">Resume sending</span>
+        <h3 id="d7">Resume the 2,522 held Outlook recipients?</h3>
+        <p>The Outlook complaint rate was 0.18% when ReputeCast paused at 09:21. Since then: 0.14% on the 1,180 delivered after the content change. The threshold is 0.10%.</p>
+        <div class="opt on"><input type="radio" name="r" checked id="r1"><label for="r1"><b>Resume at 2 /s and re-pause if complaints pass 0.10% again</b></label></div>
+        <div class="opt"><input type="radio" name="r" id="r2"><label for="r2"><b>Resume with the threshold raised to 0.20% for this campaign only</b><br><span class="k">Logged in the audit log with your name.</span></label></div>
+        <div class="acts"><button class="btn">Keep paused</button><button class="btn pri">Resume Outlook</button></div>
+      </div>
+      <div class="dlg" role="dialog" aria-labelledby="d8">
+        <span class="badge info" style="align-self:flex-start">Bulk action · partial result</span>
+        <h3 id="d8">Moved 2,114 of 2,118 contacts to "Re-permission"</h3>
+        <p>4 could not be moved: 2 are hard-bounced and stay suppressed, 2 were deleted by another member while this ran.</p>
+        <div class="row" style="border-top:0"><span class="badge ok">2,114</span><span>Tagged re-permission, removed from Broadcasts until they confirm</span></div>
+        <div class="row"><span class="badge bad">4</span><span>Skipped · <a href="AudienceStates.dc.html">see the 4 contacts</a></span></div>
+        <div class="acts"><button class="btn">Undo for the 2,114</button><button class="btn pri">Done</button></div>
+      </div>
+    </div>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1864}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subscribe to the Acme newsletter</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3FF;color:#1F2937;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;line-height:1.5}
+a{color:#4338CA;text-decoration:none}a:hover{color:#3730A3}
+input[type=email],input[type=text]{height:46px;padding:0 14px;border:1px solid #C9CED6;border-radius:9px;font:inherit;font-size:15px;width:100%;box-sizing:border-box;background:#fff}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 16px 32px;box-sizing:border-box">
+  <main style="width:100%;max-width:560px;background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:center;gap:12px"><span style="width:40px;height:40px;border-radius:10px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">A</span><span style="font-weight:700;font-size:18px">Acme</span></div>
+    <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.15">The Acme newsletter</h1>
+    <p style="margin:0;color:#374151">One email a week with what shipped, what's next and the occasional deep dive. Read by 48,000 people building on Acme.</p>
+    <form style="display:flex;flex-direction:column;gap:14px" action="PublicConfirm.dc.html">
+      <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600">Email<input type="email" placeholder="you@company.com" required></label>
+      <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600"><span>First name <span style="font-weight:400;color:#5B6472">optional</span></span><input type="text" placeholder="Sam"></label>
+      <fieldset style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:8px"><legend style="font-size:13px;font-weight:600;margin-bottom:4px">What would you like?</legend>
+        <label style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:9px"><input type="checkbox" checked style="margin-top:4px"><span><span style="font-weight:600">Weekly Digest</span><br><span style="font-size:13px;color:#5B6472">Every Tuesday morning. 31,988 subscribers.</span></span></label>
+        <label style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:9px"><input type="checkbox" style="margin-top:4px"><span><span style="font-weight:600">Product Updates</span><br><span style="font-size:13px;color:#5B6472">Only when something ships. About twice a month.</span></span></label>
+      </fieldset>
+      <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#4B5563"><input type="checkbox" style="margin-top:3px" required><span>I agree to receive emails from Acme. Unsubscribe any time with one click. See the <a href="https://acme.io/privacy">privacy policy</a>.</span></label>
+      <a href="PublicConfirm.dc.html" style="display:flex;align-items:center;justify-content:center;height:48px;border-radius:9px;background:#4338CA;color:#fff;font-weight:700;font-size:15px">Subscribe</a>
+      <span style="font-size:12.5px;color:#5B6472;text-align:center">We'll send a confirmation link first. No spam, ever. You can change lists or pause emails from any message.</span>
+    </form>
+  </main>
+  <div style="display:flex;gap:16px;align-items:center;margin-top:18px;font-size:12.5px;color:#5B6472;flex-wrap:wrap;justify-content:center">
+    <a href="PublicArchive.dc.html" style="color:#5B6472">Read past issues</a>
+    <span>·</span>
+    <a href="https://acme.io/privacy" style="color:#5B6472">Privacy</a>
+    <span>·</span>
+    <a href="Landing.dc.html" style="color:#5B6472;display:inline-flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>Sent with ReputeCast</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":841}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

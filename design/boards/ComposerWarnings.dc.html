@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campaign composer, inline deliverability warnings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:7px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:28px;padding:0 9px;font-size:12px}
+.btn.ic{width:32px;padding:0}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.in{height:32px;padding:0 9px;border:1px solid #D4D8DF;border-radius:7px;background:#fff;font:inherit;font-size:12.5px;color:#0B1220;box-sizing:border-box;min-width:0}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.grp{padding:10px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472}
+.blk{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:11.5px;font-weight:500;color:#374151;text-align:center}
+.blk svg{width:22px;height:22px;stroke:#374151;fill:none;stroke-width:1.5}
+.blk.rc{border-color:#99F6E4;background:#F0FDFA}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:7px;overflow:hidden}
+.seg button{height:30px;padding:0 10px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#5B6472;cursor:pointer}
+.seg button.on{background:#0B1220;color:#fff}
+.email{width:600px;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none}
+.sec{position:relative;padding:16px 24px}
+.ph{display:flex;align-items:center;justify-content:center;background:#E9ECF0;color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500;border:1px dashed #C9CED6}
+.wtag{position:absolute;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:6px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11.5px;font-weight:700;box-shadow:0 2px 6px rgba(11,18,32,.18);z-index:2;white-space:nowrap}
+.wtag.w{background:#FEF3C7;color:#92400E;border:1px solid #FCD34D}.wtag.b{background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5}
+.iss{display:flex;flex-direction:column;gap:8px;padding:12px;border-bottom:1px solid #EEF0F3}
+.iss .t{display:flex;gap:8px;align-items:flex-start;font-weight:600}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column">
+  <a href="#main" class="skip">Skip to content</a>
+  <header style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
+    <a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
+    <div style="display:flex;flex-direction:column;min-width:0"><span class="k" style="font-size:11px">Campaign</span><span style="font-size:15px;font-weight:700">Flash sale: 48 hours only</span></div>
+    <span class="badge mut">Draft · autosaved 09:31 · v6</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:12px">
+      <button class="btn">All subscribers · 47,842</button>
+      <button class="btn">From: Acme &lt;hello@news.acme.io&gt;</button>
+      <a href="ProvidersRouting.dc.html" class="btn"><span class="dot" style="color:#4a3aa7"></span>SES 90% <span class="dot" style="color:#e87ba4"></span>Postal 10%</a>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      <a href="ComposerPreview.dc.html" class="btn">Preview</a>
+      <button class="btn">Send test</button>
+      <a href="SendReadinessBlocked.dc.html" class="btn pri" style="background:#B91C1C;border-color:#B91C1C">Review &amp; send · 2 blocks</a>
+    </div>
+  </header>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
+    <label style="display:flex;flex-direction:column;gap:2px;flex:2 1 320px"><span class="k" style="font-size:11px;color:#92400E">Subject · 3 spam heuristics: all caps, repeated punctuation, urgency</span><input class="in" value="FLASH SALE!!! 48 HOURS ONLY" style="border-color:#F59E0B;background:#FFFBEB"></label>
+    <label style="display:flex;flex-direction:column;gap:2px;flex:2 1 320px"><span class="k" style="font-size:11px">Preheader</span><input class="in" value="Annual plans 30% off until Thursday midnight."></label>
+    <div style="flex:3 1 360px;display:flex;flex-direction:column;gap:2px;min-width:0"><span class="k" style="font-size:11px">Inbox preview · Gmail</span>
+      <div style="display:flex;gap:10px;align-items:center;height:32px;padding:0 10px;border:1px solid #E3E6EB;border-radius:7px;background:#F9FAFB;font-size:12.5px;white-space:nowrap;overflow:hidden"><span style="font-weight:700;width:60px">Acme</span><span style="overflow:hidden;text-overflow:ellipsis"><b style="font-weight:600">FLASH SALE!!! 48 HOURS ONLY</b><span style="color:#5B6472"> - Annual plans 30% off until Thursday midnight.</span></span><span class="k" style="margin-left:auto">9:31 AM</span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;flex:1;align-items:stretch">
+    <aside class="cpanel" style="flex:1 1 272px;max-width:272px;background:#fff;border-right:1px solid #E3E6EB;display:flex;flex-direction:column">
+      <div class="ptab" role="tablist"><button class="on" role="tab">Blocks</button><button role="tab">Layers</button><button role="tab">Templates</button></div>
+      <div class="grp">ReputeCast blocks</div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
+        <div class="blk rc"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="7.5" cy="9.5" r="1.5"></circle><path d="M12 9h6"></path></svg>Header + logo</div>
+        <div class="blk rc"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M6 8h12M6 12h8M6 16h6"></path></svg>Article card</div>
+        <div class="blk rc"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><rect x="6" y="6" width="12" height="7" rx="1"></rect><path d="M6 17h6"></path></svg>Product card</div>
+        <div class="blk rc" style="outline:2px solid #B91C1C;outline-offset:1px"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="12" width="18" height="8" rx="2"></rect><path d="M6 16h8"></path></svg>Footer + unsubscribe</div>
+        <div class="blk rc"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"></path></svg>Saved sections · 4</div>
+      </div>
+      <div class="grp">Content · MJML</div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
+        <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>Text</div>
+        <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path></svg>Image</div>
+        <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"></rect></svg>Button</div>
+        <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h18"></path></svg>Divider</div>
+        <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6v12M20 6v12M8 12h8"></path></svg>Spacer</div>
+        <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="18" cy="12" r="2.5"></circle></svg>Social</div>
+      </div>
+    </aside>
+
+    <section role="main" id="main" style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;background:#E9ECF0">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB">
+        <div class="seg" role="group" aria-label="Device"><button class="on">Desktop · 600</button><button>Mobile · 375</button></div>
+        <div class="seg" role="group" aria-label="View"><button class="on">Visual</button><button>MJML</button><button>HTML</button></div>
+        <span class="badge bad"><span class="dot"></span>2 blocking</span><span class="badge warn"><span class="dot"></span>2 warnings</span>
+        <span class="k" style="margin-left:auto">Warnings update as you edit; Send Readiness runs the full set.</span>
+      </div>
+
+      <div style="flex:1;overflow:auto;padding:28px 24px 40px;display:flex;justify-content:center">
+        <div class="email">
+          <div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #EEF0F3">
+            <div class="ph" style="width:96px;height:28px">Logo · 96×28</div>
+            <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Pricing · Docs</div>
+          </div>
+          <div class="sec" style="padding:20px 24px 8px">
+            <span class="wtag w" style="top:8px;left:12px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>Image has no alt text</span>
+            <div class="ph" style="height:220px;margin-bottom:16px;border-color:#F59E0B;background:#FFFBEB">sale-hero.png · 552×220 · 212 KB</div>
+            <h1 style="margin:0 0 10px;font-size:28px;line-height:1.15;font-weight:700;color:#0B1220">48 hours. 30% off every annual plan.</h1>
+            <p style="margin:0;font-size:15px;line-height:1.55">Hi {{tok}}, until Thursday at midnight every annual plan is 30% off, including upgrades from monthly.</p>
+          </div>
+          <div class="sec" style="padding:8px 24px 20px;text-align:center">
+            <span class="wtag b" style="top:-6px;left:50%;transform:translateX(-50%)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>Link domain on SURBL and Spamhaus DBL</span>
+            <a href="https://go.acme-promo.link/sale" style="display:inline-block;padding:14px 28px;border-radius:6px;background:#B91C1C;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;font-weight:700;outline:2px solid #DC2626;outline-offset:3px">Claim your discount</a>
+            <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;color:#991B1B;margin-top:10px" class="mono">go.acme-promo.link/sale</div>
+          </div>
+          <div class="sec" style="padding:8px 24px"><div style="border-top:1px solid #E3E6EB"></div></div>
+          <div class="sec" style="padding:8px 24px 16px">
+            <div style="display:flex;gap:16px">
+              <div style="flex:1"><div class="ph" style="height:110px;margin-bottom:8px">Image · 268×110</div><h2 style="margin:0 0 4px;font-size:16px;color:#0B1220">Starter · $9/mo</h2><p style="margin:0;font-size:13px;line-height:1.5;color:#374151">Now $75.60 a year.</p></div>
+              <div style="flex:1"><div class="ph" style="height:110px;margin-bottom:8px">Image · 268×110</div><h2 style="margin:0 0 4px;font-size:16px;color:#0B1220">Team · $29/mo</h2><p style="margin:0;font-size:13px;line-height:1.5;color:#374151">Now $243.60 a year.</p></div>
+            </div>
+          </div>
+          <div class="sec" style="padding:0 24px 16px">
+            <div style="display:flex;gap:16px">
+              <div style="flex:1"><div class="ph" style="height:110px;margin-bottom:8px">Image · 268×110</div><h2 style="margin:0 0 4px;font-size:16px;color:#0B1220">Business · $79/mo</h2></div>
+              <div style="flex:1"><div class="ph" style="height:110px;margin-bottom:8px">Image · 268×110</div><h2 style="margin:0 0 4px;font-size:16px;color:#0B1220">Enterprise</h2></div>
+            </div>
+          </div>
+          <div class="sec" style="padding:20px 24px;border-top:2px dashed #DC2626;background:#FFF5F5;text-align:center;font-family:'IBM Plex Sans',system-ui,sans-serif">
+            <span class="wtag b" style="top:-13px;left:50%;transform:translateX(-50%)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>No unsubscribe link or postal address</span>
+            <span style="font-size:12.5px;color:#991B1B">The footer block was deleted at 09:31. Gmail, Yahoo and CAN-SPAM require both.</span><br>
+            <button class="btn sm" style="margin-top:8px;border-color:#FCA5A5;color:#991B1B">Insert footer block</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="cpanel" style="flex:1 1 300px;max-width:300px;background:#fff;border-left:1px solid #E3E6EB;display:flex;flex-direction:column">
+      <div class="ptab" role="tablist"><button role="tab">Style</button><button role="tab">Settings</button><button class="on" role="tab">Deliverability · 4</button></div>
+      <div class="iss" style="background:#FFF5F5"><div class="t"><span class="badge bad">Block</span><span>Button links to go.acme-promo.link, listed on SURBL and Spamhaus DBL</span></div><span class="k">Mail linking to a blocklisted domain gets filtered regardless of your reputation. Use a domain you control.</span><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm pri">Replace with acme.io/sale</button><button class="btn sm">Edit link</button></div></div>
+      <div class="iss" style="background:#FFF5F5"><div class="t"><span class="badge bad">Block</span><span>No unsubscribe link or postal address in the body</span></div><span class="k">Headers are added automatically, but the visible link and address are required too.</span><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm pri">Insert footer block</button></div></div>
+      <div class="iss" style="background:#FFFBEB"><div class="t"><span class="badge warn">Warn</span><span>Hero image has no alt text</span></div><span class="k">Images are off by default in Outlook and many corporate clients; alt text is what shows, and spam filters score image-only mail higher.</span><div style="display:flex;gap:6px;flex-wrap:wrap"><input aria-label="Describe the image" class="in" placeholder="Describe the image" style="flex:1"><button class="btn sm">Save</button></div></div>
+      <div class="iss" style="background:#FFFBEB"><div class="t"><span class="badge warn">Warn</span><span>98 KB of Gmail's 102 KB clipping limit</span></div><span class="k">Gmail clips the message and hides the footer, including the unsubscribe link. Four product cards with inline CSS are the bulk of it.</span><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm">Minify inline CSS · saves about 9 KB</button><button class="btn sm">Remove the second row</button></div></div>
+      <div class="iss"><div class="t"><span class="badge warn">Warn</span><span>Subject trips 3 spam heuristics</span></div><span class="k">Suggested: "48-hour sale on annual plans"</span><div style="display:flex;gap:6px"><button class="btn sm">Use suggestion</button></div></div>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-top:1px solid #E3E6EB">
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#5B6472"><span>mjml</span><span>›</span><span>mj-body</span><span>›</span><b style="color:#0B1220">mj-section · hero</b></div>
+    <span class="k" style="margin-left:auto;color:#92400E;font-weight:600">98 KB of 102 KB · 1 of 9 images missing alt text · 12 links, 1 blocklisted</span>
+    <span class="badge bad"><span class="dot"></span>2 blocking · 2 warnings</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1312}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { tok: '{' + '{ first_name | "there" }' + '}' };
+  }
+}
+</script>
+</body>
+</html>

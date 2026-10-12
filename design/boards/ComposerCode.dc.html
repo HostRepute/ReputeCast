@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Campaign composer, MJML code view</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:7px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.ic{width:32px;padding:0}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.in{height:32px;padding:0 9px;border:1px solid #D4D8DF;border-radius:7px;background:#fff;font:inherit;font-size:12.5px;color:#0B1220;box-sizing:border-box;min-width:0}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:7px;overflow:hidden}
+.seg button{height:30px;padding:0 10px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#5B6472;cursor:pointer}
+.seg button.on{background:#0B1220;color:#fff}
+pre{margin:0;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;line-height:1.6;white-space:pre;overflow-x:auto}
+.code{background:#0B1220;color:#D1D5DB;padding:16px 18px;flex:1}
+.tg{color:#93C5FD}.at{color:#FDE68A}.st{color:#86EFAC}.cm{color:#9CA3AF}
+.ln{display:inline-block;width:28px;color:#6B7280;text-align:right;margin-right:16px;user-select:none;flex:none}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;line-height:1.6;overflow-x:auto}
+.lines .l{display:flex;white-space:nowrap}
+.i1{padding-left:16px}.i2{padding-left:32px}.i3{padding-left:48px}
+.html{background:#fff;color:#374151;padding:16px 18px;flex:1;border-left:1px solid #E3E6EB}
+.row{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-bottom:1px solid #EEF0F3;font-size:12.5px}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+.code .ln{color:#9CA3AF}
+</style>
+</helmet>
+<h1 class="vh">Campaign composer, MJML code view</h1>
+<div style="min-height:100vh;display:flex;flex-direction:column">
+  <a href="#main" class="skip">Skip to content</a>
+  <header style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
+    <a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
+    <div style="display:flex;flex-direction:column;min-width:0"><span class="k" style="font-size:11px">Campaign</span><span style="font-size:15px;font-weight:700">Weekly Digest #142</span></div>
+    <span class="badge mut">Draft · autosaved 09:39 · v15</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:12px">
+      <button class="btn">Weekly Digest · 31,604</button>
+      <button class="btn">From: Acme Newsletter &lt;digest@news.acme.io&gt;</button>
+      <a href="ProvidersRouting.dc.html" class="btn"><span class="dot" style="color:#4a3aa7"></span>SES 90% <span class="dot" style="color:#e87ba4"></span>Postal 10%</a>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      <a href="ComposerPreview.dc.html" class="btn">Preview</a>
+      <button class="btn">Send test</button>
+      <a href="SendReadiness.dc.html" class="btn pri">Review &amp; send</a>
+    </div>
+  </header>
+
+  <div style="display:flex;flex-wrap:wrap;flex:1;align-items:stretch">
+    <section role="main" id="main" style="flex:999 1 620px;min-width:0;display:flex;flex-direction:column;background:#E9ECF0">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB">
+        <div class="seg" role="group" aria-label="View"><a href="Composer.dc.html" class="btn" style="border:0;border-radius:0;min-height:30px">Visual</a><button class="on">MJML</button><button>HTML</button></div>
+        <button class="btn">Import MJML</button>
+        <button class="btn">Format</button>
+        <button class="btn">Copy compiled HTML</button>
+        <span class="k">mjml 4.15 · grapesjs-mjml 1.0 · changes here update the canvas and the layer tree</span>
+        <button class="btn pri" style="margin-left:auto">Apply to canvas</button>
+      </div>
+
+      <div style="flex:1;display:flex;flex-wrap:wrap">
+        <div class="code" style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9CA3AF">MJML · source of truth</span><span style="font-size:11px;color:#9CA3AF">212 lines · line 41, col 7</span></div>
+          <div class="lines">
+            <div class="l"><span class="ln">1</span><span><span class="tg">&lt;mjml&gt;</span></span></div>
+            <div class="l"><span class="ln">2</span><span class="i1"><span class="tg">&lt;mj-head&gt;</span></span></div>
+            <div class="l"><span class="ln">3</span><span class="i2"><span class="tg">&lt;mj-title&gt;</span>Three launches, one deprecation, and the roadmap for Q4<span class="tg">&lt;/mj-title&gt;</span></span></div>
+            <div class="l"><span class="ln">4</span><span class="i2"><span class="tg">&lt;mj-preview&gt;</span>Feature flags are GA, audit log exports, and what we're retiring.<span class="tg">&lt;/mj-preview&gt;</span></span></div>
+            <div class="l"><span class="ln">5</span><span class="i2"><span class="tg">&lt;mj-attributes&gt;</span></span></div>
+            <div class="l"><span class="ln">6</span><span class="i3"><span class="tg">&lt;mj-all</span><span class="at"> font-family=</span><span class="st">"Georgia, serif"</span><span class="at"> color=</span><span class="st">"#374151"</span><span class="tg"> /&gt;</span></span></div>
+            <div class="l"><span class="ln">7</span><span class="i3"><span class="tg">&lt;mj-button</span><span class="at"> background-color=</span><span class="st">"#0F766E"</span><span class="at"> border-radius=</span><span class="st">"6px"</span><span class="at"> font-family=</span><span class="st">"IBM Plex Sans, sans-serif"</span><span class="tg"> /&gt;</span></span></div>
+            <div class="l"><span class="ln">8</span><span class="i2"><span class="tg">&lt;/mj-attributes&gt;</span></span></div>
+            <div class="l"><span class="ln">9</span><span class="i1"><span class="tg">&lt;/mj-head&gt;</span></span></div>
+            <div class="l"><span class="ln">10</span><span class="i1"><span class="tg">&lt;mj-body</span><span class="at"> width=</span><span class="st">"600px"</span><span class="at"> background-color=</span><span class="st">"#F3F4F6"</span><span class="tg">&gt;</span></span></div>
+            <div class="l"><span class="ln">11</span><span class="i2"><span class="cm">&lt;!-- rc:header-logo --&gt;</span></span></div>
+            <div class="l"><span class="ln">12</span><span class="i2"><span class="tg">&lt;mj-section</span><span class="at"> background-color=</span><span class="st">"#ffffff"</span><span class="at"> padding=</span><span class="st">"20px 24px"</span><span class="tg">&gt;</span></span></div>
+            <div class="l"><span class="ln">13</span><span class="i3"><span class="tg">&lt;mj-column</span><span class="at"> width=</span><span class="st">"40%"</span><span class="tg">&gt;&lt;mj-image</span><span class="at"> src=</span><span class="st">"https://cdn.acme.io/logo.png"</span><span class="at"> alt=</span><span class="st">"Acme"</span><span class="at"> width=</span><span class="st">"96px"</span><span class="tg"> /&gt;&lt;/mj-column&gt;</span></span></div>
+            <div class="l"><span class="ln">14</span><span class="i3"><span class="tg">&lt;mj-column</span><span class="at"> width=</span><span class="st">"60%"</span><span class="tg">&gt;&lt;mj-navbar</span><span class="at"> align=</span><span class="st">"right"</span><span class="tg">&gt;</span>…<span class="tg">&lt;/mj-navbar&gt;&lt;/mj-column&gt;</span></span></div>
+            <div class="l"><span class="ln">15</span><span class="i2"><span class="tg">&lt;/mj-section&gt;</span></span></div>
+            <div class="l"><span class="ln">16</span><span class="i2"><span class="tg">&lt;mj-section</span><span class="at"> background-color=</span><span class="st">"#ffffff"</span><span class="tg">&gt;</span></span></div>
+            <div class="l"><span class="ln">17</span><span class="i3"><span class="tg">&lt;mj-column&gt;</span></span></div>
+            <div class="l"><span class="ln">18</span><span class="i3"><span class="tg">&lt;mj-image</span><span class="at"> src=</span><span class="st">"https://cdn.acme.io/q4-hero.png"</span><span class="at"> alt=</span><span class="st">"Q4 roadmap illustration"</span><span class="tg"> /&gt;</span></span></div>
+            <div class="l"><span class="ln">19</span><span class="i3"><span class="tg">&lt;mj-text</span><span class="at"> font-size=</span><span class="st">"26px"</span><span class="at"> font-weight=</span><span class="st">"700"</span><span class="at"> color=</span><span class="st">"#0B1220"</span><span class="tg">&gt;</span>Three launches, one deprecation, and the roadmap for Q4<span class="tg">&lt;/mj-text&gt;</span></span></div>
+            <div class="l"><span class="ln">20</span><span class="i3"><span class="tg">&lt;mj-text</span><span class="at"> font-size=</span><span class="st">"15px"</span><span class="tg">&gt;</span>Hi {{tok}}, here's what shipped this week at Acme…<span class="tg">&lt;/mj-text&gt;</span></span></div>
+            <div class="l"><span class="ln">21</span><span class="i3"><span class="tg">&lt;/mj-column&gt;</span></span></div>
+            <div class="l"><span class="ln">22</span><span class="i2"><span class="tg">&lt;/mj-section&gt;</span></span></div>
+            <div class="l"><span class="ln">23</span><span class="i2"><span class="cm">&lt;!-- rc:article-cards --&gt;</span></span></div>
+            <div class="l"><span class="ln">24</span><span class="i2"><span class="tg">&lt;mj-section</span><span class="at"> background-color=</span><span class="st">"#ffffff"</span><span class="at"> padding=</span><span class="st">"16px 24px"</span><span class="tg">&gt;</span></span></div>
+            <div class="l"><span class="ln">25</span><span class="i3"><span class="tg">&lt;mj-column</span><span class="at"> width=</span><span class="st">"50%"</span><span class="at"> css-class=</span><span class="st">"article-card"</span><span class="tg">&gt;</span></span></div>
+            <div class="l"><span class="ln">26</span><span class="i3"><span class="tg">&lt;mj-image</span><span class="at"> src=</span><span class="st">"https://cdn.acme.io/flags.png"</span><span class="at"> alt=</span><span class="st">"Feature flags dashboard"</span><span class="at"> width=</span><span class="st">"600px"</span><span class="tg"> /&gt;</span></span></div>
+            <div class="l"><span class="ln">27</span><span class="i3"><span class="tg">&lt;mj-text</span><span class="at"> font-size=</span><span class="st">"17px"</span><span class="at"> font-weight=</span><span class="st">"700"</span><span class="tg">&gt;</span>Feature flags are generally available<span class="tg">&lt;/mj-text&gt;</span></span></div>
+            <div class="l"><span class="ln">28</span><span class="i3"><span class="tg">&lt;mj-text&gt;</span>Target rollouts by plan, region or percentage…<span class="tg">&lt;/mj-text&gt;</span></span></div>
+            <div class="l"><span class="ln">29</span><span class="i3"><span class="tg">&lt;mj-button</span><span class="at"> href=</span><span class="st">"https://docs.acme.io/flags"</span><span class="tg">&gt;</span>Read the docs<span class="tg">&lt;/mj-button&gt;</span></span></div>
+            <div class="l"><span class="ln">30</span><span class="i3"><span class="tg">&lt;/mj-column&gt;</span></span></div>
+            <div class="l"><span class="ln">31</span><span class="i3"><span class="tg">&lt;mj-column</span><span class="at"> width=</span><span class="st">"50%"</span><span class="at"> css-class=</span><span class="st">"article-card"</span><span class="tg">&gt;</span></span></div>
+            <div class="l"><span class="ln">32</span><span class="i3"><span class="cm">… 8 lines folded</span></span></div>
+            <div class="l"><span class="ln">41</span><span class="i2"><span class="tg">&lt;/mj-section&gt;</span></span></div>
+            <div class="l"><span class="ln">42</span><span class="i2"><span class="cm">&lt;!-- rc:footer --&gt;</span></span></div>
+            <div class="l"><span class="ln">43</span><span class="i2"><span class="tg">&lt;mj-section</span><span class="at"> background-color=</span><span class="st">"#F3F4F6"</span><span class="tg">&gt;&lt;mj-column&gt;</span></span></div>
+            <div class="l"><span class="ln">44</span><span class="i3"><span class="tg">&lt;mj-text</span><span class="at"> align=</span><span class="st">"center"</span><span class="at"> font-size=</span><span class="st">"12px"</span><span class="tg">&gt;</span>Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<span class="tg">&lt;br /&gt;</span></span></div>
+            <div class="l"><span class="ln">45</span><span class="i3"><span class="tg">&lt;a</span><span class="at"> href=</span><span class="st">"{{unsub}}"</span><span class="tg">&gt;</span>Unsubscribe<span class="tg">&lt;/a&gt;</span> · <span class="tg">&lt;a</span><span class="at"> href=</span><span class="st">"{{prefs}}"</span><span class="tg">&gt;</span>Email preferences<span class="tg">&lt;/a&gt;&lt;/mj-text&gt;</span></span></div>
+            <div class="l"><span class="ln">46</span><span class="i2"><span class="tg">&lt;/mj-column&gt;&lt;/mj-section&gt;</span></span></div>
+            <div class="l"><span class="ln">47</span><span class="i1"><span class="tg">&lt;/mj-body&gt;</span></span></div>
+            <div class="l"><span class="ln">48</span><span><span class="tg">&lt;/mjml&gt;</span></span></div>
+          </div>
+        </div>
+        <div class="html" style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472">Compiled HTML · read only</span><span class="k">64 KB · tables and inline CSS for Outlook</span></div>
+<pre style="color:#374151"><span class="ln">1</span>&lt;!doctype html&gt;
+<span class="ln">2</span>&lt;html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"&gt;
+<span class="ln">3</span>&lt;head&gt;&lt;title&gt;Three launches, one deprecation, and the roadmap for Q4&lt;/title&gt;
+<span class="ln">4</span>&lt;!--[if !mso]&gt;&lt;!--&gt;&lt;meta http-equiv="X-UA-Compatible" content="IE=edge"&gt;&lt;!--&lt;![endif]--&gt;
+<span class="ln">5</span>&lt;meta http-equiv="Content-Type" content="text/html; charset=UTF-8"&gt;
+<span class="ln">6</span>&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+<span class="ln">7</span>&lt;style type="text/css"&gt;#outlook a { padding:0; } body { margin:0; padding:0; -webkit-text-size-adjust:100%; }
+<span class="ln">8</span>  table, td { border-collapse:collapse; mso-table-lspace:0pt; mso-table-rspace:0pt; } img { border:0; height:auto; line-height:100%; outline:none; }
+<span class="ln">9</span>  @media only screen and (min-width:480px) { .mj-column-per-50 { width:50% !important; max-width:50%; } }&lt;/style&gt;
+<span class="ln">10</span>&lt;/head&gt;
+<span class="ln">11</span>&lt;body style="word-spacing:normal;background-color:#F3F4F6;"&gt;
+<span class="ln">12</span>&lt;div style="display:none;font-size:1px;color:#ffffff;max-height:0px;overflow:hidden;"&gt;Feature flags are GA, audit log exports, and what we're retiring.&lt;/div&gt;
+<span class="ln">13</span>&lt;div style="background-color:#F3F4F6;"&gt;
+<span class="ln">14</span>  &lt;!--[if mso | IE]&gt;&lt;table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:600px;" width="600"&gt;&lt;tr&gt;&lt;td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"&gt;&lt;![endif]--&gt;
+<span class="ln">15</span>  &lt;div style="background:#ffffff;margin:0px auto;max-width:600px;"&gt;
+<span class="ln">16</span>    &lt;table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;"&gt;&lt;tbody&gt;&lt;tr&gt;
+<span class="ln">17</span>      &lt;td style="direction:ltr;font-size:0px;padding:20px 24px;text-align:center;"&gt;
+<span class="ln">18</span>        &lt;!--[if mso | IE]&gt;&lt;table role="presentation" border="0" cellpadding="0" cellspacing="0"&gt;&lt;tr&gt;&lt;td class="" style="vertical-align:top;width:240px;"&gt;&lt;![endif]--&gt;
+<span class="ln">19</span>        &lt;div class="mj-column-per-40 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"&gt;
+<span class="ln">20</span>          …
+<span class="ln">311</span>&lt;/body&gt;&lt;/html&gt;</pre>
+        </div>
+      </div>
+    </section>
+
+    <aside class="cpanel" style="flex:1 1 300px;max-width:300px;background:#fff;border-left:1px solid #E3E6EB;display:flex;flex-direction:column">
+      <div class="ptab" role="tablist"><button class="on" role="tab">Compile</button><button role="tab">Tokens</button></div>
+      <div class="row" style="background:#F0FDF4"><span class="badge ok">OK</span><span>Compiled in 84 ms · 0 errors · 1 warning</span></div>
+      <div class="row"><span class="badge warn">Warn</span><span>Line 26: mj-image width 600px exceeds the 50% column (276px); it will be scaled down. Set width="276px" or remove it.</span></div>
+      <div class="row"><span class="badge info">Info</span><span>Comments like <span class="mono">rc:footer</span> mark ReputeCast blocks so they stay editable as one unit on the canvas.</span></div>
+      <div class="row"><span class="badge info">Info</span><span>Tracking links and the open pixel are added at send time, per sending provider, so they don't appear here.</span></div>
+      <div style="padding:12px;display:flex;flex-direction:column;gap:8px;border-top:1px solid #EEF0F3;margin-top:auto">
+        <span class="k">Personalization tokens available</span>
+        <div class="mono" style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#374151"><span>{{tok}}</span><span>{{tokLast}}</span><span>{{tokPlan}}</span><span>{{unsub}} · {{prefs}} · {{browser}}</span></div>
+        <span class="k">Fallbacks after the pipe are used when the field is empty.</span>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-top:1px solid #E3E6EB">
+    <span class="k">Editing MJML directly · the Visual view re-parses on Apply</span>
+    <span class="k" style="margin-left:auto">64 KB of 102 KB · 7 images, all with alt text · 14 links</span>
+    <span class="badge ok"><span class="dot"></span>No warnings</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":972}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var o = '{' + '{';
+    var c = '}' + '}';
+    return {
+      tok: o + ' first_name | "there" ' + c,
+      tokLast: o + ' last_name | "" ' + c,
+      tokPlan: o + ' plan | "free" ' + c,
+      unsub: o + ' unsubscribe_url ' + c,
+      prefs: o + ' preferences_url ' + c,
+      browser: o + ' view_in_browser_url ' + c
+    };
+  }
+}
+</script>
+</body>
+</html>

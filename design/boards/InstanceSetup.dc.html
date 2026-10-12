@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>First sign-in · instance setup</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+a:not([class]):not(nav a){text-decoration:underline;text-underline-offset:2px}
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#fff;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box;width:100%}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#fff}.btn.pri:hover{background:#115E59;color:#fff}
+.btn.sm{min-height:32px;padding:0 12px;font-size:13px;width:auto}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.in{height:40px;padding:0 12px;border:1px solid #8B94A3;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#0B1220;box-sizing:border-box;width:100%}
+.in.err{border-color:#DC2626}
+.lbl{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:#4B5563}
+.err{font-size:12.5px;color:#991B1B;font-weight:500}
+.sep{display:flex;align-items:center;gap:10px;color:#5B6472;font-size:12px}.sep::before,.sep::after{content:"";flex:1;height:1px;background:#E3E6EB}
+.code{display:flex;gap:8px}.code input{width:44px;height:52px;text-align:center;font-size:22px;font-weight:600;border:1px solid #8B94A3;border-radius:8px;font-family:'IBM Plex Mono',ui-monospace,monospace;padding:0}
+.code input.on{border-color:#0F766E;box-shadow:0 0 0 3px rgba(15,118,110,.25)}
+.lbl-state{position:absolute;left:0;top:-30px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472;display:flex;gap:8px;align-items:center}
+.pane{position:relative}
+.wrap{max-width:1380px;margin:0 auto;padding:60px 40px 50px;display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:56px 32px;box-sizing:border-box}
+.auth{padding:28px 28px 24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 1px 2px rgba(11,18,32,.04)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
+h1,h2{margin:0}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;color:#374151}
+.chk input{margin-top:3px}
+.foot{font-size:12.5px;color:#5B6472;text-align:center}
+@media (max-width:767px){.wrap{padding:52px 16px 32px;gap:48px;grid-template-columns:1fr}.pane{min-width:0}.auth{padding:22px 18px}.code{gap:6px}.code input{width:36px;height:46px;font-size:19px}}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+.brand{font-size:15px}
+.brand small{font-weight:500;color:#5B6472;font-size:12px;margin-left:4px}
+.soc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.soc .btn{padding:0 8px;font-size:13px}
+.tiles{display:flex;flex-direction:column;gap:8px}
+.rc{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 14px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14px;padding:12px 14px;border:1px dashed #9AA3B2;border-radius:8px;background:#F9FAFB}
+.code2{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;background:#0B1220;color:#E5E7EB;border-radius:8px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.45}
+.note > :last-child{flex:1 1 320px;min-width:0}
+.note > .badge{margin-top:1px}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.lock{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px;border-radius:10px;background:#F9FAFB;border:1px solid #E3E6EB}
+.lock .t{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:28px;font-weight:600;letter-spacing:.02em}
+.wrap div[style*="display: flex"] > a:not(.btn),.wrap div[style*="display:flex"] > a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+@media (max-width:767px){.soc{grid-template-columns:1fr}.tiles{flex-direction:column}.rc{grid-template-columns:1fr}}
+
+.setup{max-width:1240px;margin:0 auto;padding:40px 40px 48px;display:grid;grid-template-columns:300px 1fr;gap:28px;box-sizing:border-box;align-items:start}
+.setup .card{padding:22px 24px;display:flex;flex-direction:column;gap:16px}
+.steps{display:flex;flex-direction:column;gap:2px}
+.steps span.st{display:flex;align-items:center;gap:10px;min-height:38px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500;font-size:13px}
+.steps .on{background:#E3F1EE;color:#0F766E;font-weight:600}
+.steps .n{width:22px;height:22px;border-radius:50%;border:1.5px solid #9AA3B2;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none;color:#4B5563}
+.steps .done .n{background:#0F766E;border-color:#0F766E;color:#fff}.steps .on .n{border-color:#0F766E;color:#0F766E}
+.chk-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;font-size:13px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.btn{width:auto}
+@media (max-width:1100px){.setup{grid-template-columns:1fr;padding:24px 16px}}
+@media (max-width:767px){.two{grid-template-columns:1fr}}
+</style>
+</helmet>
+<main class="setup" id="main"><aside style="display:flex;flex-direction:column;gap:16px"><section class="card" style="gap:12px"><div class="brand"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Acme ReputeCast <small>reputecast.acme.io</small></span></div><div style="display:flex;flex-direction:column;gap:2px"><h1 style="font-size:17px;font-weight:700;letter-spacing:-.01em">Set up Acme ReputeCast</h1><span class="k">Signed in as linh@acme.io, the Owner created by <span class="mono">reputecast install</span></span></div><nav class="steps" aria-label="Setup steps"><span class="st done"><span class="n" aria-hidden="true">✓</span><span class="t">Replace the temporary password <span class="vh">(completed)</span></span></span><span class="st done"><span class="n" aria-hidden="true">✓</span><span class="t">Add a passkey or authenticator <span class="vh">(completed)</span></span></span><span class="st done"><span class="n" aria-hidden="true">✓</span><span class="t">Save your recovery codes <span class="vh">(completed)</span></span></span><span class="st on"><span class="n" aria-hidden="true">4</span><span class="t">Instance basics <span class="vh">(current step)</span></span></span><span class="st "><span class="n" aria-hidden="true">5</span><span class="t">Create the first workspace</span></span><span class="st "><span class="n" aria-hidden="true">6</span><span class="t">Connect a sending provider</span></span></nav></section><section class="card" style="gap:8px"><h2 style="font-size:13px;font-weight:600;color:#4B5563">Done so far</h2><div class="chk-row"><span class="badge ok">✓</span>Temporary password replaced</div><div class="chk-row"><span class="badge ok">✓</span>Passkey “MacBook Pro · Touch ID” added</div><div class="chk-row"><span class="badge ok">✓</span>10 recovery codes downloaded</div><span class="k">Two-factor is required for the first Owner; it can't be skipped.</span></section></aside><section class="card" aria-labelledby="h-basics" style="gap:18px"><div style="display:flex;flex-direction:column;gap:4px"><span class="k">Step 4 of 6</span><h2 id="h-basics" style="font-size:22px;font-weight:700;letter-spacing:-.02em">Instance basics</h2><span class="k">These settings apply to every workspace on this installation. You can change them later in Instance admin.</span></div><div class="two"><label class="lbl">Instance name<input class="in" type="text" value="Acme ReputeCast" placeholder="" style=""><span class="k" style="font-weight:500">Shown on the sign-in page and in emails to your team.</span></label><label class="lbl">Default timezone<select class="in" style=""><option selected>America/New_York (UTC−4)</option><option>Europe/Berlin</option><option>Asia/Ho_Chi_Minh</option><option>UTC</option></select><span class="k" style="font-weight:500">New workspaces start with this timezone.</span></label></div><label class="lbl">Public URL<div style="display:flex;gap:8px"><input class="in mono" value="https://reputecast.acme.io" style="flex:1"><button class="btn">Check again</button></div><span class="k" style="font-weight:500">Used for provider webhooks, SSO redirect URIs, public pages and the links in every email. Changing it later breaks existing webhooks until they are re-registered.</span></label><div class="card" style="padding:12px 14px;gap:8px;background:#F9FAFB" role="status" aria-label="URL check result"><span style="font-size:12px;font-weight:600;color:#4B5563">Checked 10 s ago</span><div class="chk-row"><span class="badge ok">DNS</span><span>reputecast.acme.io resolves to <span class="mono">203.0.113.40</span>, this server</span></div><div class="chk-row"><span class="badge ok">TLS</span><span>Valid certificate from Let's Encrypt, expires Jan 8, 2027 · auto-renews</span></div><div class="chk-row"><span class="badge ok">Reachable</span><span>Answered from outside your network in 142 ms · webhooks from providers will arrive</span></div></div><label class="chk-row" style="align-items:flex-start;cursor:pointer"><input type="checkbox" id="upd" checked style="margin-top:2px"><span style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Check GitHub for new releases once a day</span><span class="k">Only the version number is fetched. ReputeCast never sends usage data anywhere. You can turn this off for offline installs.</span></span></label><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:6px;border-top:1px solid #EEF0F3"><button class="btn">Back</button><button class="btn pri">Save and create the first workspace</button></div></section></main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":796}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

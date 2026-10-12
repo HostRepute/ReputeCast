@@ -1,0 +1,35 @@
+<!-- @dsCard height=288 -->
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  .cover{position:relative;width:960px;height:288px;background:var(--ground);overflow:hidden;font-family:var(--font-sans)}
+  .cover svg{position:absolute;left:0;top:0}
+  .cover .name{position:absolute;left:48px;bottom:60px;margin:0;font-family:var(--font-sans);font-weight:700;font-size:72px;line-height:.95;letter-spacing:-.03em;color:var(--ink);max-width:440px;white-space:nowrap}
+  .cover .tag{position:absolute;left:48px;bottom:32px;margin:0;font-family:var(--font-sans);font-weight:400;font-size:14px;line-height:1.4;color:var(--ink-3);max-width:440px;white-space:nowrap}
+  .brand{fill:var(--accent)} .ink{fill:var(--ink)} .ok{fill:var(--ok-bar)} .warn{fill:var(--warn-bar)} .tint{fill:var(--accent-soft)} .dot{fill:var(--ground)}
+  .r-lg{rx:var(--radius-lg)}
+</style>
+<div class="cover">
+  <!--
+    blocks: accent 240x224 (the brand slab), accent-soft 240x224 offset one space-4 step behind it (relief), ink 176x104 bleeding off the right edge, ok-bar 112x104, warn-bar 48x104 (the verdict colours, weighted by how much they mean, not how often they appear).
+    arrangement: a staggered stack — the teal slab over its tint shadow, then a column of three unequal bands to its right, the way a readiness card stacks its checks beside the verdict.
+    pattern: the precise/technical row — a dot grid cut out of the teal slab in the ground colour, 36 dots, because ReputeCast watches events arrive one by one and its UI sits on a 4px grid in a mono-friendly face.
+    scales: pitch space-6 (24px), inset space-4 (16px) between blocks, dot radius 3 (space-1 minus 1), corners radius-lg (10px) on every block.
+  -->
+  <svg width="960" height="288" viewBox="0 0 960 288" aria-hidden="true">
+    <rect class="tint r-lg" x="528" y="48" width="240" height="224" rx="10"></rect>
+    <rect class="brand r-lg" x="512" y="32" width="240" height="224" rx="10"></rect>
+    <g class="dot">
+      <circle cx="584" cy="112" r="3"></circle><circle cx="608" cy="112" r="3"></circle><circle cx="632" cy="112" r="3"></circle><circle cx="656" cy="112" r="3"></circle><circle cx="680" cy="112" r="3"></circle><circle cx="704" cy="112" r="3"></circle>
+      <circle cx="584" cy="136" r="3"></circle><circle cx="608" cy="136" r="3"></circle><circle cx="632" cy="136" r="3"></circle><circle cx="656" cy="136" r="3"></circle><circle cx="680" cy="136" r="3"></circle><circle cx="704" cy="136" r="3"></circle>
+      <circle cx="584" cy="160" r="3"></circle><circle cx="608" cy="160" r="3"></circle><circle cx="632" cy="160" r="3"></circle><circle cx="656" cy="160" r="3"></circle><circle cx="680" cy="160" r="3"></circle><circle cx="704" cy="160" r="3"></circle>
+      <circle cx="584" cy="184" r="3"></circle><circle cx="608" cy="184" r="3"></circle><circle cx="632" cy="184" r="3"></circle><circle cx="656" cy="184" r="3"></circle><circle cx="680" cy="184" r="3"></circle><circle cx="704" cy="184" r="3"></circle>
+      <circle cx="584" cy="208" r="3"></circle><circle cx="608" cy="208" r="3"></circle><circle cx="632" cy="208" r="3"></circle><circle cx="656" cy="208" r="3"></circle><circle cx="680" cy="208" r="3"></circle><circle cx="704" cy="208" r="3"></circle>
+      <circle cx="584" cy="232" r="3"></circle><circle cx="608" cy="232" r="3"></circle><circle cx="632" cy="232" r="3"></circle><circle cx="656" cy="232" r="3"></circle><circle cx="680" cy="232" r="3"></circle><circle cx="704" cy="232" r="3"></circle>
+    </g>
+    <rect class="ink r-lg" x="784" y="32" width="192" height="104" rx="10"></rect>
+    <rect class="ok r-lg" x="784" y="152" width="112" height="104" rx="10"></rect>
+    <rect class="warn r-lg" x="912" y="152" width="64" height="104" rx="10"></rect>
+  </svg>
+  <h1 class="name">ReputeCast</h1>
+  <p class="tag">Inbox placement, checked before you send.</p>
+</div>

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setup step 2, connect Amazon SES</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.h2{margin:0;font-size:15px;font-weight:600}
+.in{height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+.step{display:flex;gap:12px;align-items:flex-start;padding:8px 0}
+.step .num{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none;border:2px solid #D4D8DF;color:#5B6472;background:#fff}
+.step.cur .num{background:#0F766E;border-color:#0F766E;color:#fff}
+.step.done .num{background:#DCFCE7;border-color:#86EFAC;color:#166534}
+label.opt{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px;cursor:pointer;background:#fff}
+label.opt input{margin-top:3px}
+.row{display:flex;gap:12px;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3;font-size:13px}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none}
+pre{margin:0;padding:12px 14px;border-radius:8px;background:#0B1220;color:#E5E7EB;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;line-height:1.5;overflow-x:auto}
+
+/* responsive wizard */
+@media (max-width:1100px){ .wiz{padding:16px!important;gap:16px!important} }
+@media (max-width:767px){
+  .wiz{padding:12px!important}
+  .wizsteps{max-width:none!important;flex:1 1 100%!important;flex-direction:row!important;overflow-x:auto;gap:14px;padding:10px 12px!important}
+  .wizsteps .step{flex:none;padding:2px 0;align-items:center}
+  .wizsteps .step .k{display:none}
+  .wizsteps > div:last-child{display:none}
+}
+
+/* responsive wizard phone fixes */
+@media (max-width:767px){
+  .wiz > main{min-width:0;width:100%;max-width:100%}
+  .wiz main > *{min-width:0;max-width:100%}
+  .wiz .in,.wiz select,.wiz input,.wiz textarea{max-width:100%;min-width:0}
+  .wiz main div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .wiz main [style*="flex: 1 1"]{min-width:0}
+  .wiz select.in,.wiz input.in{width:0;min-width:100%}
+  .wiz .mono{overflow-wrap:anywhere}
+  .wiz .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .wiz .btn{white-space:normal;max-width:100%}
+  .wizsteps .badge{white-space:nowrap}
+  .wiz main [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .wiz main pre{max-width:100%}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column">
+  <header style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;color:#0B1220" aria-label="ReputeCast home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span style="font-weight:700;font-size:15px">ReputeCast</span>
+    </a>
+    <span class="k">/</span>
+    <h1 style="margin:0;font-size:16px;font-weight:600">Connect Amazon SES</h1>
+    <span class="badge mut">Step 2 of 6</span>
+    <a href="Main.dc.html" class="btn" style="margin-left:auto">Exit setup</a>
+  </header>
+
+  <div class="wiz" style="display:flex;flex-wrap:wrap;gap:24px;padding:28px;max-width:1300px;margin:0 auto;width:100%;box-sizing:border-box;align-items:flex-start">
+    <nav class="card wizsteps" aria-label="Setup steps" style="flex:1 1 220px;max-width:250px;padding:14px 16px;display:flex;flex-direction:column">
+      <div class="step done"><span class="num">✓</span><div><div style="font-weight:600">Provider</div><div class="k">Amazon SES</div></div></div>
+      <div class="step cur"><span class="num">2</span><div><div style="font-weight:600">Connection</div><div class="k">AWS access, region, provisioning</div></div></div>
+      <div class="step"><span class="num">3</span><div><div style="font-weight:600">Domain verification</div><div class="k">DKIM, MAIL FROM, SPF, DMARC</div></div></div>
+      <div class="step"><span class="num">4</span><div><div style="font-weight:600">Test send</div></div></div>
+      <div class="step"><span class="num">5</span><div><div style="font-weight:600">Streams</div></div></div>
+      <div class="step"><span class="num">6</span><div><div style="font-weight:600">Contacts</div></div></div>
+    </nav>
+
+    <main style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <h2 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-.02em">Connect your AWS account</h2>
+        <span style="color:#4B5563">ReputeCast needs permission to send through SES, create SNS topics for events and manage configuration sets. Nothing else.</span>
+      </div>
+
+      <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+        <h3 class="h2">1. How to grant access</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
+          <label class="opt" style="border-color:#0F766E;background:#F0FDFA"><input type="radio" name="how" checked><span><span style="font-weight:600">CloudFormation stack (recommended)</span><br><span class="k">Opens the AWS console with a stack that creates an IAM role with the exact policy below. No long-lived keys. About 2 minutes.</span><br><a href="https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=https://reputecast.com/cf/reputecast-ses.yaml" class="btn sm" style="margin-top:8px">Launch stack in AWS</a></span></label>
+          <label class="opt"><input type="radio" name="how"><span><span style="font-weight:600">IAM access keys</span><br><span class="k">Paste an access key id and secret for a user with the policy below. Keys are encrypted at rest and never shown again.</span><br><span style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input class="in mono" placeholder="AKIA…" aria-label="Access key id" disabled><input class="in mono" type="password" placeholder="Secret access key" aria-label="Secret access key" disabled></span></span></label>
+        </div>
+        <details style="font-size:13px"><summary style="cursor:pointer;font-weight:600">Show the IAM policy (least privilege)</summary><pre style="margin-top:8px">{ "Version": "2012-10-17", "Statement": [
+  { "Effect": "Allow", "Action": ["ses:SendEmail","ses:SendRawEmail","ses:GetAccount","ses:GetSendQuota",
+    "ses:*ConfigurationSet*","ses:*EmailIdentity*","ses:PutAccountDetails"], "Resource": "*" },
+  { "Effect": "Allow", "Action": ["sns:CreateTopic","sns:Subscribe","sns:SetTopicAttributes"],
+    "Resource": "arn:aws:sns:*:*:reputecast-*" } ] }</pre></details>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:8px;background:#F0FDF4;border:1px solid #BBF7D0"><span class="badge ok"><span class="dot"></span>Connected</span><span style="font-size:13px">Role <span class="mono">arn:aws:iam::123456789012:role/ReputeCastSES</span> assumed at 09:08 · account 123456789012</span></div>
+      </section>
+
+      <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+        <h3 class="h2">2. Region</h3>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+          <label class="lbl" style="flex:1 1 280px">SES region<select class="in"><option>us-east-1 · N. Virginia · production access, quota 50,000 per day</option><option>eu-west-1 · Ireland · sandbox</option><option>us-west-2 · Oregon · sandbox</option></select></label>
+          <span class="k" style="flex:1 1 280px">ReputeCast read your account in each region. Pick the one where you already have production access, or the one closest to your recipients.</span>
+        </div>
+      </section>
+
+      <section class="card" style="display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;flex-wrap:wrap;gap:8px"><h3 class="h2">3. Provisioning · 5 of 7 done</h3><span class="k">SNS topics and configuration sets are created for you, with retry</span></div>
+        <div class="row"><span class="badge ok">Done</span><span>Verified credentials and permissions</span><span class="k" style="margin-left:auto">09:08:12</span></div>
+        <div class="row"><span class="badge ok">Done</span><span>Read account: production access, 50,000 per 24 h, 14 per second</span><span class="k" style="margin-left:auto">09:08:13</span></div>
+        <div class="row"><span class="badge ok">Done</span><span>Created SNS topic <span class="mono">reputecast-events</span> and subscribed <span class="mono">https://reputecast.acme.io/hooks/ses/7d1a</span></span><span class="k" style="margin-left:auto">09:08:15</span></div>
+        <div class="row"><span class="badge ok">Done</span><span>Confirmed SNS subscription (handshake received)</span><span class="k" style="margin-left:auto">09:08:16</span></div>
+        <div class="row"><span class="badge ok">Done</span><span>Created configuration set <span class="mono">rc-broadcasts</span> with event destination, tracking off</span><span class="k" style="margin-left:auto">09:08:18</span></div>
+        <div class="row" style="background:#FFF5F5"><span class="badge bad">Failed</span><span>Create configuration set <span class="mono">rc-automations</span> · <span class="mono" style="color:#991B1B">AccessDenied: ses:CreateConfigurationSet</span> · the role policy was edited after the stack ran</span><div style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri">Retry</button><button class="btn sm">Fix policy</button></div></div>
+        <div class="row"><span class="spin"></span><span>Create configuration set <span class="mono">rc-system</span></span><span class="k" style="margin-left:auto">waiting</span></div>
+      </section>
+
+      <section class="card" style="border-color:#FCD34D;display:flex;flex-direction:column">
+        <div style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px;background:#FFFBEB;border-radius:10px 10px 0 0;flex-wrap:wrap">
+          <span class="badge warn" style="height:24px"><span class="dot"></span>Sandbox detected in eu-west-1</span>
+          <span style="font-size:13px;color:#78350F;flex:1 1 320px">If you switch to eu-west-1, that region is in the SES sandbox: 200 emails per day, 1 per second, and only to verified addresses. ReputeCast can file the production-access request for you.</span>
+        </div>
+        <div style="padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+          <label class="lbl">Website<input class="in" value="https://acme.io"></label>
+          <label class="lbl">Mail type<select class="in"><option>Marketing (newsletter)</option><option>Transactional</option></select></label>
+          <label class="lbl" style="grid-column:1 / -1">Use case description (prefilled from your workspace)<textarea class="in" style="height:84px;padding:8px 10px;resize:vertical">Weekly product newsletter and product updates for 48,000 opted-in subscribers (double opt-in). Bounces and complaints are processed automatically via SNS and suppressed across all sending providers. One-click unsubscribe headers on every message.</textarea></label>
+          <label class="lbl">Expected daily volume<input class="in" value="50,000"></label>
+          <label class="lbl">Contact language<select class="in"><option>English</option></select></label>
+        </div>
+        <div style="padding:0 20px 16px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn">Request production access for eu-west-1</button><span class="k" style="align-self:center">AWS usually answers within 24 hours. You can keep going with us-east-1 meanwhile.</span></div>
+      </section>
+
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <a href="SetupCatalog.dc.html" class="btn">Back</a>
+        <div style="display:flex;gap:10px"><button class="btn">Save and finish later</button><a href="SetupDomain.dc.html" class="btn pri" style="min-height:40px;padding:0 18px">Continue to domain verification</a></div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

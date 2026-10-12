@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two-factor challenge states and password reset fallbacks</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+a:not([class]):not(nav a){text-decoration:underline;text-underline-offset:2px}
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#fff;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box;width:100%}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#fff}.btn.pri:hover{background:#115E59;color:#fff}
+.btn.sm{min-height:32px;padding:0 12px;font-size:13px;width:auto}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.in{height:40px;padding:0 12px;border:1px solid #8B94A3;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#0B1220;box-sizing:border-box;width:100%}
+.in.err{border-color:#DC2626}
+.lbl{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:#4B5563}
+.err{font-size:12.5px;color:#991B1B;font-weight:500}
+.sep{display:flex;align-items:center;gap:10px;color:#5B6472;font-size:12px}.sep::before,.sep::after{content:"";flex:1;height:1px;background:#E3E6EB}
+.code{display:flex;gap:8px}.code input{width:44px;height:52px;text-align:center;font-size:22px;font-weight:600;border:1px solid #8B94A3;border-radius:8px;font-family:'IBM Plex Mono',ui-monospace,monospace;padding:0}
+.code input.on{border-color:#0F766E;box-shadow:0 0 0 3px rgba(15,118,110,.25)}
+.lbl-state{position:absolute;left:0;top:-30px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472;display:flex;gap:8px;align-items:center}
+.pane{position:relative}
+.wrap{max-width:1380px;margin:0 auto;padding:60px 40px 50px;display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:56px 32px;box-sizing:border-box}
+.auth{padding:28px 28px 24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 1px 2px rgba(11,18,32,.04)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
+h1,h2{margin:0}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;color:#374151}
+.chk input{margin-top:3px}
+.foot{font-size:12.5px;color:#5B6472;text-align:center}
+@media (max-width:767px){.wrap{padding:52px 16px 32px;gap:48px;grid-template-columns:1fr}.pane{min-width:0}.auth{padding:22px 18px}.code{gap:6px}.code input{width:36px;height:46px;font-size:19px}}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+.brand{font-size:15px}
+.brand small{font-weight:500;color:#5B6472;font-size:12px;margin-left:4px}
+.soc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.soc .btn{padding:0 8px;font-size:13px}
+.tiles{display:flex;flex-direction:column;gap:8px}
+.rc{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 14px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14px;padding:12px 14px;border:1px dashed #9AA3B2;border-radius:8px;background:#F9FAFB}
+.code2{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;background:#0B1220;color:#E5E7EB;border-radius:8px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.45}
+.note > :last-child{flex:1 1 320px;min-width:0}
+.note > .badge{margin-top:1px}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.lock{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px;border-radius:10px;background:#F9FAFB;border:1px solid #E3E6EB}
+.lock .t{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:28px;font-weight:600;letter-spacing:.02em}
+.wrap div[style*="display: flex"] > a:not(.btn),.wrap div[style*="display:flex"] > a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+@media (max-width:767px){.soc{grid-template-columns:1fr}.tiles{flex-direction:column}.rc{grid-template-columns:1fr}}
+</style>
+</helmet>
+<main class="wrap" id="main"><h1 class="vh">Two-factor and reset states</h1>
+<div class="pane"><span class="lbl-state">Two-factor · wrong code</span><section class="card auth" aria-labelledby="h-2fa-wrong" style="gap:16px"><div class="brand"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Acme ReputeCast <small>reputecast.acme.io</small></span></div><div style="display:flex;flex-direction:column;gap:4px"><h2 id="h-2fa-wrong" style="font-size:22px;font-weight:700;letter-spacing:-.02em">Check your authenticator</h2><span class="k">Signing in as linh@acme.io</span></div><div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;font-weight:600;color:#4B5563" id="c-lbl">6-digit code</span><div class="code" role="group" aria-labelledby="c-lbl"><input value="4" aria-label="Digit 1" inputmode="numeric" style="border-color:#DC2626"><input value="8" aria-label="Digit 2" inputmode="numeric" style="border-color:#DC2626"><input value="2" aria-label="Digit 3" inputmode="numeric" style="border-color:#DC2626"><input value="9" aria-label="Digit 4" inputmode="numeric" style="border-color:#DC2626"><input value="1" aria-label="Digit 5" inputmode="numeric" style="border-color:#DC2626"><input value="0" aria-label="Digit 6" inputmode="numeric" style="border-color:#DC2626"></div><span class="err" id="c-err" role="alert">That code didn't work. Codes change every 30 seconds; check that your phone's clock is set automatically. 4 attempts left.</span></div><button class="btn pri">Verify and sign in</button><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px"><a href="TwoFactorStates.dc.html">Use a passkey instead</a><a href="TwoFactorStates.dc.html">Use a recovery code</a></div></section></div>
+<div class="pane"><span class="lbl-state">Two-factor · passkey as second factor</span><section class="card auth" aria-labelledby="h-2fa-pk" style="gap:16px"><div class="brand"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Acme ReputeCast <small>reputecast.acme.io</small></span></div><div style="display:flex;flex-direction:column;gap:4px"><h2 id="h-2fa-pk" style="font-size:22px;font-weight:700;letter-spacing:-.02em">Confirm with your passkey</h2><span class="k">Signing in as linh@acme.io</span></div><div class="lock"><svg width="44" height="44" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="1.4" aria-hidden="true"><rect x="2" y="7" width="12" height="7" rx="1.5"></rect><path d="M5 7V5a3 3 0 0 1 6 0v2"></path></svg><span style="font-weight:600">Touch ID · MacBook Pro</span><span class="k">Your browser is asking for your passkey</span></div><button class="btn pri"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2" y="7" width="12" height="7" rx="1.5"></rect><path d="M5 7V5a3 3 0 0 1 6 0v2"></path></svg>Use passkey</button><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px"><a href="TwoFactorStates.dc.html">Use my authenticator app</a><a href="TwoFactorStates.dc.html">Use a recovery code</a></div></section></div>
+<div class="pane"><span class="lbl-state">Recovery code · entry</span><section class="card auth" aria-labelledby="h-rc" style="gap:16px"><div class="brand"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Acme ReputeCast <small>reputecast.acme.io</small></span></div><div style="display:flex;flex-direction:column;gap:4px"><h2 id="h-rc" style="font-size:22px;font-weight:700;letter-spacing:-.02em">Use a recovery code</h2><span class="k">Signing in as linh@acme.io</span></div><label class="lbl">Recovery code<input class="in mono" value="k7mq-4d2x-p9wn" autocomplete="one-time-code" spellcheck="false"><span class="k" style="font-weight:500">Each code works once. 7 of 10 remain.</span></label><button class="btn pri">Verify and sign in</button><span class="foot">Lost the codes and your device? An instance admin can reset two-factor for you; the reset is logged with a reason.</span></section></div>
+<div class="pane"><span class="lbl-state">Recovery code · last one used</span><section class="card auth" aria-labelledby="h-rc-last" style="gap:16px"><div class="brand"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Acme ReputeCast <small>reputecast.acme.io</small></span></div><div style="display:flex;flex-direction:column;gap:4px"><h2 id="h-rc-last" style="font-size:22px;font-weight:700;letter-spacing:-.02em">Signed in with your last recovery code</h2><span class="k">linh@acme.io</span></div><div class="note w" role="alert"><span class="badge warn">0 of 10 left</span><span>That was your last recovery code. Generate a new set now so you aren't locked out if you lose your authenticator.</span></div><div class="rc" aria-label="New recovery codes"><span>b4xk-9q2m-7hdn</span><span>m2pq-x8c4-1zrt</span><span>d9ws-3kfh-6yvb</span><span>p7nj-5tgc-2qxe</span><span>r3hd-8vmb-4wsk</span><span>…and 5 more</span></div><div class="tiles"><button class="btn pri">Generate new codes</button><button class="btn">Remind me later</button></div><span class="foot">You can also do this any time from Account &amp; security.</span></section></div>
+<div class="pane"><span class="lbl-state">Password reset · no System provider yet</span><section class="card auth" aria-labelledby="h-reset-cli" style="gap:16px"><div class="brand"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Acme ReputeCast <small>reputecast.acme.io</small></span></div><div style="display:flex;flex-direction:column;gap:4px"><h2 id="h-reset-cli" style="font-size:22px;font-weight:700;letter-spacing:-.02em">Reset your password</h2><span class="k">aisha@acme.io</span></div><div class="note w"><span class="badge warn">Email unavailable</span><span>No sending provider is connected to the System stream yet, so the reset email can't go out. An instance admin can reset it from the server:</span></div><pre class="code2">reputecast user reset-password --email aisha@acme.io</pre><p style="margin:0;font-size:13px;color:#374151">The command prints a one-time link that works for 15 minutes. The same applies to two-factor resets: <span class="mono">reputecast user reset-2fa --email …</span></p><a href="SignInStates.dc.html" class="btn">Back to sign in</a></section></div>
+<div class="pane"><span class="lbl-state">Password reset · SSO-only user</span><section class="card auth" aria-labelledby="h-reset-sso" style="gap:16px"><div class="brand"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Acme ReputeCast <small>reputecast.acme.io</small></span></div><div style="display:flex;flex-direction:column;gap:4px"><h2 id="h-reset-sso" style="font-size:22px;font-weight:700;letter-spacing:-.02em">Your password is managed by Google Workspace</h2><span class="k">sofia@acme.io</span></div><div class="note i"><span class="badge info">SSO</span><span>acme.io accounts sign in through Google Workspace. ReputeCast doesn't store a password for this account, so there is nothing to reset here.</span></div><button class="btn pri"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M14.5 8.2c0-.5 0-.9-.1-1.3H8v2.5h3.7c-.2.9-.7 1.6-1.4 2.1v1.7h2.2c1.3-1.2 2-3 2-5z" fill="#4285F4"></path><path d="M8 14.7c1.8 0 3.3-.6 4.4-1.6l-2.2-1.7c-.6.4-1.4.7-2.2.7-1.7 0-3.2-1.2-3.7-2.7H2.1v1.7A6.7 6.7 0 0 0 8 14.7z" fill="#34A853"></path><path d="M4.3 9.4a4 4 0 0 1 0-2.6V5.1H2.1a6.7 6.7 0 0 0 0 6l2.2-1.7z" fill="#FBBC05"></path><path d="M8 4c1 0 1.9.3 2.6 1l1.9-1.9A6.6 6.6 0 0 0 8 1.3a6.7 6.7 0 0 0-5.9 3.8l2.2 1.7C4.8 5.2 6.3 4 8 4z" fill="#EA4335"></path></svg>Continue with Google Workspace</button><span class="foot">Locked out of Google too? Contact your Google Workspace admin.</span></section></div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1126}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

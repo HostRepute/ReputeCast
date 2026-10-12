@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acme newsletter archive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3FF;color:#1F2937;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;line-height:1.5}
+a{color:#4338CA;text-decoration:none}a:hover{color:#3730A3}
+input[type=email],input[type=search]{height:44px;padding:0 14px;border:1px solid #C9CED6;border-radius:9px;font:inherit;font-size:14px;box-sizing:border-box;background:#fff;min-width:0}
+.issue{display:flex;flex-direction:column;gap:6px;padding:18px 0;border-top:1px solid #E3E6EB}
+.issue a.t{color:#0B1220;font-weight:700;font-size:17px;line-height:1.3}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;background:#EEF0F3;color:#4B5563}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 16px 32px;box-sizing:border-box">
+  <main style="width:100%;max-width:640px;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px"><span style="width:40px;height:40px;border-radius:10px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">A</span><span style="font-weight:700;font-size:18px">Acme</span></div>
+      <a href="https://news.acme.io/archive/feed.xml" style="font-size:13px;display:inline-flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 11a2 2 0 1 1 0 .01M3 7a6 6 0 0 1 6 6M3 3a10 10 0 0 1 10 10"></path></svg>RSS</a>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px"><h1 style="margin:0;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1">Newsletter archive</h1><span style="color:#5B6472">Every issue of the Weekly Digest and Product Updates since 2024. 142 issues.</span></div>
+
+    <form style="display:flex;gap:8px;flex-wrap:wrap;padding:16px;background:#fff;border:1px solid #E3E6EB;border-radius:12px" action="PublicConfirm.dc.html">
+      <label style="flex:1 1 220px;display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Get the next one in your inbox<input type="email" placeholder="you@company.com" style="width:100%"></label>
+      <a href="PublicSubscribe.dc.html" style="display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 18px;border-radius:9px;background:#4338CA;color:#fff;font-weight:700;font-size:14px;align-self:flex-end">Subscribe</a>
+    </form>
+
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label style="flex:1 1 220px"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Search issues</span><input type="search" placeholder="Search issues" style="width:100%"></label>
+      <span class="tag" style="background:#DDD6FE;color:#3730A3">All</span><span class="tag">Weekly Digest</span><span class="tag">Product Updates</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column">
+      <article class="issue" style="border-top:0">
+        <div style="display:flex;gap:8px;align-items:center;font-size:13px;color:#5B6472"><span class="tag">Product Updates</span><span>Thursday 9 October 2026</span></div>
+        <a href="PublicArchive.dc.html" class="t">What shipped in October, and what we're retiring</a>
+        <p style="margin:0;color:#374151">Feature flags are generally available, audit log exports stream to S3 or your SIEM, and the v1 API retires on 30 November. Plus the Q4 roadmap.</p>
+      </article>
+      <article class="issue">
+        <div style="display:flex;gap:8px;align-items:center;font-size:13px;color:#5B6472"><span class="tag">Weekly Digest</span><span>Tuesday 7 October 2026 · #141</span></div>
+        <a href="PublicArchive.dc.html" class="t">The case for boring infrastructure</a>
+        <p style="margin:0;color:#374151">Why we moved three services back to Postgres, a reader's guide to feature flags, and the community links of the week.</p>
+      </article>
+      <article class="issue">
+        <div style="display:flex;gap:8px;align-items:center;font-size:13px;color:#5B6472"><span class="tag">Weekly Digest</span><span>Tuesday 30 September 2026 · #140</span></div>
+        <a href="PublicArchive.dc.html" class="t">Shipping on Fridays, revisited</a>
+        <p style="margin:0;color:#374151">Our incident data from a year of Friday deploys, how the on-call rotation changed, and a new template for post-mortems.</p>
+      </article>
+      <article class="issue">
+        <div style="display:flex;gap:8px;align-items:center;font-size:13px;color:#5B6472"><span class="tag">Weekly Digest</span><span>Tuesday 23 September 2026 · #139</span></div>
+        <a href="PublicArchive.dc.html" class="t">Reading the audit log like a detective</a>
+        <p style="margin:0;color:#374151">Three real investigations, the queries behind them, and why we keep 13 months of history.</p>
+      </article>
+      <article class="issue">
+        <div style="display:flex;gap:8px;align-items:center;font-size:13px;color:#5B6472"><span class="tag">Weekly Digest</span><span>Thursday 18 September 2026 · special</span></div>
+        <a href="PublicArchive.dc.html" class="t">We've moved: the newsletter now comes from news.acme.io</a>
+        <p style="margin:0;color:#374151">New sending domain, same team. What to add to your contacts and how to tell us what you want to receive.</p>
+      </article>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#5B6472"><span>1 to 5 of 142</span><a href="PublicArchive.dc.html">Older issues</a></div>
+  </main>
+  <div style="display:flex;gap:16px;align-items:center;margin-top:24px;font-size:12.5px;color:#5B6472;flex-wrap:wrap;justify-content:center"><a href="https://acme.io/privacy" style="color:#5B6472">Privacy</a><span>·</span><a href="PublicPreferences.dc.html" style="color:#5B6472">Email preferences</a><span>·</span><a href="Landing.dc.html" style="color:#5B6472">Sent with ReputeCast</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":1148}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

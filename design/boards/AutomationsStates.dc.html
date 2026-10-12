@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automations, starter templates, loading and error states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.tpl{display:flex;flex-direction:column;gap:8px;padding:16px 18px;border:1px solid #E3E6EB;border-radius:10px;background:#fff;color:#0B1220}
+.tpl:hover{border-color:#0F766E;color:#0B1220}
+.mini{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.mini i{display:block;height:8px;border-radius:2px;background:#C9CED6}
+.mini b{display:block;width:10px;height:10px;border-radius:50%;background:#0F766E}
+.ver{display:flex;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid #EEF0F3;font-size:12.5px}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
+    </a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
+      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="FormBuilder.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+    </nav>
+  </aside>
+
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <h1 style="margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em">Automations</h1>
+          <div class="tools" style="margin-left:auto"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div>
+    </header>
+
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:28px">
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Empty state with starter templates">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>Empty · no automations yet, starter templates</div>
+        <div class="card" style="padding:28px;display:flex;flex-direction:column;gap:16px;border-style:dashed">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:18px;font-weight:700">Start with a template or a blank canvas</span><span style="color:#4B5563">Flows send on the Automations route (SES, failover Postmark) and fail over automatically, so a provider outage never stalls a welcome email.</span></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+            <a href="AutomationFlow.dc.html" class="tpl"><div class="mini"><b></b><i style="width:26px"></i><b></b><i style="width:26px"></i><b></b><i style="width:26px"></i><b style="background:#0B1220"></b></div><span style="font-weight:600">Welcome series</span><span class="k">Joined list → wait 10 min → email 1 → branch on open → emails 2 and 3 → goal: first click</span><span class="badge mut" style="align-self:flex-start">7 steps</span></a>
+            <a href="AutomationFlow.dc.html" class="tpl"><div class="mini"><b></b><i style="width:26px"></i><b></b><i style="width:26px"></i><b style="background:#B45309"></b><i style="width:26px"></i><b style="background:#0B1220"></b></div><span style="font-weight:600">Re-engagement</span><span class="k">Tag "sunset-entered" → "still want these?" email → wait 14 d → branch on open → exit or stop broadcasts</span><span class="badge mut" style="align-self:flex-start">5 steps</span></a>
+            <a href="AutomationFlow.dc.html" class="tpl"><div class="mini"><b></b><i style="width:26px"></i><b></b><i style="width:26px"></i><b style="background:#1D4ED8"></b><i style="width:26px"></i><b></b><i style="width:26px"></i><b style="background:#0B1220"></b></div><span style="font-weight:600">Onboarding</span><span class="k">API event → 5 milestone emails → webhook to your CRM → goal: activated</span><span class="badge mut" style="align-self:flex-start">9 steps</span></a>
+            <a href="AutomationFlow.dc.html" class="tpl" style="border-style:dashed;align-items:center;justify-content:center;text-align:center"><span style="font-weight:600">Blank canvas</span><span class="k">Pick a trigger and build from scratch</span></a>
+          </div>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Loading state">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>Loading · fetching flows and 30-day stats</div>
+        <div class="card" style="display:flex;flex-direction:column" aria-busy="true">
+          <div class="ver" style="border-top:0"><span class="sk" style="width:180px;height:14px"></span><span class="sk" style="width:60px;height:22px;border-radius:999px"></span><span class="sk" style="width:160px;height:14px"></span><span class="sk" style="width:60px;height:14px;margin-left:auto"></span><span class="sk" style="width:60px;height:14px"></span></div>
+          <div class="ver"><span class="sk" style="width:220px;height:14px"></span><span class="sk" style="width:60px;height:22px;border-radius:999px"></span><span class="sk" style="width:190px;height:14px"></span><span class="sk" style="width:60px;height:14px;margin-left:auto"></span><span class="sk" style="width:60px;height:14px"></span></div>
+          <div class="ver"><span class="sk" style="width:150px;height:14px"></span><span class="sk" style="width:60px;height:22px;border-radius:999px"></span><span class="sk" style="width:170px;height:14px"></span><span class="sk" style="width:60px;height:14px;margin-left:auto"></span><span class="sk" style="width:60px;height:14px"></span></div>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Error state">
+        <div class="strip"><span class="dot" style="color:#F87171"></span>Error · a flow paused itself, a step is broken</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px">
+          <div role="alert" class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:8px;border-color:#FCA5A5">
+            <div style="display:flex;gap:10px;align-items:center"><span class="badge bad"><span class="dot"></span>Paused automatically</span><span style="font-weight:600">"Onboarding" paused: no healthy provider on the Automations route</span></div>
+            <span class="k">SES has been Down since 09:02 and Postmark, the fallback, returned 401 after its token was rotated. 23 emails are queued and will send the moment a provider is healthy; delays in the flow keep counting.</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><a href="ProvidersStates.dc.html" class="btn sm pri">Fix Postmark token</a><a href="ProvidersRouting.dc.html" class="btn sm">Add Postal as second fallback</a></div>
+          </div>
+          <div role="alert" class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:8px;border-color:#FCD34D">
+            <div style="display:flex;gap:10px;align-items:center"><span class="badge warn">Step failing</span><span style="font-weight:600">"Welcome series" webhook notify-slack returns 404</span></div>
+            <span class="k">1,284 calls failed since 29 Sep. Contacts continue past the step; the flow isn't blocked. Remove the step or fix the URL, then publish.</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><a href="AutomationFlow.dc.html" class="btn sm pri">Open the step</a><a href="SettingsAPI.dc.html" class="btn sm">Webhook delivery log</a></div>
+          </div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px"><span style="font-weight:600">Version history · Welcome series</span><button class="btn sm">Compare</button></div>
+          <div class="ver" style="background:#F0FDFA"><span class="n" style="width:30px">v3</span><span style="flex:1"><b>Live</b> · 2 Oct · Marcus Chen · added "No" path with plain-text follow-up</span><span class="badge ok">Live · 1,932 in flow</span></div>
+          <div class="ver"><span class="n" style="width:30px">v2</span><span style="flex:1">18 Sep · Linh Nguyen · delay 10 min before step 1 · retired 11 Oct</span><button class="btn sm">Restore as draft</button></div>
+          <div class="ver"><span class="n" style="width:30px">v1</span><span style="flex:1">18 Sep · created from the Welcome series template</span><button class="btn sm">Restore as draft</button></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1118}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

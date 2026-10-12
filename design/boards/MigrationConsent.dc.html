@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Import step 3, consent mapping</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.h2{margin:0;font-size:15px;font-weight:600}
+.in{height:34px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;min-width:0;width:100%}
+.step{display:flex;gap:12px;align-items:flex-start;padding:8px 0}
+.step .num{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none;border:2px solid #D4D8DF;color:#5B6472;background:#fff}
+.step.cur .num{background:#0F766E;border-color:#0F766E;color:#fff}
+.step.done .num{background:#DCFCE7;border-color:#86EFAC;color:#166534}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:9px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.r,.tbl th.r{text-align:right}
+label.opt{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px;cursor:pointer;background:#fff}
+label.opt input{margin-top:3px}
+
+/* responsive wizard */
+@media (max-width:1100px){ .wiz{padding:16px!important;gap:16px!important} }
+@media (max-width:767px){
+  .wiz{padding:12px!important}
+  .wizsteps{max-width:none!important;flex:1 1 100%!important;flex-direction:row!important;overflow-x:auto;gap:14px;padding:10px 12px!important}
+  .wizsteps .step{flex:none;padding:2px 0;align-items:center}
+  .wizsteps .step .k{display:none}
+  .wizsteps > div:last-child{display:none}
+}
+
+/* responsive wizard phone fixes */
+@media (max-width:767px){
+  .wiz > main{min-width:0;width:100%;max-width:100%}
+  .wiz main > *{min-width:0;max-width:100%}
+  .wiz .in,.wiz select,.wiz input,.wiz textarea{max-width:100%;min-width:0}
+  .wiz main div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .wiz main [style*="flex: 1 1"]{min-width:0}
+  .wiz select.in,.wiz input.in{width:0;min-width:100%}
+  .wiz .mono{overflow-wrap:anywhere}
+  .wiz .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .wiz .btn{white-space:normal;max-width:100%}
+  .wizsteps .badge{white-space:nowrap}
+  .wiz main [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .wiz main pre{max-width:100%}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column">
+  <header style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;color:#0B1220" aria-label="ReputeCast home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span style="font-weight:700;font-size:15px">ReputeCast</span>
+    </a>
+    <span class="k">/</span>
+    <h1 style="margin:0;font-size:16px;font-weight:600">Import contacts · Mailchimp</h1>
+    <span class="badge mut">Step 3 of 5</span>
+    <a href="Contacts.dc.html" class="btn" style="margin-left:auto">Exit</a>
+  </header>
+
+  <div class="wiz" style="display:flex;flex-wrap:wrap;gap:24px;padding:28px;max-width:1300px;margin:0 auto;width:100%;box-sizing:border-box;align-items:flex-start">
+    <nav class="card wizsteps" aria-label="Import steps" style="flex:1 1 220px;max-width:250px;padding:14px 16px;display:flex;flex-direction:column">
+      <div class="step done"><span class="num">✓</span><div><div style="font-weight:600">Source</div><div class="k">Mailchimp · Acme Customers</div></div></div>
+      <div class="step done"><span class="num">✓</span><div><div style="font-weight:600">Map fields</div><div class="k">12 mapped, 2 skipped</div></div></div>
+      <div class="step cur"><span class="num">3</span><div><div style="font-weight:600">Consent</div><div class="k">Who may be emailed</div></div></div>
+      <div class="step"><span class="num">4</span><div><div style="font-weight:600">Preview</div></div></div>
+      <div class="step"><span class="num">5</span><div><div style="font-weight:600">Import</div></div></div>
+    </nav>
+
+    <main style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <h2 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-.02em">Carry consent over, exactly</h2>
+        <span style="color:#4B5563">Each Mailchimp status maps to a ReputeCast status. Anyone who left or bounced goes straight to the shared suppression list and can never be re-subscribed by an import.</span>
+      </div>
+
+      <section class="card" style="display:flex;flex-direction:column">
+        <div style="overflow-x:auto">
+          <table class="tbl">
+            <thead><tr><th scope="col">Mailchimp status</th><th scope="col" class="r">Contacts</th><th scope="col" style="width:360px">Becomes in ReputeCast</th><th scope="col">Effect</th></tr></thead>
+            <tbody>
+              <tr><td><span class="badge ok">subscribed</span><div class="k">double opt-in was on in this audience since 2024</div></td><td class="r n">12,480</td><td><select aria-label="Handling for subscribed" class="in"><option>Subscribed · confirmed, keep opt-in date and IP as evidence</option><option>Subscribed · pending, send a re-permission email</option><option>Skip</option></select></td><td class="k">Gets Broadcasts and Automations right away</td></tr>
+              <tr style="background:#FFF5F5"><td><span class="badge bad">unsubscribed</span></td><td class="r n">1,033</td><td><select aria-label="Handling for unsubscribed" class="in"><option>Suppressed · unsubscribed (locked)</option></select></td><td class="k">Broadcasts and Automations blocked; System mail allowed. Can't be changed by an import.</td></tr>
+              <tr style="background:#FFF5F5"><td><span class="badge bad">cleaned</span><div class="k">hard bounced in Mailchimp</div></td><td class="r n">212</td><td><select aria-label="Handling for cleaned" class="in"><option>Suppressed · hard bounce (locked)</option></select></td><td class="k">All streams blocked, pushed to SES, Postmark and Postal</td></tr>
+              <tr><td><span class="badge warn">pending</span><div class="k">never confirmed double opt-in</div></td><td class="r n">0</td><td><select aria-label="Handling for pending" class="in"><option>Subscribed · pending, send a re-permission email</option><option>Skip</option></select></td><td class="k">No marketing mail until they confirm</td></tr>
+              <tr><td><span class="badge mut">transactional</span></td><td class="r n">0</td><td><select aria-label="Handling for transactional" class="in"><option>Skip</option><option>Subscribed · pending</option></select></td><td class="k">Not imported</td></tr>
+              <tr><td><span class="badge bad">archived with "abuse" complaint</span></td><td class="r n">14</td><td><select aria-label="Handling for archived with &#x27;abuse&#x27; complaint" class="in"><option>Suppressed · complaint (locked)</option></select></td><td class="k">All streams blocked</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:12px 20px;border-top:1px solid #EEF0F3;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="badge ok">1,259 addresses will be suppressed</span><span class="k">They count toward the shared list and sync to every provider before the first send to this list.</span></div>
+      </section>
+
+      <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+        <h3 class="h2">Consent evidence and re-permission</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
+          <label class="opt" style="border-color:#0F766E;background:#F0FDFA"><input type="radio" name="rp" checked><span><span style="font-weight:600">Trust Mailchimp's double opt-in</span><br><span class="k">OPTIN_TIME and OPTIN_IP are stored as consent evidence on each contact. Recommended when the source audience used double opt-in, as this one did.</span></span></label>
+          <label class="opt"><input type="radio" name="rp"><span><span style="font-weight:600">Re-permission everyone first</span><br><span class="k">Imports as "pending" and sends one confirmation email via the System stream. Contacts who don't confirm within 14 days are suppressed. Safer for old or single-opt-in lists.</span></span></label>
+        </div>
+        <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px"><input type="checkbox" checked style="margin-top:3px"><span>Pull existing suppressions from connected sending providers before importing <span class="k">· SES, Postmark and Postal are already in sync (841 addresses), so this just re-checks</span></span></label>
+        <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px"><input type="checkbox" checked style="margin-top:3px"><span>Record the import in each contact's consent history <span class="k">· "Imported from Mailchimp by Linh Nguyen, 12 Oct 2026, status subscribed, evidence OPTIN_TIME 2025-03-02"</span></span></label>
+      </section>
+
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <a href="MigrationFields.dc.html" class="btn">Back</a>
+        <a href="MigrationPreview.dc.html" class="btn pri" style="min-height:40px;padding:0 18px">Continue to preview</a>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

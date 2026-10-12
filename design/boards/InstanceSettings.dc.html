@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instance admin · instance settings, workspaces, version & updates</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs a{display:inline-flex;align-items:center;height:34px;padding:0 12px;border-radius:8px;color:#4B5563;font-weight:500;font-size:13px}
+.tabs a:hover{background:#EEF0F3;color:#0B1220}.tabs a.on{background:#0B1220;color:#fff}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.h2{margin:0;font-size:15px;font-weight:600}
+.in{height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;min-width:0}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+
+/* components missing from the senders base sheet */
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+.tbl td.c,.tbl th.c{text-align:center}
+.tbl td:first-child{white-space:normal;min-width:180px}
+.tbl td{white-space:normal;vertical-align:middle}
+.tbl td.nw,.tbl td .badge{white-space:nowrap}
+.tbl td .row{flex-wrap:nowrap}
+.tbl td .btn{white-space:nowrap}
+.rc{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 14px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14px;padding:12px 14px;border:1px dashed #9AA3B2;border-radius:8px;background:#F9FAFB}
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+.flag{display:inline-flex;align-items:center;gap:4px;color:#B45309;font-weight:700;font-size:11px;white-space:nowrap}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:18px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:10px}
+.sec{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}
+.pad{padding:16px 18px}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.45}
+.note > :last-child{flex:1 1 320px;min-width:0}
+.note > .badge{margin-top:1px}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FEF2F2;color:#991B1B}
+.btn.danger.pri{background:#B91C1C;border-color:#B91C1C;color:#fff}.btn.danger.pri:hover{background:#991B1B;color:#fff}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;font-size:13px}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12.5px;font-weight:500}
+.chip button{border:0;background:none;padding:0;cursor:pointer;color:#5B6472;font:inherit;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%}
+.chip button:hover{background:#EEF0F3;color:#0B1220}
+.code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;background:#0B1220;color:#E5E7EB;border-radius:8px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.diff{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden}
+.diff div{padding:6px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diff .del{background:#FEF2F2;color:#991B1B}.diff .add{background:#F0FDF4;color:#166534}
+.ovl{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:72px 16px;box-sizing:border-box;z-index:60}
+.dlg{width:100%;max-width:640px;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3)}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.db{padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.steps{display:flex;flex-direction:column;gap:2px}
+.steps a,.steps span.st{display:flex;align-items:center;gap:10px;min-height:38px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500;font-size:13px}
+.steps .on{background:#E3F1EE;color:#0F766E;font-weight:600}
+.steps .n{width:22px;height:22px;border-radius:50%;border:1.5px solid #9AA3B2;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none;color:#4B5563}
+.steps .done .n{background:#0F766E;border-color:#0F766E;color:#fff}
+.steps .on .n{border-color:#0F766E;color:#0F766E}
+.tbl td.wrap{white-space:normal}
+.sc-host [style*="display: grid"] > *{min-width:0}
+.row > *{min-width:0}
+@media (max-width:767px){.tools{margin-left:0}.kv{grid-template-columns:1fr}.rc{grid-template-columns:1fr}.menu{min-width:0;max-width:calc(100vw - 24px)}.ovl{padding:24px 12px}
+  .sc-host [style*="grid-template-columns: minmax(0"],.sc-host [style*="grid-template-columns: 1fr 1fr"],.sc-host [style*="grid-template-columns: 1fr 2fr"],.sc-host [style*="grid-template-columns: auto 1fr 1fr"],.sc-host [style*="grid-template-columns: 300px"]{grid-template-columns:1fr!important}
+  .sc-host .row[style*="nowrap"] input.in,.sc-host .row[style*="nowrap"] select.in{width:auto;min-width:0;flex:1 1 120px}
+  .sc-host [style*="position: sticky"]{position:static!important}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host label .k.mono,.sc-host .steps,.sc-host .chip{overflow-wrap:normal}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh;position:relative">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span></a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:4px" aria-label="Main">
+      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="FormBuilder.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="on" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+    </nav>
+    <div class="sidefoot" style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <a href="MigrationSource.dc.html" class="btn" style="justify-content:flex-start"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 11V3M4.5 6.5 8 3l3.5 3.5M2 13h12"></path></svg>Import contacts</a>
+      <a href="SettingsIntegrations.dc.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220"><span class="dot" style="color:#15803D"></span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">HostRepute connected</span><span class="k" style="font-size:11px">Acme Inc · synced 4 min ago</span></div></a>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 8px"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">Linh Nguyen</span><span class="k" style="font-size:11px">Owner</span></div></div>
+    </div>
+  </aside>
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <h1 style="margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em">Instance admin</h1><span class="k">Acme ReputeCast · reputecast.acme.io · v1.4.2</span><span class="badge pur">admins only</span><div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><a href="WorkspaceSettings.dc.html" class="btn">Workspace settings</a><div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div><nav class="tabs" aria-label="Instance admin sections" style="flex-basis:100%;min-width:0;margin-left:0"><a href="InstanceUsers.dc.html">Users</a><a href="InstanceSettings.dc.html">Workspaces</a><a href="InstanceAuth.dc.html">Authentication</a><a href="SSOSetup.dc.html">SSO providers</a><a href="InstanceSettings.dc.html" class="on" aria-current="page">Instance &amp; updates</a><a href="AuditInstance.dc.html">Audit log</a></nav>
+    </header>
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(560px,1fr));gap:20px;align-items:start"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Instance</h2><span class="k">Name, logo, public URL and timezone</span></div></div><div class="pad col" style="gap:14px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><label class="lbl">Instance name<input class="in" type="text" value="Acme ReputeCast" placeholder="" style=""></label><label class="lbl">Default timezone<select class="in" style=""><option selected>America/New_York (UTC−4)</option><option>Europe/Berlin</option><option>Asia/Ho_Chi_Minh</option><option>UTC</option></select></label></div><label class="lbl">Public URL<div class="row" style="gap:8px;flex-wrap:nowrap"><input class="in mono" value="https://reputecast.acme.io" style="flex:1"><button class="btn">Check</button></div><span class="k" style="font-weight:500">Used for provider webhooks, SSO redirect URIs and public pages. Changing it re-registers webhooks at every provider that supports it and warns about the rest.</span></label><div class="row" style="gap:16px;align-items:center"><span class="av" style="width:48px;height:48px;border-radius:10px;background:#0F766E;color:#fff;font-size:16px" aria-hidden="true">A</span><div class="col" style="gap:4px"><div class="row" style="gap:8px"><button class="btn sm">Upload logo</button><button class="btn sm">Use ReputeCast mark</button></div><span class="k">Shown on the sign-in page and in team emails · SVG or PNG, square</span></div></div><div class="card" style="padding:12px 14px;gap:8px;background:#F9FAFB;display:flex;flex-direction:column" role="status" aria-label="URL check result"><span class="k">Public URL checked 4 min ago</span><div class="row" style="gap:8px"><span class="badge ok">DNS</span><span>DNS resolves to <span class="mono">203.0.113.40</span> (this server)</span></div><div class="row" style="gap:8px"><span class="badge ok">TLS</span><span>TLS valid until Jan 8, 2027 · auto-renews</span></div><div class="row" style="gap:8px"><span class="badge ok">Reachable</span><span>Reachable from the internet · 142 ms · provider webhooks arrive</span></div></div><div class="row" style="justify-content:flex-end"><button class="btn pri sm">Save</button></div></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Version &amp; updates</h2><span class="k">Current version, latest release and how to upgrade</span></div></div><div class="pad col" style="gap:14px"><div class="row" style="gap:18px;align-items:flex-start;flex-wrap:wrap"><div class="col" style="gap:2px;flex:1 1 240px"><span class="k">Installed</span><span style="font-size:22px;font-weight:700" class="mono">v1.4.2</span><span class="k">Released Sep 18, 2026 · checked for updates 2 h ago</span></div><div class="col" style="gap:2px;flex:1 1 240px"><span class="k">Latest release</span><span class="row" style="gap:8px"><span style="font-size:22px;font-weight:700;color:#0F766E" class="mono">v1.5.0</span><span class="badge ok">Update available</span></span><span class="k">Released Oct 8, 2026 · <a href="https://github.com/hostrepute/reputecast/releases">changelog on GitHub</a></span></div></div><div class="note i"><span class="col" style="gap:6px"><span style="font-weight:600">What's new in v1.5.0</span><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px"><li>Send approvals: two-approver policies and approval invalidation diffs</li><li>Passkeys as a second factor; recovery-code regeneration from Account &amp; security</li><li>Adapter SDK 1.2: quota discovery for Mailjet and SparkPost</li><li>Fix: Postal webhook signatures with rotated keys</li></ul><span class="k">No database migration downtime: the upgrade runs migrations before switching over.</span></span></div><div class="col" style="gap:6px"><span style="font-size:12px;font-weight:600;color:#4B5563">Upgrade on the server</span><pre class="code">cd /opt/reputecast && docker compose pull && docker compose up -d</pre><span class="k">Back up Postgres first: <span class="mono">reputecast backup create</span>. Rollback: pin the image to v1.4.2 and restart.</span></div><label class="row" style="gap:12px;flex-wrap:nowrap;padding-top:6px;border-top:1px solid #EEF0F3"><input type="checkbox" class="tg" role="switch" checked><span class="col" style="gap:1px"><span style="font-weight:600">Check GitHub releases once a day</span><span class="k">Fetches only the latest version number from github.com. ReputeCast never sends usage data, telemetry or crash reports anywhere; this is the only outbound call it makes on its own.</span></span></label></div></section></div><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Workspaces · 2</h2><span class="k">Unlimited workspaces. Each has its own lists, campaigns, providers and team.</span></div><button class="btn sm pri">Create workspace</button></div><div style="overflow-x:auto"><table class="tbl "><thead><tr><th scope="col">Workspace</th><th scope="col">Members</th><th scope="col">Subscribers</th><th scope="col">Providers</th><th scope="col">Created</th><th scope="col"></th></tr></thead><tbody><tr><td><span style="font-weight:600">Acme Newsletter</span></td><td>6 · 1 invited</td><td>48,213</td><td>SES, Postmark, Postal</td><td>Mar 2, 2026</td><td><div class="row" style="gap:6px"><a href="WorkspaceSettings.dc.html" class="btn sm">Open settings</a><button class="btn sm danger">Delete</button></div></td></tr><tr><td><span style="font-weight:600">Acme Engineering Blog</span></td><td>3</td><td>6,420</td><td>SES</td><td>Jun 14, 2026</td><td><div class="row" style="gap:6px"><a href="WorkspaceSettings.dc.html" class="btn sm">Open settings</a><button class="btn sm danger">Delete</button></div></td></tr></tbody></table></div></section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":975}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedback patterns: toasts, undo, inline validation, empty results, loading buttons</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+a:not([class]):not(nav a){text-decoration:underline;text-underline-offset:2px}
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#fff;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#fff}.btn.pri:hover{background:#115E59;color:#fff}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.btn.dis{opacity:.5;cursor:not-allowed}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.in{height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;width:100%}
+.in.err{border-color:#DC2626}.in.okb{border-color:#15803D}
+.lbl{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:#4B5563}
+.err{font-size:12.5px;color:#991B1B;font-weight:500}
+.wrap{max-width:1380px;margin:0 auto;padding:28px 40px 44px;display:flex;flex-direction:column;gap:22px;box-sizing:border-box}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec h2{margin:0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#0B1220;padding:8px 14px;border-radius:8px;display:flex;gap:10px;align-items:center}
+.sec h2 .dot{color:#0F766E}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;align-items:start}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:460px}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .btn:hover{background:#1F2937}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;display:inline-block;animation:sp 1s linear infinite}
+.spin.dark{border-color:#C9CED6;border-top-color:#0F766E}
+@keyframes sp{to{transform:rotate(360deg)}}
+.tray{border:1px solid #E3E6EB;border-radius:10px;background:#fff;padding:12px 14px;display:flex;flex-direction:column;gap:10px;font-size:13px}
+.tray .bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.tray .bar i{display:block;height:100%;background:#0F766E;border-radius:3px}
+.tip{position:relative;display:inline-block}
+.tip .bub{position:absolute;left:0;top:calc(100% + 8px);background:#0B1220;color:#fff;font-size:12px;padding:6px 9px;border-radius:6px;white-space:nowrap}
+.tip .bub::before{content:"";position:absolute;left:14px;top:-5px;border:5px solid transparent;border-bottom-color:#0B1220;border-top:0}
+kbd{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;padding:1px 6px;border:1px solid #D4D8DF;border-bottom-width:2px;border-radius:5px;background:#F9FAFB}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+@media (max-width:767px){.wrap{padding:16px 12px 28px}.grid{grid-template-columns:1fr}.toast{max-width:100%}}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<h1 class="vh">Feedback patterns: toasts, undo, inline validation, empty results, loading buttons</h1>
+<main class="wrap" id="main">
+  <div class="sec">
+    <h2><span class="dot"></span>Toasts · bottom-left, one at a time, 6 seconds, undo where it is safe</h2>
+    <div class="grid">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="toast" role="status"><span class="ti" style="background:#166534"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span class="t">Saved as v17 <span class="k">· 09:41 · 2 blocks changed</span></span><button class="x" aria-label="Dismiss">×</button></div>
+        <div class="toast" role="status"><span class="ti" style="background:#4B5563"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.2" aria-hidden="true"><path d="M3 4h10M6 4V3h4v1M5 4l1 9h4l1-9"></path></svg></span><span class="t">Deleted sam.rivera@outlook.com <span class="k">· suppressions kept</span></span><button class="btn">Undo</button><button class="x" aria-label="Dismiss">×</button></div>
+        <div class="toast" role="alert"><span class="ti" style="background:#B91C1C"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" aria-hidden="true"><path d="M8 4v5M8 11.5v.5"></path></svg></span><span class="t">Couldn't save v17 <span class="k">· server returned 502, your changes are still here</span></span><button class="btn">Retry</button><button class="x" aria-label="Dismiss">×</button></div>
+        <div class="toast" role="status"><span class="spin" aria-hidden="true"></span><span class="t">Re-running 31 checks <span class="k">· blocklists take the longest, about 20 s</span></span><button class="btn">Hide</button></div>
+      </div>
+      <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+        <span style="font-weight:600">Rules</span>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;color:#374151">
+          <span>Success and progress toasts use <span class="mono">role="status"</span>; errors use <span class="mono">role="alert"</span> and stay until dismissed.</span>
+          <span>Undo is offered for deletes, moves and unsubscribes for 10 seconds; after that the audit log is the way back.</span>
+          <span>Never a toast for something the page already shows (a badge changing, a count updating).</span>
+          <span>Focus never jumps to a toast; it is readable at 4.5:1 on ink and sits above the phone tab bar.</span>
+        </div>
+      </div>
+      <div class="tray" aria-label="Background jobs">
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600">Background jobs · 2</span><a href="SettingsAudit.dc.html" class="k">History</a></div>
+        <div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;justify-content:space-between"><span>Importing 12,480 contacts from Mailchimp</span><span class="k">68% · 1 min left</span></div><div class="bar"><i style="width:68%"></i></div></div>
+        <div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;justify-content:space-between"><span>Export · contacts with activity</span><span class="k">queued</span></div><div class="bar"><i style="width:0"></i></div></div>
+        <span class="k">Jobs keep running if you close the tab. You get a toast here and an email when one finishes or fails.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2><span class="dot"></span>Inline validation · on blur, in words, with the fix</h2>
+    <div class="grid">
+      <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+        <label class="lbl">Reply-to address<input class="in err" value="replies@acme" aria-describedby="e1" aria-invalid="true"><span class="err" id="e1">Add a domain, like replies@acme.io. Replies go to a mailbox ReputeCast can read for bounces.</span></label>
+        <label class="lbl">Sender domain<input class="in err" value="news.acme.io" aria-describedby="e2" aria-invalid="true"><span class="err" id="e2">news.acme.io is already a sender in this workspace (added 18 Sep by Linh). <a href="SettingsSenders.dc.html">Open it</a> instead.</span></label>
+        <label class="lbl">Daily cap<input class="in okb" value="50,000" aria-describedby="h3"><span class="k" id="h3" style="color:#166534">Within the SES quota for us-east-1 (50,000 per 24 h).</span></label>
+        <label class="lbl">Webhook URL<input class="in err" value="http://hooks.acme.io/rc" aria-describedby="e4" aria-invalid="true"><span class="err" id="e4">Must be https. We sign every call with HMAC-SHA256, and plain http would expose the signature.</span></label>
+      </div>
+      <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+        <span style="font-weight:600">Form-level summary · shown on submit when several fields fail</span>
+        <div role="alert" style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:8px;background:#FFF5F5;border:1px solid #FCA5A5;font-size:13px">
+          <span style="font-weight:600;color:#991B1B">3 things to fix before saving</span>
+          <a href="Feedback.dc.html">Reply-to address needs a domain</a>
+          <a href="Feedback.dc.html">Sender domain already exists</a>
+          <a href="Feedback.dc.html">Webhook URL must be https</a>
+        </div>
+        <span class="k">Each link moves focus to the field. Errors are announced once, not on every keystroke; required fields are marked in the label, not with colour alone.</span>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:4px"><button class="btn pri"><span class="spin" aria-hidden="true"></span>Saving…</button><button class="btn dis" aria-disabled="true">Save</button><span class="k">Loading and disabled button states: the label changes, the width does not.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2><span class="dot"></span>Nothing found, nothing allowed · search results, filters, permissions, shortcuts</h2>
+    <div class="grid">
+      <div class="card" style="padding:28px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px">
+        <span style="font-weight:600;font-size:15px">No contacts match "acme.io" in Beta Program</span>
+        <span class="k" style="max-width:360px">2,115 contacts are on Beta Program; none has an acme.io address. Try the whole workspace, or clear the list filter.</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px"><button class="btn">Search all lists</button><button class="btn">Clear filters</button><a href="Contacts.dc.html" class="btn pri">Add a contact</a></div>
+      </div>
+      <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+        <span style="font-weight:600">Permission-limited control</span>
+        <div class="tip"><button class="btn dis" aria-disabled="true" aria-describedby="why">Save routing</button><span class="bub" id="why" role="tooltip">Editors can't change routing · ask Linh or Marcus</span></div>
+        <span class="k" style="margin-top:28px">Disabled controls stay visible and explain why on hover and focus. Hidden controls would make the product look smaller to Viewers than it is.</span>
+      </div>
+      <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600">Keyboard shortcuts</span><span class="k">press <kbd>?</kbd></span></div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px;font-size:13px">
+          <span><kbd>⌘</kbd> <kbd>K</kbd> Search everything</span><span><kbd>N</kbd> New campaign</span>
+          <span><kbd>⌘</kbd> <kbd>S</kbd> Save version</span><span><kbd>⌘</kbd> <kbd>Enter</kbd> Open Send Readiness</span>
+          <span><kbd>G</kbd> then <kbd>O</kbd> Overview</span><span><kbd>G</kbd> then <kbd>A</kbd> Audience</span>
+          <span><kbd>Esc</kbd> Close panel or dialog</span><span><kbd>?</kbd> This sheet</span>
+        </div>
+        <span class="k">Every shortcut has a visible button equivalent; none is required.</span>
+      </div>
+    </div>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1112}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

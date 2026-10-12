@@ -1,0 +1,2677 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "AccountSecurity.dc.html": {
+      "expand": "fill",
+      "h": 1700,
+      "is_interactive": true,
+      "page": "account",
+      "title": "Account & security",
+      "w": 1440,
+      "x": 6240,
+      "y": 0
+    },
+    "AccountSecurityPhone.dc.html": {
+      "h": 3466,
+      "is_interactive": true,
+      "page": "account",
+      "title": "Account & security · phone",
+      "w": 390,
+      "x": 0,
+      "y": 4940
+    },
+    "AccountSecurityTablet.dc.html": {
+      "h": 2520,
+      "is_interactive": true,
+      "page": "account",
+      "title": "Account & security · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 2060
+    },
+    "AccountStates.dc.html": {
+      "expand": "fill",
+      "h": 1039,
+      "is_interactive": true,
+      "page": "account",
+      "title": "Account & security · dialogs and states",
+      "w": 1440,
+      "x": 7800,
+      "y": 0
+    },
+    "ApprovalInbox.dc.html": {
+      "expand": "fill",
+      "h": 1188,
+      "is_interactive": true,
+      "page": "approvals",
+      "title": "Send approvals · inbox",
+      "w": 1440,
+      "x": 3120,
+      "y": 0
+    },
+    "ApprovalInboxPhone.dc.html": {
+      "h": 2124,
+      "is_interactive": true,
+      "page": "approvals",
+      "title": "Send approvals · inbox · phone",
+      "w": 390,
+      "x": 510,
+      "y": 5274
+    },
+    "ApprovalPolicy.dc.html": {
+      "expand": "fill",
+      "h": 1136,
+      "is_interactive": true,
+      "page": "approvals",
+      "title": "Send approvals · policy",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "ApprovalReview.dc.html": {
+      "expand": "fill",
+      "h": 1971,
+      "is_interactive": true,
+      "page": "approvals",
+      "title": "Send approvals · review (Marcus Chen)",
+      "w": 1440,
+      "x": 1560,
+      "y": 0
+    },
+    "ApprovalReviewPhone.dc.html": {
+      "h": 3696,
+      "is_interactive": true,
+      "page": "approvals",
+      "title": "Send approvals · review (Marcus Chen) · phone",
+      "w": 390,
+      "x": 0,
+      "y": 5274
+    },
+    "ApprovalReviewTablet.dc.html": {
+      "h": 2583,
+      "is_interactive": true,
+      "page": "approvals",
+      "title": "Send approvals · review (Marcus Chen) · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 2331
+    },
+    "ApprovalStates.dc.html": {
+      "expand": "fill",
+      "h": 1121,
+      "is_interactive": true,
+      "page": "approvals",
+      "title": "Send approvals · invalidated, recheck blocked, emergency bypass",
+      "w": 1440,
+      "x": 4680,
+      "y": 0
+    },
+    "AudienceStates.dc.html": {
+      "expand": "fill",
+      "h": 995,
+      "is_interactive": true,
+      "page": "audience",
+      "title": "Audience · empty / loading / error",
+      "w": 1440,
+      "x": 0,
+      "y": 1520
+    },
+    "AuditInstance.dc.html": {
+      "expand": "fill",
+      "h": 1311,
+      "is_interactive": true,
+      "page": "instance",
+      "title": "Instance admin · audit log",
+      "w": 1440,
+      "x": 9360,
+      "y": 0
+    },
+    "AuthScreens.dc.html": {
+      "expand": "fill",
+      "h": 1453,
+      "is_interactive": true,
+      "page": "system",
+      "title": "Sign in, two-factor, invite, reset",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "AuthScreensPhone.dc.html": {
+      "h": 2596,
+      "is_interactive": true,
+      "page": "system",
+      "title": "Sign in and access · phone",
+      "w": 390,
+      "x": 0,
+      "y": 2224
+    },
+    "AutomationFlow.dc.html": {
+      "expand": "fill",
+      "h": 1153,
+      "is_interactive": true,
+      "page": "automations",
+      "title": "Automations · flow canvas",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "AutomationFlowPhone.dc.html": {
+      "h": 2743,
+      "is_interactive": true,
+      "page": "automations",
+      "title": "Automations · flow canvas · phone",
+      "w": 390,
+      "x": 510,
+      "y": 3808
+    },
+    "AutomationFlowTablet.dc.html": {
+      "h": 1935,
+      "is_interactive": true,
+      "page": "automations",
+      "title": "Automations · flow canvas · tablet",
+      "w": 834,
+      "x": 954,
+      "y": 1513
+    },
+    "AutomationPublish.dc.html": {
+      "expand": "fill",
+      "h": 958,
+      "is_interactive": true,
+      "page": "automations",
+      "title": "Automations · publish & version diff",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "AutomationsList.dc.html": {
+      "expand": "fill",
+      "h": 881,
+      "is_interactive": true,
+      "page": "automations",
+      "title": "Automations · list",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "AutomationsListPhone.dc.html": {
+      "h": 1480,
+      "is_interactive": true,
+      "page": "automations",
+      "title": "Automations · list · phone",
+      "w": 390,
+      "x": 0,
+      "y": 3808
+    },
+    "AutomationsListTablet.dc.html": {
+      "h": 1173,
+      "is_interactive": true,
+      "page": "automations",
+      "title": "Automations · list · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 1513
+    },
+    "AutomationsStates.dc.html": {
+      "expand": "fill",
+      "h": 1118,
+      "is_interactive": true,
+      "page": "automations",
+      "title": "Automations · templates / loading / error",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "Campaigns.dc.html": {
+      "expand": "fill",
+      "h": 1132,
+      "is_interactive": true,
+      "page": "report",
+      "title": "Campaigns list",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "CampaignsPhone.dc.html": {
+      "h": 1599,
+      "is_interactive": true,
+      "page": "report",
+      "title": "Campaigns list · phone",
+      "w": 390,
+      "x": 0,
+      "y": 6421
+    },
+    "CampaignsTablet.dc.html": {
+      "h": 1270,
+      "is_interactive": true,
+      "page": "report",
+      "title": "Campaigns list · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 2442
+    },
+    "Composer.dc.html": {
+      "expand": "fill",
+      "h": 1325,
+      "is_interactive": true,
+      "page": "composer",
+      "title": "Composer · editing 2 columns",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "ComposerCode.dc.html": {
+      "expand": "fill",
+      "h": 972,
+      "is_interactive": true,
+      "page": "composer",
+      "title": "Composer · MJML code view",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "ComposerEmpty.dc.html": {
+      "expand": "fill",
+      "h": 1123,
+      "is_interactive": true,
+      "page": "composer",
+      "title": "Composer · empty canvas",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "ComposerMobile.dc.html": {
+      "expand": "fill",
+      "h": 1507,
+      "is_interactive": true,
+      "page": "composer",
+      "title": "Composer · mobile preview",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "ComposerPhone.dc.html": {
+      "h": 3589,
+      "is_interactive": true,
+      "page": "composer",
+      "title": "Composer · editing 2 columns · phone",
+      "w": 390,
+      "x": 0,
+      "y": 5164
+    },
+    "ComposerPreview.dc.html": {
+      "expand": "fill",
+      "h": 1064,
+      "is_interactive": true,
+      "page": "composer",
+      "title": "Composer · client previews & A/B",
+      "w": 1440,
+      "x": 0,
+      "y": 1120
+    },
+    "ComposerRequestApproval.dc.html": {
+      "expand": "fill",
+      "h": 1378,
+      "is_interactive": true,
+      "page": "approvals",
+      "title": "Composer · Content Writer requests approval",
+      "w": 1440,
+      "x": 7800,
+      "y": 0
+    },
+    "ComposerStates.dc.html": {
+      "expand": "fill",
+      "h": 1034,
+      "is_interactive": true,
+      "page": "composer",
+      "title": "Composer · loading / error / saved",
+      "w": 1440,
+      "x": 1520,
+      "y": 1120
+    },
+    "ComposerTablet.dc.html": {
+      "h": 2260,
+      "is_interactive": true,
+      "page": "composer",
+      "title": "Composer · editing 2 columns · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 2544
+    },
+    "ComposerWarnings.dc.html": {
+      "expand": "fill",
+      "h": 1312,
+      "is_interactive": true,
+      "page": "composer",
+      "title": "Composer · inline warnings",
+      "w": 1440,
+      "x": 6080,
+      "y": 0
+    },
+    "ConnectHostRepute.dc.html": {
+      "expand": "fill",
+      "h": 1014,
+      "is_interactive": true,
+      "page": "integrations",
+      "title": "Connect HostRepute · before, OAuth handoff, API key, return",
+      "w": 1440,
+      "x": 6240,
+      "y": 0
+    },
+    "ContactProfile.dc.html": {
+      "expand": "fill",
+      "h": 983,
+      "is_interactive": true,
+      "page": "audience",
+      "title": "Audience · contact profile",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "ContactProfilePhone.dc.html": {
+      "h": 2447,
+      "is_interactive": true,
+      "page": "audience",
+      "title": "Audience · contact profile · phone",
+      "w": 390,
+      "x": 510,
+      "y": 5082
+    },
+    "Contacts.dc.html": {
+      "expand": "fill",
+      "h": 1020,
+      "is_interactive": true,
+      "page": "audience",
+      "title": "Audience · contacts",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "ContactsPhone.dc.html": {
+      "h": 1590,
+      "is_interactive": true,
+      "page": "audience",
+      "title": "Audience · contacts · phone",
+      "w": 390,
+      "x": 0,
+      "y": 5082
+    },
+    "ContactsTablet.dc.html": {
+      "h": 1112,
+      "is_interactive": true,
+      "page": "audience",
+      "title": "Audience · contacts · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 2871
+    },
+    "DSAccessibility.dc.html": {
+      "expand": "fill",
+      "h": 2528,
+      "is_interactive": true,
+      "page": "design",
+      "title": "Accessibility · WCAG 2.2 AA checklist and audit",
+      "w": 1440,
+      "x": 7600,
+      "y": 0
+    },
+    "DSCharts.dc.html": {
+      "expand": "fill",
+      "h": 1976,
+      "is_interactive": true,
+      "page": "design",
+      "title": "Charts",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "DSComponents.dc.html": {
+      "expand": "fill",
+      "h": 3062,
+      "is_interactive": true,
+      "page": "design",
+      "title": "Components",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "DSCoverage.dc.html": {
+      "expand": "fill",
+      "h": 3927,
+      "is_interactive": true,
+      "page": "design",
+      "title": "UX coverage matrix · every screen × every state",
+      "w": 1440,
+      "x": 9120,
+      "y": 0
+    },
+    "DSFoundations.dc.html": {
+      "expand": "fill",
+      "h": 6082,
+      "is_interactive": true,
+      "page": "design",
+      "title": "Foundations · colour, type, spacing, motion",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "DSLayout.dc.html": {
+      "expand": "fill",
+      "h": 2017,
+      "is_interactive": true,
+      "page": "design",
+      "title": "Layout and responsive",
+      "w": 1440,
+      "x": 6080,
+      "y": 0
+    },
+    "DSPatterns.dc.html": {
+      "expand": "fill",
+      "h": 2508,
+      "is_interactive": true,
+      "page": "design",
+      "title": "Patterns and status language",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "Deliverability.dc.html": {
+      "expand": "fill",
+      "h": 1730,
+      "is_interactive": true,
+      "page": "deliverability",
+      "title": "Deliverability · HostRepute connected",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "DeliverabilityNoHostRepute.dc.html": {
+      "expand": "fill",
+      "h": 1646,
+      "is_interactive": true,
+      "page": "deliverability",
+      "title": "Deliverability · HostRepute not connected",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "DeliverabilityPhone.dc.html": {
+      "h": 4121,
+      "is_interactive": true,
+      "page": "deliverability",
+      "title": "Deliverability · HostRepute connected · phone",
+      "w": 390,
+      "x": 0,
+      "y": 5135
+    },
+    "DeliverabilityStates.dc.html": {
+      "expand": "fill",
+      "h": 781,
+      "is_interactive": true,
+      "page": "deliverability",
+      "title": "Deliverability · loading / error",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "DeliverabilityTablet.dc.html": {
+      "h": 2689,
+      "is_interactive": true,
+      "page": "deliverability",
+      "title": "Deliverability · HostRepute connected · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 2088
+    },
+    "Dialogs.dc.html": {
+      "expand": "fill",
+      "h": 1864,
+      "is_interactive": true,
+      "page": "system",
+      "title": "Confirmation dialogs · destructive, protective, bulk results",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "Feedback.dc.html": {
+      "expand": "fill",
+      "h": 1112,
+      "is_interactive": true,
+      "page": "system",
+      "title": "Feedback · toasts, undo, jobs, validation, empty results, shortcuts",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "FormBuilder.dc.html": {
+      "expand": "fill",
+      "h": 1135,
+      "is_interactive": true,
+      "page": "forms",
+      "title": "Signup form builder",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "FormBuilderPhone.dc.html": {
+      "h": 2652,
+      "is_interactive": true,
+      "page": "forms",
+      "title": "Signup form builder · phone",
+      "w": 390,
+      "x": 0,
+      "y": 3769
+    },
+    "FormBuilderTablet.dc.html": {
+      "h": 1802,
+      "is_interactive": true,
+      "page": "forms",
+      "title": "Signup form builder · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 1609
+    },
+    "FormsStates.dc.html": {
+      "expand": "fill",
+      "h": 1253,
+      "is_interactive": true,
+      "page": "forms",
+      "title": "Forms · empty / loading / error",
+      "w": 1440,
+      "x": 5520,
+      "y": 0
+    },
+    "HostReputeStates.dc.html": {
+      "expand": "fill",
+      "h": 932,
+      "is_interactive": true,
+      "page": "integrations",
+      "title": "HostRepute · revoked, monitoring limit, disconnect",
+      "w": 1440,
+      "x": 7800,
+      "y": 0
+    },
+    "InstanceAuth.dc.html": {
+      "expand": "fill",
+      "h": 1558,
+      "is_interactive": true,
+      "page": "instance",
+      "title": "Instance admin · authentication & security policies",
+      "w": 1440,
+      "x": 3120,
+      "y": 0
+    },
+    "InstanceSettings.dc.html": {
+      "expand": "fill",
+      "h": 975,
+      "is_interactive": true,
+      "page": "instance",
+      "title": "Instance admin · instance, workspaces, version & updates",
+      "w": 1440,
+      "x": 4680,
+      "y": 0
+    },
+    "InstanceSetup.dc.html": {
+      "expand": "fill",
+      "h": 796,
+      "is_interactive": true,
+      "page": "account",
+      "title": "First sign-in · instance setup",
+      "w": 1440,
+      "x": 4680,
+      "y": 0
+    },
+    "InstanceUserDialogs.dc.html": {
+      "expand": "fill",
+      "h": 1009,
+      "is_interactive": true,
+      "page": "instance",
+      "title": "Instance admin · reset 2FA, password reset, make admin",
+      "w": 1440,
+      "x": 1560,
+      "y": 0
+    },
+    "InstanceUsers.dc.html": {
+      "expand": "fill",
+      "h": 1091,
+      "is_interactive": true,
+      "page": "instance",
+      "title": "Instance admin · users",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "InstanceUsersPhone.dc.html": {
+      "h": 1730,
+      "is_interactive": true,
+      "page": "instance",
+      "title": "Instance admin · users · phone",
+      "w": 390,
+      "x": 0,
+      "y": 5775
+    },
+    "InstanceUsersTablet.dc.html": {
+      "h": 1350,
+      "is_interactive": true,
+      "page": "instance",
+      "title": "Instance admin · users · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 2700
+    },
+    "InviteStates.dc.html": {
+      "expand": "fill",
+      "h": 1269,
+      "is_interactive": true,
+      "page": "account",
+      "title": "Accept invitation · join, security setup, expired, revoked, wrong account",
+      "w": 1440,
+      "x": 3120,
+      "y": 0
+    },
+    "Landing.dc.html": {
+      "expand": "fill",
+      "h": 6642,
+      "is_interactive": true,
+      "page": "landing",
+      "title": "reputecast.com landing page",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "LandingPhone.dc.html": {
+      "h": 8000,
+      "is_interactive": true,
+      "page": "landing",
+      "title": "reputecast.com landing page · phone",
+      "w": 390,
+      "x": 0,
+      "y": 16681
+    },
+    "LandingTablet.dc.html": {
+      "h": 8000,
+      "is_interactive": true,
+      "page": "landing",
+      "title": "reputecast.com landing page · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 6919
+    },
+    "ListHealth.dc.html": {
+      "expand": "fill",
+      "h": 1093,
+      "is_interactive": true,
+      "page": "audience",
+      "title": "Audience · list health",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "LiveMonitor.dc.html": {
+      "expand": "fill",
+      "h": 1391,
+      "is_interactive": true,
+      "page": "monitor",
+      "title": "Live monitor · sending",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "LiveMonitorMobile.dc.html": {
+      "h": 1588,
+      "is_interactive": true,
+      "page": "monitor",
+      "title": "Live monitor · mobile",
+      "w": 390,
+      "x": 4560,
+      "y": 0
+    },
+    "LiveMonitorOutage.dc.html": {
+      "expand": "fill",
+      "h": 1291,
+      "is_interactive": true,
+      "page": "monitor",
+      "title": "Live monitor · provider outage",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "LiveMonitorPaused.dc.html": {
+      "expand": "fill",
+      "h": 1421,
+      "is_interactive": true,
+      "page": "monitor",
+      "title": "Live monitor · auto-paused",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "LiveMonitorPausedPhone.dc.html": {
+      "h": 2990,
+      "is_interactive": true,
+      "page": "monitor",
+      "title": "Live monitor · auto-paused · phone",
+      "w": 390,
+      "x": 0,
+      "y": 4538
+    },
+    "LiveMonitorStates.dc.html": {
+      "expand": "fill",
+      "h": 948,
+      "is_interactive": true,
+      "page": "monitor",
+      "title": "Live monitor · connecting / complete / error",
+      "w": 1440,
+      "x": 5030,
+      "y": 0
+    },
+    "LiveMonitorTablet.dc.html": {
+      "h": 2315,
+      "is_interactive": true,
+      "page": "monitor",
+      "title": "Live monitor · sending · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 1948
+    },
+    "Logo.dc.html": {
+      "expand": "fill",
+      "h": 2877,
+      "is_interactive": true,
+      "page": "design",
+      "title": "Logo · mark, lockups, colour versions, files",
+      "w": 1440,
+      "x": 10640,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "expand": "fill",
+      "h": 1548,
+      "is_interactive": true,
+      "page": "overview",
+      "title": "Overview",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "MainPhone.dc.html": {
+      "h": 3691,
+      "is_interactive": true,
+      "page": "overview",
+      "title": "Overview · phone",
+      "w": 390,
+      "x": 0,
+      "y": 4752
+    },
+    "MainTablet.dc.html": {
+      "h": 2530,
+      "is_interactive": true,
+      "page": "overview",
+      "title": "Overview · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 1906
+    },
+    "MigrationConsent.dc.html": {
+      "expand": "fill",
+      "h": 1040,
+      "is_interactive": true,
+      "page": "migration",
+      "title": "Import 3 · Consent",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "MigrationDone.dc.html": {
+      "expand": "fill",
+      "h": 1080,
+      "is_interactive": true,
+      "page": "migration",
+      "title": "Import · Summary",
+      "w": 1440,
+      "x": 0,
+      "y": 1320
+    },
+    "MigrationFields.dc.html": {
+      "expand": "fill",
+      "h": 1151,
+      "is_interactive": true,
+      "page": "migration",
+      "title": "Import 2 · Map fields",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "MigrationPreview.dc.html": {
+      "expand": "fill",
+      "h": 1235,
+      "is_interactive": true,
+      "page": "migration",
+      "title": "Import 4 · Preview",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "MigrationProgress.dc.html": {
+      "expand": "fill",
+      "h": 742,
+      "is_interactive": true,
+      "page": "migration",
+      "title": "Import 5 · Progress",
+      "w": 1440,
+      "x": 6080,
+      "y": 0
+    },
+    "MigrationProgressPhone.dc.html": {
+      "h": 1408,
+      "is_interactive": true,
+      "page": "migration",
+      "title": "Import 5 · Progress · phone",
+      "w": 390,
+      "x": 510,
+      "y": 4494
+    },
+    "MigrationSource.dc.html": {
+      "expand": "fill",
+      "h": 999,
+      "is_interactive": true,
+      "page": "migration",
+      "title": "Import 1 · Source",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "MigrationSourcePhone.dc.html": {
+      "h": 1500,
+      "is_interactive": true,
+      "page": "migration",
+      "title": "Import 1 · Source · phone",
+      "w": 390,
+      "x": 0,
+      "y": 4494
+    },
+    "MigrationSourceTablet.dc.html": {
+      "h": 1374,
+      "is_interactive": true,
+      "page": "migration",
+      "title": "Import 1 · Source · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 2760
+    },
+    "MigrationStates.dc.html": {
+      "expand": "fill",
+      "h": 991,
+      "is_interactive": true,
+      "page": "migration",
+      "title": "Import · empty / error",
+      "w": 1440,
+      "x": 1520,
+      "y": 1320
+    },
+    "Notifications.dc.html": {
+      "expand": "fill",
+      "h": 1381,
+      "is_interactive": true,
+      "page": "account",
+      "title": "Notification center & preferences",
+      "w": 1440,
+      "x": 10920,
+      "y": 0
+    },
+    "NotificationsPhone.dc.html": {
+      "h": 2697,
+      "is_interactive": true,
+      "page": "account",
+      "title": "Notification center & preferences · phone",
+      "w": 390,
+      "x": 510,
+      "y": 4940
+    },
+    "NotificationsTablet.dc.html": {
+      "h": 1442,
+      "is_interactive": true,
+      "page": "account",
+      "title": "Notification center & preferences · tablet",
+      "w": 834,
+      "x": 954,
+      "y": 2060
+    },
+    "OverviewEmpty.dc.html": {
+      "expand": "fill",
+      "h": 753,
+      "is_interactive": true,
+      "page": "overview",
+      "title": "Overview · first run",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "OverviewEmptyPhone.dc.html": {
+      "h": 1456,
+      "is_interactive": true,
+      "page": "overview",
+      "title": "Overview · first run · phone",
+      "w": 390,
+      "x": 510,
+      "y": 4752
+    },
+    "OverviewStates.dc.html": {
+      "expand": "fill",
+      "h": 989,
+      "is_interactive": true,
+      "page": "overview",
+      "title": "Overview · loading / error",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "Providers.dc.html": {
+      "expand": "fill",
+      "h": 1282,
+      "is_interactive": true,
+      "page": "providers",
+      "title": "Providers · healthy",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "ProvidersAdapters.dc.html": {
+      "expand": "fill",
+      "h": 1660,
+      "is_interactive": true,
+      "page": "providers",
+      "title": "Adapters",
+      "w": 1440,
+      "x": 4560,
+      "y": 1620
+    },
+    "ProvidersBulkWarning.dc.html": {
+      "expand": "fill",
+      "h": 1135,
+      "is_interactive": true,
+      "page": "providers",
+      "title": "Providers · bulk-terms warning",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "ProvidersEvents.dc.html": {
+      "expand": "fill",
+      "h": 1319,
+      "is_interactive": true,
+      "page": "providers",
+      "title": "Event log & suppression sync",
+      "w": 1440,
+      "x": 3040,
+      "y": 1620
+    },
+    "ProvidersOutage.dc.html": {
+      "expand": "fill",
+      "h": 1367,
+      "is_interactive": true,
+      "page": "providers",
+      "title": "Providers · outage",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "ProvidersPhone.dc.html": {
+      "h": 3323,
+      "is_interactive": true,
+      "page": "providers",
+      "title": "Providers · healthy · phone",
+      "w": 390,
+      "x": 0,
+      "y": 6232
+    },
+    "ProvidersRouting.dc.html": {
+      "expand": "fill",
+      "h": 1338,
+      "is_interactive": true,
+      "page": "providers",
+      "title": "Routing rules & route tester",
+      "w": 1440,
+      "x": 0,
+      "y": 1620
+    },
+    "ProvidersRoutingPhone.dc.html": {
+      "h": 3016,
+      "is_interactive": true,
+      "page": "providers",
+      "title": "Routing rules & route tester · phone",
+      "w": 390,
+      "x": 510,
+      "y": 6232
+    },
+    "ProvidersRoutingTablet.dc.html": {
+      "h": 2282,
+      "is_interactive": true,
+      "page": "providers",
+      "title": "Routing rules & route tester · tablet",
+      "w": 834,
+      "x": 954,
+      "y": 3592
+    },
+    "ProvidersStates.dc.html": {
+      "expand": "fill",
+      "h": 1173,
+      "is_interactive": true,
+      "page": "providers",
+      "title": "Providers · empty / loading / error",
+      "w": 1440,
+      "x": 6080,
+      "y": 0
+    },
+    "ProvidersTablet.dc.html": {
+      "h": 1944,
+      "is_interactive": true,
+      "page": "providers",
+      "title": "Providers · healthy · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 3592
+    },
+    "ProvidersWarmup.dc.html": {
+      "expand": "fill",
+      "h": 1128,
+      "is_interactive": true,
+      "page": "providers",
+      "title": "Warm-up planner",
+      "w": 1440,
+      "x": 1520,
+      "y": 1620
+    },
+    "ProvidersWebhooksSilent.dc.html": {
+      "expand": "fill",
+      "h": 1251,
+      "is_interactive": true,
+      "page": "providers",
+      "title": "Providers · webhooks silent",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "PublicArchive.dc.html": {
+      "expand": "fill",
+      "h": 1148,
+      "is_interactive": true,
+      "page": "forms",
+      "title": "Public · newsletter archive",
+      "w": 720,
+      "x": 4720,
+      "y": 0
+    },
+    "PublicConfirm.dc.html": {
+      "expand": "fill",
+      "h": 644,
+      "is_interactive": true,
+      "page": "forms",
+      "title": "Public · opt-in confirmation",
+      "w": 720,
+      "x": 2320,
+      "y": 0
+    },
+    "PublicPreferences.dc.html": {
+      "expand": "fill",
+      "h": 974,
+      "is_interactive": true,
+      "page": "forms",
+      "title": "Public · preference center",
+      "w": 720,
+      "x": 3120,
+      "y": 0
+    },
+    "PublicPreferencesPhone.dc.html": {
+      "h": 1238,
+      "is_interactive": true,
+      "page": "forms",
+      "title": "Public · preference center · phone",
+      "w": 390,
+      "x": 1020,
+      "y": 3769
+    },
+    "PublicSubscribe.dc.html": {
+      "expand": "fill",
+      "h": 841,
+      "is_interactive": true,
+      "page": "forms",
+      "title": "Public · subscribe",
+      "w": 720,
+      "x": 1520,
+      "y": 0
+    },
+    "PublicSubscribePhone.dc.html": {
+      "h": 971,
+      "is_interactive": true,
+      "page": "forms",
+      "title": "Public · subscribe · phone",
+      "w": 390,
+      "x": 510,
+      "y": 3769
+    },
+    "PublicUnsubscribe.dc.html": {
+      "expand": "fill",
+      "h": 716,
+      "is_interactive": true,
+      "page": "forms",
+      "title": "Public · unsubscribe",
+      "w": 720,
+      "x": 3920,
+      "y": 0
+    },
+    "ReadmeBanner.dc.html": {
+      "h": 640,
+      "page": "landing",
+      "title": "GitHub README banner",
+      "w": 1280,
+      "x": 1520,
+      "y": 0
+    },
+    "Report.dc.html": {
+      "expand": "fill",
+      "h": 2084,
+      "is_interactive": true,
+      "page": "report",
+      "title": "Campaign report",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "ReportPhone.dc.html": {
+      "h": 4449,
+      "is_interactive": true,
+      "page": "report",
+      "title": "Campaign report · phone",
+      "w": 390,
+      "x": 510,
+      "y": 6421
+    },
+    "ReportStates.dc.html": {
+      "expand": "fill",
+      "h": 1337,
+      "is_interactive": true,
+      "page": "report",
+      "title": "Report · loading / empty / error",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "ReportTablet.dc.html": {
+      "h": 3621,
+      "is_interactive": true,
+      "page": "report",
+      "title": "Campaign report · tablet",
+      "w": 834,
+      "x": 954,
+      "y": 2442
+    },
+    "RoleEditor.dc.html": {
+      "expand": "fill",
+      "h": 2649,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Role editor · creating Content Writer",
+      "w": 1440,
+      "x": 15600,
+      "y": 0
+    },
+    "RoleEditorStates.dc.html": {
+      "expand": "fill",
+      "h": 1211,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Role editor · impact preview, escalation guard, feedback",
+      "w": 1440,
+      "x": 17160,
+      "y": 0
+    },
+    "Roles.dc.html": {
+      "expand": "fill",
+      "h": 2764,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Roles & permissions · list and comparison",
+      "w": 1440,
+      "x": 14040,
+      "y": 0
+    },
+    "RolesPhone.dc.html": {
+      "h": 3808,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Roles & permissions · list and comparison · phone",
+      "w": 390,
+      "x": 1020,
+      "y": 6642
+    },
+    "RolesTablet.dc.html": {
+      "h": 3073,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Roles & permissions · list and comparison · tablet",
+      "w": 834,
+      "x": 954,
+      "y": 3209
+    },
+    "SSOSetup.dc.html": {
+      "expand": "fill",
+      "h": 2340,
+      "is_interactive": true,
+      "page": "instance",
+      "title": "SSO setup · Microsoft Entra ID",
+      "w": 1440,
+      "x": 6240,
+      "y": 0
+    },
+    "SSOSetupPhone.dc.html": {
+      "h": 3690,
+      "is_interactive": true,
+      "page": "instance",
+      "title": "SSO setup · Microsoft Entra ID · phone",
+      "w": 390,
+      "x": 510,
+      "y": 5775
+    },
+    "SSOSetupTablet.dc.html": {
+      "h": 2715,
+      "is_interactive": true,
+      "page": "instance",
+      "title": "SSO setup · Microsoft Entra ID · tablet",
+      "w": 834,
+      "x": 954,
+      "y": 2700
+    },
+    "SSOStates.dc.html": {
+      "expand": "fill",
+      "h": 1298,
+      "is_interactive": true,
+      "page": "instance",
+      "title": "SSO · Google Workspace, discovery failed, missing groups, enforcement",
+      "w": 1440,
+      "x": 7800,
+      "y": 0
+    },
+    "SegmentBuilder.dc.html": {
+      "expand": "fill",
+      "h": 1211,
+      "is_interactive": true,
+      "page": "audience",
+      "title": "Audience · segment builder",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "SegmentBuilderTablet.dc.html": {
+      "h": 1853,
+      "is_interactive": true,
+      "page": "audience",
+      "title": "Audience · segment builder · tablet",
+      "w": 834,
+      "x": 954,
+      "y": 2871
+    },
+    "SendReadiness.dc.html": {
+      "expand": "fill",
+      "h": 2264,
+      "is_interactive": true,
+      "page": "readiness",
+      "title": "Review & send · ready with warnings",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "SendReadinessApproval.dc.html": {
+      "expand": "fill",
+      "h": 1137,
+      "is_interactive": true,
+      "page": "approvals",
+      "title": "Review & send · approval states",
+      "w": 1440,
+      "x": 6240,
+      "y": 0
+    },
+    "SendReadinessBlocked.dc.html": {
+      "expand": "fill",
+      "h": 1373,
+      "is_interactive": true,
+      "page": "readiness",
+      "title": "Review & send · blocked",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "SendReadinessBlockedPhone.dc.html": {
+      "h": 3649,
+      "is_interactive": true,
+      "page": "readiness",
+      "title": "Review & send · blocked · phone",
+      "w": 390,
+      "x": 510,
+      "y": 7179
+    },
+    "SendReadinessConfirm.dc.html": {
+      "expand": "fill",
+      "h": 746,
+      "is_interactive": true,
+      "page": "readiness",
+      "title": "Review & send · confirm",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "SendReadinessPhone.dc.html": {
+      "h": 5500,
+      "is_interactive": true,
+      "page": "readiness",
+      "title": "Review & send · ready with warnings · phone",
+      "w": 390,
+      "x": 0,
+      "y": 7179
+    },
+    "SendReadinessStates.dc.html": {
+      "expand": "fill",
+      "h": 1291,
+      "is_interactive": true,
+      "page": "readiness",
+      "title": "Review & send · running / error / scheduled",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "SendReadinessTablet.dc.html": {
+      "h": 4178,
+      "is_interactive": true,
+      "page": "readiness",
+      "title": "Review & send · ready with warnings · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 2643
+    },
+    "SettingsAPI.dc.html": {
+      "expand": "fill",
+      "h": 1019,
+      "is_interactive": true,
+      "page": "settings",
+      "title": "Settings · API keys & webhooks",
+      "w": 1440,
+      "x": 3120,
+      "y": 0
+    },
+    "SettingsAPIPhone.dc.html": {
+      "h": 1861,
+      "is_interactive": true,
+      "page": "settings",
+      "title": "Settings · API keys & webhooks · phone",
+      "w": 390,
+      "x": 510,
+      "y": 4340
+    },
+    "SettingsAudit.dc.html": {
+      "expand": "fill",
+      "h": 1583,
+      "is_interactive": true,
+      "page": "integrations",
+      "title": "Audit log · workspace view with event detail",
+      "w": 1440,
+      "x": 3120,
+      "y": 0
+    },
+    "SettingsIntegrations.dc.html": {
+      "expand": "fill",
+      "h": 1007,
+      "is_interactive": true,
+      "page": "integrations",
+      "title": "Integrations · HostRepute connected",
+      "w": 1440,
+      "x": 4680,
+      "y": 0
+    },
+    "SettingsKeys.dc.html": {
+      "expand": "fill",
+      "h": 1252,
+      "is_interactive": true,
+      "page": "integrations",
+      "title": "API keys & MCP agents",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "SettingsKeysPhone.dc.html": {
+      "h": 2030,
+      "is_interactive": true,
+      "page": "integrations",
+      "title": "API keys & MCP agents · phone",
+      "w": 390,
+      "x": 0,
+      "y": 3840
+    },
+    "SettingsKeysStates.dc.html": {
+      "expand": "fill",
+      "h": 1102,
+      "is_interactive": true,
+      "page": "integrations",
+      "title": "API keys · shown once, expired, escalation guard",
+      "w": 1440,
+      "x": 1560,
+      "y": 0
+    },
+    "SettingsKeysTablet.dc.html": {
+      "h": 1537,
+      "is_interactive": true,
+      "page": "integrations",
+      "title": "API keys & MCP agents · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 1943
+    },
+    "SettingsMCP.dc.html": {
+      "expand": "fill",
+      "h": 1182,
+      "is_interactive": true,
+      "page": "settings",
+      "title": "Settings · MCP server",
+      "w": 1440,
+      "x": 4680,
+      "y": 0
+    },
+    "SettingsProviders.dc.html": {
+      "expand": "fill",
+      "h": 824,
+      "is_interactive": true,
+      "page": "settings",
+      "title": "Settings · sending providers",
+      "w": 1440,
+      "x": 1560,
+      "y": 0
+    },
+    "SettingsSenders.dc.html": {
+      "expand": "fill",
+      "h": 985,
+      "is_interactive": true,
+      "page": "settings",
+      "title": "Settings · senders & domains",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "SettingsSendersPhone.dc.html": {
+      "h": 1273,
+      "is_interactive": true,
+      "page": "settings",
+      "title": "Settings · senders & domains · phone",
+      "w": 390,
+      "x": 0,
+      "y": 4340
+    },
+    "SettingsSendersTablet.dc.html": {
+      "h": 1072,
+      "is_interactive": true,
+      "page": "settings",
+      "title": "Settings · senders & domains · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 2932
+    },
+    "SettingsStates.dc.html": {
+      "expand": "fill",
+      "h": 934,
+      "is_interactive": true,
+      "page": "settings",
+      "title": "Settings · empty / loading / error",
+      "w": 1440,
+      "x": 1520,
+      "y": 1520
+    },
+    "SettingsTeam.dc.html": {
+      "expand": "fill",
+      "h": 926,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Team · members and invitations",
+      "w": 1440,
+      "x": 4680,
+      "y": 0
+    },
+    "SettingsTeamPhone.dc.html": {
+      "h": 1494,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Team · members and invitations · phone",
+      "w": 390,
+      "x": 510,
+      "y": 6642
+    },
+    "SettingsTeamTablet.dc.html": {
+      "h": 1197,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Team · members and invitations · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 3209
+    },
+    "SetupCatalog.dc.html": {
+      "expand": "fill",
+      "h": 1595,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup 1 · Provider catalog",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "SetupCatalogPhone.dc.html": {
+      "h": 4693,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup 1 · Provider catalog · phone",
+      "w": 390,
+      "x": 0,
+      "y": 5667
+    },
+    "SetupCatalogTablet.dc.html": {
+      "h": 2426,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup 1 · Provider catalog · tablet",
+      "w": 834,
+      "x": 0,
+      "y": 2881
+    },
+    "SetupContacts.dc.html": {
+      "expand": "fill",
+      "h": 864,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup 6 · Contacts",
+      "w": 1440,
+      "x": 3040,
+      "y": 1620
+    },
+    "SetupDomain.dc.html": {
+      "expand": "fill",
+      "h": 1245,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup 3 · Domain verification",
+      "w": 1440,
+      "x": 6080,
+      "y": 0
+    },
+    "SetupDomainPhone.dc.html": {
+      "h": 3503,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup 3 · Domain verification · phone",
+      "w": 390,
+      "x": 1020,
+      "y": 5667
+    },
+    "SetupDone.dc.html": {
+      "expand": "fill",
+      "h": 901,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup · Summary",
+      "w": 1440,
+      "x": 4560,
+      "y": 1620
+    },
+    "SetupError.dc.html": {
+      "expand": "fill",
+      "h": 938,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup 2 · Error",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "SetupSES.dc.html": {
+      "expand": "fill",
+      "h": 1500,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup 2 · Amazon SES",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "SetupSESPhone.dc.html": {
+      "h": 2546,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup 2 · Amazon SES · phone",
+      "w": 390,
+      "x": 510,
+      "y": 5667
+    },
+    "SetupSESTablet.dc.html": {
+      "h": 1898,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup 2 · Amazon SES · tablet",
+      "w": 834,
+      "x": 954,
+      "y": 2881
+    },
+    "SetupSMTP.dc.html": {
+      "expand": "fill",
+      "h": 1291,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup 2 · SMTP",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "SetupStreams.dc.html": {
+      "expand": "fill",
+      "h": 662,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup 5 · Streams",
+      "w": 1440,
+      "x": 1520,
+      "y": 1620
+    },
+    "SetupTestSend.dc.html": {
+      "expand": "fill",
+      "h": 780,
+      "is_interactive": true,
+      "page": "setup",
+      "title": "Setup 4 · Test send",
+      "w": 1440,
+      "x": 0,
+      "y": 1620
+    },
+    "ShellNotifications.dc.html": {
+      "expand": "fill",
+      "h": 861,
+      "is_interactive": true,
+      "page": "account",
+      "title": "App shell · notification popover",
+      "w": 1440,
+      "x": 12480,
+      "y": 0
+    },
+    "ShellSwitcher.dc.html": {
+      "expand": "fill",
+      "h": 861,
+      "is_interactive": true,
+      "page": "team",
+      "title": "App shell · workspace switcher",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "ShellUserMenu.dc.html": {
+      "expand": "fill",
+      "h": 861,
+      "is_interactive": true,
+      "page": "account",
+      "title": "App shell · user menu",
+      "w": 1440,
+      "x": 9360,
+      "y": 0
+    },
+    "SignInStates.dc.html": {
+      "expand": "fill",
+      "h": 1664,
+      "is_interactive": true,
+      "page": "account",
+      "title": "Sign in · identifier first, SSO redirect, errors, lockout",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Suppressions.dc.html": {
+      "expand": "fill",
+      "h": 1060,
+      "is_interactive": true,
+      "page": "audience",
+      "title": "Audience · suppression list",
+      "w": 1440,
+      "x": 6080,
+      "y": 0
+    },
+    "SystemStates.dc.html": {
+      "expand": "fill",
+      "h": 1687,
+      "is_interactive": true,
+      "page": "system",
+      "title": "System states · 404, 403, 500, session, offline, maintenance, quota, limits",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "TeamDialogs.dc.html": {
+      "expand": "fill",
+      "h": 634,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Team · last Owner guard, deactivate",
+      "w": 1440,
+      "x": 12480,
+      "y": 0
+    },
+    "TeamInvite.dc.html": {
+      "expand": "fill",
+      "h": 714,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Team · invite dialog",
+      "w": 1440,
+      "x": 6240,
+      "y": 0
+    },
+    "TeamInviteNoProvider.dc.html": {
+      "expand": "fill",
+      "h": 827,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Team · invite without a System provider",
+      "w": 1440,
+      "x": 7800,
+      "y": 0
+    },
+    "TeamMember.dc.html": {
+      "expand": "fill",
+      "h": 2849,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Team · member detail (Daniel Park)",
+      "w": 1440,
+      "x": 9360,
+      "y": 0
+    },
+    "TeamViewer.dc.html": {
+      "expand": "fill",
+      "h": 865,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Team · as a Viewer (read-only)",
+      "w": 1440,
+      "x": 10920,
+      "y": 0
+    },
+    "TwoFactorStates.dc.html": {
+      "expand": "fill",
+      "h": 1126,
+      "is_interactive": true,
+      "page": "account",
+      "title": "Two-factor · wrong code, passkey, recovery codes, reset fallbacks",
+      "w": 1440,
+      "x": 1560,
+      "y": 0
+    },
+    "WorkspaceDialogs.dc.html": {
+      "expand": "fill",
+      "h": 712,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Workspace · transfer ownership, delete",
+      "w": 1440,
+      "x": 3120,
+      "y": 0
+    },
+    "WorkspaceSettings.dc.html": {
+      "expand": "fill",
+      "h": 962,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Workspace settings · general, approvals, danger zone",
+      "w": 1440,
+      "x": 1560,
+      "y": 0
+    },
+    "WorkspaceSettingsPhone.dc.html": {
+      "h": 1537,
+      "is_interactive": true,
+      "page": "team",
+      "title": "Workspace settings · general, approvals, danger zone · phone",
+      "w": 390,
+      "x": 0,
+      "y": 6642
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-12T10:00:00Z",
+    "v": 1
+  },
+  "designSystems": [
+    {
+      "artifact": "https://claude.ai/artifact/3WpSHijih9iUMUjhYDw2xS",
+      "copiedAt": "2026-10-12T10:45:19Z",
+      "namespace": "reputecast",
+      "title": "ReputeCast",
+      "version": "1791800921-384e"
+    }
+  ],
+  "launch": {
+    "page": "overview",
+    "view": "canvas"
+  },
+  "notes": {
+    "t-account": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "account",
+      "text": "A5.1–5.6 Sign in, two-factor, password reset, invitations, first sign-in, Account & security, notification center. Identifier-first sign-in; every flow also works without a System-stream provider (copyable links, CLI commands).",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-account-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "account",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 4790
+    },
+    "t-account-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "account",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 1910
+    },
+    "t-approvals": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "approvals",
+      "text": "A5.12 Send approvals: policy, the approver's review, invalidation diff, send-time recheck, emergency bypass, inbox; Review & send and the composer as seen by a Content Writer who can only request approval.",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-approvals-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "approvals",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 5124
+    },
+    "t-approvals-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "approvals",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 2181
+    },
+    "t-audience": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "audience",
+      "text": "7.9 Audience",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-audience-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "audience",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 4932
+    },
+    "t-audience-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "audience",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 2721
+    },
+    "t-automations": {
+      "kind": "title1",
+      "maxW": 6000,
+      "page": "automations",
+      "text": "7.10 Automations — React Flow canvas",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-automations-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "automations",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 3658
+    },
+    "t-automations-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "automations",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 1363
+    },
+    "t-composer": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "composer",
+      "text": "7.4 Campaign composer — ReputeCast UI around the GrapesJS canvas",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-composer-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "composer",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 5014
+    },
+    "t-composer-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "composer",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 2394
+    },
+    "t-deliverability": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "deliverability",
+      "text": "7.8 Deliverability",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-deliverability-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "deliverability",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 4985
+    },
+    "t-deliverability-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "deliverability",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 1938
+    },
+    "t-design": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "design",
+      "text": "9 Design system — Clearwater: foundations, components, patterns, charts, layout. Tokens live in the ReputeCast design-system artifact (installed on this canvas as ds/reputecast).",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-forms": {
+      "kind": "title1",
+      "maxW": 6960,
+      "page": "forms",
+      "text": "7.12 Forms & public pages",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-forms-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "forms",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 3619
+    },
+    "t-forms-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "forms",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 1459
+    },
+    "t-instance": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "instance",
+      "text": "A5.10–5.11 Instance admin (users, authentication policies, instance settings, version & updates) and SSO over OpenID Connect: Google Workspace enabled, Microsoft Entra ID with group mapping, discovery and claim errors, domain enforcement.",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-instance-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "instance",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 5625
+    },
+    "t-instance-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "instance",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 2550
+    },
+    "t-integrations": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "integrations",
+      "text": "A5.13–5.15 API keys & MCP agents (scoped, shown once, expiry, escalation guard), audit log with before/after detail and the instance-level view, Connect HostRepute (OAuth or API key, connected, revoked, limit, disconnect).",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-integrations-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "integrations",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 3690
+    },
+    "t-integrations-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "integrations",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 1793
+    },
+    "t-landing": {
+      "kind": "title1",
+      "maxW": 2800,
+      "page": "landing",
+      "text": "8. reputecast.com landing page & README banner",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-landing-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "landing",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 16531
+    },
+    "t-landing-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "landing",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 6769
+    },
+    "t-migration": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "migration",
+      "text": "7.11 Migration importer",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-migration-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "migration",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 4344
+    },
+    "t-migration-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "migration",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 2610
+    },
+    "t-monitor": {
+      "kind": "title1",
+      "maxW": 6470,
+      "page": "monitor",
+      "text": "7.6 Live sending monitor",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-monitor-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "monitor",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 4388
+    },
+    "t-monitor-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "monitor",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 1798
+    },
+    "t-overview": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "overview",
+      "text": "7.1 Overview — sender health, next send, provider health",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-overview-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "overview",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 4602
+    },
+    "t-overview-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "overview",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 1756
+    },
+    "t-providers": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "providers",
+      "text": "7.3 Sending providers & routing",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-providers-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "providers",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 6082
+    },
+    "t-providers-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "providers",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 3442
+    },
+    "t-readiness": {
+      "kind": "title1",
+      "maxW": 6000,
+      "page": "readiness",
+      "text": "7.5 Review & send — Send Readiness",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-readiness-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "readiness",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 7029
+    },
+    "t-readiness-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "readiness",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 2493
+    },
+    "t-report": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "report",
+      "text": "7.7 Campaigns & campaign report",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-report-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "report",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 6271
+    },
+    "t-report-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "report",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 2292
+    },
+    "t-settings": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "settings",
+      "text": "7.13 Settings",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-settings-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "settings",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 4190
+    },
+    "t-settings-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "settings",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 2782
+    },
+    "t-setup": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "setup",
+      "text": "7.2 Connect a sending provider — six-step wizard",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-setup-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "setup",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 5517
+    },
+    "t-setup-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "setup",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 2731
+    },
+    "t-system": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "system",
+      "text": "7.14 Cross-cutting states — sign in and access, system states (404 / 403 / 500, session, offline, maintenance, quota, limits), confirmation dialogs, feedback patterns",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-system-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "system",
+      "text": "Phone · 390 px wide",
+      "w": 240,
+      "x": 0,
+      "y": 2074
+    },
+    "t-team": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "team",
+      "text": "A5.7–5.9 Workspace switcher and settings, Team (members, invitations, member detail, Viewer read-only, last-Owner guard), Roles & permissions (built-in read-only, custom Content Writer, comparison, impact preview, escalation guard).",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-team-phone": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "team",
+      "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
+      "w": 240,
+      "x": 0,
+      "y": 6492
+    },
+    "t-team-tablet": {
+      "kind": "title1",
+      "maxW": 4480,
+      "page": "team",
+      "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
+      "w": 240,
+      "x": 0,
+      "y": 3059
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "OverviewEmpty.dc.html",
+    "OverviewStates.dc.html",
+    "MainTablet.dc.html",
+    "MainPhone.dc.html",
+    "OverviewEmptyPhone.dc.html",
+    "SetupCatalog.dc.html",
+    "SetupSES.dc.html",
+    "SetupSMTP.dc.html",
+    "SetupError.dc.html",
+    "SetupDomain.dc.html",
+    "SetupTestSend.dc.html",
+    "SetupStreams.dc.html",
+    "SetupContacts.dc.html",
+    "SetupDone.dc.html",
+    "SetupCatalogTablet.dc.html",
+    "SetupSESTablet.dc.html",
+    "SetupCatalogPhone.dc.html",
+    "SetupSESPhone.dc.html",
+    "SetupDomainPhone.dc.html",
+    "Providers.dc.html",
+    "ProvidersOutage.dc.html",
+    "ProvidersWebhooksSilent.dc.html",
+    "ProvidersBulkWarning.dc.html",
+    "ProvidersStates.dc.html",
+    "ProvidersRouting.dc.html",
+    "ProvidersWarmup.dc.html",
+    "ProvidersEvents.dc.html",
+    "ProvidersAdapters.dc.html",
+    "ProvidersTablet.dc.html",
+    "ProvidersRoutingTablet.dc.html",
+    "ProvidersPhone.dc.html",
+    "ProvidersRoutingPhone.dc.html",
+    "ComposerEmpty.dc.html",
+    "Composer.dc.html",
+    "ComposerMobile.dc.html",
+    "ComposerCode.dc.html",
+    "ComposerWarnings.dc.html",
+    "ComposerPreview.dc.html",
+    "ComposerStates.dc.html",
+    "ComposerTablet.dc.html",
+    "ComposerPhone.dc.html",
+    "SendReadiness.dc.html",
+    "SendReadinessBlocked.dc.html",
+    "SendReadinessConfirm.dc.html",
+    "SendReadinessStates.dc.html",
+    "SendReadinessTablet.dc.html",
+    "SendReadinessPhone.dc.html",
+    "SendReadinessBlockedPhone.dc.html",
+    "LiveMonitor.dc.html",
+    "LiveMonitorPaused.dc.html",
+    "LiveMonitorOutage.dc.html",
+    "LiveMonitorMobile.dc.html",
+    "LiveMonitorStates.dc.html",
+    "LiveMonitorTablet.dc.html",
+    "LiveMonitorPausedPhone.dc.html",
+    "Campaigns.dc.html",
+    "Report.dc.html",
+    "ReportStates.dc.html",
+    "CampaignsTablet.dc.html",
+    "ReportTablet.dc.html",
+    "CampaignsPhone.dc.html",
+    "ReportPhone.dc.html",
+    "Deliverability.dc.html",
+    "DeliverabilityNoHostRepute.dc.html",
+    "DeliverabilityStates.dc.html",
+    "DeliverabilityTablet.dc.html",
+    "DeliverabilityPhone.dc.html",
+    "Contacts.dc.html",
+    "ContactProfile.dc.html",
+    "SegmentBuilder.dc.html",
+    "ListHealth.dc.html",
+    "Suppressions.dc.html",
+    "AudienceStates.dc.html",
+    "ContactsTablet.dc.html",
+    "SegmentBuilderTablet.dc.html",
+    "ContactsPhone.dc.html",
+    "ContactProfilePhone.dc.html",
+    "AutomationsList.dc.html",
+    "AutomationFlow.dc.html",
+    "AutomationPublish.dc.html",
+    "AutomationsStates.dc.html",
+    "AutomationsListTablet.dc.html",
+    "AutomationFlowTablet.dc.html",
+    "AutomationsListPhone.dc.html",
+    "AutomationFlowPhone.dc.html",
+    "MigrationSource.dc.html",
+    "MigrationFields.dc.html",
+    "MigrationConsent.dc.html",
+    "MigrationPreview.dc.html",
+    "MigrationProgress.dc.html",
+    "MigrationDone.dc.html",
+    "MigrationStates.dc.html",
+    "MigrationSourceTablet.dc.html",
+    "MigrationSourcePhone.dc.html",
+    "MigrationProgressPhone.dc.html",
+    "FormBuilder.dc.html",
+    "PublicSubscribe.dc.html",
+    "PublicConfirm.dc.html",
+    "PublicPreferences.dc.html",
+    "PublicUnsubscribe.dc.html",
+    "PublicArchive.dc.html",
+    "FormsStates.dc.html",
+    "FormBuilderTablet.dc.html",
+    "FormBuilderPhone.dc.html",
+    "PublicSubscribePhone.dc.html",
+    "PublicPreferencesPhone.dc.html",
+    "SettingsSenders.dc.html",
+    "SettingsProviders.dc.html",
+    "SettingsTeam.dc.html",
+    "SettingsAPI.dc.html",
+    "SettingsMCP.dc.html",
+    "SettingsAudit.dc.html",
+    "SettingsStates.dc.html",
+    "SettingsSendersTablet.dc.html",
+    "SettingsSendersPhone.dc.html",
+    "SettingsAPIPhone.dc.html",
+    "Landing.dc.html",
+    "ReadmeBanner.dc.html",
+    "LandingTablet.dc.html",
+    "LandingPhone.dc.html",
+    "DSFoundations.dc.html",
+    "DSComponents.dc.html",
+    "DSPatterns.dc.html",
+    "DSCharts.dc.html",
+    "DSLayout.dc.html",
+    "AuthScreens.dc.html",
+    "SystemStates.dc.html",
+    "Dialogs.dc.html",
+    "Feedback.dc.html",
+    "AuthScreensPhone.dc.html",
+    "Logo.dc.html",
+    "DSAccessibility.dc.html",
+    "DSCoverage.dc.html",
+    "SignInStates.dc.html",
+    "TwoFactorStates.dc.html",
+    "InviteStates.dc.html",
+    "InstanceSetup.dc.html",
+    "AccountSecurity.dc.html",
+    "AccountStates.dc.html",
+    "ShellUserMenu.dc.html",
+    "Notifications.dc.html",
+    "ShellNotifications.dc.html",
+    "AccountSecurityTablet.dc.html",
+    "NotificationsTablet.dc.html",
+    "AccountSecurityPhone.dc.html",
+    "NotificationsPhone.dc.html",
+    "ShellSwitcher.dc.html",
+    "WorkspaceSettings.dc.html",
+    "WorkspaceDialogs.dc.html",
+    "TeamInvite.dc.html",
+    "TeamInviteNoProvider.dc.html",
+    "TeamMember.dc.html",
+    "TeamViewer.dc.html",
+    "TeamDialogs.dc.html",
+    "Roles.dc.html",
+    "RoleEditor.dc.html",
+    "RoleEditorStates.dc.html",
+    "SettingsTeamTablet.dc.html",
+    "RolesTablet.dc.html",
+    "WorkspaceSettingsPhone.dc.html",
+    "SettingsTeamPhone.dc.html",
+    "RolesPhone.dc.html",
+    "InstanceUsers.dc.html",
+    "InstanceUserDialogs.dc.html",
+    "InstanceAuth.dc.html",
+    "InstanceSettings.dc.html",
+    "SSOSetup.dc.html",
+    "SSOStates.dc.html",
+    "AuditInstance.dc.html",
+    "InstanceUsersTablet.dc.html",
+    "SSOSetupTablet.dc.html",
+    "InstanceUsersPhone.dc.html",
+    "SSOSetupPhone.dc.html",
+    "ApprovalPolicy.dc.html",
+    "ApprovalReview.dc.html",
+    "ApprovalInbox.dc.html",
+    "ApprovalStates.dc.html",
+    "SendReadinessApproval.dc.html",
+    "ComposerRequestApproval.dc.html",
+    "ApprovalReviewTablet.dc.html",
+    "ApprovalReviewPhone.dc.html",
+    "ApprovalInboxPhone.dc.html",
+    "SettingsKeys.dc.html",
+    "SettingsKeysStates.dc.html",
+    "SettingsIntegrations.dc.html",
+    "ConnectHostRepute.dc.html",
+    "HostReputeStates.dc.html",
+    "SettingsKeysTablet.dc.html",
+    "SettingsKeysPhone.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "overview",
+      "name": "7.1 Overview"
+    },
+    {
+      "id": "setup",
+      "name": "7.2 Connect a sending provider"
+    },
+    {
+      "id": "providers",
+      "name": "7.3 Sending providers & routing"
+    },
+    {
+      "id": "composer",
+      "name": "7.4 Campaign composer"
+    },
+    {
+      "id": "readiness",
+      "name": "7.5 Review & send"
+    },
+    {
+      "id": "monitor",
+      "name": "7.6 Live sending monitor"
+    },
+    {
+      "id": "report",
+      "name": "7.7 Campaign report"
+    },
+    {
+      "id": "deliverability",
+      "name": "7.8 Deliverability"
+    },
+    {
+      "id": "audience",
+      "name": "7.9 Audience"
+    },
+    {
+      "id": "automations",
+      "name": "7.10 Automations"
+    },
+    {
+      "id": "migration",
+      "name": "7.11 Migration importer"
+    },
+    {
+      "id": "forms",
+      "name": "7.12 Forms & public pages"
+    },
+    {
+      "id": "settings",
+      "name": "7.13 Settings"
+    },
+    {
+      "id": "landing",
+      "name": "8. Landing page & README banner"
+    },
+    {
+      "id": "design",
+      "name": "9 Design system"
+    },
+    {
+      "id": "system",
+      "name": "7.14 Cross-cutting states"
+    },
+    {
+      "id": "account",
+      "name": "A5.1 Sign-in, two-factor, account & notifications"
+    },
+    {
+      "id": "team",
+      "name": "A5.7 Workspaces, team & roles"
+    },
+    {
+      "id": "instance",
+      "name": "A5.10 Instance admin & SSO"
+    },
+    {
+      "id": "approvals",
+      "name": "A5.12 Send approvals"
+    },
+    {
+      "id": "integrations",
+      "name": "A5.13 API keys, audit log, HostRepute & integrations"
+    }
+  ],
+  "title": "ReputeCast App Prototype"
+}

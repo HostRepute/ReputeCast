@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campaign report</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 8px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:10px 8px;border-bottom:1px solid #EEF0F3;vertical-align:middle;white-space:normal}
+.tbl td.mono,.tbl td .mono{overflow-wrap:anywhere}
+.tbl td.n{white-space:nowrap}
+.tbl th{white-space:normal}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.r,.tbl th.r{text-align:right}
+.tbl td.wrap{white-space:normal;min-width:200px}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.h2{margin:0;font-size:15px;font-weight:600}
+.tile{display:flex;flex-direction:column;gap:3px;padding:14px 16px}
+.ph{display:flex;align-items:center;justify-content:center;background:#E9ECF0;color:#5B6472;font-size:11px;font-weight:500;border:1px dashed #C9CED6}
+.ck{position:absolute;display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;background:#0B1220;color:#fff;font-size:11.5px;font-weight:700;box-shadow:0 2px 6px rgba(11,18,32,.25);white-space:nowrap}
+.ck.hot{background:#B91C1C}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<h1 class="vh">Campaign report</h1>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
+    </a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
+      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" class="on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="FormBuilder.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+    </nav>
+  </aside>
+
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <nav aria-label="Breadcrumb" style="display:flex;align-items:center;gap:8px;font-size:13px"><a href="Campaigns.dc.html" style="color:#5B6472">Campaigns</a><span class="k">/</span><span style="font-weight:600">October Product Update</span></nav>
+      <span class="badge ok"><span class="dot"></span>Sent · Thu 9 Oct, 10:00 to 10:51</span>
+      <span class="k">All subscribers · A/B subject, winner B · results final after 72 h</span>
+      <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn">Export CSV</button>
+        <button class="btn">Export PDF</button>
+        <button class="btn">Share read-only link</button>
+        <a href="ComposerEmpty.dc.html" class="btn pri">Duplicate campaign</a>
+      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+    </header>
+
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+        <div class="card tile"><span class="k">Sent</span><span class="n" style="font-size:22px">47,980</span><span class="k">SES 43,182 · Postal 4,798</span></div>
+        <div class="card tile"><span class="k">Delivered</span><span class="n" style="font-size:22px">47,548</span><span class="k">99.1%</span></div>
+        <div class="card tile"><span class="k">Human opens</span><span class="n" style="font-size:22px">19,590</span><span class="k">41.2% of delivered</span></div>
+        <div class="card tile"><span class="k">Machine opens</span><span class="n" style="font-size:22px;color:#5B6472">8,844</span><span class="k">18.6% · Apple Mail prefetch, scanners</span></div>
+        <div class="card tile"><span class="k">Clicks</span><span class="n" style="font-size:22px">2,996</span><span class="k">6.3% · click-to-open 15.3%</span></div>
+        <div class="card tile"><span class="k">Unsubscribes</span><span class="n" style="font-size:22px">112</span><span class="k">0.24%</span></div>
+        <div class="card tile"><span class="k">Complaints</span><span class="n" style="font-size:22px">19</span><span class="k">0.04%</span></div>
+        <div class="card tile"><span class="k">Bounces</span><span class="n" style="font-size:22px">288</span><span class="k">0.60% · 144 expired deferrals</span></div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:stretch">
+        <section class="card" style="flex:2 1 560px;min-width:0;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><h2 class="h2">Engagement over the first 72 hours</h2><div style="display:flex;gap:14px;font-size:12px"><span style="display:flex;gap:6px;align-items:center"><span style="width:14px;height:2px;background:#0B1220"></span>Human opens, cumulative</span><span style="display:flex;gap:6px;align-items:center"><span style="width:14px;height:2px;background:#B4BAC5"></span>Machine opens</span><span style="display:flex;gap:6px;align-items:center"><span style="width:14px;height:2px;background:#0F766E"></span>Clicks</span></div></div>
+          <svg viewBox="0 0 720 220" width="100%" height="220" preserveAspectRatio="none" role="img" aria-label="Cumulative human opens reach 41.2 percent by 72 hours, machine opens 18.6 percent, clicks 6.3 percent; most activity happens in the first 6 hours">
+            <line x1="40" y1="190" x2="700" y2="190" stroke="#E3E6EB" vector-effect="non-scaling-stroke"></line>
+            <line x1="40" y1="130" x2="700" y2="130" stroke="#EEF0F3" vector-effect="non-scaling-stroke"></line>
+            <line x1="40" y1="70" x2="700" y2="70" stroke="#EEF0F3" vector-effect="non-scaling-stroke"></line>
+            <line x1="40" y1="10" x2="700" y2="10" stroke="#EEF0F3" vector-effect="non-scaling-stroke"></line>
+            <path d="M40 190 L60 150 L80 118 L100 100 L120 88 L140 80 L160 74 L200 64 L240 56 L300 46 L360 40 L420 34 L480 30 L560 26 L640 23 L700 22" fill="none" stroke="#0B1220" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+            <path d="M40 190 L60 176 L80 158 L100 146 L120 140 L140 136 L160 133 L200 129 L240 126 L300 122 L360 120 L420 118 L480 117 L560 116 L640 115 L700 114" fill="none" stroke="#B4BAC5" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+            <path d="M40 190 L60 184 L80 176 L100 172 L120 170 L140 168 L160 167 L200 166 L240 165 L300 164 L360 164 L420 163 L480 163 L560 163 L640 163 L700 163" fill="none" stroke="#0F766E" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+          </svg>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="display:flex;justify-content:space-between;flex:1" class="k"><span>10:00 send</span><span>+6 h</span><span>+24 h</span><span>+48 h</span><span>+72 h</span></div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;margin-left:16px;font-size:12px"><span><b>41.2%</b> human opens</span><span style="color:#5B6472"><b>18.6%</b> machine</span><span style="color:#0F766E"><b>6.3%</b> clicks</span></div>
+          </div>
+          <span class="k">62% of human opens happened within 6 hours; A/B winner B went out at 12:00, which is the second rise.</span>
+        </section>
+
+        <section class="card" style="flex:1 1 380px;min-width:0;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="h2">Click map</h2><span class="k">share of 2,996 clicks</span></div>
+          <div style="position:relative;width:100%;max-width:340px;margin:0 auto;background:#fff;border:1px solid #E3E6EB;font-family:Georgia,serif;font-size:9px;color:#374151">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid #EEF0F3"><div class="ph" style="width:44px;height:14px">Logo</div><span style="font-family:'IBM Plex Sans',sans-serif;font-size:8px;padding-right:36px">Blog · Docs · Changelog</span><span class="ck" style="top:4px;right:6px">6%</span></div>
+            <div style="padding:10px"><div class="ph" style="height:70px;margin-bottom:6px">Hero image</div><div style="font-size:12px;font-weight:700;color:#0B1220">October Product Update: three launches</div><div>Hi there, here's what shipped in October…</div></div>
+            <div style="padding:0 10px 10px;display:flex;gap:8px;position:relative">
+              <div style="flex:1"><div class="ph" style="height:44px"></div><div style="font-weight:700;margin:4px 0 2px;color:#0B1220">Feature flags GA</div><span style="display:inline-block;padding:4px 7px;background:#0F766E;color:#fff;font-family:'IBM Plex Sans',sans-serif;font-size:8px;font-weight:600;border-radius:3px">Read the docs</span><span class="ck hot" style="bottom:-6px;left:60px">38%</span></div>
+              <div style="flex:1"><div class="ph" style="height:44px"></div><div style="font-weight:700;margin:4px 0 2px;color:#0B1220">Audit log exports</div><span style="display:inline-block;padding:4px 7px;background:#0F766E;color:#fff;font-family:'IBM Plex Sans',sans-serif;font-size:8px;font-weight:600;border-radius:3px">See changelog</span><span class="ck hot" style="bottom:-6px;right:40px">24%</span></div>
+            </div>
+            <div style="padding:6px 10px 10px;position:relative"><div style="font-weight:700;color:#0B1220">Retiring the v1 API on 30 November</div><div>The migration guide covers every endpoint. <u>Read the guide</u></div><span class="ck" style="top:14px;right:10px">19%</span></div>
+            <div style="padding:8px;background:#F3F4F6;font-family:'IBM Plex Sans',sans-serif;font-size:7.5px;color:#5B6472;text-align:center;position:relative">Acme Inc · 500 Market St · <u>Unsubscribe</u> · <u>Email preferences</u> · <u>View in browser</u><span class="ck" style="top:-8px;right:8px">13%</span></div>
+          </div>
+          <span class="k">Links with under 1% of clicks are grouped: "Other" 13% covers 9 links including preferences and view in browser.</span>
+        </section>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+        <section class="card" style="flex:1 1 560px;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h2 class="h2">Results per mailbox provider</h2><span class="k">where recipients read it</span></div>
+          <div style="overflow-x:auto">
+            <table class="tbl">
+              <thead><tr><th scope="col">Mailbox provider</th><th scope="col" class="r">Delivered</th><th scope="col" class="r">Human opens</th><th scope="col" class="r">Machine opens</th><th scope="col" class="r">Clicks</th><th scope="col" class="r">Bounces</th><th scope="col" class="r">Complaints</th><th scope="col" class="r">Unsubs</th></tr></thead>
+              <tbody>
+                <tr><td><span style="display:flex;gap:8px;align-items:center;white-space:nowrap"><span class="dot" style="color:#2a78d6"></span>Gmail</span><div class="k" style="margin-left:16px">22,071</div></td><td class="r n">99.4%</td><td class="r n">44.6%</td><td class="r n">9.2%</td><td class="r n">7.0%</td><td class="r n">0.4%</td><td class="r n">0.03%</td><td class="r n">0.21%</td></tr>
+                <tr><td><span style="display:flex;gap:8px;align-items:center;white-space:nowrap"><span class="dot" style="color:#eb6834"></span>Outlook</span><div class="k" style="margin-left:16px">10,076</div></td><td class="r n">98.6%</td><td class="r n">36.1%</td><td class="r n">21.4%</td><td class="r n">5.3%</td><td class="r n">1.0%</td><td class="r n">0.06%</td><td class="r n">0.30%</td></tr>
+                <tr><td><span style="display:flex;gap:8px;align-items:center;white-space:nowrap"><span class="dot" style="color:#1baf7a"></span>Yahoo</span><div class="k" style="margin-left:16px">4,318</div></td><td class="r n">99.0%</td><td class="r n">39.8%</td><td class="r n">12.7%</td><td class="r n">5.9%</td><td class="r n">0.7%</td><td class="r n">0.05%</td><td class="r n">0.26%</td></tr>
+                <tr><td><span style="display:flex;gap:8px;align-items:center;white-space:nowrap"><span class="dot" style="color:#eda100"></span>iCloud</span><div class="k" style="margin-left:16px">3,838</div></td><td class="r n">99.5%</td><td class="r n">31.2%</td><td class="r n">58.9%</td><td class="r n">5.1%</td><td class="r n">0.3%</td><td class="r n">0.00%</td><td class="r n">0.18%</td></tr>
+                <tr><td><span style="display:flex;gap:8px;align-items:center;white-space:nowrap"><span class="dot" style="color:#8b94a3"></span>Other</span><div class="k" style="margin-left:16px">7,677</div></td><td class="r n">98.8%</td><td class="r n">40.5%</td><td class="r n">15.0%</td><td class="r n">6.4%</td><td class="r n">0.8%</td><td class="r n">0.04%</td><td class="r n">0.24%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:10px 18px;border-top:1px solid #EEF0F3" class="k">iCloud's machine opens are Apple Mail Privacy Protection prefetches; its human-open figure is the honest one.</div>
+        </section>
+
+        <section class="card" style="flex:1 1 440px;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h2 class="h2">Results per sending provider</h2><span class="k">side by side · the send was split 90 / 10</span></div>
+          <div style="overflow-x:auto">
+            <table class="tbl">
+              <thead><tr><th scope="col">Metric</th><th scope="col" class="r"><span style="display:inline-flex;gap:6px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>Amazon SES</span></th><th scope="col" class="r"><span style="display:inline-flex;gap:6px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Postal</span></th></tr></thead>
+              <tbody>
+                <tr><td>Sent</td><td class="r n">43,182</td><td class="r n">4,798</td></tr>
+                <tr><td>Delivered</td><td class="r n">99.2%</td><td class="r n">98.6%</td></tr>
+                <tr><td>Human opens</td><td class="r n">41.4%</td><td class="r n">39.6%</td></tr>
+                <tr><td>Clicks</td><td class="r n">6.4%</td><td class="r n">5.8%</td></tr>
+                <tr><td>Bounces</td><td class="r n">0.5%</td><td class="r n">0.9%</td></tr>
+                <tr><td>Complaints</td><td class="r n">0.04%</td><td class="r n">0.06%</td></tr>
+                <tr><td>Median time to delivery</td><td class="r n">1.8 s</td><td class="r n">3.4 s</td></tr>
+                <tr><td>Cost</td><td class="r n">$4.32</td><td class="r n">$0.00</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:10px 18px;border-top:1px solid #EEF0F3" class="k">Postal was on warm-up day 6 and sent to the Active tier only; a 1.8-point open gap on a young IP is normal.</div>
+        </section>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+        <section class="card" style="flex:2 1 560px;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h2 class="h2">Bounces by type · 288</h2><span class="k">each provider's original code mapped to one taxonomy</span></div>
+          <div style="overflow-x:auto">
+            <table class="tbl">
+              <thead><tr><th scope="col">ReputeCast type</th><th scope="col" class="r">Count</th><th scope="col">Original codes</th><th scope="col">Suppression</th></tr></thead>
+              <tbody>
+                <tr><td><span class="badge bad">Hard · unknown user</span></td><td class="r n">171</td><td class="mono wrap" style="font-size:12px">SES Permanent/General 550 5.1.1 · Postal HardFail 550 5.1.1</td><td><span class="badge ok">Auto-suppressed</span></td></tr>
+                <tr><td><span class="badge bad">Hard · domain not found</span></td><td class="r n">22</td><td class="mono" style="font-size:12px">SES Permanent/NoEmail · Postal HardFail 5.1.2</td><td><span class="badge ok">Auto-suppressed</span></td></tr>
+                <tr><td><span class="badge warn">Soft · mailbox full</span></td><td class="r n">41</td><td class="mono" style="font-size:12px">SES Transient/MailboxFull 452 4.2.2</td><td><span class="badge mut">Retry next send</span></td></tr>
+                <tr><td><span class="badge warn">Soft · deferral expired</span></td><td class="r n">38</td><td class="mono wrap" style="font-size:12px">SES DeliveryDelay/TransientCommunicationFailure · Postal 421 4.7.0 TSS04</td><td><span class="badge mut">Retry next send</span></td></tr>
+                <tr><td><span class="badge bad">Blocked · policy or reputation</span></td><td class="r n">11</td><td class="mono wrap" style="font-size:12px">SES Permanent/Suppressed · Postal 550 5.7.1 (Outlook S3150)</td><td><button class="btn sm">Add 11 to suppression</button></td></tr>
+                <tr><td><span class="badge mut">Other</span></td><td class="r n">5</td><td class="mono" style="font-size:12px">SES Undetermined</td><td><button class="btn sm">Review</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card" style="flex:1 1 320px;min-width:0;padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="h2">Unsubscribe reasons · 112</h2><span class="k">asked on the unsubscribe page</span></div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+            <div><div style="display:flex;justify-content:space-between"><span>Too many emails</span><span class="n">41</span></div><div class="bar"><i style="width:37%;background:#0B1220"></i></div></div>
+            <div><div style="display:flex;justify-content:space-between"><span>Content not relevant</span><span class="n">33</span></div><div class="bar"><i style="width:29%;background:#0B1220"></i></div></div>
+            <div><div style="display:flex;justify-content:space-between"><span>No reason given</span><span class="n">22</span></div><div class="bar"><i style="width:20%;background:#8b94a3"></i></div></div>
+            <div><div style="display:flex;justify-content:space-between"><span>Didn't sign up</span><span class="n">9</span></div><div class="bar"><i style="width:8%;background:#B91C1C"></i></div></div>
+            <div><div style="display:flex;justify-content:space-between"><span>Other</span><span class="n">7</span></div><div class="bar"><i style="width:6%;background:#8b94a3"></i></div></div>
+          </div>
+          <span class="k">28 people chose "fewer emails" instead of leaving and moved to the monthly frequency.</span>
+        </section>
+      </div>
+
+      <section class="card" style="display:flex;flex-direction:column">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h2 class="h2">A/B test · subject line</h2><span class="badge ok"><span class="dot"></span>Winner B · 98% confidence</span></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0">
+          <div style="padding:16px 18px;border-right:1px solid #EEF0F3;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge mut">A</span><span class="k">4,798 recipients · 10% sample</span></div>
+            <span style="font-weight:600">October Product Update: three launches</span>
+            <div style="display:flex;gap:16px;font-size:13px"><span><b class="n">39.8%</b> human opens</span><span><b class="n">5.9%</b> clicks</span><span><b class="n">0.05%</b> complaints</span></div>
+            <div class="bar" style="height:8px"><i style="width:39.8%;background:#8b94a3"></i></div>
+          </div>
+          <div style="padding:16px 18px;border-right:1px solid #EEF0F3;display:flex;flex-direction:column;gap:8px;background:#F0FDF4">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span class="badge ok">B · winner</span><span class="k">4,798 recipients · 10% sample, then 38,384 remaining</span></div>
+            <span style="font-weight:600">What shipped in October, and what we're retiring</span>
+            <div style="display:flex;gap:16px;font-size:13px"><span><b class="n">42.6%</b> human opens</span><span><b class="n">6.4%</b> clicks</span><span><b class="n">0.04%</b> complaints</span></div>
+            <div class="bar" style="height:8px"><i style="width:42.6%;background:#0F766E"></i></div>
+          </div>
+          <div style="padding:16px 18px;display:flex;flex-direction:column;gap:6px;font-size:13px">
+            <span style="font-weight:600">How the winner was picked</span>
+            <span class="k">Human opens 2 hours after the sample went out, two-proportion z-test, lift +2.8 points, p = 0.02. Machine opens were excluded so Apple Mail prefetches couldn't decide it.</span>
+            <span class="k">The remaining 38,384 recipients got B at 12:00.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="display:flex;flex-wrap:wrap;gap:16px;padding:16px 20px;align-items:center">
+        <div style="display:flex;flex-direction:column;gap:2px;flex:1 1 300px"><span style="font-weight:600">Share this report</span><span class="k">A read-only link with the same charts and tables, no login needed. Revoke it any time.</span></div>
+        <input class="mono" value="https://reputecast.acme.io/r/8f2c1a9d" readonly style="flex:1 1 300px;height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#F9FAFB;font-size:13px" aria-label="Read-only link">
+        <div style="display:flex;gap:8px"><button class="btn">Copy link</button><button class="btn">Revoke</button></div>
+      </section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2084}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

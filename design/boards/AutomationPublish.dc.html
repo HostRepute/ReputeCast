@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Publish automation, version diff</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:7px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.node{position:absolute;width:200px;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-sizing:border-box;padding:8px 10px;display:flex;flex-direction:column;gap:3px}
+.node .hd{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6B7280}
+.node .t{font-weight:600;font-size:12.5px}
+.edge{position:absolute;background:#9AA3B2}
+.chg{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-top:1px solid #EEF0F3}
+.add{background:#F0FDF4}.rem{background:#FFF5F5}
+label.opt{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px;cursor:pointer;background:#fff}
+label.opt input{margin-top:3px}
+@media (max-width:767px){ .sc-host [style*="radial-gradient"]{overflow:auto} .sc-host header > div{max-width:100%;min-width:0} .sc-host .btn{white-space:normal;max-width:100%} }
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<h1 class="vh">Publish automation, version diff</h1>
+<div style="position:relative;min-height:100vh;display:flex;flex-direction:column">
+  <header style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB;opacity:.5" aria-hidden="true">
+    <span class="btn" style="width:32px;padding:0">‹</span>
+    <div style="display:flex;flex-direction:column"><span class="k" style="font-size:11px">Automation</span><span style="font-size:15px;font-weight:700">Welcome series</span></div>
+    <span class="badge ok"><span class="dot"></span>Live · v3 since 2 Oct</span>
+    <span class="badge warn">Unpublished changes · 3</span>
+  </header>
+  <div style="flex:1;position:relative;background-color:#F3F4F6;background-image:radial-gradient(#D4D8DF 1px, transparent 1px);background-size:20px 20px;opacity:.5;min-height:900px" aria-hidden="true">
+    <div class="edge" style="left:719px;top:84px;width:2px;height:24px"></div><div class="edge" style="left:719px;top:160px;width:2px;height:24px"></div><div class="edge" style="left:719px;top:250px;width:2px;height:24px"></div>
+    <div class="node" style="left:620px;top:30px"><span class="hd">Trigger</span><span class="t">Joined Weekly Digest</span></div>
+    <div class="node" style="left:620px;top:108px"><span class="hd">Delay</span><span class="t">Wait 10 minutes</span></div>
+    <div class="node" style="left:620px;top:184px"><span class="hd">Send email</span><span class="t">Welcome · step 1</span></div>
+    <div class="node" style="left:620px;top:274px"><span class="hd">Branch</span><span class="t">Opened step 1?</span></div>
+  </div>
+
+  <div style="position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 16px;box-sizing:border-box">
+    <section class="card" role="dialog" aria-labelledby="pub-title" style="width:100%;max-width:760px;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(11,18,32,.3)">
+      <div style="padding:20px 22px 14px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #EEF0F3">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="badge ok"><span class="dot"></span>Live · v3</span><span class="k">→</span><span class="badge info">Draft · v4</span></div>
+        <h2 id="pub-title" style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.02em">Publish version 4 of "Welcome series"?</h2>
+        <span style="color:#4B5563">3 changes since v3 was published on 2 Oct by Marcus Chen. Every step is re-validated before it goes live.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column">
+        <div style="padding:12px 16px 4px" class="k">Version diff · v3 → v4</div>
+        <div class="chg add"><span class="badge ok" style="height:20px">Added</span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span style="font-weight:600">A/B split after "Step 2", 50 / 50</span><span class="k">Two new email steps: 3A "Set up your first flag" and 3B "A 5-minute walkthrough". Both pass Send Readiness content checks.</span></div></div>
+        <div class="chg"><span class="badge warn" style="height:20px">Changed</span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span style="font-weight:600">Delay before "Step 2": 1 day → 2 days</span><span class="k">Contacts already waiting keep their original timer unless you move them to v4 below.</span></div></div>
+        <div class="chg rem"><span class="badge bad" style="height:20px">Removed</span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span style="font-weight:600">Webhook "notify-slack" after the trigger</span><span class="k">Endpoint https://hooks.slack.com/… was returning 404 since 29 Sep. 1,284 failed calls are in the webhook log.</span></div></div>
+        <div class="chg"><span class="badge mut" style="height:20px">Unchanged</span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span>Trigger, step 1, branch, "No" path, goal and exit</span></div></div>
+      </div>
+
+      <div style="padding:14px 16px;border-top:1px solid #EEF0F3;display:flex;flex-direction:column;gap:10px">
+        <span style="font-weight:600">1,932 contacts are in this flow right now</span>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px">
+          <label class="opt" style="border-color:#0F766E;background:#F0FDFA"><input type="radio" name="mig" checked><span><span style="font-weight:600">Let them finish on v3 (recommended)</span><br><span class="k">New entrants start on v4. Nobody gets a step twice or skips one. v3 retires when the last contact leaves, about 9 days.</span></span></label>
+          <label class="opt"><input type="radio" name="mig"><span><span style="font-weight:600">Move them to v4 at their current step</span><br><span class="k">612 contacts waiting before step 2 would get the 2-day delay; 0 contacts are affected by the removed webhook.</span></span></label>
+        </div>
+      </div>
+
+      <div style="padding:12px 16px;border-top:1px solid #EEF0F3;display:flex;flex-direction:column;gap:6px;background:#F9FAFB">
+        <span class="k">Pre-publish checks</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="badge ok">Automations route healthy · SES</span><span class="badge ok">4 emails pass content checks</span><span class="badge ok">No step references a deleted list or tag</span><span class="badge ok">Branch has both paths connected</span></div>
+      </div>
+
+      <div style="padding:14px 16px 18px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;border-top:1px solid #EEF0F3">
+        <a href="AutomationFlow.dc.html" class="btn" style="min-height:40px">Back to canvas</a>
+        <button class="btn" style="min-height:40px">Save draft only</button>
+        <a href="AutomationsList.dc.html" class="btn pri" style="min-height:40px;padding:0 18px">Publish v4</a>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":958}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

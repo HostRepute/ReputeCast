@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System states: not found, no permission, session expired, offline, maintenance, quota</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+a:not([class]):not(nav a){text-decoration:underline;text-underline-offset:2px}
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#fff;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#fff}.btn.pri:hover{background:#115E59;color:#fff}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.in{height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;width:100%}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec h2{margin:0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#0B1220;padding:8px 14px;border-radius:8px;display:flex;gap:10px;align-items:center}
+.sec h2 .dot{color:#0F766E}
+.wrap{max-width:1380px;margin:0 auto;padding:28px 40px 44px;display:flex;flex-direction:column;gap:22px;box-sizing:border-box}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
+.full{padding:40px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.full h3{margin:0;font-size:20px;font-weight:700;letter-spacing:-.02em}
+.full p{margin:0;color:#4B5563;max-width:460px}
+.ico{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#EEF0F3;color:#4B5563}
+.banner{display:flex;gap:12px;align-items:center;padding:10px 14px;font-size:13px;flex-wrap:wrap}
+.app{display:flex;border:1px solid #E3E6EB;border-radius:10px;overflow:hidden;background:#fff;min-height:220px;position:relative}
+.side{width:72px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0}
+.side i{display:block;width:28px;height:28px;border-radius:8px;background:#EEF0F3}
+.side i:first-child{background:#0F766E}
+.ghost{display:flex;flex-direction:column;gap:10px;padding:14px;flex:1}
+.ghost i{display:block;height:12px;border-radius:6px;background:#EEF0F3}
+.ghost .big{height:70px}
+.modal{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:center;justify-content:center;padding:20px}
+.dlg{background:#fff;border-radius:12px;padding:22px 24px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 50px rgba(11,18,32,.25)}
+.dlg h3{margin:0;font-size:17px;font-weight:700}
+.dlg p{margin:0;color:#4B5563;font-size:13.5px}
+@media (max-width:767px){.wrap{padding:16px 12px 28px}.grid{grid-template-columns:1fr}.full{padding:28px 16px}}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<h1 class="vh">System states: not found, no permission, session expired, offline, maintenance, quota</h1>
+<main class="wrap" id="main">
+  <div class="sec">
+    <h2><span class="dot"></span>Not found and no permission · full-page states inside the app shell</h2>
+    <div class="grid">
+      <div class="card full">
+        <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg></div>
+        <span class="badge mut">404</span>
+        <h3>There's nothing at /campaigns/weekly-digest-143</h3>
+        <p>The campaign may have been deleted, or the link was copied before it was saved. Deleted campaigns stay in the audit log for 90 days.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><a href="Campaigns.dc.html" class="btn pri">Go to campaigns</a><a href="SettingsAudit.dc.html" class="btn">Search the audit log</a></div>
+        <span class="k">Request id <span class="mono">req_01J9ZK…</span> · include it if you contact support</span>
+      </div>
+      <div class="card full">
+        <div class="ico" style="background:#FEF3C7;color:#92400E"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg></div>
+        <span class="badge warn">403 · Viewer role</span>
+        <h3>You can look, but not change routing</h3>
+        <p>Your role in Acme Newsletter is Viewer. Routing, providers and sending need Editor or above. Owners: Linh Nguyen, Marcus Chen.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button class="btn pri">Request Editor access</button><a href="Providers.dc.html" class="btn">View routing read-only</a></div>
+        <span class="k">Requests go to the owners with a note; they usually answer within the day.</span>
+      </div>
+      <div class="card full">
+        <div class="ico" style="background:#FEE2E2;color:#991B1B"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg></div>
+        <span class="badge bad">500</span>
+        <h3>Something broke on our side</h3>
+        <p>The page couldn't load. Your draft from 09:38 is saved. Retry now, or wait a minute; the error is already in the server log with id <span class="mono">err_7f3a</span>.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button class="btn pri">Retry</button><a href="Main.dc.html" class="btn">Back to overview</a></div>
+        <span class="k">Self-hosted? Check <span class="mono">docker compose logs app</span> for err_7f3a.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2><span class="dot"></span>Session expired · modal keeps the unsaved work behind it</h2>
+    <div class="app">
+      <div class="side"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="ghost"><i style="width:30%"></i><i class="big"></i><i style="width:60%"></i><i style="width:80%"></i><i class="big"></i></div>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sess-h">
+        <div class="dlg">
+          <span class="badge info" style="align-self:flex-start">Session ended</span>
+          <h3 id="sess-h">Sign in again to keep working</h3>
+          <p>Your session ended after 12 hours, as set by your workspace. The campaign you were editing is saved as draft v18 and will reopen where you left off.</p>
+          <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:#4B5563">Password for linh@acme.io<input class="in" type="password" autocomplete="current-password" value=""></label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri">Sign in</button><button class="btn">Use SSO</button><a href="AuthScreens.dc.html" class="btn" style="margin-left:auto">Sign out</a></div>
+          <span class="k">Two minutes before a session ends, a banner offers to extend it so nothing is lost mid-edit.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2><span class="dot"></span>Offline, reconnecting, maintenance · banners at the top of the content column</h2>
+    <div class="grid">
+      <div class="card" style="overflow:hidden">
+        <div class="banner" style="background:#FEF3C7;border-bottom:1px solid #FDE68A"><span class="badge warn"><span class="dot"></span>Offline</span><span style="flex:1;min-width:200px">You're offline. Edits save on this device and sync when the connection is back. Sending and live stats are paused.</span><button class="btn sm">Retry now</button></div>
+        <div class="ghost"><i style="width:40%"></i><i class="big"></i><i style="width:70%"></i></div>
+      </div>
+      <div class="card" style="overflow:hidden">
+        <div class="banner" style="background:#DBEAFE;border-bottom:1px solid #BFDBFE"><span class="badge info"><span class="dot"></span>Reconnecting</span><span style="flex:1;min-width:200px">Live event stream dropped at 09:18:51. Counts below are from 09:18. Reconnecting automatically, attempt 3 of 10.</span><button class="btn sm">Reconnect now</button></div>
+        <div class="ghost"><i style="width:40%"></i><i class="big"></i><i style="width:70%"></i></div>
+      </div>
+      <div class="card" style="overflow:hidden">
+        <div class="banner" style="background:#EEF0F3;border-bottom:1px solid #E3E6EB"><span class="badge mut"><span class="dot"></span>Read-only · upgrade</span><span style="flex:1;min-width:200px">ReputeCast 1.5 is being installed by Linh Nguyen (started 02:00, about 4 minutes). Reading works; edits and sends resume when it finishes.</span><a href="SettingsStates.dc.html" class="btn sm">What's new</a></div>
+        <div class="ghost"><i style="width:40%"></i><i class="big"></i><i style="width:70%"></i></div>
+      </div>
+      <div class="card" style="overflow:hidden">
+        <div class="banner" style="background:#FFF5F5;border-bottom:1px solid #FCA5A5"><span class="badge bad"><span class="dot"></span>Quota reached</span><span style="flex:1;min-width:200px">Amazon SES 24-hour quota of 50,000 is used up at 21:14. Broadcasts hold 2,020 recipients until 00:00 UTC; automations continue on Postmark.</span><a href="SetupSES.dc.html" class="btn sm">Request a higher quota</a><button class="btn sm">Move the rest to Postal</button></div>
+        <div class="ghost"><i style="width:40%"></i><i class="big"></i><i style="width:70%"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2><span class="dot"></span>Timeouts and limits</h2>
+    <div class="grid">
+      <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:600">Session ending in 2 minutes</span><span class="badge warn">Timing</span></div>
+        <span style="color:#4B5563;font-size:13.5px">You've been signed in for 11 h 58 min. Extend to keep editing; otherwise the draft autosaves and you'll be asked to sign in again.</span>
+        <div style="display:flex;gap:8px"><button class="btn pri">Extend 12 hours</button><button class="btn">Sign out now</button></div>
+      </div>
+      <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:600">API rate limit reached</span><span class="badge bad">429</span></div>
+        <span style="color:#4B5563;font-size:13.5px">Key <span class="mono">rc_live_bf2…</span> sent 1,200 requests this minute; the limit is 600. Requests resume in 23 s. Batch endpoints accept up to 1,000 contacts per call.</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><a href="SettingsAPI.dc.html" class="btn">See key usage</a><a href="SettingsAPI.dc.html" class="btn">Raise the limit</a></div>
+      </div>
+      <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:600">Export is taking longer than usual</span><span class="badge info">Background job</span></div>
+        <span style="color:#4B5563;font-size:13.5px">48,213 contacts with activity: about 2 minutes. You can leave this page; we'll email the link to linh@acme.io and keep it 24 hours.</span>
+        <div style="display:flex;align-items:center;gap:10px"><div style="flex:1;height:8px;border-radius:4px;background:#EEF0F3;overflow:hidden"><div style="width:38%;height:100%;background:#0F766E;border-radius:4px"></div></div><span class="k">38%</span><button class="btn sm">Cancel</button></div>
+      </div>
+    </div>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1687}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

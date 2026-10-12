@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design system, logo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.mut{background:#EEF0F3;color:#4B5563}.bad{background:#FEE2E2;color:#991B1B}.ok{background:#DCFCE7;color:#166534}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.page{max-width:1380px;margin:0 auto;padding:36px 40px 60px;display:flex;flex-direction:column;gap:28px;box-sizing:border-box}
+.hero h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+.hero p{margin:0;color:#4B5563;max-width:760px;font-size:15px}
+.sec{display:flex;flex-direction:column;gap:12px}
+.sec h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.015em}
+.sec > p{margin:0;color:#4B5563;max-width:820px}
+.spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}
+.ex{background:#fff;border:1px solid #E3E6EB;border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.ex h3{margin:0;font-size:13px;font-weight:600;color:#5B6472;text-transform:uppercase;letter-spacing:.05em}
+.note{font-size:12.5px;color:#4B5563;line-height:1.45}
+.tile{display:flex;align-items:center;justify-content:center;border-radius:10px;padding:22px;min-height:120px}
+.sizes{display:flex;gap:22px;align-items:flex-end;flex-wrap:wrap}
+.sizes div{display:flex;flex-direction:column;align-items:center;gap:6px}
+.dont{position:relative}
+.dont::after{content:"✕";position:absolute;right:8px;top:8px;width:22px;height:22px;border-radius:50%;background:#FEE2E2;color:#991B1B;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-size:11px;font-weight:600;color:#5B6472;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:1px solid #E3E6EB}
+.tbl td{padding:9px 10px;border-bottom:1px solid #EEF0F3;vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+@media (max-width:767px){.page{padding:16px 12px 32px}.spec{grid-template-columns:1fr!important}.ex svg,.tile svg{max-width:100%;height:auto}}
+.tscroll{overflow-x:auto;max-width:100%;contain:inline-size}
+.tscroll>table{min-width:100%}
+</style>
+</helmet>
+<main class="page">
+  <div class="hero" style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end;justify-content:space-between">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span class="badge mut" style="align-self:flex-start">Design system · brand</span>
+      <h1>ReputeCast logo</h1>
+      <p>An envelope whose flap is a check: mail that was checked before it went out, and landed. One shape, one colour, drawn on a 32-unit grid so it survives at 16 px in a browser tab and at 1024 px on an app store.</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><a href="DSFoundations.dc.html" class="badge mut" style="height:32px;padding:0 12px">Foundations</a><a href="DSAccessibility.dc.html" class="badge mut" style="height:32px;padding:0 12px">Accessibility</a></div>
+  </div>
+
+  <section class="sec">
+    <h2>The mark</h2>
+    <div class="spec" style="grid-template-columns:minmax(300px,380px) 1fr">
+      <div class="ex" style="align-items:center"><svg width="320" height="320" viewBox="-2 -2 36 36" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E" opacity=".12"></rect><line x1="0" y1="0" x2="0" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="0" x2="32" y2="0" stroke="#C9CED6" stroke-width="0.12"></line><line x1="2" y1="0" x2="2" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="2" x2="32" y2="2" stroke="#C9CED6" stroke-width="0.12"></line><line x1="4" y1="0" x2="4" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="4" x2="32" y2="4" stroke="#C9CED6" stroke-width="0.12"></line><line x1="6" y1="0" x2="6" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="6" x2="32" y2="6" stroke="#C9CED6" stroke-width="0.12"></line><line x1="8" y1="0" x2="8" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="8" x2="32" y2="8" stroke="#C9CED6" stroke-width="0.12"></line><line x1="10" y1="0" x2="10" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="10" x2="32" y2="10" stroke="#C9CED6" stroke-width="0.12"></line><line x1="12" y1="0" x2="12" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="12" x2="32" y2="12" stroke="#C9CED6" stroke-width="0.12"></line><line x1="14" y1="0" x2="14" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="14" x2="32" y2="14" stroke="#C9CED6" stroke-width="0.12"></line><line x1="16" y1="0" x2="16" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="16" x2="32" y2="16" stroke="#C9CED6" stroke-width="0.12"></line><line x1="18" y1="0" x2="18" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="18" x2="32" y2="18" stroke="#C9CED6" stroke-width="0.12"></line><line x1="20" y1="0" x2="20" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="20" x2="32" y2="20" stroke="#C9CED6" stroke-width="0.12"></line><line x1="22" y1="0" x2="22" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="22" x2="32" y2="22" stroke="#C9CED6" stroke-width="0.12"></line><line x1="24" y1="0" x2="24" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="24" x2="32" y2="24" stroke="#C9CED6" stroke-width="0.12"></line><line x1="26" y1="0" x2="26" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="26" x2="32" y2="26" stroke="#C9CED6" stroke-width="0.12"></line><line x1="28" y1="0" x2="28" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="28" x2="32" y2="28" stroke="#C9CED6" stroke-width="0.12"></line><line x1="30" y1="0" x2="30" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="30" x2="32" y2="30" stroke="#C9CED6" stroke-width="0.12"></line><line x1="32" y1="0" x2="32" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><line x1="0" y1="32" x2="32" y2="32" stroke="#C9CED6" stroke-width="0.12"></line><rect width="32" height="32" rx="8" fill="none" stroke="#0F766E" stroke-width="0.3" stroke-dasharray="0.8 0.6"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#0B1220" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#0F766E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="7" cy="12" r="0.7" fill="#DC2626"></circle><circle cx="16" cy="19" r="0.7" fill="#DC2626"></circle><circle cx="27" cy="8" r="0.7" fill="#DC2626"></circle><circle cx="25" cy="16.5" r="0.7" fill="#DC2626"></circle><circle cx="17.5" cy="12" r="0.7" fill="#DC2626"></circle></svg><span class="note" style="text-align:center">Construction on the 32-unit grid. Red points are the anchors: 7,12 · 16,19 · 27,8 for the check; the body closes at 17.5,12 and 25,16.5 so the check leaves through the open corner.</span></div>
+      <div class="ex">
+        <h3>Geometry</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 18px;font-size:13.5px">
+          <span><b>Grid</b> 32 × 32 units, 1 unit = 1 px at 32 px</span><span><b>Square</b> corner radius 8 (25 percent), teal #0F766E</span>
+          <span><b>Strokes</b> 2.4 units, round caps and joins, white</span><span><b>Check</b> short stroke 7,12 → 16,19; long stroke 16,19 → 27,8 at 45°</span>
+          <span><b>Envelope</b> top edge from 7 to 17.5, body 7 to 25 wide, 12 to 24 tall</span><span><b>Opening</b> the top-right corner stays open from 17.5,12 to 25,16.5</span>
+        </div>
+        <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding-top:6px"><svg width="128" height="128" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg> <svg width="64" height="64" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg> <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg> <svg width="16" height="16" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="note">128 · 64 · 32 · 16 px. Below 24 px use the favicon file, which has 3-unit strokes.</span></div>
+        <span class="note">Why this and not a shield or a graph: ReputeCast's promise is simple, your email was checked and it got there. The envelope is the email; the check is Send Readiness. The open corner is the mail leaving; nothing is locked or guarded by force.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Lockups</h2>
+    <p>The horizontal lockup is the default. The wordmark is IBM Plex Sans Bold with -2 percent tracking, cap height aligned to the square's middle band. The stacked version is for avatars with text, splash screens and cards. Nothing else sits inside the clear space.</p>
+    <div class="spec">
+      <div class="ex"><h3>Horizontal · on white</h3><div class="tile" style="background:#fff;border:1px solid #EEF0F3"><svg width="227" height="64" viewBox="0 0 340 96" aria-hidden="true"><g transform="translate(0 16) scale(2)"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></g><text x="84" y="63" font-family="'IBM Plex Sans', system-ui, sans-serif" font-size="46" font-weight="700" letter-spacing="-0.9" fill="#0B1220">ReputeCast</text></svg></div></div>
+      <div class="ex"><h3>Horizontal · on ink</h3><div class="tile" style="background:#0B1220"><svg width="227" height="64" viewBox="0 0 340 96" aria-hidden="true"><g transform="translate(0 16) scale(2)"><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></g><text x="84" y="63" font-family="'IBM Plex Sans', system-ui, sans-serif" font-size="46" font-weight="700" letter-spacing="-0.9" fill="#FFFFFF">ReputeCast</text></svg></div></div>
+      <div class="ex"><h3>Horizontal · on teal</h3><div class="tile" style="background:#0F766E"><svg width="227" height="64" viewBox="0 0 340 96" aria-hidden="true"><g transform="translate(0 16) scale(2)"><rect width="32" height="32" rx="8" fill="#FFFFFF"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#0F766E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#0F766E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></g><text x="84" y="63" font-family="'IBM Plex Sans', system-ui, sans-serif" font-size="46" font-weight="700" letter-spacing="-0.9" fill="#FFFFFF">ReputeCast</text></svg></div></div>
+      <div class="ex"><h3>Stacked · on white</h3><div class="tile" style="background:#fff;border:1px solid #EEF0F3"><svg width="195" height="150" viewBox="0 0 260 200" aria-hidden="true"><g transform="translate(90 16) scale(2.5)"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></g><text x="130" y="158" text-anchor="middle" font-family="'IBM Plex Sans', system-ui, sans-serif" font-size="38" font-weight="700" letter-spacing="-0.76" fill="#0B1220">ReputeCast</text></svg></div></div>
+      <div class="ex"><h3>Stacked · on ink</h3><div class="tile" style="background:#0B1220"><svg width="195" height="150" viewBox="0 0 260 200" aria-hidden="true"><g transform="translate(90 16) scale(2.5)"><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></g><text x="130" y="158" text-anchor="middle" font-family="'IBM Plex Sans', system-ui, sans-serif" font-size="38" font-weight="700" letter-spacing="-0.76" fill="#FFFFFF">ReputeCast</text></svg></div></div>
+      <div class="ex"><h3>Clear space and minimum size</h3><div class="tile" style="background:#fff;border:1px solid #EEF0F3;position:relative"><div style="position:relative;padding:32px;border:1px dashed #0F766E;border-radius:6px"><svg width="170" height="48" viewBox="0 0 340 96" aria-hidden="true"><g transform="translate(0 16) scale(2)"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></g><text x="84" y="63" font-family="'IBM Plex Sans', system-ui, sans-serif" font-size="46" font-weight="700" letter-spacing="-0.9" fill="#0B1220">ReputeCast</text></svg><span style="position:absolute;left:4px;top:4px;font-size:11px;color:#0F766E;font-weight:600">½ x</span></div></div><span class="note">Clear space all round is half the mark's height (x). Minimum sizes: mark 16 px, horizontal lockup 120 px wide, stacked lockup 80 px wide.</span></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Colour versions</h2>
+    <div class="spec">
+      <div class="ex"><h3>Primary</h3><div class="tile" style="background:#F3F4F6"><svg width="96" height="96" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span class="note">Teal square, white strokes. App chrome, README, favicon source.</span></div>
+      <div class="ex"><h3>Ink</h3><div class="tile" style="background:#F3F4F6"><svg width="96" height="96" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B1220"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span class="note">For dark UI chrome and monochrome print where one dark colour is allowed.</span></div>
+      <div class="ex"><h3>White square</h3><div class="tile" style="background:#0F766E"><svg width="96" height="96" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#FFFFFF"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#0F766E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#0F766E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span class="note">On teal backgrounds and photos; the strokes turn teal.</span></div>
+      <div class="ex"><h3>Mono · ink strokes</h3><div class="tile" style="background:#fff;border:1px solid #EEF0F3"><svg width="96" height="96" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#0B1220" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#0B1220" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span class="note">No square. Embossing, watermarks, single-colour print, partner pages.</span></div>
+      <div class="ex"><h3>Mono · white strokes</h3><div class="tile" style="background:#0B1220"><svg width="96" height="96" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span class="note">On ink and on dark photos.</span></div>
+      <div class="ex"><h3>App icon and avatar</h3><div class="tile" style="background:#F3F4F6;gap:22px"><svg width="96" height="96" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7.2" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg> <svg width="96" height="96" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#0F766E"></circle><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg> <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span class="note">App icon: 22.5 percent corner radius, exported at 1024. Avatar: circle crop for GitHub, Discord and X. Favicon: 3-unit strokes, shown here at 32.</span></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Don't</h2>
+    <div class="spec">
+      <div class="ex dont"><h3>Stretch or squash</h3><div class="tile" style="background:#F3F4F6"><svg width="150" height="90" viewBox="0 0 32 32" preserveAspectRatio="none" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+      <div class="ex dont"><h3>Recolour the check alone</h3><div class="tile" style="background:#F3F4F6"><svg width="96" height="96" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FBBF24" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+      <div class="ex dont"><h3>Rotate or add effects</h3><div class="tile" style="background:#F3F4F6"><svg width="96" height="96" viewBox="0 0 32 32" aria-hidden="true" style="transform:rotate(-14deg);filter:drop-shadow(0 6px 6px rgba(0,0,0,.35))"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div>
+      <div class="ex dont"><h3>Low contrast backgrounds</h3><div class="tile" style="background:#115E59"><svg width="96" height="96" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span class="note">Teal on teal-ish: use the white square version instead.</span></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Files</h2>
+    <p>All files are SVG, in the repository under <span class="mono">brand/logo/</span> and in the design-system artifact under Assets → Logo. Outline the wordmark text to paths before sending files to print or to anyone without IBM Plex Sans.</p>
+    <div class="ex" style="padding:6px 20px">
+      <div class="tscroll"><table class="tbl">
+        <thead><tr><th scope="col">File</th><th scope="col">Use</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">reputecast-mark.svg</td><td>Primary mark. App chrome, favicon source, social.</td></tr>
+          <tr><td class="mono">reputecast-mark-ink.svg · reputecast-mark-white.svg</td><td>Ink square for dark chrome; white square for teal backgrounds and photos.</td></tr>
+          <tr><td class="mono">reputecast-mark-mono-ink.svg · reputecast-mark-mono-white.svg</td><td>One-colour strokes without the square.</td></tr>
+          <tr><td class="mono">reputecast-logo-horizontal.svg · -white.svg · -mono.svg</td><td>Mark plus wordmark. Headers, README, slides, email footers.</td></tr>
+          <tr><td class="mono">reputecast-logo-stacked.svg · -white.svg</td><td>Centered lockup for avatars with text and splash screens.</td></tr>
+          <tr><td class="mono">reputecast-app-icon.svg · reputecast-avatar.svg · reputecast-favicon.svg</td><td>App stores and PWA (1024, 22.5 percent radius); circular avatar; favicon with heavier strokes.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2877}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setup step 6, contacts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.h2{margin:0;font-size:15px;font-weight:600}
+.step{display:flex;gap:12px;align-items:flex-start;padding:8px 0}
+.step .num{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none;border:2px solid #D4D8DF;color:#5B6472;background:#fff}
+.step.cur .num{background:#0F766E;border-color:#0F766E;color:#fff}
+.step.done .num{background:#DCFCE7;border-color:#86EFAC;color:#166534}
+a.src{display:flex;flex-direction:column;gap:6px;padding:16px 18px;border:1px solid #E3E6EB;border-radius:10px;background:#fff;color:#0B1220}
+a.src:hover{border-color:#0F766E;color:#0B1220}
+
+/* responsive wizard */
+@media (max-width:1100px){ .wiz{padding:16px!important;gap:16px!important} }
+@media (max-width:767px){
+  .wiz{padding:12px!important}
+  .wizsteps{max-width:none!important;flex:1 1 100%!important;flex-direction:row!important;overflow-x:auto;gap:14px;padding:10px 12px!important}
+  .wizsteps .step{flex:none;padding:2px 0;align-items:center}
+  .wizsteps .step .k{display:none}
+  .wizsteps > div:last-child{display:none}
+}
+
+/* responsive wizard phone fixes */
+@media (max-width:767px){
+  .wiz > main{min-width:0;width:100%;max-width:100%}
+  .wiz main > *{min-width:0;max-width:100%}
+  .wiz .in,.wiz select,.wiz input,.wiz textarea{max-width:100%;min-width:0}
+  .wiz main div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .wiz main [style*="flex: 1 1"]{min-width:0}
+  .wiz select.in,.wiz input.in{width:0;min-width:100%}
+  .wiz .mono{overflow-wrap:anywhere}
+  .wiz .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .wiz .btn{white-space:normal;max-width:100%}
+  .wizsteps .badge{white-space:nowrap}
+  .wiz main [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .wiz main pre{max-width:100%}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column">
+  <header style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;color:#0B1220" aria-label="ReputeCast home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span style="font-weight:700;font-size:15px">ReputeCast</span>
+    </a>
+    <span class="k">/</span>
+    <h1 style="margin:0;font-size:16px;font-weight:600">Connect Amazon SES</h1>
+    <span class="badge mut">Step 6 of 6</span>
+    <a href="Main.dc.html" class="btn" style="margin-left:auto">Exit setup</a>
+  </header>
+
+  <div class="wiz" style="display:flex;flex-wrap:wrap;gap:24px;padding:28px;max-width:1300px;margin:0 auto;width:100%;box-sizing:border-box;align-items:flex-start">
+    <nav class="card wizsteps" aria-label="Setup steps" style="flex:1 1 220px;max-width:250px;padding:14px 16px;display:flex;flex-direction:column">
+      <div class="step done"><span class="num">✓</span><div><div style="font-weight:600">Provider</div><div class="k">Amazon SES</div></div></div>
+      <div class="step done"><span class="num">✓</span><div><div style="font-weight:600">Connection</div></div></div>
+      <div class="step done"><span class="num">✓</span><div><div style="font-weight:600">Domain verification</div></div></div>
+      <div class="step done"><span class="num">✓</span><div><div style="font-weight:600">Test send</div></div></div>
+      <div class="step done"><span class="num">✓</span><div><div style="font-weight:600">Streams</div><div class="k">Broadcasts, Automations, System</div></div></div>
+      <div class="step cur"><span class="num">6</span><div><div style="font-weight:600">Contacts</div><div class="k">Import or start empty</div></div></div>
+    </nav>
+
+    <main style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <h2 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-.02em">Bring your contacts</h2>
+        <span style="color:#4B5563">Import keeps consent intact: unsubscribed, bounced and complained contacts become suppressions and are never re-subscribed. Existing suppressions can also be pulled from Amazon SES.</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+        <a href="MigrationSource.dc.html" class="src"><span style="font-weight:700">Brevo</span><span class="k">API key · lists, attributes, blocklist</span><span class="badge ok" style="align-self:flex-start">Keeps consent</span></a>
+        <a href="MigrationSource.dc.html" class="src"><span style="font-weight:700">Mailchimp</span><span class="k">API key · audiences, tags, merge fields</span><span class="badge ok" style="align-self:flex-start">Keeps consent</span></a>
+        <a href="MigrationSource.dc.html" class="src"><span style="font-weight:700">MailerLite</span><span class="k">API key · groups, fields</span><span class="badge ok" style="align-self:flex-start">Keeps consent</span></a>
+        <a href="MigrationSource.dc.html" class="src"><span style="font-weight:700">listmonk</span><span class="k">API or database · lists, attribs</span><span class="badge ok" style="align-self:flex-start">Keeps consent</span></a>
+        <a href="MigrationSource.dc.html" class="src"><span style="font-weight:700">Keila</span><span class="k">API key · segments, data</span><span class="badge ok" style="align-self:flex-start">Keeps consent</span></a>
+        <a href="MigrationSource.dc.html" class="src"><span style="font-weight:700">CSV or XLSX</span><span class="k">Map columns, choose a consent column</span><span class="badge mut" style="align-self:flex-start">You confirm consent</span></a>
+      </div>
+
+      <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 class="h2">Pull existing suppressions from Amazon SES</h3><span class="badge ok"><span class="dot"></span>Recommended</span></div>
+        <span style="font-size:13px;color:#4B5563">Your SES account-level suppression list has 612 addresses from earlier sending. Importing them now means ReputeCast never tries them, on any provider.</span>
+        <label style="display:flex;gap:10px;align-items:center;font-size:13px"><input type="checkbox" checked>Import 612 suppressed addresses from SES (bounces 540, complaints 72)</label>
+      </section>
+
+      <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px;border-style:dashed">
+        <h3 class="h2">Or start empty</h3>
+        <span style="font-size:13px;color:#4B5563">Create the lists now and grow them with signup forms, the API or a later import. Three lists are suggested from your workspace name; rename them any time.</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="badge mut">Weekly Digest</span><span class="badge mut">Product Updates</span><span class="badge mut">Beta Program</span></div>
+        <a href="SetupDone.dc.html" class="btn" style="align-self:flex-start">Start empty and finish</a>
+      </section>
+
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <a href="SetupStreams.dc.html" class="btn">Back</a>
+        <a href="SetupDone.dc.html" class="btn pri" style="min-height:40px;padding:0 18px">Finish setup</a>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":864}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

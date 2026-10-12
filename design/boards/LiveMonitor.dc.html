@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live sending monitor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.r,.tbl th.r{text-align:right}
+.tbl td:first-child{white-space:normal;min-width:150px}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.h2{margin:0;font-size:15px;font-weight:600}
+.tile{display:flex;flex-direction:column;gap:4px;padding:16px 18px}
+.ev{display:flex;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid #EEF0F3;font-size:12.5px}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<h1 class="vh">Live sending monitor</h1>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
+    </a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
+      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" class="on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="FormBuilder.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+    </nav>
+  </aside>
+
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <nav aria-label="Breadcrumb" style="display:flex;align-items:center;gap:8px;font-size:13px">
+        <a href="Campaigns.dc.html" style="color:#5B6472">Campaigns</a><span class="k">/</span>
+        <span style="font-weight:600">Weekly Digest #142</span>
+      </nav>
+      <span class="k">Started by Sofia Rossi · approved by Marcus Chen, Oct 10 16:20</span>
+      <span class="badge ok"><span class="dot"></span>Sending · live</span>
+      <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="k">Events via SNS and Postal webhooks · last 1 s ago · pause needs campaigns:pause, resume needs campaigns:send</span>
+        <a href="LiveMonitorPaused.dc.html" class="btn" title="Pausing needs campaigns:pause">Pause</a>
+        <button class="btn" style="color:#991B1B;border-color:#FCA5A5">Cancel send</button>
+      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+    </header>
+
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+      <section class="card" style="padding:20px 22px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+          <span class="n" style="font-size:34px;letter-spacing:-.02em">62%</span>
+          <span style="font-size:15px">19,594 of 31,604 sent</span>
+          <span class="k" style="margin-left:auto">Started 09:00:04 · ETA 13 min · finishes about 09:34</span>
+        </div>
+        <div class="bar" style="height:12px;border-radius:6px;display:flex;gap:2px;background:#EEF0F3">
+          <i style="width:55.8%;background:#4a3aa7;border-radius:6px 0 0 6px" title="SES"></i>
+          <i style="width:6.2%;background:#e87ba4;border-radius:0" title="Postal"></i>
+        </div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px">
+          <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>Amazon SES 17,635 · 14.2 /s</span>
+          <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Postal 1,959 · 2.0 /s</span>
+          <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#C9CED6"></span>Queued 12,010</span>
+          <span class="k" style="margin-left:auto">A/B subject test: variant B leading, 15.1% vs 13.2% opens on the 20% sample</span>
+        </div>
+      </section>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+        <div class="card tile"><span class="k">Delivered</span><span class="n" style="font-size:26px">19,402</span><span class="k">99.0% of sent</span></div>
+        <div class="card tile"><span class="k">Bounced</span><span class="n" style="font-size:26px">118</span><span class="k">0.60% · 94 hard, 24 soft</span></div>
+        <div class="card tile"><span class="k">Complained</span><span class="n" style="font-size:26px">6</span><span class="k">0.03% of delivered</span></div>
+        <div class="card tile"><span class="k">Opened</span><span class="n" style="font-size:26px">2,811</span><span class="k">14.5% · 1,920 human, 891 machine</span></div>
+        <div class="card tile"><span class="k">Clicked</span><span class="n" style="font-size:26px">402</span><span class="k">2.1% · 14.3% click-to-open</span></div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+        <div style="flex:2 1 560px;min-width:0;display:flex;flex-direction:column;gap:20px">
+          <section class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h2 class="h2">Per mailbox provider</h2><span class="k">where recipients read the mail</span></div>
+            <div style="overflow-x:auto">
+              <table class="tbl">
+                <thead><tr><th scope="col">Mailbox provider</th><th scope="col" class="r">Sent</th><th scope="col" class="r">Delivered</th><th scope="col" class="r">Bounce</th><th scope="col" class="r">Complaint</th><th scope="col" class="r">Opened</th><th scope="col" class="r">Rate</th><th scope="col">Status</th></tr></thead>
+                <tbody>
+                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#2a78d6"></span>Gmail</span></td><td class="r n">9,013</td><td class="r n">99.3%</td><td class="r n">0.4%</td><td class="r n">0.02%</td><td class="r n">16.1%</td><td class="r">full</td><td><span class="badge ok">OK</span></td></tr>
+                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eb6834"></span>Outlook</span></td><td class="r n">4,115</td><td class="r n">98.4%</td><td class="r n">1.1%</td><td class="r n">0.05%</td><td class="r n">11.2%</td><td class="r">5 /s</td><td><span class="badge ok">OK</span></td></tr>
+                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#1baf7a"></span>Yahoo</span></td><td class="r n">1,763</td><td class="r n">99.0%</td><td class="r n">0.7%</td><td class="r n">0.03%</td><td class="r n">13.8%</td><td class="r">4 /s</td><td><span class="badge ok">OK</span></td></tr>
+                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eda100"></span>iCloud</span></td><td class="r n">1,567</td><td class="r n">99.4%</td><td class="r n">0.4%</td><td class="r n">0.00%</td><td class="r n">9.6%</td><td class="r">3 /s</td><td><span class="badge ok">OK</span></td></tr>
+                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#8b94a3"></span>Other</span></td><td class="r n">3,136</td><td class="r n">98.9%</td><td class="r n">0.8%</td><td class="r n">0.03%</td><td class="r n">12.0%</td><td class="r">full</td><td><span class="badge ok">OK</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h2 class="h2">Per sending provider</h2><span class="k">who delivers the mail</span></div>
+            <div style="overflow-x:auto">
+              <table class="tbl">
+                <thead><tr><th scope="col">Sending provider</th><th scope="col" class="r">Sent</th><th scope="col" class="r">Share</th><th scope="col" class="r">Rate</th><th scope="col" class="r">Delivered</th><th scope="col" class="r">Bounce</th><th scope="col" class="r">Complaint</th><th scope="col" class="r">API errors</th><th scope="col">Status</th></tr></thead>
+                <tbody>
+                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>Amazon SES</span><div class="k">quota 19,416 free after this send</div></td><td class="r n">17,635 / 28,444</td><td class="r n">90%</td><td class="r n">14.2 /s</td><td class="r n">99.1%</td><td class="r n">0.6%</td><td class="r n">0.03%</td><td class="r n">0.1%</td><td><span class="badge ok">Healthy</span></td></tr>
+                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Postal</span><div class="k">warm-up day 9 · 1,959 of today's 6,000 cap</div></td><td class="r n">1,959 / 3,160</td><td class="r n">10%</td><td class="r n">2.0 /s</td><td class="r n">98.6%</td><td class="r n">0.9%</td><td class="r n">0.05%</td><td class="r n">0.4%</td><td><span class="badge info">Warming up</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h2 class="h2">Live events</h2><span class="badge ok"><span class="dot"></span>streaming</span></div>
+            <div class="ev" style="border-top:0"><span class="mono k">09:21:44</span><span class="badge ok">delivered</span><span class="mono">a.k···@gmail.com</span><span class="k">SES · 250 2.0.0 OK</span></div>
+            <div class="ev"><span class="mono k">09:21:44</span><span class="badge bad">hard bounce</span><span class="mono">r.w···@outlook.com</span><span class="k">SES · 550 5.1.1 user unknown · added to suppression list</span></div>
+            <div class="ev"><span class="mono k">09:21:43</span><span class="badge ok">delivered</span><span class="mono">m.t···@acme-partner.co</span><span class="k">Postal · 250 OK</span></div>
+            <div class="ev"><span class="mono k">09:21:43</span><span class="badge info">opened · human</span><span class="mono">s.p···@gmail.com</span><span class="k">Chrome on macOS · variant B</span></div>
+            <div class="ev"><span class="mono k">09:21:42</span><span class="badge mut">opened · machine</span><span class="mono">d.l···@icloud.com</span><span class="k">Apple Mail Privacy Protection prefetch</span></div>
+            <div class="ev"><span class="mono k">09:21:42</span><span class="badge warn">deferred</span><span class="mono">h.b···@yahoo.com</span><span class="k">SES · 421 4.7.0 TSS04 · retry in 5 min</span></div>
+            <div class="ev"><span class="mono k">09:21:41</span><span class="badge ok">clicked</span><span class="mono">e.n···@gmail.com</span><span class="k">docs.acme.io/changelog</span></div>
+          </section>
+        </div>
+
+        <aside style="flex:1 1 320px;max-width:400px;display:flex;flex-direction:column;gap:16px">
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="h2">Auto-pause thresholds</h2><a href="SendReadiness.dc.html" class="k">Edit</a></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Bounce rate</span><span class="n">0.60% of 2.0%</span></div><div class="bar"><i style="width:30%;background:#15803D"></i></div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Complaint rate</span><span class="n">0.03% of 0.10%</span></div><div class="bar"><i style="width:30%;background:#15803D"></i></div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Outlook complaints (highest mailbox provider)</span><span class="n">0.05% of 0.10%</span></div><div class="bar"><i style="width:50%;background:#B45309"></i></div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Provider API errors, 3 min</span><span class="n">0.2% of 5%</span></div><div class="bar"><i style="width:4%;background:#15803D"></i></div></div>
+            <span class="k">Scope: pause only the affected route or mailbox provider.</span>
+          </section>
+
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+            <h2 class="h2">Send details</h2>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">From</span><span class="n">digest@news.acme.io</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">Audience</span><span class="n">Weekly Digest · 31,604</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">Route</span><span class="n">SES 90% · Postal 10%</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">Cost so far</span><span class="n">$1.76 of $2.84</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">Scheduled by</span><span class="n">Linh Nguyen</span></div>
+          </section>
+
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+            <h2 class="h2">Delivered by mailbox provider</h2>
+            <div style="display:flex;height:14px;gap:2px;border-radius:7px;overflow:hidden" role="img" aria-label="Delivered share: Gmail 46%, Outlook 21%, Yahoo 9%, iCloud 8%, Other 16%">
+              <div style="width:46%;background:#2a78d6"></div><div style="width:21%;background:#eb6834"></div><div style="width:9%;background:#1baf7a"></div><div style="width:8%;background:#eda100"></div><div style="width:16%;background:#8b94a3"></div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12px">
+              <span style="display:flex;gap:6px;align-items:center"><span class="dot" style="color:#2a78d6"></span>Gmail 46%</span>
+              <span style="display:flex;gap:6px;align-items:center"><span class="dot" style="color:#eb6834"></span>Outlook 21%</span>
+              <span style="display:flex;gap:6px;align-items:center"><span class="dot" style="color:#1baf7a"></span>Yahoo 9%</span>
+              <span style="display:flex;gap:6px;align-items:center"><span class="dot" style="color:#eda100"></span>iCloud 8%</span>
+              <span style="display:flex;gap:6px;align-items:center"><span class="dot" style="color:#8b94a3"></span>Other 16%</span>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1391}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

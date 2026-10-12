@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReputeCast README banner</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0B1220;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif}
+.chip{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;border:1px solid #374151;background:#111827;color:#E5E7EB;font-weight:600;font-size:13px}
+.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #1F2937;font-size:13px;color:#E5E7EB}
+.b{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;flex:none}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<div style="width:1280px;height:640px;box-sizing:border-box;padding:56px 64px;display:flex;gap:48px;align-items:center;background:#0B1220;position:relative;overflow:hidden">
+  <div style="position:absolute;right:-120px;top:-120px;width:520px;height:520px;border-radius:50%;background:#0F766E;opacity:.18"></div>
+  <div style="flex:1 1 600px;display:flex;flex-direction:column;gap:22px;position:relative">
+    <div style="display:flex;align-items:center;gap:14px">
+      <svg width="52" height="52" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span style="font-size:30px;font-weight:700;letter-spacing:-.02em">ReputeCast</span>
+    </div>
+    <h1 style="margin:0;font-size:46px;font-weight:700;letter-spacing:-.03em;line-height:1.05">The newsletter platform that protects your inbox placement.</h1>
+    <p style="margin:0;font-size:18px;color:#C3C2B7;line-height:1.5;max-width:600px">Open source and self-hosted. Checks deliverability before you send, guards your reputation while you send, and delivers through your own SES, Postmark, Mailgun, SendGrid, Resend, Postal or any SMTP server.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="chip">Open source</span><span class="chip">Self-hosted · docker compose up</span><span class="chip">Any sending provider, several at once</span><span class="chip">Every feature free</span></div>
+    <span style="font-size:14px;color:#9CA3AF">Built by HostRepute · github.com/hostrepute/reputecast</span>
+  </div>
+  <div style="flex:0 0 420px;position:relative;display:flex;flex-direction:column;gap:12px">
+    <div style="background:#111827;border:1px solid #374151;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:4px;box-shadow:0 24px 60px rgba(0,0,0,.4)">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px"><span style="font-weight:700;font-size:14px">Send Readiness</span><span class="b" style="background:#FEF3C7;color:#92400E">Ready with 2 warnings</span></div>
+      <div class="row"><span class="b" style="background:#DCFCE7;color:#166534">Pass</span>Clean on 84 of 84 blocklists</div>
+      <div class="row"><span class="b" style="background:#DCFCE7;color:#166534">Pass</span>SPF · DKIM · DMARC aligned on 2 providers</div>
+      <div class="row"><span class="b" style="background:#DCFCE7;color:#166534">Pass</span>64 KB, under Gmail's 102 KB clip</div>
+      <div class="row"><span class="b" style="background:#FEF3C7;color:#92400E">Warn</span>412 unengaged contacts included</div>
+      <div class="row"><span class="b" style="background:#DCFCE7;color:#166534">Pass</span>Route SES 90% / Postal 10%, both healthy</div>
+    </div>
+    <div style="background:#111827;border:1px solid #7F1D1D;border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:10px;font-size:13px;color:#E5E7EB"><span class="b" style="background:#FEE2E2;color:#991B1B">Auto-paused</span>Outlook complaints 0.18% · limit 0.10% · 2,522 held, rest still sending</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Import summary</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.h2{margin:0;font-size:15px;font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:9px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.r,.tbl th.r{text-align:right}
+.tile{display:flex;flex-direction:column;gap:3px;padding:14px 16px}
+
+/* responsive wizard */
+@media (max-width:1100px){ .wiz{padding:16px!important;gap:16px!important} }
+@media (max-width:767px){
+  .wiz{padding:12px!important}
+  .wizsteps{max-width:none!important;flex:1 1 100%!important;flex-direction:row!important;overflow-x:auto;gap:14px;padding:10px 12px!important}
+  .wizsteps .step{flex:none;padding:2px 0;align-items:center}
+  .wizsteps .step .k{display:none}
+  .wizsteps > div:last-child{display:none}
+}
+
+/* responsive wizard phone fixes */
+@media (max-width:767px){
+  .wiz > main{min-width:0;width:100%;max-width:100%}
+  .wiz main > *{min-width:0;max-width:100%}
+  .wiz .in,.wiz select,.wiz input,.wiz textarea{max-width:100%;min-width:0}
+  .wiz main div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .wiz main [style*="flex: 1 1"]{min-width:0}
+  .wiz select.in,.wiz input.in{width:0;min-width:100%}
+  .wiz .mono{overflow-wrap:anywhere}
+  .wiz .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .wiz .btn{white-space:normal;max-width:100%}
+  .wizsteps .badge{white-space:nowrap}
+  .wiz main [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .wiz main pre{max-width:100%}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column">
+  <header style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;color:#0B1220" aria-label="ReputeCast home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span style="font-weight:700;font-size:15px">ReputeCast</span>
+    </a>
+    <span class="k">/</span>
+    <h1 style="margin:0;font-size:16px;font-weight:600">Import contacts · Mailchimp</h1>
+    <span class="badge ok">Done</span>
+  </header>
+
+  <main style="display:flex;flex-direction:column;gap:18px;padding:36px 28px;max-width:960px;margin:0 auto;width:100%;box-sizing:border-box">
+    <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+      <svg width="56" height="56" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#BBF7D0"></circle><path d="m12 20.5 5.5 5.5L28 15" stroke="#166534" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <h2 style="margin:0;font-size:26px;font-weight:700;letter-spacing:-.02em">12,162 contacts imported from Mailchimp</h2>
+        <span style="color:#4B5563">Finished 09:54, 3 minutes 10 seconds. Product Updates now has 26,272 contacts. Consent carried over for every row; 1,259 addresses were suppressed and will never be re-subscribed by an import.</span>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+      <div class="card tile" style="border-color:#86EFAC"><span class="k">Imported</span><span class="n" style="font-size:22px">11,844</span><span class="k">new, subscribed</span></div>
+      <div class="card tile"><span class="k">Merged</span><span class="n" style="font-size:22px">318</span><span class="k">existing updated</span></div>
+      <div class="card tile" style="border-color:#FCA5A5"><span class="k">Suppressed</span><span class="n" style="font-size:22px">1,259</span><span class="k">1,033 unsubscribed · 212 bounced · 14 complaints</span></div>
+      <div class="card tile" style="border-color:#FCD34D"><span class="k">Pending re-permission</span><span class="n" style="font-size:22px">187</span><span class="k">confirmation sent via System stream</span></div>
+      <div class="card tile"><span class="k">Skipped</span><span class="n" style="font-size:22px">131</span><span class="k">46 invalid · 19 disposable · 14 trap-like · 52 other</span></div>
+    </div>
+
+    <section class="card" style="display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h3 class="h2">Skipped and changed rows</h3><div style="display:flex;gap:8px"><button class="btn sm">Download skipped rows · CSV, 131</button><button class="btn sm">Download full report · CSV</button></div></div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th scope="col">Reason</th><th scope="col" class="r">Rows</th><th scope="col">What happened</th></tr></thead>
+          <tbody>
+            <tr><td>Invalid address</td><td class="r n">46</td><td class="k">Not imported. Listed in the CSV with the row number and the raw value.</td></tr>
+            <tr><td>Disposable domain</td><td class="r n">19</td><td class="k">Not imported, as chosen in the preview.</td></tr>
+            <tr><td>Spam-trap pattern</td><td class="r n">14</td><td class="k">Not imported, as chosen. Addresses are redacted in the report.</td></tr>
+            <tr><td>Likely typo, fixed</td><td class="r n">25</td><td class="k">Imported with the corrected domain and tagged "review-typo". Original value kept in the report.</td></tr>
+            <tr><td>Role address</td><td class="r n">27</td><td class="k">Imported and excluded from Broadcasts automatically.</td></tr>
+            <tr><td>Already suppressed in ReputeCast</td><td class="r n">52</td><td class="k">Mailchimp said subscribed, ReputeCast had a bounce or unsubscribe. Suppression wins; not re-subscribed.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+      <h3 class="h2">Recommended next steps</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+        <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px"><span style="font-weight:600">Warm them in gradually</span><span class="k">Send Readiness will warn if a campaign to Product Updates includes more than 20% never-mailed-from-this-domain contacts. Consider a first send to the Active tier only.</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px"><span style="font-weight:600">Watch the 187 pending</span><span class="k">Re-permission emails went out at 09:54. Non-responders are suppressed automatically after 14 days.</span><a href="AutomationsList.dc.html" class="btn sm" style="align-self:flex-start">Open re-permission flow</a></div>
+        <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px"><span style="font-weight:600">Suppressions synced</span><span class="k">1,259 new addresses pushed to SES, Postmark and Postal at 09:54. The next campaign can't reach them on any provider.</span><a href="Suppressions.dc.html" class="btn sm" style="align-self:flex-start">View suppression list</a></div>
+      </div>
+    </section>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+      <a href="MigrationSource.dc.html" class="btn">Import another source</a>
+      <a href="Contacts.dc.html" class="btn pri" style="min-height:40px;padding:0 18px">View contacts</a>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
