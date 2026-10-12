@@ -151,8 +151,12 @@
   a:hover {
     color: var(--accent-hover);
   }
-  /* Links inside running text are underlined so colour is never the only cue. */
+  /* Links inside running text are underlined so colour is never the only cue
+     (as on the boards: a link in a span or a cell with its own colour is a
+     name, not running text; in the app such links take `no-underline`). */
   p a:not(.btn),
+  span a:not(.btn):not([style*='color']),
+  td a:not(.btn):not([style*='color']),
   li a:not(.btn),
   label a,
   .k a,
@@ -161,6 +165,15 @@
     text-decoration: underline;
     text-underline-offset: 2px;
     text-decoration-thickness: 1px;
+  }
+  /* Standalone links get at least a 24px target (WCAG 2.5.8), as on the boards. */
+  .content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),
+  .top a:not(.btn),
+  nav a:not(.btn),
+  footer a:not(.btn) {
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
   }
   :focus-visible {
     outline: 2px solid var(--focus);
