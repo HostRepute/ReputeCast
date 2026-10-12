@@ -231,15 +231,15 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
               <tr key={c.id}>
                 <Td>
                   {editable ? (
-                    <Link to="/w/$workspace/campaigns/$campaignId/edit" params={params(c.id)} className="font-semibold text-ink hover:text-accent">
+                    <Link to="/w/$workspace/campaigns/$campaignId/edit" params={params(c.id)} className="font-semibold text-ink no-underline">
                       {c.name}
                     </Link>
                   ) : c.status === 'sending' || c.status === 'paused' ? (
-                    <Link to="/w/$workspace/campaigns/$campaignId/live" params={params(c.id)} className="font-semibold text-ink hover:text-accent">
+                    <Link to="/w/$workspace/campaigns/$campaignId/live" params={params(c.id)} className="font-semibold text-ink no-underline">
                       {c.name}
                     </Link>
                   ) : (
-                    <Link to="/w/$workspace/campaigns/$campaignId/report" params={params(c.id)} className="font-semibold text-ink hover:text-accent">
+                    <Link to="/w/$workspace/campaigns/$campaignId/report" params={params(c.id)} className="font-semibold text-ink no-underline">
                       {c.name}
                     </Link>
                   )}

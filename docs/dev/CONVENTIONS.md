@@ -178,6 +178,11 @@ handlers. Never hand-write API types; derive them: `type Item = Schemas['Campaig
    board sets `box-sizing:border-box` itself (inline or in a class), add
    `box-border`. Don't compensate sizes by hand; measure both pages when in
    doubt.
+   **Links:** as on the boards, links in running text, spans and table cells
+   are underlined and standalone links get a 24px target (rules in
+   `app.css`). A board link with an inline `color` is a name, not running
+   text, and has no underline (and no hover colour): add `no-underline` and
+   the colour class (`text-ink`).
 3. Replace sample data with API data. Copy that is not data stays literal.
 4. Reproduce the responsive behaviour. The boards get it from global rules in
    their CSS; in the app use the primitives:
