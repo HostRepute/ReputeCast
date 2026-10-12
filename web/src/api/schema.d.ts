@@ -2808,11 +2808,26 @@ export interface operations {
     "list-audit-events": {
         parameters: {
             query?: {
+                /** @description Target name, target id, request id or actor name */
+                q?: string;
+                actorType?: "user" | "api_key" | "mcp_agent" | "system";
+                /** @description Actor id */
+                actor?: string;
+                /** @description Action or action group, e.g. routing or routing.updated */
+                action?: string;
+                result?: "allowed" | "denied" | "error";
+                range?: "24h" | "7d" | "30d" | "90d" | "all";
+                /** @description Overrides range */
+                since?: string;
+                until?: string;
                 cursor?: string;
                 limit?: number;
             };
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -2873,10 +2888,25 @@ export interface operations {
     "export-audit-events": {
         parameters: {
             query?: {
+                /** @description Target name, target id, request id or actor name */
+                q?: string;
+                actorType?: "user" | "api_key" | "mcp_agent" | "system";
+                /** @description Actor id */
+                actor?: string;
+                /** @description Action or action group, e.g. routing or routing.updated */
+                action?: string;
+                result?: "allowed" | "denied" | "error";
+                range?: "24h" | "7d" | "30d" | "90d" | "all";
+                /** @description Overrides range */
+                since?: string;
+                until?: string;
                 format?: "csv" | "json";
             };
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -3775,7 +3805,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                memberId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -3806,7 +3840,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                memberId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -4040,7 +4078,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                roleId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -4409,7 +4451,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                webhookId: string;
+            };
             cookie?: never;
         };
         requestBody: {

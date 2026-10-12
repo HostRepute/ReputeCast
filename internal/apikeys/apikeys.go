@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/netip"
+	"slices"
 	"strings"
 	"time"
 
@@ -378,7 +379,14 @@ func (s *Service) checkGrant(ctx context.Context, ws *store.Workspace, p *authz.
 	set, err := authz.CheckGrant(p.Permissions, wanted)
 	if err != nil {
 		if esc, ok := err.(*authz.EscalationError); ok && len(esc.Missing) > 0 {
+			// Name a permission the caller asked for before the ones it implies.
 			m := esc.Missing[0]
+			for _, w := range wanted {
+				if slices.Contains(esc.Missing, w) {
+					m = w
+					break
+				}
+			}
 			pr := api.Err(http.StatusForbidden, api.CodeEscalation, access.CantGrant(m, access.Helpers(ctx, s.Q, ws.ID, m)))
 			pr.Permission = string(m)
 			return nil, pr

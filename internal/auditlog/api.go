@@ -12,7 +12,8 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 )
 
-type filterInput struct {
+// AuditFilterInput is a path or query input shared by several operations.
+type AuditFilterInput struct {
 	api.WorkspaceInput
 	Search    string     `query:"q" maxLength:"200" doc:"Target name, target id, request id or actor name"`
 	ActorType string     `query:"actorType" enum:"user,api_key,mcp_agent,system"`
@@ -20,22 +21,31 @@ type filterInput struct {
 	Action    string     `query:"action" maxLength:"80" doc:"Action or action group, e.g. routing or routing.updated"`
 	Result    string     `query:"result" enum:"allowed,denied,error"`
 	Range     string     `query:"range" enum:"24h,7d,30d,90d,all" default:"7d"`
-	Since     *time.Time `query:"since" doc:"Overrides range"`
-	Until     *time.Time `query:"until"`
+	Since     time.Time `query:"since" doc:"Overrides range"`
+	Until     time.Time `query:"until"`
 }
 
-func (in *filterInput) filter() Filter {
-	return Filter{Search: in.Search, ActorType: in.ActorType, ActorID: in.Actor, Action: in.Action, Result: in.Result, Range: in.Range, Since: in.Since, Until: in.Until}
+func (in *AuditFilterInput) filter() Filter {
+	f := Filter{Search: in.Search, ActorType: in.ActorType, ActorID: in.Actor, Action: in.Action, Result: in.Result, Range: in.Range}
+	if !in.Since.IsZero() {
+		since := in.Since
+		f.Since = &since
+	}
+	if !in.Until.IsZero() {
+		until := in.Until
+		f.Until = &until
+	}
+	return f
 }
 
 type listInput struct {
-	filterInput
+	AuditFilterInput
 	Cursor string `query:"cursor" maxLength:"200"`
 	Limit  int    `query:"limit" minimum:"1" maximum:"200" default:"50"`
 }
 
 type exportInput struct {
-	filterInput
+	AuditFilterInput
 	Format string `query:"format" enum:"csv,json" default:"csv"`
 }
 

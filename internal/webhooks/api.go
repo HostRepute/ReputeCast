@@ -10,12 +10,13 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 )
 
-type hookInput struct {
+// WebhookPathInput is a path or query input shared by several operations.
+type WebhookPathInput struct {
 	api.WorkspaceInput
 	WebhookID string `path:"webhookId" format:"uuid"`
 }
 
-func (in *hookInput) id() (uuid.UUID, error) {
+func (in *WebhookPathInput) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(in.WebhookID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("Webhook")
@@ -23,7 +24,8 @@ func (in *hookInput) id() (uuid.UUID, error) {
 	return id, nil
 }
 
-type deliveryInput struct {
+// DeliveryPathInput is a path or query input shared by several operations.
+type DeliveryPathInput struct {
 	api.WorkspaceInput
 	DeliveryID string `path:"deliveryId" format:"uuid"`
 }
@@ -63,7 +65,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Put(h, api.Op{ID: "update-webhook", Path: base + "/{webhookId}", Summary: "Change an endpoint's URL, name or events", Tags: tags, Access: access},
 		func(ctx context.Context, in *struct {
-			hookInput
+			WebhookPathInput
 			Body WebhookInput
 		}) (*api.Body[WebhookView], error) {
 			id, err := in.id()
@@ -75,7 +77,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Delete(h, api.Op{ID: "delete-webhook", Path: base + "/{webhookId}", Summary: "Delete an endpoint and its delivery log", Tags: tags, Access: access},
-		func(ctx context.Context, in *hookInput) (*api.Empty, error) {
+		func(ctx context.Context, in *WebhookPathInput) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -84,7 +86,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "rotate-webhook-secret", Path: base + "/{webhookId}/rotate-secret", Summary: "Replace the signing secret; the new one is shown once", Tags: tags, Access: api.WorkspaceHuman(authz.WebhooksManage)},
-		func(ctx context.Context, in *hookInput) (*api.Body[WebhookSecretResult], error) {
+		func(ctx context.Context, in *WebhookPathInput) (*api.Body[WebhookSecretResult], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -94,7 +96,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "pause-webhook", Path: base + "/{webhookId}/pause", Summary: "Pause an endpoint; events keep queuing", Tags: tags, Access: access, Status: 204},
-		func(ctx context.Context, in *hookInput) (*api.Empty, error) {
+		func(ctx context.Context, in *WebhookPathInput) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -103,7 +105,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "resume-webhook", Path: base + "/{webhookId}/resume", Summary: "Resume an endpoint and deliver what queued, in order", Tags: tags, Access: access, Status: 204},
-		func(ctx context.Context, in *hookInput) (*api.Empty, error) {
+		func(ctx context.Context, in *WebhookPathInput) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -112,7 +114,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "test-webhook", Path: base + "/{webhookId}/test", Summary: "Send a webhook.test event now and return the result", Tags: tags, Access: access},
-		func(ctx context.Context, in *hookInput) (*api.Body[WebhookTestResult], error) {
+		func(ctx context.Context, in *WebhookPathInput) (*api.Body[WebhookTestResult], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -136,7 +138,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Get(h, api.Op{ID: "get-webhook-delivery", Path: base + "/deliveries/{deliveryId}", Summary: "One delivery with its payload and the endpoint's response", Tags: tags, Access: access},
-		func(ctx context.Context, in *deliveryInput) (*api.Body[WebhookDeliveryDetail], error) {
+		func(ctx context.Context, in *DeliveryPathInput) (*api.Body[WebhookDeliveryDetail], error) {
 			id, err := uuid.Parse(in.DeliveryID)
 			if err != nil {
 				return nil, api.NotFound("Delivery")
@@ -146,7 +148,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "retry-webhook-delivery", Path: base + "/deliveries/{deliveryId}/retry", Summary: "Retry a failed delivery now, or replay one from the dead-letter queue", Tags: tags, Access: access},
-		func(ctx context.Context, in *deliveryInput) (*api.Body[WebhookRetryResult], error) {
+		func(ctx context.Context, in *DeliveryPathInput) (*api.Body[WebhookRetryResult], error) {
 			id, err := uuid.Parse(in.DeliveryID)
 			if err != nil {
 				return nil, api.NotFound("Delivery")

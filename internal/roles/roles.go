@@ -239,11 +239,19 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 	return authz.NewSet(keys...), n, nil
 }
 
-// escalation rejects permissions the caller adds without holding them.
-func escalation(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, added []authz.Permission) error {
+// escalation rejects permissions the caller adds without holding them. The
+// permissions the caller asked for are named before the ones they imply.
+func escalation(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, requested []string, added []authz.Permission) error {
 	var missing []authz.Permission
+	isAdded := func(k authz.Permission) bool { return slices.Contains(added, k) }
+	for _, r := range requested {
+		k := authz.Permission(r)
+		if isAdded(k) && !p.Permissions.Has(k) && !slices.Contains(missing, k) {
+			missing = append(missing, k)
+		}
+	}
 	for _, a := range added {
-		if !p.Permissions.Has(a) {
+		if !p.Permissions.Has(a) && !slices.Contains(missing, a) {
 			missing = append(missing, a)
 		}
 	}
@@ -268,7 +276,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if err != nil {
 			return err
 		}
-		if err := escalation(ctx, q, ws, p, set.Keys()); err != nil {
+		if err := escalation(ctx, q, ws, p, in.Permissions, set.Keys()); err != nil {
 			return err
 		}
 		key := slug(n)
@@ -314,7 +322,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		before := authz.ParseSet(r.Permissions)
 		added := before.Missing(set)
 		removed := set.Missing(before)
-		if err := escalation(ctx, q, ws, p, added); err != nil {
+		if err := escalation(ctx, q, ws, p, in.Permissions, added); err != nil {
 			return err
 		}
 		if _, err := q.RolesUpdate(ctx, store.RolesUpdateParams{ID: r.ID, WorkspaceID: ws.ID, Name: n, Description: strings.TrimSpace(in.Description), Permissions: set.Strings()}); err != nil {

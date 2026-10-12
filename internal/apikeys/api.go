@@ -10,12 +10,13 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 )
 
-type keyInput struct {
+// KeyPathInput is a path or query input shared by several operations.
+type KeyPathInput struct {
 	api.WorkspaceInput
 	KeyID string `path:"keyId" format:"uuid"`
 }
 
-func (in *keyInput) id(kind string) (uuid.UUID, error) {
+func (in *KeyPathInput) id(kind string) (uuid.UUID, error) {
 	id, err := uuid.Parse(in.KeyID)
 	if err != nil {
 		return uuid.Nil, api.NotFound(noun(kind))
@@ -44,7 +45,7 @@ func Register(h huma.API, s *Service) {
 				return api.OK(out), err
 			})
 		api.Get(h, api.Op{ID: "get-" + k.idPrefix, Path: k.path + "/{keyId}", Summary: "One " + k.title + " with the calls rejected since it expired", Tags: tags, Access: api.Workspace(k.perm)},
-			func(ctx context.Context, in *keyInput) (*api.Body[APIKeyView], error) {
+			func(ctx context.Context, in *KeyPathInput) (*api.Body[APIKeyView], error) {
 				id, err := in.id(k.kind)
 				if err != nil {
 					return nil, err
@@ -61,7 +62,7 @@ func Register(h huma.API, s *Service) {
 				return api.OK(out), err
 			})
 		api.Post(h, api.Op{ID: "rotate-" + k.idPrefix, Path: k.path + "/{keyId}/rotate", Summary: "Rotate (or replace an expired) " + k.title + "; the new secret is shown once", Tags: tags, Access: api.WorkspaceHuman(k.perm)},
-			func(ctx context.Context, in *keyInput) (*api.Body[APIKeyCreated], error) {
+			func(ctx context.Context, in *KeyPathInput) (*api.Body[APIKeyCreated], error) {
 				id, err := in.id(k.kind)
 				if err != nil {
 					return nil, err
@@ -70,7 +71,7 @@ func Register(h huma.API, s *Service) {
 				return api.OK(out), err
 			})
 		api.Post(h, api.Op{ID: "revoke-" + k.idPrefix, Path: k.path + "/{keyId}/revoke", Summary: "Revoke an " + k.title + " immediately", Tags: tags, Access: api.Workspace(k.perm), Status: 204},
-			func(ctx context.Context, in *keyInput) (*api.Empty, error) {
+			func(ctx context.Context, in *KeyPathInput) (*api.Empty, error) {
 				id, err := in.id(k.kind)
 				if err != nil {
 					return nil, err
@@ -78,7 +79,7 @@ func Register(h huma.API, s *Service) {
 				return api.NoContent, s.Revoke(ctx, api.WorkspaceFrom(ctx), k.kind, id)
 			})
 		api.Delete(h, api.Op{ID: "delete-" + k.idPrefix, Path: k.path + "/{keyId}", Summary: "Delete an expired or revoked " + k.title, Tags: tags, Access: api.Workspace(k.perm)},
-			func(ctx context.Context, in *keyInput) (*api.Empty, error) {
+			func(ctx context.Context, in *KeyPathInput) (*api.Empty, error) {
 				id, err := in.id(k.kind)
 				if err != nil {
 					return nil, err

@@ -10,12 +10,13 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 )
 
-type roleInput struct {
+// RolePathInput is a path or query input shared by several operations.
+type RolePathInput struct {
 	api.WorkspaceInput
 	RoleID string `path:"roleId" format:"uuid"`
 }
 
-func (in *roleInput) id() (uuid.UUID, error) {
+func (in *RolePathInput) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(in.RoleID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("Role")
@@ -35,7 +36,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Get(h, api.Op{ID: "get-role", Path: base + "/{roleId}", Summary: "One role for the role editor", Tags: tags, Access: api.Workspace(authz.TeamView)},
-		func(ctx context.Context, in *roleInput) (*api.Body[RoleDetail], error) {
+		func(ctx context.Context, in *RolePathInput) (*api.Body[RoleDetail], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -55,7 +56,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Put(h, api.Op{ID: "update-role", Path: base + "/{roleId}", Summary: "Update a custom role; changes apply to its members at once", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage), Status: 204},
 		func(ctx context.Context, in *struct {
-			roleInput
+			RolePathInput
 			Body RoleInput
 		}) (*api.Empty, error) {
 			id, err := in.id()
@@ -66,7 +67,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Delete(h, api.Op{ID: "delete-role", Path: base + "/{roleId}", Summary: "Delete a custom role nobody holds", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage)},
-		func(ctx context.Context, in *roleInput) (*api.Empty, error) {
+		func(ctx context.Context, in *RolePathInput) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err

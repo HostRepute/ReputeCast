@@ -180,7 +180,7 @@ func hasSSO(ids []access.Identity) bool {
 // TeamDeactivateInput deactivates a member.
 type TeamDeactivateInput struct {
 	// RevokeKeys revokes the API keys and agents the member created; false keeps them working.
-	RevokeKeys bool   `json:"revokeKeys"`
+	RevokeKeys bool   `json:"revokeKeys,omitempty"`
 	Reason     string `json:"reason,omitempty" maxLength:"500" doc:"Recorded in the audit log"`
 }
 

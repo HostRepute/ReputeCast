@@ -26,12 +26,13 @@ type listInput struct {
 	TwoFA  string `query:"twofa" enum:"on,off,idp,required"`
 }
 
-type memberInput struct {
+// MemberPathInput is a path or query input shared by several operations.
+type MemberPathInput struct {
 	api.WorkspaceInput
 	MemberID string `path:"memberId" format:"uuid"`
 }
 
-func (in *memberInput) id() (uuid.UUID, error) {
+func (in *MemberPathInput) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(in.MemberID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("Member")
@@ -39,12 +40,13 @@ func (in *memberInput) id() (uuid.UUID, error) {
 	return id, nil
 }
 
-type invitationInput struct {
+// InvitationPathInput is a path or query input shared by several operations.
+type InvitationPathInput struct {
 	api.WorkspaceInput
 	InvitationID string `path:"invitationId" format:"uuid"`
 }
 
-func (in *invitationInput) id() (uuid.UUID, error) {
+func (in *InvitationPathInput) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(in.InvitationID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("Invitation")
@@ -64,7 +66,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Get(h, api.Op{ID: "get-member", Path: base + "/members/{memberId}", Summary: "Member detail: effective permissions and where each comes from, keys, approvals, activity", Tags: tags, Access: api.Workspace(authz.TeamView)},
-		func(ctx context.Context, in *memberInput) (*api.Body[TeamMemberDetail], error) {
+		func(ctx context.Context, in *MemberPathInput) (*api.Body[TeamMemberDetail], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -75,7 +77,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Patch(h, api.Op{ID: "update-member", Path: base + "/members/{memberId}", Summary: "Change a member's role or scope", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage), Status: 204},
 		func(ctx context.Context, in *struct {
-			memberInput
+			MemberPathInput
 			Body TeamMemberChangeInput
 		}) (*api.Empty, error) {
 			id, err := in.id()
@@ -87,7 +89,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Post(h, api.Op{ID: "deactivate-member", Path: base + "/members/{memberId}/deactivate", Summary: "Deactivate a member: keeps history, signs out everywhere, keeps or revokes their API keys", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage)},
 		func(ctx context.Context, in *struct {
-			memberInput
+			MemberPathInput
 			Body TeamDeactivateInput
 		}) (*api.Body[TeamDeactivateResult], error) {
 			id, err := in.id()
@@ -99,7 +101,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "reactivate-member", Path: base + "/members/{memberId}/reactivate", Summary: "Reactivate a deactivated member", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage), Status: 204},
-		func(ctx context.Context, in *memberInput) (*api.Empty, error) {
+		func(ctx context.Context, in *MemberPathInput) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -108,7 +110,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Delete(h, api.Op{ID: "remove-member", Path: base + "/members/{memberId}", Summary: "Remove a member (the audit log keeps their history)", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage)},
-		func(ctx context.Context, in *memberInput) (*api.Empty, error) {
+		func(ctx context.Context, in *MemberPathInput) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -117,7 +119,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "sign-out-member", Path: base + "/members/{memberId}/sign-out", Summary: "End every session of a member", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage)},
-		func(ctx context.Context, in *memberInput) (*api.Body[TeamSignOutResult], error) {
+		func(ctx context.Context, in *MemberPathInput) (*api.Body[TeamSignOutResult], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -157,7 +159,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "resend-invitation", Path: base + "/invitations/{invitationId}/resend", Summary: "Email a pending invitation again and restart its expiry", Tags: tags, Access: api.WorkspaceHuman(authz.TeamInvite)},
-		func(ctx context.Context, in *invitationInput) (*api.Body[TeamResendResult], error) {
+		func(ctx context.Context, in *InvitationPathInput) (*api.Body[TeamResendResult], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -167,7 +169,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "invitation-link", Path: base + "/invitations/{invitationId}/link", Summary: "Copy the link of a pending invitation", Tags: tags, Access: api.WorkspaceHuman(authz.TeamInvite)},
-		func(ctx context.Context, in *invitationInput) (*api.Body[TeamInviteLink], error) {
+		func(ctx context.Context, in *InvitationPathInput) (*api.Body[TeamInviteLink], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -177,7 +179,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Delete(h, api.Op{ID: "revoke-invitation", Path: base + "/invitations/{invitationId}", Summary: "Revoke a pending invitation", Tags: tags, Access: api.WorkspaceHuman(authz.TeamInvite)},
-		func(ctx context.Context, in *invitationInput) (*api.Empty, error) {
+		func(ctx context.Context, in *InvitationPathInput) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err

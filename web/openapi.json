@@ -5181,6 +5181,115 @@
         "operationId": "list-audit-events",
         "parameters": [
           {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Target name, target id, request id or actor name",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Target name, target id, request id or actor name",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "actorType",
+            "schema": {
+              "enum": [
+                "user",
+                "api_key",
+                "mcp_agent",
+                "system"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Actor id",
+            "explode": false,
+            "in": "query",
+            "name": "actor",
+            "schema": {
+              "description": "Actor id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Action or action group, e.g. routing or routing.updated",
+            "explode": false,
+            "in": "query",
+            "name": "action",
+            "schema": {
+              "description": "Action or action group, e.g. routing or routing.updated",
+              "maxLength": 80,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "result",
+            "schema": {
+              "enum": [
+                "allowed",
+                "denied",
+                "error"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "7d",
+              "enum": [
+                "24h",
+                "7d",
+                "30d",
+                "90d",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Overrides range",
+            "explode": false,
+            "in": "query",
+            "name": "since",
+            "schema": {
+              "description": "Overrides range",
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "until",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
             "explode": false,
             "in": "query",
             "name": "cursor",
@@ -5310,6 +5419,115 @@
       "get": {
         "operationId": "export-audit-events",
         "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Target name, target id, request id or actor name",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Target name, target id, request id or actor name",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "actorType",
+            "schema": {
+              "enum": [
+                "user",
+                "api_key",
+                "mcp_agent",
+                "system"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Actor id",
+            "explode": false,
+            "in": "query",
+            "name": "actor",
+            "schema": {
+              "description": "Actor id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Action or action group, e.g. routing or routing.updated",
+            "explode": false,
+            "in": "query",
+            "name": "action",
+            "schema": {
+              "description": "Action or action group, e.g. routing or routing.updated",
+              "maxLength": 80,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "result",
+            "schema": {
+              "enum": [
+                "allowed",
+                "denied",
+                "error"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "7d",
+              "enum": [
+                "24h",
+                "7d",
+                "30d",
+                "90d",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Overrides range",
+            "explode": false,
+            "in": "query",
+            "name": "since",
+            "schema": {
+              "description": "Overrides range",
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "until",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
           {
             "explode": false,
             "in": "query",
@@ -7014,6 +7232,31 @@
       },
       "patch": {
         "operationId": "update-member",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -7055,6 +7298,31 @@
     "/api/v1/workspaces/{workspace}/members/{memberId}/deactivate": {
       "post": {
         "operationId": "deactivate-member",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -7526,6 +7794,31 @@
       },
       "put": {
         "operationId": "update-role",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "roleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -8211,6 +8504,31 @@
       },
       "put": {
         "operationId": "update-webhook",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "webhookId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
