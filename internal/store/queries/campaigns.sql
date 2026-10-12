@@ -95,3 +95,164 @@ ORDER BY priority LIMIT 1;
 
 -- name: ProviderNames :many
 SELECT id, name, adapter FROM providers WHERE workspace_id = @workspace_id AND disconnected_at IS NULL;
+
+-- ------------------------------------------------------------------ composer
+
+-- name: GetComposerCampaign :one
+-- One campaign with what the composer header shows.
+SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.sender_id, c.reply_to, c.audience, c.audience_count,
+       c.editor_mode, c.mjml, c.html, c.plain_text, c.version, c.ab_test, c.schedule, c.content_hash, c.content_settings,
+       c.created_by, c.updated_by, c.created_at, c.updated_at, c.autosaved_at, c.scheduled_at, c.started_at,
+       coalesce(u.name, '')::text AS updated_by_name,
+       coalesce(s.name, '')::text AS sender_name,
+       coalesce(s.email, '')::text AS sender_email,
+       (SELECT count(*) FROM campaign_versions v WHERE v.campaign_id = c.id)::bigint AS version_count
+FROM campaigns c
+LEFT JOIN users u ON u.id = c.updated_by
+LEFT JOIN senders s ON s.id = c.sender_id
+WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.deleted_at IS NULL;
+
+-- name: LockCampaignForSave :one
+-- Row lock for autosave: the version check and the new version are atomic.
+SELECT c.id, c.status, c.version, c.subject, c.preheader, c.mjml, c.html, c.ab_test, c.content_hash, c.content_settings,
+       c.updated_by, c.autosaved_at, c.updated_at,
+       coalesce(u.name, '')::text AS updated_by_name
+FROM campaigns c
+LEFT JOIN users u ON u.id = c.updated_by
+WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.deleted_at IS NULL
+FOR UPDATE OF c;
+
+-- name: InsertComposerCampaign :exec
+INSERT INTO campaigns (id, workspace_id, name, status, subject, preheader, sender_id, audience, audience_count,
+                       editor_mode, mjml, html, plain_text, version, ab_test, content_hash, created_by, updated_by, created_at, updated_at, autosaved_at)
+VALUES (@id, @workspace_id, @name, 'draft', @subject, @preheader, sqlc.narg(sender_id), @audience, sqlc.narg(audience_count),
+        'visual', @mjml, @html, @plain_text, 1, sqlc.narg(ab_test), @content_hash, @created_by, @created_by, @now, @now, sqlc.narg(autosaved_at));
+
+-- name: UpdateCampaignMeta :exec
+UPDATE campaigns
+SET name = @name, sender_id = sqlc.narg(sender_id), reply_to = @reply_to, audience = @audience,
+    audience_count = sqlc.narg(audience_count), content_settings = @content_settings,
+    updated_by = @updated_by, updated_at = @now
+WHERE workspace_id = @workspace_id AND id = @id;
+
+-- name: SaveCampaignContent :exec
+UPDATE campaigns
+SET subject = @subject, preheader = @preheader, mjml = @mjml, html = @html, plain_text = @plain_text,
+    ab_test = sqlc.narg(ab_test), content_hash = @content_hash, version = @version,
+    updated_by = @updated_by, updated_at = @now, autosaved_at = @now
+WHERE workspace_id = @workspace_id AND id = @id;
+
+-- name: InsertCampaignVersion :exec
+INSERT INTO campaign_versions (campaign_id, version, subject, preheader, mjml, html, plain_text, ab_test, saved_by, saved_at, label, source, size_bytes)
+VALUES (@campaign_id, @version, @subject, @preheader, @mjml, @html, @plain_text, sqlc.narg(ab_test), sqlc.narg(saved_by), @saved_at, @label, @source, @size_bytes);
+
+-- name: ListCampaignVersions :many
+SELECT v.version, v.saved_at, v.label, v.source, v.size_bytes, v.saved_by, coalesce(u.name, '')::text AS saved_by_name
+FROM campaign_versions v
+LEFT JOIN users u ON u.id = v.saved_by
+WHERE v.campaign_id = @campaign_id
+ORDER BY v.version DESC
+LIMIT @lim;
+
+-- name: GetCampaignVersion :one
+SELECT v.campaign_id, v.version, v.subject, v.preheader, v.mjml, v.html, v.plain_text, v.ab_test, v.saved_by, v.saved_at, v.label, v.source, v.size_bytes,
+       coalesce(u.name, '')::text AS saved_by_name
+FROM campaign_versions v
+LEFT JOIN users u ON u.id = v.saved_by
+WHERE v.campaign_id = @campaign_id AND v.version = @version;
+
+-- name: PruneCampaignVersions :execrows
+-- Keeps the newest @keep versions; the first version and anything that is
+-- not an autosave (restores, imports, ⌘S) are always kept.
+DELETE FROM campaign_versions v
+WHERE v.campaign_id = @campaign_id AND v.source = 'autosave' AND v.version <> 1
+  AND v.version <= (SELECT max(x.version) FROM campaign_versions x WHERE x.campaign_id = @campaign_id) - @keep::int;
+
+-- name: ListComposerSenders :many
+SELECT s.id, s.name, s.email, d.domain, d.status AS domain_status
+FROM senders s
+JOIN sending_domains d ON d.id = s.domain_id
+WHERE s.workspace_id = @workspace_id
+ORDER BY s.created_at, s.email;
+
+-- name: GetComposerSender :one
+SELECT s.id, s.name, s.email, d.domain
+FROM senders s
+JOIN sending_domains d ON d.id = s.domain_id
+WHERE s.workspace_id = @workspace_id AND s.id = @id;
+
+-- name: GetWorkspaceDefaultSender :one
+SELECT coalesce(w.default_sender_id::text, '')::text AS sender_id, w.branding
+FROM workspaces w WHERE w.id = @id;
+
+-- name: ListAudienceLists :many
+-- Lists with their subscribed, active contacts (suppressed addresses excluded).
+SELECT l.id, l.name,
+       (SELECT count(*) FROM list_memberships m
+        JOIN contacts c ON c.id = m.contact_id
+        WHERE m.list_id = l.id AND m.status = 'subscribed' AND c.status = 'active' AND c.erased_at IS NULL)::bigint AS subscribers
+FROM lists l
+WHERE l.workspace_id = @workspace_id AND l.deleted_at IS NULL
+ORDER BY l.created_at;
+
+-- name: ListAudienceSegments :many
+SELECT id, name, cached_count FROM segments WHERE workspace_id = @workspace_id ORDER BY name;
+
+-- name: CountListAudience :one
+-- Recipients of lists minus excluded lists and suppressions.
+SELECT count(DISTINCT c.id)::bigint
+FROM contacts c
+JOIN list_memberships m ON m.contact_id = c.id
+WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS NULL
+  AND m.status = 'subscribed' AND m.list_id = ANY(@lists::uuid[])
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY(@exclude_lists::uuid[]))
+  AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email);
+
+-- name: CountAudienceMissingField :one
+-- Audience contacts whose first name is empty (they see the fallback).
+SELECT count(DISTINCT c.id)::bigint
+FROM contacts c
+JOIN list_memberships m ON m.contact_id = c.id
+WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS NULL
+  AND m.status = 'subscribed' AND m.list_id = ANY(@lists::uuid[]) AND c.first_name = '';
+
+-- name: ListPreviewContacts :many
+-- Contacts to preview as: the campaign's audience first, people with a first name first.
+SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier
+FROM contacts c
+WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL AND c.status = 'active'
+  AND (@query::text = '' OR c.email ILIKE '%' || @query::text || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || @query::text || '%')
+  AND (cardinality(@lists::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(@lists::uuid[])))
+ORDER BY (c.first_name = '') ASC, c.last_open_at DESC NULLS LAST, c.email
+LIMIT @lim;
+
+-- name: GetPreviewContact :one
+SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier
+FROM contacts c
+WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.erased_at IS NULL;
+
+-- name: RandomActiveContact :one
+SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier
+FROM contacts c
+WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL AND c.status = 'active' AND c.tier = 'active'
+ORDER BY random()
+LIMIT 1;
+
+-- name: ListCustomFields :many
+SELECT key, label, type FROM custom_fields WHERE workspace_id = @workspace_id ORDER BY created_at, key;
+
+-- name: ListTestRecipients :many
+-- Active members of the workspace, for "Send test" (name and email).
+SELECT u.id, u.name, u.email
+FROM workspace_members m
+JOIN users u ON u.id = m.user_id AND u.status = 'active'
+WHERE m.workspace_id = @workspace_id AND m.status = 'active'
+ORDER BY u.name;
+
+-- name: LastSentCampaign :one
+SELECT c.id, c.name, coalesce(c.started_at, c.updated_at) AS sent_at
+FROM campaigns c
+WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.status = 'sent' AND c.origin = '' AND c.mjml <> ''
+ORDER BY c.started_at DESC NULLS LAST
+LIMIT 1;
+

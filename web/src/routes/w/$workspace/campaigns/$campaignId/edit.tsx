@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { Prototype } from '@/features/composer/Prototype'
 
 export const Route = createFileRoute('/w/$workspace/campaigns/$campaignId/edit')({
-  component: () => <NotBuilt screen="Composer" />,
+  component: () => <Prototype />,
 })
