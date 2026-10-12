@@ -50,7 +50,10 @@ type Capabilities struct {
 	DedicatedIPs    string     `json:"dedicatedIps"`
 	Sandbox         string     `json:"sandbox"` // "detection", "test token", "mode", ""
 	QuotaDiscovery  bool       `json:"quotaDiscovery"`
-	Pricing         string     `json:"pricing"` // human summary: "$0.10 per 1,000"
+	// RateDiscovery is true when the API also reports the maximum send rate
+	// (SES: "Quota & rate discovery"; Postmark only reports quota).
+	RateDiscovery bool   `json:"rateDiscovery"`
+	Pricing       string `json:"pricing"` // human summary: "$0.10 per 1,000"
 	// RewritesLinks / AddsOpenPixel are true when provider-side tracking is
 	// on by default and should be turned off to avoid double tracking.
 	RewritesLinks bool `json:"rewritesLinks"`
