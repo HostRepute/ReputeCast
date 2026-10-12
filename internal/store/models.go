@@ -68,6 +68,34 @@ type ApprovalRequest struct {
 	DecidedAt         *time.Time      `json:"decidedAt"`
 }
 
+type AudienceDaily struct {
+	WorkspaceID  uuid.UUID `json:"workspaceId"`
+	Scope        string    `json:"scope"`
+	ScopeID      uuid.UUID `json:"scopeId"`
+	Day          time.Time `json:"day"`
+	Contacts     int64     `json:"contacts"`
+	Active       int64     `json:"active"`
+	Cooling      int64     `json:"cooling"`
+	AtRisk       int64     `json:"atRisk"`
+	Sunset       int64     `json:"sunset"`
+	Joined       int64     `json:"joined"`
+	Departed     int64     `json:"departed"`
+	Sent         int64     `json:"sent"`
+	Delivered    int64     `json:"delivered"`
+	OpenedHuman  int64     `json:"openedHuman"`
+	Unsubscribed int64     `json:"unsubscribed"`
+	Complained   int64     `json:"complained"`
+	Bounced      int64     `json:"bounced"`
+}
+
+type AudienceState struct {
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	TiersComputedAt *time.Time `json:"tiersComputedAt"`
+	Reengaged       int64      `json:"reengaged"`
+	WonBack         int64      `json:"wonBack"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+}
+
 type AuditEvent struct {
 	ID          uuid.UUID       `json:"id"`
 	WorkspaceID *uuid.UUID      `json:"workspaceId"`
@@ -280,37 +308,54 @@ type CampaignVersion struct {
 }
 
 type ConsentEvent struct {
-	ID         uuid.UUID   `json:"id"`
-	ContactID  uuid.UUID   `json:"contactId"`
-	ListID     *uuid.UUID  `json:"listId"`
-	Action     string      `json:"action"`
-	Source     string      `json:"source"`
-	Ip         *netip.Addr `json:"ip"`
-	UserAgent  string      `json:"userAgent"`
-	Detail     string      `json:"detail"`
-	OccurredAt time.Time   `json:"occurredAt"`
+	ID             uuid.UUID   `json:"id"`
+	ContactID      uuid.UUID   `json:"contactId"`
+	ListID         *uuid.UUID  `json:"listId"`
+	Action         string      `json:"action"`
+	Source         string      `json:"source"`
+	Ip             *netip.Addr `json:"ip"`
+	UserAgent      string      `json:"userAgent"`
+	Detail         string      `json:"detail"`
+	OccurredAt     time.Time   `json:"occurredAt"`
+	Note           string      `json:"note"`
+	ConsentVersion string      `json:"consentVersion"`
+	ActorID        *uuid.UUID  `json:"actorId"`
+	ImportID       *uuid.UUID  `json:"importId"`
 }
 
 type Contact struct {
-	ID              uuid.UUID       `json:"id"`
-	WorkspaceID     uuid.UUID       `json:"workspaceId"`
-	Email           string          `json:"email"`
-	FirstName       string          `json:"firstName"`
-	LastName        string          `json:"lastName"`
-	Status          string          `json:"status"`
-	Tier            string          `json:"tier"`
-	Source          string          `json:"source"`
-	Timezone        string          `json:"timezone"`
-	Country         string          `json:"country"`
-	MailboxProvider string          `json:"mailboxProvider"`
-	Tags            []string        `json:"tags"`
-	Attributes      json.RawMessage `json:"attributes"`
-	LastSentAt      *time.Time      `json:"lastSentAt"`
-	LastOpenAt      *time.Time      `json:"lastOpenAt"`
-	LastClickAt     *time.Time      `json:"lastClickAt"`
-	CreatedAt       time.Time       `json:"createdAt"`
-	UpdatedAt       time.Time       `json:"updatedAt"`
-	ErasedAt        *time.Time      `json:"erasedAt"`
+	ID                  uuid.UUID       `json:"id"`
+	WorkspaceID         uuid.UUID       `json:"workspaceId"`
+	Email               string          `json:"email"`
+	FirstName           string          `json:"firstName"`
+	LastName            string          `json:"lastName"`
+	Status              string          `json:"status"`
+	Tier                string          `json:"tier"`
+	Source              string          `json:"source"`
+	Timezone            string          `json:"timezone"`
+	Country             string          `json:"country"`
+	MailboxProvider     string          `json:"mailboxProvider"`
+	Tags                []string        `json:"tags"`
+	Attributes          json.RawMessage `json:"attributes"`
+	LastSentAt          *time.Time      `json:"lastSentAt"`
+	LastOpenAt          *time.Time      `json:"lastOpenAt"`
+	LastClickAt         *time.Time      `json:"lastClickAt"`
+	CreatedAt           time.Time       `json:"createdAt"`
+	UpdatedAt           time.Time       `json:"updatedAt"`
+	ErasedAt            *time.Time      `json:"erasedAt"`
+	Company             string          `json:"company"`
+	Language            string          `json:"language"`
+	MailboxDetail       string          `json:"mailboxDetail"`
+	Consent             string          `json:"consent"`
+	ConsentEvidence     json.RawMessage `json:"consentEvidence"`
+	ImportID            *uuid.UUID      `json:"importId"`
+	RoleAddress         bool            `json:"roleAddress"`
+	LastHumanOpenAt     *time.Time      `json:"lastHumanOpenAt"`
+	LastOpenMachine     bool            `json:"lastOpenMachine"`
+	LastActivityAt      *time.Time      `json:"lastActivityAt"`
+	TierChangedAt       *time.Time      `json:"tierChangedAt"`
+	SunsetAt            *time.Time      `json:"sunsetAt"`
+	BroadcastsStoppedAt *time.Time      `json:"broadcastsStoppedAt"`
 }
 
 type ContactPreference struct {
@@ -328,6 +373,8 @@ type CustomField struct {
 	Type        string          `json:"type"`
 	Options     json.RawMessage `json:"options"`
 	CreatedAt   time.Time       `json:"createdAt"`
+	Display     string          `json:"display"`
+	Position    int32           `json:"position"`
 }
 
 type DeliveryEvent struct {
@@ -434,6 +481,33 @@ type Import struct {
 	CreatedAt      time.Time       `json:"createdAt"`
 	StartedAt      *time.Time      `json:"startedAt"`
 	FinishedAt     *time.Time      `json:"finishedAt"`
+	Step           string          `json:"step"`
+	StagedAt       *time.Time      `json:"stagedAt"`
+	Progress       json.RawMessage `json:"progress"`
+	SkippedCsv     []byte          `json:"skippedCsv"`
+	ResumeAt       *time.Time      `json:"resumeAt"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
+}
+
+type ImportLog struct {
+	ID         uuid.UUID `json:"id"`
+	ImportID   uuid.UUID `json:"importId"`
+	OccurredAt time.Time `json:"occurredAt"`
+	Kind       string    `json:"kind"`
+	Message    string    `json:"message"`
+}
+
+type ImportRow struct {
+	ImportID   uuid.UUID       `json:"importId"`
+	RowNo      int32           `json:"rowNo"`
+	Email      string          `json:"email"`
+	Status     string          `json:"status"`
+	ListRef    string          `json:"listRef"`
+	Data       json.RawMessage `json:"data"`
+	Tags       []string        `json:"tags"`
+	Engagement json.RawMessage `json:"engagement"`
+	Outcome    string          `json:"outcome"`
+	Reason     string          `json:"reason"`
 }
 
 type Incident struct {
@@ -547,6 +621,15 @@ type Message struct {
 	OpenedAt          *time.Time `json:"openedAt"`
 	ClickedAt         *time.Time `json:"clickedAt"`
 	Error             string     `json:"error"`
+	Failover          bool       `json:"failover"`
+	RouteNote         string     `json:"routeNote"`
+}
+
+type MxCache struct {
+	Domain    string    `json:"domain"`
+	HasMx     bool      `json:"hasMx"`
+	Provider  string    `json:"provider"`
+	CheckedAt time.Time `json:"checkedAt"`
 }
 
 type Notification struct {
@@ -704,14 +787,15 @@ type RoutingRule struct {
 }
 
 type SavedView struct {
-	ID          uuid.UUID       `json:"id"`
-	WorkspaceID uuid.UUID       `json:"workspaceId"`
-	UserID      *uuid.UUID      `json:"userId"`
-	Name        string          `json:"name"`
-	Filters     json.RawMessage `json:"filters"`
-	Columns     []string        `json:"columns"`
-	Position    int32           `json:"position"`
-	CreatedAt   time.Time       `json:"createdAt"`
+	ID           uuid.UUID       `json:"id"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	UserID       *uuid.UUID      `json:"userId"`
+	Name         string          `json:"name"`
+	Filters      json.RawMessage `json:"filters"`
+	Columns      []string        `json:"columns"`
+	Position     int32           `json:"position"`
+	CreatedAt    time.Time       `json:"createdAt"`
+	ShowInHealth bool            `json:"showInHealth"`
 }
 
 type Segment struct {
@@ -727,6 +811,15 @@ type Segment struct {
 	CreatedBy   *uuid.UUID      `json:"createdBy"`
 	CreatedAt   time.Time       `json:"createdAt"`
 	UpdatedAt   time.Time       `json:"updatedAt"`
+	Refresh     string          `json:"refresh"`
+	CountMs     *int32          `json:"countMs"`
+	TierCounts  json.RawMessage `json:"tierCounts"`
+	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
+}
+
+type SegmentMember struct {
+	SegmentID uuid.UUID `json:"segmentId"`
+	ContactID uuid.UUID `json:"contactId"`
 }
 
 type Sender struct {
@@ -835,6 +928,12 @@ type Suppression struct {
 	Detail           string     `json:"detail"`
 	CreatedBy        *uuid.UUID `json:"createdBy"`
 	CreatedAt        time.Time  `json:"createdAt"`
+	Scope            string     `json:"scope"`
+	CampaignID       *uuid.UUID `json:"campaignId"`
+	AutomationID     *uuid.UUID `json:"automationId"`
+	AutomationStep   string     `json:"automationStep"`
+	Context          string     `json:"context"`
+	ImportID         *uuid.UUID `json:"importId"`
 }
 
 type Template struct {
