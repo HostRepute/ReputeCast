@@ -46,6 +46,7 @@ type Config struct {
 	Worker   WorkerConfig   `koanf:"worker"`
 	Updates  UpdatesConfig  `koanf:"updates"`
 	Metrics  MetricsConfig  `koanf:"metrics"`
+	Webhooks WebhooksConfig `koanf:"webhooks"`
 }
 
 // HTTPConfig configures the HTTP listener.
@@ -117,6 +118,15 @@ type UpdatesConfig struct {
 type MetricsConfig struct {
 	Enabled bool   `koanf:"enabled"`
 	Addr    string `koanf:"addr"` // empty serves /metrics on the main listener
+}
+
+// WebhooksConfig configures outgoing webhooks and the audit stream.
+type WebhooksConfig struct {
+	// AllowPrivateNetworks lets endpoints resolve to loopback and private
+	// (RFC 1918) addresses, for receivers on the same network. Off by
+	// default: user-supplied URLs must not reach internal services (SSRF).
+	// Link-local and cloud metadata addresses are always blocked.
+	AllowPrivateNetworks bool `koanf:"allow_private_networks"`
 }
 
 // Defaults returns the configuration used when nothing else is set.

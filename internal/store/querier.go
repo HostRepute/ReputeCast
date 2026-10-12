@@ -7,12 +7,29 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type Querier interface {
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) error
+	AuditLogActionGroups(ctx context.Context, workspaceID *uuid.UUID) ([]AuditLogActionGroupsRow, error)
+	// Actors seen in the workspace log, for the actor filter.
+	AuditLogActors(ctx context.Context, workspaceID *uuid.UUID) ([]AuditLogActorsRow, error)
+	AuditLogCount(ctx context.Context, workspaceID *uuid.UUID) (int64, error)
+	AuditLogGet(ctx context.Context, arg AuditLogGetParams) (AuditLogGetRow, error)
+	// Workspace audit log views, export and stream (W03). The instance-level
+	// view lives with the instance admin domain.
+	AuditLogList(ctx context.Context, arg AuditLogListParams) ([]AuditLogListRow, error)
+	// Other entries about the same target close in time, for "Related:".
+	AuditLogRelated(ctx context.Context, arg AuditLogRelatedParams) ([]AuditLogRelatedRow, error)
+	AuditSetRetention(ctx context.Context, arg AuditSetRetentionParams) error
+	AuditStreamAdvance(ctx context.Context, arg AuditStreamAdvanceParams) error
+	AuditStreamBatch(ctx context.Context, arg AuditStreamBatchParams) ([]AuditEvent, error)
+	AuditStreamConfigure(ctx context.Context, arg AuditStreamConfigureParams) error
+	AuditStreamSetStatus(ctx context.Context, arg AuditStreamSetStatusParams) error
+	AuditStreamWorkspaces(ctx context.Context) ([]AuditStreamWorkspacesRow, error)
 	BroadcastDefaultSplit(ctx context.Context, workspaceID uuid.UUID) (json.RawMessage, error)
 	BumpChallengeAttempts(ctx context.Context, id uuid.UUID) (int32, error)
 	CampaignCostSince(ctx context.Context, arg CampaignCostSinceParams) ([]CampaignCostSinceRow, error)
@@ -67,7 +84,47 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
+	// Takes a due delivery for one attempt. Returns no row when someone else has it.
+	HooksClaimDelivery(ctx context.Context, id uuid.UUID) (HooksClaimDeliveryRow, error)
+	HooksCreate(ctx context.Context, arg HooksCreateParams) (Webhook, error)
+	HooksDelete(ctx context.Context, arg HooksDeleteParams) (int64, error)
+	HooksDeliveries(ctx context.Context, arg HooksDeliveriesParams) ([]HooksDeliveriesRow, error)
+	// Deliveries ready for an attempt that have no job queued (or a lost one).
+	HooksDue(ctx context.Context, lim int32) ([]uuid.UUID, error)
+	HooksFinishDelivery(ctx context.Context, arg HooksFinishDeliveryParams) error
+	HooksGet(ctx context.Context, arg HooksGetParams) (Webhook, error)
+	HooksGetDelivery(ctx context.Context, arg HooksGetDeliveryParams) (HooksGetDeliveryRow, error)
+	HooksInsertDelivery(ctx context.Context, arg HooksInsertDeliveryParams) error
+	// Outgoing webhooks and their delivery log (W03).
+	HooksList(ctx context.Context, workspaceID uuid.UUID) ([]HooksListRow, error)
+	// Endpoints subscribed to an event: exact name, "group.*" or "*".
+	HooksMatching(ctx context.Context, arg HooksMatchingParams) ([]HooksMatchingRow, error)
+	HooksPurgeDeliveries(ctx context.Context) (int64, error)
+	HooksRecordResult(ctx context.Context, arg HooksRecordResultParams) error
+	HooksReleaseHeld(ctx context.Context, webhookID uuid.UUID) ([]uuid.UUID, error)
+	// Retry now / Retry all failed / Replay: back to pending for an immediate attempt.
+	HooksRequeue(ctx context.Context, arg HooksRequeueParams) ([]uuid.UUID, error)
+	HooksSetEnabled(ctx context.Context, arg HooksSetEnabledParams) error
+	HooksSetSecret(ctx context.Context, arg HooksSetSecretParams) error
+	// A worker that died mid-attempt leaves a row in 'delivering'; give it back.
+	HooksStaleDelivering(ctx context.Context) error
+	HooksUpdate(ctx context.Context, arg HooksUpdateParams) (Webhook, error)
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
+	KeysAgentActions(ctx context.Context, arg KeysAgentActionsParams) ([]KeysAgentActionsRow, error)
+	KeysByToken(ctx context.Context, tokenHash []byte) (KeysByTokenRow, error)
+	KeysCountActive(ctx context.Context, workspaceID uuid.UUID) (KeysCountActiveRow, error)
+	KeysCreate(ctx context.Context, arg KeysCreateParams) (KeysCreateRow, error)
+	// Only expired or revoked keys can be deleted (the audit log keeps their history).
+	KeysDelete(ctx context.Context, arg KeysDeleteParams) (int64, error)
+	KeysFirstRejection(ctx context.Context, apiKeyID uuid.UUID) (time.Time, error)
+	KeysGet(ctx context.Context, arg KeysGetParams) (KeysGetRow, error)
+	// API keys and MCP agents (W03). Both live in api_keys (kind api_key | mcp_agent).
+	KeysList(ctx context.Context, arg KeysListParams) ([]KeysListRow, error)
+	KeysRecordRejection(ctx context.Context, arg KeysRecordRejectionParams) error
+	// Calls rejected in the last 7 days, with the busiest client address.
+	KeysRejections(ctx context.Context, apiKeyID uuid.UUID) (KeysRejectionsRow, error)
+	KeysRevoke(ctx context.Context, arg KeysRevokeParams) (int64, error)
+	KeysTouch(ctx context.Context, arg KeysTouchParams) error
 	ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
 	ListCampaignIncidentSummaries(ctx context.Context, campaignIds []uuid.UUID) ([]ListCampaignIncidentSummariesRow, error)
@@ -88,6 +145,29 @@ type Querier interface {
 	ListUsers(ctx context.Context) ([]User, error)
 	ListWorkspaceLists(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceListsRow, error)
 	ListWorkspaces(ctx context.Context) ([]Workspace, error)
+	McpAddSuppression(ctx context.Context, arg McpAddSuppressionParams) (uuid.UUID, error)
+	McpAutomations(ctx context.Context, workspaceID uuid.UUID) ([]McpAutomationsRow, error)
+	McpBlocklists(ctx context.Context, workspaceID uuid.UUID) ([]McpBlocklistsRow, error)
+	McpCampaignByMailbox(ctx context.Context, campaignID uuid.UUID) ([]McpCampaignByMailboxRow, error)
+	McpCampaignByProvider(ctx context.Context, campaignID uuid.UUID) ([]McpCampaignByProviderRow, error)
+	McpCampaignRoutes(ctx context.Context, campaignID uuid.UUID) ([]McpCampaignRoutesRow, error)
+	McpCampaignTotals(ctx context.Context, campaignID uuid.UUID) (McpCampaignTotalsRow, error)
+	McpCreateDraft(ctx context.Context, arg McpCreateDraftParams) (McpCreateDraftRow, error)
+	McpCreateSegment(ctx context.Context, arg McpCreateSegmentParams) (McpCreateSegmentRow, error)
+	McpDefaultRoutingRule(ctx context.Context, arg McpDefaultRoutingRuleParams) (McpDefaultRoutingRuleRow, error)
+	// Read models behind the MCP server's tools (W03). Writes go through the
+	// owning domain's rules; these queries only read or make small, audited changes.
+	// A campaign by id or by exact (case-insensitive) name, newest first.
+	McpFindCampaign(ctx context.Context, arg McpFindCampaignParams) (McpFindCampaignRow, error)
+	McpGetRoutingRule(ctx context.Context, arg McpGetRoutingRuleParams) (McpGetRoutingRuleRow, error)
+	McpLatestReadiness(ctx context.Context, campaignID uuid.UUID) (McpLatestReadinessRow, error)
+	McpPostmaster(ctx context.Context, workspaceID uuid.UUID) ([]McpPostmasterRow, error)
+	McpProviders(ctx context.Context, workspaceID uuid.UUID) ([]McpProvidersRow, error)
+	McpRouting(ctx context.Context, workspaceID uuid.UUID) ([]McpRoutingRow, error)
+	McpSearchContacts(ctx context.Context, arg McpSearchContactsParams) ([]McpSearchContactsRow, error)
+	McpSendingDomains(ctx context.Context, workspaceID uuid.UUID) ([]McpSendingDomainsRow, error)
+	McpSetRoutingSplits(ctx context.Context, arg McpSetRoutingSplitsParams) error
+	McpUpdateDraft(ctx context.Context, arg McpUpdateDraftParams) (McpUpdateDraftRow, error)
 	ProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]ProviderNamesRow, error)
 	PurgeAuditEvents(ctx context.Context, arg PurgeAuditEventsParams) (int64, error)
 	RecordSignInFailure(ctx context.Context, arg RecordSignInFailureParams) (RecordSignInFailureRow, error)
@@ -102,6 +182,19 @@ type Querier interface {
 	RevokeInvitation(ctx context.Context, arg RevokeInvitationParams) (int64, error)
 	RevokeOtherSessions(ctx context.Context, arg RevokeOtherSessionsParams) (int64, error)
 	RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error)
+	RolesCreate(ctx context.Context, arg RolesCreateParams) (uuid.UUID, error)
+	RolesDelete(ctx context.Context, arg RolesDeleteParams) (int64, error)
+	RolesGet(ctx context.Context, arg RolesGetParams) (RolesGetRow, error)
+	RolesKeyTaken(ctx context.Context, arg RolesKeyTakenParams) (bool, error)
+	// Active API keys and MCP agents created by the given users in the workspace.
+	RolesKeysOfMembers(ctx context.Context, arg RolesKeysOfMembersParams) ([]RolesKeysOfMembersRow, error)
+	// Roles & permissions (W03).
+	RolesList(ctx context.Context, workspaceID uuid.UUID) ([]RolesListRow, error)
+	// Members of every role in the workspace (member counts and impact previews).
+	RolesMembers(ctx context.Context, workspaceID uuid.UUID) ([]RolesMembersRow, error)
+	RolesNameTaken(ctx context.Context, arg RolesNameTakenParams) (bool, error)
+	RolesPendingInvites(ctx context.Context, workspaceID uuid.UUID) ([]RolesPendingInvitesRow, error)
+	RolesUpdate(ctx context.Context, arg RolesUpdateParams) (int64, error)
 	SetLatestRelease(ctx context.Context, latestRelease json.RawMessage) error
 	SetMemberStatus(ctx context.Context, arg SetMemberStatusParams) error
 	SetUserBreakGlass(ctx context.Context, arg SetUserBreakGlassParams) error
@@ -113,6 +206,39 @@ type Querier interface {
 	SetUserTwoFAGrace(ctx context.Context, arg SetUserTwoFAGraceParams) error
 	SlugTaken(ctx context.Context, slug string) (bool, error)
 	SoftDeleteWorkspace(ctx context.Context, id uuid.UUID) error
+	TeamActiveSessionCount(ctx context.Context, userID uuid.UUID) (int64, error)
+	TeamApprovalsGiven(ctx context.Context, arg TeamApprovalsGivenParams) ([]TeamApprovalsGivenRow, error)
+	TeamApprovalsRequested(ctx context.Context, arg TeamApprovalsRequestedParams) ([]TeamApprovalsRequestedRow, error)
+	TeamCountActiveOwners(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	TeamCreateInvitation(ctx context.Context, arg TeamCreateInvitationParams) (TeamCreateInvitationRow, error)
+	TeamDeleteMember(ctx context.Context, arg TeamDeleteMemberParams) (int64, error)
+	// "Require 2FA now": the grace period ends immediately for users without a second factor.
+	TeamEndTwoFAGrace(ctx context.Context, userIds []uuid.UUID) (int64, error)
+	TeamEnforcedSSO(ctx context.Context) ([]TeamEnforcedSSORow, error)
+	TeamGetInvitation(ctx context.Context, arg TeamGetInvitationParams) (TeamGetInvitationRow, error)
+	TeamGetMember(ctx context.Context, arg TeamGetMemberParams) (TeamGetMemberRow, error)
+	// Social and SSO identities of the given users, with the SSO provider name.
+	TeamIdentities(ctx context.Context, userIds []uuid.UUID) ([]TeamIdentitiesRow, error)
+	// SSO providers that create accounts on first sign-in for this workspace.
+	TeamJITProviders(ctx context.Context, workspaceID *uuid.UUID) ([]TeamJITProvidersRow, error)
+	TeamListInvitations(ctx context.Context, workspaceID uuid.UUID) ([]TeamListInvitationsRow, error)
+	// Team: members, invitations, sign-in methods and member detail (W03).
+	TeamListMembers(ctx context.Context, workspaceID uuid.UUID) ([]TeamListMembersRow, error)
+	TeamMarkInvitationSent(ctx context.Context, arg TeamMarkInvitationSentParams) error
+	TeamMemberAPIKeys(ctx context.Context, arg TeamMemberAPIKeysParams) ([]TeamMemberAPIKeysRow, error)
+	TeamMemberActivity(ctx context.Context, arg TeamMemberActivityParams) ([]TeamMemberActivityRow, error)
+	TeamMemberEmails(ctx context.Context, arg TeamMemberEmailsParams) ([]string, error)
+	TeamPendingInviteEmails(ctx context.Context, arg TeamPendingInviteEmailsParams) ([]string, error)
+	TeamRevokeInvitation(ctx context.Context, arg TeamRevokeInvitationParams) (int64, error)
+	TeamRevokeKeysCreatedBy(ctx context.Context, arg TeamRevokeKeysCreatedByParams) ([]TeamRevokeKeysCreatedByRow, error)
+	TeamRevokeUserSessions(ctx context.Context, userID uuid.UUID) (int64, error)
+	TeamSetMemberRole(ctx context.Context, arg TeamSetMemberRoleParams) error
+	TeamSetMemberStatus(ctx context.Context, arg TeamSetMemberStatusParams) error
+	// The provider of the System stream's default rule (first split), for
+	// "Sent on the System stream via Postmark".
+	TeamSystemProviderName(ctx context.Context, workspaceID uuid.UUID) (string, error)
+	TeamWorkspaceLists(ctx context.Context, workspaceID uuid.UUID) ([]TeamWorkspaceListsRow, error)
+	TeamWorkspaceSenderDomains(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	TouchAPIKey(ctx context.Context, arg TouchAPIKeyParams) error
 	TouchIdentity(ctx context.Context, id uuid.UUID) error
 	TouchMemberActive(ctx context.Context, arg TouchMemberActiveParams) error
@@ -129,6 +255,20 @@ type Querier interface {
 	UpdateWorkspaceGeneral(ctx context.Context, arg UpdateWorkspaceGeneralParams) (Workspace, error)
 	UpdateWorkspaceJSON(ctx context.Context, arg UpdateWorkspaceJSONParams) (Workspace, error)
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (uuid.UUID, error)
+	WsAuditSettings(ctx context.Context, id uuid.UUID) (WsAuditSettingsRow, error)
+	WsCancelScheduled(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	WsCounts(ctx context.Context, workspaceID uuid.UUID) (WsCountsRow, error)
+	WsMCPSettings(ctx context.Context, id uuid.UUID) (json.RawMessage, error)
+	WsMemberCounts(ctx context.Context, workspaceID uuid.UUID) (WsMemberCountsRow, error)
+	WsProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]WsProviderNamesRow, error)
+	// Workspaces past the 7-day restore hold are deleted for good (cascade).
+	WsPurgeDeleted(ctx context.Context) ([]WsPurgeDeletedRow, error)
+	WsSenderExists(ctx context.Context, arg WsSenderExistsParams) (bool, error)
+	// Workspace settings: general, danger zone and summaries (W03).
+	WsSenders(ctx context.Context, workspaceID uuid.UUID) ([]WsSendersRow, error)
+	WsSetMCPSettings(ctx context.Context, arg WsSetMCPSettingsParams) error
+	WsSoftDelete(ctx context.Context, id uuid.UUID) error
+	WsUpdateGeneral(ctx context.Context, arg WsUpdateGeneralParams) (WsUpdateGeneralRow, error)
 }
 
 var _ Querier = (*Queries)(nil)
