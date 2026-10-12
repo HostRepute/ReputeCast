@@ -391,8 +391,12 @@
   .skip:focus {
     left: 8px;
   }
-  /* Links inside running text are underlined so colour is never the only cue. */
+  /* Links inside running text are underlined so colour is never the only cue
+     (the boards' global rule; a link the board colours inline is exempt,
+     which here means a link with a text colour utility). */
   p a:not(.btn),
+  span a:not(.btn):not([class*='text-']),
+  td a:not(.btn):not([class*='text-']),
   li a:not(.btn),
   label a,
   .k a,
@@ -498,7 +502,7 @@
     opacity: 0;
   }
 }
-@keyframes pulse {
+@keyframes pulse-ring {
   0% {
     box-shadow: 0 0 0 0 rgba(185, 28, 28, 0.45);
   }
@@ -593,7 +597,7 @@
     animation: rise 0.6s var(--ease-out-soft) 3.4s both;
   }
   .pulse {
-    animation: pulse var(--duration-loop) ease-out 3.6s infinite;
+    animation: pulse-ring var(--duration-loop) ease-out 3.6s infinite;
   }
   .scan {
     position: relative;

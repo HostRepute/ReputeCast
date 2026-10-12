@@ -123,9 +123,11 @@ export function Compare() {
         </p>
       </div>
       <div className="card reveal overflow-hidden">
+        {/* relative: the visually hidden labels in cells stay inside the
+            scroller instead of widening the page on phones. */}
         <div
           ref={scroller}
-          className="overflow-x-auto"
+          className="relative overflow-x-auto"
           tabIndex={scrollable ? 0 : undefined}
           role={scrollable ? 'region' : undefined}
           aria-label={scrollable ? 'Comparison table, scrolls sideways' : undefined}
