@@ -51,6 +51,8 @@ type App struct {
 	// Mail sends system mail through the System-stream provider.
 	Mail mailer.Sender
 
+	httpMetrics *server.HTTPMetrics
+
 	policyMu    sync.Mutex
 	policy      api.Policy
 	policyUntil time.Time
@@ -184,6 +186,10 @@ func NewHumaConfig() huma.Config {
 // Handler builds the full HTTP handler for the configured roles.
 func (a *App) Handler() http.Handler {
 	r := chi.NewRouter()
+	if a.httpMetrics == nil {
+		a.httpMetrics = server.NewHTTPMetrics(a.Metrics)
+	}
+	r.Use(a.httpMetrics.Middleware)
 	r.Use(middleware.RequestID)
 	r.Use(server.RealIP(trustedProxies(a.Cfg.HTTP.TrustedProxies, a.Log)))
 	r.Use(server.RequestLogger(a.Log))
