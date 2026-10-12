@@ -5,6 +5,11 @@ import { cn } from '@/lib/cn'
  * A data table that scrolls inside its card instead of the page. `density`
  * matches the two table styles in the prototype: `regular` (12px cells) and
  * `compact` (11px vertical, secondary cells kept on one line).
+ *
+ * At phone width, badges and buttons in cells stay on one line, as on the
+ * team and access boards. The other boards (Campaigns, Audience, Providers,
+ * Deliverability, Reports…) let them wrap like the rest of the page: pass
+ * `phoneWrap` there.
  */
 export function Table({
   className,
@@ -12,10 +17,19 @@ export function Table({
   caption,
   children,
   scroll = true,
+  phoneWrap = false,
   ...rest
-}: TableHTMLAttributes<HTMLTableElement> & { density?: 'regular' | 'compact' | 'dense'; caption?: string; scroll?: boolean }) {
+}: TableHTMLAttributes<HTMLTableElement> & {
+  density?: 'regular' | 'compact' | 'dense'
+  caption?: string
+  scroll?: boolean
+  phoneWrap?: boolean
+}) {
   const table = (
-    <table className={cn('tbl', density === 'compact' && 'compact', density === 'dense' && 'dense', className)} {...rest}>
+    <table
+      className={cn('tbl', density === 'compact' && 'compact', density === 'dense' && 'dense', phoneWrap && 'phone-wrap', className)}
+      {...rest}
+    >
       {caption ? <caption className="vh">{caption}</caption> : null}
       {children}
     </table>
