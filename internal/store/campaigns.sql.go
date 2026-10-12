@@ -526,7 +526,7 @@ func (q *Queries) InsertComposerCampaign(ctx context.Context, arg InsertComposer
 }
 
 const lastSentCampaign = `-- name: LastSentCampaign :one
-SELECT c.id, c.name, coalesce(c.started_at, c.updated_at) AS sent_at
+SELECT c.id, c.name, c.mjml, coalesce(c.started_at, c.updated_at)::timestamptz AS sent_at
 FROM campaigns c
 WHERE c.workspace_id = $1 AND c.deleted_at IS NULL AND c.status = 'sent' AND c.origin = '' AND c.mjml <> ''
 ORDER BY c.started_at DESC NULLS LAST
@@ -536,13 +536,37 @@ LIMIT 1
 type LastSentCampaignRow struct {
 	ID     uuid.UUID `json:"id"`
 	Name   string    `json:"name"`
+	Mjml   string    `json:"mjml"`
 	SentAt time.Time `json:"sentAt"`
 }
 
 func (q *Queries) LastSentCampaign(ctx context.Context, workspaceID uuid.UUID) (LastSentCampaignRow, error) {
 	row := q.db.QueryRow(ctx, lastSentCampaign, workspaceID)
 	var i LastSentCampaignRow
-	err := row.Scan(&i.ID, &i.Name, &i.SentAt)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Mjml,
+		&i.SentAt,
+	)
+	return i, err
+}
+
+const latestReadiness = `-- name: LatestReadiness :one
+SELECT rr.verdict,
+       (SELECT count(*) FROM jsonb_array_elements(coalesce(rr.checks -> 'checks', '[]'::jsonb)) e WHERE e ->> 'status' IN ('warn', 'block'))::bigint AS issues
+FROM readiness_runs rr WHERE rr.campaign_id = $1 ORDER BY rr.ran_at DESC LIMIT 1
+`
+
+type LatestReadinessRow struct {
+	Verdict string `json:"verdict"`
+	Issues  int64  `json:"issues"`
+}
+
+func (q *Queries) LatestReadiness(ctx context.Context, campaignID uuid.UUID) (LatestReadinessRow, error) {
+	row := q.db.QueryRow(ctx, latestReadiness, campaignID)
+	var i LatestReadinessRow
+	err := row.Scan(&i.Verdict, &i.Issues)
 	return i, err
 }
 
@@ -1025,6 +1049,53 @@ func (q *Queries) ListTestRecipients(ctx context.Context, workspaceID uuid.UUID)
 	for rows.Next() {
 		var i ListTestRecipientsRow
 		if err := rows.Scan(&i.ID, &i.Name, &i.Email); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listVersionSources = `-- name: ListVersionSources :many
+SELECT version, saved_at, mjml, coalesce(u.name, '')::text AS saved_by_name
+FROM campaign_versions v
+LEFT JOIN users u ON u.id = v.saved_by
+WHERE v.campaign_id = $1
+ORDER BY v.version DESC
+LIMIT $2
+`
+
+type ListVersionSourcesParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	Lim        int32     `json:"lim"`
+}
+
+type ListVersionSourcesRow struct {
+	Version     int32     `json:"version"`
+	SavedAt     time.Time `json:"savedAt"`
+	Mjml        string    `json:"mjml"`
+	SavedByName string    `json:"savedByName"`
+}
+
+// The MJML of recent versions, newest first (to find when a section was removed).
+func (q *Queries) ListVersionSources(ctx context.Context, arg ListVersionSourcesParams) ([]ListVersionSourcesRow, error) {
+	rows, err := q.db.Query(ctx, listVersionSources, arg.CampaignID, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListVersionSourcesRow{}
+	for rows.Next() {
+		var i ListVersionSourcesRow
+		if err := rows.Scan(
+			&i.Version,
+			&i.SavedAt,
+			&i.Mjml,
+			&i.SavedByName,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

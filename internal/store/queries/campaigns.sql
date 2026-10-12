@@ -250,9 +250,23 @@ WHERE m.workspace_id = @workspace_id AND m.status = 'active'
 ORDER BY u.name;
 
 -- name: LastSentCampaign :one
-SELECT c.id, c.name, coalesce(c.started_at, c.updated_at) AS sent_at
+SELECT c.id, c.name, c.mjml, coalesce(c.started_at, c.updated_at)::timestamptz AS sent_at
 FROM campaigns c
 WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.status = 'sent' AND c.origin = '' AND c.mjml <> ''
 ORDER BY c.started_at DESC NULLS LAST
 LIMIT 1;
 
+
+-- name: LatestReadiness :one
+SELECT rr.verdict,
+       (SELECT count(*) FROM jsonb_array_elements(coalesce(rr.checks -> 'checks', '[]'::jsonb)) e WHERE e ->> 'status' IN ('warn', 'block'))::bigint AS issues
+FROM readiness_runs rr WHERE rr.campaign_id = @campaign_id ORDER BY rr.ran_at DESC LIMIT 1;
+
+-- name: ListVersionSources :many
+-- The MJML of recent versions, newest first (to find when a section was removed).
+SELECT version, saved_at, mjml, coalesce(u.name, '')::text AS saved_by_name
+FROM campaign_versions v
+LEFT JOIN users u ON u.id = v.saved_by
+WHERE v.campaign_id = @campaign_id
+ORDER BY v.version DESC
+LIMIT @lim;

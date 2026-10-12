@@ -14,7 +14,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/templates"
 )
 
 // Service holds the campaigns domain dependencies.
@@ -23,6 +27,14 @@ type Service struct {
 	Q     *store.Queries
 	Audit *audit.Logger
 	Now   func() time.Time
+	// Templates resolves templates when a draft starts from one.
+	Templates *templates.Service
+	// Mail sends test emails through the System route (App.Mail, read at call time).
+	Mail func() mailer.Sender
+	// URLs builds public links (unsubscribe, preferences, view online).
+	URLs publicurl.Builder
+	// Checker runs the content checks (blocklist and link probing plug in here).
+	Checker *contentcheck.Checker
 }
 
 func (s *Service) now() time.Time {

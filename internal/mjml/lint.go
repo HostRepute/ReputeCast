@@ -10,8 +10,8 @@ import (
 // Lint returns layout warnings the MJML compiler doesn't report: images
 // wider than their column (Outlook draws them at full width and breaks the
 // layout) and columns adding up to more than their section.
-func Lint(src string) []Problem {
-	out := []Problem{}
+func Lint(src string) []MJMLProblem {
+	out := []MJMLProblem{}
 	root, err := Parse(src)
 	if err != nil {
 		return out
@@ -57,7 +57,7 @@ func Lint(src string) []Problem {
 			}
 		}
 		if sumPct > 100.5 {
-			out = append(out, Problem{Line: n.Line, Tag: n.Tag, Message: fmt.Sprintf("Line %d: the columns of this section add up to %.0f%%; MJML squeezes them and the layout shifts. Make them add up to 100%%.", n.Line, sumPct)})
+			out = append(out, MJMLProblem{Line: n.Line, Tag: n.Tag, Message: fmt.Sprintf("Line %d: the columns of this section add up to %.0f%%; MJML squeezes them and the layout shifts. Make them add up to 100%%.", n.Line, sumPct)})
 		}
 		free := len(cols) - sized
 		for _, c := range cols {
@@ -79,7 +79,7 @@ func Lint(src string) []Problem {
 				il, ir := hpadding(x, "padding", 25)
 				avail := box - il - ir
 				if iw > 0 && float64(iw) > avail+0.5 {
-					out = append(out, Problem{Line: x.Line, Tag: "mj-image", Message: fmt.Sprintf("Line %d: mj-image width %dpx exceeds the %s column (%.0fpx); it will be scaled down. Set width=\"%.0fpx\" or remove it.", x.Line, iw, label, cw, math.Floor(avail))})
+					out = append(out, MJMLProblem{Line: x.Line, Tag: "mj-image", Message: fmt.Sprintf("Line %d: mj-image width %dpx exceeds the %s column (%.0fpx); it will be scaled down. Set width=\"%.0fpx\" or remove it.", x.Line, iw, label, cw, math.Floor(avail))})
 				}
 			})
 		}

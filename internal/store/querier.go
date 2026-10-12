@@ -90,6 +90,7 @@ type Querier interface {
 	InsertMediaAsset(ctx context.Context, arg InsertMediaAssetParams) (InsertMediaAssetRow, error)
 	InsertTemplate(ctx context.Context, arg InsertTemplateParams) error
 	LastSentCampaign(ctx context.Context, workspaceID uuid.UUID) (LastSentCampaignRow, error)
+	LatestReadiness(ctx context.Context, campaignID uuid.UUID) (LatestReadinessRow, error)
 	LinkDomainListings(ctx context.Context, domains []string) ([]LinkDomainListing, error)
 	ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error)
 	// Lists with their subscribed, active contacts (suppressed addresses excluded).
@@ -121,6 +122,8 @@ type Querier interface {
 	ListUserSessions(ctx context.Context, userID uuid.UUID) ([]Session, error)
 	ListUserWorkspaces(ctx context.Context, userID uuid.UUID) ([]ListUserWorkspacesRow, error)
 	ListUsers(ctx context.Context) ([]User, error)
+	// The MJML of recent versions, newest first (to find when a section was removed).
+	ListVersionSources(ctx context.Context, arg ListVersionSourcesParams) ([]ListVersionSourcesRow, error)
 	ListWorkspaceLists(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceListsRow, error)
 	ListWorkspaces(ctx context.Context) ([]Workspace, error)
 	// Row lock for autosave: the version check and the new version are atomic.

@@ -27,8 +27,8 @@ const MaxOutput = 4 << 20
 // MaxRange is the longest literal range a for loop may iterate.
 const MaxRange = 1000
 
-// Field is a personalization token offered by the composer.
-type Field struct {
+// PersonalizationToken is a personalization token offered by the composer.
+type PersonalizationToken struct {
 	Key   string `json:"key" example:"first_name"`
 	Label string `json:"label" example:"First name"`
 	Kind  string `json:"kind" enum:"contact,custom,system"`
@@ -42,14 +42,14 @@ type CustomField struct {
 }
 
 // ContactFields are on every contact.
-var ContactFields = []Field{
+var ContactFields = []PersonalizationToken{
 	{Key: "first_name", Label: "First name", Kind: "contact", Fallback: "there"},
 	{Key: "last_name", Label: "Last name", Kind: "contact"},
 	{Key: "email", Label: "Email address", Kind: "contact"},
 }
 
 // SystemFields are links ReputeCast fills in per recipient at send time.
-var SystemFields = []Field{
+var SystemFields = []PersonalizationToken{
 	{Key: "unsubscribe_url", Label: "Unsubscribe link", Kind: "system"},
 	{Key: "preferences_url", Label: "Email preferences link", Kind: "system"},
 	{Key: "view_in_browser_url", Label: "View in browser link", Kind: "system"},
@@ -57,11 +57,11 @@ var SystemFields = []Field{
 
 // Catalog lists the tokens of a workspace: contact fields, its custom
 // fields, then the system links.
-func Catalog(custom []CustomField) []Field {
-	out := make([]Field, 0, len(ContactFields)+len(custom)+len(SystemFields))
+func Catalog(custom []CustomField) []PersonalizationToken {
+	out := make([]PersonalizationToken, 0, len(ContactFields)+len(custom)+len(SystemFields))
 	out = append(out, ContactFields...)
 	for _, c := range custom {
-		f := Field{Key: c.Key, Label: c.Label, Kind: "custom"}
+		f := PersonalizationToken{Key: c.Key, Label: c.Label, Kind: "custom"}
 		if c.Key == "plan" {
 			f.Fallback = "free"
 		}
@@ -152,8 +152,8 @@ func isStringLiteral(s string) bool {
 	return !strings.ContainsRune(s[1:len(s)-1], rune(q))
 }
 
-// Problem is a template error with its line.
-type Problem struct {
+// LiquidProblem is a template error with its line.
+type LiquidProblem struct {
 	Line    int    `json:"line"`
 	Message string `json:"message"`
 }
@@ -176,11 +176,11 @@ func checkRanges(src string) error {
 }
 
 // Validate parses a template and returns its problems (empty when it parses).
-func Validate(src string) []Problem {
-	out := []Problem{}
+func Validate(src string) []LiquidProblem {
+	out := []LiquidProblem{}
 	p := Prepare(src)
 	if err := checkRanges(p); err != nil {
-		out = append(out, Problem{Message: sentence(err.Error())})
+		out = append(out, LiquidProblem{Message: sentence(err.Error())})
 	}
 	if _, err := engine.ParseString(p); err != nil {
 		out = append(out, problem(err, p))
@@ -190,7 +190,7 @@ func Validate(src string) []Problem {
 
 var snippetRe = regexp.MustCompile(`in (\{%[\s\S]*?%\}|\{\{[\s\S]*?\}\})\.?$`)
 
-func problem(err osteele.SourceError, src string) Problem {
+func problem(err osteele.SourceError, src string) LiquidProblem {
 	msg := err.Error()
 	// "Liquid error (line 3): unterminated …" → "Line 3: unterminated …"
 	if i := strings.Index(msg, "): "); i > 0 && strings.HasPrefix(msg, "Liquid") {
@@ -205,9 +205,9 @@ func problem(err osteele.SourceError, src string) Problem {
 		}
 	}
 	if line > 0 {
-		return Problem{Line: line, Message: fmt.Sprintf("Line %d: %s", line, sentence(msg))}
+		return LiquidProblem{Line: line, Message: fmt.Sprintf("Line %d: %s", line, sentence(msg))}
 	}
-	return Problem{Message: sentence(msg)}
+	return LiquidProblem{Message: sentence(msg)}
 }
 
 func sentence(s string) string {

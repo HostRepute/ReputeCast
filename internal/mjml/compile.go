@@ -10,8 +10,8 @@ import (
 	gomjml "github.com/preslavrachev/gomjml/mjml"
 )
 
-// Problem is a compile error or warning with its line (0 when unknown).
-type Problem struct {
+// MJMLProblem is a compile error or warning with its line (0 when unknown).
+type MJMLProblem struct {
 	Line    int    `json:"line"`
 	Message string `json:"message"`
 	Tag     string `json:"tag,omitempty"`
@@ -20,7 +20,7 @@ type Problem struct {
 // Result is the outcome of a server-side compile.
 type Result struct {
 	HTML     string
-	Errors   []Problem
+	Errors   []MJMLProblem
 	Duration time.Duration
 }
 
@@ -51,9 +51,9 @@ func Compile(src string) Result {
 	if _, err := Parse(src); err != nil {
 		var pe *ParseError
 		if errors.As(err, &pe) {
-			return Result{Errors: []Problem{{Line: pe.Line, Message: pe.Error()}}, Duration: time.Since(start)}
+			return Result{Errors: []MJMLProblem{{Line: pe.Line, Message: pe.Error()}}, Duration: time.Since(start)}
 		}
-		return Result{Errors: []Problem{{Message: err.Error()}}, Duration: time.Since(start)}
+		return Result{Errors: []MJMLProblem{{Message: err.Error()}}, Duration: time.Since(start)}
 	}
 	prepared := protect.Replace(src)
 	prepared = voidHTML.ReplaceAllStringFunc(prepared, func(m string) string {
@@ -64,7 +64,7 @@ func Compile(src string) Result {
 	})
 	html, err := gomjml.Render(prepared)
 	if err != nil {
-		p := Problem{Message: err.Error()}
+		p := MJMLProblem{Message: err.Error()}
 		if m := xmlLine.FindStringSubmatch(err.Error()); m != nil {
 			p.Line, _ = strconv.Atoi(m[1])
 			p.Message = "Line " + m[1] + ": " + m[2]
@@ -72,9 +72,9 @@ func Compile(src string) Result {
 		var me *gomjml.Error
 		if errors.As(err, &me) && len(me.Details) > 0 {
 			d := me.Details[0]
-			p = Problem{Line: d.Line, Message: d.Message, Tag: d.TagName}
+			p = MJMLProblem{Line: d.Line, Message: d.Message, Tag: d.TagName}
 		}
-		return Result{Errors: []Problem{p}, Duration: time.Since(start)}
+		return Result{Errors: []MJMLProblem{p}, Duration: time.Since(start)}
 	}
-	return Result{HTML: unprotect.Replace(html), Errors: []Problem{}, Duration: time.Since(start)}
+	return Result{HTML: unprotect.Replace(html), Errors: []MJMLProblem{}, Duration: time.Since(start)}
 }

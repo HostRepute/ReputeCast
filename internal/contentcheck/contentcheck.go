@@ -42,17 +42,17 @@ const ClipBytes = 102 * 1024
 // NearClipBytes is where the size warning starts.
 const NearClipBytes = 85 * 1024
 
-// Fix is a one-click fix offered with an issue. The composer applies it to
+// ContentFix is a one-click fix offered with an issue. The composer applies it to
 // the canvas (Path points at the component) or to the campaign settings.
-type Fix struct {
+type ContentFix struct {
 	Kind  string `json:"kind" enum:"replace_link,edit_link,insert_footer,set_alt,minify,remove_section,use_subject"`
 	Label string `json:"label"`
 	Value string `json:"value,omitempty"`
 	Path  []int  `json:"path,omitempty"`
 }
 
-// Issue is one finding.
-type Issue struct {
+// ContentIssue is one finding.
+type ContentIssue struct {
 	ID       string `json:"id" example:"links.blocklist"`
 	Severity string `json:"severity" enum:"block,warn,info,pass"`
 	Group    string `json:"group" enum:"Content,Links,Compliance,Subject,Personalization"`
@@ -64,12 +64,12 @@ type Issue struct {
 	// excluded); empty when the issue concerns the whole email.
 	Path []int `json:"path"`
 	// Section is the top-level section index, -1 for the whole email.
-	Section int   `json:"section"`
-	Fixes   []Fix `json:"fixes"`
+	Section int          `json:"section"`
+	Fixes   []ContentFix `json:"fixes"`
 }
 
-// SectionSummary is what the inspector shows for the selected section.
-type SectionSummary struct {
+// ContentSection is what the inspector shows for the selected section.
+type ContentSection struct {
 	Index         int    `json:"index"`
 	Label         string `json:"label"`
 	Images        int    `json:"images"`
@@ -79,22 +79,22 @@ type SectionSummary struct {
 	Issues        int    `json:"issues"`
 }
 
-// Report is the outcome of a check run.
-type Report struct {
-	Verdict          string           `json:"verdict" enum:"ready,warnings,blocked"`
-	Blocks           int              `json:"blocks"`
-	Warnings         int              `json:"warnings"`
-	SizeBytes        int              `json:"sizeBytes"`
-	ClipBytes        int              `json:"clipBytes"`
-	Images           int              `json:"images"`
-	ImagesMissingAlt int              `json:"imagesMissingAlt"`
-	Links            int              `json:"links"`
-	LinksBlocklisted int              `json:"linksBlocklisted"`
-	LinksBroken      int              `json:"linksBroken"`
+// ContentReport is the outcome of a check run.
+type ContentReport struct {
+	Verdict          string `json:"verdict" enum:"ready,warnings,blocked"`
+	Blocks           int    `json:"blocks"`
+	Warnings         int    `json:"warnings"`
+	SizeBytes        int    `json:"sizeBytes"`
+	ClipBytes        int    `json:"clipBytes"`
+	Images           int    `json:"images"`
+	ImagesMissingAlt int    `json:"imagesMissingAlt"`
+	Links            int    `json:"links"`
+	LinksBlocklisted int    `json:"linksBlocklisted"`
+	LinksBroken      int    `json:"linksBroken"`
 	// SubjectHeuristics names the spam heuristics the subject trips.
 	SubjectHeuristics []string         `json:"subjectHeuristics"`
-	Issues            []Issue          `json:"issues"`
-	Sections          []SectionSummary `json:"sections"`
+	Issues            []ContentIssue   `json:"issues"`
+	Sections          []ContentSection `json:"sections"`
 	PlainText         string           `json:"plainText"`
 	CheckedAt         time.Time        `json:"checkedAt"`
 }
@@ -168,12 +168,12 @@ type scan struct {
 }
 
 // Check runs every check on the content.
-func (c *Checker) Check(ctx context.Context, in Input) (Report, error) {
+func (c *Checker) Check(ctx context.Context, in Input) (ContentReport, error) {
 	now := time.Now
 	if c.Now != nil {
 		now = c.Now
 	}
-	r := Report{ClipBytes: ClipBytes, Issues: []Issue{}, Sections: []SectionSummary{}, SubjectHeuristics: []string{}, CheckedAt: now()}
+	r := ContentReport{ClipBytes: ClipBytes, Issues: []ContentIssue{}, Sections: []ContentSection{}, SubjectHeuristics: []string{}, CheckedAt: now()}
 	htmlSrc := in.HTML
 	if htmlSrc == "" && strings.TrimSpace(in.MJML) != "" {
 		htmlSrc = mjml.Compile(in.MJML).HTML
@@ -185,9 +185,9 @@ func (c *Checker) Check(ctx context.Context, in Input) (Report, error) {
 	r.PlainText = PlainText(htmlSrc)
 
 	sectionIssues := map[int]int{}
-	add := func(is Issue) {
+	add := func(is ContentIssue) {
 		if is.Fixes == nil {
-			is.Fixes = []Fix{}
+			is.Fixes = []ContentFix{}
 		}
 		if is.Path == nil {
 			is.Path = []int{}
@@ -205,9 +205,9 @@ func (c *Checker) Check(ctx context.Context, in Input) (Report, error) {
 		}
 		r.ImagesMissingAlt++
 		name := imageName(im, s.sections)
-		add(Issue{ID: "content.alt_text", Severity: Warn, Group: "Content", Title: name + " has no alt text", Tag: "Image has no alt text",
+		add(ContentIssue{ID: "content.alt_text", Severity: Warn, Group: "Content", Title: name + " has no alt text", Tag: "Image has no alt text",
 			Detail: "Images are off by default in Outlook and many corporate clients; alt text is what shows, and spam filters score image-only mail higher.",
-			Path:   im.path, Section: im.section, Fixes: []Fix{{Kind: "set_alt", Label: "Save", Path: im.path}}})
+			Path:   im.path, Section: im.section, Fixes: []ContentFix{{Kind: "set_alt", Label: "Save", Path: im.path}}})
 	}
 
 	// Size against Gmail's clipping limit.
@@ -218,9 +218,9 @@ func (c *Checker) Check(ctx context.Context, in Input) (Report, error) {
 			title = fmt.Sprintf("%d KB is over Gmail's 102 KB clipping limit", kb)
 		}
 		detail := "Gmail clips the message and hides the footer, including the unsubscribe link."
-		fixes := []Fix{}
+		fixes := []ContentFix{}
 		if saved := r.SizeBytes - len(Minify(htmlSrc)); saved >= 1024 {
-			fixes = append(fixes, Fix{Kind: "minify", Label: fmt.Sprintf("Minify inline CSS · saves about %d KB", int(math.Round(float64(saved)/1024)))})
+			fixes = append(fixes, ContentFix{Kind: "minify", Label: fmt.Sprintf("Minify inline CSS · saves about %d KB", int(math.Round(float64(saved)/1024)))})
 		}
 		if bulk, fix := bulkOf(s, r.SizeBytes); bulk != "" {
 			detail += " " + bulk
@@ -228,12 +228,12 @@ func (c *Checker) Check(ctx context.Context, in Input) (Report, error) {
 				fixes = append(fixes, *fix)
 			}
 		}
-		add(Issue{ID: "content.size", Severity: Warn, Group: "Content", Title: title, Detail: detail, Section: -1, Fixes: fixes})
+		add(ContentIssue{ID: "content.size", Severity: Warn, Group: "Content", Title: title, Detail: detail, Section: -1, Fixes: fixes})
 	}
 
 	// Image-to-text ratio.
 	if share, ok := imageShare(s.images, r.PlainText); ok && share > 0.7 {
-		add(Issue{ID: "content.image_ratio", Severity: Warn, Group: "Content", Title: fmt.Sprintf("The email is %d%% image", int(math.Round(share*100))),
+		add(ContentIssue{ID: "content.image_ratio", Severity: Warn, Group: "Content", Title: fmt.Sprintf("The email is %d%% image", int(math.Round(share*100))),
 			Detail: "Spam filters score image-heavy mail higher, and most of it disappears when images are off. Add text or use fewer images.", Section: -1})
 	}
 
@@ -258,15 +258,15 @@ func (c *Checker) Check(ctx context.Context, in Input) (Report, error) {
 		case hasAddress:
 			title, tag = "No unsubscribe link in the body", "No unsubscribe link"
 		}
-		add(Issue{ID: "compliance.footer", Severity: Block, Group: "Compliance", Title: title, Tag: tag,
-			Detail: "Headers are added automatically, but the visible link and address are required too.",
-			Section: -1, Fixes: []Fix{{Kind: "insert_footer", Label: "Insert footer block"}}})
+		add(ContentIssue{ID: "compliance.footer", Severity: Block, Group: "Compliance", Title: title, Tag: tag,
+			Detail:  "Headers are added automatically, but the visible link and address are required too.",
+			Section: -1, Fixes: []ContentFix{{Kind: "insert_footer", Label: "Insert footer block"}}})
 	}
 
 	// Personalization.
 	for _, src := range []struct{ where, text string }{{"Subject", in.Subject}, {"Preheader", in.Preheader}, {"Body", bodySource(in.MJML, htmlSrc)}} {
 		for _, p := range liquid.Validate(src.text) {
-			add(Issue{ID: "personalization.syntax", Severity: Block, Group: "Personalization", Title: src.where + ": " + p.Message,
+			add(ContentIssue{ID: "personalization.syntax", Severity: Block, Group: "Personalization", Title: src.where + ": " + p.Message,
 				Detail: "Fix the personalization tag; a broken tag would print as text or stop the send.", Section: -1})
 		}
 	}
@@ -280,7 +280,7 @@ func (c *Checker) Check(ctx context.Context, in Input) (Report, error) {
 			if known[u.Key] || known[root] || root == "contact" || root == "forloop" || u.HasFallback {
 				continue
 			}
-			add(Issue{ID: "personalization.unknown_field", Severity: Warn, Group: "Personalization",
+			add(ContentIssue{ID: "personalization.unknown_field", Severity: Warn, Group: "Personalization",
 				Title:  fmt.Sprintf("{{ %s }} isn't a contact field; it prints nothing", u.Key),
 				Detail: "Check the spelling, or add a fallback such as | default: \"…\".", Section: -1})
 		}
@@ -288,26 +288,26 @@ func (c *Checker) Check(ctx context.Context, in Input) (Report, error) {
 
 	// Subject.
 	if strings.TrimSpace(in.Subject) == "" {
-		add(Issue{ID: "subject.missing", Severity: Block, Group: "Subject", Title: "The subject is empty", Detail: "Inbox lists show the subject first; write one before sending.", Section: -1})
+		add(ContentIssue{ID: "subject.missing", Severity: Block, Group: "Subject", Title: "The subject is empty", Detail: "Inbox lists show the subject first; write one before sending.", Section: -1})
 	} else if h := SubjectHeuristics(in.Subject); len(h) > 0 {
 		r.SubjectHeuristics = h
 		suggestion := SuggestSubject(in.Subject)
-		is := Issue{ID: "subject.spam", Severity: Warn, Group: "Subject", Title: fmt.Sprintf("Subject trips %d spam %s", len(h), plural(len(h), "heuristic", "heuristics")), Section: -1}
+		is := ContentIssue{ID: "subject.spam", Severity: Warn, Group: "Subject", Title: fmt.Sprintf("Subject trips %d spam %s", len(h), plural(len(h), "heuristic", "heuristics")), Section: -1}
 		if suggestion != "" && suggestion != in.Subject {
 			is.Detail = fmt.Sprintf("Suggested: %q", suggestion)
-			is.Fixes = []Fix{{Kind: "use_subject", Label: "Use suggestion", Value: suggestion}}
+			is.Fixes = []ContentFix{{Kind: "use_subject", Label: "Use suggestion", Value: suggestion}}
 		}
 		add(is)
 	}
 
 	// Plain-text part.
 	if strings.TrimSpace(r.PlainText) == "" && r.Images > 0 {
-		add(Issue{ID: "content.plain_text", Severity: Warn, Group: "Content", Title: "The plain-text version is empty", Detail: "The email has no text, so the text/plain part is blank. Add a sentence that says what the images show.", Section: -1})
+		add(ContentIssue{ID: "content.plain_text", Severity: Warn, Group: "Content", Title: "The plain-text version is empty", Detail: "The email has no text, so the text/plain part is blank. Add a sentence that says what the images show.", Section: -1})
 	}
 
 	// Section summaries.
 	for _, sec := range s.sections {
-		sum := SectionSummary{Index: sec.Index, Label: sec.Label, Issues: sectionIssues[sec.Index]}
+		sum := ContentSection{Index: sec.Index, Label: sec.Label, Issues: sectionIssues[sec.Index]}
 		for _, im := range s.images {
 			if im.section == sec.Index {
 				sum.Images++
@@ -355,7 +355,7 @@ func (c *Checker) Check(ctx context.Context, in Input) (Report, error) {
 
 // rank orders issues: blocks, then warnings, then the rest; subject issues
 // after content issues of the same severity.
-func rank(is Issue) int {
+func rank(is ContentIssue) int {
 	r := 0
 	switch is.Severity {
 	case Block:
@@ -501,7 +501,7 @@ func imageName(im image, sections []mjml.Section) string {
 
 // bulkOf explains which sections make up most of the size and offers to
 // remove the largest one.
-func bulkOf(s scan, size int) (string, *Fix) {
+func bulkOf(s scan, size int) (string, *ContentFix) {
 	if len(s.sections) < 3 || len(s.sectionBytes) != len(s.sections) {
 		return "", nil
 	}
@@ -552,7 +552,7 @@ func bulkOf(s scan, size int) (string, *Fix) {
 	if len(g.indexes) > 1 {
 		label = "Remove the " + ordinal(len(g.indexes)) + " row"
 	}
-	return sentence, &Fix{Kind: "remove_section", Label: label, Path: []int{last}}
+	return sentence, &ContentFix{Kind: "remove_section", Label: label, Path: []int{last}}
 }
 
 func numberWord(n int) string {
@@ -653,7 +653,7 @@ var shorteners = map[string]bool{
 	"lnkd.in": true, "s.id": true, "t.ly": true, "v.gd": true, "shorte.st": true, "adf.ly": true,
 }
 
-func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *Report, add func(Issue)) {
+func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentReport, add func(ContentIssue)) {
 	hosts := map[string]bool{}
 	for _, l := range s.links {
 		if host, _ := linkHost(l.href); host != "" {
@@ -692,8 +692,8 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *Report, a
 		kind := linkKind(l.kind)
 		if strings.TrimSpace(l.href) == "" || l.href == "#" {
 			if l.kind == "button" {
-				add(Issue{ID: "links.empty", Severity: Warn, Group: "Links", Title: fmt.Sprintf("Button “%s” has no link", truncate(l.text, 40)), Tag: "Button has no link",
-					Detail: "People will click it; point it at the page it promises.", Path: l.path, Section: l.section, Fixes: []Fix{{Kind: "edit_link", Label: "Edit link", Path: l.path}}})
+				add(ContentIssue{ID: "links.empty", Severity: Warn, Group: "Links", Title: fmt.Sprintf("Button “%s” has no link", truncate(l.text, 40)), Tag: "Button has no link",
+					Detail: "People will click it; point it at the page it promises.", Path: l.path, Section: l.section, Fixes: []ContentFix{{Kind: "edit_link", Label: "Edit link", Path: l.path}}})
 			}
 			continue
 		}
@@ -709,13 +709,13 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *Report, a
 		}
 		if len(lists) > 0 {
 			r.LinksBlocklisted++
-			fixes := []Fix{}
+			fixes := []ContentFix{}
 			if own != "" && RegistrableDomain(host) != own {
 				target := own + u.EscapedPath()
-				fixes = append(fixes, Fix{Kind: "replace_link", Label: "Replace with " + target, Value: "https://" + target, Path: l.path})
+				fixes = append(fixes, ContentFix{Kind: "replace_link", Label: "Replace with " + target, Value: "https://" + target, Path: l.path})
 			}
-			fixes = append(fixes, Fix{Kind: "edit_link", Label: "Edit link", Path: l.path})
-			add(Issue{ID: "links.blocklist", Severity: Block, Group: "Links",
+			fixes = append(fixes, ContentFix{Kind: "edit_link", Label: "Edit link", Path: l.path})
+			add(ContentIssue{ID: "links.blocklist", Severity: Block, Group: "Links",
 				Title:  fmt.Sprintf("%s links to %s, listed on %s", kind, host, joinAnd(lists)),
 				Tag:    "Link domain on " + joinAnd(lists),
 				Detail: "Mail linking to a blocklisted domain gets filtered regardless of your reputation. Use a domain you control.",
@@ -723,9 +723,9 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *Report, a
 			continue
 		}
 		if shorteners[host] {
-			add(Issue{ID: "links.shortener", Severity: Warn, Group: "Links", Title: fmt.Sprintf("%s redirects through %s, a URL shortener", kind, host), Tag: "Shortened link",
+			add(ContentIssue{ID: "links.shortener", Severity: Warn, Group: "Links", Title: fmt.Sprintf("%s redirects through %s, a URL shortener", kind, host), Tag: "Shortened link",
 				Detail: "Shortened links hide where they go; filters treat them as suspicious and many shortener domains are blocklisted. Link to the page directly.",
-				Path:   l.path, Section: l.section, Fixes: []Fix{{Kind: "edit_link", Label: "Edit link", Path: l.path}}})
+				Path:   l.path, Section: l.section, Fixes: []ContentFix{{Kind: "edit_link", Label: "Edit link", Path: l.path}}})
 			continue
 		}
 		if probe != nil {
@@ -735,9 +735,9 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *Report, a
 				if pr.Status == 0 {
 					what = "doesn't respond"
 				}
-				add(Issue{ID: "links.broken", Severity: Warn, Group: "Links", Title: fmt.Sprintf("%s to %s %s", kind, truncate(u.String(), 60), what), Tag: "Broken link",
+				add(ContentIssue{ID: "links.broken", Severity: Warn, Group: "Links", Title: fmt.Sprintf("%s to %s %s", kind, truncate(u.String(), 60), what), Tag: "Broken link",
 					Detail: "People who click get an error page. Fix the address or remove the link.", Path: l.path, Section: l.section,
-					Fixes: []Fix{{Kind: "edit_link", Label: "Edit link", Path: l.path}}})
+					Fixes: []ContentFix{{Kind: "edit_link", Label: "Edit link", Path: l.path}}})
 			}
 		}
 	}
