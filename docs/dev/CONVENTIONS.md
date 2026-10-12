@@ -170,13 +170,14 @@ handlers. Never hand-write API types; derive them: `type Item = Schemas['Campaig
    `text-[12.5px]`, `rounded-[10px]`), colours via tokens (`text-ink-3`,
    `bg-ground`, `border-line-2`, `bg-ok-tint`); hex values only when a board
    uses a colour that has no token.
-   **Box model:** the boards use the browser default `content-box`, except the
-   components that set `border-box` themselves (`.btn`, `.in`, `.ws`, `.menu`,
-   `.side`…); the app uses `border-box` everywhere (Tailwind preflight). When
-   an element has padding or a border **and** a width, min/max-width, height or
-   flex-basis, add `box-content` so the copied value means the same size
-   (table cells already are content-box). Measure the element in both pages
-   when in doubt.
+   **Box model:** the boards use the browser default — `content-box`, except
+   form controls (`button`, `input`, `select`, `textarea`) and tables, which
+   are `border-box`. The app restores exactly that default in `app.css`
+   (Tailwind's preflight would make everything `border-box`), so a width,
+   height or flex-basis copied from a board renders at the same size. Where a
+   board sets `box-sizing:border-box` itself (inline or in a class), add
+   `box-border`. Don't compensate sizes by hand; measure both pages when in
+   doubt.
 3. Replace sample data with API data. Copy that is not data stays literal.
 4. Reproduce the responsive behaviour. The boards get it from global rules in
    their CSS; in the app use the primitives:
