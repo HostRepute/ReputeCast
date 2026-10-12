@@ -28,8 +28,10 @@ import (
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/secrets"
+	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/server"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/version"
@@ -50,6 +52,11 @@ type App struct {
 	Metrics *prometheus.Registry
 	// Mail sends system mail through the System-stream provider.
 	Mail mailer.Sender
+	// Sending starts, pauses, resumes and cancels campaign sends; set by the
+	// sending domain's start hook.
+	Sending sending.Starter
+	// Links signs open, click, unsubscribe and preference tokens in emails.
+	Links *linktoken.Signer
 
 	httpMetrics *server.HTTPMetrics
 
@@ -65,7 +72,12 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 	if err != nil {
 		return nil, err
 	}
-	box, err := SecretBox(cfg, log)
+	box, master, err := secretKeys(cfg, log)
+	if err != nil {
+		pool.Close()
+		return nil, err
+	}
+	links, err := linktoken.NewSigner(master)
 	if err != nil {
 		pool.Close()
 		return nil, err
@@ -81,6 +93,7 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		JobReg:  jobs.NewRegistry(),
 		Metrics: prometheus.NewRegistry(),
 		Mail:    mailer.Unavailable{},
+		Links:   links,
 	}
 	a.Metrics.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	a.Auth = &api.Authenticator{
@@ -113,11 +126,17 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 // SecretBox loads the encryption key (from config or the key file) and
 // returns the box that seals secrets at rest.
 func SecretBox(cfg *config.Config, log *slog.Logger) (*secrets.Box, error) {
+	box, _, err := secretKeys(cfg, log)
+	return box, err
+}
+
+// secretKeys returns the secrets box and the current master key.
+func secretKeys(cfg *config.Config, log *slog.Logger) (*secrets.Box, []byte, error) {
 	keyStr := cfg.Secrets.Key
 	if keyStr == "" {
 		k, created, err := secrets.LoadOrCreateKeyFile(cfg.Secrets.KeyFile)
 		if err != nil {
-			return nil, fmt.Errorf("secret key file %s: %w", cfg.Secrets.KeyFile, err)
+			return nil, nil, fmt.Errorf("secret key file %s: %w", cfg.Secrets.KeyFile, err)
 		}
 		if created {
 			log.Warn("generated a new secret key; back it up together with the database", "file", cfg.Secrets.KeyFile)
@@ -126,17 +145,18 @@ func SecretBox(cfg *config.Config, log *slog.Logger) (*secrets.Box, error) {
 	}
 	cur, err := config.DecodeKey(keyStr)
 	if err != nil {
-		return nil, fmt.Errorf("secret key: %w", err)
+		return nil, nil, fmt.Errorf("secret key: %w", err)
 	}
 	var prev [][]byte
 	for _, p := range cfg.Secrets.PreviousKeys {
 		k, err := config.DecodeKey(p)
 		if err != nil {
-			return nil, fmt.Errorf("previous secret key: %w", err)
+			return nil, nil, fmt.Errorf("previous secret key: %w", err)
 		}
 		prev = append(prev, k)
 	}
-	return secrets.New(cur, prev...)
+	box, err := secrets.New(cur, prev...)
+	return box, cur, err
 }
 
 // authPolicy returns the instance authentication policy, cached for 30 s.
