@@ -49,8 +49,16 @@ func (s *Service) Sessions(ctx context.Context) (SessionList, error) {
 	if sess := api.SessionFrom(ctx); sess != nil {
 		current = sess.ID
 	}
+	var idle time.Duration
+	if st, err := s.policy(ctx); err == nil {
+		idle = st.SessionIdle
+	}
 	out := SessionList{Items: make([]AccountSession, 0, len(rows))}
 	for _, r := range rows {
+		// Sessions idle longer than the policy can't be used any more.
+		if r.ID != current && idle > 0 && s.now().Sub(r.LastSeenAt) > idle {
+			continue
+		}
 		item := sessionView(r, r.ID == current)
 		if item.Current {
 			out.Items = append([]AccountSession{item}, out.Items...)

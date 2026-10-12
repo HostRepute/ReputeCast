@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/spf13/cobra"
 
+	"github.com/hostrepute/reputecast/internal/accounts"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -50,37 +51,57 @@ func newUserCmd(o *rootOpts) *cobra.Command {
 	cli := &audit.Actor{Type: authz.ActorSystem, Name: "CLI (server)"}
 
 	reset := &cobra.Command{
-		Use:     "reset-password",
-		Short:   "Set a temporary password and sign the user out everywhere",
+		Use:   "reset-password",
+		Short: "Print a one-time password reset link (works without a sending provider)",
+		Long: "Print a one-time link that lets the person set a new password. It works once and expires in\n" +
+			"15 minutes; their current password keeps working until they use it. With --password the\n" +
+			"password is set directly instead and every session is signed out.",
 		Example: "  reputecast user reset-password --email aisha@acme.io",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return withStore(cmd, func(q *store.Queries, al *audit.Logger, u store.User) error {
-				pw := password
-				mustChange := false
-				if pw == "" {
-					pw = tempPassword()
-					mustChange = true
+				ctx := cmd.Context()
+				out := cmd.OutOrStdout()
+				if password == "" {
+					if u.Status != "active" {
+						return fmt.Errorf("%s is deactivated; reactivate the account first", u.Email)
+					}
+					token, expires, err := accounts.CreateResetToken(ctx, q, u.ID, "cli", time.Now())
+					if err != nil {
+						return err
+					}
+					base := cfgPublicURL(cmd, o)
+					if st, err := q.GetInstanceSettings(ctx); err == nil && st.PublicUrl != "" {
+						base = st.PublicUrl
+					}
+					_ = al.Log(ctx, audit.Event{Action: "user.password_reset_link", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: cli, Reason: "reset link from the server CLI"})
+					fmt.Fprintf(out, "One-time password reset link for %s (works once, until %s):\n\n  %s\n\n", u.Email, expires.Format("15:04 MST"), accounts.ResetLink(base, token))
+					fmt.Fprintln(out, "Send it to them privately. Their current password keeps working until they use it.")
+					return nil
 				}
-				hash, err := authn.HashPassword(pw)
+				cfg, _, err := o.load(cmd)
 				if err != nil {
 					return err
 				}
-				ctx := cmd.Context()
-				if err := q.SetUserPassword(ctx, store.SetUserPasswordParams{ID: u.ID, PasswordHash: &hash, MustChangePassword: mustChange}); err != nil {
+				if p := authn.PasswordProblem(password, cfg.Auth.PasswordMinLength); p != "" {
+					return usageError{errors.New(p)}
+				}
+				hash, err := authn.HashPassword(password)
+				if err != nil {
+					return err
+				}
+				if err := q.SetUserPassword(ctx, store.SetUserPasswordParams{ID: u.ID, PasswordHash: &hash, MustChangePassword: false}); err != nil {
 					return err
 				}
 				_, _ = q.RevokeAllUserSessions(ctx, u.ID)
-				_ = al.Log(ctx, audit.Event{Action: "user.password_reset", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: cli, Reason: "reset from the server CLI"})
-				fmt.Fprintf(cmd.OutOrStdout(), "Password reset for %s. Every session was signed out.\n", u.Email)
-				if mustChange {
-					fmt.Fprintf(cmd.OutOrStdout(), "Temporary password: %s (they'll replace it at next sign-in)\n", pw)
-				}
+				_ = q.InvalidatePasswordResets(ctx, u.ID)
+				_ = al.Log(ctx, audit.Event{Action: "user.password_reset", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: cli, Reason: "password set from the server CLI"})
+				fmt.Fprintf(out, "Password set for %s. Every session was signed out.\n", u.Email)
 				return nil
 			})
 		},
 	}
 	reset.Flags().StringVar(&email, "email", "", "account email")
-	reset.Flags().StringVar(&password, "password", "", "new password (omit to print a temporary one)")
+	reset.Flags().StringVar(&password, "password", "", "set this password directly instead of printing a reset link")
 
 	reset2fa := &cobra.Command{
 		Use:     "reset-2fa",
@@ -144,4 +165,13 @@ func newUserCmd(o *rootOpts) *cobra.Command {
 
 	cmd.AddCommand(reset, reset2fa, makeAdmin, unlock)
 	return cmd
+}
+
+// cfgPublicURL is the configured public URL (used before instance settings exist).
+func cfgPublicURL(cmd *cobra.Command, o *rootOpts) string {
+	cfg, _, err := o.load(cmd)
+	if err != nil {
+		return ""
+	}
+	return cfg.HTTP.PublicURL
 }
