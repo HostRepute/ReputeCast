@@ -62,6 +62,14 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 				listID = lists[0].ID.String()
 			}
 			graph = tpl.build(listID)
+		}
+		if _, err := q.CreateAutomation(ctx, store.CreateAutomationParams{
+			ID: id, WorkspaceID: ws.ID, Name: name, Description: description, TemplateKey: tpl.Key, Trigger: triggerOf(graph), CreatedBy: by,
+		}); err != nil {
+			return err
+		}
+		if tpl.Key != "" {
+			// The template's emails, made for this flow.
 			emailIDs := map[string]uuid.UUID{}
 			for _, e := range tpl.emails {
 				eid := uuid.Must(uuid.NewV7())
@@ -82,11 +90,6 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 				}
 			}
 			graph = Layout(graph)
-		}
-		if _, err := q.CreateAutomation(ctx, store.CreateAutomationParams{
-			ID: id, WorkspaceID: ws.ID, Name: name, Description: description, TemplateKey: tpl.Key, Trigger: triggerOf(graph), CreatedBy: by,
-		}); err != nil {
-			return err
 		}
 		if err := q.InsertAutomationVersion(ctx, store.InsertAutomationVersionParams{AutomationID: id, Version: 1, Graph: graph.MustJSON(), CreatedBy: by, Summary: summary}); err != nil {
 			return err

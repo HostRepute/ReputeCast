@@ -439,7 +439,7 @@ VALUES (@id, @automation_id, @version, @node_id, @run_id, @url, @status_code, @e
 SELECT id, version, run_id, url, status_code, error, duration_ms, attempt, called_at
 FROM automation_webhook_calls
 WHERE automation_id = @automation_id AND node_id = @node_id
-ORDER BY called_at DESC
+ORDER BY called_at DESC, id DESC
 LIMIT @lim;
 
 -- name: PurgeWebhookCalls :execrows

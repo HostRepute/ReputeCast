@@ -1728,7 +1728,7 @@ const listWebhookCalls = `-- name: ListWebhookCalls :many
 SELECT id, version, run_id, url, status_code, error, duration_ms, attempt, called_at
 FROM automation_webhook_calls
 WHERE automation_id = $1 AND node_id = $2
-ORDER BY called_at DESC
+ORDER BY called_at DESC, id DESC
 LIMIT $3
 `
 

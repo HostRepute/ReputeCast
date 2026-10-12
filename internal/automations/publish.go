@@ -287,12 +287,12 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 	switch {
 	case pathIssue != "":
 		out = append(out, PublishCheck{Status: "bad", Label: pathIssue})
-	case forks == 1 && branches == 1:
+	case branches == 1:
 		out = append(out, PublishCheck{Status: "ok", Label: "Branch has both paths connected"})
-	case forks == 1:
+	case branches > 1:
+		out = append(out, PublishCheck{Status: "ok", Label: "Branches have both paths connected"})
+	case forks > 0:
 		out = append(out, PublishCheck{Status: "ok", Label: "A/B split has every path connected"})
-	case forks > 1:
-		out = append(out, PublishCheck{Status: "ok", Label: "Branches have every path connected"})
 	}
 	if other != "" {
 		out = append(out, PublishCheck{Status: "bad", Label: other})
@@ -508,26 +508,21 @@ func (s *Service) publishTx(ctx context.Context, tx pgx.Tx, ws *store.Workspace,
 		return err
 	}
 	moved := int64(0)
-	if a.LiveVersion != nil {
-		if migration == MigrationMove {
-			n, err := s.migrateRuns(ctx, q, a, version, st.draft)
-			if err != nil {
-				return err
-			}
-			moved = n
-		}
-		// Versions without contacts retire now; the others when they empty.
-		if err := retireEmpty(ctx, q, a.ID); err != nil {
+	if a.LiveVersion != nil && migration == MigrationMove {
+		n, err := s.migrateRuns(ctx, q, a, version, st.draft)
+		if err != nil {
 			return err
 		}
+		moved = n
 	}
 	if err := q.SetAutomationLive(ctx, store.SetAutomationLiveParams{ID: a.ID, LiveVersion: &version, Trigger: triggerOf(st.draft), UpdatedBy: &by}); err != nil {
 		return err
 	}
-	// Alerts about steps the new version removed are over.
-	for _, f := range st.failures {
-		_ = f
+	// Older versions without contacts retire now; the others when they empty.
+	if err := retireEmpty(ctx, q, a.ID); err != nil {
+		return err
 	}
+	// Alerts about steps the new version removed are over.
 	for node := range st.failures {
 		if st.draft.Node(node) == nil {
 			if _, err := q.ResolveAlert(ctx, store.ResolveAlertParams{AutomationID: a.ID, Kind: "step_failing", NodeID: node}); err != nil {

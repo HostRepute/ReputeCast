@@ -155,7 +155,8 @@ func lowerFirst(s string) string {
 		return s
 	}
 	r := []rune(s)
-	if r[0] >= 'A' && r[0] <= 'Z' && (len(r) == 1 || !(r[1] >= 'A' && r[1] <= 'Z')) {
+	// Only ordinary words: "Step 2" → "step 2", but "A/B split" and "SES" stay.
+	if r[0] >= 'A' && r[0] <= 'Z' && len(r) > 1 && r[1] >= 'a' && r[1] <= 'z' {
 		r[0] += 'a' - 'A'
 	}
 	return string(r)

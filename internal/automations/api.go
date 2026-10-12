@@ -22,18 +22,18 @@ type summaryInput struct {
 	Days int `query:"days" minimum:"1" maximum:"90" default:"7"`
 }
 
-type idInput struct {
+type AutomationIDParam struct {
 	api.WorkspaceInput
 	ID string `path:"id" doc:"Automation id" maxLength:"40"`
 }
 
 type statsInput struct {
-	idInput
+	AutomationIDParam
 	Days int `query:"days" minimum:"1" maximum:"365" default:"30"`
 }
 
 type versionInput struct {
-	idInput
+	AutomationIDParam
 	Version int `path:"version" minimum:"1"`
 }
 
@@ -53,7 +53,7 @@ type metaBody struct {
 }
 
 type metaInput struct {
-	idInput
+	AutomationIDParam
 	Body metaBody
 }
 
@@ -64,12 +64,12 @@ type draftBody struct {
 }
 
 type draftInput struct {
-	idInput
+	AutomationIDParam
 	Body draftBody
 }
 
 type diffInput struct {
-	idInput
+	AutomationIDParam
 	From int `query:"from" minimum:"0" doc:"Defaults to the live version"`
 	To   int `query:"to" minimum:"0" doc:"Defaults to the draft"`
 }
@@ -80,7 +80,7 @@ type publishBody struct {
 }
 
 type publishInput struct {
-	idInput
+	AutomationIDParam
 	Body publishBody
 }
 
@@ -89,7 +89,7 @@ type pauseBody struct {
 }
 
 type pauseInput struct {
-	idInput
+	AutomationIDParam
 	Body pauseBody
 }
 
@@ -99,13 +99,13 @@ type secretBody struct {
 }
 
 type secretInput struct {
-	idInput
+	AutomationIDParam
 	Node string `path:"node" maxLength:"40"`
 	Body secretBody
 }
 
 type callsInput struct {
-	idInput
+	AutomationIDParam
 	Node  string `path:"node" maxLength:"40"`
 	Limit int    `query:"limit" minimum:"1" maximum:"200" default:"50"`
 }
@@ -231,7 +231,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-automation", Path: "/workspaces/{workspace}/automations/{id}", Summary: "Get an automation with its draft graph", Tags: tags, Access: view},
-		func(ctx context.Context, in *idInput) (*api.Body[AutomationDetail], error) {
+		func(ctx context.Context, in *AutomationIDParam) (*api.Body[AutomationDetail], error) {
 			id, err := parseID(in.ID, "Automation")
 			if err != nil {
 				return nil, err
@@ -253,7 +253,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Delete(h, api.Op{ID: "delete-automation", Path: "/workspaces/{workspace}/automations/{id}", Summary: "Delete an automation; contacts in it leave (published flows need automations:publish)", Tags: tags, Access: edit},
-		func(ctx context.Context, in *idInput) (*api.Empty, error) {
+		func(ctx context.Context, in *AutomationIDParam) (*api.Empty, error) {
 			id, err := parseID(in.ID, "Automation")
 			if err != nil {
 				return nil, err
@@ -262,7 +262,7 @@ func Register(h huma.API, s *Service) {
 			return api.NoContent, s.Delete(ctx, api.WorkspaceFrom(ctx), actor(ctx), id, p != nil && p.Can(authz.AutomationsPublish))
 		})
 	api.Post(h, api.Op{ID: "duplicate-automation", Path: "/workspaces/{workspace}/automations/{id}/duplicate", Summary: "Copy an automation's draft into a new draft", Tags: tags, Access: edit, Status: http.StatusCreated},
-		func(ctx context.Context, in *idInput) (*api.Body[AutomationCreated], error) {
+		func(ctx context.Context, in *AutomationIDParam) (*api.Body[AutomationCreated], error) {
 			id, err := parseID(in.ID, "Automation")
 			if err != nil {
 				return nil, err
@@ -283,7 +283,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Delete(h, api.Op{ID: "discard-automation-draft", Path: "/workspaces/{workspace}/automations/{id}/draft", Summary: "Discard unpublished changes", Tags: tags, Access: edit},
-		func(ctx context.Context, in *idInput) (*api.Empty, error) {
+		func(ctx context.Context, in *AutomationIDParam) (*api.Empty, error) {
 			id, err := parseID(in.ID, "Automation")
 			if err != nil {
 				return nil, err
@@ -300,7 +300,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "list-automation-versions", Path: "/workspaces/{workspace}/automations/{id}/versions", Summary: "Version history", Tags: tags, Access: view},
-		func(ctx context.Context, in *idInput) (*api.Body[AutomationVersions], error) {
+		func(ctx context.Context, in *AutomationIDParam) (*api.Body[AutomationVersions], error) {
 			id, err := parseID(in.ID, "Automation")
 			if err != nil {
 				return nil, err
@@ -336,7 +336,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "automation-publish-preview", Path: "/workspaces/{workspace}/automations/{id}/publish-preview", Summary: "What publishing the draft would change, for whom, and the pre-publish checks", Tags: tags, Access: view},
-		func(ctx context.Context, in *idInput) (*api.Body[PublishPreview], error) {
+		func(ctx context.Context, in *AutomationIDParam) (*api.Body[PublishPreview], error) {
 			id, err := parseID(in.ID, "Automation")
 			if err != nil {
 				return nil, err
@@ -367,7 +367,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "resume-automation", Path: "/workspaces/{workspace}/automations/{id}/resume", Summary: "Resume a paused automation", Tags: tags, Access: publish},
-		func(ctx context.Context, in *idInput) (*api.Body[AutomationDetail], error) {
+		func(ctx context.Context, in *AutomationIDParam) (*api.Body[AutomationDetail], error) {
 			id, err := parseID(in.ID, "Automation")
 			if err != nil {
 				return nil, err

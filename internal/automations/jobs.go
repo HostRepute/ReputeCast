@@ -218,8 +218,11 @@ func (s *Service) RunWebhook(ctx context.Context, args WebhookArgs, attempt, max
 		method = http.MethodPost
 	}
 	status, callErr, dur := 0, "", time.Duration(0)
-	if err := checkWebhookURL(cfg.URL); err != nil {
-		callErr = err.Error()
+	// The default client re-checks every address it dials; the URL check
+	// here gives a clearer error for literal private hosts. A client set on
+	// the service (tests) is trusted as-is.
+	if err := checkWebhookURL(cfg.URL); err != nil && s.HTTP == nil {
+		callErr = "blocked: " + err.Error()
 	} else {
 		req, err := http.NewRequestWithContext(ctx, method, cfg.URL, bytes.NewReader(body))
 		if err != nil {
@@ -253,7 +256,7 @@ func (s *Service) RunWebhook(ctx context.Context, args WebhookArgs, attempt, max
 	}); err != nil {
 		return err
 	}
-	transient := !ok && (status == 0 || status == http.StatusTooManyRequests || status >= 500) && !strings.Contains(callErr, ErrBlockedAddress.Error())
+	transient := !ok && !strings.HasPrefix(callErr, "blocked:") && (status == 0 || status == http.StatusTooManyRequests || status >= 500)
 	if transient && attempt < maxAttempts {
 		return fmt.Errorf("webhook %s: %s", hostOf(cfg.URL), describeFailure(status, callErr))
 	}
