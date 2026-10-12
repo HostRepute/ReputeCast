@@ -123,6 +123,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * When your session ends
+         * @description The idle deadline, the absolute lifetime and what extending would do. Like every request, reading it counts as activity.
+         */
+        get: operations["get-session-timing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/session/extend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Extend your session
+         * @description Restarts the idle timeout now. The session's absolute lifetime never moves. Recorded in the audit log as session.extend.
+         */
+        post: operations["extend-session"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/totp": {
         parameters: {
             query?: never;
@@ -567,6 +607,55 @@ export interface components {
             lists?: string[];
             senderDomains?: string[];
         };
+        SessionTiming: {
+            /**
+             * Format: date-time
+             * @description The earlier of idleExpiresAt and expiresAt
+             */
+            endsAt: string;
+            /**
+             * @description Which limit ends the session first
+             * @enum {string}
+             */
+            endsBy: "idle" | "lifetime";
+            /**
+             * Format: date-time
+             * @description The session's absolute lifetime; extending never moves it
+             */
+            expiresAt: string;
+            /** @description Whether extending now would end the session later */
+            extendable: boolean;
+            /**
+             * Format: date-time
+             * @description When the session would end after extending now
+             */
+            extendsTo?: string;
+            /**
+             * Format: date-time
+             * @description When the session ends without further activity
+             */
+            idleExpiresAt?: string;
+            /**
+             * Format: int64
+             * @description The instance's idle timeout, in seconds
+             */
+            idleTimeoutSeconds: number;
+            /**
+             * Format: date-time
+             * @description Last activity the server recorded; the idle clock runs from here
+             */
+            lastSeenAt: string;
+            /**
+             * Format: date-time
+             * @description The server's clock, to correct for skew in the browser
+             */
+            serverTime: string;
+            /**
+             * Format: date-time
+             * @description When this session was created
+             */
+            signedInAt: string;
+        };
         "Setup-check-urlRequest": {
             /** Format: uri */
             url: string;
@@ -835,6 +924,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-session-timing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionTiming"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "extend-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionTiming"];
                 };
             };
             /** @description Error */

@@ -915,6 +915,74 @@
         },
         "type": "object"
       },
+      "SessionTiming": {
+        "additionalProperties": false,
+        "properties": {
+          "endsAt": {
+            "description": "The earlier of idleExpiresAt and expiresAt",
+            "format": "date-time",
+            "type": "string"
+          },
+          "endsBy": {
+            "description": "Which limit ends the session first",
+            "enum": [
+              "idle",
+              "lifetime"
+            ],
+            "type": "string"
+          },
+          "expiresAt": {
+            "description": "The session's absolute lifetime; extending never moves it",
+            "format": "date-time",
+            "type": "string"
+          },
+          "extendable": {
+            "description": "Whether extending now would end the session later",
+            "type": "boolean"
+          },
+          "extendsTo": {
+            "description": "When the session would end after extending now",
+            "format": "date-time",
+            "type": "string"
+          },
+          "idleExpiresAt": {
+            "description": "When the session ends without further activity",
+            "format": "date-time",
+            "type": "string"
+          },
+          "idleTimeoutSeconds": {
+            "description": "The instance's idle timeout, in seconds",
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastSeenAt": {
+            "description": "Last activity the server recorded; the idle clock runs from here",
+            "format": "date-time",
+            "type": "string"
+          },
+          "serverTime": {
+            "description": "The server's clock, to correct for skew in the browser",
+            "format": "date-time",
+            "type": "string"
+          },
+          "signedInAt": {
+            "description": "When this session was created",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signedInAt",
+          "lastSeenAt",
+          "idleTimeoutSeconds",
+          "expiresAt",
+          "endsAt",
+          "endsBy",
+          "extendable",
+          "serverTime"
+        ],
+        "type": "object"
+      },
       "Setup-check-urlRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1424,6 +1492,82 @@
           }
         ],
         "summary": "Replace all recovery codes; the new ones are shown once",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/session": {
+      "get": {
+        "description": "The idle deadline, the absolute lifetime and what extending would do. Like every request, reading it counts as activity.",
+        "operationId": "get-session-timing",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionTiming"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "When your session ends",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/session/extend": {
+      "post": {
+        "description": "Restarts the idle timeout now. The session's absolute lifetime never moves. Recorded in the audit log as session.extend.",
+        "operationId": "extend-session",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionTiming"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Extend your session",
         "tags": [
           "Account"
         ],

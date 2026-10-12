@@ -48,6 +48,9 @@ type Querier interface {
 	DeleteStaleThrottle(ctx context.Context) (int64, error)
 	// Must run inside the same transaction as PurgeAuditEvents (retention job only).
 	EnableAuditPurge(ctx context.Context) error
+	// Restarts the idle clock now (the middleware only touches sessions every
+	// 30 seconds). The absolute lifetime (expires_at) never moves.
+	ExtendSession(ctx context.Context, arg ExtendSessionParams) (ExtendSessionRow, error)
 	GetAPIKey(ctx context.Context, arg GetAPIKeyParams) (ApiKey, error)
 	GetAPIKeyByToken(ctx context.Context, tokenHash []byte) (GetAPIKeyByTokenRow, error)
 	GetAuditEvent(ctx context.Context, id uuid.UUID) (AuditEvent, error)
@@ -62,6 +65,9 @@ type Querier interface {
 	GetRole(ctx context.Context, id uuid.UUID) (Role, error)
 	GetRoleByKey(ctx context.Context, arg GetRoleByKeyParams) (Role, error)
 	GetSessionByToken(ctx context.Context, tokenHash []byte) (Session, error)
+	// Session timing for the app's "Session ending in 2 minutes" banner and its
+	// Extend action (internal/sessionext).
+	GetSessionTiming(ctx context.Context, id uuid.UUID) (GetSessionTimingRow, error)
 	GetSignInThrottle(ctx context.Context, email string) (SignInThrottle, error)
 	GetUser(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
