@@ -170,6 +170,13 @@ handlers. Never hand-write API types; derive them: `type Item = Schemas['Campaig
    `text-[12.5px]`, `rounded-[10px]`), colours via tokens (`text-ink-3`,
    `bg-ground`, `border-line-2`, `bg-ok-tint`); hex values only when a board
    uses a colour that has no token.
+   **Box model:** the boards use the browser default `content-box`, except the
+   components that set `border-box` themselves (`.btn`, `.in`, `.ws`, `.menu`,
+   `.side`…); the app uses `border-box` everywhere (Tailwind preflight). When
+   an element has padding or a border **and** a width, min/max-width, height or
+   flex-basis, add `box-content` so the copied value means the same size
+   (table cells already are content-box). Measure the element in both pages
+   when in doubt.
 3. Replace sample data with API data. Copy that is not data stays literal.
 4. Reproduce the responsive behaviour. The boards get it from global rules in
    their CSS; in the app use the primitives:
@@ -181,7 +188,10 @@ handlers. Never hand-write API types; derive them: `type Item = Schemas['Campaig
      that become 140px auto-fit tracks on phones.
    - Fixed widths 300–420px become `max-md:w-auto max-md:min-w-0 max-md:max-w-full`.
    - Tables scroll inside their card (`<Table>` does it); key column min-width
-     and `white-space` as on the board.
+     and `white-space` as on the board. At ≤767px badges and buttons in cells
+     stay on one line by default (the team and access boards have
+     `.tbl td .badge, .tbl td .btn {white-space:nowrap}`); boards without that
+     rule let them wrap: pass `<Table phoneWrap>`.
    - At ≤1100px the shell is a rail and the content padding is 16px; at ≤767px
      the bottom tab bar appears, padding is 12px and gaps 12px.
    Check every board at 1440, 834 and 390 (the canvas has Tablet/Phone boards

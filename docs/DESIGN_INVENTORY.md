@@ -278,3 +278,5 @@ When they disagree we follow the design for UI and the spec for behaviour.
 | 7 | Campaign totals | "Sent · last 30 days 187,312" | Rows add up to 190,297 | Totals are computed from the rows. |
 | 8 | Composer wrapper | Spec 7.4 mentions @grapesjs/react | CLAUDE.md: own thin wrapper | Own wrapper. |
 | 9 | Rail labels | `display:none` on labels at ≤1100 px | WCAG: links need names | Labels stay visually hidden (accessible) with tooltips. |
+| 10 | Avatars in the shell | Main and the access boards draw them as centred circles; on Campaigns, Providers, Audience and others the `.av` class is missing from the board's CSS, so the initials sit top-left in a square | — | Prototype defect: the app draws every avatar as on the boards where `.av` is defined. |
+| 11 | Table page size | Campaigns shows 9 rows ("Showing 9 of 48") | — | Lists page by 25; the count line reads "Showing 1–25 of 48". |
