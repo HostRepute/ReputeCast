@@ -7,6 +7,7 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -25,12 +26,14 @@ type Querier interface {
 	CountActiveOwners(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountCampaigns(ctx context.Context, arg CountCampaignsParams) (int64, error)
 	CountCampaignsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountCampaignsByStatusRow, error)
+	CountDeliverabilityIncidents(ctx context.Context, arg CountDeliverabilityIncidentsParams) (int64, error)
 	CountUnusedRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountUsers(ctx context.Context) (int64, error)
 	CountWorkspaceAgents(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountWorkspaceWebhooks(ctx context.Context, workspaceID uuid.UUID) (CountWorkspaceWebhooksRow, error)
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
 	CreateChallenge(ctx context.Context, arg CreateChallengeParams) (AuthChallenge, error)
+	CreateCheckRun(ctx context.Context, arg CreateCheckRunParams) (DeliverabilityCheckRun, error)
 	CreateHostReputeOAuthState(ctx context.Context, arg CreateHostReputeOAuthStateParams) error
 	CreateIdentity(ctx context.Context, arg CreateIdentityParams) (UserIdentity, error)
 	CreateInvitation(ctx context.Context, arg CreateInvitationParams) (Invitation, error)
@@ -60,10 +63,14 @@ type Querier interface {
 	DeleteStaleThrottle(ctx context.Context) (int64, error)
 	// Must run inside the same transaction as PurgeAuditEvents (retention job only).
 	EnableAuditPurge(ctx context.Context) error
+	FailStaleCheckRuns(ctx context.Context, aliveAfter time.Time) (int64, error)
+	FinishCheckRun(ctx context.Context, arg FinishCheckRunParams) error
 	GetAPIKey(ctx context.Context, arg GetAPIKeyParams) (ApiKey, error)
 	GetAPIKeyByToken(ctx context.Context, tokenHash []byte) (GetAPIKeyByTokenRow, error)
 	GetAuditEvent(ctx context.Context, id uuid.UUID) (AuditEvent, error)
+	GetBlocklistListing(ctx context.Context, arg GetBlocklistListingParams) (BlocklistResult, error)
 	GetChallenge(ctx context.Context, arg GetChallengeParams) (AuthChallenge, error)
+	GetCheckRun(ctx context.Context, arg GetCheckRunParams) (DeliverabilityCheckRun, error)
 	GetHostReputeConnection(ctx context.Context, workspaceID uuid.UUID) (HostreputeConnection, error)
 	GetHostReputeConnectionForUpdate(ctx context.Context, workspaceID uuid.UUID) (HostreputeConnection, error)
 	GetIdentity(ctx context.Context, arg GetIdentityParams) (UserIdentity, error)
@@ -86,13 +93,21 @@ type Querier interface {
 	// Incidents with an external id (HostRepute alerts) are stored once; the
 	// returned row count says whether this one is new.
 	InsertIncident(ctx context.Context, arg InsertIncidentParams) (uuid.UUID, error)
+	LastAssetCheckAt(ctx context.Context, workspaceID uuid.UUID) (time.Time, error)
+	LatestCheckRun(ctx context.Context, workspaceID uuid.UUID) (DeliverabilityCheckRun, error)
+	LatestFinishedCheckRun(ctx context.Context, arg LatestFinishedCheckRunParams) (DeliverabilityCheckRun, error)
 	ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error)
 	// … and the connected sending providers (dedicated IPs, shared pools, server hostnames).
 	ListActiveProviders(ctx context.Context, workspaceID uuid.UUID) ([]ListActiveProvidersRow, error)
+	ListActiveWarmupPlans(ctx context.Context, workspaceID uuid.UUID) ([]ListActiveWarmupPlansRow, error)
+	ListAssetChecks(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityAssetCheck, error)
 	// Everything an asset list is built from: sending domains (with the records
 	// their providers require) …
 	ListAssetSources(ctx context.Context, workspaceID uuid.UUID) ([]ListAssetSourcesRow, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
+	// Every blocklist result of a workspace, most important first: listings,
+	// then by the source's rank.
+	ListBlocklistResults(ctx context.Context, workspaceID uuid.UUID) ([]BlocklistResult, error)
 	ListCampaignIncidentSummaries(ctx context.Context, campaignIds []uuid.UUID) ([]ListCampaignIncidentSummariesRow, error)
 	// Per-provider share of each campaign: planned recipients and what was sent.
 	ListCampaignRouteShares(ctx context.Context, campaignIds []uuid.UUID) ([]ListCampaignRouteSharesRow, error)
@@ -101,13 +116,21 @@ type Querier interface {
 	ListCampaigns(ctx context.Context, arg ListCampaignsParams) ([]ListCampaignsRow, error)
 	// Workspaces whose HostRepute connection the hourly sync refreshes.
 	ListConnectedHostRepute(ctx context.Context) ([]uuid.UUID, error)
+	ListDMARCReports(ctx context.Context, arg ListDMARCReportsParams) ([]DmarcReport, error)
+	// The incident timeline. An incident without an explicit campaign is linked
+	// to the campaign that was sending through its provider when it happened.
+	ListDeliverabilityIncidents(ctx context.Context, arg ListDeliverabilityIncidentsParams) ([]ListDeliverabilityIncidentsRow, error)
 	ListIdentities(ctx context.Context, userID uuid.UUID) ([]UserIdentity, error)
 	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]ListMembersRow, error)
 	// Used to name who can help when a permission is missing.
 	ListMembersWithRoles(ctx context.Context, workspaceID uuid.UUID) ([]ListMembersWithRolesRow, error)
 	ListPasskeys(ctx context.Context, userID uuid.UUID) ([]UserPasskey, error)
 	ListPendingInvitations(ctx context.Context, workspaceID uuid.UUID) ([]ListPendingInvitationsRow, error)
+	ListPostmasterDays(ctx context.Context, arg ListPostmasterDaysParams) ([]PostmasterDaily, error)
+	// Which streams each provider serves, as primary (in a split) or fallback.
+	ListProviderStreams(ctx context.Context, workspaceID uuid.UUID) ([]ListProviderStreamsRow, error)
 	ListRoles(ctx context.Context, workspaceID uuid.UUID) ([]ListRolesRow, error)
+	ListSNDSDays(ctx context.Context, arg ListSNDSDaysParams) ([]SndsDaily, error)
 	ListUserSessions(ctx context.Context, userID uuid.UUID) ([]Session, error)
 	ListUserWorkspaces(ctx context.Context, userID uuid.UUID) ([]ListUserWorkspacesRow, error)
 	ListUsers(ctx context.Context) ([]User, error)
@@ -136,6 +159,9 @@ type Querier interface {
 	RevokeInvitation(ctx context.Context, arg RevokeInvitationParams) (int64, error)
 	RevokeOtherSessions(ctx context.Context, arg RevokeOtherSessionsParams) (int64, error)
 	RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error)
+	// A run still in progress (runs older than ten minutes are considered dead).
+	RunningCheckRun(ctx context.Context, arg RunningCheckRunParams) (DeliverabilityCheckRun, error)
+	SetBlocklistDelisting(ctx context.Context, arg SetBlocklistDelistingParams) error
 	SetHostReputeMonitored(ctx context.Context, arg SetHostReputeMonitoredParams) error
 	SetLatestRelease(ctx context.Context, latestRelease json.RawMessage) error
 	SetMemberStatus(ctx context.Context, arg SetMemberStatusParams) error
@@ -155,6 +181,7 @@ type Querier interface {
 	TouchSession(ctx context.Context, id uuid.UUID) error
 	TouchUserActive(ctx context.Context, id uuid.UUID) error
 	UpdateAuthPolicy(ctx context.Context, arg UpdateAuthPolicyParams) (InstanceSetting, error)
+	UpdateCheckRunProgress(ctx context.Context, arg UpdateCheckRunProgressParams) error
 	UpdateHostReputeTokens(ctx context.Context, arg UpdateHostReputeTokensParams) error
 	UpdateInstanceBasics(ctx context.Context, arg UpdateInstanceBasicsParams) (InstanceSetting, error)
 	UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) (WorkspaceMember, error)
@@ -164,6 +191,7 @@ type Querier interface {
 	UpdateWorkspaceApprovalPolicy(ctx context.Context, arg UpdateWorkspaceApprovalPolicyParams) (Workspace, error)
 	UpdateWorkspaceGeneral(ctx context.Context, arg UpdateWorkspaceGeneralParams) (Workspace, error)
 	UpdateWorkspaceJSON(ctx context.Context, arg UpdateWorkspaceJSONParams) (Workspace, error)
+	UpsertAssetCheck(ctx context.Context, arg UpsertAssetCheckParams) error
 	UpsertDMARCReport(ctx context.Context, arg UpsertDMARCReportParams) error
 	// Connect or reconnect: new tokens and account details, status back to
 	// connected. Monitored assets and alert history survive a reconnect.
@@ -173,6 +201,8 @@ type Querier interface {
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (uuid.UUID, error)
 	UserName(ctx context.Context, id uuid.UUID) (UserNameRow, error)
 	WorkspaceSlug(ctx context.Context, id uuid.UUID) (string, error)
+	// Workspaces the daily checks look at: they send through something.
+	WorkspacesWithSendingSetup(ctx context.Context) ([]uuid.UUID, error)
 }
 
 var _ Querier = (*Queries)(nil)
