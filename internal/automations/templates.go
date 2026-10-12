@@ -218,4 +218,3 @@ func BlankEmail(name, subject string) EmailContent {
 func DemoEmail(subject, preheader, heading, cta string, body ...string) EmailContent {
 	return starterEmail(templateEmail{subject: subject, preheader: preheader, heading: heading, cta: cta, body: body})
 }
-
