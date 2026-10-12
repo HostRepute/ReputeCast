@@ -14,12 +14,12 @@ import (
 
 // Status words shared by every check result.
 const (
-	StatusPass     = "pass"     // present, valid and doing its job
-	StatusMissing  = "missing"  // no record
-	StatusInvalid  = "invalid"  // a record exists but is broken
-	StatusFail     = "fail"     // valid record that doesn't cover what it must
-	StatusError    = "error"    // DNS didn't answer; try again
-	StatusRevoked  = "revoked"  // DKIM key with an empty p=
+	StatusPass     = "pass"    // present, valid and doing its job
+	StatusMissing  = "missing" // no record
+	StatusInvalid  = "invalid" // a record exists but is broken
+	StatusFail     = "fail"    // valid record that doesn't cover what it must
+	StatusError    = "error"   // DNS didn't answer; try again
+	StatusRevoked  = "revoked" // DKIM key with an empty p=
 	StatusTooMany  = "too_many_lookups"
 	StatusAligned  = "aligned"
 	StatusMisalign = "misaligned"

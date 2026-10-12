@@ -53,7 +53,9 @@ func Fetch(ctx context.Context, c Client, now, alertsSince time.Time) (Snapshot,
 	if snap.Assets, err = c.Assets(ctx); err != nil {
 		return snap, err
 	}
-	can := func(scope string) bool { return len(snap.Account.Scopes) == 0 || slices.Contains(snap.Account.Scopes, scope) }
+	can := func(scope string) bool {
+		return len(snap.Account.Scopes) == 0 || slices.Contains(snap.Account.Scopes, scope)
+	}
 	skip := func(err error) bool { return errors.Is(err, ErrForbidden) || errors.Is(err, ErrNotFound) }
 	if can(ScopeMonitorRead) {
 		if snap.Blocklists, err = c.Blocklists(ctx); err != nil && !skip(err) {

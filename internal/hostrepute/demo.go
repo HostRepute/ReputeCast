@@ -104,7 +104,9 @@ type demoSource struct {
 }
 
 func demoSources() []demoSource {
-	src := func(name, kind, impact, url string) demoSource { return demoSource{name: name, kind: kind, impact: impact, url: url} }
+	src := func(name, kind, impact, url string) demoSource {
+		return demoSource{name: name, kind: kind, impact: impact, url: url}
+	}
 	list := []demoSource{
 		src("Spamhaus ZEN", "ip", "high", "https://check.spamhaus.org/"),
 		src("Spamhaus DBL", "domain", "high", "https://check.spamhaus.org/"),

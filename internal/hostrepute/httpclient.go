@@ -81,8 +81,11 @@ func reasonFor(err error, timeout time.Duration) string {
 	var ne net.Error
 	switch {
 	case errors.Is(err, context.DeadlineExceeded), errors.As(err, &ne) && ne.Timeout():
-		if timeout > 0 {
+		switch {
+		case timeout >= time.Second:
 			return fmt.Sprintf("timeout after %d s", int(timeout.Seconds()))
+		case timeout > 0:
+			return fmt.Sprintf("timeout after %d ms", timeout.Milliseconds())
 		}
 		return "timeout"
 	case strings.Contains(err.Error(), "connection refused"):

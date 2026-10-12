@@ -283,7 +283,7 @@ type DMARCSummary struct {
 	Reports  int    `json:"reports"`
 	Messages int64  `json:"messages"`
 	// PassRate is the share of messages that passed DMARC (percent).
-	PassRate *float64        `json:"passRate,omitempty"`
+	PassRate *float64         `json:"passRate,omitempty"`
 	Sources  []DMARCSourceRow `json:"sources"`
 	// Unknown is the largest source that isn't one of the providers.
 	Unknown *DMARCSourceRow `json:"unknown,omitempty"`
