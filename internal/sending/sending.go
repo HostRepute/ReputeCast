@@ -22,3 +22,21 @@ type Starter interface {
 	Resume(ctx context.Context, campaignID uuid.UUID, by uuid.UUID) error
 	Cancel(ctx context.Context, campaignID uuid.UUID, by uuid.UUID) error
 }
+
+// ErrUnavailable is returned by Unavailable, before the sending domain is wired.
+var ErrUnavailable = errors.New("sending is not available in this process")
+
+// Unavailable is the Starter used until the sending domain replaces it.
+type Unavailable struct{}
+
+// Start always fails with ErrUnavailable.
+func (Unavailable) Start(context.Context, uuid.UUID, uuid.UUID) error { return ErrUnavailable }
+
+// Pause always fails with ErrUnavailable.
+func (Unavailable) Pause(context.Context, uuid.UUID, uuid.UUID, string) error { return ErrUnavailable }
+
+// Resume always fails with ErrUnavailable.
+func (Unavailable) Resume(context.Context, uuid.UUID, uuid.UUID) error { return ErrUnavailable }
+
+// Cancel always fails with ErrUnavailable.
+func (Unavailable) Cancel(context.Context, uuid.UUID, uuid.UUID) error { return ErrUnavailable }
