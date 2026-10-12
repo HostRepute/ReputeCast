@@ -788,3 +788,30 @@ func (s *Service) SyncNow(ctx context.Context, ws *store.Workspace) (SyncQueued,
 func (s *Service) QueueRecheck(ctx context.Context, tx pgx.Tx, ws uuid.UUID, by *uuid.UUID) error {
 	return s.queueSync(ctx, tx, ws, by, "manual", true, false)
 }
+
+// RequestDelisting asks HostRepute to request the delisting of an asset
+// from a blocklist (HostRepute's delisting workflow).
+func (s *Service) RequestDelisting(ctx context.Context, ws uuid.UUID, asset, source string) (Delisting, error) {
+	conn, err := s.requireConnected(ctx, ws)
+	if err != nil {
+		return Delisting{}, err
+	}
+	c, w, err := s.clientFor(ctx, conn)
+	if err != nil {
+		return Delisting{}, err
+	}
+	d, err := c.RequestDelisting(ctx, asset, source)
+	s.saveRefreshedToken(ctx, conn, w)
+	switch {
+	case errors.Is(err, ErrUnauthorized):
+		return d, api.Err(http.StatusConflict, "hostrepute_reconnect", "HostRepute rejected the token. Reconnect HostRepute, then try again.")
+	case errors.Is(err, ErrUnavailable):
+		return d, unavailableProblem(err, "Nothing was requested; try again in a minute.")
+	case errors.Is(err, ErrNotFound):
+		return d, api.NotFound("Listing")
+	}
+	if err == nil && d.RequestedAt.IsZero() {
+		d.RequestedAt = s.now()
+	}
+	return d, err
+}
