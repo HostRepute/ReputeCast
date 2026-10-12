@@ -19,14 +19,19 @@ type Querier interface {
 	CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSinceParams) (CampaignTotalsSinceRow, error)
 	ClearSignInThrottle(ctx context.Context, email string) error
 	CompleteInstanceSetup(ctx context.Context, arg CompleteInstanceSetupParams) (InstanceSetting, error)
+	// A state is single use: reading it deletes it.
+	ConsumeHostReputeOAuthState(ctx context.Context, stateHash []byte) (HostreputeOauthState, error)
 	ConsumePasswordReset(ctx context.Context, tokenHash []byte) (PasswordReset, error)
 	CountActiveOwners(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountCampaigns(ctx context.Context, arg CountCampaignsParams) (int64, error)
 	CountCampaignsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountCampaignsByStatusRow, error)
 	CountUnusedRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountUsers(ctx context.Context) (int64, error)
+	CountWorkspaceAgents(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	CountWorkspaceWebhooks(ctx context.Context, workspaceID uuid.UUID) (CountWorkspaceWebhooksRow, error)
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
 	CreateChallenge(ctx context.Context, arg CreateChallengeParams) (AuthChallenge, error)
+	CreateHostReputeOAuthState(ctx context.Context, arg CreateHostReputeOAuthStateParams) error
 	CreateIdentity(ctx context.Context, arg CreateIdentityParams) (UserIdentity, error)
 	CreateInvitation(ctx context.Context, arg CreateInvitationParams) (Invitation, error)
 	CreateMember(ctx context.Context, arg CreateMemberParams) (WorkspaceMember, error)
@@ -37,9 +42,16 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
+	// Where Postmaster and SNDS data come from now (hostrepute, direct or none).
+	DataSourceVia(ctx context.Context, workspaceID uuid.UUID) (DataSourceViaRow, error)
+	DeleteBlocklistResultsVia(ctx context.Context, arg DeleteBlocklistResultsViaParams) error
 	DeleteChallenge(ctx context.Context, id uuid.UUID) error
 	DeleteExpiredChallenges(ctx context.Context) (int64, error)
+	DeleteExpiredHostReputeOAuthStates(ctx context.Context) (int64, error)
 	DeleteExpiredSessions(ctx context.Context) (int64, error)
+	DeleteHostReputeConnection(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	// Disconnect forgets what was synced from HostRepute (HostRepute keeps it).
+	DeleteHostReputeData(ctx context.Context, workspaceID uuid.UUID) error
 	DeleteIdentity(ctx context.Context, arg DeleteIdentityParams) (int64, error)
 	DeleteMember(ctx context.Context, arg DeleteMemberParams) (int64, error)
 	DeletePasskey(ctx context.Context, arg DeletePasskeyParams) (int64, error)
@@ -52,6 +64,8 @@ type Querier interface {
 	GetAPIKeyByToken(ctx context.Context, tokenHash []byte) (GetAPIKeyByTokenRow, error)
 	GetAuditEvent(ctx context.Context, id uuid.UUID) (AuditEvent, error)
 	GetChallenge(ctx context.Context, arg GetChallengeParams) (AuthChallenge, error)
+	GetHostReputeConnection(ctx context.Context, workspaceID uuid.UUID) (HostreputeConnection, error)
+	GetHostReputeConnectionForUpdate(ctx context.Context, workspaceID uuid.UUID) (HostreputeConnection, error)
 	GetIdentity(ctx context.Context, arg GetIdentityParams) (UserIdentity, error)
 	GetInstanceSettings(ctx context.Context) (InstanceSetting, error)
 	GetInvitationByToken(ctx context.Context, tokenHash []byte) (GetInvitationByTokenRow, error)
@@ -68,7 +82,16 @@ type Querier interface {
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
+	InsertBlocklistResult(ctx context.Context, arg InsertBlocklistResultParams) error
+	// Incidents with an external id (HostRepute alerts) are stored once; the
+	// returned row count says whether this one is new.
+	InsertIncident(ctx context.Context, arg InsertIncidentParams) (uuid.UUID, error)
 	ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error)
+	// … and the connected sending providers (dedicated IPs, shared pools, server hostnames).
+	ListActiveProviders(ctx context.Context, workspaceID uuid.UUID) ([]ListActiveProvidersRow, error)
+	// Everything an asset list is built from: sending domains (with the records
+	// their providers require) …
+	ListAssetSources(ctx context.Context, workspaceID uuid.UUID) ([]ListAssetSourcesRow, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
 	ListCampaignIncidentSummaries(ctx context.Context, campaignIds []uuid.UUID) ([]ListCampaignIncidentSummariesRow, error)
 	// Per-provider share of each campaign: planned recipients and what was sent.
@@ -76,6 +99,8 @@ type Querier interface {
 	// One page of the campaigns list. Status groups: drafts = draft, approval,
 	// approved; sending = sending, paused; sent = sent, cancelled, failed.
 	ListCampaigns(ctx context.Context, arg ListCampaignsParams) ([]ListCampaignsRow, error)
+	// Workspaces whose HostRepute connection the hourly sync refreshes.
+	ListConnectedHostRepute(ctx context.Context) ([]uuid.UUID, error)
 	ListIdentities(ctx context.Context, userID uuid.UUID) ([]UserIdentity, error)
 	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]ListMembersRow, error)
 	// Used to name who can help when a permission is missing.
@@ -88,8 +113,17 @@ type Querier interface {
 	ListUsers(ctx context.Context) ([]User, error)
 	ListWorkspaceLists(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceListsRow, error)
 	ListWorkspaces(ctx context.Context) ([]Workspace, error)
+	// A sync finished: account, team, scopes and monitored assets as HostRepute
+	// reports them now.
+	MarkHostReputeSynced(ctx context.Context, arg MarkHostReputeSyncedParams) error
+	// HostRepute rejected the token (revoked on its side, or expired and not
+	// refreshable). Only the first rejection is recorded.
+	MarkHostReputeTokenRejected(ctx context.Context, arg MarkHostReputeTokenRejectedParams) (int64, error)
+	// The connected provider that sends from a dedicated IP.
+	ProviderForIP(ctx context.Context, arg ProviderForIPParams) (ProviderForIPRow, error)
 	ProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]ProviderNamesRow, error)
 	PurgeAuditEvents(ctx context.Context, arg PurgeAuditEventsParams) (int64, error)
+	RecordHostReputeSyncError(ctx context.Context, arg RecordHostReputeSyncErrorParams) error
 	RecordSignInFailure(ctx context.Context, arg RecordSignInFailureParams) (RecordSignInFailureRow, error)
 	RecordSignInSuccess(ctx context.Context, id uuid.UUID) error
 	RecordSignInThrottleFailure(ctx context.Context, arg RecordSignInThrottleFailureParams) (SignInThrottle, error)
@@ -102,6 +136,7 @@ type Querier interface {
 	RevokeInvitation(ctx context.Context, arg RevokeInvitationParams) (int64, error)
 	RevokeOtherSessions(ctx context.Context, arg RevokeOtherSessionsParams) (int64, error)
 	RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error)
+	SetHostReputeMonitored(ctx context.Context, arg SetHostReputeMonitoredParams) error
 	SetLatestRelease(ctx context.Context, latestRelease json.RawMessage) error
 	SetMemberStatus(ctx context.Context, arg SetMemberStatusParams) error
 	SetUserBreakGlass(ctx context.Context, arg SetUserBreakGlassParams) error
@@ -120,6 +155,7 @@ type Querier interface {
 	TouchSession(ctx context.Context, id uuid.UUID) error
 	TouchUserActive(ctx context.Context, id uuid.UUID) error
 	UpdateAuthPolicy(ctx context.Context, arg UpdateAuthPolicyParams) (InstanceSetting, error)
+	UpdateHostReputeTokens(ctx context.Context, arg UpdateHostReputeTokensParams) error
 	UpdateInstanceBasics(ctx context.Context, arg UpdateInstanceBasicsParams) (InstanceSetting, error)
 	UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) (WorkspaceMember, error)
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)
@@ -128,7 +164,15 @@ type Querier interface {
 	UpdateWorkspaceApprovalPolicy(ctx context.Context, arg UpdateWorkspaceApprovalPolicyParams) (Workspace, error)
 	UpdateWorkspaceGeneral(ctx context.Context, arg UpdateWorkspaceGeneralParams) (Workspace, error)
 	UpdateWorkspaceJSON(ctx context.Context, arg UpdateWorkspaceJSONParams) (Workspace, error)
+	UpsertDMARCReport(ctx context.Context, arg UpsertDMARCReportParams) error
+	// Connect or reconnect: new tokens and account details, status back to
+	// connected. Monitored assets and alert history survive a reconnect.
+	UpsertHostReputeConnection(ctx context.Context, arg UpsertHostReputeConnectionParams) (HostreputeConnection, error)
+	UpsertPostmasterDay(ctx context.Context, arg UpsertPostmasterDayParams) error
+	UpsertSNDSDay(ctx context.Context, arg UpsertSNDSDayParams) error
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (uuid.UUID, error)
+	UserName(ctx context.Context, id uuid.UUID) (UserNameRow, error)
+	WorkspaceSlug(ctx context.Context, id uuid.UUID) (string, error)
 }
 
 var _ Querier = (*Queries)(nil)
