@@ -21,7 +21,10 @@ list: `internal/campaigns/list.go`, `internal/store/queries/campaigns.sql`,
 | `internal/<domain>` | One package per domain: `Service` + `Register(huma.API, *Service)` + types. |
 | `internal/providers` | The `Provider` contract and registry; adapters in `internal/providers/<name>`. |
 | `internal/notify` | Create notifications (`notify.ToUser`, `notify.ToMembersWith`). |
-| `internal/mailer` | System mail (`mailer.Sender`). |
+| `internal/mailer` | System mail (`mailer.Sender`, `App.Mail`). |
+| `internal/sending` | The send contract (`sending.Starter`, `App.Sending`). |
+| `internal/linktoken` | Signed tokens in emails: open, click, unsubscribe, preferences, view online, confirm (`App.Links`). |
+| `internal/publicurl` | Absolute public URLs: `/t/o`, `/t/c`, `/p/{workspace}/…`, `/r/{token}` (`App.URLs`). Never build these paths by hand. |
 | `internal/demo` | The Acme sample data (`reputecast seed`). One file per domain. |
 | `internal/apptest`, `internal/testdb` | Integration-test harness on real Postgres. |
 | `migrations` | goose SQL migrations (embedded). |
