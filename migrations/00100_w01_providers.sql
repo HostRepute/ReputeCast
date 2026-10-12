@@ -33,12 +33,15 @@ ALTER TABLE messages ADD COLUMN kind text NOT NULL DEFAULT '';
 CREATE INDEX messages_provider_sent_idx ON messages (provider_id, sent_at DESC) WHERE sent_at IS NOT NULL;
 
 -- Per-minute API call counters per provider, written by every adapter call
--- (sends, health checks). Rows older than a day are purged.
+-- (sends, health checks): calls and failed calls ("API error rate · 3 min",
+-- outage detection) and messages accepted ("0 /s now · peak today 14 /s").
+-- Rows older than two days are purged.
 CREATE TABLE provider_call_windows (
     provider_id uuid        NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
     minute      timestamptz NOT NULL,
     calls       integer     NOT NULL DEFAULT 0,
     errors      integer     NOT NULL DEFAULT 0,
+    messages    integer     NOT NULL DEFAULT 0,
     PRIMARY KEY (provider_id, minute)
 );
 
