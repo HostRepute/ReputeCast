@@ -435,7 +435,7 @@
      value it was prerendered with (it would otherwise flash before dropping
      to zero). If the script never runs, the value appears after 4 s. */
   @media (prefers-reduced-motion: no-preference) {
-    .js:not([data-motion='paused']) .count:not([data-live]) > .count-v {
+    .js:not([data-motion='paused']):not([data-settled]) .count:not([data-live]) > .count-v {
       visibility: hidden;
       animation: count-fallback 0s linear 4s forwards;
     }

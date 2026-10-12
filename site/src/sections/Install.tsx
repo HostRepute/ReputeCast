@@ -27,7 +27,13 @@ export function Install() {
           </ol>
         </div>
         <div className="reveal flex flex-[1_1_420px] flex-col gap-3">
-          <pre ref={term} className="border border-dark-line bg-dark-surface" tabIndex={scrollable ? 0 : undefined}>
+          <pre
+            ref={term}
+            className="border border-dark-line bg-dark-surface"
+            role={scrollable ? 'region' : undefined}
+            aria-label={scrollable ? 'Install commands, scroll sideways' : undefined}
+            tabIndex={scrollable ? 0 : undefined}
+          >
             {commands}
             <span className="cursor" aria-hidden="true" />
           </pre>

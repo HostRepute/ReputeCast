@@ -54,7 +54,7 @@ export function Cost() {
         </div>
         <div className="flex flex-[1.2_1_380px] flex-col gap-2.5">
           <h3 className="m-0 text-[16px] font-bold">Monthly sending cost at {volume} emails</h3>
-          <ul className="m-0 flex list-none flex-col gap-2.5 p-0" role="list">
+          <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
             {rows.map((r) => (
               <li key={r.name} className="flex flex-col gap-[5px] border-t border-line-2 py-2">
                 <div className="flex items-center justify-between text-[14.5px] max-md:flex-wrap">

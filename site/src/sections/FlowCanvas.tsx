@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Count, percent } from '../components/Count'
-import { motionAllowed, useMotion, useProgress } from '../lib/motion'
+import { motionAllowed, useHydrated, useMotion, useProgress } from '../lib/motion'
 import { useScrollable } from '../lib/scrollable'
 
 type Edge = { id: string; left: number; top: number; width: number; height: number; h?: boolean }
@@ -71,33 +71,33 @@ function Node({
 export function FlowCanvas() {
   const wrap = useRef<HTMLDivElement>(null)
   const motion = useMotion()
-  const [go, setGo] = useState(false)
+  const hydrated = useHydrated()
   const scrollable = useScrollable(wrap)
+  // Reduced or paused motion shows the finished canvas right away; otherwise
+  // it draws in once 20% of it is visible, or after 3.5 s.
+  const animate = motionAllowed(motion) && !motion.settled
+  const [started, setStarted] = useState(false)
+  const go = started || (hydrated && !animate)
 
   useEffect(() => {
-    if (go) return
-    // Reduced or paused motion: show the finished canvas right away.
-    if (!motionAllowed(motion) || motion.settled) {
-      setGo(true)
-      return
-    }
+    if (started || !animate) return
     const el = wrap.current
     let io: IntersectionObserver | undefined
     if (el && typeof IntersectionObserver !== 'undefined') {
       io = new IntersectionObserver(
         (entries) => {
-          if (entries.some((e) => e.isIntersecting)) setGo(true)
+          if (entries.some((e) => e.isIntersecting)) setStarted(true)
         },
         { threshold: 0.2 },
       )
       io.observe(el)
     }
-    const timer = window.setTimeout(() => setGo(true), 3500)
+    const timer = window.setTimeout(() => setStarted(true), 3500)
     return () => {
       io?.disconnect()
       window.clearTimeout(timer)
     }
-  }, [go, motion])
+  }, [started, animate])
 
   const { p, live } = useProgress({ start: go, delay: 900, duration: 1500 })
   const n = (final: number) => <Count final={final} p={p} live={live} />
@@ -105,14 +105,20 @@ export function FlowCanvas() {
 
   return (
     <div className="reveal flex min-w-0 flex-[3_1_520px] flex-col overflow-hidden rounded-[14px] border border-line bg-white">
+      {/* On phones the canvas scrolls sideways, so it becomes a named,
+          focusable region for keyboard users. */}
       <div
         ref={wrap}
         className="flowwrap rounded-none border-0"
-        role="img"
-        aria-label="Animated automation flow: joined list, delay, welcome email, branch on opens, two follow-ups, goal and exit"
+        role={scrollable ? 'region' : undefined}
+        aria-label={scrollable ? 'Automation flow canvas, scrolls sideways' : undefined}
         tabIndex={scrollable ? 0 : undefined}
       >
-        <div className="flowbox">
+        <div
+          className="flowbox"
+          role="img"
+          aria-label="Animated automation flow: joined list, delay, welcome email, branch on opens, two follow-ups, goal and exit"
+        >
           <div className={`flowstage${go ? ' go' : ''}`}>
             {pulses.map((cls) => (
               <span key={cls} className={`pu ${cls}`} aria-hidden="true" />
