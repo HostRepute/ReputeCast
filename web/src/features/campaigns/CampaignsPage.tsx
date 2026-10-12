@@ -7,6 +7,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { EmptyState, ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Grid } from '@/components/ui/Layout'
 import { Table, Td, Th } from '@/components/ui/Table'
+import { FilterTabs } from '@/components/ui/Tabs'
 import { clock, count, money, pct, rate, shortDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { RouteBadges } from './RouteBadges'
@@ -38,7 +39,7 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
   return (
     <Page
       title="Campaigns"
-      filters={<FilterTabs status={status} counts={counts} q={search.q} />}
+      filters={<CampaignFilters status={status} counts={counts} q={search.q} />}
       actions={
         <>
           <SearchBox initial={search.q ?? ''} status={status} />
@@ -94,31 +95,26 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
   )
 }
 
-function FilterTabs({ status, counts, q }: { status: CampaignFilter; counts?: Schemas['CampaignStatusCounts']; q?: string }) {
+function CampaignFilters({ status, counts, q }: { status: CampaignFilter; counts?: Schemas['CampaignStatusCounts']; q?: string }) {
   const { slug } = useWorkspace()
-  const items: { key: CampaignFilter; label: string; n?: number }[] = [
-    { key: 'all', label: 'All', n: counts?.all },
-    { key: 'drafts', label: 'Drafts', n: counts?.drafts },
-    { key: 'scheduled', label: 'Scheduled', n: counts?.scheduled },
-    { key: 'sending', label: 'Sending', n: counts?.sending },
-    { key: 'sent', label: 'Sent', n: counts?.sent },
-  ]
+  const navigate = useNavigate()
+  const n = (v?: number) => (v !== undefined ? ` · ${count(v)}` : '')
   return (
-    <nav className="tabs scroll-sm ml-3 max-md:ml-0" aria-label="Filter">
-      {items.map((it) => (
-        <Link
-          key={it.key}
-          to="/w/$workspace/campaigns"
-          params={{ workspace: slug }}
-          search={{ status: it.key === 'all' ? undefined : it.key, q: q || undefined }}
-          className={status === it.key ? 'on' : undefined}
-          aria-current={status === it.key ? 'page' : undefined}
-        >
-          {it.label}
-          {it.n !== undefined ? ` · ${count(it.n)}` : ''}
-        </Link>
-      ))}
-    </nav>
+    <FilterTabs
+      label="Filter"
+      className="ml-3 max-md:ml-0"
+      value={status}
+      onChange={(next) =>
+        void navigate({ to: '/w/$workspace/campaigns', params: { workspace: slug }, search: { status: next === 'all' ? undefined : next, q: q || undefined } })
+      }
+      items={[
+        { value: 'all', label: `All${n(counts?.all)}` },
+        { value: 'drafts', label: `Drafts${n(counts?.drafts)}` },
+        { value: 'scheduled', label: `Scheduled${n(counts?.scheduled)}` },
+        { value: 'sending', label: `Sending${n(counts?.sending)}` },
+        { value: 'sent', label: `Sent${n(counts?.sent)}` },
+      ]}
+    />
   )
 }
 

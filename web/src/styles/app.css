@@ -656,7 +656,8 @@
   }
   .tabs a.on,
   .tabs a[aria-current='page'],
-  .tabs button[aria-selected='true'] {
+  .tabs button[aria-selected='true'],
+  .tabs button[aria-pressed='true'] {
     background: var(--ink);
     color: #fff;
   }
@@ -1422,172 +1423,176 @@
     outline: none;
   }
 
-  /* ≤1100px: the sidebar becomes a 72px icon rail. */
-  @media (max-width: 1100px) {
-    .side {
-      flex: 0 0 72px;
-      max-width: 72px;
-      padding: 14px 8px;
-      gap: 4px;
-    }
-    .side .brand-t,
-    .side .ws {
-      display: none;
-    }
-    /* Labels stay in the accessibility tree; a tooltip shows them visually. */
-    .side .nl {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-    }
-    .side .nav a {
-      justify-content: center;
-      padding: 0;
-      height: 44px;
-    }
-    .side .nav svg {
-      width: 20px;
-      height: 20px;
-    }
-    .side .home {
-      justify-content: center;
-      padding: 6px 0;
-    }
-    .side .sidefoot {
-      align-items: center;
-    }
-    .side .sidefoot > * {
-      display: none;
-    }
-    .side .sidefoot > a.btn {
-      display: inline-flex;
-      width: 44px;
-      height: 44px;
-      padding: 0;
-      justify-content: center;
-      font-size: 0;
-      gap: 0;
-    }
-    .side .sidefoot > a.btn svg {
-      width: 18px;
-      height: 18px;
-    }
-    .top {
-      padding: 12px 16px;
-    }
-    .content {
-      padding: 16px;
-    }
-  }
+}
 
-  /* ≤767px: a fixed bottom tab bar with 44px targets. */
-  @media (max-width: 767px) {
-    .app {
-      flex-direction: column;
-      flex-wrap: nowrap;
-    }
-    .side {
-      flex: none;
-      max-width: none;
-      width: auto;
-      height: auto;
-      position: fixed;
-      top: auto;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 50;
-      flex-direction: row;
-      align-items: center;
-      padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
-      border-right: 0;
-      border-top: 1px solid var(--line);
-      background: #fff;
-      box-sizing: border-box;
-      gap: 0;
-      overflow: visible;
-    }
-    .side .home,
-    .side .ws,
-    .side .sidefoot {
-      display: none;
-    }
-    .side .nav {
-      flex-direction: row;
-      flex: 1;
-      justify-content: space-around;
-      margin-top: 0;
-      gap: 0;
-    }
-    .side .nav a {
-      height: 44px;
-      width: 44px;
-      flex: none;
-      padding: 0;
-      justify-content: center;
-      border-radius: 10px;
-    }
-    .side .nl {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      display: block;
-    }
-    .mainc {
-      padding-bottom: 72px;
-      width: 100%;
-      max-width: 100%;
-    }
-    .top {
-      padding: 12px;
-      gap: 8px;
-    }
-    .top h1 {
-      font-size: 16px;
-    }
-    .top .in {
-      width: 100% !important;
-    }
-    .tools {
-      margin-left: 0;
-    }
-    .tabs.scroll-sm {
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      max-width: 100%;
-      margin-left: 0;
-      padding-bottom: 2px;
-    }
-    .tabs.scroll-sm > * {
-      flex: none;
-    }
-    .content {
-      padding: 12px;
-      gap: 12px;
-    }
-    .content > * {
-      min-width: 0;
-      max-width: 100%;
-    }
-    .menu {
-      min-width: 0;
-      max-width: calc(100vw - 24px);
-    }
-    .kv {
-      grid-template-columns: 1fr;
-    }
-    .rc-box {
-      grid-template-columns: 1fr;
-    }
-    .ovl {
-      padding: 24px 12px;
-    }
+/* Shell breakpoints live outside the layers on purpose: unlayered rules win
+   over Tailwind utilities, so the rail and tab bar always apply (the boards
+   used !important for the same reason). */
+/* ≤1100px: the sidebar becomes a 72px icon rail. */
+@media (max-width: 1100px) {
+  .side {
+    flex: 0 0 72px;
+    max-width: 72px;
+    padding: 14px 8px;
+    gap: 4px;
+  }
+  .side .brand-t,
+  .side .ws {
+    display: none;
+  }
+  /* Labels stay in the accessibility tree; a tooltip shows them visually. */
+  .side .nl {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .side .nav a {
+    justify-content: center;
+    padding: 0;
+    height: 44px;
+  }
+  .side .nav svg {
+    width: 20px;
+    height: 20px;
+  }
+  .side .home {
+    justify-content: center;
+    padding: 6px 0;
+  }
+  .side .sidefoot {
+    align-items: center;
+  }
+  .side .sidefoot > * {
+    display: none;
+  }
+  .side .sidefoot > a.btn {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+    font-size: 0;
+    gap: 0;
+  }
+  .side .sidefoot > a.btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  .top {
+    padding: 12px 16px;
+  }
+  .content {
+    padding: 16px;
+  }
+}
+
+/* ≤767px: a fixed bottom tab bar with 44px targets. */
+@media (max-width: 767px) {
+  .app {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+  .side {
+    flex: none;
+    max-width: none;
+    width: auto;
+    height: auto;
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    border-right: 0;
+    border-top: 1px solid var(--line);
+    background: #fff;
+    box-sizing: border-box;
+    gap: 0;
+    overflow: visible;
+  }
+  .side .home,
+  .side .ws,
+  .side .sidefoot {
+    display: none;
+  }
+  .side .nav {
+    flex-direction: row;
+    flex: 1;
+    justify-content: space-around;
+    margin-top: 0;
+    gap: 0;
+  }
+  .side .nav a {
+    height: 44px;
+    width: 44px;
+    flex: none;
+    padding: 0;
+    justify-content: center;
+    border-radius: 10px;
+  }
+  .side .nl {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    display: block;
+  }
+  .mainc {
+    padding-bottom: 72px;
+    width: 100%;
+    max-width: 100%;
+  }
+  .top {
+    padding: 12px;
+    gap: 8px;
+  }
+  .top h1 {
+    font-size: 16px;
+  }
+  .top .in {
+    width: 100% !important;
+  }
+  .tools {
+    margin-left: 0;
+  }
+  .tabs.scroll-sm {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+    margin-left: 0;
+    padding-bottom: 2px;
+  }
+  .tabs.scroll-sm > * {
+    flex: none;
+  }
+  .content {
+    padding: 12px;
+    gap: 12px;
+  }
+  .content > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .menu {
+    min-width: 0;
+    max-width: calc(100vw - 24px);
+  }
+  .kv {
+    grid-template-columns: 1fr;
+  }
+  .rc-box {
+    grid-template-columns: 1fr;
+  }
+  .ovl {
+    padding: 24px 12px;
   }
 }
 

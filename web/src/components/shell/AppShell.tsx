@@ -1,4 +1,4 @@
-import { Link, Outlet, useMatchRoute } from '@tanstack/react-router'
+import { Link, Outlet } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { useMediaQuery } from '@/lib/hooks'
 import { ago } from '@/lib/format'
@@ -43,7 +43,6 @@ export function AppShell() {
 function Sidebar() {
   const { slug, me: ws } = useWorkspace()
   const { data: me } = useMe()
-  const match = useMatchRoute()
   const rail = useMediaQuery('(min-width: 768px) and (max-width: 1100px)')
   const user = me?.user
   return (
@@ -55,9 +54,10 @@ function Sidebar() {
       <WorkspaceSwitcher />
       <nav className="nav" aria-label="Main">
         {NAV.map((item) => {
-          const on = Boolean(match({ to: item.to, params: { workspace: slug }, fuzzy: !item.exact }))
+          // The router marks the current item with aria-current="page"; the
+          // overview is the workspace root, so it only matches exactly.
           const link = (
-            <Link key={item.to} to={item.to} params={{ workspace: slug }} className={on ? 'on' : undefined} aria-current={on ? 'page' : undefined}>
+            <Link key={item.to} to={item.to} params={{ workspace: slug }} activeOptions={{ exact: Boolean(item.exact), includeSearch: false }}>
               <Icon name={item.icon} />
               <span className="nl">{item.label}</span>
             </Link>

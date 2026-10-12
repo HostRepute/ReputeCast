@@ -1,4 +1,4 @@
-import { Link, useMatchRoute, type LinkProps } from '@tanstack/react-router'
+import { Link, type LinkProps } from '@tanstack/react-router'
 import { Tabs as RTabs } from 'radix-ui'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/cn'
@@ -11,19 +11,44 @@ export type NavTab = { label: ReactNode; to: LinkProps['to']; params?: LinkProps
  * horizontally instead of wrapping.
  */
 export function NavTabs({ tabs, label, className }: { tabs: NavTab[]; label: string; className?: string }) {
-  const match = useMatchRoute()
   return (
     <nav className={cn('tabs scroll-sm', className)} aria-label={label}>
-      {tabs.map((t, i) => {
-        const on = Boolean(match({ to: t.to as string, params: t.params as never, fuzzy: !t.exact }))
-        return (
-          <Link key={i} to={t.to} params={t.params as never} search={t.search as never} aria-current={on ? 'page' : undefined} className={on ? 'on' : undefined}>
-            {t.label}
-            {t.badge}
-          </Link>
-        )
-      })}
+      {tabs.map((t, i) => (
+        <Link key={i} to={t.to} params={t.params as never} search={t.search as never} activeOptions={{ exact: Boolean(t.exact), includeSearch: false }}>
+          {t.label}
+          {t.badge}
+        </Link>
+      ))}
     </nav>
+  )
+}
+
+/**
+ * Filter tabs that look like section tabs but change a search param of the
+ * current screen (Campaigns: All · Drafts · …). They are toggle buttons
+ * (aria-pressed), not navigation, so screen readers don't hear "current page".
+ */
+export function FilterTabs<T extends string>({
+  value,
+  items,
+  onChange,
+  label,
+  className,
+}: {
+  value: T
+  items: { value: T; label: ReactNode }[]
+  onChange: (v: T) => void
+  label: string
+  className?: string
+}) {
+  return (
+    <div className={cn('tabs scroll-sm', className)} role="group" aria-label={label}>
+      {items.map((it) => (
+        <button key={it.value} type="button" aria-pressed={value === it.value} onClick={() => onChange(it.value)}>
+          {it.label}
+        </button>
+      ))}
+    </div>
   )
 }
 
