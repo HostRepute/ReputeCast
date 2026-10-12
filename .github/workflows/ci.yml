@@ -48,9 +48,6 @@ jobs:
       matrix:
         go: ["1.27.x"]
         pg: ["16", "17", "18"]
-        include:
-          - go: "1.26.x"
-            pg: "18"
     services:
       postgres:
         image: postgres:${{ matrix.pg }}-alpine
