@@ -568,6 +568,32 @@ func (s *Service) sendConfirmation(ctx context.Context, ws *store.Workspace, c s
 	return true, url
 }
 
+// SendConfirmations emails the double opt-in link to contacts waiting for
+// re-permission (imports). It returns how many went out; without a System
+// provider nothing is sent and the contacts stay pending.
+func (s *Service) SendConfirmations(ctx context.Context, ws *store.Workspace, ids []uuid.UUID) (int, error) {
+	if s.Mail == nil || !s.Mail.SystemAvailable(ctx, &ws.ID) || len(ids) == 0 {
+		return 0, nil
+	}
+	rows, err := s.Pool.Query(ctx, `SELECT * FROM contacts WHERE id = ANY ($1) AND erased_at IS NULL`, ids)
+	if err != nil {
+		return 0, err
+	}
+	contacts, err := pgx.CollectRows(rows, pgx.RowToStructByName[store.Contact])
+	if err != nil {
+		return 0, err
+	}
+	sent := 0
+	for _, c := range contacts {
+		if ok, _ := s.sendConfirmation(ctx, ws, c); ok {
+			sent++
+			_ = s.Q.InsertConsentEvent(ctx, store.InsertConsentEventParams{ID: uuid.Must(uuid.NewV7()), ContactID: c.ID, Action: "optin_sent", Source: "repermission",
+				Note: "confirmation sent via the System stream", OccurredAt: s.now()})
+		}
+	}
+	return sent, nil
+}
+
 // ResendResult is the outcome of resending the opt-in email.
 type ResendResult struct {
 	Sent       bool   `json:"sent"`

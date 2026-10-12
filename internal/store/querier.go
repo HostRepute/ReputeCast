@@ -13,6 +13,8 @@ import (
 
 type Querier interface {
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) error
+	// The draft or running import the wizard resumes.
+	ActiveImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
 	AddSegmentMembers(ctx context.Context, arg AddSegmentMembersParams) error
 	// Audience: lists, custom fields, contacts, consent, saved views,
 	// suppressions and the daily rollups behind List health.
@@ -38,6 +40,7 @@ type Querier interface {
 	CountActiveOwners(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountCampaigns(ctx context.Context, arg CountCampaignsParams) (int64, error)
 	CountCampaignsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountCampaignsByStatusRow, error)
+	CountImportRows(ctx context.Context, importID uuid.UUID) (int64, error)
 	CountUnusedRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountUsers(ctx context.Context) (int64, error)
 	CountWorkspaceSegments(ctx context.Context, workspaceID uuid.UUID) (int64, error)
@@ -47,6 +50,8 @@ type Querier interface {
 	CreateContact(ctx context.Context, arg CreateContactParams) (Contact, error)
 	CreateCustomField(ctx context.Context, arg CreateCustomFieldParams) (CustomField, error)
 	CreateIdentity(ctx context.Context, arg CreateIdentityParams) (UserIdentity, error)
+	// Imports: the migration wizard's drafts, staged rows, live log and reports.
+	CreateImport(ctx context.Context, arg CreateImportParams) (Import, error)
 	CreateInvitation(ctx context.Context, arg CreateInvitationParams) (Invitation, error)
 	CreateList(ctx context.Context, arg CreateListParams) (List, error)
 	CreateMember(ctx context.Context, arg CreateMemberParams) (WorkspaceMember, error)
@@ -64,6 +69,8 @@ type Querier interface {
 	DeleteExpiredChallenges(ctx context.Context) (int64, error)
 	DeleteExpiredSessions(ctx context.Context) (int64, error)
 	DeleteIdentity(ctx context.Context, arg DeleteIdentityParams) (int64, error)
+	DeleteImport(ctx context.Context, arg DeleteImportParams) (int64, error)
+	DeleteImportRows(ctx context.Context, importID uuid.UUID) error
 	DeleteMember(ctx context.Context, arg DeleteMemberParams) (int64, error)
 	DeletePasskey(ctx context.Context, arg DeletePasskeyParams) (int64, error)
 	DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) error
@@ -74,6 +81,7 @@ type Querier interface {
 	DeleteSuppression(ctx context.Context, arg DeleteSuppressionParams) (int64, error)
 	// Must run inside the same transaction as PurgeAuditEvents (retention job only).
 	EnableAuditPurge(ctx context.Context) error
+	FinishImport(ctx context.Context, arg FinishImportParams) error
 	GetAPIKey(ctx context.Context, arg GetAPIKeyParams) (ApiKey, error)
 	GetAPIKeyByToken(ctx context.Context, tokenHash []byte) (GetAPIKeyByTokenRow, error)
 	// List health -----------------------------------------------------------------
@@ -86,9 +94,12 @@ type Querier interface {
 	GetContactPreferences(ctx context.Context, contactID uuid.UUID) (ContactPreference, error)
 	GetCustomField(ctx context.Context, arg GetCustomFieldParams) (CustomField, error)
 	GetIdentity(ctx context.Context, arg GetIdentityParams) (UserIdentity, error)
+	GetImport(ctx context.Context, arg GetImportParams) (Import, error)
+	GetImportByID(ctx context.Context, id uuid.UUID) (Import, error)
 	GetInstanceSettings(ctx context.Context) (InstanceSetting, error)
 	GetInvitationByToken(ctx context.Context, tokenHash []byte) (GetInvitationByTokenRow, error)
 	GetList(ctx context.Context, arg GetListParams) (List, error)
+	GetMXCache(ctx context.Context, arg GetMXCacheParams) ([]GetMXCacheRow, error)
 	GetMember(ctx context.Context, arg GetMemberParams) (GetMemberRow, error)
 	GetMembership(ctx context.Context, arg GetMembershipParams) (GetMembershipRow, error)
 	GetPasskeyByCredential(ctx context.Context, credentialID []byte) (UserPasskey, error)
@@ -106,9 +117,13 @@ type Querier interface {
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
 	HealthViews(ctx context.Context, workspaceID uuid.UUID) ([]SavedView, error)
+	ImportRowsAfter(ctx context.Context, arg ImportRowsAfterParams) ([]ImportRow, error)
+	ImportStatusCounts(ctx context.Context, importID uuid.UUID) ([]ImportStatusCountsRow, error)
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
 	InsertConsentEvent(ctx context.Context, arg InsertConsentEventParams) error
+	InsertImportLog(ctx context.Context, arg InsertImportLogParams) error
 	InsertSuppression(ctx context.Context, arg InsertSuppressionParams) (Suppression, error)
+	LatestFinishedImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
 	ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
 	ListCampaignIncidentSummaries(ctx context.Context, campaignIds []uuid.UUID) ([]ListCampaignIncidentSummariesRow, error)
@@ -121,6 +136,8 @@ type Querier interface {
 	ListCustomFields(ctx context.Context, workspaceID uuid.UUID) ([]CustomField, error)
 	ListGrowthSince(ctx context.Context, arg ListGrowthSinceParams) ([]ListGrowthSinceRow, error)
 	ListIdentities(ctx context.Context, userID uuid.UUID) ([]UserIdentity, error)
+	ListImportLog(ctx context.Context, importID uuid.UUID) ([]ImportLog, error)
+	ListImports(ctx context.Context, workspaceID uuid.UUID) ([]ListImportsRow, error)
 	// Lists ------------------------------------------------------------------
 	ListListsWithCounts(ctx context.Context, workspaceID uuid.UUID) ([]ListListsWithCountsRow, error)
 	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]ListMembersRow, error)
@@ -142,6 +159,7 @@ type Querier interface {
 	ListWorkspaces(ctx context.Context) ([]Workspace, error)
 	ProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]ProviderNamesRow, error)
 	PurgeAuditEvents(ctx context.Context, arg PurgeAuditEventsParams) (int64, error)
+	PutMXCache(ctx context.Context, arg PutMXCacheParams) error
 	// Campaigns a segment can refer to ("Opened campaign …").
 	RecentSentCampaigns(ctx context.Context, workspaceID uuid.UUID) ([]RecentSentCampaignsRow, error)
 	RecordSignInFailure(ctx context.Context, arg RecordSignInFailureParams) (RecordSignInFailureRow, error)
@@ -159,6 +177,16 @@ type Querier interface {
 	// 30-day sums per list or followed view.
 	ScopeTotalsSince(ctx context.Context, arg ScopeTotalsSinceParams) ([]ScopeTotalsSinceRow, error)
 	SegmentMemberIDs(ctx context.Context, segmentID uuid.UUID) ([]uuid.UUID, error)
+	SetImportConnection(ctx context.Context, arg SetImportConnectionParams) error
+	SetImportConsentMap(ctx context.Context, arg SetImportConsentMapParams) error
+	SetImportFieldMap(ctx context.Context, arg SetImportFieldMapParams) error
+	SetImportFile(ctx context.Context, arg SetImportFileParams) error
+	SetImportOptions(ctx context.Context, arg SetImportOptionsParams) error
+	SetImportPreview(ctx context.Context, arg SetImportPreviewParams) error
+	SetImportProgress(ctx context.Context, arg SetImportProgressParams) error
+	SetImportStaged(ctx context.Context, arg SetImportStagedParams) error
+	SetImportStatus(ctx context.Context, arg SetImportStatusParams) error
+	SetImportStep(ctx context.Context, arg SetImportStepParams) error
 	SetLatestRelease(ctx context.Context, latestRelease json.RawMessage) error
 	SetMemberStatus(ctx context.Context, arg SetMemberStatusParams) error
 	SetSegmentCount(ctx context.Context, arg SetSegmentCountParams) error
@@ -173,6 +201,7 @@ type Querier interface {
 	SlugTaken(ctx context.Context, slug string) (bool, error)
 	SoftDeleteList(ctx context.Context, arg SoftDeleteListParams) (int64, error)
 	SoftDeleteWorkspace(ctx context.Context, id uuid.UUID) error
+	StartImport(ctx context.Context, arg StartImportParams) error
 	// Suppressions -----------------------------------------------------------------
 	SuppressionCounts(ctx context.Context, workspaceID uuid.UUID) (SuppressionCountsRow, error)
 	// One row per connected provider with its suppression sync state (kept by

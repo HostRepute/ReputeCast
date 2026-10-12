@@ -172,6 +172,30 @@ func tierExpr(p SunsetPolicy, now string) string {
 		ELSE 'sunset' END`, e, now, p.ActiveDays+1, p.AtRiskDays, p.SunsetDays)
 }
 
+// TierFor assigns a tier in Go, the same way the nightly SQL does, for
+// contacts created between runs (imports).
+func TierFor(p SunsetPolicy, lastHumanOpen, lastOpen, lastClick *time.Time, created, now time.Time) string {
+	e := created
+	open := lastHumanOpen
+	if p.CountMachineOpens {
+		open = lastOpen
+	}
+	for _, t := range []*time.Time{open, lastClick} {
+		if t != nil && t.After(e) {
+			e = *t
+		}
+	}
+	switch age := now.Sub(e); {
+	case age < time.Duration(p.ActiveDays+1)*24*time.Hour:
+		return "active"
+	case age < time.Duration(p.AtRiskDays)*24*time.Hour:
+		return "cooling"
+	case age < time.Duration(p.SunsetDays)*24*time.Hour:
+		return "at_risk"
+	}
+	return "sunset"
+}
+
 // dateOrZero parses a policy date.
 func dateOrZero(s string) time.Time {
 	t, _ := time.Parse("2006-01-02", s)
