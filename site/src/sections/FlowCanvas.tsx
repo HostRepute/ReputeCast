@@ -54,7 +54,7 @@ function Node({
       {input ? <span className="hb i" /> : null}
       {output ? <span className="hb o" /> : null}
       <div className="hd" style={{ color }}>
-        <span className={liveDot ? 'dot live' : 'dot'} />
+        <span className={liveDot ? 'dot beat' : 'dot'} />
         {kind}
       </div>
       <div className="t">{title}</div>

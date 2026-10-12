@@ -278,6 +278,23 @@
   .tbl th:nth-child(2) {
     background: var(--accent-tint);
   }
+  /* Row labels are row headers for screen readers; they look like the
+     board's bold first-column cells. */
+  .tbl th.rowh {
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    color: inherit;
+    text-transform: none;
+    letter-spacing: normal;
+    white-space: normal;
+    vertical-align: top;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .tbl tr:last-child th.rowh {
+    border-bottom: 0;
+  }
 
   .feat {
     display: flex;
@@ -857,7 +874,7 @@
   .go .flab {
     animation: labIn 0.5s var(--ease-out-soft) both;
   }
-  .go .hd .dot.live {
+  .go .hd .dot.beat {
     animation: livepulse var(--duration-loop) ease-out 1.4s infinite;
   }
   .f1 {
@@ -1073,7 +1090,7 @@
   .blob,
   .reveal,
   .cursor,
-  .go .hd .dot.live {
+  .go .hd .dot.beat {
     animation: none !important;
     opacity: 1;
     transform: none;
