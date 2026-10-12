@@ -373,7 +373,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(r), err
 		})
 
-	api.Post(h, api.Op{ID: "leave-workspace", Path: "/workspaces/{workspace}/leave", Summary: "Leave the workspace (the last Owner can't)", Tags: []string{"Workspaces"}, Access: api.WorkspaceHuman(""), Status: http.StatusNoContent},
+	api.Post(h, api.Op{ID: "leave-workspace", Path: "/workspaces/{workspace}/leave", Summary: "Leave the workspace (the last Owner can't)", Tags: []string{"Workspaces"}, Access: api.Access{Kind: api.AccessWorkspace, HumansOnly: true, AllowPending: true}, Status: http.StatusNoContent},
 		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Empty, error) {
 			return api.NoContent, s.LeaveWorkspace(ctx)
 		})

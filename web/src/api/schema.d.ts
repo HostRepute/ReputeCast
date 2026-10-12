@@ -21,6 +21,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/passkey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign in with a passkey */
+        post: operations["auth-passkey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkey/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start “Sign in with a passkey” (no email needed) */
+        post: operations["auth-passkey-options"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/password": {
         parameters: {
             query?: never;
@@ -32,6 +66,41 @@ export interface paths {
         put?: never;
         /** Sign in with email and password */
         post: operations["auth-password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Email a password reset link (or explain the alternatives) */
+        post: operations["auth-password-reset-request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password-reset/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Check a password reset link */
+        get: operations["auth-password-reset-check"];
+        put?: never;
+        /** Set a new password with a one-time reset link */
+        post: operations["auth-password-reset"];
         delete?: never;
         options?: never;
         head?: never;
@@ -72,6 +141,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/two-factor/passkey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish signing in with a passkey as the second factor */
+        post: operations["auth-two-factor-passkey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/two-factor/passkey/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start confirming a sign-in with a passkey as the second factor */
+        post: operations["auth-two-factor-passkey-options"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invitations/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What an invitation link offers: workspace, inviter, role and scope */
+        get: operations["get-invitation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invitations/{token}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Join the workspace (creates the account and signs in for new people) */
+        post: operations["accept-invitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invitations/{token}/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the inviter for a new invitation */
+        post: operations["request-invitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -87,6 +241,163 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Account & security: profile, sign-in methods, two-factor, workspaces */
+        get: operations["get-account"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload a profile photo (PNG or JPG, up to 2 MB) */
+        put: operations["set-avatar"];
+        post?: never;
+        /** Remove your profile photo */
+        delete: operations["remove-avatar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change your email: a verification link goes to the new address */
+        post: operations["request-email-change"];
+        /** Cancel a pending email change */
+        delete: operations["cancel-email-change"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/email/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm your new email with the link from the verification email */
+        post: operations["confirm-email-change"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/identities/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unlink a social or SSO sign-in (not your last way to sign in) */
+        delete: operations["unlink-identity"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notification-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your notification preferences: in-app and email per event type */
+        get: operations["get-notification-preferences"];
+        /** Save your notification preferences */
+        put: operations["save-notification-preferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/passkeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a passkey with the browser's answer */
+        post: operations["passkey-register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/passkeys/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start adding a passkey */
+        post: operations["passkey-register-options"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/passkeys/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a passkey (not your last way to sign in) */
+        delete: operations["remove-passkey"];
+        options?: never;
+        head?: never;
+        /** Rename a passkey */
+        patch: operations["rename-passkey"];
         trace?: never;
     };
     "/api/v1/me/password": {
@@ -106,6 +417,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change your name and timezone */
+        patch: operations["update-profile"];
+        trace?: never;
+    };
     "/api/v1/me/recovery-codes": {
         parameters: {
             query?: never;
@@ -118,6 +446,74 @@ export interface paths {
         /** Replace all recovery codes; the new ones are shown once */
         post: operations["recovery-codes-regenerate"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/recovery-codes/saved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm that you saved your recovery codes */
+        post: operations["recovery-codes-saved"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your active sessions, this one first */
+        get: operations["list-sessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/sessions/revoke-others": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign out every other session */
+        post: operations["revoke-other-sessions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Sign out another session */
+        delete: operations["revoke-session"];
         options?: never;
         head?: never;
         patch?: never;
@@ -174,6 +570,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The first sign-in steps for you (and the instance, for its first Owner) */
+        get: operations["get-setup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/setup/check-url": {
         parameters: {
             query?: never;
@@ -201,6 +614,23 @@ export interface paths {
         get?: never;
         /** Save instance basics (first sign-in step 4) */
         put: operations["setup-instance"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A person's profile photo */
+        get: operations["get-avatar"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -259,6 +689,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave the workspace (the last Owner can't) */
+        post: operations["leave-workspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/me": {
         parameters: {
             query?: never;
@@ -276,13 +723,197 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your notifications in this workspace, unread first */
+        get: operations["list-notifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark every notification in this workspace as read */
+        post: operations["read-all-notifications"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a notification as read */
+        post: operations["read-notification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AcceptInviteInput: {
+            name?: string;
+            password?: string;
+        };
+        AccountIdentity: {
+            canUnlink: boolean;
+            email?: string;
+            id?: string;
+            /** @enum {string} */
+            kind: "google" | "microsoft" | "github" | "sso";
+            linkUrl?: string;
+            linked: boolean;
+            managed: boolean;
+            /** @example GitHub */
+            name: string;
+            notes: string[];
+            onlyMethod: boolean;
+            /** @description SSO preset, for the icon */
+            preset?: string;
+            unlinkReason?: string;
+            /** @example linh-nguyen */
+            username?: string;
+        };
+        AccountOverview: {
+            identities: components["schemas"]["AccountIdentity"][];
+            notifications: components["schemas"]["Summary"];
+            passkeys: components["schemas"]["AccountPasskey"][];
+            password: components["schemas"]["AccountPassword"];
+            profile: components["schemas"]["AccountProfile"];
+            sessionPolicy: components["schemas"]["AccountSessionPolicy"];
+            twoFactor: components["schemas"]["AccountTwoFactor"];
+            workspaces: components["schemas"]["AccountWorkspace"][];
+        };
+        AccountPasskey: {
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            /** @enum {string} */
+            kind: "platform" | "security_key" | "unknown";
+            /** Format: date-time */
+            lastUsedAt?: string;
+            name: string;
+            /** @example iCloud Keychain */
+            provider?: string;
+            /** @description This session signed in with the passkey */
+            thisSession: boolean;
+        };
+        AccountPassword: {
+            breachedCheck: boolean;
+            /** Format: date-time */
+            changedAt?: string;
+            managedBy?: string;
+            /** Format: int64 */
+            minLength: number;
+            set: boolean;
+            ssoOnly: boolean;
+        };
+        AccountProfile: {
+            avatarColor: string;
+            avatarUrl?: string;
+            email: string;
+            isInstanceAdmin: boolean;
+            name: string;
+            pendingEmail?: components["schemas"]["PendingEmail"];
+            timezone: string;
+        };
+        AccountSession: {
+            /** @example Chrome 141 */
+            browser: string;
+            /** Format: date-time */
+            createdAt: string;
+            current: boolean;
+            /** @example MacBook Pro */
+            device: string;
+            id: string;
+            ip?: string;
+            /** Format: date-time */
+            lastActiveAt: string;
+            /** @example New York, US */
+            location?: string;
+            /** @example password+totp */
+            method: string;
+            /** @example macOS 26 */
+            os: string;
+        };
+        AccountSessionPolicy: {
+            /** @example 12 hours */
+            idle: string;
+            /** @example 14 days */
+            lifetime: string;
+        };
+        AccountTwoFactor: {
+            /** Format: date-time */
+            graceUntil?: string;
+            /** Format: date-time */
+            recoveryLastUsedAt?: string;
+            /** Format: int64 */
+            recoveryRemaining: number;
+            /** Format: int64 */
+            recoveryTotal: number;
+            required: boolean;
+            requiredReason?: string;
+            totp: boolean;
+            /** @example 1Password */
+            totpLabel?: string;
+            /** Format: date-time */
+            totpSetAt?: string;
+            viaIdp: boolean;
+        };
+        AccountWorkspace: {
+            canLeave: boolean;
+            id: string;
+            leaveReason?: string;
+            /** Format: int64 */
+            members: number;
+            name: string;
+            roleKey: string;
+            roleName: string;
+            slug: string;
+        };
         "Auth-identifyRequest": {
             /** Format: email */
             email: string;
+        };
+        "Auth-passkeyRequest": {
+            challenge: string;
+            /** @description The browser's AuthenticationResponseJSON */
+            credential: unknown;
+            remember?: boolean;
+        };
+        "Auth-password-reset-requestRequest": {
+            /** Format: email */
+            email: string;
+        };
+        "Auth-password-resetRequest": {
+            password: string;
         };
         "Auth-passwordRequest": {
             /** Format: email */
@@ -290,11 +921,25 @@ export interface components {
             password: string;
             remember?: boolean;
         };
+        "Auth-two-factor-passkey-optionsRequest": {
+            /** @description The two-factor challenge from the password step */
+            challenge: string;
+        };
+        "Auth-two-factor-passkeyRequest": {
+            challenge: string;
+            /** @description The browser's AuthenticationResponseJSON */
+            credential: unknown;
+            passkeyChallenge: string;
+        };
         "Auth-two-factorRequest": {
             challenge: string;
             code: string;
             /** @enum {string} */
             method: "totp" | "recovery";
+        };
+        AvatarInput: {
+            /** @description PNG or JPEG, up to 2 MB, base64 */
+            data: string;
         };
         CampaignList: {
             counts: components["schemas"]["CampaignStatusCounts"];
@@ -386,6 +1031,9 @@ export interface components {
             /** @enum {string} */
             status: "ok" | "warn" | "bad" | "skipped";
         };
+        "Confirm-email-changeRequest": {
+            token: string;
+        };
         "Create-workspaceRequest": {
             name: string;
             timezone?: string;
@@ -395,6 +1043,23 @@ export interface components {
             name: string;
             slug: string;
         };
+        EmailChangeInput: {
+            /** Format: email */
+            email: string;
+            password?: string;
+        };
+        EmailChangeStarted: {
+            email: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        EmailChanged: {
+            email: string;
+        };
+        EmailDelivery: {
+            available: boolean;
+            provider?: string;
+        };
         ErrorDetail: {
             /** @description Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id' */
             location?: string;
@@ -402,6 +1067,13 @@ export interface components {
             message?: string;
             /** @description The value at the given location */
             value?: unknown;
+        };
+        EventPreference: {
+            audience?: string;
+            email: boolean;
+            inApp: boolean;
+            label: string;
+            type: string;
         };
         IdentifyResult: {
             breakGlass: boolean;
@@ -432,6 +1104,74 @@ export interface components {
             /** @example v1.4.2 */
             version: string;
         };
+        InvitationView: {
+            /** Format: date-time */
+            acceptedAt?: string;
+            accountExists: boolean;
+            description: string;
+            email: string;
+            /** Format: date-time */
+            expiresAt: string;
+            inviterName: string;
+            /** @description Personal message from the inviter */
+            message?: string;
+            passwordAllowed: boolean;
+            passwordPolicy: components["schemas"]["InvitePolicy"];
+            /** Format: date-time */
+            revokedAt?: string;
+            roleKey: string;
+            roleName: string;
+            scope?: string;
+            /** Format: date-time */
+            sentAt: string;
+            signedInAs?: string;
+            /** @description Social sign-in providers to join with: google, microsoft, github */
+            social: string[];
+            sso?: components["schemas"]["SSOStart"];
+            /** @enum {string} */
+            status: "pending" | "expired" | "revoked" | "accepted";
+            twoFactor: components["schemas"]["InviteTwoFactor"];
+            workspaceName: string;
+            workspaceSlug: string;
+        };
+        InviteAccepted: {
+            email: string;
+            hasSecondFactor: boolean;
+            newAccount: boolean;
+            next: string;
+            roleName: string;
+            twoFactor: components["schemas"]["InviteTwoFactor"];
+            /** @description Workspace slug */
+            workspace: string;
+            workspaceName: string;
+        };
+        InvitePolicy: {
+            breachedCheck: boolean;
+            /** Format: int64 */
+            minLength: number;
+        };
+        InviteRequestResult: {
+            inviter: string;
+            /** @enum {string} */
+            status: "sent" | "already_sent";
+        };
+        InviteTwoFactor: {
+            /** Format: int64 */
+            graceDays: number;
+            /** Format: date-time */
+            graceUntil?: string;
+            reason?: string;
+            required: boolean;
+        };
+        Item: {
+            email: boolean;
+            inApp: boolean;
+            type: string;
+        };
+        MarkAllResult: {
+            /** Format: int64 */
+            marked: number;
+        };
         Me: {
             instance: components["schemas"]["MeInstance"];
             /** @enum {string} */
@@ -448,6 +1188,7 @@ export interface components {
         };
         MeUser: {
             avatarColor: string;
+            avatarUrl?: string;
             breakGlass: boolean;
             email: string;
             hasPassword: boolean;
@@ -476,6 +1217,91 @@ export interface components {
             slug: string;
             /** Format: int64 */
             subscribers: number;
+        };
+        NotificationItem: {
+            /** @description Full sentence for the notification center */
+            body: string;
+            /** @enum {string} */
+            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other";
+            /** @example Approvals */
+            categoryLabel: string;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            kind: string;
+            /** @description App path of the screen where you can act */
+            link: string;
+            read: boolean;
+            /** @enum {string} */
+            severity: "info" | "ok" | "warn" | "bad";
+            /** @description Short line for the bell popover */
+            summary: string;
+            /** @example Approval requested */
+            title: string;
+        };
+        NotificationList: {
+            items: components["schemas"]["NotificationItem"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            retentionDays: number;
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            unread: number;
+        };
+        "Passkey-registerRequest": {
+            challenge: string;
+            /** @description The browser's RegistrationResponseJSON */
+            credential: unknown;
+            name?: string;
+        };
+        PasskeyOptions: {
+            challenge: string;
+            options: unknown;
+        };
+        PasswordResetDone: {
+            email: string;
+        };
+        PasswordResetInfo: {
+            /** @description New passwords are checked against known breaches */
+            breachedCheck: boolean;
+            email: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: int64 */
+            minLength: number;
+        };
+        PasswordResetRequest: {
+            /** @example reputecast user reset-password --email aisha@acme.io */
+            command?: string;
+            email: string;
+            /** Format: int64 */
+            expiresInMinutes: number;
+            sso?: components["schemas"]["SSOStart"];
+            /** @enum {string} */
+            status: "sent" | "email_unavailable" | "sso";
+        };
+        PendingEmail: {
+            email: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            sentAt: string;
+        };
+        Preferences: {
+            /** @enum {string} */
+            digest: "immediate" | "hourly" | "daily";
+            email: components["schemas"]["EmailDelivery"];
+            events: components["schemas"]["EventPreference"][];
+            quietHours?: components["schemas"]["QuietHours"];
+            timezone: string;
+        };
+        PreferencesInput: {
+            /** @enum {string} */
+            digest: "immediate" | "hourly" | "daily";
+            events: components["schemas"]["Item"][];
+            /** @description Omit or null to turn quiet hours off */
+            quietHours?: components["schemas"]["QuietHours"];
         };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
@@ -519,11 +1345,21 @@ export interface components {
              */
             type: string;
         };
+        ProfileInput: {
+            name: string;
+            timezone: string;
+        };
         ProviderCost: {
             /** Format: double */
             cost: number;
             provider: string;
             short: string;
+        };
+        QuietHours: {
+            /** @example 07:00 */
+            end: string;
+            /** @example 22:00 */
+            start: string;
         };
         ReadinessSummary: {
             /** Format: int64 */
@@ -533,6 +1369,13 @@ export interface components {
         };
         RecoveryCodes: {
             codes: string[];
+        };
+        "Rename-passkeyRequest": {
+            name: string;
+        };
+        RevokedSessions: {
+            /** Format: int64 */
+            revoked: number;
         };
         RouteShare: {
             /** @example ses */
@@ -550,10 +1393,12 @@ export interface components {
             short: string;
         };
         SSOOption: {
+            domains: string[];
             id: string;
             name: string;
             /** @enum {string} */
             preset: "google" | "entra" | "okta" | "keycloak" | "authentik" | "oidc";
+            startUrl: string;
         };
         SSOStart: {
             /** @example Google Workspace */
@@ -567,9 +1412,62 @@ export interface components {
             lists?: string[];
             senderDomains?: string[];
         };
+        SessionList: {
+            items: components["schemas"]["AccountSession"][];
+        };
         "Setup-check-urlRequest": {
             /** Format: uri */
             url: string;
+        };
+        SetupInstance: {
+            confirmed: boolean;
+            name: string;
+            publicUrl: string;
+            timezone: string;
+            updateCheck: boolean;
+            version: string;
+        };
+        SetupPassword: {
+            breachedCheck: boolean;
+            /** Format: int64 */
+            minLength: number;
+            mustChange: boolean;
+        };
+        SetupRecoveryCodes: {
+            /** Format: int64 */
+            remaining: number;
+            /** Format: date-time */
+            savedAt?: string;
+        };
+        SetupSecondFactor: {
+            /** Format: date-time */
+            graceUntil?: string;
+            /** @description Names of the passkeys added */
+            passkeys: string[];
+            reason?: string;
+            required: boolean;
+            totp: boolean;
+        };
+        SetupState: {
+            /** @description Key of the first unfinished step */
+            current: string;
+            email: string;
+            instance: components["schemas"]["SetupInstance"];
+            /** @enum {string} */
+            mode: "instance" | "account" | "done";
+            name: string;
+            next?: string;
+            password: components["schemas"]["SetupPassword"];
+            recoveryCodes: components["schemas"]["SetupRecoveryCodes"];
+            secondFactor: components["schemas"]["SetupSecondFactor"];
+            steps: components["schemas"]["SetupStep"][];
+            workspace?: components["schemas"]["CreatedWorkspace"];
+        };
+        SetupStep: {
+            done: boolean;
+            /** @enum {string} */
+            key: "password" | "second_factor" | "recovery_codes" | "instance" | "workspace" | "provider";
+            label: string;
         };
         ShellHostRepute: {
             /** Format: date-time */
@@ -584,10 +1482,19 @@ export interface components {
             /** @description Second factors available: totp, passkey, recovery */
             methods?: string[];
             next?: string;
+            passkeyHint?: string;
             /** Format: int64 */
             recoveryCodesLeft?: number;
             /** @enum {string} */
             status: "signed_in" | "two_factor";
+        };
+        Summary: {
+            /** @example Approvals, auto-pauses, provider down */
+            email: string;
+            /** @example All events */
+            inApp: string;
+            /** @example 22:00–07:00 America/New_York, email only */
+            quietHours: string;
         };
         TOTPSetup: {
             account: string;
@@ -663,6 +1570,69 @@ export interface operations {
             };
         };
     };
+    "auth-passkey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Auth-passkeyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "auth-passkey-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyOptions"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "auth-password": {
         parameters: {
             query?: never;
@@ -684,6 +1654,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SignInResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "auth-password-reset-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Auth-password-reset-requestRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordResetRequest"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "auth-password-reset-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordResetInfo"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "auth-password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Auth-password-resetRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordResetDone"];
                 };
             };
             /** @description Error */
@@ -759,6 +1828,171 @@ export interface operations {
             };
         };
     };
+    "auth-two-factor-passkey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Auth-two-factor-passkeyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "auth-two-factor-passkey-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Auth-two-factor-passkey-optionsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyOptions"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-invitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "accept-invitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptInviteInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteAccepted"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "request-invitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteRequestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-me": {
         parameters: {
             query?: never;
@@ -776,6 +2010,404 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Me"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvatarInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountProfile"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "request-email-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailChangeInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailChangeStarted"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-email-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "confirm-email-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Confirm-email-changeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailChanged"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unlink-identity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-notification-preferences": {
+        parameters: {
+            query?: {
+                /** @description Workspace slug whose System-stream provider is shown */
+                workspace?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Preferences"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-notification-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreferencesInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "passkey-register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Passkey-registerRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountPasskey"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "passkey-register-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyOptions"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-passkey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rename-passkey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Rename-passkeyRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -819,6 +2451,39 @@ export interface operations {
             };
         };
     };
+    "update-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountProfile"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "recovery-codes-regenerate": {
         parameters: {
             query?: never;
@@ -836,6 +2501,120 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RecoveryCodes"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "recovery-codes-saved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-other-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokedSessions"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -939,6 +2718,35 @@ export interface operations {
             };
         };
     };
+    "get-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "setup-check-url": {
         parameters: {
             query?: never;
@@ -991,6 +2799,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Type"?: string;
+                    "Last-Modified"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
             };
             /** @description Error */
             default: {
@@ -1108,6 +2950,36 @@ export interface operations {
             };
         };
     };
+    "leave-workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-workspace-me": {
         parameters: {
             query?: never;
@@ -1128,6 +3000,107 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WorkspaceMe"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-notifications": {
+        parameters: {
+            query?: {
+                /** @description Notification center tab */
+                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute";
+                /** @description Opaque cursor from a previous page */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "read-all-notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkAllResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "read-notification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

@@ -147,11 +147,11 @@ func (s *Service) Overview(ctx context.Context) (AccountOverview, error) {
 		return AccountOverview{}, err
 	}
 	out := AccountOverview{
-		Profile: AccountProfile{Name: u.Name, Email: u.Email, Timezone: u.Timezone, AvatarColor: u.AvatarColor, AvatarURL: avatarURL(u), IsInstanceAdmin: u.IsInstanceAdmin},
-		Password: AccountPassword{Set: u.PasswordHash != nil, ChangedAt: u.PasswordSetAt, MinLength: int(st.PasswordMinLength), BreachedCheck: st.BreachedCheck},
-		Passkeys:   []AccountPasskey{},
-		Identities: []AccountIdentity{},
-		Workspaces: []AccountWorkspace{},
+		Profile:       AccountProfile{Name: u.Name, Email: u.Email, Timezone: u.Timezone, AvatarColor: u.AvatarColor, AvatarURL: avatarURL(u), IsInstanceAdmin: u.IsInstanceAdmin},
+		Password:      AccountPassword{Set: u.PasswordHash != nil, ChangedAt: u.PasswordSetAt, MinLength: int(st.PasswordMinLength), BreachedCheck: st.BreachedCheck},
+		Passkeys:      []AccountPasskey{},
+		Identities:    []AccountIdentity{},
+		Workspaces:    []AccountWorkspace{},
 		SessionPolicy: AccountSessionPolicy{Lifetime: humanDuration(st.SessionLifetime), Idle: humanDuration(st.SessionIdle)},
 	}
 	if pe, err := s.Q.GetPendingEmailChange(ctx, u.ID); err == nil {
@@ -405,7 +405,7 @@ func (s *Service) RequestEmailChange(ctx context.Context, in EmailChangeInput) (
 	msg := mailer.Message{
 		To: email, ToName: u.Name, Kind: "email_change",
 		Subject: "Confirm your new email for " + st.Name,
-		Text: fmt.Sprintf("%s asked to sign in to %s with this address from now on.\n\nConfirm the change: %s\n\nThe link works for 24 hours. If you didn't ask for this, ignore this email.\n", u.Email, st.Name, link),
+		Text:    fmt.Sprintf("%s asked to sign in to %s with this address from now on.\n\nConfirm the change: %s\n\nThe link works for 24 hours. If you didn't ask for this, ignore this email.\n", u.Email, st.Name, link),
 		HTML: fmt.Sprintf(`<p style="font:14px/1.5 sans-serif">%s asked to sign in to %s with this address from now on.</p><p style="font:14px sans-serif"><a href="%s">Confirm the change</a></p><p style="font:13px/1.5 sans-serif;color:#5B6472">The link works for 24 hours. If you didn't ask for this, ignore this email.</p>`,
 			html.EscapeString(u.Email), html.EscapeString(st.Name), html.EscapeString(link)),
 	}

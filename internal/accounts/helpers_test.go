@@ -15,11 +15,13 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/pquerna/otp/totp"
 
 	"github.com/hostrepute/reputecast/internal/accounts"
 	"github.com/hostrepute/reputecast/internal/app"
@@ -73,6 +75,16 @@ func withMail(t *testing.T, env *apptest.Env, m mailer.Sender) *apptest.Env {
 	srv := httptest.NewServer(r)
 	t.Cleanup(srv.Close)
 	return &apptest.Env{T: t, App: env.App, Server: srv}
+}
+
+// totpCode returns the current code for a secret shown as "JBSW Y3DP …".
+func totpCode(t *testing.T, secret string) string {
+	t.Helper()
+	code, err := totp.GenerateCode(strings.ReplaceAll(secret, " ", ""), time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return code
 }
 
 // linkToken extracts the token after prefix ("/reset-password/") in a text.

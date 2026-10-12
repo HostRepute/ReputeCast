@@ -48,10 +48,10 @@ type InvitationView struct {
 	// SignedInAs is the email of the browser's current session, if any.
 	SignedInAs string `json:"signedInAs,omitempty"`
 	// Password sign-up is unavailable when the domain enforces SSO.
-	PasswordAllowed bool          `json:"passwordAllowed"`
-	PasswordPolicy  InvitePolicy  `json:"passwordPolicy"`
-	Social          []string      `json:"social" doc:"Social sign-in providers to join with: google, microsoft, github"`
-	SSO             *SSOStart     `json:"sso,omitempty"`
+	PasswordAllowed bool            `json:"passwordAllowed"`
+	PasswordPolicy  InvitePolicy    `json:"passwordPolicy"`
+	Social          []string        `json:"social" doc:"Social sign-in providers to join with: google, microsoft, github"`
+	SSO             *SSOStart       `json:"sso,omitempty"`
 	TwoFactor       InviteTwoFactor `json:"twoFactor"`
 }
 
