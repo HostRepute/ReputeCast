@@ -204,7 +204,10 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
   const params = (id: string) => ({ workspace: slug, campaignId: id })
   return (
     <section className="card" aria-label="Campaigns">
-      <Table className="[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(8)]:min-w-[120px] [&_td:nth-child(8)]:whitespace-normal [&_td]:whitespace-nowrap">
+      <Table
+        phoneWrap
+        className="[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(8)]:min-w-[120px] [&_td:nth-child(8)]:whitespace-normal [&_td]:whitespace-nowrap"
+      >
         <thead>
           <tr>
             <Th>Campaign</Th>

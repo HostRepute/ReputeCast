@@ -64,7 +64,14 @@ type Seeder struct {
 	Domains map[string]uuid.UUID
 	// Extra is free-form storage for domain seeders.
 	Extra map[string]any
+
+	after []func(context.Context, *Seeder) error
 }
+
+// After runs fn once every seeder has run, for rows that need IDs from a
+// seeder that comes later in the order (for example per-provider domain
+// verification, seeded with the senders but needing the providers).
+func (s *Seeder) After(fn func(context.Context, *Seeder) error) { s.after = append(s.after, fn) }
 
 // ID returns a fresh UUIDv7.
 func ID() uuid.UUID { return uuid.Must(uuid.NewV7()) }
@@ -126,6 +133,11 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 	for _, st := range steps {
 		if err := st.fn(ctx, s); err != nil {
 			return nil, fmt.Errorf("seed %s: %w", st.name, err)
+		}
+	}
+	for i, fn := range s.after {
+		if err := fn(ctx, s); err != nil {
+			return nil, fmt.Errorf("seed deferred step %d: %w", i+1, err)
 		}
 	}
 	if err := tx.Commit(ctx); err != nil {
