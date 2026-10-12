@@ -33,7 +33,7 @@ export function WorkspaceSwitcher() {
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content className="menu w-[300px]" align="start" sideOffset={6} collisionPadding={12}>
+        <DropdownMenu.Content className="menu w-[300px]" align="start" sideOffset={-10} collisionPadding={12} aria-label="Workspaces">
           <DropdownMenu.Label className="mh">Your workspaces</DropdownMenu.Label>
           {list.map((w, i) => (
             <DropdownMenu.Item key={w.id} asChild onSelect={() => navigate({ to: '/w/$workspace', params: { workspace: w.slug } })}>

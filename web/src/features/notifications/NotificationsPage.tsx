@@ -244,7 +244,7 @@ function PreferencesCard() {
               <div className="row flex-nowrap" style={{ gap: 8 }}>
                 <select
                   id={ids.start}
-                  className="in min-w-0 flex-1"
+                  className="in max-md:min-w-0 max-md:flex-[1_1_120px]"
                   aria-label="Quiet hours start"
                   value={p.quietHours?.start ?? 'off'}
                   onChange={(ev) =>
@@ -261,7 +261,7 @@ function PreferencesCard() {
                 <span className="k">to</span>
                 <select
                   id={ids.end}
-                  className="in min-w-0 flex-1"
+                  className="in max-md:min-w-0 max-md:flex-[1_1_120px]"
                   aria-label="Quiet hours end"
                   disabled={quietOff}
                   value={p.quietHours?.end ?? '07:00'}
@@ -296,7 +296,7 @@ function PreferencesCard() {
             </Note>
           ) : null}
           <div className="row justify-end">
-            <Button type="submit" variant="primary" size="sm" loading={busy} disabledReason={draft ? undefined : 'Nothing changed yet'}>
+            <Button type="submit" variant="primary" size="sm" loading={busy}>
               Save preferences
             </Button>
           </div>

@@ -129,7 +129,7 @@ export function NotificationsPopover() {
         </button>
       </RPopover.Trigger>
       <RPopover.Portal>
-        <RPopover.Content className="menu w-[420px] p-0!" align="end" sideOffset={11} alignOffset={-21} collisionPadding={12} aria-label="Notifications">
+        <RPopover.Content className="menu w-[420px] p-0!" align="end" sideOffset={11} alignOffset={-20} collisionPadding={12} aria-label="Notifications">
           {open ? <Panel slug={ws.slug} unread={n} onClose={() => setOpen(false)} /> : null}
         </RPopover.Content>
       </RPopover.Portal>

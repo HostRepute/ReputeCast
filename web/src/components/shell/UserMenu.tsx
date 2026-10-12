@@ -6,7 +6,7 @@ import { useMe, useOptionalWorkspace } from '@/lib/session'
 import { Icon } from '../icons/Icon'
 import { Avatar } from '../ui/Avatar'
 
-/** Account menu: Account & security, notification preferences, settings, instance admin, sign out. */
+/** Account menu: Account & security, notification preferences, settings, instance admin, sign out (ShellUserMenu). */
 export function UserMenu() {
   const { data: me } = useMe()
   const ws = useOptionalWorkspace()
@@ -15,6 +15,7 @@ export function UserMenu() {
   if (!me) return null
   const u = me.user
   const first = (u.name || u.email).split(/\s+/)[0]
+  const slug = ws?.slug ?? me.workspaces[0]?.slug ?? ''
   const signOut = async () => {
     try {
       await http.POST('/api/v1/auth/sign-out')
@@ -27,15 +28,15 @@ export function UserMenu() {
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
         <button className="ubtn" type="button" aria-label={`Account menu for ${u.name || u.email}`}>
-          <Avatar name={u.name || u.email} color={u.avatarColor} size={26} />
+          <Avatar name={u.name || u.email} color={u.avatarColor} size={26} src={u.avatarUrl} />
           <span className="unm">{first}</span>
           <Icon name="chevronDown" size={12} strokeWidth={2} />
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content className="menu w-[280px]" align="end" sideOffset={6} collisionPadding={12}>
+        <DropdownMenu.Content className="menu w-[280px]" align="end" sideOffset={11} collisionPadding={12} aria-label="Account">
           <div className="row" style={{ gap: 10, padding: '8px 10px 10px', flexWrap: 'nowrap' }}>
-            <Avatar name={u.name || u.email} color={u.avatarColor} size={36} />
+            <Avatar name={u.name || u.email} color={u.avatarColor} size={36} fontSize={13} src={u.avatarUrl} />
             <span className="col min-w-0" style={{ gap: 0 }}>
               <b className="text-[13px]">{u.name || u.email}</b>
               <span className="k mono truncate">{u.email}</span>
@@ -43,13 +44,13 @@ export function UserMenu() {
           </div>
           <DropdownMenu.Separator />
           <DropdownMenu.Item asChild>
-            <Link to="/w/$workspace/account" params={{ workspace: ws?.slug ?? me.workspaces[0]?.slug ?? '' }}>
+            <Link to="/w/$workspace/account" params={{ workspace: slug }}>
               <Icon name="user" />
               Account &amp; security
             </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Item asChild>
-            <Link to="/w/$workspace/account" params={{ workspace: ws?.slug ?? me.workspaces[0]?.slug ?? '' }} hash="notifications">
+            <Link to="/w/$workspace/notifications" params={{ workspace: slug }} hash="preferences">
               <Icon name="bell" />
               Notification preferences
             </Link>
@@ -66,7 +67,7 @@ export function UserMenu() {
             <>
               <DropdownMenu.Separator />
               <DropdownMenu.Item asChild>
-                <Link to="/w/$workspace/admin/users" params={{ workspace: ws?.slug ?? me.workspaces[0]?.slug ?? '' }}>
+                <Link to="/w/$workspace/admin/users" params={{ workspace: slug }}>
                   <Icon name="instance" />
                   Instance admin <span className="badge mut ml-auto">admins only</span>
                 </Link>
@@ -84,7 +85,7 @@ export function UserMenu() {
               <>
                 {' · '}
                 {u.isInstanceAdmin && ws ? (
-                  <Link to="/w/$workspace/admin/instance" params={{ workspace: ws.slug }}>
+                  <Link to="/w/$workspace/admin/instance" params={{ workspace: ws.slug }} className="underline underline-offset-2">
                     {me.instance.latestVersion} available
                   </Link>
                 ) : (
