@@ -127,17 +127,18 @@ SELECT d.id, d.webhook_id, d.event, d.event_id, d.attempt, d.max_attempts, d.sta
 FROM webhook_deliveries d
 JOIN webhooks h ON h.id = d.webhook_id
 WHERE h.workspace_id = $1
-  AND ($2::uuid IS NULL OR d.webhook_id = $2)
-  AND ($3::text IS NULL OR d.state = $3
-       OR ($3::text = 'failed' AND d.state IN ('retrying','dead')))
+  AND (d.attempt > 0 OR $2::text IN ('pending','held'))
+  AND ($3::uuid IS NULL OR d.webhook_id = $3)
+  AND ($2::text IS NULL OR d.state = $2
+       OR ($2::text = 'failed' AND d.state IN ('retrying','dead')))
 ORDER BY coalesce(d.last_attempt_at, d.created_at) DESC, d.id DESC
 LIMIT $4
 `
 
 type HooksDeliveriesParams struct {
 	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	WebhookID   *uuid.UUID `json:"webhookId"`
 	State       *string    `json:"state"`
+	WebhookID   *uuid.UUID `json:"webhookId"`
 	Lim         int32      `json:"lim"`
 }
 
@@ -163,8 +164,8 @@ type HooksDeliveriesRow struct {
 func (q *Queries) HooksDeliveries(ctx context.Context, arg HooksDeliveriesParams) ([]HooksDeliveriesRow, error) {
 	rows, err := q.db.Query(ctx, hooksDeliveries,
 		arg.WorkspaceID,
-		arg.WebhookID,
 		arg.State,
+		arg.WebhookID,
 		arg.Lim,
 	)
 	if err != nil {
@@ -208,7 +209,11 @@ WHERE d.id IN (
     SELECT d2.id FROM webhook_deliveries d2 JOIN webhooks h ON h.id = d2.webhook_id AND h.enabled
     WHERE d2.state IN ('pending','retrying') AND coalesce(d2.next_attempt_at, d2.created_at) <= now()
       AND (d2.enqueued_at IS NULL OR d2.enqueued_at < now() - interval '10 minutes')
-    ORDER BY coalesce(d2.next_attempt_at, d2.created_at)
+      AND (h.failing_since IS NULL OR d2.id = (
+          SELECT d3.id FROM webhook_deliveries d3
+          WHERE d3.webhook_id = h.id AND d3.state IN ('pending','retrying','delivering')
+          ORDER BY d3.created_at, d3.id LIMIT 1))
+    ORDER BY d2.created_at, d2.id
     LIMIT $1
     FOR UPDATE OF d2 SKIP LOCKED
 )
@@ -216,6 +221,8 @@ RETURNING d.id
 `
 
 // Deliveries ready for an attempt that have no job queued (or a lost one).
+// While an endpoint is failing only its oldest open delivery is tried (the
+// probe); the rest wait and replay once the endpoint answers 2xx again.
 func (q *Queries) HooksDue(ctx context.Context, lim int32) ([]uuid.UUID, error) {
 	rows, err := q.db.Query(ctx, hooksDue, lim)
 	if err != nil {
@@ -401,7 +408,7 @@ FROM webhooks h
 LEFT JOIN LATERAL (
     SELECT count(*) AS total, count(*) FILTER (WHERE d.state = 'delivered') AS ok
     FROM webhook_deliveries d
-    WHERE d.webhook_id = h.id AND d.created_at > now() - interval '24 hours' AND d.attempt > 0
+    WHERE d.webhook_id = h.id AND d.created_at > now() - interval '24 hours'
 ) s ON true
 LEFT JOIN LATERAL (
     SELECT count(*) AS queued FROM webhook_deliveries d

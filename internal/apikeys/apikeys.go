@@ -117,7 +117,7 @@ func view(r store.KeysListRow, lists map[uuid.UUID]string, now time.Time) APIKey
 	perms := authz.ParseSet(r.Permissions)
 	v := APIKeyView{
 		ID: r.ID.String(), Kind: r.Kind, Name: r.Name, Description: r.Description, Masked: r.Prefix,
-		Permissions: storedOrder(r.Permissions), Sensitive: []string{},
+		Permissions: StoredOrder(r.Permissions), Sensitive: []string{},
 		Scope:     access.View(access.ParseScope(r.Scope), lists, false),
 		CreatedBy: APIKeyCreator{Name: r.CreatedByName, AvatarColor: r.CreatedByColor}, CreatedAt: r.CreatedAt,
 		ExpiresAt: r.ExpiresAt, LastUsedAt: r.LastUsedAt, LastUsedClient: r.LastUsedClient, LastCall: r.LastCall, Status: "active",
@@ -143,19 +143,36 @@ func view(r store.KeysListRow, lists map[uuid.UUID]string, now time.Time) APIKey
 	return v
 }
 
-// storedOrder returns the keys the creator picked, in catalogue order,
-// without the implied view permissions that were added automatically.
-func storedOrder(keys []string) []string {
+// StoredOrder returns the keys the creator picked, in the order picked,
+// without the view permissions that were added automatically.
+func StoredOrder(keys []string) []string {
 	set := authz.ParseSet(keys)
 	out := []string{}
-	for _, d := range authz.Defs {
-		if !set.Has(d.Key) || !containsStr(keys, string(d.Key)) {
+	for _, k := range keys {
+		p := authz.Permission(k)
+		if !authz.Valid(p) || containsStr(out, k) {
 			continue
 		}
-		if by := access.ImpliedBy(set, d.Key); by != "" && containsStr(keys, string(by)) {
+		if by := access.ImpliedBy(set, p); by != "" && containsStr(keys, string(by)) {
 			continue
 		}
-		out = append(out, string(d.Key))
+		out = append(out, k)
+	}
+	return out
+}
+
+// PickedFirst stores the picked keys in their order, then the implied ones.
+func PickedFirst(picked []string, set authz.Set) []string {
+	out := []string{}
+	for _, k := range picked {
+		if set.Has(authz.Permission(k)) && !containsStr(out, k) {
+			out = append(out, k)
+		}
+	}
+	for _, k := range set.Strings() {
+		if !containsStr(out, k) {
+			out = append(out, k)
+		}
 	}
 	return out
 }
@@ -307,7 +324,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if in.ExpiresAt != nil && !in.ExpiresAt.After(s.now()) {
 		return APIKeyCreated{}, api.Invalid("body.expiresAt", "Pick an expiry date in the future.")
 	}
-	stored := set.Strings()
+	stored := PickedFirst(in.Permissions, set)
 	var out APIKeyCreated
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		var err error
@@ -529,11 +546,11 @@ func (s *Service) AgentActions(ctx context.Context, ws *store.Workspace, limit i
 			Tool    string `json:"tool"`
 			Detail  string `json:"detail"`
 			Note    string `json:"note"`
-			Summary string `json:"summary"`
+			Outcome string `json:"outcome"`
 			Perm    string `json:"permission"`
 		}
 		_ = json.Unmarshal(r.Metadata, &meta)
-		a := MCPAgentAction{ID: r.ID.String(), OccurredAt: r.OccurredAt, Agent: r.ActorName, Tool: meta.Tool, Result: r.Result, Summary: meta.Summary}
+		a := MCPAgentAction{ID: r.ID.String(), OccurredAt: r.OccurredAt, Agent: r.ActorName, Tool: meta.Tool, Result: r.Result, Summary: meta.Outcome}
 		if r.ActorID != nil {
 			a.AgentID = r.ActorID.String()
 		}

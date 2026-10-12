@@ -164,15 +164,15 @@ type entry struct {
 
 // record writes the audit entry of a call and touches the agent's last use.
 func (s *Service) record(ctx context.Context, c *agentCall, tool string, perm authz.Permission, e entry, result, reason, note string) {
-	meta := map[string]any{"tool": tool, "source": "mcp", "via": c.Masked, "permission": string(perm)}
+	meta := map[string]any{"tool": tool, "source": "mcp", "via": c.Masked, "permission": string(perm),
+		"summary": fmt.Sprintf("MCP agent “%s” · tool %s", c.Principal.Name, tool)}
 	if e.detail != "" {
 		meta["detail"] = e.detail
 	}
-	summary := e.summary
-	if summary == "" {
-		summary = fmt.Sprintf("MCP agent “%s” · tool %s", c.Principal.Name, tool)
+	// outcome is what the call did, shown in the agents' recent actions.
+	if e.summary != "" {
+		meta["outcome"] = e.summary
 	}
-	meta["summary"] = summary
 	if note != "" {
 		meta["note"] = note
 	}

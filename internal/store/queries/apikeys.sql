@@ -9,7 +9,7 @@ LEFT JOIN users u ON u.id = k.created_by
 WHERE k.workspace_id = @workspace_id AND k.kind = @kind
   AND (k.revoked_at IS NULL)
   AND (k.expires_at IS NULL OR k.expires_at > now() - interval '90 days')
-ORDER BY (k.expires_at IS NOT NULL AND k.expires_at <= now()), k.created_at;
+ORDER BY (k.expires_at IS NOT NULL AND k.expires_at <= now()), k.created_at DESC;
 
 -- name: KeysGet :one
 SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.permissions, k.scope, k.created_by, k.created_at,

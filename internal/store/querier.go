@@ -92,6 +92,8 @@ type Querier interface {
 	HooksDelete(ctx context.Context, arg HooksDeleteParams) (int64, error)
 	HooksDeliveries(ctx context.Context, arg HooksDeliveriesParams) ([]HooksDeliveriesRow, error)
 	// Deliveries ready for an attempt that have no job queued (or a lost one).
+	// While an endpoint is failing only its oldest open delivery is tried (the
+	// probe); the rest wait and replay once the endpoint answers 2xx again.
 	HooksDue(ctx context.Context, lim int32) ([]uuid.UUID, error)
 	HooksFinishDelivery(ctx context.Context, arg HooksFinishDeliveryParams) error
 	HooksGet(ctx context.Context, arg HooksGetParams) (Webhook, error)

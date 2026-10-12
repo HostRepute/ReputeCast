@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/apikeys"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
@@ -200,38 +201,13 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	}
 	for _, r := range rows {
 		perms := authz.ParseSet(r.Permissions)
-		row := MCPAgentRow{ID: r.ID.String(), Name: r.Name, Masked: r.Prefix, CreatedBy: r.CreatedByName, Permissions: displayKeys(r.Permissions), Cells: Cells(perms), Status: "active"}
+		row := MCPAgentRow{ID: r.ID.String(), Name: r.Name, Masked: r.Prefix, CreatedBy: r.CreatedByName, Permissions: apikeys.StoredOrder(r.Permissions), Cells: Cells(perms), Status: "active"}
 		if r.ExpiresAt != nil && !r.ExpiresAt.After(s.now()) {
 			row.Status = "expired"
 		}
 		out.Agents = append(out.Agents, row)
 	}
 	return out, nil
-}
-
-// displayKeys hides view permissions implied by another stored key.
-func displayKeys(keys []string) []string {
-	set := authz.ParseSet(keys)
-	out := []string{}
-	for _, d := range authz.Defs {
-		if !set.Has(d.Key) {
-			continue
-		}
-		implied := false
-		for _, o := range authz.Defs {
-			if o.Key != d.Key && set.Has(o.Key) {
-				for _, imp := range o.Implies {
-					if imp == d.Key {
-						implied = true
-					}
-				}
-			}
-		}
-		if !implied {
-			out = append(out, string(d.Key))
-		}
-	}
-	return out
 }
 
 // MCPSettingsInput changes the MCP options.
