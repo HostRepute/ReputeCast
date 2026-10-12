@@ -388,6 +388,12 @@
     border-collapse: collapse;
     font-size: 13px;
   }
+  /* Cells keep the prototype's content-box sizing, so a min-width copied
+     from a board means the same width here. */
+  .tbl th,
+  .tbl td {
+    box-sizing: content-box;
+  }
   .tbl th {
     text-align: left;
     font-weight: 600;
@@ -1215,7 +1221,6 @@
   }
   .side {
     flex: 1 1 232px;
-    max-width: 232px;
     background: var(--color-side);
     border-right: 1px solid var(--line);
     display: flex;
@@ -1621,6 +1626,10 @@
   .rc-app .tabs .badge,
   .rc-app .tbl td .badge {
     white-space: nowrap;
+  }
+  .rc-app .tbl.phone-wrap td .badge,
+  .rc-app .tbl.phone-wrap td .btn {
+    white-space: normal;
   }
   .rc-app .btn {
     white-space: normal;
