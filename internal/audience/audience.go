@@ -1,0 +1,118 @@
+// Package audience implements the Audience screens (spec 5.6, 7.9): the
+// contacts table with saved views, filters and bulk actions, the contact
+// profile with custom fields, per-list consent history and an activity
+// timeline that shows which sending provider delivered each email, lists
+// and custom fields, engagement tiers recomputed nightly with the sunset
+// policy, list health, CSV export (subscribers:export, always audited) and
+// the shared suppression list.
+package audience
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/publicurl"
+	"github.com/hostrepute/reputecast/internal/segments"
+	"github.com/hostrepute/reputecast/internal/store"
+)
+
+// Service holds the audience domain dependencies.
+type Service struct {
+	Pool     *pgxpool.Pool
+	Q        *store.Queries
+	Audit    *audit.Logger
+	Segments *segments.Service
+	// Mail sends opt-in confirmations through the System stream.
+	Mail  mailer.Sender
+	Links *linktoken.Signer
+	URLs  publicurl.Builder
+	Now   func() time.Time
+}
+
+func (s *Service) now() time.Time {
+	if s.Now != nil {
+		return s.Now()
+	}
+	return time.Now()
+}
+
+// TierCounts are contacts per engagement tier.
+type TierCounts struct {
+	Active  int64 `json:"active"`
+	Cooling int64 `json:"cooling"`
+	AtRisk  int64 `json:"atRisk"`
+	Sunset  int64 `json:"sunset"`
+}
+
+// ListSummary is a list with its size.
+type ListSummary struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	DoubleOptIn bool   `json:"doubleOptIn"`
+	// Subscribed members (the list size); pending members wait for opt-in.
+	Subscribed int64     `json:"subscribed"`
+	Pending    int64     `json:"pending"`
+	CreatedAt  time.Time `json:"createdAt"`
+}
+
+// AudienceSummary feeds the Audience tabs (Contacts · 48,213, Segments · 7,
+// Suppression list · 1,874) and the filter selects.
+type AudienceSummary struct {
+	Contacts        int64         `json:"contacts"`
+	Segments        int64         `json:"segments"`
+	Suppressions    int64         `json:"suppressions"`
+	Tiers           TierCounts    `json:"tiers"`
+	TiersComputedAt *time.Time    `json:"tiersComputedAt,omitempty"`
+	Lists           []ListSummary `json:"lists"`
+}
+
+// Summary returns the counts shown in the Audience header.
+func (s *Service) Summary(ctx context.Context, ws *store.Workspace) (AudienceSummary, error) {
+	c, err := s.Q.AudienceCounts(ctx, ws.ID)
+	if err != nil {
+		return AudienceSummary{}, err
+	}
+	out := AudienceSummary{Contacts: c.Contacts, Tiers: TierCounts{c.Active, c.Cooling, c.AtRisk, c.Sunset}, Lists: []ListSummary{}}
+	if out.Segments, err = s.Q.CountWorkspaceSegments(ctx, ws.ID); err != nil {
+		return out, err
+	}
+	if out.Suppressions, err = s.Q.CountWorkspaceSuppressions(ctx, ws.ID); err != nil {
+		return out, err
+	}
+	if st, err := s.Q.GetAudienceState(ctx, ws.ID); err == nil {
+		out.TiersComputedAt = st.TiersComputedAt
+	}
+	lists, err := s.Q.ListListsWithCounts(ctx, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	for _, l := range lists {
+		out.Lists = append(out.Lists, ListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, Subscribed: l.Subscribed, Pending: l.Pending, CreatedAt: l.CreatedAt})
+	}
+	return out, nil
+}
+
+// actorID is the signed-in person, nil for API keys and agents.
+func actorID(ctx context.Context) *uuid.UUID {
+	if u := api.UserFrom(ctx); u != nil {
+		id := u.ID
+		return &id
+	}
+	return nil
+}
+
+// workspaceLocation is the workspace timezone (UTC when unknown).
+func workspaceLocation(ws *store.Workspace) *time.Location {
+	if loc, err := time.LoadLocation(ws.Timezone); err == nil {
+		return loc
+	}
+	return time.UTC
+}
