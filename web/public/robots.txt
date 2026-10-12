@@ -1,0 +1,4 @@
+# The app is private. Public pages (/p/…) are indexable per workspace settings.
+User-agent: *
+Disallow: /
+Allow: /p/

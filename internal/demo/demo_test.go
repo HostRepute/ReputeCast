@@ -1,0 +1,50 @@
+package demo
+
+import (
+	"context"
+	"io"
+	"log/slog"
+	"testing"
+
+	"github.com/hostrepute/reputecast/internal/config"
+	"github.com/hostrepute/reputecast/internal/secrets"
+	"github.com/hostrepute/reputecast/internal/testdb"
+)
+
+func TestSplitAddsUp(t *testing.T) {
+	for _, n := range []int64{47980, 31520, 2098, 1, 0, 7} {
+		parts := Split(n, []float64{0.46, 0.21, 0.09, 0.08, 0.16})
+		var sum int64
+		for _, p := range parts {
+			sum += p
+		}
+		if sum != n {
+			t.Fatalf("Split(%d) sums to %d", n, sum)
+		}
+	}
+}
+
+// The demo seed must run cleanly on a fresh database and be idempotent.
+func TestSeed(t *testing.T) {
+	pool := testdb.New(t)
+	cfg := config.Defaults()
+	box, err := secrets.New(make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	ctx := context.Background()
+	if _, err := Seed(ctx, pool, &cfg, box, log); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	if _, err := Seed(ctx, pool, &cfg, box, log); err != nil {
+		t.Fatalf("second seed must be a no-op: %v", err)
+	}
+	var campaigns int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM campaigns`).Scan(&campaigns); err != nil {
+		t.Fatal(err)
+	}
+	if campaigns != 48 {
+		t.Fatalf("want 48 demo campaigns, got %d", campaigns)
+	}
+}

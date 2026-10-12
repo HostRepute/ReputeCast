@@ -1,0 +1,9 @@
+{
+  "name": "ReputeCast",
+  "short_name": "ReputeCast",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F3F4F6",
+  "theme_color": "#0F766E",
+  "icons": [{ "src": "/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

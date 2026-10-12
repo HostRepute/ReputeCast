@@ -1,0 +1,12 @@
+.git
+bin
+tmp
+data
+.env
+web/node_modules
+web/dist/assets
+web/test-results
+web/playwright-report
+design
+docs
+brand

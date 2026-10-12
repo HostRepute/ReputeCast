@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web · lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: web
+      - run: pnpm lint
+        working-directory: web
+      - run: pnpm typecheck
+        working-directory: web
+      - run: pnpm test
+        working-directory: web
+      - run: pnpm build
+        working-directory: web
+      - uses: actions/upload-artifact@v5
+        with:
+          name: web-dist
+          path: web/dist
+          include-hidden-files: true
+
+  go:
+    name: Go ${{ matrix.go }} · Postgres ${{ matrix.pg }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ["1.27.x"]
+        pg: ["16", "17", "18"]
+        include:
+          - go: "1.26.x"
+            pg: "18"
+    services:
+      postgres:
+        image: postgres:${{ matrix.pg }}-alpine
+        env:
+          POSTGRES_USER: reputecast
+          POSTGRES_PASSWORD: reputecast
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U reputecast" --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      REPUTECAST_TEST_DATABASE_URL: postgres://reputecast:reputecast@localhost:5432/postgres?sslmode=disable
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Generated code is up to date
+        if: matrix.pg == '18' && matrix.go == '1.27.x'
+        run: |
+          go tool sqlc generate
+          go run ./cmd/reputecast openapi > web/openapi.json
+          git diff --exit-code -- internal/store web/openapi.json
+      - run: go vet ./...
+      - run: go test -race -count=1 ./...
+
+  golangci:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.27.x"
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.14.0

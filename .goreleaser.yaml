@@ -1,0 +1,40 @@
+# GoReleaser v2: single binary for linux/darwin/windows × amd64/arm64 and a
+# multi-arch Docker image. The web app is built first and embedded.
+version: 2
+project_name: reputecast
+
+before:
+  hooks:
+    - sh -c "cd web && corepack enable && pnpm install --frozen-lockfile && pnpm build"
+
+builds:
+  - main: ./cmd/reputecast
+    env: [CGO_ENABLED=0]
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w
+      - -X github.com/hostrepute/reputecast/internal/version.Version={{ .Tag }}
+      - -X github.com/hostrepute/reputecast/internal/version.Commit={{ .FullCommit }}
+      - -X github.com/hostrepute/reputecast/internal/version.Date={{ .Date }}
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files: [LICENSE, README.md]
+
+checksum:
+  name_template: checksums.txt
+
+dockers_v2:
+  - images: [ghcr.io/hostrepute/reputecast]
+    tags: ["{{ .Tag }}", "latest"]
+    dockerfile: deploy/Dockerfile.release
+    platforms: [linux/amd64, linux/arm64]
+
+changelog:
+  use: github
+  sort: asc

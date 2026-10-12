@@ -1,0 +1,44 @@
+# Production-style stack: `docker compose -f deploy/docker-compose.yml up -d`
+# Set REPUTECAST_PUBLIC_URL and REPUTECAST_ADMIN_EMAIL (in .env next to this
+# file or your shell) before the first start; the first Owner's temporary
+# password is printed in the logs: docker compose logs app | grep Password
+name: reputecast
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: reputecast
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-reputecast}
+      POSTGRES_DB: reputecast
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reputecast -d reputecast"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    image: ghcr.io/hostrepute/reputecast:${REPUTECAST_VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${REPUTECAST_PORT:-8080}:8080"
+    environment:
+      REPUTECAST_DATABASE__URL: postgres://reputecast:${POSTGRES_PASSWORD:-reputecast}@postgres:5432/reputecast?sslmode=disable
+      REPUTECAST_HTTP__PUBLIC_URL: ${REPUTECAST_PUBLIC_URL:-http://localhost:8080}
+      REPUTECAST_ADMIN_EMAIL: ${REPUTECAST_ADMIN_EMAIL:-admin@example.com}
+      REPUTECAST_AUTO_MIGRATE: "true"
+      REPUTECAST_AUTO_INSTALL: "true"
+      # Set when ReputeCast runs behind a reverse proxy (CIDRs or IPs):
+      # REPUTECAST_HTTP__TRUSTED_PROXIES: 172.16.0.0/12
+    volumes:
+      - appdata:/var/lib/reputecast
+
+volumes:
+  pgdata:
+  appdata:

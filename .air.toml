@@ -1,0 +1,18 @@
+# Live reload for the Go server during `make dev`.
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/reputecast ./cmd/reputecast"
+  entrypoint = ["./tmp/reputecast", "serve", "--auto-migrate"]
+  include_ext = ["go", "sql"]
+  exclude_dir = ["web", "site", "design", "docs", "tmp", "node_modules", "data", "brand"]
+  delay = 300
+  kill_delay = "2s"
+  send_interrupt = true
+
+[log]
+  time = false
+
+[misc]
+  clean_on_exit = true
