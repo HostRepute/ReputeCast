@@ -18,10 +18,10 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 	ws := s.WS()
 	type prov struct {
 		key, adapter, name, label, status, detail, ipMode string
-		ips                                             []string
-		config, capabilities, limits, health, pricing   string
-		connected                                       time.Duration
-		lastEvent                                       time.Duration
+		ips                                               []string
+		config, capabilities, limits, health, pricing     string
+		connected                                         time.Duration
+		lastEvent                                         time.Duration
 	}
 	provs := []prov{
 		{
@@ -78,8 +78,8 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 	beta := s.Lists["Beta Program"]
 	rules := []struct {
 		stream, name, conditions, splits string
-		priority                          int
-		fallback                          any
+		priority                         int
+		fallback                         any
 	}{
 		{"broadcast", "Outlook and iCloud are strict with new IPs", `{"mailbox_providers":["outlook","icloud"]}`, `[{"provider_id":"` + ses.String() + `","weight":100}]`, 10, nil},
 		{"broadcast", "small, high-value list", `{"lists":["` + beta.String() + `"]}`, `[{"provider_id":"` + ses.String() + `","weight":100}]`, 20, nil},

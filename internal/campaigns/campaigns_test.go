@@ -14,13 +14,20 @@ func TestListCampaigns(t *testing.T) {
 
 	var list struct {
 		Items []struct {
-			Name      string `json:"name"`
-			Status    string `json:"status"`
-			Blocked   bool   `json:"blocked"`
-			Audience  string `json:"audience"`
-			Notes     []string
-			Routes    []struct{ Short string; Percent float64; Sent int64 }
-			Readiness *struct{ Verdict string; Issues int64 }
+			Name     string `json:"name"`
+			Status   string `json:"status"`
+			Blocked  bool   `json:"blocked"`
+			Audience string `json:"audience"`
+			Notes    []string
+			Routes   []struct {
+				Short   string
+				Percent float64
+				Sent    int64
+			}
+			Readiness *struct {
+				Verdict string
+				Issues  int64
+			}
 		} `json:"items"`
 		Total  int64 `json:"total"`
 		Counts struct{ All, Drafts, Scheduled, Sending, Sent int64 }

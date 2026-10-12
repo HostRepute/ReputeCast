@@ -89,6 +89,12 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		Policy:     a.authPolicy,
 	}
 	registerJobs(a)
+	for _, hook := range startHooks {
+		if err := hook(a); err != nil {
+			pool.Close()
+			return nil, err
+		}
+	}
 	client, err := jobs.NewClient(pool, a.JobReg, jobs.Options{
 		Run:         cfg.HasRole(config.RoleWorker),
 		Concurrency: cfg.Worker.Concurrency,

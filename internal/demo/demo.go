@@ -98,22 +98,27 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 		Lists: map[string]uuid.UUID{}, Providers: map[string]uuid.UUID{}, Campaigns: map[string]uuid.UUID{},
 		Senders: map[string]uuid.UUID{}, Domains: map[string]uuid.UUID{}, Extra: map[string]any{},
 	}
-	// The order matters: later seeders use IDs from earlier ones.
+	// The order matters: later seeders use IDs from earlier ones. Each
+	// workstream owns one seeder (see seeders.go and docs/dev/WORKSTREAMS.md).
 	steps := []struct {
 		name string
 		fn   func(context.Context, *Seeder) error
 	}{
 		{"core", seedCore},
 		{"team", seedTeam},
+		{"account", seedAccount},
+		{"instance", seedInstance},
 		{"audience", seedAudience},
 		{"senders", seedSenders},
 		{"providers", seedProviders},
+		{"deliverability", seedDeliverability},
 		{"campaigns", seedCampaigns},
+		{"composer", seedComposer},
+		{"readiness", seedReadiness},
+		{"sending", seedSending},
 		{"reports", seedReports},
 		{"automations", seedAutomations},
 		{"forms", seedForms},
-		{"deliverability", seedDeliverability},
-		{"approvals", seedApprovals},
 		{"integrations", seedIntegrations},
 		{"notifications", seedNotifications},
 		{"audit", seedAudit},

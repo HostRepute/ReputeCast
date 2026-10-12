@@ -398,4 +398,3 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace, days int) (C
 	out.Cost = math.Round(out.Cost*100) / 100
 	return out, nil
 }
-

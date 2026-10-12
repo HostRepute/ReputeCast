@@ -28,7 +28,7 @@ export function UserMenu() {
       <DropdownMenu.Trigger asChild>
         <button className="ubtn" type="button" aria-label={`Account menu for ${u.name || u.email}`}>
           <Avatar name={u.name || u.email} color={u.avatarColor} size={26} />
-          <span className="unm max-md:hidden">{first}</span>
+          <span className="unm">{first}</span>
           <Icon name="chevronDown" size={12} strokeWidth={2} />
         </button>
       </DropdownMenu.Trigger>

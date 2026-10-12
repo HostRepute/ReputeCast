@@ -18,7 +18,8 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "api:types": "openapi-typescript openapi.json -o src/api/schema.d.ts",
-    "tokens": "node scripts/tokens.ts"
+    "tokens": "node scripts/tokens.ts",
+    "shot": "node scripts/shot.ts"
   },
   "dependencies": {
     "@codemirror/lang-html": "6.4.12",

@@ -13,29 +13,66 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as RTokenRouteImport } from './routes/r.$token'
+import { Route as ResetPasswordTokenRouteImport } from './routes/reset-password.$token'
 import { Route as WWorkspaceRouteRouteImport } from './routes/w/$workspace/route'
 import { Route as WorkspacesNewRouteImport } from './routes/workspaces/new'
 import { Route as WWorkspaceAppRouteRouteImport } from './routes/w/$workspace/_app/route'
 import { Route as WWorkspaceAppIndexRouteImport } from './routes/w/$workspace/_app/index'
 import { Route as WWorkspaceAppAccountRouteImport } from './routes/w/$workspace/_app/account'
 import { Route as WWorkspaceAppNotificationsRouteImport } from './routes/w/$workspace/_app/notifications'
+import { Route as WWorkspaceAutomationsAutomationIdRouteImport } from './routes/w/$workspace/automations/$automationId'
 import { Route as WWorkspaceCampaignsNewRouteImport } from './routes/w/$workspace/campaigns/new'
 import { Route as WWorkspaceImportIndexRouteImport } from './routes/w/$workspace/import/index'
+import { Route as WWorkspaceAppAdminAuditRouteImport } from './routes/w/$workspace/_app/admin/audit'
+import { Route as WWorkspaceAppAdminAuthenticationRouteImport } from './routes/w/$workspace/_app/admin/authentication'
 import { Route as WWorkspaceAppAdminInstanceRouteImport } from './routes/w/$workspace/_app/admin/instance'
 import { Route as WWorkspaceAppAdminUsersRouteImport } from './routes/w/$workspace/_app/admin/users'
 import { Route as WWorkspaceAppAdminWorkspacesRouteImport } from './routes/w/$workspace/_app/admin/workspaces'
+import { Route as WWorkspaceAppApprovalsIndexRouteImport } from './routes/w/$workspace/_app/approvals/index'
+import { Route as WWorkspaceAppApprovalsApprovalIdRouteImport } from './routes/w/$workspace/_app/approvals/$approvalId'
 import { Route as WWorkspaceAppAudienceIndexRouteImport } from './routes/w/$workspace/_app/audience/index'
+import { Route as WWorkspaceAppAudienceHealthRouteImport } from './routes/w/$workspace/_app/audience/health'
+import { Route as WWorkspaceAppAudienceSuppressionsRouteImport } from './routes/w/$workspace/_app/audience/suppressions'
 import { Route as WWorkspaceAppAutomationsIndexRouteImport } from './routes/w/$workspace/_app/automations/index'
 import { Route as WWorkspaceAppCampaignsIndexRouteImport } from './routes/w/$workspace/_app/campaigns/index'
 import { Route as WWorkspaceAppDeliverabilityIndexRouteImport } from './routes/w/$workspace/_app/deliverability/index'
 import { Route as WWorkspaceAppFormsIndexRouteImport } from './routes/w/$workspace/_app/forms/index'
+import { Route as WWorkspaceAppFormsArchiveRouteImport } from './routes/w/$workspace/_app/forms/archive'
+import { Route as WWorkspaceAppFormsBrandingRouteImport } from './routes/w/$workspace/_app/forms/branding'
+import { Route as WWorkspaceAppFormsPreferencesRouteImport } from './routes/w/$workspace/_app/forms/preferences'
+import { Route as WWorkspaceAppFormsSubscribeRouteImport } from './routes/w/$workspace/_app/forms/subscribe'
+import { Route as WWorkspaceAppFormsUnsubscribeRouteImport } from './routes/w/$workspace/_app/forms/unsubscribe'
 import { Route as WWorkspaceAppProvidersIndexRouteImport } from './routes/w/$workspace/_app/providers/index'
+import { Route as WWorkspaceAppProvidersAdaptersRouteImport } from './routes/w/$workspace/_app/providers/adapters'
+import { Route as WWorkspaceAppProvidersEventsRouteImport } from './routes/w/$workspace/_app/providers/events'
+import { Route as WWorkspaceAppProvidersRoutingRouteImport } from './routes/w/$workspace/_app/providers/routing'
+import { Route as WWorkspaceAppProvidersWarmupRouteImport } from './routes/w/$workspace/_app/providers/warmup'
 import { Route as WWorkspaceAppSettingsIndexRouteImport } from './routes/w/$workspace/_app/settings/index'
+import { Route as WWorkspaceAppSettingsApprovalsRouteImport } from './routes/w/$workspace/_app/settings/approvals'
+import { Route as WWorkspaceAppSettingsAuditRouteImport } from './routes/w/$workspace/_app/settings/audit'
 import { Route as WWorkspaceAppSettingsIntegrationsRouteImport } from './routes/w/$workspace/_app/settings/integrations'
+import { Route as WWorkspaceAppSettingsKeysRouteImport } from './routes/w/$workspace/_app/settings/keys'
+import { Route as WWorkspaceAppSettingsMcpRouteImport } from './routes/w/$workspace/_app/settings/mcp'
+import { Route as WWorkspaceAppSettingsProvidersRouteImport } from './routes/w/$workspace/_app/settings/providers'
+import { Route as WWorkspaceAppSettingsSendersRouteImport } from './routes/w/$workspace/_app/settings/senders'
+import { Route as WWorkspaceAppSettingsWebhooksRouteImport } from './routes/w/$workspace/_app/settings/webhooks'
 import { Route as WWorkspaceCampaignsCampaignIdEditRouteImport } from './routes/w/$workspace/campaigns/$campaignId/edit'
+import { Route as WWorkspaceProvidersConnectIndexRouteImport } from './routes/w/$workspace/providers/connect/index'
+import { Route as WWorkspaceProvidersConnectAdapterRouteImport } from './routes/w/$workspace/providers/connect/$adapter'
+import { Route as WWorkspaceAppAdminSsoIndexRouteImport } from './routes/w/$workspace/_app/admin/sso/index'
+import { Route as WWorkspaceAppAdminSsoProviderIdRouteImport } from './routes/w/$workspace/_app/admin/sso/$providerId'
+import { Route as WWorkspaceAppAudienceContactsContactIdRouteImport } from './routes/w/$workspace/_app/audience/contacts/$contactId'
+import { Route as WWorkspaceAppAudienceSegmentsIndexRouteImport } from './routes/w/$workspace/_app/audience/segments/index'
+import { Route as WWorkspaceAppAudienceSegmentsSegmentIdRouteImport } from './routes/w/$workspace/_app/audience/segments/$segmentId'
 import { Route as WWorkspaceAppCampaignsCampaignIdLiveRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/live'
 import { Route as WWorkspaceAppCampaignsCampaignIdReportRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/report'
 import { Route as WWorkspaceAppCampaignsCampaignIdReviewRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/review'
+import { Route as WWorkspaceAppSettingsRolesIndexRouteImport } from './routes/w/$workspace/_app/settings/roles/index'
+import { Route as WWorkspaceAppSettingsRolesRoleIdRouteImport } from './routes/w/$workspace/_app/settings/roles/$roleId'
+import { Route as WWorkspaceAppSettingsTeamIndexRouteImport } from './routes/w/$workspace/_app/settings/team/index'
+import { Route as WWorkspaceAppSettingsTeamMemberIdRouteImport } from './routes/w/$workspace/_app/settings/team/$memberId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -56,6 +93,21 @@ const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RTokenRoute = RTokenRouteImport.update({
+  id: '/r/$token',
+  path: '/r/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordTokenRoute = ResetPasswordTokenRouteImport.update({
+  id: '/$token',
+  path: '/$token',
+  getParentRoute: () => ResetPasswordRoute,
 } as any)
 const WWorkspaceRouteRoute = WWorkspaceRouteRouteImport.update({
   id: '/w/$workspace',
@@ -87,6 +139,12 @@ const WWorkspaceAppNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAutomationsAutomationIdRoute =
+  WWorkspaceAutomationsAutomationIdRouteImport.update({
+    id: '/automations/$automationId',
+    path: '/automations/$automationId',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
 const WWorkspaceCampaignsNewRoute = WWorkspaceCampaignsNewRouteImport.update({
   id: '/campaigns/new',
   path: '/campaigns/new',
@@ -97,6 +155,17 @@ const WWorkspaceImportIndexRoute = WWorkspaceImportIndexRouteImport.update({
   path: '/import/',
   getParentRoute: () => WWorkspaceRouteRoute,
 } as any)
+const WWorkspaceAppAdminAuditRoute = WWorkspaceAppAdminAuditRouteImport.update({
+  id: '/admin/audit',
+  path: '/admin/audit',
+  getParentRoute: () => WWorkspaceAppRouteRoute,
+} as any)
+const WWorkspaceAppAdminAuthenticationRoute =
+  WWorkspaceAppAdminAuthenticationRouteImport.update({
+    id: '/admin/authentication',
+    path: '/admin/authentication',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppAdminInstanceRoute =
   WWorkspaceAppAdminInstanceRouteImport.update({
     id: '/admin/instance',
@@ -114,10 +183,34 @@ const WWorkspaceAppAdminWorkspacesRoute =
     path: '/admin/workspaces',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppApprovalsIndexRoute =
+  WWorkspaceAppApprovalsIndexRouteImport.update({
+    id: '/approvals/',
+    path: '/approvals/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppApprovalsApprovalIdRoute =
+  WWorkspaceAppApprovalsApprovalIdRouteImport.update({
+    id: '/approvals/$approvalId',
+    path: '/approvals/$approvalId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppAudienceIndexRoute =
   WWorkspaceAppAudienceIndexRouteImport.update({
     id: '/audience/',
     path: '/audience/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppAudienceHealthRoute =
+  WWorkspaceAppAudienceHealthRouteImport.update({
+    id: '/audience/health',
+    path: '/audience/health',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppAudienceSuppressionsRoute =
+  WWorkspaceAppAudienceSuppressionsRouteImport.update({
+    id: '/audience/suppressions',
+    path: '/audience/suppressions',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppAutomationsIndexRoute =
@@ -143,10 +236,64 @@ const WWorkspaceAppFormsIndexRoute = WWorkspaceAppFormsIndexRouteImport.update({
   path: '/forms/',
   getParentRoute: () => WWorkspaceAppRouteRoute,
 } as any)
+const WWorkspaceAppFormsArchiveRoute =
+  WWorkspaceAppFormsArchiveRouteImport.update({
+    id: '/forms/archive',
+    path: '/forms/archive',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppFormsBrandingRoute =
+  WWorkspaceAppFormsBrandingRouteImport.update({
+    id: '/forms/branding',
+    path: '/forms/branding',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppFormsPreferencesRoute =
+  WWorkspaceAppFormsPreferencesRouteImport.update({
+    id: '/forms/preferences',
+    path: '/forms/preferences',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppFormsSubscribeRoute =
+  WWorkspaceAppFormsSubscribeRouteImport.update({
+    id: '/forms/subscribe',
+    path: '/forms/subscribe',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppFormsUnsubscribeRoute =
+  WWorkspaceAppFormsUnsubscribeRouteImport.update({
+    id: '/forms/unsubscribe',
+    path: '/forms/unsubscribe',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppProvidersIndexRoute =
   WWorkspaceAppProvidersIndexRouteImport.update({
     id: '/providers/',
     path: '/providers/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppProvidersAdaptersRoute =
+  WWorkspaceAppProvidersAdaptersRouteImport.update({
+    id: '/providers/adapters',
+    path: '/providers/adapters',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppProvidersEventsRoute =
+  WWorkspaceAppProvidersEventsRouteImport.update({
+    id: '/providers/events',
+    path: '/providers/events',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppProvidersRoutingRoute =
+  WWorkspaceAppProvidersRoutingRouteImport.update({
+    id: '/providers/routing',
+    path: '/providers/routing',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppProvidersWarmupRoute =
+  WWorkspaceAppProvidersWarmupRouteImport.update({
+    id: '/providers/warmup',
+    path: '/providers/warmup',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppSettingsIndexRoute =
@@ -155,10 +302,52 @@ const WWorkspaceAppSettingsIndexRoute =
     path: '/settings/',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppSettingsApprovalsRoute =
+  WWorkspaceAppSettingsApprovalsRouteImport.update({
+    id: '/settings/approvals',
+    path: '/settings/approvals',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsAuditRoute =
+  WWorkspaceAppSettingsAuditRouteImport.update({
+    id: '/settings/audit',
+    path: '/settings/audit',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppSettingsIntegrationsRoute =
   WWorkspaceAppSettingsIntegrationsRouteImport.update({
     id: '/settings/integrations',
     path: '/settings/integrations',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsKeysRoute =
+  WWorkspaceAppSettingsKeysRouteImport.update({
+    id: '/settings/keys',
+    path: '/settings/keys',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsMcpRoute =
+  WWorkspaceAppSettingsMcpRouteImport.update({
+    id: '/settings/mcp',
+    path: '/settings/mcp',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsProvidersRoute =
+  WWorkspaceAppSettingsProvidersRouteImport.update({
+    id: '/settings/providers',
+    path: '/settings/providers',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsSendersRoute =
+  WWorkspaceAppSettingsSendersRouteImport.update({
+    id: '/settings/senders',
+    path: '/settings/senders',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsWebhooksRoute =
+  WWorkspaceAppSettingsWebhooksRouteImport.update({
+    id: '/settings/webhooks',
+    path: '/settings/webhooks',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceCampaignsCampaignIdEditRoute =
@@ -166,6 +355,48 @@ const WWorkspaceCampaignsCampaignIdEditRoute =
     id: '/campaigns/$campaignId/edit',
     path: '/campaigns/$campaignId/edit',
     getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceProvidersConnectIndexRoute =
+  WWorkspaceProvidersConnectIndexRouteImport.update({
+    id: '/providers/connect/',
+    path: '/providers/connect/',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceProvidersConnectAdapterRoute =
+  WWorkspaceProvidersConnectAdapterRouteImport.update({
+    id: '/providers/connect/$adapter',
+    path: '/providers/connect/$adapter',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceAppAdminSsoIndexRoute =
+  WWorkspaceAppAdminSsoIndexRouteImport.update({
+    id: '/admin/sso/',
+    path: '/admin/sso/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppAdminSsoProviderIdRoute =
+  WWorkspaceAppAdminSsoProviderIdRouteImport.update({
+    id: '/admin/sso/$providerId',
+    path: '/admin/sso/$providerId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppAudienceContactsContactIdRoute =
+  WWorkspaceAppAudienceContactsContactIdRouteImport.update({
+    id: '/audience/contacts/$contactId',
+    path: '/audience/contacts/$contactId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppAudienceSegmentsIndexRoute =
+  WWorkspaceAppAudienceSegmentsIndexRouteImport.update({
+    id: '/audience/segments/',
+    path: '/audience/segments/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppAudienceSegmentsSegmentIdRoute =
+  WWorkspaceAppAudienceSegmentsSegmentIdRouteImport.update({
+    id: '/audience/segments/$segmentId',
+    path: '/audience/segments/$segmentId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppCampaignsCampaignIdLiveRoute =
   WWorkspaceAppCampaignsCampaignIdLiveRouteImport.update({
@@ -185,24 +416,75 @@ const WWorkspaceAppCampaignsCampaignIdReviewRoute =
     path: '/campaigns/$campaignId/review',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppSettingsRolesIndexRoute =
+  WWorkspaceAppSettingsRolesIndexRouteImport.update({
+    id: '/settings/roles/',
+    path: '/settings/roles/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsRolesRoleIdRoute =
+  WWorkspaceAppSettingsRolesRoleIdRouteImport.update({
+    id: '/settings/roles/$roleId',
+    path: '/settings/roles/$roleId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsTeamIndexRoute =
+  WWorkspaceAppSettingsTeamIndexRouteImport.update({
+    id: '/settings/team/',
+    path: '/settings/team/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsTeamMemberIdRoute =
+  WWorkspaceAppSettingsTeamMemberIdRouteImport.update({
+    id: '/settings/team/$memberId',
+    path: '/settings/team/$memberId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/reset-password': typeof ResetPasswordRoute
+  '/reset-password': typeof ResetPasswordRouteWithChildren
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
   '/w/$workspace': typeof WWorkspaceRouteRouteWithChildren
+  '/invite/$token': typeof InviteTokenRoute
+  '/r/$token': typeof RTokenRoute
+  '/reset-password/$token': typeof ResetPasswordTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/account': typeof WWorkspaceAppAccountRoute
   '/w/$workspace/notifications': typeof WWorkspaceAppNotificationsRoute
+  '/w/$workspace/automations/$automationId': typeof WWorkspaceAutomationsAutomationIdRoute
   '/w/$workspace/campaigns/new': typeof WWorkspaceCampaignsNewRoute
   '/w/$workspace/': typeof WWorkspaceAppIndexRoute
   '/w/$workspace/import/': typeof WWorkspaceImportIndexRoute
+  '/w/$workspace/admin/audit': typeof WWorkspaceAppAdminAuditRoute
+  '/w/$workspace/admin/authentication': typeof WWorkspaceAppAdminAuthenticationRoute
   '/w/$workspace/admin/instance': typeof WWorkspaceAppAdminInstanceRoute
   '/w/$workspace/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
+  '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
+  '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
+  '/w/$workspace/audience/suppressions': typeof WWorkspaceAppAudienceSuppressionsRoute
+  '/w/$workspace/forms/archive': typeof WWorkspaceAppFormsArchiveRoute
+  '/w/$workspace/forms/branding': typeof WWorkspaceAppFormsBrandingRoute
+  '/w/$workspace/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
+  '/w/$workspace/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
+  '/w/$workspace/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
+  '/w/$workspace/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
+  '/w/$workspace/providers/events': typeof WWorkspaceAppProvidersEventsRoute
+  '/w/$workspace/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
+  '/w/$workspace/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
+  '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
+  '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
   '/w/$workspace/settings/integrations': typeof WWorkspaceAppSettingsIntegrationsRoute
+  '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
+  '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
+  '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
+  '/w/$workspace/settings/senders': typeof WWorkspaceAppSettingsSendersRoute
+  '/w/$workspace/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
+  '/w/$workspace/providers/connect/$adapter': typeof WWorkspaceProvidersConnectAdapterRoute
+  '/w/$workspace/approvals/': typeof WWorkspaceAppApprovalsIndexRoute
   '/w/$workspace/audience/': typeof WWorkspaceAppAudienceIndexRoute
   '/w/$workspace/automations/': typeof WWorkspaceAppAutomationsIndexRoute
   '/w/$workspace/campaigns/': typeof WWorkspaceAppCampaignsIndexRoute
@@ -210,26 +492,63 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/forms/': typeof WWorkspaceAppFormsIndexRoute
   '/w/$workspace/providers/': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/settings/': typeof WWorkspaceAppSettingsIndexRoute
+  '/w/$workspace/providers/connect/': typeof WWorkspaceProvidersConnectIndexRoute
+  '/w/$workspace/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
+  '/w/$workspace/audience/contacts/$contactId': typeof WWorkspaceAppAudienceContactsContactIdRoute
+  '/w/$workspace/audience/segments/$segmentId': typeof WWorkspaceAppAudienceSegmentsSegmentIdRoute
   '/w/$workspace/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
+  '/w/$workspace/settings/team/$memberId': typeof WWorkspaceAppSettingsTeamMemberIdRoute
+  '/w/$workspace/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
+  '/w/$workspace/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  '/w/$workspace/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
+  '/w/$workspace/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/reset-password': typeof ResetPasswordRoute
+  '/reset-password': typeof ResetPasswordRouteWithChildren
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
   '/w/$workspace': typeof WWorkspaceAppIndexRoute
+  '/invite/$token': typeof InviteTokenRoute
+  '/r/$token': typeof RTokenRoute
+  '/reset-password/$token': typeof ResetPasswordTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/account': typeof WWorkspaceAppAccountRoute
   '/w/$workspace/notifications': typeof WWorkspaceAppNotificationsRoute
+  '/w/$workspace/automations/$automationId': typeof WWorkspaceAutomationsAutomationIdRoute
   '/w/$workspace/campaigns/new': typeof WWorkspaceCampaignsNewRoute
   '/w/$workspace/import': typeof WWorkspaceImportIndexRoute
+  '/w/$workspace/admin/audit': typeof WWorkspaceAppAdminAuditRoute
+  '/w/$workspace/admin/authentication': typeof WWorkspaceAppAdminAuthenticationRoute
   '/w/$workspace/admin/instance': typeof WWorkspaceAppAdminInstanceRoute
   '/w/$workspace/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
+  '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
+  '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
+  '/w/$workspace/audience/suppressions': typeof WWorkspaceAppAudienceSuppressionsRoute
+  '/w/$workspace/forms/archive': typeof WWorkspaceAppFormsArchiveRoute
+  '/w/$workspace/forms/branding': typeof WWorkspaceAppFormsBrandingRoute
+  '/w/$workspace/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
+  '/w/$workspace/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
+  '/w/$workspace/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
+  '/w/$workspace/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
+  '/w/$workspace/providers/events': typeof WWorkspaceAppProvidersEventsRoute
+  '/w/$workspace/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
+  '/w/$workspace/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
+  '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
+  '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
   '/w/$workspace/settings/integrations': typeof WWorkspaceAppSettingsIntegrationsRoute
+  '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
+  '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
+  '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
+  '/w/$workspace/settings/senders': typeof WWorkspaceAppSettingsSendersRoute
+  '/w/$workspace/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
+  '/w/$workspace/providers/connect/$adapter': typeof WWorkspaceProvidersConnectAdapterRoute
+  '/w/$workspace/approvals': typeof WWorkspaceAppApprovalsIndexRoute
   '/w/$workspace/audience': typeof WWorkspaceAppAudienceIndexRoute
   '/w/$workspace/automations': typeof WWorkspaceAppAutomationsIndexRoute
   '/w/$workspace/campaigns': typeof WWorkspaceAppCampaignsIndexRoute
@@ -237,29 +556,66 @@ export interface FileRoutesByTo {
   '/w/$workspace/forms': typeof WWorkspaceAppFormsIndexRoute
   '/w/$workspace/providers': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/settings': typeof WWorkspaceAppSettingsIndexRoute
+  '/w/$workspace/providers/connect': typeof WWorkspaceProvidersConnectIndexRoute
+  '/w/$workspace/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
+  '/w/$workspace/audience/contacts/$contactId': typeof WWorkspaceAppAudienceContactsContactIdRoute
+  '/w/$workspace/audience/segments/$segmentId': typeof WWorkspaceAppAudienceSegmentsSegmentIdRoute
   '/w/$workspace/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
+  '/w/$workspace/settings/team/$memberId': typeof WWorkspaceAppSettingsTeamMemberIdRoute
+  '/w/$workspace/admin/sso': typeof WWorkspaceAppAdminSsoIndexRoute
+  '/w/$workspace/audience/segments': typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  '/w/$workspace/settings/roles': typeof WWorkspaceAppSettingsRolesIndexRoute
+  '/w/$workspace/settings/team': typeof WWorkspaceAppSettingsTeamIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/reset-password': typeof ResetPasswordRoute
+  '/reset-password': typeof ResetPasswordRouteWithChildren
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
   '/w/$workspace': typeof WWorkspaceRouteRouteWithChildren
+  '/invite/$token': typeof InviteTokenRoute
+  '/r/$token': typeof RTokenRoute
+  '/reset-password/$token': typeof ResetPasswordTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/_app': typeof WWorkspaceAppRouteRouteWithChildren
   '/w/$workspace/_app/account': typeof WWorkspaceAppAccountRoute
   '/w/$workspace/_app/notifications': typeof WWorkspaceAppNotificationsRoute
+  '/w/$workspace/automations/$automationId': typeof WWorkspaceAutomationsAutomationIdRoute
   '/w/$workspace/campaigns/new': typeof WWorkspaceCampaignsNewRoute
   '/w/$workspace/_app/': typeof WWorkspaceAppIndexRoute
   '/w/$workspace/import/': typeof WWorkspaceImportIndexRoute
+  '/w/$workspace/_app/admin/audit': typeof WWorkspaceAppAdminAuditRoute
+  '/w/$workspace/_app/admin/authentication': typeof WWorkspaceAppAdminAuthenticationRoute
   '/w/$workspace/_app/admin/instance': typeof WWorkspaceAppAdminInstanceRoute
   '/w/$workspace/_app/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/_app/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
+  '/w/$workspace/_app/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
+  '/w/$workspace/_app/audience/health': typeof WWorkspaceAppAudienceHealthRoute
+  '/w/$workspace/_app/audience/suppressions': typeof WWorkspaceAppAudienceSuppressionsRoute
+  '/w/$workspace/_app/forms/archive': typeof WWorkspaceAppFormsArchiveRoute
+  '/w/$workspace/_app/forms/branding': typeof WWorkspaceAppFormsBrandingRoute
+  '/w/$workspace/_app/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
+  '/w/$workspace/_app/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
+  '/w/$workspace/_app/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
+  '/w/$workspace/_app/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
+  '/w/$workspace/_app/providers/events': typeof WWorkspaceAppProvidersEventsRoute
+  '/w/$workspace/_app/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
+  '/w/$workspace/_app/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
+  '/w/$workspace/_app/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
+  '/w/$workspace/_app/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
   '/w/$workspace/_app/settings/integrations': typeof WWorkspaceAppSettingsIntegrationsRoute
+  '/w/$workspace/_app/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
+  '/w/$workspace/_app/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
+  '/w/$workspace/_app/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
+  '/w/$workspace/_app/settings/senders': typeof WWorkspaceAppSettingsSendersRoute
+  '/w/$workspace/_app/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
+  '/w/$workspace/providers/connect/$adapter': typeof WWorkspaceProvidersConnectAdapterRoute
+  '/w/$workspace/_app/approvals/': typeof WWorkspaceAppApprovalsIndexRoute
   '/w/$workspace/_app/audience/': typeof WWorkspaceAppAudienceIndexRoute
   '/w/$workspace/_app/automations/': typeof WWorkspaceAppAutomationsIndexRoute
   '/w/$workspace/_app/campaigns/': typeof WWorkspaceAppCampaignsIndexRoute
@@ -267,9 +623,19 @@ export interface FileRoutesById {
   '/w/$workspace/_app/forms/': typeof WWorkspaceAppFormsIndexRoute
   '/w/$workspace/_app/providers/': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/_app/settings/': typeof WWorkspaceAppSettingsIndexRoute
+  '/w/$workspace/providers/connect/': typeof WWorkspaceProvidersConnectIndexRoute
+  '/w/$workspace/_app/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
+  '/w/$workspace/_app/audience/contacts/$contactId': typeof WWorkspaceAppAudienceContactsContactIdRoute
+  '/w/$workspace/_app/audience/segments/$segmentId': typeof WWorkspaceAppAudienceSegmentsSegmentIdRoute
   '/w/$workspace/_app/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/_app/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/_app/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/_app/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
+  '/w/$workspace/_app/settings/team/$memberId': typeof WWorkspaceAppSettingsTeamMemberIdRoute
+  '/w/$workspace/_app/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
+  '/w/$workspace/_app/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  '/w/$workspace/_app/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
+  '/w/$workspace/_app/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -279,17 +645,44 @@ export interface FileRouteTypes {
     | '/setup'
     | '/sign-in'
     | '/w/$workspace'
+    | '/invite/$token'
+    | '/r/$token'
+    | '/reset-password/$token'
     | '/workspaces/new'
     | '/w/$workspace/account'
     | '/w/$workspace/notifications'
+    | '/w/$workspace/automations/$automationId'
     | '/w/$workspace/campaigns/new'
     | '/w/$workspace/'
     | '/w/$workspace/import/'
+    | '/w/$workspace/admin/audit'
+    | '/w/$workspace/admin/authentication'
     | '/w/$workspace/admin/instance'
     | '/w/$workspace/admin/users'
     | '/w/$workspace/admin/workspaces'
+    | '/w/$workspace/approvals/$approvalId'
+    | '/w/$workspace/audience/health'
+    | '/w/$workspace/audience/suppressions'
+    | '/w/$workspace/forms/archive'
+    | '/w/$workspace/forms/branding'
+    | '/w/$workspace/forms/preferences'
+    | '/w/$workspace/forms/subscribe'
+    | '/w/$workspace/forms/unsubscribe'
+    | '/w/$workspace/providers/adapters'
+    | '/w/$workspace/providers/events'
+    | '/w/$workspace/providers/routing'
+    | '/w/$workspace/providers/warmup'
+    | '/w/$workspace/settings/approvals'
+    | '/w/$workspace/settings/audit'
     | '/w/$workspace/settings/integrations'
+    | '/w/$workspace/settings/keys'
+    | '/w/$workspace/settings/mcp'
+    | '/w/$workspace/settings/providers'
+    | '/w/$workspace/settings/senders'
+    | '/w/$workspace/settings/webhooks'
     | '/w/$workspace/campaigns/$campaignId/edit'
+    | '/w/$workspace/providers/connect/$adapter'
+    | '/w/$workspace/approvals/'
     | '/w/$workspace/audience/'
     | '/w/$workspace/automations/'
     | '/w/$workspace/campaigns/'
@@ -297,9 +690,19 @@ export interface FileRouteTypes {
     | '/w/$workspace/forms/'
     | '/w/$workspace/providers/'
     | '/w/$workspace/settings/'
+    | '/w/$workspace/providers/connect/'
+    | '/w/$workspace/admin/sso/$providerId'
+    | '/w/$workspace/audience/contacts/$contactId'
+    | '/w/$workspace/audience/segments/$segmentId'
     | '/w/$workspace/campaigns/$campaignId/live'
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
+    | '/w/$workspace/settings/roles/$roleId'
+    | '/w/$workspace/settings/team/$memberId'
+    | '/w/$workspace/admin/sso/'
+    | '/w/$workspace/audience/segments/'
+    | '/w/$workspace/settings/roles/'
+    | '/w/$workspace/settings/team/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -307,16 +710,43 @@ export interface FileRouteTypes {
     | '/setup'
     | '/sign-in'
     | '/w/$workspace'
+    | '/invite/$token'
+    | '/r/$token'
+    | '/reset-password/$token'
     | '/workspaces/new'
     | '/w/$workspace/account'
     | '/w/$workspace/notifications'
+    | '/w/$workspace/automations/$automationId'
     | '/w/$workspace/campaigns/new'
     | '/w/$workspace/import'
+    | '/w/$workspace/admin/audit'
+    | '/w/$workspace/admin/authentication'
     | '/w/$workspace/admin/instance'
     | '/w/$workspace/admin/users'
     | '/w/$workspace/admin/workspaces'
+    | '/w/$workspace/approvals/$approvalId'
+    | '/w/$workspace/audience/health'
+    | '/w/$workspace/audience/suppressions'
+    | '/w/$workspace/forms/archive'
+    | '/w/$workspace/forms/branding'
+    | '/w/$workspace/forms/preferences'
+    | '/w/$workspace/forms/subscribe'
+    | '/w/$workspace/forms/unsubscribe'
+    | '/w/$workspace/providers/adapters'
+    | '/w/$workspace/providers/events'
+    | '/w/$workspace/providers/routing'
+    | '/w/$workspace/providers/warmup'
+    | '/w/$workspace/settings/approvals'
+    | '/w/$workspace/settings/audit'
     | '/w/$workspace/settings/integrations'
+    | '/w/$workspace/settings/keys'
+    | '/w/$workspace/settings/mcp'
+    | '/w/$workspace/settings/providers'
+    | '/w/$workspace/settings/senders'
+    | '/w/$workspace/settings/webhooks'
     | '/w/$workspace/campaigns/$campaignId/edit'
+    | '/w/$workspace/providers/connect/$adapter'
+    | '/w/$workspace/approvals'
     | '/w/$workspace/audience'
     | '/w/$workspace/automations'
     | '/w/$workspace/campaigns'
@@ -324,9 +754,19 @@ export interface FileRouteTypes {
     | '/w/$workspace/forms'
     | '/w/$workspace/providers'
     | '/w/$workspace/settings'
+    | '/w/$workspace/providers/connect'
+    | '/w/$workspace/admin/sso/$providerId'
+    | '/w/$workspace/audience/contacts/$contactId'
+    | '/w/$workspace/audience/segments/$segmentId'
     | '/w/$workspace/campaigns/$campaignId/live'
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
+    | '/w/$workspace/settings/roles/$roleId'
+    | '/w/$workspace/settings/team/$memberId'
+    | '/w/$workspace/admin/sso'
+    | '/w/$workspace/audience/segments'
+    | '/w/$workspace/settings/roles'
+    | '/w/$workspace/settings/team'
   id:
     | '__root__'
     | '/'
@@ -334,18 +774,45 @@ export interface FileRouteTypes {
     | '/setup'
     | '/sign-in'
     | '/w/$workspace'
+    | '/invite/$token'
+    | '/r/$token'
+    | '/reset-password/$token'
     | '/workspaces/new'
     | '/w/$workspace/_app'
     | '/w/$workspace/_app/account'
     | '/w/$workspace/_app/notifications'
+    | '/w/$workspace/automations/$automationId'
     | '/w/$workspace/campaigns/new'
     | '/w/$workspace/_app/'
     | '/w/$workspace/import/'
+    | '/w/$workspace/_app/admin/audit'
+    | '/w/$workspace/_app/admin/authentication'
     | '/w/$workspace/_app/admin/instance'
     | '/w/$workspace/_app/admin/users'
     | '/w/$workspace/_app/admin/workspaces'
+    | '/w/$workspace/_app/approvals/$approvalId'
+    | '/w/$workspace/_app/audience/health'
+    | '/w/$workspace/_app/audience/suppressions'
+    | '/w/$workspace/_app/forms/archive'
+    | '/w/$workspace/_app/forms/branding'
+    | '/w/$workspace/_app/forms/preferences'
+    | '/w/$workspace/_app/forms/subscribe'
+    | '/w/$workspace/_app/forms/unsubscribe'
+    | '/w/$workspace/_app/providers/adapters'
+    | '/w/$workspace/_app/providers/events'
+    | '/w/$workspace/_app/providers/routing'
+    | '/w/$workspace/_app/providers/warmup'
+    | '/w/$workspace/_app/settings/approvals'
+    | '/w/$workspace/_app/settings/audit'
     | '/w/$workspace/_app/settings/integrations'
+    | '/w/$workspace/_app/settings/keys'
+    | '/w/$workspace/_app/settings/mcp'
+    | '/w/$workspace/_app/settings/providers'
+    | '/w/$workspace/_app/settings/senders'
+    | '/w/$workspace/_app/settings/webhooks'
     | '/w/$workspace/campaigns/$campaignId/edit'
+    | '/w/$workspace/providers/connect/$adapter'
+    | '/w/$workspace/_app/approvals/'
     | '/w/$workspace/_app/audience/'
     | '/w/$workspace/_app/automations/'
     | '/w/$workspace/_app/campaigns/'
@@ -353,17 +820,29 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/forms/'
     | '/w/$workspace/_app/providers/'
     | '/w/$workspace/_app/settings/'
+    | '/w/$workspace/providers/connect/'
+    | '/w/$workspace/_app/admin/sso/$providerId'
+    | '/w/$workspace/_app/audience/contacts/$contactId'
+    | '/w/$workspace/_app/audience/segments/$segmentId'
     | '/w/$workspace/_app/campaigns/$campaignId/live'
     | '/w/$workspace/_app/campaigns/$campaignId/report'
     | '/w/$workspace/_app/campaigns/$campaignId/review'
+    | '/w/$workspace/_app/settings/roles/$roleId'
+    | '/w/$workspace/_app/settings/team/$memberId'
+    | '/w/$workspace/_app/admin/sso/'
+    | '/w/$workspace/_app/audience/segments/'
+    | '/w/$workspace/_app/settings/roles/'
+    | '/w/$workspace/_app/settings/team/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ResetPasswordRoute: typeof ResetPasswordRoute
+  ResetPasswordRoute: typeof ResetPasswordRouteWithChildren
   SetupRoute: typeof SetupRoute
   SignInRoute: typeof SignInRoute
   WWorkspaceRouteRoute: typeof WWorkspaceRouteRouteWithChildren
+  InviteTokenRoute: typeof InviteTokenRoute
+  RTokenRoute: typeof RTokenRoute
   WorkspacesNewRoute: typeof WorkspacesNewRoute
 }
 
@@ -396,6 +875,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/sign-in'
       preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/r/$token': {
+      id: '/r/$token'
+      path: '/r/$token'
+      fullPath: '/r/$token'
+      preLoaderRoute: typeof RTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password/$token': {
+      id: '/reset-password/$token'
+      path: '/$token'
+      fullPath: '/reset-password/$token'
+      preLoaderRoute: typeof ResetPasswordTokenRouteImport
+      parentRoute: typeof ResetPasswordRoute
     }
     '/w/$workspace': {
       id: '/w/$workspace'
@@ -439,6 +939,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppNotificationsRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/automations/$automationId': {
+      id: '/w/$workspace/automations/$automationId'
+      path: '/automations/$automationId'
+      fullPath: '/w/$workspace/automations/$automationId'
+      preLoaderRoute: typeof WWorkspaceAutomationsAutomationIdRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
     '/w/$workspace/campaigns/new': {
       id: '/w/$workspace/campaigns/new'
       path: '/campaigns/new'
@@ -452,6 +959,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$workspace/import/'
       preLoaderRoute: typeof WWorkspaceImportIndexRouteImport
       parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/_app/admin/audit': {
+      id: '/w/$workspace/_app/admin/audit'
+      path: '/admin/audit'
+      fullPath: '/w/$workspace/admin/audit'
+      preLoaderRoute: typeof WWorkspaceAppAdminAuditRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/admin/authentication': {
+      id: '/w/$workspace/_app/admin/authentication'
+      path: '/admin/authentication'
+      fullPath: '/w/$workspace/admin/authentication'
+      preLoaderRoute: typeof WWorkspaceAppAdminAuthenticationRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/admin/instance': {
       id: '/w/$workspace/_app/admin/instance'
@@ -474,11 +995,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppAdminWorkspacesRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/approvals/': {
+      id: '/w/$workspace/_app/approvals/'
+      path: '/approvals'
+      fullPath: '/w/$workspace/approvals/'
+      preLoaderRoute: typeof WWorkspaceAppApprovalsIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/approvals/$approvalId': {
+      id: '/w/$workspace/_app/approvals/$approvalId'
+      path: '/approvals/$approvalId'
+      fullPath: '/w/$workspace/approvals/$approvalId'
+      preLoaderRoute: typeof WWorkspaceAppApprovalsApprovalIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/audience/': {
       id: '/w/$workspace/_app/audience/'
       path: '/audience'
       fullPath: '/w/$workspace/audience/'
       preLoaderRoute: typeof WWorkspaceAppAudienceIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/audience/health': {
+      id: '/w/$workspace/_app/audience/health'
+      path: '/audience/health'
+      fullPath: '/w/$workspace/audience/health'
+      preLoaderRoute: typeof WWorkspaceAppAudienceHealthRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/audience/suppressions': {
+      id: '/w/$workspace/_app/audience/suppressions'
+      path: '/audience/suppressions'
+      fullPath: '/w/$workspace/audience/suppressions'
+      preLoaderRoute: typeof WWorkspaceAppAudienceSuppressionsRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/automations/': {
@@ -509,11 +1058,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppFormsIndexRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/forms/archive': {
+      id: '/w/$workspace/_app/forms/archive'
+      path: '/forms/archive'
+      fullPath: '/w/$workspace/forms/archive'
+      preLoaderRoute: typeof WWorkspaceAppFormsArchiveRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/forms/branding': {
+      id: '/w/$workspace/_app/forms/branding'
+      path: '/forms/branding'
+      fullPath: '/w/$workspace/forms/branding'
+      preLoaderRoute: typeof WWorkspaceAppFormsBrandingRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/forms/preferences': {
+      id: '/w/$workspace/_app/forms/preferences'
+      path: '/forms/preferences'
+      fullPath: '/w/$workspace/forms/preferences'
+      preLoaderRoute: typeof WWorkspaceAppFormsPreferencesRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/forms/subscribe': {
+      id: '/w/$workspace/_app/forms/subscribe'
+      path: '/forms/subscribe'
+      fullPath: '/w/$workspace/forms/subscribe'
+      preLoaderRoute: typeof WWorkspaceAppFormsSubscribeRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/forms/unsubscribe': {
+      id: '/w/$workspace/_app/forms/unsubscribe'
+      path: '/forms/unsubscribe'
+      fullPath: '/w/$workspace/forms/unsubscribe'
+      preLoaderRoute: typeof WWorkspaceAppFormsUnsubscribeRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/providers/': {
       id: '/w/$workspace/_app/providers/'
       path: '/providers'
       fullPath: '/w/$workspace/providers/'
       preLoaderRoute: typeof WWorkspaceAppProvidersIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/providers/adapters': {
+      id: '/w/$workspace/_app/providers/adapters'
+      path: '/providers/adapters'
+      fullPath: '/w/$workspace/providers/adapters'
+      preLoaderRoute: typeof WWorkspaceAppProvidersAdaptersRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/providers/events': {
+      id: '/w/$workspace/_app/providers/events'
+      path: '/providers/events'
+      fullPath: '/w/$workspace/providers/events'
+      preLoaderRoute: typeof WWorkspaceAppProvidersEventsRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/providers/routing': {
+      id: '/w/$workspace/_app/providers/routing'
+      path: '/providers/routing'
+      fullPath: '/w/$workspace/providers/routing'
+      preLoaderRoute: typeof WWorkspaceAppProvidersRoutingRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/providers/warmup': {
+      id: '/w/$workspace/_app/providers/warmup'
+      path: '/providers/warmup'
+      fullPath: '/w/$workspace/providers/warmup'
+      preLoaderRoute: typeof WWorkspaceAppProvidersWarmupRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/settings/': {
@@ -523,11 +1135,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppSettingsIndexRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/settings/approvals': {
+      id: '/w/$workspace/_app/settings/approvals'
+      path: '/settings/approvals'
+      fullPath: '/w/$workspace/settings/approvals'
+      preLoaderRoute: typeof WWorkspaceAppSettingsApprovalsRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/audit': {
+      id: '/w/$workspace/_app/settings/audit'
+      path: '/settings/audit'
+      fullPath: '/w/$workspace/settings/audit'
+      preLoaderRoute: typeof WWorkspaceAppSettingsAuditRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/settings/integrations': {
       id: '/w/$workspace/_app/settings/integrations'
       path: '/settings/integrations'
       fullPath: '/w/$workspace/settings/integrations'
       preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/keys': {
+      id: '/w/$workspace/_app/settings/keys'
+      path: '/settings/keys'
+      fullPath: '/w/$workspace/settings/keys'
+      preLoaderRoute: typeof WWorkspaceAppSettingsKeysRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/mcp': {
+      id: '/w/$workspace/_app/settings/mcp'
+      path: '/settings/mcp'
+      fullPath: '/w/$workspace/settings/mcp'
+      preLoaderRoute: typeof WWorkspaceAppSettingsMcpRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/providers': {
+      id: '/w/$workspace/_app/settings/providers'
+      path: '/settings/providers'
+      fullPath: '/w/$workspace/settings/providers'
+      preLoaderRoute: typeof WWorkspaceAppSettingsProvidersRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/senders': {
+      id: '/w/$workspace/_app/settings/senders'
+      path: '/settings/senders'
+      fullPath: '/w/$workspace/settings/senders'
+      preLoaderRoute: typeof WWorkspaceAppSettingsSendersRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/webhooks': {
+      id: '/w/$workspace/_app/settings/webhooks'
+      path: '/settings/webhooks'
+      fullPath: '/w/$workspace/settings/webhooks'
+      preLoaderRoute: typeof WWorkspaceAppSettingsWebhooksRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/campaigns/$campaignId/edit': {
@@ -536,6 +1197,55 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$workspace/campaigns/$campaignId/edit'
       preLoaderRoute: typeof WWorkspaceCampaignsCampaignIdEditRouteImport
       parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/providers/connect/': {
+      id: '/w/$workspace/providers/connect/'
+      path: '/providers/connect'
+      fullPath: '/w/$workspace/providers/connect/'
+      preLoaderRoute: typeof WWorkspaceProvidersConnectIndexRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/providers/connect/$adapter': {
+      id: '/w/$workspace/providers/connect/$adapter'
+      path: '/providers/connect/$adapter'
+      fullPath: '/w/$workspace/providers/connect/$adapter'
+      preLoaderRoute: typeof WWorkspaceProvidersConnectAdapterRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/_app/admin/sso/': {
+      id: '/w/$workspace/_app/admin/sso/'
+      path: '/admin/sso'
+      fullPath: '/w/$workspace/admin/sso/'
+      preLoaderRoute: typeof WWorkspaceAppAdminSsoIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/admin/sso/$providerId': {
+      id: '/w/$workspace/_app/admin/sso/$providerId'
+      path: '/admin/sso/$providerId'
+      fullPath: '/w/$workspace/admin/sso/$providerId'
+      preLoaderRoute: typeof WWorkspaceAppAdminSsoProviderIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/audience/contacts/$contactId': {
+      id: '/w/$workspace/_app/audience/contacts/$contactId'
+      path: '/audience/contacts/$contactId'
+      fullPath: '/w/$workspace/audience/contacts/$contactId'
+      preLoaderRoute: typeof WWorkspaceAppAudienceContactsContactIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/audience/segments/': {
+      id: '/w/$workspace/_app/audience/segments/'
+      path: '/audience/segments'
+      fullPath: '/w/$workspace/audience/segments/'
+      preLoaderRoute: typeof WWorkspaceAppAudienceSegmentsIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/audience/segments/$segmentId': {
+      id: '/w/$workspace/_app/audience/segments/$segmentId'
+      path: '/audience/segments/$segmentId'
+      fullPath: '/w/$workspace/audience/segments/$segmentId'
+      preLoaderRoute: typeof WWorkspaceAppAudienceSegmentsSegmentIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/campaigns/$campaignId/live': {
       id: '/w/$workspace/_app/campaigns/$campaignId/live'
@@ -558,17 +1268,79 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppCampaignsCampaignIdReviewRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/settings/roles/': {
+      id: '/w/$workspace/_app/settings/roles/'
+      path: '/settings/roles'
+      fullPath: '/w/$workspace/settings/roles/'
+      preLoaderRoute: typeof WWorkspaceAppSettingsRolesIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/roles/$roleId': {
+      id: '/w/$workspace/_app/settings/roles/$roleId'
+      path: '/settings/roles/$roleId'
+      fullPath: '/w/$workspace/settings/roles/$roleId'
+      preLoaderRoute: typeof WWorkspaceAppSettingsRolesRoleIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/team/': {
+      id: '/w/$workspace/_app/settings/team/'
+      path: '/settings/team'
+      fullPath: '/w/$workspace/settings/team/'
+      preLoaderRoute: typeof WWorkspaceAppSettingsTeamIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/team/$memberId': {
+      id: '/w/$workspace/_app/settings/team/$memberId'
+      path: '/settings/team/$memberId'
+      fullPath: '/w/$workspace/settings/team/$memberId'
+      preLoaderRoute: typeof WWorkspaceAppSettingsTeamMemberIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
   }
 }
+
+interface ResetPasswordRouteChildren {
+  ResetPasswordTokenRoute: typeof ResetPasswordTokenRoute
+}
+
+const ResetPasswordRouteChildren: ResetPasswordRouteChildren = {
+  ResetPasswordTokenRoute: ResetPasswordTokenRoute,
+}
+
+const ResetPasswordRouteWithChildren = ResetPasswordRoute._addFileChildren(
+  ResetPasswordRouteChildren,
+)
 
 interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppAccountRoute: typeof WWorkspaceAppAccountRoute
   WWorkspaceAppNotificationsRoute: typeof WWorkspaceAppNotificationsRoute
   WWorkspaceAppIndexRoute: typeof WWorkspaceAppIndexRoute
+  WWorkspaceAppAdminAuditRoute: typeof WWorkspaceAppAdminAuditRoute
+  WWorkspaceAppAdminAuthenticationRoute: typeof WWorkspaceAppAdminAuthenticationRoute
   WWorkspaceAppAdminInstanceRoute: typeof WWorkspaceAppAdminInstanceRoute
   WWorkspaceAppAdminUsersRoute: typeof WWorkspaceAppAdminUsersRoute
   WWorkspaceAppAdminWorkspacesRoute: typeof WWorkspaceAppAdminWorkspacesRoute
+  WWorkspaceAppApprovalsApprovalIdRoute: typeof WWorkspaceAppApprovalsApprovalIdRoute
+  WWorkspaceAppAudienceHealthRoute: typeof WWorkspaceAppAudienceHealthRoute
+  WWorkspaceAppAudienceSuppressionsRoute: typeof WWorkspaceAppAudienceSuppressionsRoute
+  WWorkspaceAppFormsArchiveRoute: typeof WWorkspaceAppFormsArchiveRoute
+  WWorkspaceAppFormsBrandingRoute: typeof WWorkspaceAppFormsBrandingRoute
+  WWorkspaceAppFormsPreferencesRoute: typeof WWorkspaceAppFormsPreferencesRoute
+  WWorkspaceAppFormsSubscribeRoute: typeof WWorkspaceAppFormsSubscribeRoute
+  WWorkspaceAppFormsUnsubscribeRoute: typeof WWorkspaceAppFormsUnsubscribeRoute
+  WWorkspaceAppProvidersAdaptersRoute: typeof WWorkspaceAppProvidersAdaptersRoute
+  WWorkspaceAppProvidersEventsRoute: typeof WWorkspaceAppProvidersEventsRoute
+  WWorkspaceAppProvidersRoutingRoute: typeof WWorkspaceAppProvidersRoutingRoute
+  WWorkspaceAppProvidersWarmupRoute: typeof WWorkspaceAppProvidersWarmupRoute
+  WWorkspaceAppSettingsApprovalsRoute: typeof WWorkspaceAppSettingsApprovalsRoute
+  WWorkspaceAppSettingsAuditRoute: typeof WWorkspaceAppSettingsAuditRoute
   WWorkspaceAppSettingsIntegrationsRoute: typeof WWorkspaceAppSettingsIntegrationsRoute
+  WWorkspaceAppSettingsKeysRoute: typeof WWorkspaceAppSettingsKeysRoute
+  WWorkspaceAppSettingsMcpRoute: typeof WWorkspaceAppSettingsMcpRoute
+  WWorkspaceAppSettingsProvidersRoute: typeof WWorkspaceAppSettingsProvidersRoute
+  WWorkspaceAppSettingsSendersRoute: typeof WWorkspaceAppSettingsSendersRoute
+  WWorkspaceAppSettingsWebhooksRoute: typeof WWorkspaceAppSettingsWebhooksRoute
+  WWorkspaceAppApprovalsIndexRoute: typeof WWorkspaceAppApprovalsIndexRoute
   WWorkspaceAppAudienceIndexRoute: typeof WWorkspaceAppAudienceIndexRoute
   WWorkspaceAppAutomationsIndexRoute: typeof WWorkspaceAppAutomationsIndexRoute
   WWorkspaceAppCampaignsIndexRoute: typeof WWorkspaceAppCampaignsIndexRoute
@@ -576,20 +1348,52 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppFormsIndexRoute: typeof WWorkspaceAppFormsIndexRoute
   WWorkspaceAppProvidersIndexRoute: typeof WWorkspaceAppProvidersIndexRoute
   WWorkspaceAppSettingsIndexRoute: typeof WWorkspaceAppSettingsIndexRoute
+  WWorkspaceAppAdminSsoProviderIdRoute: typeof WWorkspaceAppAdminSsoProviderIdRoute
+  WWorkspaceAppAudienceContactsContactIdRoute: typeof WWorkspaceAppAudienceContactsContactIdRoute
+  WWorkspaceAppAudienceSegmentsSegmentIdRoute: typeof WWorkspaceAppAudienceSegmentsSegmentIdRoute
   WWorkspaceAppCampaignsCampaignIdLiveRoute: typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   WWorkspaceAppCampaignsCampaignIdReportRoute: typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   WWorkspaceAppCampaignsCampaignIdReviewRoute: typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  WWorkspaceAppSettingsRolesRoleIdRoute: typeof WWorkspaceAppSettingsRolesRoleIdRoute
+  WWorkspaceAppSettingsTeamMemberIdRoute: typeof WWorkspaceAppSettingsTeamMemberIdRoute
+  WWorkspaceAppAdminSsoIndexRoute: typeof WWorkspaceAppAdminSsoIndexRoute
+  WWorkspaceAppAudienceSegmentsIndexRoute: typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  WWorkspaceAppSettingsRolesIndexRoute: typeof WWorkspaceAppSettingsRolesIndexRoute
+  WWorkspaceAppSettingsTeamIndexRoute: typeof WWorkspaceAppSettingsTeamIndexRoute
 }
 
 const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppAccountRoute: WWorkspaceAppAccountRoute,
   WWorkspaceAppNotificationsRoute: WWorkspaceAppNotificationsRoute,
   WWorkspaceAppIndexRoute: WWorkspaceAppIndexRoute,
+  WWorkspaceAppAdminAuditRoute: WWorkspaceAppAdminAuditRoute,
+  WWorkspaceAppAdminAuthenticationRoute: WWorkspaceAppAdminAuthenticationRoute,
   WWorkspaceAppAdminInstanceRoute: WWorkspaceAppAdminInstanceRoute,
   WWorkspaceAppAdminUsersRoute: WWorkspaceAppAdminUsersRoute,
   WWorkspaceAppAdminWorkspacesRoute: WWorkspaceAppAdminWorkspacesRoute,
+  WWorkspaceAppApprovalsApprovalIdRoute: WWorkspaceAppApprovalsApprovalIdRoute,
+  WWorkspaceAppAudienceHealthRoute: WWorkspaceAppAudienceHealthRoute,
+  WWorkspaceAppAudienceSuppressionsRoute:
+    WWorkspaceAppAudienceSuppressionsRoute,
+  WWorkspaceAppFormsArchiveRoute: WWorkspaceAppFormsArchiveRoute,
+  WWorkspaceAppFormsBrandingRoute: WWorkspaceAppFormsBrandingRoute,
+  WWorkspaceAppFormsPreferencesRoute: WWorkspaceAppFormsPreferencesRoute,
+  WWorkspaceAppFormsSubscribeRoute: WWorkspaceAppFormsSubscribeRoute,
+  WWorkspaceAppFormsUnsubscribeRoute: WWorkspaceAppFormsUnsubscribeRoute,
+  WWorkspaceAppProvidersAdaptersRoute: WWorkspaceAppProvidersAdaptersRoute,
+  WWorkspaceAppProvidersEventsRoute: WWorkspaceAppProvidersEventsRoute,
+  WWorkspaceAppProvidersRoutingRoute: WWorkspaceAppProvidersRoutingRoute,
+  WWorkspaceAppProvidersWarmupRoute: WWorkspaceAppProvidersWarmupRoute,
+  WWorkspaceAppSettingsApprovalsRoute: WWorkspaceAppSettingsApprovalsRoute,
+  WWorkspaceAppSettingsAuditRoute: WWorkspaceAppSettingsAuditRoute,
   WWorkspaceAppSettingsIntegrationsRoute:
     WWorkspaceAppSettingsIntegrationsRoute,
+  WWorkspaceAppSettingsKeysRoute: WWorkspaceAppSettingsKeysRoute,
+  WWorkspaceAppSettingsMcpRoute: WWorkspaceAppSettingsMcpRoute,
+  WWorkspaceAppSettingsProvidersRoute: WWorkspaceAppSettingsProvidersRoute,
+  WWorkspaceAppSettingsSendersRoute: WWorkspaceAppSettingsSendersRoute,
+  WWorkspaceAppSettingsWebhooksRoute: WWorkspaceAppSettingsWebhooksRoute,
+  WWorkspaceAppApprovalsIndexRoute: WWorkspaceAppApprovalsIndexRoute,
   WWorkspaceAppAudienceIndexRoute: WWorkspaceAppAudienceIndexRoute,
   WWorkspaceAppAutomationsIndexRoute: WWorkspaceAppAutomationsIndexRoute,
   WWorkspaceAppCampaignsIndexRoute: WWorkspaceAppCampaignsIndexRoute,
@@ -597,12 +1401,25 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppFormsIndexRoute: WWorkspaceAppFormsIndexRoute,
   WWorkspaceAppProvidersIndexRoute: WWorkspaceAppProvidersIndexRoute,
   WWorkspaceAppSettingsIndexRoute: WWorkspaceAppSettingsIndexRoute,
+  WWorkspaceAppAdminSsoProviderIdRoute: WWorkspaceAppAdminSsoProviderIdRoute,
+  WWorkspaceAppAudienceContactsContactIdRoute:
+    WWorkspaceAppAudienceContactsContactIdRoute,
+  WWorkspaceAppAudienceSegmentsSegmentIdRoute:
+    WWorkspaceAppAudienceSegmentsSegmentIdRoute,
   WWorkspaceAppCampaignsCampaignIdLiveRoute:
     WWorkspaceAppCampaignsCampaignIdLiveRoute,
   WWorkspaceAppCampaignsCampaignIdReportRoute:
     WWorkspaceAppCampaignsCampaignIdReportRoute,
   WWorkspaceAppCampaignsCampaignIdReviewRoute:
     WWorkspaceAppCampaignsCampaignIdReviewRoute,
+  WWorkspaceAppSettingsRolesRoleIdRoute: WWorkspaceAppSettingsRolesRoleIdRoute,
+  WWorkspaceAppSettingsTeamMemberIdRoute:
+    WWorkspaceAppSettingsTeamMemberIdRoute,
+  WWorkspaceAppAdminSsoIndexRoute: WWorkspaceAppAdminSsoIndexRoute,
+  WWorkspaceAppAudienceSegmentsIndexRoute:
+    WWorkspaceAppAudienceSegmentsIndexRoute,
+  WWorkspaceAppSettingsRolesIndexRoute: WWorkspaceAppSettingsRolesIndexRoute,
+  WWorkspaceAppSettingsTeamIndexRoute: WWorkspaceAppSettingsTeamIndexRoute,
 }
 
 const WWorkspaceAppRouteRouteWithChildren =
@@ -610,17 +1427,25 @@ const WWorkspaceAppRouteRouteWithChildren =
 
 interface WWorkspaceRouteRouteChildren {
   WWorkspaceAppRouteRoute: typeof WWorkspaceAppRouteRouteWithChildren
+  WWorkspaceAutomationsAutomationIdRoute: typeof WWorkspaceAutomationsAutomationIdRoute
   WWorkspaceCampaignsNewRoute: typeof WWorkspaceCampaignsNewRoute
   WWorkspaceImportIndexRoute: typeof WWorkspaceImportIndexRoute
   WWorkspaceCampaignsCampaignIdEditRoute: typeof WWorkspaceCampaignsCampaignIdEditRoute
+  WWorkspaceProvidersConnectAdapterRoute: typeof WWorkspaceProvidersConnectAdapterRoute
+  WWorkspaceProvidersConnectIndexRoute: typeof WWorkspaceProvidersConnectIndexRoute
 }
 
 const WWorkspaceRouteRouteChildren: WWorkspaceRouteRouteChildren = {
   WWorkspaceAppRouteRoute: WWorkspaceAppRouteRouteWithChildren,
+  WWorkspaceAutomationsAutomationIdRoute:
+    WWorkspaceAutomationsAutomationIdRoute,
   WWorkspaceCampaignsNewRoute: WWorkspaceCampaignsNewRoute,
   WWorkspaceImportIndexRoute: WWorkspaceImportIndexRoute,
   WWorkspaceCampaignsCampaignIdEditRoute:
     WWorkspaceCampaignsCampaignIdEditRoute,
+  WWorkspaceProvidersConnectAdapterRoute:
+    WWorkspaceProvidersConnectAdapterRoute,
+  WWorkspaceProvidersConnectIndexRoute: WWorkspaceProvidersConnectIndexRoute,
 }
 
 const WWorkspaceRouteRouteWithChildren = WWorkspaceRouteRoute._addFileChildren(
@@ -629,10 +1454,12 @@ const WWorkspaceRouteRouteWithChildren = WWorkspaceRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
+  ResetPasswordRoute: ResetPasswordRouteWithChildren,
   SetupRoute: SetupRoute,
   SignInRoute: SignInRoute,
   WWorkspaceRouteRoute: WWorkspaceRouteRouteWithChildren,
+  InviteTokenRoute: InviteTokenRoute,
+  RTokenRoute: RTokenRoute,
   WorkspacesNewRoute: WorkspacesNewRoute,
 }
 export const routeTree = rootRouteImport

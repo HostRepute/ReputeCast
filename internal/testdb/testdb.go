@@ -32,7 +32,10 @@ import (
 	"github.com/hostrepute/reputecast/migrations"
 )
 
-const templateName = "reputecast_test_template"
+// templateName includes the migrations fingerprint, so branches with
+// different migrations (parallel worktrees, CI matrix) never share or rebuild
+// each other's template.
+var templateName = "rc_tpl_" + migrationsHash()[:16]
 
 var (
 	once    sync.Once
@@ -85,7 +88,7 @@ func ensureTemplate(ctx context.Context) error {
 		coalesce((SELECT shobj_description(oid, 'pg_database') FROM pg_database WHERE datname = $1), '')`, templateName).Scan(&exists, &have); err != nil {
 		return err
 	}
-	// The template is rebuilt whenever a migration is added or changed.
+	// A template is complete once it carries the fingerprint comment.
 	if exists && have == want && os.Getenv("REPUTECAST_TEST_REBUILD_TEMPLATE") == "" {
 		return nil
 	}

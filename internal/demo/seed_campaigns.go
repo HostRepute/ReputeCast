@@ -85,7 +85,7 @@ func seedCampaignsImpl(ctx context.Context, s *Seeder) error {
 		id, sched, json.RawMessage(fmt.Sprintf(`{"mode":"at","at":%q,"timezone":"America/New_York"}`, sched.Format(time.RFC3339))), s.Ago(90*time.Minute)); err != nil {
 		return err
 	}
-	if err := seedReadiness(ctx, s, id, "warnings", []map[string]string{
+	if err := insertReadinessRun(ctx, s, id, "warnings", []map[string]string{
 		{"key": "audience.unengaged", "group": "Audience quality", "status": "warn", "title": "412 unengaged contacts (no opens in 180 days) are in the audience"},
 		{"key": "reputation.blocklist", "group": "Sender reputation", "status": "warn", "title": "Postal IP listed on UCEPROTECT L3, a low-impact list"},
 	}); err != nil {
@@ -107,7 +107,7 @@ func seedCampaignsImpl(ctx context.Context, s *Seeder) error {
 	if _, err := s.Tx.Exec(ctx, `UPDATE campaigns SET updated_at = $2, autosaved_at = $2 WHERE id = $1`, id, edited); err != nil {
 		return err
 	}
-	if err := seedReadiness(ctx, s, id, "blocked", []map[string]string{
+	if err := insertReadinessRun(ctx, s, id, "blocked", []map[string]string{
 		{"key": "content.unsubscribe", "group": "Compliance", "status": "block", "title": "No unsubscribe link or postal address in the footer"},
 		{"key": "links.blocklist", "group": "Links", "status": "block", "title": "go.acme-promo.link is on SURBL and Spamhaus DBL"},
 		{"key": "content.alt_text", "group": "Content", "status": "block", "title": "Hero image has no alt text and the email is 96% image"},
@@ -236,7 +236,7 @@ func planRoutes(ctx context.Context, s *Seeder, campaign uuid.UUID, total int64,
 	return nil
 }
 
-func seedReadiness(ctx context.Context, s *Seeder, campaign uuid.UUID, verdict string, issues []map[string]string) error {
+func insertReadinessRun(ctx context.Context, s *Seeder, campaign uuid.UUID, verdict string, issues []map[string]string) error {
 	checks, _ := json.Marshal(map[string]any{"checks": issues})
 	_, err := s.Tx.Exec(ctx, `INSERT INTO readiness_runs (id, campaign_id, trigger, verdict, checks, ran_at) VALUES ($1,$2,'composer',$3,$4,$5)`,
 		ID(), campaign, verdict, checks, s.Ago(40*time.Minute))
