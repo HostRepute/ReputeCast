@@ -471,7 +471,7 @@ func Validate(g FlowGraph, refs *Refs) []GraphIssue {
 	triggers := 0
 	for _, n := range g.Nodes {
 		if ids[n.ID] {
-			add(n.ID, "", "duplicate_id", "error", fmt.Sprintf("Two steps share the id %q. Delete one and add it again.", n.ID))
+			add(n.ID, "", "duplicate_id", "error", fmt.Sprintf("Two steps share the id %s. Delete one and add it again.", quote(n.ID)))
 		}
 		ids[n.ID] = true
 		if n.Type == NodeTrigger {
@@ -540,9 +540,9 @@ func Validate(g FlowGraph, refs *Refs) []GraphIssue {
 			}
 			for _, p := range n.Paths() {
 				if have[p] == 0 {
-					add(n.ID, "", "missing_path", "error", fmt.Sprintf("%s has no %q path. Connect it to a step or an exit.", name, pathLabel(n, p)))
+					add(n.ID, "", "missing_path", "error", fmt.Sprintf("%s has no %s path. Connect it to a step or an exit.", name, quote(pathLabel(n, p))))
 				} else if have[p] > 1 {
-					add(n.ID, "", "duplicate_path", "error", fmt.Sprintf("%s has two %q paths. Keep one.", name, pathLabel(n, p)))
+					add(n.ID, "", "duplicate_path", "error", fmt.Sprintf("%s has two %s paths. Keep one.", name, quote(pathLabel(n, p))))
 				}
 			}
 			for _, e := range out {

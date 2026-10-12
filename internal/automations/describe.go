@@ -142,7 +142,7 @@ func emailQuoted(name string) string {
 func EmailShortRef(name string) string {
 	p := emailPrefix(name)
 	if i := strings.LastIndex(p, " · "); i >= 0 {
-		p = p[i+3:]
+		p = p[i+len(" · "):]
 	}
 	if p == "" {
 		return strings.Trim(name, "\"“” ")
@@ -207,7 +207,7 @@ func stepName(g FlowGraph, n FlowNode, refs *Refs) string {
 	if n.Type == NodeTrigger {
 		return "the trigger"
 	}
-	return fmt.Sprintf("%s %q", strings.ToLower(TypeName(n.Type)[:1])+TypeName(n.Type)[1:], NodeRef(g, n, refs))
+	return fmt.Sprintf("%s %s", strings.ToLower(TypeName(n.Type)[:1])+TypeName(n.Type)[1:], quote(NodeRef(g, n, refs)))
 }
 
 // conditionPhrase reads a condition after "Only contacts …" or as a question.
@@ -400,3 +400,7 @@ func shortURL(raw string) string {
 	}
 	return scheme + host + "/…"
 }
+
+// quote wraps a name in straight double quotes, as the product copy does
+// ("Step 2", "No" path); unlike %q it never escapes inner characters.
+func quote(s string) string { return `"` + s + `"` }
