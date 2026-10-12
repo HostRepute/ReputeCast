@@ -81,6 +81,15 @@ func Descriptor() providers.Descriptor {
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
+		Terms: []providers.Terms{
+			{Variant: "Transactional stream", Bulk: providers.BulkForbidden, Note: "Transactional streams are for one-to-one mail triggered by a user action. Marketing on them breaks Postmark's terms.",
+				Streams: []providers.Stream{providers.StreamAutomation, providers.StreamSystem}},
+			{Variant: "Broadcast stream", Bulk: providers.BulkAllowed, Note: "Requires an unsubscribe link in every message; Postmark adds one if missing.",
+				Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation}},
+		},
+		Events:          "Webhooks",
+		DomainSetup:     "API",
+		SuppressionMode: "Two-way",
 		Fields: []providers.Field{
 			{Key: "server_token", Label: "Server API token", Secret: true, Required: true, Help: "Postmark › Servers › your server › API Tokens."},
 			{Key: "account_token", Label: "Account API token", Secret: true, Help: "Optional. Lets ReputeCast add your domain and fetch its DNS records."},
@@ -527,7 +536,7 @@ type webhook struct {
 	URL           string `json:"Url"`
 	MessageStream string
 	HTTPAuth      *httpAuth `json:"HttpAuth,omitempty"`
-	Triggers map[string]map[string]bool
+	Triggers      map[string]map[string]bool
 }
 
 // RegisterWebhook implements providers.WebhookRegistrar: one webhook per

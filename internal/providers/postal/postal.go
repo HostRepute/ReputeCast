@@ -76,6 +76,11 @@ func Descriptor() providers.Descriptor {
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
+		Terms: []providers.Terms{{Variant: "self-hosted", Bulk: providers.BulkYourPolicy, Note: "You run the server, so your hosting provider's acceptable-use policy applies instead.",
+			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
+		Events:          "Webhooks",
+		DomainSetup:     "Manual DNS",
+		SuppressionMode: "Local only",
 		Fields: []providers.Field{
 			{Key: "server_url", Label: "Server URL", Required: true, Help: "The address of your Postal web interface, e.g. https://mta.acme.io."},
 			{Key: "api_key", Label: "API key", Secret: true, Required: true, Help: "Postal › your mail server › Credentials › API."},

@@ -1,0 +1,267 @@
+package routing
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+
+	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/providers"
+	"github.com/hostrepute/reputecast/internal/providers/state"
+	"github.com/hostrepute/reputecast/internal/store"
+)
+
+// RouteTestInput asks which provider would send an email.
+type RouteTestInput struct {
+	Stream       string `json:"stream" enum:"broadcast,automation,system"`
+	ListID       string `json:"listId,omitempty"`
+	SenderDomain string `json:"senderDomain,omitempty" maxLength:"253"`
+	Email        string `json:"email" minLength:"3" maxLength:"254"`
+	// Draft tests unsaved routing instead of the saved one.
+	Draft *RoutingSaveInput `json:"draft,omitempty"`
+}
+
+// RouteSplitPart is one provider of a weighted split, for the step text.
+type RouteSplitPart struct {
+	Short  string `json:"short"`
+	Weight int    `json:"weight"`
+}
+
+// RouteStep is one step of the decision, in order.
+type RouteStep struct {
+	// Kind: stream, condition, split, primary, suppression, held.
+	Kind     string           `json:"kind" enum:"stream,condition,split,primary,suppression,held"`
+	Stream   string           `json:"stream,omitempty"`
+	Field    string           `json:"field,omitempty"`
+	Value    string           `json:"value,omitempty"`
+	Provider string           `json:"provider,omitempty"`
+	Bucket   int              `json:"bucket"`
+	Splits   []RouteSplitPart `json:"splits,omitempty"`
+	// Conditions is how many conditions the stream has (stream step).
+	Conditions int `json:"conditions"`
+	// Warming names a provider of the default split that is warming up
+	// ("Postal is still warming up").
+	Warming    string `json:"warming,omitempty"`
+	Suppressed bool   `json:"suppressed"`
+	Email      string `json:"email,omitempty"`
+	Reason     string `json:"reason,omitempty"`
+}
+
+// RouteCost is what one message costs on the chosen provider.
+type RouteCost struct {
+	Basis      string   `json:"basis" enum:"metered,plan,self_hosted"`
+	PerMessage *float64 `json:"perMessage,omitempty"`
+	Per1000    *float64 `json:"per1000,omitempty"`
+}
+
+// RouteFallback says what happens if the provider fails.
+type RouteFallback struct {
+	Policy   string `json:"policy" enum:"automatic,pause_and_ask,warm_only"`
+	Provider string `json:"provider,omitempty"`
+	Short    string `json:"short,omitempty"`
+}
+
+// RouteTestResult answers "Which provider would send this email?".
+type RouteTestResult struct {
+	ProviderID      string        `json:"providerId"`
+	Provider        string        `json:"provider"`
+	Short           string        `json:"short"`
+	Color           string        `json:"color" enum:"ses,postal,postmark,other"`
+	MailboxProvider string        `json:"mailboxProvider"`
+	DKIMSelector    string        `json:"dkimSelector"`
+	Cost            RouteCost     `json:"cost"`
+	Steps           []RouteStep   `json:"steps"`
+	Fallback        RouteFallback `json:"fallback"`
+	Suppressed      bool          `json:"suppressed"`
+	// Held is true when the provider can't take mail right now.
+	Held bool `json:"held"`
+}
+
+// Test runs the route tester for one address.
+func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInput) (RouteTestResult, error) {
+	email := strings.ToLower(strings.TrimSpace(in.Email))
+	if i := strings.LastIndexByte(email, '@'); i < 1 || i == len(email)-1 {
+		return RouteTestResult{}, api.Invalid("body.email", "Enter an email address, like name@example.com.")
+	}
+	set, err := Load(ctx, s.Q, ws.ID)
+	if err != nil {
+		return RouteTestResult{}, err
+	}
+	if in.Draft != nil {
+		if set, err = toSet(*in.Draft, set); err != nil {
+			return RouteTestResult{}, err
+		}
+	}
+	stream := providers.Stream(in.Stream)
+	rcpt := Recipient{Stream: stream, Email: email, SenderDomain: in.SenderDomain}
+	if in.ListID != "" {
+		rcpt.Lists = []string{in.ListID}
+	}
+	// A known contact carries its mailbox provider (from MX) and lists.
+	if c, err := s.Q.RoutingContact(ctx, store.RoutingContactParams{WorkspaceID: ws.ID, Email: email}); err == nil {
+		if c.MailboxProvider != "" && c.MailboxProvider != Other {
+			rcpt.MailboxProvider = c.MailboxProvider
+		}
+		if in.ListID == "" {
+			for _, l := range c.ListIds {
+				rcpt.Lists = append(rcpt.Lists, l.String())
+			}
+		}
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return RouteTestResult{}, err
+	}
+	if rcpt.MailboxProvider == "" {
+		rcpt.MailboxProvider = MailboxProvider(email)
+	}
+	d, ok := set.Resolve(rcpt)
+	if !ok {
+		return RouteTestResult{}, api.Err(422, "no_route", streamName(stream)+" has no provider yet. Pick a primary provider for it and save.")
+	}
+	provs, err := s.Q.ProvListActive(ctx, ws.ID)
+	if err != nil {
+		return RouteTestResult{}, err
+	}
+	byID := map[uuid.UUID]store.Provider{}
+	for _, p := range provs {
+		byID[p.ID] = p
+	}
+	p, found := byID[d.ProviderID]
+	if !found {
+		return RouteTestResult{}, api.Err(422, "no_route", "The route points at a provider that is no longer connected. Update the routing.")
+	}
+	facts, _, err := s.facts(ctx, ws)
+	if err != nil {
+		return RouteTestResult{}, err
+	}
+	out := RouteTestResult{ProviderID: p.ID.String(), Provider: p.Name, Short: state.Short(p.Name, p.Adapter), Color: state.Color(p.Adapter),
+		MailboxProvider: rcpt.MailboxProvider, Steps: []RouteStep{}}
+	conditions := 0
+	for _, r := range set.StreamRules(stream) {
+		if !r.Conditions.Empty() {
+			conditions++
+		}
+	}
+	def, _ := set.Default(stream)
+	primary := ""
+	if len(def.Splits) > 0 {
+		if pp, ok := byID[def.Splits[0].ProviderID]; ok {
+			primary = pp.Name
+		}
+	}
+	out.Steps = append(out.Steps, RouteStep{Kind: "stream", Stream: string(stream), Conditions: conditions, Provider: primary})
+	switch {
+	case d.Matched != "":
+		step := RouteStep{Kind: "condition", Field: d.Matched, Value: d.MatchedValue, Provider: p.Name}
+		switch d.Matched {
+		case "mailbox_provider":
+			step.Value = MailboxName(d.MatchedValue)
+		case "list":
+			if lists, err := s.Q.RoutingLists(ctx, ws.ID); err == nil {
+				for _, l := range lists {
+					if l.ID.String() == d.MatchedValue {
+						step.Value = l.Name
+					}
+				}
+			}
+		}
+		for _, sp := range def.Splits {
+			if f, ok := facts[sp.ProviderID]; ok && f.WarmingUp && sp.ProviderID != d.ProviderID {
+				step.Warming = f.Short
+			}
+		}
+		out.Steps = append(out.Steps, step)
+	case d.Split:
+		step := RouteStep{Kind: "split", Bucket: d.Bucket, Provider: p.Name}
+		for _, sp := range d.Rule.Splits {
+			if pp, ok := byID[sp.ProviderID]; ok {
+				step.Splits = append(step.Splits, RouteSplitPart{Short: state.Short(pp.Name, pp.Adapter), Weight: sp.Weight})
+			}
+		}
+		out.Steps = append(out.Steps, step)
+	}
+	suppressed, err := s.Q.RoutingIsSuppressed(ctx, store.RoutingIsSuppressedParams{WorkspaceID: ws.ID, Email: email})
+	if err != nil {
+		return RouteTestResult{}, err
+	}
+	out.Suppressed = suppressed
+	out.Steps = append(out.Steps, RouteStep{Kind: "suppression", Suppressed: suppressed, Email: email})
+	if !state.Available(p) {
+		out.Held = true
+		reason := "down"
+		if p.Status == state.Degraded {
+			reason = "webhooks_silent"
+		}
+		out.Steps = append(out.Steps, RouteStep{Kind: "held", Provider: p.Name, Reason: reason})
+	}
+	out.Fallback = RouteFallback{Policy: string(d.Policy)}
+	if d.Fallback != nil {
+		if fp, ok := byID[*d.Fallback]; ok {
+			out.Fallback.Provider, out.Fallback.Short = fp.Name, state.Short(fp.Name, fp.Adapter)
+		}
+	}
+	out.DKIMSelector = s.dkim(ctx, ws.ID, p.ID, in.SenderDomain)
+	out.Cost = s.cost(ctx, p)
+	return out, nil
+}
+
+// dkim returns the DKIM record name the provider signs with for a domain.
+func (s *Service) dkim(ctx context.Context, wsID, providerID uuid.UUID, domain string) string {
+	rows, err := s.Q.RoutingSenderDomains(ctx, wsID)
+	if err != nil {
+		return ""
+	}
+	for _, d := range rows {
+		if domain != "" && !strings.EqualFold(d.Domain, domain) {
+			continue
+		}
+		var recs []struct {
+			ProviderID string `json:"provider_id"`
+			Purpose    string `json:"purpose"`
+			Name       string `json:"name"`
+		}
+		_ = json.Unmarshal(d.DnsRecords, &recs)
+		for _, r := range recs {
+			if r.Purpose == "dkim" && r.ProviderID == providerID.String() {
+				return r.Name
+			}
+		}
+		if domain == "" {
+			break
+		}
+	}
+	return ""
+}
+
+// cost is the price of one message: metered price, or a plan or server
+// price spread over this month's volume.
+func (s *Service) cost(ctx context.Context, p store.Provider) RouteCost {
+	pr := state.PricingOf(p)
+	switch pr.Model {
+	case "plan", "self_hosted":
+		c := RouteCost{Basis: pr.Model}
+		if pr.Model == "self_hosted" {
+			zero := 0.0
+			c.PerMessage = &zero
+		}
+		now := s.now()
+		start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+		rows, err := s.Q.ProvDailyTotals(ctx, store.ProvDailyTotalsParams{ProviderIds: []uuid.UUID{p.ID}, Since: start, Until: now})
+		if err == nil && len(rows) == 1 && rows[0].Sent > 0 && pr.Monthly > 0 {
+			per := pr.Monthly / float64(rows[0].Sent)
+			per1000 := per * 1000
+			if pr.Model == "plan" {
+				c.PerMessage = &per
+			}
+			c.Per1000 = &per1000
+		}
+		return c
+	}
+	per1000 := pr.Per1000
+	per := per1000 / 1000
+	return RouteCost{Basis: "metered", PerMessage: &per, Per1000: &per1000}
+}

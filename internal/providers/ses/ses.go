@@ -90,6 +90,11 @@ func Descriptor() providers.Descriptor {
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
+		Terms: []providers.Terms{{Bulk: providers.BulkAllowed, Note: "Production access required; the account must stay under SES bounce and complaint thresholds.",
+			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
+		Events:          "SNS webhooks",
+		DomainSetup:     "API",
+		SuppressionMode: "Two-way",
 		Fields: []providers.Field{
 			{Key: "region", Label: "Region", Required: true, Options: []string{"us-east-1", "us-east-2", "us-west-1", "us-west-2", "ca-central-1", "eu-west-1", "eu-west-2", "eu-west-3", "eu-central-1", "eu-north-1", "eu-south-1", "ap-south-1", "ap-northeast-1", "ap-northeast-2", "ap-northeast-3", "ap-southeast-1", "ap-southeast-2", "sa-east-1", "me-south-1", "af-south-1", "il-central-1"}},
 			{Key: "access", Label: "Access", Required: true, Options: []string{"role", "keys"}, Help: "A CloudFormation role (recommended) or IAM access keys."},

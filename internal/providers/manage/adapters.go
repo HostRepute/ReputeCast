@@ -1,0 +1,494 @@
+package manage
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/netip"
+	"net/url"
+	"slices"
+	"strings"
+	"syscall"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+
+	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/providers"
+	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/version"
+)
+
+// Links on the Adapters tab.
+const (
+	SDKURL      = "https://github.com/hostrepute/reputecast/tree/main/docs/adapter-sdk"
+	TemplateURL = "https://github.com/hostrepute/reputecast-adapter-template"
+	RegistryURL = "https://github.com/hostrepute/reputecast-adapters"
+)
+
+// adapterOrder is the catalogue order of built-in adapters.
+var adapterOrder = []string{"ses", "postmark", "postal", "mailgun", "sendgrid", "resend", "sparkpost", "mailjet", "brevo", "azureacs", "smtp"}
+
+// BuiltinAdapter is one row of "Built-in adapters".
+type BuiltinAdapter struct {
+	Adapter         string `json:"adapter"`
+	Name            string `json:"name"`
+	Version         string `json:"version"`
+	Maintainer      string `json:"maintainer"`
+	Events          string `json:"events"`
+	DomainSetup     string `json:"domainSetup"`
+	SuppressionSync string `json:"suppressionSync"`
+	Connected       int    `json:"connected"`
+}
+
+// CommunityAdapter is one installed community adapter.
+type CommunityAdapter struct {
+	ID           string     `json:"id"`
+	Name         string     `json:"name"`
+	Kind         string     `json:"kind" enum:"http,wasm"`
+	Version      string     `json:"version"`
+	Maintainer   string     `json:"maintainer"`
+	Capabilities []string   `json:"capabilities"`
+	Latest       string     `json:"latest,omitempty"`
+	LastRelease  *time.Time `json:"lastRelease,omitempty"`
+	// Update: up_to_date, update_available, unmaintained (no release for a year).
+	Update    string    `json:"update" enum:"up_to_date,update_available,unmaintained"`
+	Connected int       `json:"connected"`
+	SourceURL string    `json:"sourceUrl,omitempty"`
+	Installed time.Time `json:"installedAt"`
+}
+
+// AdaptersOverview is the Adapters tab.
+type AdaptersOverview struct {
+	Version   string             `json:"version"`
+	Latest    string             `json:"latest,omitempty"`
+	UpToDate  bool               `json:"upToDate"`
+	Builtin   []BuiltinAdapter   `json:"builtin"`
+	Community []CommunityAdapter `json:"community"`
+	// HTTPAdapter is true when this build includes the generic HTTP adapter.
+	HTTPAdapter bool   `json:"httpAdapter"`
+	SDKURL      string `json:"sdkUrl"`
+	TemplateURL string `json:"templateUrl"`
+	RegistryURL string `json:"registryUrl"`
+	// CanInstall is true for instance admins (adapters apply to every workspace).
+	CanInstall bool `json:"canInstall"`
+}
+
+// Adapters returns the Adapters tab.
+func (s *Service) Adapters(ctx context.Context, ws *store.Workspace) (AdaptersOverview, error) {
+	cur := strings.TrimPrefix(version.Get().Version, "v")
+	out := AdaptersOverview{Version: cur, Builtin: []BuiltinAdapter{}, Community: []CommunityAdapter{}, SDKURL: SDKURL, TemplateURL: TemplateURL, RegistryURL: RegistryURL}
+	if st, err := s.Q.GetInstanceSettings(ctx); err == nil && len(st.LatestRelease) > 0 {
+		var rel struct {
+			Tag string `json:"tag"`
+		}
+		_ = json.Unmarshal(st.LatestRelease, &rel)
+		out.Latest = strings.TrimPrefix(rel.Tag, "v")
+	}
+	out.UpToDate = out.Latest == "" || out.Latest == cur || cur == "dev"
+	provs, err := s.Q.ProvListActive(ctx, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	connected := map[string]int{}
+	for _, p := range provs {
+		connected[p.Adapter]++
+	}
+	cat := providers.Catalog()
+	slices.SortFunc(cat, func(a, b providers.Descriptor) int {
+		ia, ib := slices.Index(adapterOrder, a.Adapter), slices.Index(adapterOrder, b.Adapter)
+		if ia < 0 {
+			ia = len(adapterOrder)
+		}
+		if ib < 0 {
+			ib = len(adapterOrder)
+		}
+		if ia != ib {
+			return ia - ib
+		}
+		return strings.Compare(a.Name, b.Name)
+	})
+	for _, d := range cat {
+		if d.Kind == "community" {
+			continue
+		}
+		if d.Adapter == "httpgeneric" {
+			out.HTTPAdapter = true
+			continue
+		}
+		v := strings.TrimPrefix(d.Version, "v")
+		out.Builtin = append(out.Builtin, BuiltinAdapter{Adapter: d.Adapter, Name: d.Name, Version: v, Maintainer: d.Maintainer,
+			Events: d.Events, DomainSetup: d.DomainSetup, SuppressionSync: d.SuppressionMode, Connected: connected[d.Adapter]})
+	}
+	rows, err := s.Pool.Query(ctx, `SELECT id, name, kind, version, maintainer, source_url, manifest, latest_version, installed_at FROM installed_adapters ORDER BY installed_at, name`)
+	if err != nil {
+		return out, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var c CommunityAdapter
+		var id uuid.UUID
+		var manifest json.RawMessage
+		var latest *string
+		if err := rows.Scan(&id, &c.Name, &c.Kind, &c.Version, &c.Maintainer, &c.SourceURL, &manifest, &latest, &c.Installed); err != nil {
+			return out, err
+		}
+		c.ID = id.String()
+		var m struct {
+			Capabilities []string  `json:"capabilities"`
+			LastRelease  time.Time `json:"last_release"`
+		}
+		_ = json.Unmarshal(manifest, &m)
+		c.Capabilities = m.Capabilities
+		if c.Capabilities == nil {
+			c.Capabilities = []string{}
+		}
+		if !m.LastRelease.IsZero() {
+			lr := m.LastRelease
+			c.LastRelease = &lr
+		}
+		c.Update = "up_to_date"
+		if latest != nil && *latest != "" && *latest != c.Version {
+			c.Latest, c.Update = *latest, "update_available"
+		} else if c.LastRelease != nil && s.now().Sub(*c.LastRelease) > 365*24*time.Hour {
+			c.Update = "unmaintained"
+		}
+		c.Connected = connected["community:"+c.Name]
+		out.Community = append(out.Community, c)
+	}
+	if err := rows.Err(); err != nil {
+		return out, err
+	}
+	if p := api.PrincipalFrom(ctx); p != nil && p.IsInstanceAdmin {
+		out.CanInstall = true
+	}
+	return out, nil
+}
+
+func instanceAdmin(ctx context.Context) error {
+	if p := api.PrincipalFrom(ctx); p == nil || !p.IsInstanceAdmin {
+		return api.Err(http.StatusForbidden, api.CodePermissionDenied, "Adapters apply to every workspace on this instance, so only instance admins can install, update or remove them.")
+	}
+	return nil
+}
+
+// AdapterManifest is a community adapter's manifest.json.
+type AdapterManifest struct {
+	Name         string          `json:"name"`
+	Version      string          `json:"version"`
+	Maintainer   string          `json:"maintainer"`
+	Kind         string          `json:"kind"`
+	Capabilities []string        `json:"capabilities"`
+	SourceURL    string          `json:"source_url"`
+	Latest       string          `json:"latest_version"`
+	LastRelease  string          `json:"last_release"`
+	Terms        json.RawMessage `json:"terms"`
+	HTTP         json.RawMessage `json:"http"`
+}
+
+// InstallAdapterInput installs a community adapter from its manifest URL.
+type InstallAdapterInput struct {
+	ManifestURL string `json:"manifestUrl" format:"uri" maxLength:"2048" doc:"HTTPS URL of the adapter's manifest.json"`
+}
+
+// InstallAdapter fetches a manifest and installs the adapter.
+func (s *Service) InstallAdapter(ctx context.Context, ws *store.Workspace, in InstallAdapterInput) (CommunityAdapter, error) {
+	if err := instanceAdmin(ctx); err != nil {
+		return CommunityAdapter{}, err
+	}
+	m, raw, err := fetchManifest(ctx, in.ManifestURL)
+	if err != nil {
+		return CommunityAdapter{}, api.Invalid("body.manifestUrl", err.Error())
+	}
+	if m.SourceURL == "" {
+		m.SourceURL = in.ManifestURL
+	}
+	id := newID()
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `INSERT INTO installed_adapters (id, name, kind, version, maintainer, source_url, manifest, latest_version)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, id, m.Name, m.Kind, m.Version, m.Maintainer, in.ManifestURL, raw, nullable(m.Latest)); err != nil {
+			if strings.Contains(err.Error(), "installed_adapters_name_key") {
+				return api.Conflict(m.Name + " is already installed. Update it instead.")
+			}
+			return err
+		}
+		wsID := ws.ID
+		return s.Audit.LogWith(ctx, store.New(tx), audit.Event{WorkspaceID: &wsID, Action: "adapter.install", TargetType: "adapter", TargetID: id.String(), TargetName: m.Name,
+			After: map[string]any{"version": m.Version, "maintainer": m.Maintainer, "source": in.ManifestURL}})
+	})
+	if err != nil {
+		return CommunityAdapter{}, err
+	}
+	return s.community(ctx, ws, id)
+}
+
+func nullable(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+func (s *Service) community(ctx context.Context, ws *store.Workspace, id uuid.UUID) (CommunityAdapter, error) {
+	ov, err := s.Adapters(ctx, ws)
+	if err != nil {
+		return CommunityAdapter{}, err
+	}
+	for _, c := range ov.Community {
+		if c.ID == id.String() {
+			return c, nil
+		}
+	}
+	return CommunityAdapter{}, api.NotFound("Adapter")
+}
+
+// UpdateAdapter re-reads an adapter's manifest and installs its new version.
+func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id string) (CommunityAdapter, error) {
+	if err := instanceAdmin(ctx); err != nil {
+		return CommunityAdapter{}, err
+	}
+	aid, err := uuid.Parse(id)
+	if err != nil {
+		return CommunityAdapter{}, api.NotFound("Adapter")
+	}
+	var name, ver, src string
+	if err := s.Pool.QueryRow(ctx, `SELECT name, version, source_url FROM installed_adapters WHERE id = $1`, aid).Scan(&name, &ver, &src); err != nil {
+		return CommunityAdapter{}, api.MapError(err, "Adapter")
+	}
+	m, raw, err := fetchManifest(ctx, src)
+	if err != nil {
+		return CommunityAdapter{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, "Couldn't read the manifest at "+src+": "+err.Error())
+	}
+	if m.Name != name {
+		return CommunityAdapter{}, api.Conflict("The manifest at " + src + " now describes " + m.Name + ", not " + name + ". Nothing was changed.")
+	}
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `UPDATE installed_adapters SET version = $2, maintainer = $3, manifest = $4, latest_version = NULL WHERE id = $1`, aid, m.Version, m.Maintainer, raw); err != nil {
+			return err
+		}
+		wsID := ws.ID
+		return s.Audit.LogWith(ctx, store.New(tx), audit.Event{WorkspaceID: &wsID, Action: "adapter.update", TargetType: "adapter", TargetID: aid.String(), TargetName: name,
+			Before: map[string]any{"version": ver}, After: map[string]any{"version": m.Version}})
+	})
+	if err != nil {
+		return CommunityAdapter{}, err
+	}
+	return s.community(ctx, ws, aid)
+}
+
+// RemoveAdapter uninstalls a community adapter no provider uses.
+func (s *Service) RemoveAdapter(ctx context.Context, ws *store.Workspace, id string) error {
+	if err := instanceAdmin(ctx); err != nil {
+		return err
+	}
+	aid, err := uuid.Parse(id)
+	if err != nil {
+		return api.NotFound("Adapter")
+	}
+	var name string
+	if err := s.Pool.QueryRow(ctx, `SELECT name FROM installed_adapters WHERE id = $1`, aid).Scan(&name); err != nil {
+		return api.MapError(err, "Adapter")
+	}
+	var used int
+	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM providers WHERE adapter = $1 AND disconnected_at IS NULL`, "community:"+name).Scan(&used); err != nil {
+		return err
+	}
+	if used > 0 {
+		return api.Conflict(fmt.Sprintf("%d connected provider(s) use %s. Disconnect them first.", used, name))
+	}
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `DELETE FROM installed_adapters WHERE id = $1`, aid); err != nil {
+			return err
+		}
+		wsID := ws.ID
+		return s.Audit.LogWith(ctx, store.New(tx), audit.Event{WorkspaceID: &wsID, Action: "adapter.remove", TargetType: "adapter", TargetID: aid.String(), TargetName: name})
+	})
+}
+
+// HTTPAdapterInput is a generic HTTP adapter mapping.
+type HTTPAdapterInput struct {
+	Name           string `json:"name" minLength:"2" maxLength:"60"`
+	Endpoint       string `json:"endpoint" minLength:"10" maxLength:"2048" doc:"Method and URL, e.g. POST https://api.example-esp.com/v1/messages"`
+	BodyTemplate   string `json:"bodyTemplate" maxLength:"20000"`
+	MessageIDPath  string `json:"messageIdPath" maxLength:"200" doc:"JSONPath of the message id in the response, e.g. $.data.id"`
+	WebhookMapping string `json:"webhookMapping" enum:"status,jsonpath"`
+}
+
+// SaveHTTPAdapter stores a generic HTTP adapter mapping as an installed
+// adapter. It can send once this build includes the generic HTTP adapter.
+func (s *Service) SaveHTTPAdapter(ctx context.Context, ws *store.Workspace, in HTTPAdapterInput) (CommunityAdapter, error) {
+	if err := instanceAdmin(ctx); err != nil {
+		return CommunityAdapter{}, err
+	}
+	method, target, err := parseEndpoint(in.Endpoint)
+	if err != nil {
+		return CommunityAdapter{}, api.Invalid("body.endpoint", err.Error())
+	}
+	if in.BodyTemplate != "" && !json.Valid([]byte(placeholderSafe(in.BodyTemplate))) {
+		return CommunityAdapter{}, api.Invalid("body.bodyTemplate", "The body template isn't valid JSON once the {{ }} placeholders are filled in.")
+	}
+	manifest, _ := json.Marshal(map[string]any{
+		"name": in.Name, "kind": "http", "capabilities": []string{"webhooks"},
+		"http": map[string]any{"method": method, "url": target, "body": in.BodyTemplate, "message_id_path": in.MessageIDPath, "webhook_mapping": in.WebhookMapping},
+	})
+	id := newID()
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `INSERT INTO installed_adapters (id, name, kind, version, maintainer, source_url, manifest)
+			VALUES ($1, $2, 'http', '0.1.0', $3, '', $4)`, id, in.Name, "local · "+principalName(ctx), manifest); err != nil {
+			if strings.Contains(err.Error(), "installed_adapters_name_key") {
+				return api.Conflict("An adapter named " + in.Name + " is already installed.")
+			}
+			return err
+		}
+		wsID := ws.ID
+		return s.Audit.LogWith(ctx, store.New(tx), audit.Event{WorkspaceID: &wsID, Action: "adapter.http_save", TargetType: "adapter", TargetID: id.String(), TargetName: in.Name,
+			After: map[string]any{"method": method, "url": target}})
+	})
+	if err != nil {
+		return CommunityAdapter{}, err
+	}
+	return s.community(ctx, ws, id)
+}
+
+func principalName(ctx context.Context) string {
+	if p := api.PrincipalFrom(ctx); p != nil {
+		return p.Name
+	}
+	return "admin"
+}
+
+// placeholderSafe fills {{ x }} placeholders so a template can be checked as
+// JSON: inside a string with a letter, elsewhere with null.
+func placeholderSafe(t string) string {
+	var b strings.Builder
+	inString, escaped := false, false
+	for i := 0; i < len(t); i++ {
+		if !inString || !escaped {
+			if strings.HasPrefix(t[i:], "{{") {
+				if j := strings.Index(t[i:], "}}"); j >= 0 {
+					if inString {
+						b.WriteString("x")
+					} else {
+						b.WriteString("null")
+					}
+					i += j + 1
+					continue
+				}
+			}
+		}
+		c := t[i]
+		b.WriteByte(c)
+		switch {
+		case escaped:
+			escaped = false
+		case c == '\\' && inString:
+			escaped = true
+		case c == '"':
+			inString = !inString
+		}
+	}
+	return b.String()
+}
+
+func parseEndpoint(s string) (string, string, error) {
+	method, rest, ok := strings.Cut(strings.TrimSpace(s), " ")
+	if !ok {
+		method, rest = "POST", s
+	}
+	method = strings.ToUpper(method)
+	if !slices.Contains([]string{"POST", "PUT", "PATCH"}, method) {
+		return "", "", errors.New("Use POST, PUT or PATCH followed by the URL.")
+	}
+	u, err := url.Parse(strings.TrimSpace(rest))
+	if err != nil || u.Scheme != "https" || u.Host == "" {
+		return "", "", errors.New("Enter an https:// URL, for example POST https://api.example-esp.com/v1/messages.")
+	}
+	return method, u.String(), nil
+}
+
+// fetchManifest downloads a manifest over HTTPS from a public address.
+func fetchManifest(ctx context.Context, raw string) (AdapterManifest, json.RawMessage, error) {
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "https" || u.Host == "" {
+		return AdapterManifest{}, nil, errors.New("Enter the https:// URL of the adapter's manifest.json.")
+	}
+	client := &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{DialContext: publicDialer(), TLSHandshakeTimeout: 5 * time.Second},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) > 3 || req.URL.Scheme != "https" {
+				return errors.New("too many or insecure redirects")
+			}
+			return nil
+		}}
+	cctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(cctx, http.MethodGet, u.String(), nil)
+	req.Header.Set("Accept", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return AdapterManifest{}, nil, fmt.Errorf("Couldn't download the manifest: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return AdapterManifest{}, nil, fmt.Errorf("The manifest URL answered %d.", resp.StatusCode)
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 256<<10))
+	if err != nil {
+		return AdapterManifest{}, nil, err
+	}
+	var m AdapterManifest
+	if err := json.Unmarshal(body, &m); err != nil {
+		return AdapterManifest{}, nil, errors.New("The file is not a valid adapter manifest (JSON expected).")
+	}
+	if m.Name == "" || m.Version == "" || (m.Kind != "http" && m.Kind != "wasm") {
+		return AdapterManifest{}, nil, errors.New("The manifest needs a name, a version and a kind (http or wasm).")
+	}
+	if m.Maintainer == "" {
+		m.Maintainer = "community"
+	}
+	if !strings.HasPrefix(m.Maintainer, "community") {
+		m.Maintainer = "community · " + m.Maintainer
+	}
+	return m, body, nil
+}
+
+// publicDialer refuses private, loopback and link-local addresses, so a
+// manifest URL can't be used to reach the instance's internal network.
+func publicDialer() func(ctx context.Context, network, addr string) (net.Conn, error) {
+	d := &net.Dialer{Timeout: 5 * time.Second, Control: func(_, address string, _ syscall.RawConn) error {
+		host, _, err := net.SplitHostPort(address)
+		if err != nil {
+			return err
+		}
+		ip, err := netip.ParseAddr(host)
+		if err != nil {
+			return err
+		}
+		if !PublicIP(ip) {
+			return fmt.Errorf("%s is not a public address", ip)
+		}
+		return nil
+	}}
+	return d.DialContext
+}
+
+// PublicIP reports whether ip is a public unicast address.
+func PublicIP(ip netip.Addr) bool {
+	ip = ip.Unmap()
+	if !ip.IsValid() || ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
+		ip.IsMulticast() || ip.IsUnspecified() || ip.IsInterfaceLocalMulticast() {
+		return false
+	}
+	for _, p := range []string{"100.64.0.0/10", "192.0.0.0/24", "198.18.0.0/15", "240.0.0.0/4", "64:ff9b::/96", "fc00::/7"} {
+		if netip.MustParsePrefix(p).Contains(ip) {
+			return false
+		}
+	}
+	return true
+}

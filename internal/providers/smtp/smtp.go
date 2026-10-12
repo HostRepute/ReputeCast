@@ -79,6 +79,11 @@ func Descriptor() providers.Descriptor {
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
+		Terms: []providers.Terms{{Bulk: providers.BulkYourPolicy, Note: "Your SMTP server or relay's acceptable-use policy applies.",
+			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
+		Events:          "Bounce mailbox (IMAP/POP3)",
+		DomainSetup:     "Manual DNS",
+		SuppressionMode: "Local only",
 		Fields: []providers.Field{
 			{Key: "host", Label: "SMTP host", Required: true},
 			{Key: "port", Label: "Port", Required: true, Options: []string{"587", "465", "25", "2525"}},
