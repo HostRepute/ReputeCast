@@ -41,7 +41,8 @@ var (
 	pending = api.Access{Kind: api.AccessUser, HumansOnly: true, AllowPending: true}
 )
 
-type idPath struct {
+// PathID is the {id} path parameter.
+type PathID struct {
 	ID string `path:"id" format:"uuid"`
 }
 
@@ -53,7 +54,8 @@ func parseID(raw, what string) (uuid.UUID, error) {
 	return id, nil
 }
 
-type tokenPath struct {
+// PathToken is the {token} path parameter of reset and invitation links.
+type PathToken struct {
 	Token string `path:"token" minLength:"10" maxLength:"200"`
 }
 
@@ -146,14 +148,14 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Get(h, api.Op{ID: "auth-password-reset-check", Path: "/auth/password-reset/{token}", Summary: "Check a password reset link", Tags: tags, Access: api.Public},
-		func(ctx context.Context, in *tokenPath) (*api.Body[PasswordResetInfo], error) {
+		func(ctx context.Context, in *PathToken) (*api.Body[PasswordResetInfo], error) {
 			r, err := s.CheckPasswordReset(ctx, in.Token)
 			return api.OK(r), err
 		})
 
 	api.Post(h, api.Op{ID: "auth-password-reset", Path: "/auth/password-reset/{token}", Summary: "Set a new password with a one-time reset link", Tags: tags, Access: api.Public},
 		func(ctx context.Context, in *struct {
-			tokenPath
+			PathToken
 			Body struct {
 				Password string `json:"password" minLength:"1" maxLength:"1024"`
 			}
@@ -169,14 +171,14 @@ func Register(h huma.API, s *Service) {
 
 	inv := []string{"Invitations"}
 	api.Get(h, api.Op{ID: "get-invitation", Path: "/invitations/{token}", Summary: "What an invitation link offers: workspace, inviter, role and scope", Tags: inv, Access: api.Public},
-		func(ctx context.Context, in *tokenPath) (*api.Body[InvitationView], error) {
+		func(ctx context.Context, in *PathToken) (*api.Body[InvitationView], error) {
 			r, err := s.Invitation(ctx, in.Token)
 			return api.OK(r), err
 		})
 
 	api.Post(h, api.Op{ID: "accept-invitation", Path: "/invitations/{token}/accept", Summary: "Join the workspace (creates the account and signs in for new people)", Tags: inv, Access: api.Public},
 		func(ctx context.Context, in *struct {
-			tokenPath
+			PathToken
 			Body AcceptInviteInput
 		}) (*inviteAcceptOut, error) {
 			r, cookie, err := s.AcceptInvitation(ctx, in.Token, in.Body)
@@ -191,7 +193,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "request-invitation", Path: "/invitations/{token}/request", Summary: "Ask the inviter for a new invitation", Tags: inv, Access: api.Public},
-		func(ctx context.Context, in *tokenPath) (*api.Body[InviteRequestResult], error) {
+		func(ctx context.Context, in *PathToken) (*api.Body[InviteRequestResult], error) {
 			r, err := s.RequestNewInvite(ctx, in.Token)
 			return api.OK(r), err
 		})
@@ -233,7 +235,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Get(h, api.Op{ID: "get-avatar", Path: "/users/{id}/avatar", Summary: "A person's profile photo", Tags: me, Access: api.Authenticated},
-		func(ctx context.Context, in *idPath) (*AvatarImage, error) {
+		func(ctx context.Context, in *PathID) (*AvatarImage, error) {
 			id, err := parseID(in.ID, "Photo")
 			if err != nil {
 				return nil, err
@@ -320,7 +322,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Patch(h, api.Op{ID: "rename-passkey", Path: "/me/passkeys/{id}", Summary: "Rename a passkey", Tags: me, Access: person, Status: http.StatusNoContent},
 		func(ctx context.Context, in *struct {
-			idPath
+			PathID
 			Body struct {
 				Name string `json:"name" minLength:"1" maxLength:"80"`
 			}
@@ -333,7 +335,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Delete(h, api.Op{ID: "remove-passkey", Path: "/me/passkeys/{id}", Summary: "Remove a passkey (not your last way to sign in)", Tags: me, Access: person},
-		func(ctx context.Context, in *idPath) (*api.Empty, error) {
+		func(ctx context.Context, in *PathID) (*api.Empty, error) {
 			id, err := parseID(in.ID, "Passkey")
 			if err != nil {
 				return nil, err
@@ -342,7 +344,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Delete(h, api.Op{ID: "unlink-identity", Path: "/me/identities/{id}", Summary: "Unlink a social or SSO sign-in (not your last way to sign in)", Tags: me, Access: person},
-		func(ctx context.Context, in *idPath) (*api.Empty, error) {
+		func(ctx context.Context, in *PathID) (*api.Empty, error) {
 			id, err := parseID(in.ID, "Connected sign-in")
 			if err != nil {
 				return nil, err
@@ -357,7 +359,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Delete(h, api.Op{ID: "revoke-session", Path: "/me/sessions/{id}", Summary: "Sign out another session", Tags: me, Access: person},
-		func(ctx context.Context, in *idPath) (*api.Empty, error) {
+		func(ctx context.Context, in *PathID) (*api.Empty, error) {
 			id, err := parseID(in.ID, "Session")
 			if err != nil {
 				return nil, err

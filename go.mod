@@ -4,6 +4,7 @@ go 1.27.2
 
 require (
 	github.com/danielgtaylor/huma/v2 v2.39.1
+	github.com/fxamacker/cbor/v2 v2.9.4
 	github.com/go-chi/chi/v5 v5.4.0
 	github.com/go-chi/httprate v0.16.1
 	github.com/go-webauthn/webauthn v0.18.2
@@ -71,7 +72,6 @@ require (
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.9.4 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.8.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
