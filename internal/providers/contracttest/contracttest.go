@@ -386,7 +386,7 @@ func Message(i int) providers.Message {
 		Stream:  providers.StreamBroadcast,
 		From:    mail.Address{Name: "Acme Newsletter", Address: "news@news.acme.io"},
 		To:      mail.Address{Name: "Contract Test", Address: "reader" + string(rune('a'+i)) + "@contract.test"},
-		Subject: "Contract test " + id.String()[:8],
+		Subject: "Contract test " + id.String(),
 		HTML:    "<p>Hello from the contract suite.</p>",
 		Text:    "Hello from the contract suite.",
 		Headers: map[string]string{

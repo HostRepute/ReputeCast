@@ -302,7 +302,28 @@ func (p *Provider) ParseWebhook(ctx context.Context, r *http.Request, body []byt
 	if err != nil {
 		return nil, fmt.Errorf("bounce report: %w", err)
 	}
-	return Events(rep), nil
+	evs := Events(rep)
+	raw := rawReport(rep)
+	for i := range evs {
+		evs[i].Raw = raw
+	}
+	return evs, nil
+}
+
+// rawReport is the JSON form of a report kept with each event (the email
+// itself is stored by the ingest).
+func rawReport(rep *dsn.Report) json.RawMessage {
+	orig := map[string]string{}
+	for _, k := range []string{"Message-Id", "X-Reputecast-Message", "Subject", "To", "From"} {
+		if v := rep.Original.Get(k); v != "" {
+			orig[k] = v
+		}
+	}
+	b, _ := json.Marshal(map[string]any{
+		"kind": rep.Kind, "reporting_mta": rep.ReportingMTA, "mailbox": rep.Mailbox, "recipients": rep.Recipients,
+		"feedback_type": rep.FeedbackType, "user_agent": rep.UserAgent, "original": orig,
+	})
+	return b
 }
 
 // Events maps a parsed report to normalized events.
