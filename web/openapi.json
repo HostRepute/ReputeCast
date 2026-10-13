@@ -1664,8 +1664,19 @@
           "detail": {
             "type": "string"
           },
+          "downReason": {
+            "type": "string"
+          },
+          "downSince": {
+            "format": "date-time",
+            "type": "string"
+          },
           "id": {
             "type": "string"
+          },
+          "lastErrorStatus": {
+            "format": "int64",
+            "type": "integer"
           },
           "name": {
             "examples": [

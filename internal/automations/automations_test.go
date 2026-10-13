@@ -130,6 +130,49 @@ func TestListAndSummaryMatchTheBoard(t *testing.T) {
 	}
 }
 
+// The AutomationsStates › Error board: SES down, the fallback's token
+// rejected, Onboarding's emails held; and the Slack webhook card once the
+// draft no longer removes the step.
+func TestAlertsForHeldSendingAndFailingSteps(t *testing.T) {
+	env, c := signedIn(t, "linh@acme.io")
+	ctx := context.Background()
+	for _, q := range []string{
+		`UPDATE providers SET status = 'down', health = health || jsonb_build_object('down', jsonb_build_object('since', to_jsonb(now() - interval '1 hour'), 'reason', 'outage')) WHERE adapter = 'ses'`,
+		`UPDATE providers SET status = 'down', health = health || jsonb_build_object('down', jsonb_build_object('since', to_jsonb(now() - interval '1 hour'), 'reason', 'auth'), 'lastError', jsonb_build_object('status', 401)) WHERE adapter = 'postmark'`,
+		`INSERT INTO automation_alerts (id, automation_id, kind, node_id, detail, failures, first_at, last_at)
+		 SELECT gen_random_uuid(), id, 'sending_held', '', '{"queued": 23}', 23, now(), now() FROM automations WHERE name = 'Onboarding · new workspace'`,
+		`UPDATE automations SET draft_version = live_version WHERE name = 'Welcome series'`,
+	} {
+		if _, err := env.App.Pool.Exec(ctx, q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var l struct {
+		Route  struct{ Healthy bool }
+		Alerts []struct {
+			Kind, Title, Detail string
+			Actions             []struct{ Label, Kind, NodeID string }
+		}
+	}
+	c.Do("GET", wsPath, nil).MustStatus(t, 200).JSON(t, &l)
+	if l.Route.Healthy || len(l.Alerts) != 2 {
+		t.Fatalf("route healthy %v, alerts %+v", l.Route.Healthy, l.Alerts)
+	}
+	held, failing := l.Alerts[0], l.Alerts[1]
+	if held.Kind != "sending_held" || held.Title != `"Onboarding" paused: no healthy provider on the Automations route` ||
+		!strings.HasPrefix(held.Detail, "SES has been Down since ") ||
+		!strings.Contains(held.Detail, "and Postmark, the fallback, returned 401: its API key or token was rejected. 23 emails are queued") {
+		t.Fatalf("held alert %+v", held)
+	}
+	if len(held.Actions) != 2 || held.Actions[0].Label != "Fix Postmark token" || held.Actions[1].Label != "Add Postal as second fallback" {
+		t.Fatalf("held actions %+v", held.Actions)
+	}
+	if failing.Kind != "step_failing" || failing.Title != `"Welcome series" webhook notify-slack returns 404` ||
+		!strings.HasPrefix(failing.Detail, "1,284 calls failed since ") || failing.Actions[0].Label != "Open the step" || failing.Actions[0].NodeID != "w1" {
+		t.Fatalf("failing alert %+v", failing)
+	}
+}
+
 type detail struct {
 	ID               string
 	Name             string
@@ -225,7 +268,7 @@ func TestDetailStatsAndPublishPreview(t *testing.T) {
 		p.Items[3].Title != `Trigger, step 1, branch, "No" path, goal and exit` {
 		t.Fatalf("items %+v", p.Items)
 	}
-	if p.MoveImpact != "203 contacts waiting before step 2 would get the 2-day delay; 0 contacts are affected by the removed webhook." {
+	if p.MoveImpact != "612 contacts waiting before step 2 would get the 2-day delay; 0 contacts are affected by the removed webhook." {
 		t.Fatalf("move impact %q", p.MoveImpact)
 	}
 	want := []string{"Automations route healthy · SES", "5 emails pass content checks", "No step references a deleted list or tag", "Branch has both paths connected"}
@@ -260,7 +303,7 @@ func TestPublishMovesContactsAndAudits(t *testing.T) {
 		FROM automation_runs r JOIN automations a ON a.id = r.automation_id WHERE a.name = 'Welcome series' AND r.status IN ('active','waiting')`).Scan(&onOld, &atDelay); err != nil {
 		t.Fatal(err)
 	}
-	if onOld != 0 || atDelay != 203 {
+	if onOld != 0 || atDelay != 440 {
 		t.Fatalf("moved runs: %d still on old versions, %d waiting 2 days at step 2's delay", onOld, atDelay)
 	}
 	var versions struct {

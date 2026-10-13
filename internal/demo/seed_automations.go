@@ -336,8 +336,8 @@ func seedAutomationsImpl(ctx context.Context, s *Seeder) error {
 		{a: welcome, v: 3, at: []autoRunsAt{
 			{node: "n2", n: 4, wait: "delay", span: 10 * time.Minute, delay: 10 * time.Minute},
 			{node: "n4", n: 168, wait: "branch", span: 2 * 24 * time.Hour, delay: 2 * 24 * time.Hour},
-			{node: "n5", n: 203, wait: "delay", span: 24 * time.Hour, delay: 24 * time.Hour},
-			{node: "n11", n: 237, wait: "delay", span: 3 * 24 * time.Hour, delay: 3 * 24 * time.Hour},
+			// AutomationPublish: "612 contacts waiting before step 2".
+			{node: "n5", n: 440, wait: "delay", span: 24 * time.Hour, delay: 24 * time.Hour},
 		}},
 		{a: onboardingID, v: 7, at: []autoRunsAt{
 			{node: "n3", n: 96, wait: "delay", span: 24 * time.Hour, delay: 24 * time.Hour},

@@ -383,7 +383,13 @@ func moveImpact(live, draft AutomationGraph, items []AutomationDiffItem, inflow 
 				if next := draft.Next(id); next != "" {
 					target = inlineRef(draft, next, refs)
 				}
-				parts = append(parts, fmt.Sprintf("%s waiting before %s would get the %s delay", contacts(at[id]), target, durationAdjective(n.Data.Delay)))
+				// Everyone who hasn't passed the delay yet: those in it and
+				// those on the way to it.
+				var waiting int64
+				for node := range upstream(live, id) {
+					waiting += at[node]
+				}
+				parts = append(parts, fmt.Sprintf("%s waiting before %s would get the %s delay", contacts(waiting), target, durationAdjective(n.Data.Delay)))
 			}
 		case "removed":
 			var n int64
@@ -408,6 +414,26 @@ func moveImpact(live, draft AutomationGraph, items []AutomationDiffItem, inflow 
 		return "Contacts keep their place; changed steps apply from where each contact is now."
 	}
 	return capFirst(strings.Join(parts, "; ")) + "."
+}
+
+// upstream is id and every step that leads to it in g.
+func upstream(g AutomationGraph, id string) map[string]bool {
+	seen := map[string]bool{}
+	stack := []string{id}
+	for len(stack) > 0 {
+		cur := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if seen[cur] {
+			continue
+		}
+		seen[cur] = true
+		for _, e := range g.Edges {
+			if e.Target == cur {
+				stack = append(stack, e.Source)
+			}
+		}
+	}
+	return seen
 }
 
 func contacts(n int64) string {

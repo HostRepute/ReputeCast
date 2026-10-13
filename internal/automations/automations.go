@@ -177,6 +177,38 @@ type AutomationRouteProvider struct {
 	Status  string `json:"status" doc:"healthy, degraded, down, sandbox, warming_up or paused"`
 	Detail  string `json:"detail,omitempty"`
 	Weight  int    `json:"weight,omitempty"`
+	// DownSince and DownReason (outage or auth) are set while the provider is down.
+	DownSince  *time.Time `json:"downSince,omitempty"`
+	DownReason string     `json:"downReason,omitempty"`
+	// LastErrorStatus is the HTTP status of its last failed call (401).
+	LastErrorStatus int `json:"lastErrorStatus,omitempty"`
+}
+
+// providerHealth is the part of a provider's health (internal/providers/state)
+// that the Automations route reports.
+type providerHealth struct {
+	Down *struct {
+		Since  time.Time `json:"since"`
+		Reason string    `json:"reason"`
+	} `json:"down"`
+	LastError *struct {
+		Status int `json:"status"`
+	} `json:"lastError"`
+}
+
+func routeProvider(p store.AutomationProvidersRow, weight int) AutomationRouteProvider {
+	r := AutomationRouteProvider{ID: p.ID.String(), Name: p.Name, Short: shortName(p.Name, p.Adapter), Adapter: p.Adapter, Status: p.Status, Detail: p.StatusDetail, Weight: weight}
+	var h providerHealth
+	if p.Status == "down" && len(p.Health) > 0 && json.Unmarshal(p.Health, &h) == nil {
+		if h.Down != nil {
+			since := h.Down.Since
+			r.DownSince, r.DownReason = &since, h.Down.Reason
+		}
+		if h.LastError != nil {
+			r.LastErrorStatus = h.LastError.Status
+		}
+	}
+	return r
 }
 
 // AutomationRoute summarizes the Automations route: "SES, failover Postmark".
@@ -216,9 +248,7 @@ func (s *Service) route(ctx context.Context, q *store.Queries, wsID uuid.UUID) (
 	for _, p := range provs {
 		byID[p.ID] = p
 	}
-	rp := func(p store.AutomationProvidersRow, w int) AutomationRouteProvider {
-		return AutomationRouteProvider{ID: p.ID.String(), Name: p.Name, Short: shortName(p.Name, p.Adapter), Adapter: p.Adapter, Status: p.Status, Detail: p.StatusDetail, Weight: w}
-	}
+	rp := routeProvider
 	rule, err := q.AutomationRoute(ctx, wsID)
 	if err != nil {
 		if err == pgx.ErrNoRows {

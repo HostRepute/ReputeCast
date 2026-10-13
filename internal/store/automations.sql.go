@@ -830,18 +830,19 @@ func (q *Queries) AutomationProviderSendsSince(ctx context.Context, arg Automati
 }
 
 const automationProviders = `-- name: AutomationProviders :many
-SELECT id, name, adapter, status, status_detail, connected_at FROM providers
+SELECT id, name, adapter, status, status_detail, health, connected_at FROM providers
 WHERE workspace_id = $1 AND disconnected_at IS NULL
 ORDER BY connected_at
 `
 
 type AutomationProvidersRow struct {
-	ID           uuid.UUID `json:"id"`
-	Name         string    `json:"name"`
-	Adapter      string    `json:"adapter"`
-	Status       string    `json:"status"`
-	StatusDetail string    `json:"statusDetail"`
-	ConnectedAt  time.Time `json:"connectedAt"`
+	ID           uuid.UUID       `json:"id"`
+	Name         string          `json:"name"`
+	Adapter      string          `json:"adapter"`
+	Status       string          `json:"status"`
+	StatusDetail string          `json:"statusDetail"`
+	Health       json.RawMessage `json:"health"`
+	ConnectedAt  time.Time       `json:"connectedAt"`
 }
 
 func (q *Queries) AutomationProviders(ctx context.Context, workspaceID uuid.UUID) ([]AutomationProvidersRow, error) {
@@ -859,6 +860,7 @@ func (q *Queries) AutomationProviders(ctx context.Context, workspaceID uuid.UUID
 			&i.Adapter,
 			&i.Status,
 			&i.StatusDetail,
+			&i.Health,
 			&i.ConnectedAt,
 		); err != nil {
 			return nil, err
@@ -2127,7 +2129,7 @@ SELECT al.id, al.automation_id, al.kind, al.node_id, al.detail, al.failures, al.
 FROM automation_alerts al
 JOIN automations a ON a.id = al.automation_id
 WHERE a.workspace_id = $1 AND a.deleted_at IS NULL AND al.resolved_at IS NULL
-ORDER BY al.kind DESC, al.first_at
+ORDER BY al.kind = 'sending_held' DESC, al.first_at
 `
 
 type ListAutomationAlertsRow struct {
@@ -2144,6 +2146,7 @@ type ListAutomationAlertsRow struct {
 	LiveVersion    *int32          `json:"liveVersion"`
 }
 
+// Held sending first: nothing goes out until it is fixed.
 func (q *Queries) ListAutomationAlerts(ctx context.Context, workspaceID uuid.UUID) ([]ListAutomationAlertsRow, error) {
 	rows, err := q.db.Query(ctx, listAutomationAlerts, workspaceID)
 	if err != nil {

@@ -1851,7 +1851,12 @@ export interface components {
         AutomationRouteProvider: {
             adapter: string;
             detail?: string;
+            downReason?: string;
+            /** Format: date-time */
+            downSince?: string;
             id: string;
+            /** Format: int64 */
+            lastErrorStatus?: number;
             /** @example Amazon SES */
             name: string;
             /** @example SES */

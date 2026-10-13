@@ -87,8 +87,9 @@
   background: var(--ground);
   font-size: 13px;
 }
-.fe .btn,
-.fe-dlg .btn {
+/* The flow and publish boards' buttons; small ones keep the app's .btn.sm. */
+.fe .btn:where(:not(.sm, .xs)),
+.fe-dlg .btn:where(:not(.sm, .xs)) {
   gap: 6px;
   min-height: 32px;
   padding: 0 12px;
@@ -623,13 +624,16 @@
   border-radius: 10px;
   box-shadow: 0 24px 60px rgba(11, 18, 32, 0.3);
   font-size: 13px;
-  box-sizing: border-box;
 }
 .fe-dlg:focus {
   outline: none;
 }
 .fe-dlg .btn.tall {
   min-height: 40px;
+}
+/* The board's radios keep the browser's side margins. */
+.fe-dlg label.opt input[type='radio'] {
+  margin: 3px 3px 0 5px;
 }
 .chg {
   display: flex;
@@ -648,9 +652,6 @@
   height: 20px;
 }
 @media (max-width: 767px) {
-  .fe-ovl {
-    padding: 24px 12px;
-  }
   .fe-dlg .badge {
     white-space: normal;
     height: auto;
@@ -660,8 +661,9 @@
     padding-bottom: 2px;
     max-width: 100%;
   }
+  /* The board's diff badges keep their 20px height; the phone minimum wins. */
   .fe-dlg .chg .badge {
-    min-height: 20px;
+    height: 20px;
   }
   .fe-dlg .btn {
     white-space: normal;

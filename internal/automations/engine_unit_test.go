@@ -2,6 +2,7 @@ package automations
 
 import (
 	"math"
+	"strings"
 	"testing"
 	"time"
 
@@ -68,15 +69,41 @@ func TestFieldConditions(t *testing.T) {
 	}
 }
 
+func TestHeldDetailNamesEachProvidersProblem(t *testing.T) {
+	ny, _ := time.LoadLocation("America/New_York")
+	now := time.Date(2026, 10, 12, 11, 0, 0, 0, ny)
+	today := time.Date(2026, 10, 12, 9, 2, 0, 0, ny)
+	route := AutomationRoute{
+		Primary:  []AutomationRouteProvider{{Short: "SES", Status: "down", DownSince: &today, DownReason: "outage"}},
+		Fallback: &AutomationRouteProvider{Short: "Postmark", Status: "down", DownSince: &today, DownReason: "auth", LastErrorStatus: 401},
+	}
+	want := "SES has been Down since 09:02 and Postmark, the fallback, returned 401: its API key or token was rejected. 23 emails are queued and will send the moment a provider is healthy; delays in the flow keep counting."
+	if got := heldDetail(route, 23, ny, now); got != want {
+		t.Fatalf("held detail\n got %q\nwant %q", got, want)
+	}
+	earlier := today.AddDate(0, 0, -2)
+	route = AutomationRoute{Primary: []AutomationRouteProvider{{Short: "SES", Status: "down", DownSince: &earlier}, {Short: "Postal", Status: "paused", Detail: "Disconnected"}}}
+	want = "SES has been Down since 10 Oct and Postal is paused (Disconnected). 1 email is queued and will send the moment a provider is healthy; delays in the flow keep counting."
+	if got := heldDetail(route, 1, ny, now); got != want {
+		t.Fatalf("held detail\n got %q\nwant %q", got, want)
+	}
+}
+
 func TestFinishEstimateAndMoveImpact(t *testing.T) {
 	v3 := welcomeV3()
-	inflow := []store.CountAutomationInFlowByNodeRow{{Version: 3, NodeID: "n4", N: 168}, {Version: 3, NodeID: "n5", N: 203}, {Version: 3, NodeID: "n11", N: 237}}
-	if got := finishEstimate(v3, inflow); got != "about 5 days" {
+	inflow := []store.CountAutomationInFlowByNodeRow{{Version: 3, NodeID: "n2", N: 4}, {Version: 3, NodeID: "n4", N: 168}, {Version: 3, NodeID: "n5", N: 440}}
+	// From the 10-minute delay: the 2-day branch window, then the 3-day "No" delay.
+	if got := finishEstimate(v3, inflow); got != "about 6 days" {
 		t.Fatalf("estimate %q", got)
 	}
 	items := Diff(v3, welcomeV4(), DiffContext{FromRefs: welcomeRefs(), ToVersion: 4})
-	if got := moveImpact(v3, welcomeV4(), items, inflow, welcomeRefs()); got != "203 contacts waiting before step 2 would get the 2-day delay; 0 contacts are affected by the removed webhook." {
+	// Everyone in the delay or on the way to it (the AutomationPublish board).
+	if got := moveImpact(v3, welcomeV4(), items, inflow, welcomeRefs()); got != "612 contacts waiting before step 2 would get the 2-day delay; 0 contacts are affected by the removed webhook." {
 		t.Fatalf("impact %q", got)
+	}
+	inflow = append(inflow, store.CountAutomationInFlowByNodeRow{Version: 3, NodeID: "n11", N: 9})
+	if got := moveImpact(v3, welcomeV4(), items, inflow, welcomeRefs()); !strings.HasPrefix(got, "612 contacts") {
+		t.Fatalf("contacts on the other path count: %q", got)
 	}
 }
 

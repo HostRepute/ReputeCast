@@ -220,7 +220,7 @@ WHERE workspace_id = @workspace_id AND stream = 'automation' AND enabled AND con
 ORDER BY priority LIMIT 1;
 
 -- name: AutomationProviders :many
-SELECT id, name, adapter, status, status_detail, connected_at FROM providers
+SELECT id, name, adapter, status, status_detail, health, connected_at FROM providers
 WHERE workspace_id = @workspace_id AND disconnected_at IS NULL
 ORDER BY connected_at;
 
@@ -462,7 +462,8 @@ SELECT al.id, al.automation_id, al.kind, al.node_id, al.detail, al.failures, al.
 FROM automation_alerts al
 JOIN automations a ON a.id = al.automation_id
 WHERE a.workspace_id = @workspace_id AND a.deleted_at IS NULL AND al.resolved_at IS NULL
-ORDER BY al.kind DESC, al.first_at;
+-- Held sending first: nothing goes out until it is fixed.
+ORDER BY al.kind = 'sending_held' DESC, al.first_at;
 
 -- name: AutomationStepFailures :many
 -- The latest alert per webhook step, open or resolved (for the publish diff).

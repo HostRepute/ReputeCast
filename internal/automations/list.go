@@ -312,20 +312,17 @@ func (s *Service) alerts(ctx context.Context, ws *store.Workspace, refs *Refs, r
 			} else if d.Error != "" {
 				what = "fails: " + d.Error
 			}
-			al.Title = fmt.Sprintf(`"%s" webhook %s %s`, a.AutomationName, name, what)
+			al.Title = fmt.Sprintf(`"%s" webhook %s %s`, alertFlowName(a.AutomationName), name, what)
 			al.Detail = fmt.Sprintf("%s calls failed since %s. Contacts continue past the step; the flow isn't blocked. Remove the step or fix the URL, then publish.",
 				formatCount(a.Failures), dayMonth(a.FirstAt, loc))
 			al.Actions = append(al.Actions,
 				AutomationAlertAction{Label: "Open the step", Kind: "open_step", NodeID: a.NodeID},
 				AutomationAlertAction{Label: "Webhook delivery log", Kind: "step_log", NodeID: a.NodeID})
 		case "sending_held":
-			al.Title = fmt.Sprintf(`"%s" paused: no healthy provider on the Automations route`, a.AutomationName)
-			al.Detail = heldDetail(route, d.Queued, loc)
-			for _, p := range append(append([]AutomationRouteProvider{}, route.Primary...), derefRoute(route.Fallback)...) {
-				if !healthyStatus(p.Status) {
-					al.Actions = append(al.Actions, AutomationAlertAction{Label: "Fix " + p.Short, Kind: "providers"})
-					break
-				}
+			al.Title = fmt.Sprintf(`"%s" paused: no healthy provider on the Automations route`, alertFlowName(a.AutomationName))
+			al.Detail = heldDetail(route, d.Queued, loc, s.now())
+			if fix := fixAction(route); fix != "" {
+				al.Actions = append(al.Actions, AutomationAlertAction{Label: fix, Kind: "providers"})
 			}
 			if extra := spareProvider(ctx, s, ws, route); extra != "" {
 				al.Actions = append(al.Actions, AutomationAlertAction{Label: "Add " + extra + " as second fallback", Kind: "routing"})
@@ -337,6 +334,32 @@ func (s *Service) alerts(ctx context.Context, ws *store.Workspace, refs *Refs, r
 	return out, nil
 }
 
+// alertFlowName is how alerts name a flow: "Onboarding · new workspace" →
+// "Onboarding".
+func alertFlowName(name string) string {
+	if i := strings.Index(name, " · "); i > 0 {
+		return name[:i]
+	}
+	return name
+}
+
+// fixAction is the first thing the team can fix on the route: a rejected
+// token ("Fix Postmark token") before a provider that is down on its side.
+func fixAction(route AutomationRoute) string {
+	all := append(append([]AutomationRouteProvider{}, route.Primary...), derefRoute(route.Fallback)...)
+	for _, p := range all {
+		if !healthyStatus(p.Status) && p.DownReason == "auth" {
+			return "Fix " + p.Short + " token"
+		}
+	}
+	for _, p := range all {
+		if !healthyStatus(p.Status) {
+			return "Fix " + p.Short
+		}
+	}
+	return ""
+}
+
 func derefRoute(p *AutomationRouteProvider) []AutomationRouteProvider {
 	if p == nil {
 		return nil
@@ -344,29 +367,39 @@ func derefRoute(p *AutomationRouteProvider) []AutomationRouteProvider {
 	return []AutomationRouteProvider{*p}
 }
 
+// providerProblem says what is wrong with a provider on the route: "SES has
+// been Down since 09:02", "Postmark, the fallback, returned 401: its API key
+// or token was rejected".
+func providerProblem(p AutomationRouteProvider, name string, loc *time.Location, now time.Time) string {
+	switch {
+	case p.DownReason == "auth" && p.LastErrorStatus > 0:
+		return fmt.Sprintf("%s returned %d: its API key or token was rejected", name, p.LastErrorStatus)
+	case p.DownReason == "auth":
+		return name + " rejected its API key or token"
+	case p.DownSince != nil:
+		since := p.DownSince.In(loc)
+		when := since.Format("15:04")
+		if y, m, d := since.Date(); y != now.In(loc).Year() || m != now.In(loc).Month() || d != now.In(loc).Day() {
+			when = since.Format("2 Jan")
+		}
+		return fmt.Sprintf("%s has been Down since %s", name, when)
+	}
+	s := fmt.Sprintf("%s is %s", name, strings.ReplaceAll(p.Status, "_", " "))
+	if p.Detail != "" {
+		s += " (" + p.Detail + ")"
+	}
+	return s
+}
+
 // heldDetail explains why automation email is held and what happens next.
-func heldDetail(route AutomationRoute, queued int64, loc *time.Location) string {
+func heldDetail(route AutomationRoute, queued int64, loc *time.Location, now time.Time) string {
 	var parts []string
-	for i, p := range route.Primary {
-		state := strings.ReplaceAll(p.Status, "_", " ")
-		s := fmt.Sprintf("%s is %s", p.Short, capFirst(state))
-		if p.Detail != "" {
-			s += " (" + p.Detail + ")"
-		}
-		if i == 0 {
-			parts = append(parts, s)
-		} else {
-			parts = append(parts, strings.ToLower(s[:1])+s[1:])
-		}
+	for _, p := range route.Primary {
+		parts = append(parts, providerProblem(p, p.Short, loc, now))
 	}
 	if f := route.Fallback; f != nil {
-		s := fmt.Sprintf("%s, the fallback, is %s", f.Short, strings.ReplaceAll(f.Status, "_", " "))
-		if f.Detail != "" {
-			s += " (" + f.Detail + ")"
-		}
-		parts = append(parts, s)
+		parts = append(parts, providerProblem(*f, f.Short+", the fallback,", loc, now))
 	}
-	_ = loc
 	sentence := andJoin(parts)
 	if sentence == "" {
 		sentence = "No sending provider is set up for automations"
