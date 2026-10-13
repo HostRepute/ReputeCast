@@ -11,3 +11,18 @@ class PageRequest extends NativeRequest {
   }
 }
 globalThis.Request = PageRequest as typeof Request
+
+// jsdom has no matchMedia; tests render the desktop layout (no query matches).
+if (!window.matchMedia) {
+  window.matchMedia = (query: string) =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList
+}

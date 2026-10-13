@@ -104,6 +104,550 @@
         ],
         "type": "object"
       },
+      "AccountAvatarInput": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "contentEncoding": "base64",
+            "description": "PNG or JPEG, up to 2 MB, base64",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "AccountEmailChangeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "format": "email",
+            "maxLength": 254,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
+      "AccountEmailChangeStarted": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "AccountEmailChanged": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
+      "AccountIdentity": {
+        "additionalProperties": false,
+        "properties": {
+          "canUnlink": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "google",
+              "microsoft",
+              "github",
+              "sso"
+            ],
+            "type": "string"
+          },
+          "linkUrl": {
+            "type": "string"
+          },
+          "linked": {
+            "type": "boolean"
+          },
+          "managed": {
+            "type": "boolean"
+          },
+          "name": {
+            "examples": [
+              "GitHub"
+            ],
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "onlyMethod": {
+            "type": "boolean"
+          },
+          "preset": {
+            "description": "SSO preset, for the icon",
+            "type": "string"
+          },
+          "unlinkReason": {
+            "type": "string"
+          },
+          "username": {
+            "examples": [
+              "linh-nguyen"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "linked",
+          "notes",
+          "canUnlink",
+          "managed",
+          "onlyMethod"
+        ],
+        "type": "object"
+      },
+      "AccountOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "identities": {
+            "items": {
+              "$ref": "#/components/schemas/AccountIdentity"
+            },
+            "type": "array"
+          },
+          "notifications": {
+            "$ref": "#/components/schemas/NotificationSummary"
+          },
+          "passkeys": {
+            "items": {
+              "$ref": "#/components/schemas/AccountPasskey"
+            },
+            "type": "array"
+          },
+          "password": {
+            "$ref": "#/components/schemas/AccountPassword"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/AccountProfile"
+          },
+          "sessionPolicy": {
+            "$ref": "#/components/schemas/AccountSessionPolicy"
+          },
+          "twoFactor": {
+            "$ref": "#/components/schemas/AccountTwoFactor"
+          },
+          "workspaces": {
+            "items": {
+              "$ref": "#/components/schemas/AccountWorkspace"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "profile",
+          "password",
+          "passkeys",
+          "twoFactor",
+          "identities",
+          "workspaces",
+          "notifications",
+          "sessionPolicy"
+        ],
+        "type": "object"
+      },
+      "AccountPasskey": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "platform",
+              "security_key",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "provider": {
+            "examples": [
+              "iCloud Keychain"
+            ],
+            "type": "string"
+          },
+          "thisSession": {
+            "description": "This session signed in with the passkey",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "createdAt",
+          "thisSession"
+        ],
+        "type": "object"
+      },
+      "AccountPassword": {
+        "additionalProperties": false,
+        "properties": {
+          "breachedCheck": {
+            "type": "boolean"
+          },
+          "changedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "managedBy": {
+            "type": "string"
+          },
+          "minLength": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "set": {
+            "type": "boolean"
+          },
+          "ssoOnly": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "set",
+          "minLength",
+          "breachedCheck",
+          "ssoOnly"
+        ],
+        "type": "object"
+      },
+      "AccountPendingEmail": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "sentAt",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "AccountProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "avatarColor": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "isInstanceAdmin": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pendingEmail": {
+            "$ref": "#/components/schemas/AccountPendingEmail"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "timezone",
+          "avatarColor",
+          "isInstanceAdmin"
+        ],
+        "type": "object"
+      },
+      "AccountProfileInput": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "timezone"
+        ],
+        "type": "object"
+      },
+      "AccountSession": {
+        "additionalProperties": false,
+        "properties": {
+          "browser": {
+            "examples": [
+              "Chrome 141"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "device": {
+            "examples": [
+              "MacBook Pro"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "lastActiveAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "location": {
+            "examples": [
+              "New York, US"
+            ],
+            "type": "string"
+          },
+          "method": {
+            "examples": [
+              "password+totp"
+            ],
+            "type": "string"
+          },
+          "os": {
+            "examples": [
+              "macOS 26"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "device",
+          "os",
+          "browser",
+          "method",
+          "createdAt",
+          "lastActiveAt",
+          "current"
+        ],
+        "type": "object"
+      },
+      "AccountSessionList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AccountSession"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "AccountSessionPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "idle": {
+            "examples": [
+              "12 hours"
+            ],
+            "type": "string"
+          },
+          "lifetime": {
+            "examples": [
+              "14 days"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "lifetime",
+          "idle"
+        ],
+        "type": "object"
+      },
+      "AccountSessionsRevoked": {
+        "additionalProperties": false,
+        "properties": {
+          "revoked": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revoked"
+        ],
+        "type": "object"
+      },
+      "AccountTwoFactor": {
+        "additionalProperties": false,
+        "properties": {
+          "graceUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "recoveryLastUsedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "recoveryRemaining": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "recoveryTotal": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "requiredBy": {
+            "enum": [
+              "everyone",
+              "sensitive"
+            ],
+            "type": "string"
+          },
+          "requiredReason": {
+            "type": "string"
+          },
+          "totp": {
+            "type": "boolean"
+          },
+          "totpLabel": {
+            "examples": [
+              "1Password"
+            ],
+            "type": "string"
+          },
+          "totpSetAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "viaIdp": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "totp",
+          "required",
+          "viaIdp",
+          "recoveryRemaining",
+          "recoveryTotal"
+        ],
+        "type": "object"
+      },
+      "AccountWorkspace": {
+        "additionalProperties": false,
+        "properties": {
+          "canLeave": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "leaveReason": {
+            "type": "string"
+          },
+          "members": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "roleKey": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "roleKey",
+          "roleName",
+          "members",
+          "canLeave"
+        ],
+        "type": "object"
+      },
       "AdapterBuiltin": {
         "additionalProperties": false,
         "properties": {
@@ -335,6 +879,41 @@
         ],
         "type": "object"
       },
+      "Auth-passkeyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge": {
+            "maxLength": 200,
+            "minLength": 10,
+            "type": "string"
+          },
+          "credential": {
+            "description": "The browser's AuthenticationResponseJSON"
+          },
+          "remember": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "challenge",
+          "credential"
+        ],
+        "type": "object"
+      },
+      "Auth-password-resetRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "password": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
       "Auth-passwordRequest": {
         "additionalProperties": false,
         "properties": {
@@ -355,6 +934,45 @@
         "required": [
           "email",
           "password"
+        ],
+        "type": "object"
+      },
+      "Auth-two-factor-passkey-optionsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge": {
+            "description": "The two-factor challenge from the password step",
+            "maxLength": 200,
+            "minLength": 10,
+            "type": "string"
+          }
+        },
+        "required": [
+          "challenge"
+        ],
+        "type": "object"
+      },
+      "Auth-two-factor-passkeyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge": {
+            "maxLength": 200,
+            "minLength": 10,
+            "type": "string"
+          },
+          "credential": {
+            "description": "The browser's AuthenticationResponseJSON"
+          },
+          "passkeyChallenge": {
+            "maxLength": 200,
+            "minLength": 10,
+            "type": "string"
+          }
+        },
+        "required": [
+          "challenge",
+          "passkeyChallenge",
+          "credential"
         ],
         "type": "object"
       },
@@ -651,6 +1269,20 @@
         "required": [
           "status",
           "detail"
+        ],
+        "type": "object"
+      },
+      "Confirm-email-changeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "token": {
+            "maxLength": 200,
+            "minLength": 10,
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
         ],
         "type": "object"
       },
@@ -2619,6 +3251,223 @@
         ],
         "type": "object"
       },
+      "InvitationAcceptInput": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 80,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "InvitationAccepted": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "hasSecondFactor": {
+            "type": "boolean"
+          },
+          "newAccount": {
+            "type": "boolean"
+          },
+          "next": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "twoFactor": {
+            "$ref": "#/components/schemas/InvitationTwoFactor"
+          },
+          "workspace": {
+            "description": "Workspace slug",
+            "type": "string"
+          },
+          "workspaceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace",
+          "workspaceName",
+          "roleName",
+          "email",
+          "newAccount",
+          "hasSecondFactor",
+          "twoFactor",
+          "next"
+        ],
+        "type": "object"
+      },
+      "InvitationPasswordPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "breachedCheck": {
+            "type": "boolean"
+          },
+          "minLength": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "minLength",
+          "breachedCheck"
+        ],
+        "type": "object"
+      },
+      "InvitationRequestResult": {
+        "additionalProperties": false,
+        "properties": {
+          "inviter": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "sent",
+              "already_sent"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "inviter"
+        ],
+        "type": "object"
+      },
+      "InvitationTwoFactor": {
+        "additionalProperties": false,
+        "properties": {
+          "graceDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "graceUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "required",
+          "graceDays"
+        ],
+        "type": "object"
+      },
+      "InvitationView": {
+        "additionalProperties": false,
+        "properties": {
+          "acceptedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "accountExists": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "inviterName": {
+            "type": "string"
+          },
+          "message": {
+            "description": "Personal message from the inviter",
+            "type": "string"
+          },
+          "passwordAllowed": {
+            "type": "boolean"
+          },
+          "passwordPolicy": {
+            "$ref": "#/components/schemas/InvitationPasswordPolicy"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "roleKey": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "signedInAs": {
+            "type": "string"
+          },
+          "social": {
+            "description": "Social sign-in providers to join with: google, microsoft, github",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sso": {
+            "$ref": "#/components/schemas/SSOStart"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "expired",
+              "revoked",
+              "accepted"
+            ],
+            "type": "string"
+          },
+          "twoFactor": {
+            "$ref": "#/components/schemas/InvitationTwoFactor"
+          },
+          "workspaceName": {
+            "type": "string"
+          },
+          "workspaceSlug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "email",
+          "workspaceName",
+          "workspaceSlug",
+          "inviterName",
+          "roleKey",
+          "roleName",
+          "description",
+          "sentAt",
+          "expiresAt",
+          "accountExists",
+          "passwordAllowed",
+          "passwordPolicy",
+          "social",
+          "twoFactor"
+        ],
+        "type": "object"
+      },
       "Me": {
         "additionalProperties": false,
         "properties": {
@@ -2681,6 +3530,9 @@
         "additionalProperties": false,
         "properties": {
           "avatarColor": {
+            "type": "string"
+          },
+          "avatarUrl": {
             "type": "string"
           },
           "breakGlass": {
@@ -2835,6 +3687,418 @@
           "guardComplaint",
           "guardAction",
           "spreadMailbox"
+        ],
+        "type": "object"
+      },
+      "NotificationEmailDelivery": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "type": "object"
+      },
+      "NotificationEventChoice": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "boolean"
+          },
+          "inApp": {
+            "type": "boolean"
+          },
+          "type": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "inApp",
+          "email"
+        ],
+        "type": "object"
+      },
+      "NotificationEventPreference": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "email": {
+            "type": "boolean"
+          },
+          "inApp": {
+            "type": "boolean"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "label",
+          "inApp",
+          "email"
+        ],
+        "type": "object"
+      },
+      "NotificationItem": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "description": "Full sentence for the notification center",
+            "type": "string"
+          },
+          "category": {
+            "enum": [
+              "approvals",
+              "sending",
+              "providers",
+              "team",
+              "hostrepute",
+              "other"
+            ],
+            "type": "string"
+          },
+          "categoryLabel": {
+            "examples": [
+              "Approvals"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "link": {
+            "description": "App path of the screen where you can act",
+            "type": "string"
+          },
+          "read": {
+            "type": "boolean"
+          },
+          "severity": {
+            "enum": [
+              "info",
+              "ok",
+              "warn",
+              "bad"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "description": "Short line for the bell popover",
+            "type": "string"
+          },
+          "title": {
+            "examples": [
+              "Approval requested"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "category",
+          "categoryLabel",
+          "severity",
+          "title",
+          "summary",
+          "body",
+          "link",
+          "createdAt",
+          "read"
+        ],
+        "type": "object"
+      },
+      "NotificationList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationItem"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "type": "string"
+          },
+          "retentionDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unread": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "unread",
+          "total",
+          "retentionDays"
+        ],
+        "type": "object"
+      },
+      "NotificationPreferences": {
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "enum": [
+              "immediate",
+              "hourly",
+              "daily"
+            ],
+            "type": "string"
+          },
+          "email": {
+            "$ref": "#/components/schemas/NotificationEmailDelivery"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationEventPreference"
+            },
+            "type": "array"
+          },
+          "quietHours": {
+            "$ref": "#/components/schemas/NotificationQuietHours"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "events",
+          "digest",
+          "timezone",
+          "email"
+        ],
+        "type": "object"
+      },
+      "NotificationPreferencesInput": {
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "enum": [
+              "immediate",
+              "hourly",
+              "daily"
+            ],
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationEventChoice"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "quietHours": {
+            "$ref": "#/components/schemas/NotificationQuietHours",
+            "description": "Omit or null to turn quiet hours off"
+          }
+        },
+        "required": [
+          "events",
+          "digest"
+        ],
+        "type": "object"
+      },
+      "NotificationQuietHours": {
+        "additionalProperties": false,
+        "properties": {
+          "end": {
+            "examples": [
+              "07:00"
+            ],
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "type": "string"
+          },
+          "start": {
+            "examples": [
+              "22:00"
+            ],
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ],
+        "type": "object"
+      },
+      "NotificationSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "examples": [
+              "Approvals, auto-pauses, provider down"
+            ],
+            "type": "string"
+          },
+          "inApp": {
+            "examples": [
+              "All events"
+            ],
+            "type": "string"
+          },
+          "quietHours": {
+            "examples": [
+              "22:00–07:00 America/New_York, email only"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "inApp",
+          "email",
+          "quietHours"
+        ],
+        "type": "object"
+      },
+      "NotificationsMarked": {
+        "additionalProperties": false,
+        "properties": {
+          "marked": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "marked"
+        ],
+        "type": "object"
+      },
+      "Passkey-registerRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge": {
+            "maxLength": 200,
+            "minLength": 10,
+            "type": "string"
+          },
+          "credential": {
+            "description": "The browser's RegistrationResponseJSON"
+          },
+          "name": {
+            "maxLength": 80,
+            "type": "string"
+          }
+        },
+        "required": [
+          "challenge",
+          "credential"
+        ],
+        "type": "object"
+      },
+      "PasskeyOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge": {
+            "type": "string"
+          },
+          "options": {}
+        },
+        "required": [
+          "challenge",
+          "options"
+        ],
+        "type": "object"
+      },
+      "PasswordResetDone": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
+      "PasswordResetInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "breachedCheck": {
+            "description": "New passwords are checked against known breaches",
+            "type": "boolean"
+          },
+          "email": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "minLength": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "email",
+          "expiresAt",
+          "minLength",
+          "breachedCheck"
+        ],
+        "type": "object"
+      },
+      "PasswordResetRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "command": {
+            "examples": [
+              "reputecast user reset-password --email aisha@acme.io"
+            ],
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "expiresInMinutes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sso": {
+            "$ref": "#/components/schemas/SSOStart"
+          },
+          "status": {
+            "enum": [
+              "sent",
+              "email_unavailable",
+              "sso"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "email",
+          "expiresInMinutes"
         ],
         "type": "object"
       },
@@ -4676,6 +5940,20 @@
         ],
         "type": "object"
       },
+      "Rename-passkeyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
       "RouteShare": {
         "additionalProperties": false,
         "properties": {
@@ -5446,6 +6724,12 @@
       "SSOOption": {
         "additionalProperties": false,
         "properties": {
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "id": {
             "type": "string"
           },
@@ -5462,12 +6746,17 @@
               "oidc"
             ],
             "type": "string"
+          },
+          "startUrl": {
+            "type": "string"
           }
         },
         "required": [
           "id",
           "name",
-          "preset"
+          "preset",
+          "domains",
+          "startUrl"
         ],
         "type": "object"
       },
@@ -5599,6 +6888,194 @@
         ],
         "type": "object"
       },
+      "SetupInstance": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "publicUrl": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "updateCheck": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "publicUrl",
+          "timezone",
+          "updateCheck",
+          "confirmed",
+          "version"
+        ],
+        "type": "object"
+      },
+      "SetupPassword": {
+        "additionalProperties": false,
+        "properties": {
+          "breachedCheck": {
+            "type": "boolean"
+          },
+          "minLength": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "mustChange": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mustChange",
+          "minLength",
+          "breachedCheck"
+        ],
+        "type": "object"
+      },
+      "SetupRecoveryCodes": {
+        "additionalProperties": false,
+        "properties": {
+          "remaining": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "remaining"
+        ],
+        "type": "object"
+      },
+      "SetupSecondFactor": {
+        "additionalProperties": false,
+        "properties": {
+          "graceUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "passkeys": {
+            "description": "Names of the passkeys added",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "totp": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "totp",
+          "passkeys",
+          "required"
+        ],
+        "type": "object"
+      },
+      "SetupState": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "description": "Key of the first unfinished step",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "instance": {
+            "$ref": "#/components/schemas/SetupInstance"
+          },
+          "mode": {
+            "enum": [
+              "instance",
+              "account",
+              "done"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "next": {
+            "type": "string"
+          },
+          "password": {
+            "$ref": "#/components/schemas/SetupPassword"
+          },
+          "recoveryCodes": {
+            "$ref": "#/components/schemas/SetupRecoveryCodes"
+          },
+          "secondFactor": {
+            "$ref": "#/components/schemas/SetupSecondFactor"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/SetupStep"
+            },
+            "type": "array"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/CreatedWorkspace"
+          }
+        },
+        "required": [
+          "mode",
+          "email",
+          "name",
+          "steps",
+          "current",
+          "password",
+          "secondFactor",
+          "recoveryCodes",
+          "instance"
+        ],
+        "type": "object"
+      },
+      "SetupStep": {
+        "additionalProperties": false,
+        "properties": {
+          "done": {
+            "type": "boolean"
+          },
+          "key": {
+            "enum": [
+              "password",
+              "second_factor",
+              "recovery_codes",
+              "instance",
+              "workspace",
+              "provider"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "done"
+        ],
+        "type": "object"
+      },
       "ShellHostRepute": {
         "additionalProperties": false,
         "properties": {
@@ -5645,7 +7122,14 @@
           "next": {
             "type": "string"
           },
+          "passkeyHint": {
+            "type": "string"
+          },
           "recoveryCodesLeft": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "recoveryCodesTotal": {
             "format": "int64",
             "type": "integer"
           },
@@ -6360,6 +7844,87 @@
         "x-access": "public"
       }
     },
+    "/api/v1/auth/passkey": {
+      "post": {
+        "operationId": "auth-passkey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Auth-passkeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInResult"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Sign in with a passkey",
+        "tags": [
+          "Sign-in"
+        ],
+        "x-access": "public"
+      }
+    },
+    "/api/v1/auth/passkey/options": {
+      "post": {
+        "operationId": "auth-passkey-options",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptions"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Start “Sign in with a passkey” (no email needed)",
+        "tags": [
+          "Sign-in"
+        ],
+        "x-access": "public"
+      }
+    },
     "/api/v1/auth/password": {
       "post": {
         "operationId": "auth-password",
@@ -6403,6 +7968,144 @@
           }
         },
         "summary": "Sign in with email and password",
+        "tags": [
+          "Sign-in"
+        ],
+        "x-access": "public"
+      }
+    },
+    "/api/v1/auth/password-reset": {
+      "post": {
+        "operationId": "auth-password-reset-request",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Auth-identifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordResetRequest"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Email a password reset link (or explain the alternatives)",
+        "tags": [
+          "Sign-in"
+        ],
+        "x-access": "public"
+      }
+    },
+    "/api/v1/auth/password-reset/{token}": {
+      "get": {
+        "operationId": "auth-password-reset-check",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 10,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordResetInfo"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Check a password reset link",
+        "tags": [
+          "Sign-in"
+        ],
+        "x-access": "public"
+      },
+      "post": {
+        "operationId": "auth-password-reset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 10,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Auth-password-resetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordResetDone"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Set a new password with a one-time reset link",
         "tags": [
           "Sign-in"
         ],
@@ -6495,6 +8198,97 @@
         "x-access": "public"
       }
     },
+    "/api/v1/auth/two-factor/passkey": {
+      "post": {
+        "operationId": "auth-two-factor-passkey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Auth-two-factor-passkeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInResult"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Finish signing in with a passkey as the second factor",
+        "tags": [
+          "Sign-in"
+        ],
+        "x-access": "public"
+      }
+    },
+    "/api/v1/auth/two-factor/passkey/options": {
+      "post": {
+        "operationId": "auth-two-factor-passkey-options",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Auth-two-factor-passkey-optionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptions"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Start confirming a sign-in with a passkey as the second factor",
+        "tags": [
+          "Sign-in"
+        ],
+        "x-access": "public"
+      }
+    },
     "/api/v1/integrations/hostrepute/callback": {
       "get": {
         "description": "Exchanges the code, stores the encrypted tokens and redirects to the connect screen. Requires the signed-in person who started the handoff, holding integrations:hostrepute in its workspace.",
@@ -6572,6 +8366,155 @@
         "x-permission": "integrations:hostrepute"
       }
     },
+    "/api/v1/invitations/{token}": {
+      "get": {
+        "operationId": "get-invitation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 10,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "What an invitation link offers: workspace, inviter, role and scope",
+        "tags": [
+          "Invitations"
+        ],
+        "x-access": "public"
+      }
+    },
+    "/api/v1/invitations/{token}/accept": {
+      "post": {
+        "operationId": "accept-invitation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 10,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationAcceptInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationAccepted"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Join the workspace (creates the account and signs in for new people)",
+        "tags": [
+          "Invitations"
+        ],
+        "x-access": "public"
+      }
+    },
+    "/api/v1/invitations/{token}/request": {
+      "post": {
+        "operationId": "request-invitation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 10,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationRequestResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Ask the inviter for a new invitation",
+        "tags": [
+          "Invitations"
+        ],
+        "x-access": "public"
+      }
+    },
     "/api/v1/me": {
       "get": {
         "operationId": "get-me",
@@ -6603,6 +8546,542 @@
           }
         ],
         "summary": "The signed-in person, their workspaces and the instance",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/account": {
+      "get": {
+        "operationId": "get-account",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountOverview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Account \u0026 security: profile, sign-in methods, two-factor, workspaces",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/avatar": {
+      "delete": {
+        "operationId": "remove-avatar",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove your profile photo",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      },
+      "put": {
+        "operationId": "set-avatar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountAvatarInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountProfile"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Upload a profile photo (PNG or JPG, up to 2 MB)",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/email": {
+      "delete": {
+        "operationId": "cancel-email-change",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Cancel a pending email change",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      },
+      "post": {
+        "operationId": "request-email-change",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountEmailChangeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountEmailChangeStarted"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change your email: a verification link goes to the new address",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/email/verify": {
+      "post": {
+        "operationId": "confirm-email-change",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Confirm-email-changeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountEmailChanged"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Confirm your new email with the link from the verification email",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/identities/{id}": {
+      "delete": {
+        "operationId": "unlink-identity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Unlink a social or SSO sign-in (not your last way to sign in)",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/notification-preferences": {
+      "get": {
+        "operationId": "get-notification-preferences",
+        "parameters": [
+          {
+            "description": "Workspace slug whose System-stream provider is shown",
+            "explode": false,
+            "in": "query",
+            "name": "workspace",
+            "schema": {
+              "description": "Workspace slug whose System-stream provider is shown",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferences"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Your notification preferences: in-app and email per event type",
+        "tags": [
+          "Notifications"
+        ],
+        "x-access": "user"
+      },
+      "put": {
+        "operationId": "save-notification-preferences",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationPreferencesInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Save your notification preferences",
+        "tags": [
+          "Notifications"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/passkeys": {
+      "post": {
+        "operationId": "passkey-register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Passkey-registerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountPasskey"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add a passkey with the browser's answer",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/passkeys/options": {
+      "post": {
+        "operationId": "passkey-register-options",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptions"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Start adding a passkey",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/passkeys/{id}": {
+      "delete": {
+        "operationId": "remove-passkey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a passkey (not your last way to sign in)",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      },
+      "patch": {
+        "operationId": "rename-passkey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Rename-passkeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Rename a passkey",
         "tags": [
           "Account"
         ],
@@ -6649,6 +9128,53 @@
         "x-access": "user"
       }
     },
+    "/api/v1/me/profile": {
+      "patch": {
+        "operationId": "update-profile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountProfileInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountProfile"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change your name and timezone",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
     "/api/v1/me/recovery-codes": {
       "post": {
         "operationId": "recovery-codes-regenerate",
@@ -6680,6 +9206,36 @@
           }
         ],
         "summary": "Replace all recovery codes; the new ones are shown once",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/recovery-codes/saved": {
+      "post": {
+        "operationId": "recovery-codes-saved",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Confirm that you saved your recovery codes",
         "tags": [
           "Account"
         ],
@@ -6756,6 +9312,121 @@
           }
         ],
         "summary": "Extend your session",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/sessions": {
+      "get": {
+        "operationId": "list-sessions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSessionList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Your active sessions, this one first",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/sessions/revoke-others": {
+      "post": {
+        "operationId": "revoke-other-sessions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSessionsRevoked"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Sign out every other session",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/sessions/{id}": {
+      "delete": {
+        "operationId": "revoke-session",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Sign out another session",
         "tags": [
           "Account"
         ],
@@ -6878,6 +9549,43 @@
         "x-access": "public"
       }
     },
+    "/api/v1/setup": {
+      "get": {
+        "operationId": "get-setup",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupState"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The first sign-in steps for you (and the instance, for its first Owner)",
+        "tags": [
+          "Setup"
+        ],
+        "x-access": "user"
+      }
+    },
     "/api/v1/setup/check-url": {
       "post": {
         "operationId": "setup-check-url",
@@ -6963,6 +9671,72 @@
           "Setup"
         ],
         "x-access": "instance_admin"
+      }
+    },
+    "/api/v1/users/{id}/avatar": {
+      "get": {
+        "operationId": "get-avatar",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Last-Modified": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "A person's profile photo",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
       }
     },
     "/api/v1/workspaces": {
@@ -8564,6 +11338,52 @@
         "x-permission": "integrations:hostrepute"
       }
     },
+    "/api/v1/workspaces/{workspace}/leave": {
+      "post": {
+        "operationId": "leave-workspace",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Leave the workspace (the last Owner can't)",
+        "tags": [
+          "Workspaces"
+        ],
+        "x-access": "workspace"
+      }
+    },
     "/api/v1/workspaces/{workspace}/me": {
       "get": {
         "operationId": "get-workspace-me",
@@ -8616,6 +11436,209 @@
         "summary": "Your role, permissions and scope in a workspace",
         "tags": [
           "Account"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/notifications": {
+      "get": {
+        "operationId": "list-notifications",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Notification center tab",
+            "explode": false,
+            "in": "query",
+            "name": "filter",
+            "schema": {
+              "default": "all",
+              "description": "Notification center tab",
+              "enum": [
+                "all",
+                "unread",
+                "approvals",
+                "sending",
+                "providers",
+                "team",
+                "hostrepute"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Opaque cursor from a previous page",
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "description": "Opaque cursor from a previous page",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Your notifications in this workspace, unread first",
+        "tags": [
+          "Notifications"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/notifications/read-all": {
+      "post": {
+        "operationId": "read-all-notifications",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsMarked"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Mark every notification in this workspace as read",
+        "tags": [
+          "Notifications"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/notifications/{id}/read": {
+      "post": {
+        "operationId": "read-notification",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Mark a notification as read",
+        "tags": [
+          "Notifications"
         ],
         "x-access": "workspace"
       }
