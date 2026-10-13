@@ -201,3 +201,15 @@ export function notificationAgo(d: string | number | Date, now: Date = new Date(
   const p = notificationDateParts(t)
   return p.year === notificationDateParts(now).year ? `${p.month} ${p.day}` : `${p.month} ${p.day}, ${p.year}`
 }
+
+/** A percentage with up to two decimals and no trailing zeros: 0.6%, 0.04%, 99.6%, 100%. */
+export function trimPct(v: number | null | undefined): string {
+  if (v === null || v === undefined || Number.isNaN(v)) return '—'
+  return `${Number(v.toFixed(2))}%`
+}
+
+/** "Oct 10" */
+export function monthDay(d: string | number | Date): string {
+  const p = parts('monthDay', toDate(d), { month: 'short', day: 'numeric' })
+  return `${p.month} ${p.day}`
+}
