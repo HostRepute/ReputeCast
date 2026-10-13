@@ -49,6 +49,7 @@ function FixOption({
   disabled?: boolean
 }) {
   return (
+    // eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its radio; title and description are its text
     <label className={cn('opt pv-opt', dashed && 'border-dashed', disabled && 'cursor-not-allowed opacity-60')}>
       <input type="radio" name="pv-fix" value={value} checked={fix === value} disabled={disabled} onChange={() => onPick(value)} />
       <span>
