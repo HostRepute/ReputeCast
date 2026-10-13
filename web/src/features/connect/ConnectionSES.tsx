@@ -5,6 +5,7 @@ import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Row } from '@/components/ui/Layout'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { ScrollPre } from '@/components/ui/ScrollPre'
 import { clock, clockSeconds, count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { failed, SectionCard, StatusRow, useSetupActions, type StepProps } from './parts'
@@ -124,7 +125,9 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
         </form>
         <details className="text-[13px]">
           <summary className="cursor-pointer font-semibold">Show the IAM policy (least privilege)</summary>
-          <pre className="cn-pre mt-2">{c.template?.policy}</pre>
+          <ScrollPre className="cn-pre mt-2" label="IAM policy">
+            {c.template?.policy}
+          </ScrollPre>
         </details>
         {connected ? (
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-ok-line bg-ok-tint px-3 py-2.5" role="status">

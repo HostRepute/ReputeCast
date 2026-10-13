@@ -47,6 +47,10 @@ async function resolvePath(ctx: BrowserContext, path: string) {
     } else if (kind === 'sso') {
       const r = await ctx.request.get(`${app}/api/v1/admin/sso`)
       id = ((await r.json()) as { items?: { id: string; name: string }[] }).items?.find((p) => p.name === name)?.id
+    } else if (kind === 'setup') {
+      // W10: the latest provider setup of an adapter ({setup:ses}).
+      const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/connect/setups`, { params: { adapter: name } })
+      id = ((await r.json()) as { items?: { id: string }[] }).items?.[0]?.id
     }
     if (!id) return undefined
     outPath = outPath.replace(m[0], encodeURIComponent(id))

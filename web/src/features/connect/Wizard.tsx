@@ -1,12 +1,12 @@
 import { Link } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { LogoMark } from '@/components/icons/Icon'
 import { SystemBanners } from '@/components/shell/SystemBanners'
 import { Badge } from '@/components/ui/Badge'
 import { ButtonLink } from '@/components/ui/Button'
 import { Row } from '@/components/ui/Layout'
 import { cn } from '@/lib/cn'
-import { useDocumentTitle } from '@/lib/hooks'
+import { useDocumentTitle, useOverflowX } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import type { Setup } from './api'
 import './connect.css'
@@ -130,8 +130,13 @@ export function stepLine(n: number, current: number, setup?: Pick<Setup, 'summar
 
 /** The six steps, each with its line (stepLine). */
 export function Stepper({ current, setup }: { current: number; setup?: Setup }) {
+  const ref = useRef<HTMLElement>(null)
+  // On phones the steps are one sideways-scrolling strip: while it scrolls it
+  // takes keyboard focus, so it can be read without a mouse (WCAG 2.1.1).
+  const scrolls = useOverflowX(ref)
   return (
-    <nav className="card cn-steps" aria-label="Setup steps">
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+    <nav ref={ref} className="card cn-steps" aria-label="Setup steps" tabIndex={scrolls ? 0 : undefined}>
       {STEP_DEFS.map((d, i) => {
         const n = i + 1
         const done = n < current

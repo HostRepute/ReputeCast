@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { ScrollPre } from '@/components/ui/ScrollPre'
 import { cn } from '@/lib/cn'
 import { clock } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
@@ -277,7 +278,7 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
                 {test?.private ? 'ReputeCast is running at a private address. ' : "Providers can't reach ReputeCast at its public URL. "}
                 Set <span className="mono">REPUTECAST_PUBLIC_URL</span> in your docker compose .env to the HTTPS address your reverse proxy exposes, then restart.
               </span>
-              <pre className="cn-pre">{`REPUTECAST_PUBLIC_URL=https://reputecast.${org}`}</pre>
+              <ScrollPre className="cn-pre" label="Setting for the docker compose .env">{`REPUTECAST_PUBLIC_URL=https://reputecast.${org}`}</ScrollPre>
             </div>
             <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
               <span className="font-semibold">Or use a tunnel while testing</span>
