@@ -1406,6 +1406,7 @@ type Webhook struct {
 	SecretRotatedAt *time.Time `json:"secretRotatedAt"`
 	PausedAt        *time.Time `json:"pausedAt"`
 	UpdatedAt       time.Time  `json:"updatedAt"`
+	Demo            bool       `json:"demo"`
 }
 
 type WebhookDelivery struct {
@@ -1450,6 +1451,7 @@ type Workspace struct {
 	AuditStreamCursorAt       *time.Time      `json:"auditStreamCursorAt"`
 	AuditStreamCursorID       *uuid.UUID      `json:"auditStreamCursorId"`
 	AuditStreamStatus         json.RawMessage `json:"auditStreamStatus"`
+	AuditStreamDemo           bool            `json:"auditStreamDemo"`
 	DefaultAutomationSenderID *uuid.UUID      `json:"defaultAutomationSenderId"`
 	DefaultSystemSenderID     *uuid.UUID      `json:"defaultSystemSenderId"`
 	SendingDefaults           json.RawMessage `json:"sendingDefaults"`

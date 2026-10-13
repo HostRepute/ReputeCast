@@ -226,6 +226,9 @@ func (s *Service) SaveInstanceBasics(ctx context.Context, in InstanceBasics) err
 	if err == nil && s.OnPolicyChange != nil {
 		s.OnPolicyChange()
 	}
+	if err == nil && s.OnPublicURL != nil && before.PublicUrl != u.String() {
+		s.OnPublicURL(ctx, before.PublicUrl, u.String())
+	}
 	return err
 }
 

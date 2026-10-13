@@ -567,6 +567,8 @@ func (q *Queries) AuditStreamBatch(ctx context.Context, arg AuditStreamBatchPara
 const auditStreamConfigure = `-- name: AuditStreamConfigure :exec
 UPDATE workspaces
 SET audit_stream_enabled = $1, audit_stream_url = $2,
+    -- A demo stream stays one only while its address is unchanged.
+    audit_stream_demo = audit_stream_demo AND audit_stream_url IS NOT DISTINCT FROM $2::text,
     audit_stream_secret_enc = coalesce($3, audit_stream_secret_enc),
     audit_stream_cursor_at = CASE WHEN $4::boolean THEN now() ELSE audit_stream_cursor_at END,
     audit_stream_cursor_id = CASE WHEN $4::boolean THEN NULL ELSE audit_stream_cursor_id END,
@@ -611,7 +613,7 @@ func (q *Queries) AuditStreamSetStatus(ctx context.Context, arg AuditStreamSetSt
 const auditStreamWorkspaces = `-- name: AuditStreamWorkspaces :many
 SELECT id, slug, audit_stream_url, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status
 FROM workspaces
-WHERE deleted_at IS NULL AND audit_stream_enabled AND coalesce(audit_stream_url, '') <> ''
+WHERE deleted_at IS NULL AND audit_stream_enabled AND NOT audit_stream_demo AND coalesce(audit_stream_url, '') <> ''
 `
 
 type AuditStreamWorkspacesRow struct {

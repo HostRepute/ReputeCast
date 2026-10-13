@@ -47,9 +47,14 @@ type Step =
     }
   | { kind: 'last_code'; email: string; next: string; total: number }
 
-/** Only same-origin relative paths are followed after sign-in (a browser reads "/\host" as "//host"). */
+/**
+ * Only same-origin relative paths are followed after sign-in. Browsers drop
+ * tabs and newlines and read a backslash as a slash, so none of them may
+ * appear ("/<tab>/host" and "/\host" both lead to "//host"), as on the server.
+ */
 function safeNext(next?: string) {
-  return next && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : undefined
+  // eslint-disable-next-line no-control-regex
+  return next && next.startsWith('/') && !next.startsWith('//') && !/[\\\u0000-\u001f\u007f]/.test(next) ? next : undefined
 }
 
 /** A start link of an SSO or social provider that returns to `next`. */

@@ -78,10 +78,13 @@ func (s *Service) verify(ctx context.Context, token string, r *http.Request) (*a
 		apikeys.RecordRejection(ctx, s.Q, k.ID, req.IP, r.UserAgent(), "disabled")
 		return nil, fmt.Errorf("%w: the MCP server is off in %s", auth.ErrInvalidToken, k.WorkspaceName)
 	}
+	// An agent never does more than its creator can do right now: nothing
+	// once they have left or been deactivated in the workspace (as for API
+	// keys in api.Authenticator).
 	perms := authz.ParseSet(k.Permissions)
 	if k.CreatedBy == nil {
 		perms = authz.Set{}
-	} else if m, err := s.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: k.WorkspaceID, UserID: *k.CreatedBy}); err == nil {
+	} else if m, err := s.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: k.WorkspaceID, UserID: *k.CreatedBy}); err == nil && m.Status == "active" {
 		perms = perms.Intersect(authz.Effective(m.RoleKey, m.RoleBuiltin, m.RolePermissions))
 	} else {
 		perms = authz.Set{}

@@ -126,7 +126,7 @@ func seedAutomationsImpl(ctx context.Context, s *Seeder) error {
 			autoEdge("n11", "n12", ""), autoEdge("n12", "n13", ""),
 		},
 	}
-	webhook := autoNode("w1", automations.NodeWebhook, 370, 144, autoFlowData{Webhook: &automations.AutomationWebhook{Name: "notify-slack", URL: "https://hooks.slack.com/services/T024BE7LD/B05ACME01/notify-signups", Method: "POST"}})
+	webhook := autoNode("w1", automations.NodeWebhook, 370, 144, autoFlowData{Webhook: &automations.AutomationWebhook{Demo: true, Name: "notify-slack", URL: "https://hooks.slack.com/services/T024BE7LD/B05ACME01/notify-signups", Method: "POST"}})
 	welcomeV3 := autoWithout(welcomeV4, "n7", "n8", "n9")
 	for i := range welcomeV3.Nodes {
 		if welcomeV3.Nodes[i].ID == "n5" {
@@ -176,13 +176,13 @@ func seedAutomationsImpl(ctx context.Context, s *Seeder) error {
 			autoNode("n2", automations.NodeEmail, 0, 0, autoFlowData{Email: email("o1", "Welcome to Acme")}),
 			autoNode("n3", automations.NodeDelay, 0, 0, autoFlowData{Delay: autoDur(1, "days")}),
 			autoNode("n4", automations.NodeEmail, 0, 0, autoFlowData{Email: email("o2", "Create your first flag")}),
-			autoNode("n5", automations.NodeWebhook, 0, 0, autoFlowData{Webhook: &automations.AutomationWebhook{Name: "Sync to HubSpot", URL: "https://api.hubapi.com/automation/v4/webhook-triggers/2463510/acme-signup", Method: "POST"}}),
+			autoNode("n5", automations.NodeWebhook, 0, 0, autoFlowData{Webhook: &automations.AutomationWebhook{Demo: true, Name: "Sync to HubSpot", URL: "https://api.hubapi.com/automation/v4/webhook-triggers/2463510/acme-signup", Method: "POST"}}),
 			autoNode("n6", automations.NodeBranch, 0, 0, autoFlowData{Condition: &automations.AutomationCondition{Kind: "opened", Step: "n4", Within: autoDur(3, "days"), HumanOnly: true}}),
 			autoNode("n7", automations.NodeEmail, 0, 0, autoFlowData{Email: email("o3", "Nice work. Next: environments")}),
 			autoNode("n8", automations.NodeEmail, 0, 0, autoFlowData{Email: email("o4", "Need a hand with your first flag?")}),
 			autoNode("n9", automations.NodeDelay, 0, 0, autoFlowData{Delay: autoDur(2, "days")}),
 			autoNode("n10", automations.NodeEmail, 0, 0, autoFlowData{Email: email("o5", "Invite your team")}),
-			autoNode("n11", automations.NodeWebhook, 0, 0, autoFlowData{Webhook: &automations.AutomationWebhook{Name: "Update CRM stage", URL: "https://api.hubapi.com/crm/v3/objects/deals/acme-stage", Method: "POST"}}),
+			autoNode("n11", automations.NodeWebhook, 0, 0, autoFlowData{Webhook: &automations.AutomationWebhook{Demo: true, Name: "Update CRM stage", URL: "https://api.hubapi.com/crm/v3/objects/deals/acme-stage", Method: "POST"}}),
 			autoNode("n12", automations.NodeDelay, 0, 0, autoFlowData{Delay: autoDur(3, "days")}),
 			autoNode("n13", automations.NodeEmail, 0, 0, autoFlowData{Email: email("o6", "Your first week with Acme")}),
 			autoNode("n14", automations.NodeGoal, 0, 0, autoFlowData{Label: "Invited a teammate", Condition: &automations.AutomationCondition{Kind: "event", Event: "teammate.invited"}}),

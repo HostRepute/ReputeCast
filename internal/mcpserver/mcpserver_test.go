@@ -182,3 +182,46 @@ func TestCells(t *testing.T) {
 		t.Fatalf("ops cells: %+v", cells)
 	}
 }
+
+// An agent never does more than its creator can do now: nothing once the
+// creator is deactivated in the workspace.
+func TestAgentOfDeactivatedCreator(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	var agent struct {
+		Key    struct{ ID string }
+		Secret string
+	}
+	c.Do("POST", ws+"/mcp-agents", map[string]any{"name": "Reader", "permissions": []string{"reports:view", "campaigns:view"}}).MustStatus(t, 201).JSON(t, &agent)
+	cs, err := connect(t, env, agent.Secret)
+	if err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	defer func() { _ = cs.Close() }()
+	ctx := context.Background()
+	call := func() *mcp.CallToolResult {
+		res, err := cs.CallTool(ctx, &mcp.CallToolParams{Name: "get_campaign_report", Arguments: map[string]any{"campaign": "October Product Update"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return res
+	}
+	if res := call(); res.IsError {
+		t.Fatalf("report while Linh is active: %s", text(res))
+	}
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE workspace_members m SET status = 'deactivated' FROM users u WHERE u.id = m.user_id AND u.email = 'linh@acme.io'`); err != nil {
+		t.Fatal(err)
+	}
+	// Each call checks the token again, so a new session sees the change.
+	cs2, err := connect(t, env, agent.Secret)
+	if err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	defer func() { _ = cs2.Close() }()
+	res, err := cs2.CallTool(ctx, &mcp.CallToolParams{Name: "get_campaign_report", Arguments: map[string]any{"campaign": "October Product Update"}})
+	if err != nil || !res.IsError || !strings.Contains(text(res), "reports:view") {
+		t.Fatalf("report after Linh was deactivated: %v %s", err, text(res))
+	}
+}

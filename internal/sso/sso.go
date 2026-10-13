@@ -24,6 +24,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/config"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -105,13 +106,14 @@ func (s *Service) social() SocialEndpoints {
 // publicURL is where people open ReputeCast (instance settings, then
 // config), without a trailing slash. Redirect URIs are built from it.
 func (s *Service) publicURL(ctx context.Context) string {
-	if st, err := s.Q.GetInstanceSettings(ctx); err == nil && st.PublicUrl != "" {
-		return strings.TrimRight(st.PublicUrl, "/")
+	saved, configured := "", ""
+	if st, err := s.Q.GetInstanceSettings(ctx); err == nil {
+		saved = st.PublicUrl
 	}
 	if s.Cfg != nil {
-		return strings.TrimRight(s.Cfg.HTTP.PublicURL, "/")
+		configured = s.Cfg.HTTP.PublicURL
 	}
-	return ""
+	return publicurl.Effective(saved, configured)
 }
 
 // SSOPreset describes an identity provider family: the issuer pattern, scopes,
