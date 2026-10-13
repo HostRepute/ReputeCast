@@ -437,17 +437,24 @@ function withAppFonts(html: string): string {
   return html.includes('</head>') ? html.replace('</head>', `${style}</head>`) : style + html
 }
 
-/** The email at 600 px, scaled into the board's 420 px frame, cut at 300 px. */
+/**
+ * The email at 70%, as the board's 420 px frame shows a 600 px email. In a
+ * narrower frame (tablets, phones) the email renders narrower at the same
+ * scale, so it reflows (its own mobile layout) instead of shrinking, as the
+ * board's preview does. Long emails are cut at 340 px.
+ */
+const THUMB_SCALE = 0.7
+
 function EmailThumb({ html, title }: { html: string; title: string }) {
   const box = useRef<HTMLDivElement>(null)
   const frame = useRef<HTMLIFrameElement>(null)
-  const [scale, setScale] = useState(0.7)
+  const [width, setWidth] = useState(600)
   const [height, setHeight] = useState(430)
   const doc = useMemo(() => withAppFonts(html), [html])
   useEffect(() => {
     const el = box.current
     if (!el) return
-    const ro = new ResizeObserver(() => setScale(Math.min(1, el.clientWidth / 600)))
+    const ro = new ResizeObserver(() => setWidth(Math.min(600, Math.round(el.clientWidth / THUMB_SCALE))))
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
@@ -456,7 +463,16 @@ function EmailThumb({ html, title }: { html: string; title: string }) {
     const body = frame.current?.contentDocument?.body
     if (body) setHeight(Math.max(120, body.scrollHeight))
   }
-  const visible = Math.min(300, height * scale)
+  // Measured again whenever the email's body changes size: it reflows when
+  // the frame's width changes, and web fonts change its text's height.
+  const watch = () => {
+    const win = frame.current?.contentWindow as (Window & typeof globalThis) | null | undefined
+    const body = frame.current?.contentDocument?.body
+    if (!win || !body) return
+    measure()
+    new win.ResizeObserver(measure).observe(body)
+  }
+  const visible = Math.min(340, height * THUMB_SCALE)
   return (
     <div ref={box} className="ap-preview-mail" style={{ height: visible }}>
       <iframe
@@ -465,12 +481,8 @@ function EmailThumb({ html, title }: { html: string; title: string }) {
         sandbox="allow-same-origin"
         srcDoc={doc}
         tabIndex={-1}
-        onLoad={() => {
-          measure()
-          // Web fonts change the text's height once they load.
-          void frame.current?.contentDocument?.fonts?.ready.then(measure)
-        }}
-        style={{ width: 600, height, transform: `scale(${scale})` }}
+        onLoad={watch}
+        style={{ width, height, transform: `scale(${THUMB_SCALE})` }}
       />
     </div>
   )

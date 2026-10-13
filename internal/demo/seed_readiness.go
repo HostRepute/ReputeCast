@@ -307,18 +307,18 @@ const novemberPreheader = "Plus: the new team permissions and what changed in ap
 
 // novemberMJML is Daniel's draft at each of its nine versions. The last one
 // is the short teaser the approval review previews (ApprovalReview board):
-// a header, a teal banner, the headline with an excerpt and a button, and
-// the footer, sized so the review's 420 px preview draws it as the board
-// does. Its button goes through bit.ly (the URL-shortener warning of the
+// a header (its name and date stay side by side on phones), a teal banner,
+// the headline with an excerpt and a button, and the footer, sized so the
+// review's preview (the email at 70%) draws it as the board does. Its button goes through bit.ly (the URL-shortener warning of the
 // sample data). The banner is a coloured block, not an image, so the short
 // email stays under the image-to-text warning.
 func novemberMJML(stage int) string {
 	date := ""
 	if stage >= 2 {
 		date = `
-      <mj-column width="50%" vertical-align="middle">
-        <mj-text align="right" font-size="14.3px" font-weight="500" color="#5B6472">November 2026</mj-text>
-      </mj-column>`
+        <mj-column width="50%" vertical-align="middle">
+          <mj-text align="right" font-size="14.3px" font-weight="500" color="#5B6472">November 2026</mj-text>
+        </mj-column>`
 	}
 	headline, excerpt := "What shipped in November", "Here's what shipped this month at Acme."
 	if stage >= 3 {
@@ -357,9 +357,11 @@ func novemberMJML(stage int) string {
   <mj-body width="600px" background-color="#F3F4F6">
     <!-- rc:header -->
     <mj-section background-color="#ffffff" padding="14.6px 20px" border-bottom="1px solid #EEF0F3">
-      <mj-column width="50%" vertical-align="middle">
-        <mj-text font-weight="700" color="#0B1220"><a href="https://acme.io" style="color:#0B1220;text-decoration:none">Acme</a></mj-text>
-      </mj-column>` + date + `
+      <mj-group>
+        <mj-column width="50%" vertical-align="middle">
+          <mj-text font-weight="700" color="#0B1220"><a href="https://acme.io" style="color:#0B1220;text-decoration:none">Acme</a></mj-text>
+        </mj-column>` + date + `
+      </mj-group>
     </mj-section>
     <!-- rc:hero -->
     <mj-section background-color="#0F766E" css-class="nov-hero" padding="0px">
