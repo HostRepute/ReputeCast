@@ -1,11 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { $api, type Schemas } from '@/api/client'
 import { LogoMark } from '@/components/icons/Icon'
 import { cn } from '@/lib/cn'
 import { count, dayMonthDate } from '@/lib/format'
-import { useDocumentTitle } from '@/lib/hooks'
+import { useDocumentTitle, useOverflowX } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import './imports.css'
 
@@ -70,6 +70,9 @@ export function ImportFrame({
 }) {
   const ws = useWorkspace()
   useDocumentTitle(`${documentTitle ?? title} · ${ws.me.workspace.name} · ReputeCast`)
+  // On phones the steps scroll sideways; then the rail takes keyboard focus.
+  const stepsRef = useRef<HTMLElement>(null)
+  const stepsScroll = useOverflowX(stepsRef)
   return (
     <div className="mig">
       <header>
@@ -92,7 +95,9 @@ export function ImportFrame({
         </main>
       ) : (
         <div className="wiz">
-          <nav className="card wizsteps" aria-label="Import steps">
+          {/* A scrolling region is the exception to the rule: it must take focus. */}
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
+          <nav ref={stepsRef} className="card wizsteps" aria-label="Import steps" tabIndex={stepsScroll ? 0 : undefined}>
             {steps.map((s) => {
               const state = s.n < step ? 'done' : s.n === step ? 'cur' : ''
               return (

@@ -10,6 +10,7 @@ import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
+import { TableScroll } from '@/components/ui/Table'
 import { andList, count, dayMonthDate, shortDate } from '@/lib/format'
 import { trackJob, updateJob } from '@/lib/jobs'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
@@ -499,7 +500,7 @@ function ContactsTable({
   const to = Math.min(data.total, page * size)
   return (
     <section className="card" aria-label="Contacts">
-      <div className="tscroll">
+      <TableScroll label="Contacts">
         <table className="tbl ctbl phone-wrap">
           <thead>
             <tr>
@@ -577,7 +578,7 @@ function ContactsTable({
             ) : null}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 px-4 py-2.5">
         <span className="k">
           {count(from)} to {count(to)} of {count(data.total)}

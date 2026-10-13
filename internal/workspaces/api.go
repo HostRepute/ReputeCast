@@ -18,7 +18,7 @@ func Register(h huma.API, s *Service) {
 	tags := []string{"Workspaces"}
 	base := "/workspaces/{workspace}"
 
-	api.Get(h, api.Op{ID: "get-workspace-settings", Path: base + "/settings", Summary: "General settings, approval and team summaries, danger-zone counts", Tags: tags, Access: api.Workspace("")},
+	api.Get(h, api.Op{ID: "get-workspace-settings", Path: base + "/settings", Summary: "General settings, approval and team summaries, danger-zone counts", Tags: tags, Access: api.WorkspaceHuman("")},
 		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Body[WorkspaceSettings], error) {
 			out, err := s.Settings(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx))
 			return api.OK(out), err

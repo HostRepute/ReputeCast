@@ -8,20 +8,20 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 
 | Milestone | Scope | Workstreams | Status |
 |---|---|---|---|
-| **M0 Skeleton** | Repo layout, Makefile, docker compose (Postgres 18 + Mailpit), goose, sqlc, River, chi + Huma (`/healthz`, `/readyz`, `/metrics`, OpenAPI 3.1), embedded SPA, openapi-typescript, CI (Go 1.26/1.27 × PG 16/17/18, web lint/typecheck/test/build), GoReleaser, Dockerfile. Design system foundation in the web app (tokens, components, shell). | core | ✅ |
-| **M1 Install and first sign-in** | `reputecast install`, identifier-first sign-in, argon2id, throttling and lockout, TOTP + recovery codes, sessions, first sign-in setup API; passkeys, password reset, invite accept, Account & security screens | core, W04 | 🚧 |
+| **M0 Skeleton** | Repo layout, Makefile, docker compose (Postgres 18 + Mailpit), goose, sqlc, River, chi + Huma (`/healthz`, `/readyz`, `/metrics`, OpenAPI 3.1), embedded SPA, openapi-typescript, CI (Go 1.27 × PG 16/17/18, web lint/typecheck/test/build), GoReleaser, Dockerfile. Design system foundation in the web app (tokens, components, shell). | core | ✅ |
+| **M1 Install and first sign-in** | `reputecast install`, identifier-first sign-in, argon2id, throttling and lockout, TOTP + recovery codes, sessions, first sign-in setup API; passkeys, password reset, invite accept, Account & security screens | core, W04 | ✅ |
 | **M2 Workspaces, team, roles, audit** | `internal/authz`, built-in and custom roles, escalation guard, invitations, member management, API keys and MCP agents, audit log views | core, W03 | ✅ |
 | **M3 Sending providers** | Provider contract and contract tests, SES, SMTP, Postmark, Postal adapters, webhook ingest and normalization, shared suppression list and sync, streams and routing, failover, warm-up | W01 | ✅ |
 | **M4 Senders, domains, Send Readiness** | DNS checks, sending domains and senders, connect-a-provider wizard, Send Readiness engine | W10, W11 | 🚧 (senders, domains, connect wizard and system mail ✅; Send Readiness: W11) |
 | **M5 Audience** | Contacts, lists, custom fields, tiers and sunset policy, segments (builder and SQL), suppressions, importer | W02 | ✅ |
 | **M6 Composer** | GrapesJS + MJML wrapper, code view, previews, Liquid tokens, templates, versions, inline warnings | W05 | ✅ |
-| **M7 Review & send, approvals, live monitor** | Review & send, approval policy/inbox/review, sending pipeline, live monitor (SSE), auto-pause, outage handling | W11, W12 | ⏳ |
+| **M7 Review & send, approvals, live monitor** | Review & send, approval policy/inbox/review, sending pipeline, live monitor (SSE), auto-pause, outage handling | W11, W12 | 🚧 |
 | **M8 Reports** | Campaign report, honest analytics (human vs machine opens), click map, provider comparisons, A/B, share links; Overview | W09 | ✅ |
 | **M9 Automations** | React Flow editor, triggers and steps, runs engine, live stats, versions and publish diff, templates | W06 | ✅ (emails queue until W12's mailer sends them; approvals hook for W11) |
-| **M10 Forms and public pages** | Signup forms, double opt-in, preference center, unsubscribe (RFC 8058), archive | W13 | ⏳ |
+| **M10 Forms and public pages** | Signup forms, double opt-in, preference center, unsubscribe (RFC 8058), archive | W13 | 🚧 |
 | **M11 SSO, social sign-in, API keys, MCP, webhooks** | OIDC SSO with JIT and group mapping, social sign-in, instance admin, API keys & MCP server, outgoing webhooks | W14, W03 | ✅ |
 | **M12 Remaining adapters** | Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, generic HTTP, adapter guide; community adapters (protocol, runtime, SDK) | W15, W16 | ✅ |
-| **M13 Deliverability and HostRepute** | Domain/IP health, provider account health, blocklists, Postmaster, SNDS, DMARC, incidents, Connect HostRepute | W07 | 🚧 |
+| **M13 Deliverability and HostRepute** | Domain/IP health, provider account health, blocklists, Postmaster, SNDS, DMARC, incidents, Connect HostRepute | W07 | ✅ |
 | **M14 Migration, landing, docs, v1.0** | Importers from Brevo, Mailchimp, MailerLite, listmonk, Keila; landing page and README banner; documentation; release | W02, W08 | 🚧 (importers ✅, landing page ✅, README banner ✅) |
 
 ## Done so far (M0)
@@ -33,6 +33,14 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 - Sign-in API (identify, password, two-factor, sign-out), `/me`, first-run setup API, integration tests on real Postgres.
 - Web: Clearwater tokens and component vocabulary, app shell (sidebar → rail → tab bar), sign-in flow, campaigns list with KPIs, filters, search, pagination and states.
 - Demo data (`reputecast seed`) and a visual QA tool comparing app screenshots with the design boards (`web/scripts/shot.ts`).
+
+## Done so far (W04: sign-in, account and notifications, M1)
+
+- Identifier-first sign-in: the email decides the next step (password, passkey or the domain's SSO); passwords with argon2id and a dummy hash for unknown emails, per-email lockout and per-IP rate limits, answers that never reveal whether an account exists. Passkeys (WebAuthn) as the first factor or the second; authenticator apps (TOTP) and one-time recovery codes; sessions with a lifetime, an idle timeout and an "extend" prompt.
+- First sign-in (InstanceSetup): replace the temporary password, add a second factor, save recovery codes, confirm the public URL (DNS, TLS and reachability check) and the instance basics.
+- Password reset by email through the System stream, or `reputecast user reset-password` when no provider can send yet; invitations accepted with a password, a passkey, SSO or social sign-in.
+- Account & security: profile and photo, email change with verification, password change with the breached-password check, authenticator and passkeys, recovery codes, connected Google/Microsoft/GitHub and SSO sign-ins, active sessions with sign-out, workspaces.
+- Notification center: the bell's popover and the full page, per-workspace notifications with read state, preferences per event type for in-app and email.
 
 ## Done so far (W01: sending providers & routing, M3)
 
@@ -56,6 +64,11 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 - Suppression list: counts, per-provider sync (pulled and pushed; providers without a suppression API are checked before sending), import groups, add, CSV upload, pull from providers, remove with a reason (audited), export.
 - Importer: Brevo, Mailchimp, MailerLite, listmonk, Keila (API keys sealed, never returned) and CSV/XLSX; staging on River with rate-limit pauses, "Resume now" and "Slow down to 3 req/s"; field mapping with guesses, consent mapping with locked suppressions, a dry-run preview (duplicates, invalid, MX-less domains, role, disposable, typo, stale, trap-like), batched import with merges, suppressions pushed to providers, re-permission emails, report and skipped-row CSVs, and the jobs tray feed (`GET /workspaces/{workspace}/jobs`).
 - Screens: Contacts, Contact profile, Segment builder, List health, Suppression list, the import wizard (source, fields, consent, preview, progress, summary) and their empty, loading, timed-out, partly-done, rejected-key, rate-limit and broken-file states. Demo data reproduces the boards' numbers; integration tests cover counts, permissions, audit entries, user SQL and a full CSV and Mailchimp import.
+
+## Done so far (W07: deliverability and HostRepute, M13)
+
+- Deliverability (`internal/deliverability`, `internal/dnscheck`): sending domains (SPF, DKIM, DMARC, return path, MX), sending IPs (reverse DNS, blocklists), provider account health, a blocklist verdict for Send Readiness, incidents, DMARC aggregate reports (upload XML, .xml.gz or .zip; per-source detail), checks on demand with progress, CSV export.
+- Connect HostRepute: OAuth 2 with PKCE (single-use state bound to the person and workspace) or an API key, monitored assets (add, swap), sync of blocklist, Google Postmaster and Microsoft SNDS data, delisting requests through HostRepute; without HostRepute the built-in checks run on their own (DeliverabilityNoHostRepute). Tokens are sealed and never returned.
 
 ## Done so far (W08: landing, README banner, cross-cutting states)
 
@@ -120,6 +133,14 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 - Social sign-in: Google and Microsoft over OIDC (Microsoft never links an account by email), GitHub over OAuth 2 with a verified primary email and an optional organization restriction; invitations can be accepted with SSO or social sign-in; the sign-in page continues the second-factor step after an IdP and offers a domain's SSO provider next to the password.
 - Audit log (instance view): every workspace's entries and the instance-level ones, filters by workspace / instance only, actor type, result and range, search by account, target, request id or sign-in reference, detail dialog, CSV/JSON export, instance retention (now applied by the hourly cleanup) and a signed webhook stream of instance events.
 - Tests run against a fake OpenID Connect issuer and a fake GitHub (`internal/sso/ssotest`, plus `go run ./internal/sso/ssotest/fakeidp` for local runs); no real identity provider is called.
+
+## Done so far (integration and hardening)
+
+- One public URL: links, public pages, webhooks, sign-in links and system email use the address saved in Instance admin (else `http.public_url`); every process follows a change within 30 s, and a change re-registers provider webhooks (or lists the providers to update by hand).
+- Authentication answers 503 when it can't read the database instead of signing people out; API keys lose their permissions when their creator leaves the workspace; password sign-in and reset requests answer the same whether or not an account exists; bearer tokens never reach the request log.
+- Outgoing webhook dispatch finds a failing endpoint's probe once per endpoint (9.9 s → 5 ms per tick on the demo).
+- The Docker image runs as non-root with its data directory ready; the build context leaves out local worktrees and node_modules.
+- The demo's October Product Update is the Report board's email, and the click map places its bubbles as the board does.
 
 ## Done so far (W10: connect a provider, senders and domains, system mail)
 

@@ -93,6 +93,15 @@ func TestGeneralSettings(t *testing.T) {
 		t.Fatalf("viewer: %+v", s)
 	}
 	v.Do("PUT", ws+"/settings", map[string]any{"name": "Nope", "timezone": "UTC"}).MustStatus(t, 403)
+
+	// The page summarizes the team: people only, not API keys or agents.
+	var key struct{ Secret string }
+	c.Do("POST", ws+"/api-keys", map[string]any{"name": "Reader", "permissions": []string{"campaigns:view"}}).MustStatus(t, 201).JSON(t, &key)
+	b := env.Client()
+	b.Bearer = key.Secret
+	if p := b.Do("GET", ws+"/settings", nil).MustStatus(t, 403).Problem(t); p["code"] != "humans_only" {
+		t.Fatalf("key: %v", p)
+	}
 }
 
 func TestTransferDeleteExport(t *testing.T) {
