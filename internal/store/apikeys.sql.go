@@ -285,7 +285,7 @@ LEFT JOIN users u ON u.id = k.created_by
 WHERE k.workspace_id = $1 AND k.kind = $2
   AND (k.revoked_at IS NULL)
   AND (k.expires_at IS NULL OR k.expires_at > now() - interval '90 days')
-ORDER BY (k.expires_at IS NOT NULL AND k.expires_at <= now()), k.created_at DESC
+ORDER BY (k.expires_at IS NOT NULL AND k.expires_at <= now()), coalesce(k.last_used_at, k.created_at) DESC, k.created_at DESC
 `
 
 type KeysListParams struct {

@@ -233,3 +233,14 @@ export function auditTime(d: string | number | Date, now: Date = new Date()): st
   const t = toDate(d)
   return sameDay(t, now) ? clockSeconds(t) : `${shortDate(t)} ${clock(t)}`
 }
+
+/** When a key was created: "Oct 12, 09:41" today, else "Sep 22, 2026". */
+export function createdTime(d: string | number | Date, now: Date = new Date()): string {
+  const t = toDate(d)
+  return sameDay(t, now) ? monthDayTime(t) : usDate(t)
+}
+
+/** A call in an activity list: "09:36" today, else "Mon 6 Oct", with what was called. */
+export function callTime(d: string | number | Date, what: string | undefined, now: Date = new Date()): string {
+  return what ? `${logTime(d, now)} · ${what}` : logTime(d, now)
+}

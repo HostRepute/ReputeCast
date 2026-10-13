@@ -119,9 +119,9 @@ func Cells(perms authz.Set) []MCPCapabilityCell {
 	case perms.Has(authz.ReportsView) || perms.Has(authz.SubscribersView):
 		out = append(out, cell(0, "allow", "Allow"))
 	case perms.Has(authz.ProvidersView):
-		out = append(out, cell(0, "partial", "Allow · provider health"))
+		out = append(out, cell(0, "allow", "Allow · provider health"))
 	case perms.Has(authz.DeliverabilityView):
-		out = append(out, cell(0, "partial", "Allow · deliverability"))
+		out = append(out, cell(0, "allow", "Allow · deliverability"))
 	default:
 		out = append(out, cell(0, "deny", "Deny"))
 	}

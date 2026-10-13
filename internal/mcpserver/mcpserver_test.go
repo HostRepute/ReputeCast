@@ -178,7 +178,7 @@ func TestCells(t *testing.T) {
 		}
 	}
 	cells = mcpserver.Cells(authz.NewSet(authz.CampaignsPause, authz.ProvidersView))
-	if cells[0].Label != "Allow · provider health" || cells[3].Label != "Pause only · never start" {
+	if cells[0].Label != "Allow · provider health" || cells[0].Level != "allow" || cells[3].Label != "Pause only · never start" || cells[3].Level != "partial" {
 		t.Fatalf("ops cells: %+v", cells)
 	}
 }
