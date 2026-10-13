@@ -2799,7 +2799,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -2931,7 +2935,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -2965,6 +2973,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
                 campaignId: string;
             };
             cookie?: never;
@@ -2999,7 +3010,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -3364,7 +3379,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                planId: string;
+            };
             cookie?: never;
         };
         requestBody: {

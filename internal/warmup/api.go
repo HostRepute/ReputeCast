@@ -20,8 +20,9 @@ type planInput struct {
 }
 
 type settingsInput struct {
-	planInput
-	Body WarmupSettings
+	api.WorkspaceInput
+	PlanID string `path:"planId" format:"uuid"`
+	Body   WarmupSettings
 }
 
 type createInput struct {
