@@ -419,7 +419,7 @@ function RemoveDialog({ member, keys, open, onOpenChange }: { member: Schemas['T
         </>
       }
     >
-      <ul className="m-0 flex flex-col gap-1 pl-[18px] text-[13.5px] text-ink-nav">
+      <ul className="m-0 flex list-disc flex-col gap-1 pl-[18px] text-[13.5px] text-ink-nav">
         <li>Loses access to {me.workspace.name} at once; other workspaces are unaffected</li>
         {keys > 0 ? (
           <li>

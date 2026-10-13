@@ -100,7 +100,7 @@ export function DeactivateDialog({
           <Skeleton w="60%" />
         </div>
       ) : (
-        <ul className="m-0 flex flex-col gap-1 pl-[18px] text-[13.5px] text-ink-nav">
+        <ul className="m-0 flex list-disc flex-col gap-1 pl-[18px] text-[13.5px] text-ink-nav">
           <li>
             Signed out everywhere, now ({sessions} {sessions === 1 ? 'session' : 'sessions'})
           </li>

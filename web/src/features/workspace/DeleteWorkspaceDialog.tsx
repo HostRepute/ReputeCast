@@ -67,7 +67,7 @@ export function DeleteWorkspaceDialog({
         </>
       }
     >
-      <ul className="m-0 flex flex-col gap-1 pl-[18px] text-[13.5px] text-ink-nav">
+      <ul className="m-0 flex list-disc flex-col gap-1 pl-[18px] text-[13.5px] text-ink-nav">
         <li>
           {count(d.contacts)} contacts, {d.lists} {d.lists === 1 ? 'list' : 'lists'}, {d.segments} {d.segments === 1 ? 'segment' : 'segments'} and consent history
         </li>

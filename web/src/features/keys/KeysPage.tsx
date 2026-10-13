@@ -56,7 +56,7 @@ export function KeysPage() {
       {canAgents ? (
         <>
           <AgentsCard q={agents} onCreate={() => setCreate('mcp_agent')} onAction={(k, action) => setAct({ k, action })} />
-          <ActionsCard />
+          {agents.data?.items.length === 0 ? null : <ActionsCard />}
         </>
       ) : null}
       {create && createList ? (
