@@ -39,27 +39,27 @@ func openPOP3(ctx context.Context, cfg Config) (Box, error) {
 	b := &pop3Box{conn: conn, r: bufio.NewReader(conn), cfg: cfg, deleted: map[string]bool{}}
 	b.deadline()
 	if _, err := b.status(); err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, fmt.Errorf("pop3 greeting: %w", err)
 	}
 	if cfg.TLS == "starttls" {
 		if _, err := b.cmd("STLS"); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, fmt.Errorf("pop3 STLS: %w", err)
 		}
 		tc := tls.Client(conn, tlsCfg)
 		if err := tc.HandshakeContext(ctx); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 		b.conn, b.r = tc, bufio.NewReader(tc)
 	}
 	if _, err := b.cmd("USER " + cfg.Username); err != nil {
-		b.conn.Close()
+		_ = b.conn.Close()
 		return nil, ErrAuth
 	}
 	if _, err := b.cmd("PASS " + cfg.Password); err != nil {
-		b.conn.Close()
+		_ = b.conn.Close()
 		return nil, ErrAuth
 	}
 	return b, nil

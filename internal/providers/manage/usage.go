@@ -21,7 +21,8 @@ type Usage struct {
 	// times volume, the plan price, or 0 for self-hosted servers.
 	MonthCost float64 `json:"monthCost"`
 	// Bounce7d and Complaint7d are percentages over the last seven days
-	// (today included); nil when nothing was sent or delivered.
+	// (today included); nil when nothing was sent or delivered. When the
+	// provider reports its own rates (state.ReputationOf), those are used.
 	Bounce7d    *float64 `json:"bounce7d,omitempty"`
 	Complaint7d *float64 `json:"complaint7d,omitempty"`
 }
@@ -66,6 +67,10 @@ func UsageOf(ctx context.Context, q *store.Queries, ws *store.Workspace, provs [
 		if w.Delivered > 0 {
 			v := round2(float64(w.Complained) / float64(w.Delivered) * 100)
 			u.Complaint7d = &v
+		}
+		if r := state.ReputationOf(state.HealthOf(p), now); r != nil {
+			b, c := r.Bounce, r.Complaint
+			u.Bounce7d, u.Complaint7d = &b, &c
 		}
 		out[p.ID] = u
 	}

@@ -130,13 +130,13 @@ func mailpitHeaders(t *testing.T, api, subject string) map[string][]string {
 			Messages []struct{ ID string }
 		}
 		_ = json.NewDecoder(resp.Body).Decode(&res)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if len(res.Messages) > 0 {
 			hr, err := http.Get(api + "/api/v1/message/" + res.Messages[0].ID + "/headers")
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer hr.Body.Close()
+			defer func() { _ = hr.Body.Close() }()
 			h := map[string][]string{}
 			_ = json.NewDecoder(hr.Body).Decode(&h)
 			return h

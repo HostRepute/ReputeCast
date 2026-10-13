@@ -225,7 +225,7 @@ func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]provid
 func (p *Provider) Verify(ctx context.Context) (providers.Quota, error) {
 	err := p.call(ctx, "POST /api/v1/messages/message", "/api/v1/messages/message", map[string]any{"id": 0}, nil)
 	var ce *providers.CallError
-	if err != nil && !(errors.As(err, &ce) && ce.Code == "MessageNotFound") {
+	if err != nil && (!errors.As(err, &ce) || ce.Code != "MessageNotFound") {
 		return providers.Quota{}, err
 	}
 	acct := "Postal"

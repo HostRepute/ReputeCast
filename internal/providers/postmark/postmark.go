@@ -110,7 +110,10 @@ type Provider struct {
 	account *apiclient.Client
 }
 
-var _ providers.Provider = (*Provider)(nil)
+var (
+	_ providers.Provider           = (*Provider)(nil)
+	_ providers.ReputationReporter = (*Provider)(nil)
+)
 
 // New builds the adapter from a connected provider's configuration.
 func New(cfg providers.Config) (providers.Provider, error) {
@@ -443,6 +446,21 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 		acct += " · " + humanCount(p.s.MonthlyLimit) + " per month plan"
 	}
 	return providers.Quota{Kind: "monthly_plan", Max: p.s.MonthlyLimit, Used: st.Sent, Account: acct}, nil
+}
+
+// Reputation implements providers.ReputationReporter: Postmark's own bounce
+// and spam complaint rates over the last seven days, from its outbound stats.
+func (p *Provider) Reputation(ctx context.Context) (providers.Reputation, error) {
+	now := time.Now().UTC()
+	q := url.Values{"fromdate": {now.AddDate(0, 0, -6).Format("2006-01-02")}, "todate": {now.Format("2006-01-02")}}
+	var st struct {
+		BounceRate         float64
+		SpamComplaintsRate float64
+	}
+	if err := p.api.Do(ctx, "GET /stats/outbound", http.MethodGet, "/stats/outbound?"+q.Encode(), nil, &st); err != nil {
+		return providers.Reputation{}, err
+	}
+	return providers.Reputation{Bounce: st.BounceRate, Complaint: st.SpamComplaintsRate, Window: "7 d"}, nil
 }
 
 func humanCount(n int64) string {

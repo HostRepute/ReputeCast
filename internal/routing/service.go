@@ -116,6 +116,9 @@ type RoutingConditionView struct {
 type RoutingVolume struct {
 	Count int64  `json:"count"`
 	Per   string `json:"per" enum:"day,week"`
+	// Smallest and Largest are the audience range of recent broadcasts.
+	Smallest int64 `json:"smallest,omitempty"`
+	Largest  int64 `json:"largest,omitempty"`
 }
 
 // RoutingStreamView is one stream's saved routing.
@@ -365,7 +368,12 @@ func (s *Service) volumes(ctx context.Context, ws *store.Workspace) map[provider
 	wsID := ws.ID
 	since := s.now().AddDate(0, 0, -28)
 	if b, err := s.Q.ProvBroadcastWeekly(ctx, store.ProvBroadcastWeeklyParams{WorkspaceID: wsID, Since: &since}); err == nil && b > 0 {
-		out[providers.StreamBroadcast] = &RoutingVolume{Count: about(b / 4), Per: "week"}
+		v := &RoutingVolume{Count: about(b / 4), Per: "week"}
+		quarter := s.now().AddDate(0, 0, -90)
+		if sz, err := s.Q.RoutingBroadcastSizes(ctx, store.RoutingBroadcastSizesParams{WorkspaceID: wsID, Since: &quarter}); err == nil {
+			v.Smallest, v.Largest = sz.Smallest, sz.Largest
+		}
+		out[providers.StreamBroadcast] = v
 	}
 	now := s.now().In(state.Location(ws.Timezone))
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())

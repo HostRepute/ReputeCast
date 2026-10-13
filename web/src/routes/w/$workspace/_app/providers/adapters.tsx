@@ -1,11 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { AdaptersPage } from '@/features/providers/AdaptersPage'
 
 export const Route = createFileRoute('/w/$workspace/_app/providers/adapters')({
-  component: () => (
-    <Page title="Sending providers & routing">
-      <NotBuilt screen="Sending providers & routing" />
-    </Page>
-  ),
+  component: AdaptersPage,
 })

@@ -43,7 +43,7 @@ func (q *Queries) CountActiveOwners(ctx context.Context, workspaceID uuid.UUID) 
 const createAPIKey = `-- name: CreateAPIKey :one
 INSERT INTO api_keys (id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, expires_at, rotated_from)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, created_at, expires_at, last_used_at, last_used_ip, revoked_at, rotated_from
+RETURNING id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, created_at, expires_at, last_used_at, last_used_ip, revoked_at, rotated_from, last_used_client, last_call
 `
 
 type CreateAPIKeyParams struct {
@@ -94,6 +94,8 @@ func (q *Queries) CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (Api
 		&i.LastUsedIp,
 		&i.RevokedAt,
 		&i.RotatedFrom,
+		&i.LastUsedClient,
+		&i.LastCall,
 	)
 	return i, err
 }
@@ -101,7 +103,7 @@ func (q *Queries) CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (Api
 const createInvitation = `-- name: CreateInvitation :one
 INSERT INTO invitations (id, workspace_id, email, role_id, scope, message, token_hash, invited_by, sent_via, last_sent_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-RETURNING id, workspace_id, email, role_id, scope, message, token_hash, invited_by, sent_via, last_sent_at, created_at, expires_at, accepted_at, accepted_by, revoked_at, reinvite_requested_at
+RETURNING id, workspace_id, email, role_id, scope, message, token_hash, invited_by, sent_via, last_sent_at, created_at, expires_at, accepted_at, accepted_by, revoked_at, token_enc, expires_days, reinvite_requested_at
 `
 
 type CreateInvitationParams struct {
@@ -149,6 +151,8 @@ func (q *Queries) CreateInvitation(ctx context.Context, arg CreateInvitationPara
 		&i.AcceptedAt,
 		&i.AcceptedBy,
 		&i.RevokedAt,
+		&i.TokenEnc,
+		&i.ExpiresDays,
 		&i.ReinviteRequestedAt,
 	)
 	return i, err
@@ -244,7 +248,7 @@ func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Role, e
 const createWorkspace = `-- name: CreateWorkspace :one
 INSERT INTO workspaces (id, slug, name, timezone, created_by)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, default_automation_sender_id, default_system_sender_id, sending_defaults
+RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, default_automation_sender_id, default_system_sender_id, sending_defaults
 `
 
 type CreateWorkspaceParams struct {
@@ -280,6 +284,12 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.McpSettings,
+		&i.AuditStreamEnabled,
+		&i.AuditStreamSecretEnc,
+		&i.AuditStreamCursorAt,
+		&i.AuditStreamCursorID,
+		&i.AuditStreamStatus,
 		&i.DefaultAutomationSenderID,
 		&i.DefaultSystemSenderID,
 		&i.SendingDefaults,
@@ -319,7 +329,7 @@ func (q *Queries) DeleteRole(ctx context.Context, roleID uuid.UUID) (int64, erro
 }
 
 const getAPIKey = `-- name: GetAPIKey :one
-SELECT id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, created_at, expires_at, last_used_at, last_used_ip, revoked_at, rotated_from FROM api_keys WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, created_at, expires_at, last_used_at, last_used_ip, revoked_at, rotated_from, last_used_client, last_call FROM api_keys WHERE id = $1 AND workspace_id = $2
 `
 
 type GetAPIKeyParams struct {
@@ -347,34 +357,38 @@ func (q *Queries) GetAPIKey(ctx context.Context, arg GetAPIKeyParams) (ApiKey, e
 		&i.LastUsedIp,
 		&i.RevokedAt,
 		&i.RotatedFrom,
+		&i.LastUsedClient,
+		&i.LastCall,
 	)
 	return i, err
 }
 
 const getAPIKeyByToken = `-- name: GetAPIKeyByToken :one
-SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.token_hash, k.permissions, k.scope, k.created_by, k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, k.rotated_from, w.slug AS workspace_slug
+SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.token_hash, k.permissions, k.scope, k.created_by, k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, k.rotated_from, k.last_used_client, k.last_call, w.slug AS workspace_slug
 FROM api_keys k JOIN workspaces w ON w.id = k.workspace_id AND w.deleted_at IS NULL
 WHERE k.token_hash = $1
 `
 
 type GetAPIKeyByTokenRow struct {
-	ID            uuid.UUID       `json:"id"`
-	WorkspaceID   uuid.UUID       `json:"workspaceId"`
-	Kind          string          `json:"kind"`
-	Name          string          `json:"name"`
-	Description   string          `json:"description"`
-	Prefix        string          `json:"prefix"`
-	TokenHash     []byte          `json:"tokenHash"`
-	Permissions   []string        `json:"permissions"`
-	Scope         json.RawMessage `json:"scope"`
-	CreatedBy     *uuid.UUID      `json:"createdBy"`
-	CreatedAt     time.Time       `json:"createdAt"`
-	ExpiresAt     *time.Time      `json:"expiresAt"`
-	LastUsedAt    *time.Time      `json:"lastUsedAt"`
-	LastUsedIp    *netip.Addr     `json:"lastUsedIp"`
-	RevokedAt     *time.Time      `json:"revokedAt"`
-	RotatedFrom   *uuid.UUID      `json:"rotatedFrom"`
-	WorkspaceSlug string          `json:"workspaceSlug"`
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	Kind           string          `json:"kind"`
+	Name           string          `json:"name"`
+	Description    string          `json:"description"`
+	Prefix         string          `json:"prefix"`
+	TokenHash      []byte          `json:"tokenHash"`
+	Permissions    []string        `json:"permissions"`
+	Scope          json.RawMessage `json:"scope"`
+	CreatedBy      *uuid.UUID      `json:"createdBy"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	ExpiresAt      *time.Time      `json:"expiresAt"`
+	LastUsedAt     *time.Time      `json:"lastUsedAt"`
+	LastUsedIp     *netip.Addr     `json:"lastUsedIp"`
+	RevokedAt      *time.Time      `json:"revokedAt"`
+	RotatedFrom    *uuid.UUID      `json:"rotatedFrom"`
+	LastUsedClient string          `json:"lastUsedClient"`
+	LastCall       string          `json:"lastCall"`
+	WorkspaceSlug  string          `json:"workspaceSlug"`
 }
 
 func (q *Queries) GetAPIKeyByToken(ctx context.Context, tokenHash []byte) (GetAPIKeyByTokenRow, error) {
@@ -397,13 +411,15 @@ func (q *Queries) GetAPIKeyByToken(ctx context.Context, tokenHash []byte) (GetAP
 		&i.LastUsedIp,
 		&i.RevokedAt,
 		&i.RotatedFrom,
+		&i.LastUsedClient,
+		&i.LastCall,
 		&i.WorkspaceSlug,
 	)
 	return i, err
 }
 
 const getInvitationByToken = `-- name: GetInvitationByToken :one
-SELECT i.id, i.workspace_id, i.email, i.role_id, i.scope, i.message, i.token_hash, i.invited_by, i.sent_via, i.last_sent_at, i.created_at, i.expires_at, i.accepted_at, i.accepted_by, i.revoked_at, i.reinvite_requested_at, r.name AS role_name, r.key AS role_key, w.name AS workspace_name, w.slug AS workspace_slug,
+SELECT i.id, i.workspace_id, i.email, i.role_id, i.scope, i.message, i.token_hash, i.invited_by, i.sent_via, i.last_sent_at, i.created_at, i.expires_at, i.accepted_at, i.accepted_by, i.revoked_at, i.token_enc, i.expires_days, i.reinvite_requested_at, r.name AS role_name, r.key AS role_key, w.name AS workspace_name, w.slug AS workspace_slug,
        u.name AS invited_by_name
 FROM invitations i
 JOIN roles r ON r.id = i.role_id
@@ -428,6 +444,8 @@ type GetInvitationByTokenRow struct {
 	AcceptedAt          *time.Time      `json:"acceptedAt"`
 	AcceptedBy          *uuid.UUID      `json:"acceptedBy"`
 	RevokedAt           *time.Time      `json:"revokedAt"`
+	TokenEnc            []byte          `json:"tokenEnc"`
+	ExpiresDays         int32           `json:"expiresDays"`
 	ReinviteRequestedAt *time.Time      `json:"reinviteRequestedAt"`
 	RoleName            string          `json:"roleName"`
 	RoleKey             string          `json:"roleKey"`
@@ -455,6 +473,8 @@ func (q *Queries) GetInvitationByToken(ctx context.Context, tokenHash []byte) (G
 		&i.AcceptedAt,
 		&i.AcceptedBy,
 		&i.RevokedAt,
+		&i.TokenEnc,
+		&i.ExpiresDays,
 		&i.ReinviteRequestedAt,
 		&i.RoleName,
 		&i.RoleKey,
@@ -637,7 +657,7 @@ func (q *Queries) GetRoleByKey(ctx context.Context, arg GetRoleByKeyParams) (Rol
 }
 
 const getWorkspace = `-- name: GetWorkspace :one
-SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, default_automation_sender_id, default_system_sender_id, sending_defaults FROM workspaces WHERE id = $1 AND deleted_at IS NULL
+SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, default_automation_sender_id, default_system_sender_id, sending_defaults FROM workspaces WHERE id = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error) {
@@ -659,6 +679,12 @@ func (q *Queries) GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, er
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.McpSettings,
+		&i.AuditStreamEnabled,
+		&i.AuditStreamSecretEnc,
+		&i.AuditStreamCursorAt,
+		&i.AuditStreamCursorID,
+		&i.AuditStreamStatus,
 		&i.DefaultAutomationSenderID,
 		&i.DefaultSystemSenderID,
 		&i.SendingDefaults,
@@ -667,7 +693,7 @@ func (q *Queries) GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, er
 }
 
 const getWorkspaceBySlug = `-- name: GetWorkspaceBySlug :one
-SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, default_automation_sender_id, default_system_sender_id, sending_defaults FROM workspaces WHERE slug = $1 AND deleted_at IS NULL
+SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, default_automation_sender_id, default_system_sender_id, sending_defaults FROM workspaces WHERE slug = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error) {
@@ -689,6 +715,12 @@ func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspac
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.McpSettings,
+		&i.AuditStreamEnabled,
+		&i.AuditStreamSecretEnc,
+		&i.AuditStreamCursorAt,
+		&i.AuditStreamCursorID,
+		&i.AuditStreamStatus,
 		&i.DefaultAutomationSenderID,
 		&i.DefaultSystemSenderID,
 		&i.SendingDefaults,
@@ -697,7 +729,7 @@ func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspac
 }
 
 const listAPIKeys = `-- name: ListAPIKeys :many
-SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.token_hash, k.permissions, k.scope, k.created_by, k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, k.rotated_from, u.name AS created_by_name
+SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.token_hash, k.permissions, k.scope, k.created_by, k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, k.rotated_from, k.last_used_client, k.last_call, u.name AS created_by_name
 FROM api_keys k LEFT JOIN users u ON u.id = k.created_by
 WHERE k.workspace_id = $1 AND k.kind = $2
 ORDER BY k.revoked_at IS NOT NULL, k.created_at DESC
@@ -709,23 +741,25 @@ type ListAPIKeysParams struct {
 }
 
 type ListAPIKeysRow struct {
-	ID            uuid.UUID       `json:"id"`
-	WorkspaceID   uuid.UUID       `json:"workspaceId"`
-	Kind          string          `json:"kind"`
-	Name          string          `json:"name"`
-	Description   string          `json:"description"`
-	Prefix        string          `json:"prefix"`
-	TokenHash     []byte          `json:"tokenHash"`
-	Permissions   []string        `json:"permissions"`
-	Scope         json.RawMessage `json:"scope"`
-	CreatedBy     *uuid.UUID      `json:"createdBy"`
-	CreatedAt     time.Time       `json:"createdAt"`
-	ExpiresAt     *time.Time      `json:"expiresAt"`
-	LastUsedAt    *time.Time      `json:"lastUsedAt"`
-	LastUsedIp    *netip.Addr     `json:"lastUsedIp"`
-	RevokedAt     *time.Time      `json:"revokedAt"`
-	RotatedFrom   *uuid.UUID      `json:"rotatedFrom"`
-	CreatedByName *string         `json:"createdByName"`
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	Kind           string          `json:"kind"`
+	Name           string          `json:"name"`
+	Description    string          `json:"description"`
+	Prefix         string          `json:"prefix"`
+	TokenHash      []byte          `json:"tokenHash"`
+	Permissions    []string        `json:"permissions"`
+	Scope          json.RawMessage `json:"scope"`
+	CreatedBy      *uuid.UUID      `json:"createdBy"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	ExpiresAt      *time.Time      `json:"expiresAt"`
+	LastUsedAt     *time.Time      `json:"lastUsedAt"`
+	LastUsedIp     *netip.Addr     `json:"lastUsedIp"`
+	RevokedAt      *time.Time      `json:"revokedAt"`
+	RotatedFrom    *uuid.UUID      `json:"rotatedFrom"`
+	LastUsedClient string          `json:"lastUsedClient"`
+	LastCall       string          `json:"lastCall"`
+	CreatedByName  *string         `json:"createdByName"`
 }
 
 func (q *Queries) ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error) {
@@ -754,6 +788,8 @@ func (q *Queries) ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]Lis
 			&i.LastUsedIp,
 			&i.RevokedAt,
 			&i.RotatedFrom,
+			&i.LastUsedClient,
+			&i.LastCall,
 			&i.CreatedByName,
 		); err != nil {
 			return nil, err
@@ -894,7 +930,7 @@ func (q *Queries) ListMembersWithRoles(ctx context.Context, workspaceID uuid.UUI
 }
 
 const listPendingInvitations = `-- name: ListPendingInvitations :many
-SELECT i.id, i.workspace_id, i.email, i.role_id, i.scope, i.message, i.token_hash, i.invited_by, i.sent_via, i.last_sent_at, i.created_at, i.expires_at, i.accepted_at, i.accepted_by, i.revoked_at, i.reinvite_requested_at, r.name AS role_name, r.key AS role_key, u.name AS invited_by_name
+SELECT i.id, i.workspace_id, i.email, i.role_id, i.scope, i.message, i.token_hash, i.invited_by, i.sent_via, i.last_sent_at, i.created_at, i.expires_at, i.accepted_at, i.accepted_by, i.revoked_at, i.token_enc, i.expires_days, i.reinvite_requested_at, r.name AS role_name, r.key AS role_key, u.name AS invited_by_name
 FROM invitations i
 JOIN roles r ON r.id = i.role_id
 LEFT JOIN users u ON u.id = i.invited_by
@@ -918,6 +954,8 @@ type ListPendingInvitationsRow struct {
 	AcceptedAt          *time.Time      `json:"acceptedAt"`
 	AcceptedBy          *uuid.UUID      `json:"acceptedBy"`
 	RevokedAt           *time.Time      `json:"revokedAt"`
+	TokenEnc            []byte          `json:"tokenEnc"`
+	ExpiresDays         int32           `json:"expiresDays"`
 	ReinviteRequestedAt *time.Time      `json:"reinviteRequestedAt"`
 	RoleName            string          `json:"roleName"`
 	RoleKey             string          `json:"roleKey"`
@@ -949,6 +987,8 @@ func (q *Queries) ListPendingInvitations(ctx context.Context, workspaceID uuid.U
 			&i.AcceptedAt,
 			&i.AcceptedBy,
 			&i.RevokedAt,
+			&i.TokenEnc,
+			&i.ExpiresDays,
 			&i.ReinviteRequestedAt,
 			&i.RoleName,
 			&i.RoleKey,
@@ -1017,7 +1057,7 @@ func (q *Queries) ListRoles(ctx context.Context, workspaceID uuid.UUID) ([]ListR
 }
 
 const listUserWorkspaces = `-- name: ListUserWorkspaces :many
-SELECT w.id, w.slug, w.name, w.timezone, w.default_sender_id, w.approval_policy, w.sunset_policy, w.branding, w.send_thresholds, w.audit_retention_days, w.audit_stream_url, w.created_by, w.created_at, w.updated_at, w.deleted_at, w.default_automation_sender_id, w.default_system_sender_id, w.sending_defaults, r.key AS role_key, r.name AS role_name, m.status AS member_status,
+SELECT w.id, w.slug, w.name, w.timezone, w.default_sender_id, w.approval_policy, w.sunset_policy, w.branding, w.send_thresholds, w.audit_retention_days, w.audit_stream_url, w.created_by, w.created_at, w.updated_at, w.deleted_at, w.mcp_settings, w.audit_stream_enabled, w.audit_stream_secret_enc, w.audit_stream_cursor_at, w.audit_stream_cursor_id, w.audit_stream_status, w.default_automation_sender_id, w.default_system_sender_id, w.sending_defaults, r.key AS role_key, r.name AS role_name, m.status AS member_status,
        (SELECT count(*) FROM workspace_members m2 WHERE m2.workspace_id = w.id AND m2.status = 'active') AS member_count
 FROM workspace_members m
 JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
@@ -1042,6 +1082,12 @@ type ListUserWorkspacesRow struct {
 	CreatedAt                 time.Time       `json:"createdAt"`
 	UpdatedAt                 time.Time       `json:"updatedAt"`
 	DeletedAt                 *time.Time      `json:"deletedAt"`
+	McpSettings               json.RawMessage `json:"mcpSettings"`
+	AuditStreamEnabled        bool            `json:"auditStreamEnabled"`
+	AuditStreamSecretEnc      []byte          `json:"auditStreamSecretEnc"`
+	AuditStreamCursorAt       *time.Time      `json:"auditStreamCursorAt"`
+	AuditStreamCursorID       *uuid.UUID      `json:"auditStreamCursorId"`
+	AuditStreamStatus         json.RawMessage `json:"auditStreamStatus"`
 	DefaultAutomationSenderID *uuid.UUID      `json:"defaultAutomationSenderId"`
 	DefaultSystemSenderID     *uuid.UUID      `json:"defaultSystemSenderId"`
 	SendingDefaults           json.RawMessage `json:"sendingDefaults"`
@@ -1076,6 +1122,12 @@ func (q *Queries) ListUserWorkspaces(ctx context.Context, userID uuid.UUID) ([]L
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.McpSettings,
+			&i.AuditStreamEnabled,
+			&i.AuditStreamSecretEnc,
+			&i.AuditStreamCursorAt,
+			&i.AuditStreamCursorID,
+			&i.AuditStreamStatus,
 			&i.DefaultAutomationSenderID,
 			&i.DefaultSystemSenderID,
 			&i.SendingDefaults,
@@ -1095,7 +1147,7 @@ func (q *Queries) ListUserWorkspaces(ctx context.Context, userID uuid.UUID) ([]L
 }
 
 const listWorkspaces = `-- name: ListWorkspaces :many
-SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, default_automation_sender_id, default_system_sender_id, sending_defaults FROM workspaces WHERE deleted_at IS NULL ORDER BY created_at
+SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, default_automation_sender_id, default_system_sender_id, sending_defaults FROM workspaces WHERE deleted_at IS NULL ORDER BY created_at
 `
 
 func (q *Queries) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
@@ -1123,6 +1175,12 @@ func (q *Queries) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.McpSettings,
+			&i.AuditStreamEnabled,
+			&i.AuditStreamSecretEnc,
+			&i.AuditStreamCursorAt,
+			&i.AuditStreamCursorID,
+			&i.AuditStreamStatus,
 			&i.DefaultAutomationSenderID,
 			&i.DefaultSystemSenderID,
 			&i.SendingDefaults,
@@ -1140,7 +1198,7 @@ func (q *Queries) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
 const refreshInvitation = `-- name: RefreshInvitation :one
 UPDATE invitations SET token_hash = $1, last_sent_at = now(), expires_at = $2, sent_via = $3
 WHERE id = $4 AND workspace_id = $5 AND accepted_at IS NULL AND revoked_at IS NULL
-RETURNING id, workspace_id, email, role_id, scope, message, token_hash, invited_by, sent_via, last_sent_at, created_at, expires_at, accepted_at, accepted_by, revoked_at, reinvite_requested_at
+RETURNING id, workspace_id, email, role_id, scope, message, token_hash, invited_by, sent_via, last_sent_at, created_at, expires_at, accepted_at, accepted_by, revoked_at, token_enc, expires_days, reinvite_requested_at
 `
 
 type RefreshInvitationParams struct {
@@ -1176,6 +1234,8 @@ func (q *Queries) RefreshInvitation(ctx context.Context, arg RefreshInvitationPa
 		&i.AcceptedAt,
 		&i.AcceptedBy,
 		&i.RevokedAt,
+		&i.TokenEnc,
+		&i.ExpiresDays,
 		&i.ReinviteRequestedAt,
 	)
 	return i, err
@@ -1371,7 +1431,7 @@ func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, e
 }
 
 const updateWorkspaceApprovalPolicy = `-- name: UpdateWorkspaceApprovalPolicy :one
-UPDATE workspaces SET approval_policy = $1, updated_at = now() WHERE id = $2 RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, default_automation_sender_id, default_system_sender_id, sending_defaults
+UPDATE workspaces SET approval_policy = $1, updated_at = now() WHERE id = $2 RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, default_automation_sender_id, default_system_sender_id, sending_defaults
 `
 
 type UpdateWorkspaceApprovalPolicyParams struct {
@@ -1398,6 +1458,12 @@ func (q *Queries) UpdateWorkspaceApprovalPolicy(ctx context.Context, arg UpdateW
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.McpSettings,
+		&i.AuditStreamEnabled,
+		&i.AuditStreamSecretEnc,
+		&i.AuditStreamCursorAt,
+		&i.AuditStreamCursorID,
+		&i.AuditStreamStatus,
 		&i.DefaultAutomationSenderID,
 		&i.DefaultSystemSenderID,
 		&i.SendingDefaults,
@@ -1408,7 +1474,7 @@ func (q *Queries) UpdateWorkspaceApprovalPolicy(ctx context.Context, arg UpdateW
 const updateWorkspaceGeneral = `-- name: UpdateWorkspaceGeneral :one
 UPDATE workspaces SET name = $1, timezone = $2, default_sender_id = $3, updated_at = now()
 WHERE id = $4
-RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, default_automation_sender_id, default_system_sender_id, sending_defaults
+RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, default_automation_sender_id, default_system_sender_id, sending_defaults
 `
 
 type UpdateWorkspaceGeneralParams struct {
@@ -1442,6 +1508,12 @@ func (q *Queries) UpdateWorkspaceGeneral(ctx context.Context, arg UpdateWorkspac
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.McpSettings,
+		&i.AuditStreamEnabled,
+		&i.AuditStreamSecretEnc,
+		&i.AuditStreamCursorAt,
+		&i.AuditStreamCursorID,
+		&i.AuditStreamStatus,
 		&i.DefaultAutomationSenderID,
 		&i.DefaultSystemSenderID,
 		&i.SendingDefaults,
@@ -1456,7 +1528,7 @@ SET sunset_policy = coalesce($1, sunset_policy),
     send_thresholds = coalesce($3, send_thresholds),
     updated_at = now()
 WHERE id = $4
-RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, default_automation_sender_id, default_system_sender_id, sending_defaults
+RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, default_automation_sender_id, default_system_sender_id, sending_defaults
 `
 
 type UpdateWorkspaceJSONParams struct {
@@ -1490,6 +1562,12 @@ func (q *Queries) UpdateWorkspaceJSON(ctx context.Context, arg UpdateWorkspaceJS
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.McpSettings,
+		&i.AuditStreamEnabled,
+		&i.AuditStreamSecretEnc,
+		&i.AuditStreamCursorAt,
+		&i.AuditStreamCursorID,
+		&i.AuditStreamStatus,
 		&i.DefaultAutomationSenderID,
 		&i.DefaultSystemSenderID,
 		&i.SendingDefaults,
