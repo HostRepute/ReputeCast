@@ -140,8 +140,8 @@ type Querier interface {
 	ConnectActiveContacts(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	ConnectCreateList(ctx context.Context, arg ConnectCreateListParams) error
 	// The first webhook payload a provider sent since a time (the test send's
-	// "event came back" step).
-	ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebhookParams) (time.Time, error)
+	// "event came back" step), with its body to name the event.
+	ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebhookParams) (ConnectFirstWebhookRow, error)
 	ConnectInsertProvider(ctx context.Context, arg ConnectInsertProviderParams) (Provider, error)
 	ConnectListNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	ConnectMessage(ctx context.Context, arg ConnectMessageParams) (Message, error)
@@ -781,6 +781,8 @@ type Querier interface {
 	// the providers domain) and, for providers without a suppression API, the
 	// addresses their bounce and complaint events added to the shared list.
 	SuppressionSyncStates(ctx context.Context, workspaceID uuid.UUID) ([]SuppressionSyncStatesRow, error)
+	// A message the system mailer or a setup's test sends (stream system, or
+	// the stream a test goes on).
 	SysmailInsertMessage(ctx context.Context, arg SysmailInsertMessageParams) error
 	SysmailMarkSent(ctx context.Context, arg SysmailMarkSentParams) error
 	// Every workspace, oldest first (instance-level mail falls back to the

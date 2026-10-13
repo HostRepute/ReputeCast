@@ -353,13 +353,18 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 	mailpit := delivered != nil && strings.HasPrefix(delivered.OriginalType, "Delivered to Mailpit")
 	inferred := d.Capabilities.Webhooks == "" || d.Capabilities.Webhooks == "Bounce mailbox" || mailpit
 	if m.SentAt != nil {
-		if first, err := s.Q.ConnectFirstWebhook(ctx, store.ConnectFirstWebhookParams{ProviderID: p.ID, Since: *m.SentAt}); err == nil && !inferred {
+		if hook, err := s.Q.ConnectFirstWebhook(ctx, store.ConnectFirstWebhookParams{ProviderID: p.ID, Since: *m.SentAt}); err == nil && !inferred {
 			via := "webhook"
 			if d.Capabilities.Webhooks == "SNS" {
 				via = "SNS"
 			}
+			first := hook.ReceivedAt
+			event := c.Short + " event"
+			if name := webhookEventName(hook.Body); name != "" {
+				event = c.Short + " \"" + name + "\" event"
+			}
 			sent.Status, sent.At = "done", &first
-			sent.Detail = clockMs(first) + " · " + c.Short + " event via " + via + " · " + fmt.Sprint(first.Sub(*m.SentAt).Milliseconds()) + " ms after accept"
+			sent.Detail = clockMs(first) + " · " + event + " via " + via + " · " + fmt.Sprint(first.Sub(*m.SentAt).Milliseconds()) + " ms after accept"
 		} else if delivered != nil {
 			at := delivered.OccurredAt
 			sent.Status, sent.At = "done", &at
@@ -397,6 +402,10 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 		del.Detail = detail
 		if mailpit {
 			del.Title = "Delivered to Mailpit (development)"
+			del.Detail = clockMs(at) + " · SMTP reply"
+			if code != "" {
+				del.Detail += " `" + code + "`"
+			}
 		}
 		out.RoundTrip = roundTrip(at.Sub(queued), d, mailpit)
 		ms := at.Sub(queued).Milliseconds()
@@ -572,4 +581,57 @@ func (s *Service) testMessage(ctx context.Context, wsID uuid.UUID, rawID string)
 	}
 	m, err := s.Q.ConnectMessage(ctx, store.ConnectMessageParams{WorkspaceID: wsID, ID: mid})
 	return m, err == nil
+}
+
+// webhookEventName reads the provider's own name for the first event of a
+// webhook payload ("Send" from SES through SNS, "Delivery" from Postmark,
+// "delivered" from Mailgun), for the timeline. Payloads are provider JSON:
+// an SNS envelope's Message is unwrapped, arrays give their first item and
+// the usual event keys are looked up a few levels down. Empty when the
+// payload names no event.
+func webhookEventName(body []byte) string {
+	var v any
+	if json.Unmarshal(body, &v) != nil {
+		return ""
+	}
+	return eventNameIn(v, 0)
+}
+
+func eventNameIn(v any, depth int) string {
+	if depth > 3 {
+		return ""
+	}
+	switch x := v.(type) {
+	case []any:
+		if len(x) > 0 {
+			return eventNameIn(x[0], depth+1)
+		}
+	case map[string]any:
+		if msg, ok := x["Message"].(string); ok && x["Type"] == "Notification" {
+			var inner any
+			if json.Unmarshal([]byte(msg), &inner) == nil {
+				return eventNameIn(inner, depth+1)
+			}
+		}
+		for _, k := range []string{"eventType", "RecordType", "event", "type"} {
+			if s, ok := x[k].(string); ok && s != "" && len(s) <= 60 && !strings.ContainsAny(s, "\n\"`") {
+				return s
+			}
+		}
+		for _, k := range []string{"event-data", "msys", "message_event", "data"} {
+			if inner, ok := x[k]; ok {
+				if s := eventNameIn(inner, depth+1); s != "" {
+					return s
+				}
+			}
+		}
+		if m, ok := x["msys"].(map[string]any); ok {
+			for _, inner := range m {
+				if s := eventNameIn(inner, depth+1); s != "" {
+					return s
+				}
+			}
+		}
+	}
+	return ""
 }

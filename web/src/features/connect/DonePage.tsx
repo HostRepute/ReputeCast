@@ -22,7 +22,8 @@ export function DonePage({ setup }: { setup: Schemas['ConnectSetup'] }) {
   const minutes = done.minutes === 1 ? '1 minute' : `${done.minutes} minutes`
   return (
     <WizardLayout title="Connect a sending provider" badge={<Badge tone="ok">Done</Badge>} exit={false}>
-      <main id="main" tabIndex={-1} className="mx-auto box-border flex w-full max-w-[860px] flex-col gap-[18px] px-7 py-10 max-md:px-3 max-md:py-6">
+      {/* The summary isn't a wizard step: as on the board it keeps its 40 px × 28 px padding at every width. */}
+      <main id="main" tabIndex={-1} className="mx-auto box-border flex w-full max-w-[860px] flex-col gap-[18px] px-7 py-10">
         <div className="flex flex-wrap items-center gap-[18px]">
           <svg width="56" height="56" viewBox="0 0 40 40" aria-hidden="true" className="pop">
             <circle cx="20" cy="20" r="19" fill="#BBF7D0" />
@@ -38,7 +39,7 @@ export function DonePage({ setup }: { setup: Schemas['ConnectSetup'] }) {
         </div>
 
         <section className="card flex flex-col" aria-labelledby="configured-h">
-          <div className="flex items-center justify-between gap-2 px-4.5 py-3.5">
+          <div className="flex items-center justify-between px-4.5 py-3.5 max-md:flex-wrap">
             <h3 className="h2" id="configured-h">
               What was configured
             </h3>

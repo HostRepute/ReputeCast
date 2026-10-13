@@ -20,7 +20,9 @@ const ENCRYPTION: { value: Form['tls']; label: string; port: number }[] = [
   { value: 'none', label: 'None', port: 25 },
 ]
 
-const MAILBOX_PORTS: Record<'imap' | 'pop3', { port: number; tls: 'tls' | 'starttls'; label: string }[]> = {
+const TLS_WORDS: Record<'tls' | 'starttls' | 'none', string> = { tls: 'TLS', starttls: 'STARTTLS', none: 'no TLS' }
+
+const MAILBOX_PORTS: Record<'imap' | 'pop3', { port: number; tls: 'tls' | 'starttls' | 'none'; label: string }[]> = {
   imap: [
     { port: 993, tls: 'tls', label: '993 · TLS' },
     { port: 143, tls: 'starttls', label: '143 · STARTTLS' },
@@ -203,7 +205,11 @@ function MailboxCard({ setup, reason, connected }: { setup: Schemas['ConnectSetu
   const [folder, setFolder] = useState(f?.folder || 'INBOX')
   const [pollEvery, setPollEvery] = useState<'1m' | '5m' | '15m'>(f?.pollEvery ?? '1m')
   const [after, setAfter] = useState<'move' | 'delete' | 'leave'>(f?.afterProcessing ?? 'move')
-  const ports = MAILBOX_PORTS[protocol]
+  // A mailbox saved on another port (a relay's own setup) keeps it.
+  const saved = f?.mailboxPort && f.protocol === protocol && !MAILBOX_PORTS[protocol].some((p) => p.port === f.mailboxPort) ? f : undefined
+  const ports = saved
+    ? [...MAILBOX_PORTS[protocol], { port: saved.mailboxPort, tls: saved.mailboxTls, label: `${saved.mailboxPort} · ${TLS_WORDS[saved.mailboxTls]}` }]
+    : MAILBOX_PORTS[protocol]
   const tls = ports.find((p) => p.port === port)?.tls ?? f?.mailboxTls ?? 'tls'
   const mb = setup.connection.mailbox
   const test = (e?: FormEvent) => {

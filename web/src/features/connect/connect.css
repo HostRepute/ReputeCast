@@ -244,4 +244,10 @@
     max-width: 100%;
     min-width: 0;
   }
+  /* As on the boards: a select is as wide as its column, never as wide as
+     its longest option ("us-east-1 · N. Virginia · production access…"). */
+  .cn-main select.in {
+    width: 0;
+    min-width: 100%;
+  }
 }

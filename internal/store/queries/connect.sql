@@ -88,8 +88,8 @@ SELECT * FROM delivery_events WHERE message_id = @message_id ORDER BY occurred_a
 
 -- name: ConnectFirstWebhook :one
 -- The first webhook payload a provider sent since a time (the test send's
--- "event came back" step).
-SELECT received_at FROM provider_raw_events
+-- "event came back" step), with its body to name the event.
+SELECT received_at, body FROM provider_raw_events
 WHERE provider_id = @provider_id AND source = 'webhook' AND received_at >= @since
 ORDER BY received_at
 LIMIT 1;
@@ -114,8 +114,10 @@ WHERE workspace_id = @workspace_id AND disconnected_at IS NULL AND webhook_secre
 ORDER BY connected_at;
 
 -- name: SysmailInsertMessage :exec
+-- A message the system mailer or a setup's test sends (stream system, or
+-- the stream a test goes on).
 INSERT INTO messages (id, workspace_id, stream, email, provider_id, mailbox_provider, status, queued_at, kind)
-VALUES (@id, @workspace_id, 'system', @email, @provider_id, @mailbox_provider, 'queued', @queued_at, @kind);
+VALUES (@id, @workspace_id, @stream, @email, @provider_id, @mailbox_provider, 'queued', @queued_at, @kind);
 
 -- name: SysmailMarkSent :exec
 UPDATE messages

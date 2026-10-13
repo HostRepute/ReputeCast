@@ -39,7 +39,11 @@ export function SectionCard({ title, aside, children, className }: { title: Reac
   )
 }
 
-/** A status row of a card: badge, text, and something on the right. */
+/**
+ * A status row of a card: badge, text, and something on the right. As on
+ * the boards, a detail on the right wraps when the row is narrow (an error
+ * code, "after the endpoint is reachable"); buttons keep their width.
+ */
 export function StatusRow({
   badge,
   children,
@@ -57,7 +61,7 @@ export function StatusRow({
     <div className={cn('cn-row', lg && 'lg', className)}>
       {badge}
       <span className="min-w-0">{children}</span>
-      {aside ? <span className="ml-auto flex shrink-0 items-center gap-1.5">{aside}</span> : null}
+      {aside ? <span className="ml-auto flex items-center gap-1.5">{aside}</span> : null}
     </div>
   )
 }

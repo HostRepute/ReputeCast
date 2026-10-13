@@ -65,13 +65,13 @@ export function StreamsStep({ setup, go, reason, finished }: StepProps) {
             Suggested next steps
           </h3>
           {setup.streams.tips.map((t) => (
-            <div key={t} className="flex items-start gap-3 text-[13px]">
+            <div key={t} className="flex items-start gap-3 text-[13px] max-md:flex-wrap">
               <Badge tone="info">Tip</Badge>
               <span>{t}</span>
             </div>
           ))}
           {setup.streams.defaults ? (
-            <div className="flex items-start gap-3 text-[13px]">
+            <div className="flex items-start gap-3 text-[13px] max-md:flex-wrap">
               <Badge tone="ok">Set</Badge>
               <span>{setup.streams.defaults}</span>
             </div>

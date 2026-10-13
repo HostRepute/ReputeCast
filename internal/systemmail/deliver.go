@@ -110,7 +110,11 @@ func (d *Deliverer) Send(ctx context.Context, p store.Provider, msg providers.Me
 	}
 	out.Via = via
 	to := strings.ToLower(msg.To.Address)
-	if err := d.Q.SysmailInsertMessage(ctx, store.SysmailInsertMessageParams{ID: msg.ID, WorkspaceID: p.WorkspaceID, Email: to, ProviderID: &p.ID,
+	stream := msg.Stream
+	if stream == "" {
+		stream = providers.StreamSystem
+	}
+	if err := d.Q.SysmailInsertMessage(ctx, store.SysmailInsertMessageParams{ID: msg.ID, WorkspaceID: p.WorkspaceID, Stream: string(stream), Email: to, ProviderID: &p.ID,
 		MailboxProvider: routing.MailboxProvider(to), QueuedAt: out.QueuedAt, Kind: kind}); err != nil {
 		return out, err
 	}

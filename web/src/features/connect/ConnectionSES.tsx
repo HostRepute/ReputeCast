@@ -98,8 +98,9 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
             description="Paste an access key id and secret for a user with the policy below. Keys are encrypted at rest and never shown again."
           >
               <span className="mt-2 grid grid-cols-2 gap-2">
+                {/* Disabled until picked, but white as on the board. */}
                 <input
-                  className="in mono min-w-0"
+                  className="in mono min-w-0 bg-white"
                   placeholder="AKIA…"
                   aria-label="Access key id"
                   aria-invalid={err?.field === 'access_key_id' || undefined}
@@ -109,7 +110,7 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
                   autoComplete="off"
                 />
                 <input
-                  className="in mono min-w-0"
+                  className="in mono min-w-0 bg-white"
                   type="password"
                   placeholder="Secret access key"
                   aria-label="Secret access key"

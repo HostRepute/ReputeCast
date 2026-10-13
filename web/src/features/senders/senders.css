@@ -16,4 +16,12 @@
     gap: 10px;
     font-size: 13px;
   }
+  /* A long value ("Broadcasts 90% · Automations · System fallback") wraps
+     on the right; the key keeps its width. */
+  .sd-kv > .k {
+    flex: none;
+  }
+  .sd-kv > :last-child {
+    text-align: right;
+  }
 }

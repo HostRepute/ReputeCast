@@ -21,10 +21,19 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
   const c = setup.connection
   const fields = c.fields.length ? c.fields : info.fields
   const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(fields.map((f) => [f.key, f.secret ? '' : f.value || f.options[0]?.value || ''])))
+  // Required fields left empty, found when the form is sent: the button
+  // stays available and the errors appear next to the fields.
+  const [missing, setMissing] = useState<string[]>([])
   const failedKey = c.status === 'failed' ? c.error : undefined
   const connected = c.status === 'connected'
   const connect = (e?: FormEvent) => {
     e?.preventDefault()
+    const empty = fields.filter((f) => f.required && !(values[f.key] ?? '').trim() && !(f.secret && f.set)).map((f) => f.key)
+    setMissing(empty)
+    if (empty.length) {
+      document.getElementById(`cn-field-${empty[0]}`)?.focus()
+      return
+    }
     const body: Record<string, string> = {}
     for (const f of fields) {
       const v = (values[f.key] ?? '').trim()
@@ -33,13 +42,19 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
     }
     a.connect.mutate({ values: body }, { onError: failed(`Couldn't check the ${info.short} key`, () => connect()) })
   }
-  const missing = fields.find((f) => f.required && !(values[f.key] ?? '').trim() && !(f.secret && f.set))
+  const change = (key: string, v: string) => {
+    setValues((s) => ({ ...s, [key]: v }))
+    if (v.trim()) setMissing((m) => m.filter((k) => k !== key))
+  }
   // The key, the required fields and the selects come first; optional
   // fields (allowances, signing keys, alternatives) fold away.
   const firstSecret = fields.find((f) => f.secret)?.key
   const main = fields.filter((f) => f.required || f.options.length > 0 || f.key === firstSecret)
   const extra = fields.filter((f) => !main.includes(f))
-  const errorFor = (f: Schemas['ConnectField']) => (failedKey && (failedKey.field === f.key || (!failedKey.field && f.key === firstSecret)) ? failedKey : undefined)
+  const errorFor = (f: Schemas['ConnectField']): Schemas['ConnectError'] | undefined => {
+    if (missing.includes(f.key)) return { field: f.key, code: 'missing', message: `Enter the ${f.label.charAt(0).toLowerCase()}${f.label.slice(1)}.` }
+    return failedKey && (failedKey.field === f.key || (!failedKey.field && f.key === firstSecret)) ? failedKey : undefined
+  }
   const extraOpen = extra.some((f) => errorFor(f) || (f.secret ? f.set : Boolean(f.value)))
   return (
     <>
@@ -52,7 +67,7 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
         <form id="api-key" className="contents" onSubmit={connect}>
           <div className="grid items-end gap-3 max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))' }}>
             {main.map((f) => (
-              <KeyField key={f.key} field={f} value={values[f.key] ?? ''} onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))} error={errorFor(f)} disabled={Boolean(reason)} />
+              <KeyField key={f.key} field={f} value={values[f.key] ?? ''} onChange={(v) => change(f.key, v)} error={errorFor(f)} disabled={Boolean(reason)} />
             ))}
           </div>
           {extra.length ? (
@@ -60,14 +75,14 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
               <summary className="cursor-pointer font-semibold">{`More ${info.short} settings`}</summary>
               <div className="mt-3 grid items-end gap-3 max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))' }}>
                 {extra.map((f) => (
-                  <KeyField key={f.key} field={f} value={values[f.key] ?? ''} onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))} error={errorFor(f)} disabled={Boolean(reason)} />
+                  <KeyField key={f.key} field={f} value={values[f.key] ?? ''} onChange={(v) => change(f.key, v)} error={errorFor(f)} disabled={Boolean(reason)} />
                 ))}
               </div>
             </details>
           ) : null}
           <button type="submit" hidden aria-hidden="true" tabIndex={-1} />
         </form>
-        {failedKey && !fields.some((f) => errorFor(f)) ? (
+        {failedKey && !fields.some((f) => failedKey.field === f.key || (!failedKey.field && f.key === firstSecret)) ? (
           <Note tone="bad">
             <Ticks text={failedKey.message} />
           </Note>
@@ -78,7 +93,7 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
             form="api-key"
             variant={connected ? 'default' : 'primary'}
             loading={a.connect.isPending}
-            disabledReason={reason ?? (missing ? `Enter the ${missing.label.toLowerCase()} first.` : undefined)}
+            disabledReason={reason}
           >
             {failedKey ? 'Try again' : connected ? 'Check again' : 'Connect'}
           </Button>
@@ -133,7 +148,7 @@ function KeyField({
     return (
       <label className="lbl">
         {f.label}
-        <select className="in" value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
+        <select id={`cn-field-${f.key}`} className="in" value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
           {f.options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
@@ -147,6 +162,7 @@ function KeyField({
     <label className={cn('lbl', f.secret && 'col-span-2 max-md:col-span-full', error && 'text-bad-fg')}>
       {f.label}
       <input
+        id={`cn-field-${f.key}`}
         className={cn('in mono', error && 'bg-bad-tint')}
         type={f.secret ? 'password' : f.type === 'number' ? 'number' : 'text'}
         inputMode={f.type === 'number' ? 'numeric' : undefined}
@@ -261,7 +277,7 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
                 {test?.private ? 'ReputeCast is running at a private address. ' : "Providers can't reach ReputeCast at its public URL. "}
                 Set <span className="mono">REPUTECAST_PUBLIC_URL</span> in your docker compose .env to the HTTPS address your reverse proxy exposes, then restart.
               </span>
-              <pre className="cn-pre whitespace-pre-wrap break-all">{`REPUTECAST_PUBLIC_URL=https://reputecast.${org}`}</pre>
+              <pre className="cn-pre">{`REPUTECAST_PUBLIC_URL=https://reputecast.${org}`}</pre>
             </div>
             <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
               <span className="font-semibold">Or use a tunnel while testing</span>

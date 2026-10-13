@@ -92,7 +92,6 @@ function SettingsBody({ data }: { data: Settings }) {
   const [error, setError] = useState<string>()
   const [rotating, setRotating] = useState(false)
   const save = $api.useMutation('put', settingsPath)
-  const dirty = JSON.stringify(f) !== JSON.stringify(initial)
   const set = (patch: Partial<typeof f>) => setF((x) => ({ ...x, ...patch }))
   const submit = () => {
     const nums = { bounce: numberIn(f.bounce), complaint: numberIn(f.complaint), mailboxComplaint: numberIn(f.mailboxComplaint), providerError: numberIn(f.providerError), confirmOver: numberIn(f.confirmOver) }
@@ -205,9 +204,9 @@ function SettingsBody({ data }: { data: Settings }) {
           </label>
           <div className="lbl">
             <span id="secrets-l">Webhook signing secrets</span>
-            <div className="flex gap-2">
+            <div className="flex gap-2 max-md:flex-wrap">
               <input
-                className="in flex-1"
+                className="in flex-1 bg-white max-md:w-0 max-md:min-w-full"
                 value={data.defaults.secretsRotatedAt ? `Rotated ${dayMonthYear(data.defaults.secretsRotatedAt)}` : 'Not rotated since the providers were connected'}
                 readOnly
                 aria-labelledby="secrets-l"
@@ -225,7 +224,6 @@ function SettingsBody({ data }: { data: Settings }) {
             setF(initial)
             setError(undefined)
           }}
-          disabledReason={dirty ? undefined : 'Nothing changed.'}
         >
           Discard
         </Button>

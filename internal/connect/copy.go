@@ -152,9 +152,9 @@ func copyFor(d providers.Descriptor) adapterCopy {
 	if c.ConnectionHint == "" {
 		c.ConnectionHint = "API key, region, webhooks"
 	}
-	if c.DomainHint == "" {
-		c.DomainHint = "DKIM, return-path, SPF, DMARC"
-	}
+	// DomainHint stays empty for API providers: their records come from the
+	// provider's API once the key works (SetupError), so the stepper only
+	// previews the domain step for SES and SMTP.
 	if c.Section == "" {
 		c.Section = "1. Credentials"
 	}

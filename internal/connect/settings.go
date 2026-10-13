@@ -182,27 +182,30 @@ func statusLabel(c manage.ProviderCard) (string, string) {
 	return "Paused", "neutral"
 }
 
-// streamsText says what a provider carries, stream by stream.
+// streamsText says what a provider carries: the streams it sends first
+// ("Broadcasts 90% · Automations"), then the ones it backs up ("System ·
+// Automations fallback"), then streams it gets only through rules.
 func streamsText(roles []manage.ProviderStreamRole) string {
 	parts := []string{}
 	seen := map[string]bool{}
-	for _, r := range roles {
-		name := streamName(r.Stream)
-		switch r.Role {
-		case "split":
-			parts = append(parts, name+" "+strconv.Itoa(r.Percent)+"%")
-		case "primary":
-			parts = append(parts, name)
-		case "fallback":
-			parts = append(parts, name+" fallback")
-		default:
-			continue
-		}
-		seen[r.Stream] = true
-	}
-	for _, r := range roles {
-		if r.Role == "condition" && !seen[r.Stream] {
-			parts = append(parts, streamName(r.Stream)+" (rules)")
+	for _, pass := range []string{"carries", "fallback", "condition"} {
+		for _, r := range roles {
+			if seen[r.Stream] {
+				continue
+			}
+			name := streamName(r.Stream)
+			switch {
+			case pass == "carries" && r.Role == "split":
+				parts = append(parts, name+" "+strconv.Itoa(r.Percent)+"%")
+			case pass == "carries" && r.Role == "primary":
+				parts = append(parts, name)
+			case pass == "fallback" && r.Role == "fallback":
+				parts = append(parts, name+" fallback")
+			case pass == "condition" && r.Role == "condition":
+				parts = append(parts, name+" (rules)")
+			default:
+				continue
+			}
 			seen[r.Stream] = true
 		}
 	}

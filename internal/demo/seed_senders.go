@@ -148,7 +148,12 @@ func seedSendersRecords(ctx context.Context, s *Seeder) error {
 			return err
 		}
 	}
-	_ = postmark
+	// Settings › Providers names the Postmark server that carries System mail.
+	if postmark != uuid.Nil {
+		if _, err := s.Tx.Exec(ctx, `UPDATE providers SET config = config || '{"server": "acme-prod"}'::jsonb WHERE id = $1`, postmark); err != nil {
+			return err
+		}
+	}
 	svc := SendersDomainService(s.Tx, s.Cfg.HTTP.PublicURL)
 	svc.Now = func() time.Time { return s.Ago(4 * time.Minute) }
 	for _, name := range []string{"news.acme.io", "acme.io"} {
@@ -210,7 +215,7 @@ func seedSendersSetup(ctx context.Context, s *Seeder) error {
 	// The test message: queued, accepted by SES, the SNS "Send" event, the delivery.
 	msgID := ID()
 	queued, sent, event, delivered := at(9, 21, 4, 112), at(9, 21, 4, 380), at(9, 21, 5, 16), at(9, 21, 6, 471)
-	pmid := "010001929f3a8b2e-6c1d0f4e-9a7b-4c3e-b1f2-0d9e8c7b6a5f-000000"
+	pmid := "010001929f3a8b2e-6c1d0f4e-9a7b-4c3e-b1f2-0d9e8c7b6a5fc4f2"
 	if _, err := s.Tx.Exec(ctx, `INSERT INTO messages (id, workspace_id, stream, email, provider_id, provider_message_id, mailbox_provider, status, queued_at, sent_at, delivered_at, kind)
 		VALUES ($1,$2,'broadcast','linh@acme.io',$3,$4,'gmail','delivered',$5,$6,$7,'test')`, msgID, ws.ID, ses, pmid, queued, sent, delivered); err != nil {
 		return err
@@ -276,7 +281,7 @@ func seedSendersMailgunAttempt(ctx context.Context, s *Seeder) error {
 		w.Registration = &connect.Registration{Status: "skipped", At: tried, Detail: "after the endpoint is reachable"}
 	}
 	st := connect.State{Connection: connect.Connection{
-		Status: "failed", At: &tried, Settings: map[string]string{"region": "us"}, Webhook: w,
+		Status: "failed", At: &tried, Settings: map[string]string{"region": "us", "domain": "news.acme.io"}, Webhook: w,
 		Error: &connect.StepError{Field: "api_key", Code: "invalid_credentials", Detail: "401 Unauthorized · Forbidden",
 			Message: "Mailgun rejected this key: `401 Unauthorized · Forbidden`. Check that it's a Private API key (not a Sending key or the HTTP webhook signing key) and that it belongs to the region selected below."},
 	}}

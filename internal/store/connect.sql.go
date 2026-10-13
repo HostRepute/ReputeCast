@@ -46,7 +46,7 @@ func (q *Queries) ConnectCreateList(ctx context.Context, arg ConnectCreateListPa
 }
 
 const connectFirstWebhook = `-- name: ConnectFirstWebhook :one
-SELECT received_at FROM provider_raw_events
+SELECT received_at, body FROM provider_raw_events
 WHERE provider_id = $1 AND source = 'webhook' AND received_at >= $2
 ORDER BY received_at
 LIMIT 1
@@ -57,13 +57,18 @@ type ConnectFirstWebhookParams struct {
 	Since      time.Time `json:"since"`
 }
 
+type ConnectFirstWebhookRow struct {
+	ReceivedAt time.Time `json:"receivedAt"`
+	Body       []byte    `json:"body"`
+}
+
 // The first webhook payload a provider sent since a time (the test send's
-// "event came back" step).
-func (q *Queries) ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebhookParams) (time.Time, error) {
+// "event came back" step), with its body to name the event.
+func (q *Queries) ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebhookParams) (ConnectFirstWebhookRow, error) {
 	row := q.db.QueryRow(ctx, connectFirstWebhook, arg.ProviderID, arg.Since)
-	var received_at time.Time
-	err := row.Scan(&received_at)
-	return received_at, err
+	var i ConnectFirstWebhookRow
+	err := row.Scan(&i.ReceivedAt, &i.Body)
+	return i, err
 }
 
 const connectInsertProvider = `-- name: ConnectInsertProvider :one
@@ -796,12 +801,13 @@ func (q *Queries) SetupSave(ctx context.Context, arg SetupSaveParams) (ProviderS
 
 const sysmailInsertMessage = `-- name: SysmailInsertMessage :exec
 INSERT INTO messages (id, workspace_id, stream, email, provider_id, mailbox_provider, status, queued_at, kind)
-VALUES ($1, $2, 'system', $3, $4, $5, 'queued', $6, $7)
+VALUES ($1, $2, $3, $4, $5, $6, 'queued', $7, $8)
 `
 
 type SysmailInsertMessageParams struct {
 	ID              uuid.UUID  `json:"id"`
 	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	Stream          string     `json:"stream"`
 	Email           string     `json:"email"`
 	ProviderID      *uuid.UUID `json:"providerId"`
 	MailboxProvider string     `json:"mailboxProvider"`
@@ -809,10 +815,13 @@ type SysmailInsertMessageParams struct {
 	Kind            string     `json:"kind"`
 }
 
+// A message the system mailer or a setup's test sends (stream system, or
+// the stream a test goes on).
 func (q *Queries) SysmailInsertMessage(ctx context.Context, arg SysmailInsertMessageParams) error {
 	_, err := q.db.Exec(ctx, sysmailInsertMessage,
 		arg.ID,
 		arg.WorkspaceID,
+		arg.Stream,
 		arg.Email,
 		arg.ProviderID,
 		arg.MailboxProvider,
