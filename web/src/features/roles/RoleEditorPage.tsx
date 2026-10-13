@@ -229,7 +229,7 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
             {builtin ? <Badge tone="neutral">Built-in · read-only</Badge> : <Badge tone="info">Custom role</Badge>}
           </div>
           <div className="pad col gap-3.5">
-            <div className="grid grid-cols-[1fr_2fr] gap-3.5 max-md:grid-cols-1">
+            <div className="grid grid-cols-[1fr_2fr] gap-3.5 max-md:grid-cols-1 [&>*]:min-w-0">
               <label className="lbl">
                 Name
                 <input
@@ -348,7 +348,6 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
               </div>
             )
           })}
-          <div className="h-2" />
         </section>
       </div>
       <section className="card md:sticky md:top-4" aria-labelledby="impact-h">
