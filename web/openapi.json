@@ -21278,7 +21278,7 @@
         "x-permission": "providers:manage"
       },
       "put": {
-        "description": "Loopback and private addresses need adapters.allow_private_networks; plain http:// only reaches them.",
+        "description": "Loopback and private addresses need providers.allow_private_networks; plain http:// only reaches them.",
         "operationId": "update-adapter-runtime",
         "parameters": [
           {

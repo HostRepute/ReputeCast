@@ -35,7 +35,7 @@ func newAdapterCmd(o *rootOpts) *cobra.Command {
 		Short: "Install community adapters and tell ReputeCast where they run (docs/adapters.md)",
 		Long: "Community adapters run in their own process and speak the adapter protocol. Install one from its\n" +
 			"manifest, run its process with the signing secret ReputeCast prints, and check it. Loopback and\n" +
-			"private addresses need adapters.allow_private_networks (REPUTECAST_ADAPTERS__ALLOW_PRIVATE_NETWORKS=true).",
+			"private addresses need providers.allow_private_networks (REPUTECAST_PROVIDERS__ALLOW_PRIVATE_NETWORKS=true).",
 	}
 	run := func(fn func(ctx context.Context, cmd *cobra.Command, s *remote.Service) error) func(*cobra.Command, []string) error {
 		return func(cmd *cobra.Command, _ []string) error {

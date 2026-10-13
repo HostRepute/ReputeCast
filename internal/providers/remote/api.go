@@ -40,7 +40,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "update-adapter-runtime", Path: base, Summary: "Set where a community adapter's process listens (instance admins)",
-		Description: "Loopback and private addresses need adapters.allow_private_networks; plain http:// only reaches them.", Tags: tags, Access: access},
+		Description: "Loopback and private addresses need providers.allow_private_networks; plain http:// only reaches them.", Tags: tags, Access: access},
 		func(ctx context.Context, in *runtimeUpdateInput) (*api.Body[AdapterRuntime], error) {
 			r, err := s.adminRow(ctx, in.AdapterID)
 			if err != nil {

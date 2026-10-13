@@ -183,7 +183,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// isn't answering): ask the provider to retry instead of storing an
 		// unverified payload as verified.
 		h.Log.WarnContext(ctx, "webhook verification unavailable", "provider", p.ID, "err", verr)
-		reply(w, http.StatusServiceUnavailable, `{"error":"try again"}`)
+		retryLater(w)
 		return
 	}
 	sigOK := !errors.Is(verr, providers.ErrBadSignature)

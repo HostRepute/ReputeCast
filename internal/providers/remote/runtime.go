@@ -54,7 +54,7 @@ type Runtime struct {
 	Pool *pgxpool.Pool
 	Box  *secrets.Box
 	Log  *slog.Logger
-	// AllowPrivate reports adapters.allow_private_networks; read at each sync.
+	// AllowPrivate reports providers.allow_private_networks; read at each sync.
 	AllowPrivate func() bool
 	// PublicURL is ReputeCast's public base URL (forwarded webhook URLs).
 	PublicURL func() string

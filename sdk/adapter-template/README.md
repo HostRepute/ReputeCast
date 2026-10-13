@@ -35,7 +35,7 @@ other request must be signed by ReputeCast.
 
 On the ReputeCast server (instance admin, `--url` is where this process
 listens; loopback and private addresses need
-`REPUTECAST_ADAPTERS__ALLOW_PRIVATE_NETWORKS=true`):
+`REPUTECAST_PROVIDERS__ALLOW_PRIVATE_NETWORKS=true`):
 
 ```bash
 reputecast adapter install ./manifest.json --url http://127.0.0.1:4600

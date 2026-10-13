@@ -31,7 +31,7 @@ type Service struct {
 	Audit   *audit.Logger
 	Box     *secrets.Box
 	Runtime *Runtime
-	// AllowPrivate reports adapters.allow_private_networks.
+	// AllowPrivate reports providers.allow_private_networks.
 	AllowPrivate func() bool
 	Now          func() time.Time
 }

@@ -87,12 +87,11 @@ func post(t *testing.T, env *apptest.Env, path string, body []byte, h http.Heade
 
 func TestRuntimeEndToEnd(t *testing.T) {
 	env := apptest.New(t)
+	env.SeedDemo() // restarts the app on the seeded database
 	// The test changes the configuration below, which a running process never
 	// does: the background sync loop must not read it meanwhile (the API's
 	// install, update and removal hooks still sync).
 	env.App.CommunityRuntime().Stop()
-	env.SeedDemo()
-	env.App.Cfg.Providers.AllowPrivateNetworks = true
 	ctx := context.Background()
 
 	// The adapter process (a Go fake) and its installation from the CLI.
@@ -275,11 +274,12 @@ func TestRuntimeEndToEnd(t *testing.T) {
 		t.Fatalf("raw events %d", c)
 	}
 
-	// While the adapter process is down, webhooks are refused with 503 (the
-	// provider retries) and nothing unverified is stored as verified.
+	// While the adapter process is down, webhooks are refused with 429 and
+	// Retry-After (the provider retries) and nothing unverified is stored
+	// as verified.
 	srv.Close()
 	hdr.Set(remotetest.SignatureHeader, remotetest.SignWebhook(signingKey, body))
-	if code, _ := post(t, env, hookPath, body, hdr); code != http.StatusServiceUnavailable {
+	if code, _ := post(t, env, hookPath, body, hdr); code != http.StatusTooManyRequests {
 		t.Fatalf("adapter down: %d", code)
 	}
 	if c := count(t, env, `SELECT count(*) FROM provider_raw_events WHERE provider_id = $1`, p.ID); c != 2 {

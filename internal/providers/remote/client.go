@@ -15,7 +15,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/google/uuid"
@@ -61,7 +60,7 @@ type Options struct {
 	// then the previous one while it is still valid.
 	Secrets []string
 	// AllowPrivate lets the endpoint resolve to loopback and private
-	// addresses (adapters.allow_private_networks).
+	// addresses (providers.allow_private_networks).
 	AllowPrivate bool
 	PublicURL    string
 	// HTTP overrides the client (tests); by default calls go through a
@@ -102,7 +101,11 @@ func NewInstallation(o Options) (*Installation, error) {
 	}
 	in.client = o.HTTP
 	if in.client == nil {
-		in.client = endpointClient(o.AllowPrivate, strings.HasPrefix(in.Endpoint, "http://"))
+		c, err := endpointClient(o.AllowPrivate, strings.HasPrefix(in.Endpoint, "http://"))
+		if err != nil {
+			return nil, err
+		}
+		in.client = c
 	}
 	return in, nil
 }
@@ -122,7 +125,7 @@ func CheckEndpoint(raw string, allowPrivate bool) (string, error) {
 	if err != nil {
 		msg := strings.TrimPrefix(err.Error(), netguard.ErrBlocked.Error()+": ")
 		if netguard.IsBlocked(err) && !allowPrivate {
-			msg += "; loopback and private addresses need adapters.allow_private_networks"
+			msg += "; loopback and private addresses need providers.allow_private_networks"
 		}
 		return "", errors.New(msg)
 	}
@@ -130,7 +133,7 @@ func CheckEndpoint(raw string, allowPrivate bool) (string, error) {
 	case u.RawQuery != "" || u.Fragment != "":
 		return "", errors.New("the adapter's address can't have a query or a fragment")
 	case u.Scheme == "http" && !allowPrivate:
-		return "", errors.New("use https://: plain http:// is only allowed for loopback and private addresses, with adapters.allow_private_networks")
+		return "", errors.New("use https://: plain http:// is only allowed for loopback and private addresses, with providers.allow_private_networks")
 	}
 	if ip, err := netip.ParseAddr(strings.Trim(u.Hostname(), "[]")); err == nil && u.Scheme == "http" && !privateAddr(ip) {
 		return "", errors.New("use https:// for a public address: credentials travel with every call")
@@ -147,42 +150,49 @@ func privateAddr(ip netip.Addr) bool {
 	return ip.IsLoopback() || ip.IsPrivate() || cgnat.Contains(ip)
 }
 
-// endpointClient is a netguard-style client: the address is checked at
-// connect time, redirects are never followed, no proxy is used, and with
-// plain http only private addresses can be reached.
-func endpointClient(allowPrivate, plainHTTP bool) *http.Client {
-	policy := netguard.Policy{AllowPrivate: allowPrivate}
-	dialer := &net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second,
-		Control: func(_, address string, _ syscall.RawConn) error {
-			host, _, err := net.SplitHostPort(address)
-			if err != nil {
-				return err
-			}
-			ip, err := netip.ParseAddr(host)
-			if err != nil {
-				return fmt.Errorf("%w: %s", netguard.ErrBlocked, host)
-			}
-			if err := policy.Check(ip); err != nil {
-				return err
-			}
-			if plainHTTP && !privateAddr(ip) {
-				return fmt.Errorf("%w: %s is public and plain http:// is only used on private networks", netguard.ErrBlocked, ip)
-			}
-			return nil
-		}}
-	return &http.Client{
-		Transport: &http.Transport{
-			Proxy:               nil,
-			DialContext:         dialer.DialContext,
-			ForceAttemptHTTP2:   true,
-			MaxIdleConns:        64,
-			MaxIdleConnsPerHost: 16,
-			MaxConnsPerHost:     MaxInFlight,
-			IdleConnTimeout:     90 * time.Second,
-			TLSHandshakeTimeout: 5 * time.Second,
-		},
-		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+// maxTimeout bounds every call; each operation has its own, shorter
+// deadline (ops).
+var maxTimeout = func() time.Duration {
+	longest := time.Duration(0)
+	for _, s := range ops {
+		longest = max(longest, s.Timeout)
 	}
+	return longest
+}()
+
+// endpointClient is the SSRF-guarded client provider adapters get
+// (netguard, with providers.allow_private_networks): every address is
+// checked when connecting, metadata and link-local addresses are always
+// refused, no proxy is used and redirects are never followed. On top of it,
+// an adapter may run up to MaxInFlight calls at once, and a plain http://
+// address must turn out to be loopback or private (credentials travel with
+// every call).
+func endpointClient(allowPrivate, plainHTTP bool) (*http.Client, error) {
+	c := netguard.Policy{AllowPrivate: allowPrivate}.Client(maxTimeout)
+	tr, ok := c.Transport.(*http.Transport)
+	if !ok {
+		if plainHTTP {
+			return nil, errors.New("plain http:// can't be checked with this HTTP client: use https://")
+		}
+		return c, nil
+	}
+	tr.MaxIdleConns, tr.MaxIdleConnsPerHost, tr.MaxConnsPerHost = 64, 16, MaxInFlight
+	if plainHTTP {
+		dial := tr.DialContext
+		tr.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
+			conn, err := dial(ctx, network, address)
+			if err != nil {
+				return nil, err
+			}
+			// Nothing has been written yet: refuse before the request is.
+			if ap, err := netip.ParseAddrPort(conn.RemoteAddr().String()); err != nil || !privateAddr(ap.Addr()) {
+				_ = conn.Close()
+				return nil, fmt.Errorf("%w: %s is public and plain http:// is only used on private networks", netguard.ErrBlocked, conn.RemoteAddr())
+			}
+			return conn, nil
+		}
+	}
+	return c, nil
 }
 
 // adapterError marks failures of the adapter process itself (not of the

@@ -838,7 +838,7 @@ export interface paths {
         get: operations["get-adapter-runtime"];
         /**
          * Set where a community adapter's process listens (instance admins)
-         * @description Loopback and private addresses need adapters.allow_private_networks; plain http:// only reaches them.
+         * @description Loopback and private addresses need providers.allow_private_networks; plain http:// only reaches them.
          */
         put: operations["update-adapter-runtime"];
         post?: never;
