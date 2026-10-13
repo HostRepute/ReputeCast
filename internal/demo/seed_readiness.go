@@ -256,7 +256,10 @@ func (r *readinessSeed) flashSale(ctx context.Context) error {
 	checked := s.designDay(0, 9, 40)
 	compiled := s.designDay(0, 9, 31)
 	down := s.designDay(0, 8, 52)
-	if _, err := s.Tx.Exec(ctx, `UPDATE campaigns SET thresholds = $2 WHERE id = $1`, id, json.RawMessage(readinessThresholds)); err != nil {
+	// The flash sale overrides the sunset policy (SendReadinessBlocked: "1,604
+	// Sunset-tier contacts included").
+	if _, err := s.Tx.Exec(ctx, `UPDATE campaigns SET thresholds = $2, audience = coalesce(audience, '{}'::jsonb) || '{"include_sunset": true}'::jsonb WHERE id = $1`, id,
+		json.RawMessage(readinessThresholds)); err != nil {
 		return err
 	}
 	f := r.baseFacts(checked)
@@ -266,7 +269,7 @@ func (r *readinessSeed) flashSale(ctx context.Context) error {
 	f.Campaign = readiness.CampaignFacts{ID: id.String(), Name: "Flash sale: 48 hours only", Subject: "FLASH SALE!!! 48 HOURS ONLY", Version: 6, CompiledAt: &compiled,
 		SenderName: "Acme", SenderEmail: "hello@news.acme.io", SenderDomain: "news.acme.io", StartAt: s.Now, ScheduleMode: "now"}
 	f.Audience = readiness.AudienceFacts{BaseLabel: "All subscribers", GroupLabel: "All subscribers", Lists: []string{"Weekly Digest", "Product Updates", "Beta Program"},
-		Base: 48213, Suppressed: 340, Role: 31, Final: 47842, Unengaged: 1604, UnengagedDays: 180,
+		Base: 48213, Suppressed: 340, Role: 31, Final: 47842, Unengaged: 1604, UnengagedDays: 180, SunsetOverride: true,
 		Mailboxes: map[string]int64{"gmail": 22007, "outlook": 10047, "yahoo": 4306, "icloud": 3827, "other": 7655}}
 	postal := r.postal(4784, 10)
 	postal.Status, postal.Available, postal.DownSince = state.Down, false, &down

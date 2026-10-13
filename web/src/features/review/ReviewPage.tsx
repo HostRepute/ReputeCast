@@ -9,7 +9,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState, ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Banner } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { count, shortDate } from '@/lib/format'
+import { count, monthDayTime, shortDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { deniedReason, useMe, useWorkspace } from '@/lib/session'
 import { statusWord as campaignWord } from '@/features/composer/format'
@@ -386,7 +386,7 @@ function ReviewBody({
         scheduledAt={c.scheduledAt}
         approved={
           req && req.status === 'approved' && req.decidedAt
-            ? `v${req.version} by ${req.decidedBy}, ${shortDate(req.decidedAt)} · ${d.approval.valid ? 'still valid: nothing in the snapshot changed' : 'no longer valid'}`
+            ? `v${req.version} by ${req.decidedBy}, ${monthDayTime(req.decidedAt)} · ${d.approval.valid ? 'still valid: nothing in the snapshot changed' : 'no longer valid'}`
             : undefined
         }
         notified={people ? `${people} · in-app and email at ${whenText(d.held.since)}` : undefined}

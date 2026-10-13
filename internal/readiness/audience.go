@@ -29,6 +29,9 @@ type AudienceDef struct {
 	ExcludeLists    []string `json:"exclude_lists,omitempty"`
 	ExcludeSegments []string `json:"exclude_segments,omitempty"`
 	ExcludeTiers    []string `json:"exclude_tiers,omitempty"`
+	// IncludeSunset is the campaign overriding the sunset policy: contacts
+	// whose Broadcasts the policy stopped receive this one anyway.
+	IncludeSunset bool `json:"include_sunset,omitempty"`
 }
 
 // ParseAudience reads a stored audience definition.
@@ -131,7 +134,8 @@ func (n audienceNames) labels(a AudienceDef) (base, group string, names []string
 // computeAudience counts the final recipients of a definition: suppressed,
 // role, duplicate and (when excluded) sunset-tier contacts are removed.
 func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uuid.UUID, def AudienceDef, unengagedDays int, now time.Time) (AudienceFacts, []Recipient, error) {
-	out := AudienceFacts{Mailboxes: map[string]int64{}, UnengagedDays: unengagedDays, UnengagedExcluded: def.ExcludesSunset(), Lists: []string{}}
+	out := AudienceFacts{Mailboxes: map[string]int64{}, UnengagedDays: unengagedDays, UnengagedExcluded: def.ExcludesSunset(), Lists: []string{},
+		SunsetOverride: def.IncludeSunset && !def.ExcludesSunset()}
 	names, err := s.names(ctx, q, wsID)
 	if err != nil {
 		return out, nil, err
@@ -198,9 +202,13 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 		}
 		seen[key] = true
 		if r.BroadcastsStopped {
-			// The sunset policy stopped Broadcasts to them.
-			out.Stopped++
-			continue
+			// The sunset policy stopped Broadcasts to them, unless the
+			// campaign overrides it.
+			if !out.SunsetOverride {
+				out.Stopped++
+				continue
+			}
+			out.StoppedIncluded++
 		}
 		if sunset && r.Tier == "sunset" {
 			out.SunsetExcluded++

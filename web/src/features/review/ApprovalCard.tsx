@@ -4,11 +4,11 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Field, Textarea } from '@/components/ui/Field'
-import { count } from '@/lib/format'
+import { count, monthDayTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useMe, useWorkspace } from '@/lib/session'
 import { approverNames, DiffLines, MiniBanner, PersonLine, unchangedSentence } from '@/features/approvals/parts'
-import { acknowledgements, agoWords, countsShort, plural, scheduleShort, verdictTitle, waitWords, type Review, type Run } from './logic'
+import { acknowledgements, agoWords, countsShort, linkParts, plural, scheduleShort, verdictTitle, waitWords, type Review, type Run } from './logic'
 import { AppHref, whenText } from './parts'
 
 export type ApprovalMode = 'none' | 'required' | 'waiting' | 'approved' | 'invalidated'
@@ -370,7 +370,6 @@ export function HeldCard({
   notified?: ReactNode
   children?: ReactNode
 }) {
-  const now = useNow()
   return (
     <section className="card border-bad-line" aria-labelledby="rv-held">
       <div className="sec">
@@ -378,7 +377,7 @@ export function HeldCard({
           <h2 className="h2" id="rv-held">
             Send-time recheck turned Blocked
           </h2>
-          <span className="k">{scheduledAt ? `${whenText(scheduledAt, now)} · the send did not start` : 'The send did not start'}</span>
+          <span className="k">{scheduledAt ? `${monthDayTime(scheduledAt)} · the send did not start` : 'The send did not start'}</span>
         </div>
         <Badge tone="bad">Blocked</Badge>
       </div>
@@ -392,10 +391,10 @@ export function HeldCard({
                 <span>
                   {rest.length ? (
                     <>
-                      <b>{group}:</b> {rest.join(': ')}.
+                      <b>{group}:</b> <Mono text={`${rest.join(': ')}.`} />
                     </>
                   ) : (
-                    `${b.title}.`
+                    <Mono text={`${b.title}.`} />
                   )}{' '}
                   {b.detail ? `${b.detail} ` : ''}
                   The approved send was held.
@@ -426,14 +425,40 @@ export function HeldCard({
           <dd>Held · resumes only after a passing recheck</dd>
         </dl>
         <div className="note n">
-          <span>
-            Fixing a block changes the campaign, so the approval will be invalidated and re-requested with the diff attached. Fixing it outside the campaign (delisting the
-            domain, bringing a provider back) keeps the approval intact.
-          </span>
+          <span>{heldNote(held.blocks)}</span>
         </div>
         {children ? <div className="row gap-2!">{children}</div> : null}
       </div>
     </section>
+  )
+}
+
+/** What fixing the blocks does to the approval, for the held card. */
+export function heldNote(blocks: Schemas['ReadinessCheck'][]): string {
+  const groups = new Set(blocks.map((b) => b.group))
+  if (groups.size === 1 && groups.has('links')) {
+    return 'Fixing the link changes the content, so the approval will be invalidated and re-requested automatically with the diff attached. Delisting the domain keeps the approval intact.'
+  }
+  if (groups.size === 1 && groups.has('routing')) {
+    return 'Changing the route invalidates the approval and re-requests it automatically with the diff attached. Bringing the provider back keeps the approval intact.'
+  }
+  return 'Fixing a block in the campaign invalidates the approval and re-requests it automatically with the diff attached. Fixing it outside the campaign keeps the approval intact.'
+}
+
+/** Text with its web addresses set in mono. */
+function Mono({ text }: { text: string }) {
+  return (
+    <>
+      {linkParts(text).map((p, i) =>
+        p.link ? (
+          <span key={i} className="mono">
+            {p.text}
+          </span>
+        ) : (
+          p.text
+        ),
+      )}
+    </>
   )
 }
 

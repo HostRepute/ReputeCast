@@ -13,7 +13,7 @@ import { Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { ago, count, monthDayTime, orList } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
-import { useMe, usePermissionReason, useWorkspace } from '@/lib/session'
+import { useCan, useMe, usePermissionReason, useWorkspace } from '@/lib/session'
 import { AccessTable } from '@/features/access/parts'
 import { HeldCard, HeldActions } from '@/features/review/ApprovalCard'
 import { agoWords, countsShort, groupTitles, groupWords, linkParts, minutes, providerColor, verdictTitle, zonedWhen } from '@/features/review/logic'
@@ -166,6 +166,7 @@ function DetailBody({ detail: d }: { detail: Detail }) {
     }
   }
 
+  const canEdit = useCan('campaigns:edit')
   const invalidated = d.status === 'invalidated'
   const others = [d.author, ...d.approvers].filter((p, i, all) => p.name !== me?.user.name && all.findIndex((x) => x.id === p.id) === i)
   return (
@@ -181,7 +182,7 @@ function DetailBody({ detail: d }: { detail: Detail }) {
               approved={d.status === 'approved' && d.decidedAt ? `v${d.version} by ${d.decidedBy}, ${monthDayTime(d.decidedAt)} · still valid: nothing in the snapshot changed` : undefined}
               notified={`${d.author.name} (author), ${approverNames(d.approvers, 'and')} (approvers) · in-app and email at ${whenText(d.held.since)}`}
             >
-              <HeldActions held={d.held} busy={busy} onApply={(b, f) => void applyFix(b, f)} onCancel={d.can.cancel || d.can.schedule ? () => void unschedule() : undefined} />
+              <HeldActions held={d.held} busy={busy} onApply={(b, f) => void applyFix(b, f)} onCancel={canEdit ? () => void unschedule() : undefined} />
             </HeldCard>
           ) : null}
           {d.subjectType === 'automation' ? <AutomationCard detail={d} /> : null}

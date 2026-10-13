@@ -1122,6 +1122,15 @@ func (b *builder) audience() {
 		un.Title = fmt.Sprintf("%s unengaged contacts excluded", Count(a.SunsetExcluded))
 		un.Detail = fmt.Sprintf("No open or click in %d days; the sunset tier is excluded from this send", days)
 		un.Short = "unengaged excluded"
+	case a.Unengaged > 0 && a.SunsetOverride:
+		// The campaign overrides the sunset policy (SendReadinessBlocked).
+		un.Status = Warn
+		un.Title = fmt.Sprintf("%s Sunset-tier contacts are included", Count(a.Unengaged))
+		un.FlatTitle = fmt.Sprintf("Audience: %s Sunset-tier contacts included", Count(a.Unengaged))
+		un.Detail = fmt.Sprintf("The sunset policy would normally exclude them; this campaign overrides it. Excluding them changes the audience to %s.", Count(a.Final-a.Unengaged))
+		un.Evidence = fmt.Sprintf("%s of the audience (%s contacts) is in the Sunset tier; this campaign overrides the sunset policy.", Pct1(share), Count(a.Unengaged))
+		un.Ack = fmt.Sprintf("I understand %s Sunset-tier contacts are included.", Count(a.Unengaged))
+		un.Fixes = []ReadinessFix{apply(FixExcludeSunset, fmt.Sprintf("Exclude %s", Count(a.Unengaged)), "", map[string]string{"count": fmt.Sprint(a.Unengaged)})}
 	case a.Unengaged > 0 && (share >= UnengagedWarnShare || a.Unengaged >= UnengagedWarnCount):
 		un.Status = Warn
 		un.Title = fmt.Sprintf("%s unengaged contacts (no open in %d days) are in this audience", Count(a.Unengaged), days)
@@ -1381,7 +1390,10 @@ func (b *builder) estimates() ReadinessEstimates {
 		if a.Duplicates > 0 {
 			aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: "Duplicates", Count: a.Duplicates, Kind: "minus"})
 		}
-		if a.Stopped > 0 {
+		switch {
+		case a.SunsetOverride:
+			aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: "Sunset-tier override", Count: a.StoppedIncluded, Kind: "plus"})
+		case a.Stopped > 0:
 			aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: "Sunset policy (Broadcasts stopped)", Count: a.Stopped, Kind: "minus"})
 		}
 		if a.UnengagedExcluded {

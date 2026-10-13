@@ -217,6 +217,8 @@ func (s *Service) excludeSunset(ctx context.Context, ws *store.Workspace, p *aut
 	}
 	tiers := append(slices.Clone(def.ExcludeTiers), "sunset")
 	raw["exclude_tiers"] = tiers
+	// Excluding the tier ends an override of the sunset policy.
+	delete(raw, "include_sunset")
 	next, _ := json.Marshal(raw)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
