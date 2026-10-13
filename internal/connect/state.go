@@ -113,6 +113,11 @@ type WebhookState struct {
 	// Token is the webhook token reserved for the provider the setup
 	// connects, so the URL is known before the key works.
 	Token string `json:"token,omitempty"`
+	// NeedsSecret: the webhook is set up by hand in the provider and
+	// authenticated with the secret ReputeCast generated at connect time,
+	// sent in SecretHeader (or used to sign when that is empty).
+	NeedsSecret  bool   `json:"needs_secret,omitempty"`
+	SecretHeader string `json:"secret_header,omitempty"`
 	// PublicURL overrides the instance's public URL for this provider (a
 	// tunnel while testing).
 	PublicURL    string         `json:"public_url,omitempty"`

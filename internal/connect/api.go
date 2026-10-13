@@ -154,6 +154,14 @@ func Register(h huma.API, s *Service) {
 			out, err := s.RetestWebhook(ctx, api.WorkspaceFrom(ctx), in.SetupID, in.Body)
 			return api.OK(out), err
 		})
+	api.Post(h, api.Op{ID: "show-provider-webhook-secret", Path: base + "/webhook-secret",
+		Summary:     "Show the webhook secret to set up in the provider by hand",
+		Description: "Only for providers whose webhook ReputeCast can't register itself (Azure Event Grid, the generic HTTP adapter). Showing it is audited.",
+		Tags:        tags, Access: api.WorkspaceHuman(authz.ProvidersManage)},
+		func(ctx context.Context, in *setupIDInput) (*api.Body[ConnectWebhookSecret], error) {
+			out, err := s.WebhookSecret(ctx, api.WorkspaceFrom(ctx), in.SetupID)
+			return api.OK(out), err
+		})
 	api.Post(h, api.Op{ID: "use-provider-polling", Path: base + "/polling", Summary: "Poll the provider's events API instead of webhooks", Tags: tags, Access: manage},
 		func(ctx context.Context, in *setupIDInput) (*api.Body[ConnectSetup], error) {
 			out, err := s.UsePolling(ctx, api.WorkspaceFrom(ctx), in.SetupID)

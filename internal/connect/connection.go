@@ -377,6 +377,12 @@ func (s *Service) apiConfig(d providers.Descriptor, prov *store.Provider, values
 			if _, ok := b.creds[f.Key]; !ok && f.Required {
 				return b, api.Invalid("body.values."+f.Key, "Enter the "+strings.ToLower(f.Label)+".")
 			}
+		case v != "" && fieldType(f) == providers.FieldNumber:
+			n, ok := wholeNumber(v)
+			if !ok {
+				return b, api.Invalid("body.values."+f.Key, "Enter a whole number, like 10000.")
+			}
+			b.settings[f.Key] = n
 		case v != "":
 			b.settings[f.Key] = v
 		case f.Required:
@@ -398,6 +404,34 @@ func (s *Service) apiConfig(d providers.Descriptor, prov *store.Provider, values
 		}
 	}
 	return b, nil
+}
+
+// fieldType is a form field's type: the adapter's own, else "number" for
+// the fields adapters read as whole numbers (allowances and rate limits,
+// which the flex settings types also accept as text), else "text".
+func fieldType(f providers.Field) string {
+	if f.Type != "" {
+		return f.Type
+	}
+	if f.Secret || len(f.Options) > 0 {
+		return "text"
+	}
+	k := f.Key
+	if k == "port" || strings.HasSuffix(k, "_limit") || strings.HasPrefix(k, "per_") || strings.HasSuffix(k, "_per_day") ||
+		strings.HasSuffix(k, "_per_hour") || strings.HasSuffix(k, "_per_minute") || strings.HasSuffix(k, "_cap") {
+		return providers.FieldNumber
+	}
+	return "text"
+}
+
+// wholeNumber reads "10000", "10,000" or "10 000" as a number.
+func wholeNumber(v string) (int64, bool) {
+	clean := strings.NewReplacer(",", "", "_", "", " ", "", "\u00a0", "").Replace(strings.TrimSpace(v))
+	n, err := strconv.ParseInt(clean, 10, 64)
+	if err != nil || n < 0 {
+		return 0, false
+	}
+	return n, true
 }
 
 func contains(xs []string, s string) bool {
@@ -745,6 +779,7 @@ func (s *Service) setupEvents(ctx context.Context, d providers.Descriptor, c ada
 	wr, ok := adapter.(providers.WebhookRegistrar)
 	if !ok {
 		w.Registration = &Registration{Status: "manual", At: now, Detail: "Add this URL as a webhook in " + d.Name + ": " + w.URL}
+		w.NeedsSecret, w.SecretHeader = manualSecret(adapter, s.currentCreds(&p))
 		st.Connection.Webhook = w
 		return
 	}
@@ -757,6 +792,66 @@ func (s *Service) setupEvents(ctx context.Context, d providers.Descriptor, c ada
 		w.Registration = &Registration{Status: "done", At: now, Detail: c.WebhookEvents}
 	}
 	st.Connection.Webhook = w
+}
+
+// manualSecret says whether a provider whose webhook is set up by hand
+// authenticates it with the secret ReputeCast generated (it has no signing
+// key of its own among the credentials), and the header that carries it.
+func manualSecret(a providers.Provider, creds map[string]any) (bool, string) {
+	if _, ok := a.(providers.WebhookVerifier); !ok {
+		return false, ""
+	}
+	for k, v := range creds {
+		if strings.Contains(k, "webhook") && fmt.Sprint(v) != "" {
+			return false, ""
+		}
+	}
+	header := ""
+	if ws, ok := a.(providers.WebhookSecrets); ok {
+		if hs := ws.WebhookSecretHeaders(); len(hs) > 0 {
+			header = hs[0]
+		}
+	}
+	return true, header
+}
+
+// ConnectWebhookSecret is the secret a provider set up by hand sends with
+// its webhooks, shown to the person who configures it.
+type ConnectWebhookSecret struct {
+	URL    string `json:"url"`
+	Secret string `json:"secret"`
+	// Header carries the secret as it is ("X-ReputeCast-Secret"); empty when
+	// the provider signs its requests with it instead.
+	Header string `json:"header,omitempty"`
+}
+
+// WebhookSecret shows the generated webhook secret of a provider whose
+// webhook is set up by hand. Showing it is audited.
+func (s *Service) WebhookSecret(ctx context.Context, ws *store.Workspace, rawID string) (ConnectWebhookSecret, error) {
+	st, err := s.setup(ctx, ws, rawID)
+	if err != nil {
+		return ConnectWebhookSecret{}, err
+	}
+	p, err := s.provider(ctx, ws, st)
+	if err != nil {
+		return ConnectWebhookSecret{}, err
+	}
+	w := decodeState(st.State).Connection.Webhook
+	if w == nil || !w.NeedsSecret {
+		return ConnectWebhookSecret{}, api.Conflict("This provider's webhooks don't use a secret from ReputeCast.")
+	}
+	secret := ""
+	if s.Factory != nil {
+		secret = s.Factory.WebhookSecret(p)
+	}
+	if secret == "" {
+		return ConnectWebhookSecret{}, api.Conflict("This provider has no webhook secret yet. Test the endpoint again to create one.")
+	}
+	wsID := ws.ID
+	if err := s.Audit.Log(ctx, audit.Event{WorkspaceID: &wsID, Action: "provider.webhook_secret_show", TargetType: "provider", TargetID: p.ID.String(), TargetName: p.Name}); err != nil {
+		return ConnectWebhookSecret{}, err
+	}
+	return ConnectWebhookSecret{URL: w.URL, Secret: secret, Header: w.SecretHeader}, nil
 }
 
 // reachable runs the endpoint self-test (tests replace it).

@@ -38,7 +38,8 @@ func init() {
 		Adapter: "fakeesp", Name: "Fake ESP", Kind: "api",
 		Capabilities: providers.Capabilities{Bulk: providers.BulkAllowed, Webhooks: "Registered", DomainAPI: "full", SuppressionSync: true, BatchSize: 100,
 			DedicatedIPs: "paid", Sandbox: "mode", QuotaDiscovery: true, Pricing: "$0.50 per 1,000"},
-		Fields: []providers.Field{{Key: "api_key", Label: "API key", Secret: true, Required: true}, {Key: "region", Label: "Region", Options: []string{"us", "eu"}}},
+		Fields: []providers.Field{{Key: "api_key", Label: "API key", Secret: true, Required: true}, {Key: "region", Label: "Region", Options: []string{"us", "eu"}},
+			{Key: "monthly_limit", Label: "Plan · emails per month"}},
 		New: func(cfg providers.Config) (providers.Provider, error) {
 			var c struct {
 				Key string `json:"api_key"`
@@ -48,6 +49,33 @@ func init() {
 		},
 	})
 }
+
+func init() {
+	providers.Register(providers.Descriptor{
+		Adapter: "fakemanual", Name: "Fake Grid", Kind: "api",
+		Capabilities: providers.Capabilities{Bulk: providers.BulkAllowed, Webhooks: "Event Grid", BatchSize: 1},
+		Fields:       []providers.Field{{Key: "connection_string", Label: "Connection string", Secret: true, Required: true}, {Key: "per_minute", Label: "Sending limit · per minute"}},
+		New:          func(cfg providers.Config) (providers.Provider, error) { return &fakeManual{}, nil },
+	})
+}
+
+// fakeManual can't register its webhook: it is set up by hand and sends the
+// generated secret in a header.
+type fakeManual struct{}
+
+func (f *fakeManual) Adapter() string { return "fakemanual" }
+func (f *fakeManual) Capabilities() providers.Capabilities {
+	return providers.Capabilities{Bulk: providers.BulkAllowed, Webhooks: "Event Grid", BatchSize: 1}
+}
+func (f *fakeManual) Send(_ context.Context, msgs []providers.Message) ([]providers.SendResult, error) {
+	return make([]providers.SendResult, len(msgs)), nil
+}
+func (f *fakeManual) ParseWebhook(context.Context, *http.Request, []byte) ([]providers.Event, error) {
+	return []providers.Event{}, nil
+}
+func (f *fakeManual) VerifyWebhook(context.Context, *http.Request, []byte) error { return nil }
+func (f *fakeManual) WebhookSecretHeaders() []string                             { return []string{"X-Fake-Secret"} }
+func (f *fakeManual) Verify(context.Context) (providers.Quota, error)            { return providers.Quota{}, nil }
 
 func (f *fakeESP) Adapter() string { return "fakeesp" }
 func (f *fakeESP) Capabilities() providers.Capabilities {
@@ -103,10 +131,10 @@ type setupT struct {
 		Flow, Name, Title, Heading, KeyHint string
 		CanRegister, CanPoll                bool
 		Fields                              []struct {
-			Key, Value string
-			Secret     bool
-			Set        bool
-			Options    []struct{ Value, Label string }
+			Key, Value, Type string
+			Secret           bool
+			Set              bool
+			Options          []struct{ Value, Label string }
 		}
 	}
 	Summaries  struct{ Provider, Connection, Domain, Test, Streams string }
@@ -159,7 +187,10 @@ func TestCatalog(t *testing.T) {
 			Chips                                           []struct{ Label, Kind string }
 			Connected                                       int
 		}
-		Community  []struct{ Name, Version, Summary, Adapter, Reason string }
+		Community []struct {
+			Name, Version, Summary, Adapter, Reason string
+			Configure                               bool
+		}
 		CanConnect bool
 	}
 	c.Do("GET", ws+"/connect/catalog", nil).MustStatus(t, 200).JSON(t, &cat)
@@ -184,10 +215,15 @@ func TestCatalog(t *testing.T) {
 	if names["smtp"] != "Any SMTP server|Depends on the server" || names["postal"] != "Postal (self-hosted)|Your own policy" || names["fakeesp"] != "Fake ESP|Bulk marketing allowed" {
 		t.Fatalf("names: %v", names)
 	}
-	// Installed community adapters show; the unmaintained one doesn't.
-	if len(cat.Community) != 2 || cat.Community[0].Name != "Scaleway Transactional Email" || cat.Community[0].Adapter != "" || cat.Community[0].Reason == "" ||
-		!strings.Contains(cat.Community[0].Summary, "webhooks, suppression pull") {
+	// Installed community adapters show (the unmaintained one doesn't), then
+	// the generic HTTP adapter, configured on the Adapters page.
+	if len(cat.Community) != 3 || cat.Community[0].Name != "Scaleway Transactional Email" || cat.Community[0].Adapter != "" || cat.Community[0].Reason == "" ||
+		!strings.Contains(cat.Community[0].Summary, "webhooks, suppression pull") || cat.Community[2].Name != "Generic HTTP adapter" || !cat.Community[2].Configure {
 		t.Fatalf("community: %+v", cat.Community)
+	}
+	// Adapters added later appear by themselves, after the design's order.
+	if n := len(cat.Builtin); n < 13 || cat.Builtin[n-2].Adapter != "fakeesp" || cat.Builtin[n-1].Adapter != "fakemanual" {
+		t.Fatalf("builtin order: %d, last %s", len(cat.Builtin), cat.Builtin[len(cat.Builtin)-1].Adapter)
 	}
 	v := env.Client()
 	v.SignInDemo("aisha@acme.io")
@@ -205,7 +241,7 @@ func TestConnectAPIProvider(t *testing.T) {
 	c.SignInDemo("linh@acme.io")
 	var st setupT
 	c.Do("POST", ws+"/connect/setups", map[string]any{"adapter": "fakeesp"}).MustStatus(t, 201).JSON(t, &st)
-	if st.Step != "connection" || st.Info.Flow != "api" || st.Info.Heading != "Paste your Fake ESP API key" || !st.Info.CanRegister || !st.Info.CanPoll || len(st.Info.Fields) != 2 {
+	if st.Step != "connection" || st.Info.Flow != "api" || st.Info.Heading != "Paste your Fake ESP API key" || !st.Info.CanRegister || !st.Info.CanPoll || len(st.Info.Fields) != 3 {
 		t.Fatalf("new setup: %+v", st)
 	}
 	// Starting again resumes the open setup.
@@ -224,10 +260,16 @@ func TestConnectAPIProvider(t *testing.T) {
 		t.Fatalf("rejected key: %+v %+v", st.Connection, st.Connection.Error)
 	}
 	c.Do("POST", base+"/connection", map[string]any{"values": map[string]string{"region": "us"}}).MustStatus(t, 422)
+	c.Do("POST", base+"/connection", map[string]any{"values": map[string]string{"api_key": "good-key", "monthly_limit": "lots"}}).MustStatus(t, 422)
+	for _, f := range st.Info.Fields {
+		if f.Key == "monthly_limit" && f.Type != "number" || f.Key == "region" && f.Type != "text" {
+			t.Fatalf("field types: %+v", st.Info.Fields)
+		}
+	}
 
 	// The right key connects the provider and registers the webhook once
 	// the endpoint answered its self-test.
-	r := c.Do("POST", base+"/connection", map[string]any{"values": map[string]string{"api_key": "good-key", "region": "eu"}}).MustStatus(t, 200)
+	r := c.Do("POST", base+"/connection", map[string]any{"values": map[string]string{"api_key": "good-key", "region": "eu", "monthly_limit": "50,000"}}).MustStatus(t, 200)
 	if strings.Contains(string(r.Body), "good-key") {
 		t.Fatal("the key came back")
 	}
@@ -250,7 +292,7 @@ func TestConnectAPIProvider(t *testing.T) {
 	}
 	var settings map[string]any
 	_ = json.Unmarshal(cfg, &settings)
-	if strings.Contains(string(enc), "good-key") || strings.Contains(string(cfg), "good-key") || settings["region"] != "eu" {
+	if strings.Contains(string(enc), "good-key") || strings.Contains(string(cfg), "good-key") || settings["region"] != "eu" || settings["monthly_limit"] != float64(50000) {
 		t.Fatalf("credentials stored in clear: %s / %s", enc, cfg)
 	}
 	for _, f := range st.Info.Fields {
@@ -397,6 +439,48 @@ func TestConnectAPIProvider(t *testing.T) {
 			t.Fatalf("no audit %s", a)
 		}
 	}
+}
+
+func TestManualWebhookSecret(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	var st struct {
+		ID         string
+		Connection struct {
+			Webhook *struct {
+				URL, SecretHeader string
+				NeedsSecret       bool
+				Registration      *struct{ Status string }
+			}
+		}
+	}
+	c.Do("POST", ws+"/connect/setups", map[string]any{"adapter": "fakemanual"}).MustStatus(t, 201).JSON(t, &st)
+	base := ws + "/connect/setups/" + st.ID
+	// Before the connection there's no secret to show.
+	c.Do("POST", base+"/webhook-secret", nil).MustStatus(t, 409)
+	c.Do("POST", base+"/connection", map[string]any{"values": map[string]string{"connection_string": "endpoint=https://x;accesskey=y", "per_minute": "30"}}).MustStatus(t, 200).JSON(t, &st)
+	w := st.Connection.Webhook
+	if w == nil || w.Registration == nil || w.Registration.Status != "manual" || !w.NeedsSecret || w.SecretHeader != "X-Fake-Secret" {
+		t.Fatalf("manual webhook: %+v", w)
+	}
+	var sec struct{ URL, Secret, Header string }
+	r := c.Do("POST", base+"/webhook-secret", nil).MustStatus(t, 200)
+	r.JSON(t, &sec)
+	if len(sec.Secret) < 20 || sec.Header != "X-Fake-Secret" || sec.URL != w.URL {
+		t.Fatalf("secret: %+v", sec)
+	}
+	// It isn't part of the setup itself.
+	if strings.Contains(string(c.Do("GET", base, nil).MustStatus(t, 200).Body), sec.Secret) {
+		t.Fatal("the secret is in the setup")
+	}
+	if audits(t, env, "provider.webhook_secret_show") != 1 {
+		t.Fatal("showing the secret isn't audited")
+	}
+	v := env.Client()
+	v.SignInDemo("aisha@acme.io")
+	v.Do("POST", base+"/webhook-secret", nil).MustStatus(t, 403)
 }
 
 func TestConnectPollingAndCancel(t *testing.T) {

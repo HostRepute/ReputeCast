@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from 'react'
-import type { Schemas } from '@/api/client'
+import { $api, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Note } from '@/components/ui/Note'
@@ -136,7 +136,10 @@ function KeyField({
       {f.label}
       <input
         className={cn('in mono', error && 'bg-bad-tint')}
-        type={f.secret ? 'password' : 'text'}
+        type={f.secret ? 'password' : f.type === 'number' ? 'number' : 'text'}
+        inputMode={f.type === 'number' ? 'numeric' : undefined}
+        min={f.type === 'number' ? 0 : undefined}
+        step={f.type === 'number' ? 1 : undefined}
         value={value}
         placeholder={f.secret && f.set ? 'Stored encrypted · paste a new one to replace it' : undefined}
         onChange={(e) => onChange(e.target.value)}
@@ -245,6 +248,7 @@ function WebhooksCard({
             Self-test of <span className="mono">{w.url || '…'}</span>
           </StatusRow>
           <RegisterRow name={name} events={info.webhookEvents} reg={reg} url={w.url} reachable={Boolean(test?.ok)} />
+          {reg?.status === 'manual' && w.needsSecret ? <ManualSecret setup={setup} webhook={w} reason={reason} /> : null}
         </>
       )}
       {unreachable ? (
@@ -297,6 +301,53 @@ function WebhooksCard({
         </div>
       ) : null}
     </section>
+  )
+}
+
+/**
+ * A webhook ReputeCast can't register: the person adds it in the provider,
+ * with the secret ReputeCast generated when it connected the provider.
+ */
+function ManualSecret({ setup, webhook: w, reason }: { setup: Schemas['ConnectSetup']; webhook: Schemas['ConnectWebhook']; reason?: string }) {
+  const { slug } = useWorkspace()
+  const [shown, setShown] = useState<Schemas['ConnectWebhookSecret']>()
+  const reveal = $api.useMutation('post', '/api/v1/workspaces/{workspace}/connect/setups/{setupId}/webhook-secret')
+  const name = setup.info.short
+  const header = w.secretHeader
+  const show = () =>
+    reveal.mutate(
+      { params: { path: { workspace: slug, setupId: setup.id } } },
+      { onSuccess: (data) => setShown(data), onError: failed("Couldn't show the webhook secret", show) },
+    )
+  return (
+    <div className="flex flex-col gap-2.5 border-t border-line-2 px-5 py-3.5">
+      <span className="text-[13px] font-semibold">{`Set up the webhook in ${name}`}</span>
+      <span className="k">
+        {header ? (
+          <>
+            Point it at the URL above and send the secret below in the <span className="mono">{header}</span> header. ReputeCast refuses deliveries without it.
+          </>
+        ) : (
+          <>Point it at the URL above and sign the deliveries with the secret below. ReputeCast refuses deliveries it can&apos;t verify.</>
+        )}
+      </span>
+      {shown ? (
+        <div className="flex flex-wrap items-center gap-2.5">
+          <code className="cn-val">{header ? `${header}: ${shown.secret}` : shown.secret}</code>
+          <Button size="sm" onClick={() => void copy(shown.secret, 'the webhook secret')}>
+            Copy secret
+          </Button>
+          <span className="k">Keep it private. Anyone with it can post events for this provider.</span>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button size="sm" onClick={show} loading={reveal.isPending} busyLabel="Showing…" disabledReason={reason}>
+            Show the secret
+          </Button>
+          <span className="k">Showing it is recorded in the audit log.</span>
+        </div>
+      )}
+    </div>
   )
 }
 

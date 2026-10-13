@@ -102,7 +102,7 @@ var copyTable = map[string]adapterCopy{
 		KeyHint: "Check that it's an API v3 key, not an SMTP key.", KeysURL: "https://app.brevo.com/settings/keys/api", VerifyCall: "GET /v3/account",
 		WebhookEvents: "delivered, hardBounce, softBounce, spam, unsubscribed", Section: "1. API key"},
 	"azureacs": {Display: "Azure Communication Services", Short: "Azure", Step1: "Azure Communication Services",
-		Pricing: "Pay as you go · its policy excludes bulk marketing, so it can serve Automations and System only",
+		Pricing: "Pay as you go, per email and per MB",
 		Chips:   map[string]string{"webhooks": "Event Grid"}, Title: "Connect Azure Communication Services", Heading: "Paste your Azure connection string",
 		Lead:    "ReputeCast sends through your Email Communication resource and receives delivery reports through Event Grid.",
 		KeyHint: "Copy the connection string from your Communication Services resource › Keys.", KeysURL: "https://portal.azure.com/", VerifyCall: "GET /emails",

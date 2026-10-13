@@ -6029,6 +6029,13 @@
           "set": {
             "type": "boolean"
           },
+          "type": {
+            "enum": [
+              "text",
+              "number"
+            ],
+            "type": "string"
+          },
           "value": {
             "type": "string"
           }
@@ -6039,6 +6046,7 @@
           "secret",
           "required",
           "options",
+          "type",
           "value",
           "set"
         ],
@@ -7268,11 +7276,17 @@
             ],
             "type": "string"
           },
+          "needsSecret": {
+            "type": "boolean"
+          },
           "publicUrl": {
             "type": "string"
           },
           "registration": {
             "$ref": "#/components/schemas/ConnectRegistration"
+          },
+          "secretHeader": {
+            "type": "string"
           },
           "selfTest": {
             "$ref": "#/components/schemas/ConnectSelfTest"
@@ -7284,7 +7298,8 @@
         "required": [
           "mode",
           "url",
-          "publicUrl"
+          "publicUrl",
+          "needsSecret"
         ],
         "type": "object"
       },
@@ -7296,6 +7311,25 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ConnectWebhookSecret": {
+        "additionalProperties": false,
+        "properties": {
+          "header": {
+            "type": "string"
+          },
+          "secret": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "secret"
+        ],
         "type": "object"
       },
       "ContactActivityItem": {
@@ -29336,6 +29370,70 @@
           }
         ],
         "summary": "Test the webhook endpoint again (optionally through a tunnel URL) and register it",
+        "tags": [
+          "Connect a provider"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/webhook-secret": {
+      "post": {
+        "description": "Only for providers whose webhook ReputeCast can't register itself (Azure Event Grid, the generic HTTP adapter). Showing it is audited.",
+        "operationId": "show-provider-webhook-secret",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "setupId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectWebhookSecret"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Show the webhook secret to set up in the provider by hand",
         "tags": [
           "Connect a provider"
         ],

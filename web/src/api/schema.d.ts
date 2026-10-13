@@ -1890,6 +1890,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/webhook-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Show the webhook secret to set up in the provider by hand
+         * @description Only for providers whose webhook ReputeCast can't register itself (Azure Event Grid, the generic HTTP adapter). Showing it is audited.
+         */
+        post: operations["show-provider-webhook-secret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/contacts": {
         parameters: {
             query?: never;
@@ -5914,6 +5934,8 @@ export interface components {
             required: boolean;
             secret: boolean;
             set: boolean;
+            /** @enum {string} */
+            type: "text" | "number";
             value: string;
         };
         ConnectFinishInput: {
@@ -6235,13 +6257,20 @@ export interface components {
         ConnectWebhook: {
             /** @enum {string} */
             mode: "webhook" | "polling" | "mailbox" | "none";
+            needsSecret: boolean;
             publicUrl: string;
             registration?: components["schemas"]["ConnectRegistration"];
+            secretHeader?: string;
             selfTest?: components["schemas"]["ConnectSelfTest"];
             url: string;
         };
         ConnectWebhookInput: {
             publicUrl?: string;
+        };
+        ConnectWebhookSecret: {
+            header?: string;
+            secret: string;
+            url: string;
         };
         ContactActivityItem: {
             actor?: string;
@@ -14572,6 +14601,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "show-provider-webhook-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectWebhookSecret"];
                 };
             };
             /** @description Error */

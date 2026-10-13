@@ -32,6 +32,9 @@ type ConnectField struct {
 	Required bool            `json:"required"`
 	Options  []ConnectOption `json:"options"`
 	Help     string          `json:"help,omitempty"`
+	// Type is "number" for a whole number (sent as text, stored as a JSON
+	// number), else "text".
+	Type string `json:"type" enum:"text,number"`
 	// Value is the current value of a non-secret field.
 	Value string `json:"value"`
 	// Set is true when a secret is stored (shown masked with Replace).
@@ -178,9 +181,13 @@ type ConnectRegistration struct {
 
 // ConnectWebhook is how events come back from the provider.
 type ConnectWebhook struct {
-	Mode         string               `json:"mode" enum:"webhook,polling,mailbox,none"`
-	URL          string               `json:"url"`
-	PublicURL    string               `json:"publicUrl"`
+	Mode      string `json:"mode" enum:"webhook,polling,mailbox,none"`
+	URL       string `json:"url"`
+	PublicURL string `json:"publicUrl"`
+	// NeedsSecret: the webhook is set up by hand with the secret ReputeCast
+	// generated (shown on request), sent in SecretHeader or used to sign.
+	NeedsSecret  bool                 `json:"needsSecret"`
+	SecretHeader string               `json:"secretHeader,omitempty"`
 	SelfTest     *ConnectSelfTest     `json:"selfTest,omitempty"`
 	Registration *ConnectRegistration `json:"registration,omitempty"`
 }
@@ -325,7 +332,7 @@ func (s *Service) adapterInfo(ctx context.Context, d providers.Descriptor, c ada
 		}
 	}
 	for _, f := range d.Fields {
-		cf := ConnectField{Key: f.Key, Label: f.Label, Secret: f.Secret, Required: f.Required, Help: f.Help, Options: []ConnectOption{}}
+		cf := ConnectField{Key: f.Key, Label: f.Label, Secret: f.Secret, Required: f.Required, Help: f.Help, Options: []ConnectOption{}, Type: fieldType(f)}
 		for _, o := range f.Options {
 			cf.Options = append(cf.Options, ConnectOption{Value: o, Label: optionLabel(d.Adapter, f.Key, o)})
 		}
@@ -548,7 +555,7 @@ func (s *Service) connectionView(ctx context.Context, ws *store.Workspace, d pro
 	}
 	if cn.Webhook != nil {
 		w := cn.Webhook
-		out.Webhook = &ConnectWebhook{Mode: w.Mode, URL: w.URL, PublicURL: w.PublicURL}
+		out.Webhook = &ConnectWebhook{Mode: w.Mode, URL: w.URL, PublicURL: w.PublicURL, NeedsSecret: w.NeedsSecret, SecretHeader: w.SecretHeader}
 		if w.SelfTest != nil {
 			out.Webhook.SelfTest = &ConnectSelfTest{OK: w.SelfTest.OK, At: w.SelfTest.At, Code: w.SelfTest.Code, Reason: w.SelfTest.Reason, Private: w.SelfTest.Private}
 		}
