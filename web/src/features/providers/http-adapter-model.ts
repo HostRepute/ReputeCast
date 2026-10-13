@@ -1,4 +1,4 @@
-import { ApiError, type Schemas } from '@/api/client'
+import { ApiError, errorMessage, type Schemas } from '@/api/client'
 
 export type WebhookAuth = NonNullable<Schemas['AdapterHTTPMapping']['webhookAuth']>
 type Header = Schemas['AdapterHTTPHeader']
@@ -36,15 +36,37 @@ export function parseHeaderLines(text: string): { headers: Header[]; error?: str
   return { headers }
 }
 
-/** The first message per field of a problem, by location ("body.headers"). */
+/**
+ * The first message per field of a problem, by location ("body.headers"); a
+ * location inside a list counts for the list ("body.headers[2].name").
+ */
 export function fieldErrors(e: unknown): Record<string, string> {
   const out: Record<string, string> = {}
   if (e instanceof ApiError) {
     for (const d of e.problem.errors ?? []) {
-      if (d.location && d.message && !out[d.location]) out[d.location] = d.message
+      const loc = d.location?.replace(/\[\d+\].*$/, '')
+      if (loc && d.message && !out[loc]) out[loc] = d.message
     }
   }
   return out
+}
+
+/**
+ * Splits a problem between the fields a form shows (by location) and one
+ * message for the rest, so no problem goes unseen: the problem's detail when
+ * it names no field, else the messages of the fields the form doesn't show.
+ */
+export function formProblems(e: unknown, shown: ReadonlySet<string>): { fields: Record<string, string>; general: string } {
+  const fields = fieldErrors(e)
+  const located = Object.entries(fields)
+  if (located.length === 0) return { fields, general: errorMessage(e) }
+  return {
+    fields,
+    general: located
+      .filter(([k]) => !shown.has(k))
+      .map(([, m]) => m)
+      .join(' '),
+  }
 }
 
 /** A previewed request as it goes on the wire. */

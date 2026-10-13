@@ -1,5 +1,5 @@
 import { ApiError, type Problem } from '@/api/client'
-import { fieldErrors, parseHeaderLines, previewText, webhookAuths } from './http-adapter-model'
+import { fieldErrors, formProblems, parseHeaderLines, previewText, webhookAuths } from './http-adapter-model'
 
 describe('parseHeaderLines', () => {
   it('splits Name: value lines at the first colon and skips blank lines', () => {
@@ -36,6 +36,38 @@ describe('fieldErrors', () => {
       'body.messageIdPath': 'The message id path must start with $.',
     })
     expect(fieldErrors(new TypeError('offline'))).toEqual({})
+  })
+
+  it('counts a location inside a list for the list', () => {
+    const problem = { status: 422, title: 'Unprocessable Entity', errors: [{ location: 'body.headers[1].name', message: 'expected length >= 1' }] } as Problem
+    expect(fieldErrors(new ApiError(422, problem))).toEqual({ 'body.headers': 'expected length >= 1' })
+  })
+})
+
+describe('formProblems', () => {
+  const shown = new Set(['body.endpoint', 'body.headers'])
+
+  it('keeps fields the form shows and says the rest under it', () => {
+    const problem = {
+      status: 422,
+      title: 'Unprocessable Entity',
+      detail: 'validation failed',
+      errors: [
+        { location: 'body.endpoint', message: 'Use https://.' },
+        { location: 'body.webhookHeader', message: 'Header names are letters, digits and dashes.' },
+        { location: 'body.name', message: 'Choose another name.' },
+      ],
+    } as Problem
+    const p = formProblems(new ApiError(422, problem), shown)
+    expect(p.fields['body.endpoint']).toBe('Use https://.')
+    expect(p.general).toBe('Header names are letters, digits and dashes. Choose another name.')
+    expect(formProblems(new ApiError(422, problem), new Set([...shown, 'body.webhookHeader', 'body.name'])).general).toBe('')
+  })
+
+  it('falls back to the problem when it names no field', () => {
+    const problem = { status: 409, title: 'Conflict', detail: 'Example ESP is already installed.' } as Problem
+    expect(formProblems(new ApiError(409, problem), shown)).toEqual({ fields: {}, general: 'Example ESP is already installed.' })
+    expect(formProblems(new TypeError('Failed to fetch'), shown).general).toBe("Can't reach the server. Check your connection; nothing was lost.")
   })
 })
 

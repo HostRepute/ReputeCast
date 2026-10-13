@@ -12,7 +12,7 @@ import { toast } from '@/components/ui/Toast'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { ProvidersTabs, throwIfForbidden } from './common'
-import { fieldErrors, parseHeaderLines, previewText, webhookAuths, webhookPathFields, type WebhookAuth, type WebhookPaths } from './http-adapter-model'
+import { formProblems, parseHeaderLines, previewText, webhookAuths, webhookPathFields, type WebhookAuth, type WebhookPaths } from './http-adapter-model'
 
 type Overview = Schemas['AdaptersOverview']
 type Community = Schemas['AdapterCommunity']
@@ -310,6 +310,18 @@ function HTTPAdapterCard({ data, reason }: { data: Overview; reason?: string }) 
     ...(authOption?.header ? { webhookHeader: authHeader.trim() } : {}),
     ...(mapping === 'jsonpath' ? { webhookPaths: paths } : {}),
   }
+  // The fields the form shows a problem next to, by location; any other
+  // problem is shown under the form.
+  const shown = new Set([
+    'body.endpoint',
+    'body.headers',
+    'body.bodyTemplate',
+    'body.messageIdPath',
+    'body.webhookMapping',
+    'body.webhookAuth',
+    ...(authOption?.header ? ['body.webhookHeader'] : []),
+    ...(mapping === 'jsonpath' ? webhookPathFields.map((f) => `body.webhookPaths.${f.key}`) : []),
+  ])
   const edited = () => {
     setPreview(null)
     setErrors({})
@@ -322,22 +334,24 @@ function HTTPAdapterCard({ data, reason }: { data: Overview; reason?: string }) 
       toast({ kind: 'success', title: `${a.name} saved`, detail: 'Connect it from Add provider in any workspace.' })
     },
     onError: (e) => {
-      const fe = fieldErrors(e)
-      setErrors(fe)
-      if (Object.keys(fe).some((k) => k !== 'body.name')) {
-        // A mapping problem: show it on its field in the form.
+      const inDialog = formProblems(e, new Set([...shown, 'body.name']))
+      setErrors(inDialog.fields)
+      if (Object.keys(inDialog.fields).some((k) => shown.has(k))) {
+        // A mapping problem: close the dialog and show it on its field, and
+        // anything else (the name included) under the form.
         setNaming(false)
+        setError(formProblems(e, shown).general)
         return
       }
-      setSaveError(fe['body.name'] ? '' : errorMessage(e))
+      setSaveError(inDialog.general)
     },
   })
   const test = $api.useMutation('post', '/api/v1/workspaces/{workspace}/adapters/http/preview', {
     onSuccess: (p) => setPreview(p),
     onError: (e) => {
-      const fe = fieldErrors(e)
-      setErrors(fe)
-      setError(Object.keys(fe).length ? '' : errorMessage(e))
+      const p = formProblems(e, shown)
+      setErrors(p.fields)
+      setError(p.general)
     },
   })
   const testReason = data.httpAdapter ? reason : 'Test sends need the generic HTTP adapter in this build; save the mapping now and test it once it ships.'
