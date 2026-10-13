@@ -404,7 +404,9 @@ func (b base) verify(ctx context.Context, r *http.Request, body []byte) *verifyM
 
 // ParseWebhook implements providers.Provider: the adapter normalizes the
 // payload. With a verified context (the normalization job), the adapter is
-// told not to verify again.
+// told not to verify again. Failures that can pass (the adapter is down, the
+// provider is) wrap providers.ErrUnavailable, so the job retries instead of
+// dropping the events; a payload the adapter refuses for good does not.
 func (b base) ParseWebhook(ctx context.Context, r *http.Request, body []byte) ([]providers.Event, error) {
 	if !b.in.Manifest.Capabilities.Webhooks {
 		return nil, fmt.Errorf("%w: the %s adapter doesn't declare webhooks", providers.ErrNotSupported, b.in.Manifest.Name)
@@ -412,7 +414,11 @@ func (b base) ParseWebhook(ctx context.Context, r *http.Request, body []byte) ([
 	var out WebhookParseOutput
 	in := WebhookParseInput{Request: b.webhookRequest(r, body), Verified: providers.SignatureVerified(ctx)}
 	if err := b.in.call(ctx, OpWebhookParse, b.wc, "", in, &out); err != nil {
-		if errors.Is(err, providers.ErrBadSignature) || errors.Is(err, providers.ErrNotSupported) {
+		var ce *providers.CallError
+		switch {
+		case errors.Is(err, providers.ErrBadSignature) || errors.Is(err, providers.ErrNotSupported):
+			return nil, err
+		case errors.As(err, &ce) && !ce.Temporary && !ce.Auth:
 			return nil, err
 		}
 		return nil, fmt.Errorf("%w: %w", providers.ErrUnavailable, err)

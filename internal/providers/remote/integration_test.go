@@ -322,6 +322,16 @@ func TestBrokenManifestRowsAreSkipped(t *testing.T) {
 	if _, ok := rt.Installation("community:other-esp"); ok {
 		t.Fatal("a manifest that no longer validates must not be registered")
 	}
+	// Checking it records why instead of failing the request.
+	cli.Runtime = rt
+	broken, err := cli.RowByKey(ctx, "other-esp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	row, err := cli.Check(ctx, broken)
+	if err != nil || row.CheckOk == nil || *row.CheckOk || !strings.Contains(row.CheckDetail, "no longer validates") {
+		t.Fatalf("check of a broken row: %+v %v", row, err)
+	}
 	// Installing another adapter under a taken id is refused.
 	dup := remotetest.Manifest()
 	dup.Name = "Fake ESP again"

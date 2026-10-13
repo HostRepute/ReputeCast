@@ -236,20 +236,23 @@ func (s *Service) Check(ctx context.Context, r store.RemoteAdapterGetRow) (store
 		s.Runtime.Changed(ctx)
 		in, _ = s.Runtime.Installation(r.AdapterKey)
 	}
+	var (
+		h   HealthOutput
+		err error
+	)
 	if in == nil {
+		// Not registered: the stored manifest or secret can't be used.
 		rt := s.Runtime
 		if rt == nil {
 			rt = &Runtime{Pool: s.Pool, Box: s.Box, AllowPrivate: s.AllowPrivate, Now: s.Now}
 		}
-		built, err := rt.build(r, s.now(), s.allowPrivate(), rt.publicURL())
-		if err != nil {
-			return r, err
-		}
-		in = built
+		in, err = rt.build(r, s.now(), s.allowPrivate(), rt.publicURL())
 	}
-	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	h, err := in.Health(cctx)
-	cancel()
+	if in != nil {
+		cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		h, err = in.Health(cctx)
+		cancel()
+	}
 	ok, detail := err == nil, ""
 	if err != nil {
 		detail = err.Error()

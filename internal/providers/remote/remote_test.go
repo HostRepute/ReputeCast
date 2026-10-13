@@ -620,6 +620,35 @@ func TestInvalidEventsAreRefused(t *testing.T) {
 	}
 }
 
+// A payload the adapter refuses for good is recorded as failed; an adapter
+// or provider outage is retried later.
+func TestParseFailuresKeepTheirNature(t *testing.T) {
+	for code, retried := range map[string]bool{"invalid_request": false, "provider_error": false, "provider_unavailable": true, "internal": true} {
+		t.Run(code, func(t *testing.T) {
+			f := newFixture(t)
+			f.adapter.Rewrite = func(op string, b []byte) []byte {
+				if op != remote.OpWebhookParse {
+					return b
+				}
+				var r map[string]any
+				_ = json.Unmarshal(b, &r)
+				delete(r, "result")
+				r["error"] = map[string]any{"code": code, "message": "The webhook body can't be read."}
+				out, _ := json.Marshal(r)
+				return out
+			}
+			p := f.open(t, remotetest.Manifest())
+			body, h := remotetest.WebhookBody(signingKey, remotetest.Event{Event: "delivered", Recipient: "a@example.com", Timestamp: "2026-10-12T13:41:02Z"})
+			r := httptest.NewRequest(http.MethodPost, "/hooks/community:fake-esp/x", bytes.NewReader(body))
+			r.Header = h
+			_, err := p.ParseWebhook(providers.WithSignatureVerified(context.Background()), r, body)
+			if err == nil || errors.Is(err, providers.ErrUnavailable) != retried {
+				t.Fatalf("%s: retried %v, got %v", code, retried, err)
+			}
+		})
+	}
+}
+
 func TestMessagesOnTheWire(t *testing.T) {
 	f := newFixture(t)
 	p := f.open(t, remotetest.Manifest())
