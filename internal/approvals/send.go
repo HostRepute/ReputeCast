@@ -448,36 +448,166 @@ func (s *Service) CheckSendTime(ctx context.Context, wsID, campaignID uuid.UUID)
 		}
 		return fmt.Errorf("%w: %s", sending.ErrNotReady, reason)
 	}
-	if last, err := s.Q.ApprovalLatestForCampaign(ctx, &campaignID); err == nil {
-		if last.Status == "pending" || last.Status == "approved" {
-			changes, err := s.Revalidate(ctx, ws, campaignID)
-			if err != nil {
-				return err
-			}
-			if len(changes) > 0 {
-				last.Status = "invalidated"
-			}
+	reason, err := s.approvalGap(ctx, ws, campaignID)
+	if err != nil {
+		return err
+	}
+	if reason != "" {
+		if err := s.hold(ctx, ws, c, &run, reason); err != nil {
+			return err
 		}
-		if last.Status == "invalidated" || last.Status == "pending" {
-			reason := "the approval no longer covers the campaign"
-			if last.Status == "pending" {
-				reason = "approval is still pending"
-			}
-			if err := s.hold(ctx, ws, c, &run, reason); err != nil {
-				return err
-			}
-			return fmt.Errorf("%w: %s", sending.ErrNotReady, reason)
-		}
+		return fmt.Errorf("%w: %s", sending.ErrNotReady, reason)
 	}
 	now := s.now()
 	return s.Q.ApprovalResolveHold(ctx, store.ApprovalResolveHoldParams{ResolvedAt: &now, Resolution: "auto_recovered", CampaignID: campaignID})
 }
 
-// HoldDetail is campaign_incidents.detail of a held send.
+// approvalGap says why the campaign's approval doesn't let it send now
+// ("approval is still pending", "the approval no longer covers the
+// campaign"), or "" when it does or the send needed none. An approval
+// that stopped covering the campaign is invalidated on the way.
+func (s *Service) approvalGap(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) (string, error) {
+	last, err := s.Q.ApprovalLatestForCampaign(ctx, &campaignID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	if last.Status == "pending" || last.Status == "approved" {
+		changes, err := s.Revalidate(ctx, ws, campaignID)
+		if err != nil {
+			return "", err
+		}
+		if len(changes) > 0 {
+			last.Status = "invalidated"
+		}
+	}
+	switch last.Status {
+	case "pending":
+		return "approval is still pending", nil
+	case "invalidated":
+		return "the approval no longer covers the campaign", nil
+	}
+	return "", nil
+}
+
+// SendRecheck is Send Readiness as a send starts, in the terms the sending
+// engine asks for (its send-time recheck): the verdict, what blocks and
+// the messages per second Send Readiness set per mailbox provider.
+type SendRecheck struct {
+	// Verdict is "ready", "warnings" or "blocked".
+	Verdict string
+	// Blocking are the titles of the blocking checks, and why the approval
+	// doesn't cover the send when it doesn't.
+	Blocking []string
+	// Throttles are messages per second per mailbox provider ("outlook": 5);
+	// nil keeps the engine's defaults.
+	Throttles map[string]float64
+}
+
+// SendRecheck runs Send Readiness for a send that is starting (the run is
+// recorded with the send_time trigger) and checks that the approval, when
+// the send needed one, still covers the campaign. Unlike CheckSendTime it
+// holds nothing and tells nobody: the sending engine does both when the
+// verdict is Blocked, and the review page reads the blocks from this run.
+func (s *Service) SendRecheck(ctx context.Context, campaignID uuid.UUID) (SendRecheck, error) {
+	wsID, err := s.Q.ReadinessCampaignWorkspace(ctx, campaignID)
+	if err != nil {
+		return SendRecheck{}, err
+	}
+	w, err := s.Q.GetWorkspace(ctx, wsID)
+	if err != nil {
+		return SendRecheck{}, err
+	}
+	ws := &w
+	out := SendRecheck{Blocking: []string{}}
+	run, err := s.Readiness.Run(ctx, ws, campaignID, readiness.RunOptions{Trigger: readiness.TriggerSendTime})
+	running := errors.Is(err, readiness.ErrRunning)
+	if err != nil && !running {
+		return SendRecheck{}, err
+	}
+	if running {
+		// Someone started the checks a moment ago: use that run if it's fresh.
+		latest, lerr := s.Readiness.Latest(ctx, campaignID)
+		if lerr != nil {
+			return SendRecheck{}, lerr
+		}
+		if latest == nil || s.now().Sub(latest.RanAt) > 10*time.Minute {
+			out.Verdict = readiness.VerdictBlocked
+			out.Blocking = append(out.Blocking, "Send Readiness is still running")
+			return out, nil
+		}
+		run = *latest
+	}
+	out.Verdict = run.Verdict
+	for _, ch := range run.Checks {
+		if ch.Status == readiness.Block {
+			out.Blocking = append(out.Blocking, firstNonEmptyStr(ch.FlatTitle, ch.Title))
+		}
+	}
+	for _, t := range run.Estimates.Throttling {
+		if t.Rate > 0 {
+			if out.Throttles == nil {
+				out.Throttles = map[string]float64{}
+			}
+			out.Throttles[t.Key] = t.Rate
+		}
+	}
+	reason, err := s.approvalGap(ctx, ws, campaignID)
+	if err != nil {
+		return SendRecheck{}, err
+	}
+	if reason != "" {
+		out.Verdict = readiness.VerdictBlocked
+		out.Blocking = append(out.Blocking, strings.ToUpper(reason[:1])+reason[1:])
+	}
+	return out, nil
+}
+
+// HoldDetail is campaign_incidents.detail of a held send. Holds recorded
+// here carry the run and its blocking checks; the sending engine's carry
+// only the titles of what blocked (Blocking).
 type HoldDetail struct {
-	RunID  string                     `json:"run_id"`
-	Reason string                     `json:"reason"`
-	Blocks []readiness.ReadinessCheck `json:"blocks"`
+	RunID    string                     `json:"run_id"`
+	Reason   string                     `json:"reason"`
+	Blocks   []readiness.ReadinessCheck `json:"blocks"`
+	Blocking []string                   `json:"blocking,omitempty"`
+}
+
+// heldView is a held send as Review & send and the approval show it. When
+// the hold doesn't carry its checks (the sending engine recorded it), they
+// come from the campaign's latest run, which is the send-time recheck.
+func (s *Service) heldView(ctx context.Context, h store.CampaignIncident) *ReviewHeld {
+	var d HoldDetail
+	_ = json.Unmarshal(h.Detail, &d)
+	out := &ReviewHeld{Since: h.TrippedAt, Reason: d.Reason, Held: h.Held, Blocks: d.Blocks}
+	if len(out.Blocks) == 0 || out.Held == 0 {
+		if out.Blocks == nil {
+			out.Blocks = []readiness.ReadinessCheck{}
+		}
+		if run, err := s.Readiness.Latest(ctx, h.CampaignID); err == nil && run != nil && run.Verdict == readiness.VerdictBlocked {
+			if len(out.Blocks) == 0 {
+				for _, ch := range run.Checks {
+					if ch.Status == readiness.Block {
+						out.Blocks = append(out.Blocks, ch)
+					}
+				}
+			}
+			if out.Held == 0 {
+				out.Held = run.Estimates.Audience.Final
+			}
+		}
+	}
+	if out.Reason == "" {
+		switch {
+		case len(d.Blocking) > 0:
+			out.Reason = d.Blocking[0]
+		case len(out.Blocks) > 0:
+			out.Reason = firstNonEmptyStr(out.Blocks[0].FlatTitle, out.Blocks[0].Title)
+		}
+	}
+	return out
 }
 
 // hold records that a send didn't start and tells the author and approvers.

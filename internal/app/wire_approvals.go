@@ -75,12 +75,19 @@ func CampaignChangeHook(a *App) campaigns.ChangeHook {
 	}
 }
 
-// SendTimeCheck is the recheck the sending engine runs as a scheduled send
-// starts: Send Readiness again, and the approval must still cover the
-// campaign. It returns an error wrapping sending.ErrNotReady when the send
-// must not start (the campaign is then held and people are told).
-func SendTimeCheck(a *App) func(ctx context.Context, workspaceID, campaignID uuid.UUID) error {
-	return newApprovals(a).CheckSendTime
+// SendRecheck is the recheck the sending engine runs as a send starts
+// (its sending.Readiness): Send Readiness again, and the approval must
+// still cover the campaign. It records nothing: the engine holds the send
+// and tells the author and approvers when the verdict is Blocked, and
+// Review & send shows that hold with the run's blocking checks. The
+// engine's wiring adapts it in one step:
+//
+//	sendingReadiness = func(a *App) sending.Readiness { return readinessRecheck{SendRecheck(a)} }
+//
+// where readinessRecheck.Recheck copies Verdict, Blocking and Throttles
+// into a sending.Recheck.
+func SendRecheck(a *App) func(ctx context.Context, campaignID uuid.UUID) (approvals.SendRecheck, error) {
+	return newApprovals(a).SendRecheck
 }
 
 func init() {

@@ -150,3 +150,7 @@ WHERE c.deleted_at IS NULL AND c.status = 'scheduled' AND c.scheduled_at IS NOT 
   AND c.scheduled_at <= @until::timestamptz
   AND NOT EXISTS (SELECT 1 FROM readiness_runs r WHERE r.campaign_id = c.id AND r.ran_at >= c.scheduled_at - @lead::interval)
 ORDER BY c.scheduled_at;
+
+-- name: ReadinessCampaignWorkspace :one
+-- The workspace of a campaign (the sending engine asks by campaign id).
+SELECT workspace_id FROM campaigns WHERE id = @id AND deleted_at IS NULL;

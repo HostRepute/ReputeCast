@@ -3,12 +3,14 @@ package approvals_test
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/app"
 	"github.com/hostrepute/reputecast/internal/apptest"
 )
 
@@ -388,5 +390,78 @@ func TestReadinessRunAndFixes(t *testing.T) {
 	}
 	if n.audit("campaign.send_settings_updated", flash) != settings+1 {
 		t.Fatal("settings are audited")
+	}
+}
+
+// The send-time recheck the sending engine asks for: it holds nothing and
+// tells nobody, names what blocks, blocks a send whose approval is still
+// pending, and hands over Send Readiness's mailbox throttles; a hold the
+// engine records shows its checks from that run on Review & send.
+func TestSendRecheck(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	n := counter{t, env}
+	linh := env.Client()
+	linh.SignInDemo("linh@acme.io")
+	recheck := app.SendRecheck(env.App)
+	flash := uuid.MustParse(campaignID(t, linh, "Flash sale: 48 hours only"))
+	digest := uuid.MustParse(campaignID(t, linh, "Weekly Digest #142"))
+	nov := uuid.MustParse(campaignID(t, linh, "November Product Update"))
+	holds := func(id uuid.UUID) int {
+		t.Helper()
+		var c int
+		if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM campaign_incidents WHERE campaign_id = $1 AND kind = 'recheck_blocked'`, id).Scan(&c); err != nil {
+			t.Fatal(err)
+		}
+		return c
+	}
+
+	before, told := holds(flash), n.notes("linh@acme.io", "send_blocked")
+	r, err := recheck(ctx, flash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Verdict != "blocked" || len(r.Blocking) == 0 || !slices.Contains(r.Blocking, "Compliance: the email body has no unsubscribe link or postal address") {
+		t.Fatalf("flash sale: %+v", r)
+	}
+	if holds(flash) != before || n.notes("linh@acme.io", "send_blocked") != told {
+		t.Fatal("the recheck records no hold and tells nobody")
+	}
+
+	r, err = recheck(ctx, digest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Verdict == "blocked" || r.Throttles["outlook"] != 5 || r.Throttles["yahoo"] != 4 || r.Throttles["icloud"] != 3 || r.Throttles["gmail"] != 0 {
+		t.Fatalf("weekly digest: %+v", r)
+	}
+
+	// November still waits for Marcus or Linh.
+	r, err = recheck(ctx, nov)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Verdict != "blocked" || !slices.Contains(r.Blocking, "Approval is still pending") {
+		t.Fatalf("november: %+v", r)
+	}
+
+	// A hold the engine recorded (only the titles of what blocked): the
+	// review shows the checks of the send-time run and the recipients held.
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO campaign_incidents (id, campaign_id, kind, scope, metric, detail, tripped_at)
+		VALUES ($1, $2, 'recheck_blocked', 'campaign', 'readiness', '{"blocking": ["Links: go.acme-promo.link is listed on SURBL and Spamhaus DBL"]}', now())`,
+		uuid.Must(uuid.NewV7()), flash); err != nil {
+		t.Fatal(err)
+	}
+	var rv struct {
+		Held *struct {
+			Reason string
+			Held   int64
+			Blocks []struct{ Key, Status string }
+		}
+	}
+	linh.Do("GET", ws+"/campaigns/"+flash.String()+"/review", nil).MustStatus(t, 200).JSON(t, &rv)
+	if rv.Held == nil || rv.Held.Reason != "Links: go.acme-promo.link is listed on SURBL and Spamhaus DBL" || rv.Held.Held == 0 || len(rv.Held.Blocks) == 0 || rv.Held.Blocks[0].Status != "block" {
+		t.Fatalf("held by the engine: %+v", rv.Held)
 	}
 }

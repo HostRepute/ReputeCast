@@ -728,6 +728,8 @@ type Querier interface {
 	ReadinessAcceptUnknown(ctx context.Context, arg ReadinessAcceptUnknownParams) error
 	// A campaign with its sender and sending domain.
 	ReadinessCampaign(ctx context.Context, arg ReadinessCampaignParams) (ReadinessCampaignRow, error)
+	// The workspace of a campaign (the sending engine asks by campaign id).
+	ReadinessCampaignWorkspace(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	ReadinessEndProgress(ctx context.Context, arg ReadinessEndProgressParams) error
 	ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID) (ReadinessGetProgressRow, error)
 	ReadinessGetRun(ctx context.Context, arg ReadinessGetRunParams) (ReadinessGetRunRow, error)

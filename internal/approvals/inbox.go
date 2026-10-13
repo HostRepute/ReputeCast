@@ -415,12 +415,7 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		out.Schedule = &ApprovalScheduleView{Mode: sv.Mode, At: sv.At, Timezone: sv.Timezone, Minutes: snap.Minutes,
 			AutoPause: fmt.Sprintf("Bounces %s · complaints %.2f%% per mailbox provider", readiness.Pct(snap.Thresholds.Bounce), snap.Thresholds.MailboxComplaint)}
 		if h, err := s.Q.ApprovalOpenHold(ctx, *r.CampaignID); err == nil {
-			var d HoldDetail
-			_ = json.Unmarshal(h.Detail, &d)
-			if d.Blocks == nil {
-				d.Blocks = []readiness.ReadinessCheck{}
-			}
-			out.Held = &ReviewHeld{Since: h.TrippedAt, Reason: d.Reason, Held: h.Held, Blocks: d.Blocks}
+			out.Held = s.heldView(ctx, h)
 		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return out, err
 		}
@@ -546,12 +541,13 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 func scaleRoute(shares []SnapshotShare, total int64) []SnapshotShare {
 	out := make([]SnapshotShare, len(shares))
 	copy(out, shares)
-	var sum int64
+	var sum, most int64
 	largest := -1
-	for i, sh := range shares {
-		sum += sh.Recipients
-		if largest < 0 || sh.Recipients > shares[largest].Recipients {
-			largest = i
+	for i := range out {
+		r := out[i].Recipients
+		sum += r
+		if largest < 0 || r > most {
+			largest, most = i, r
 		}
 	}
 	if sum <= 0 || largest < 0 {
@@ -559,7 +555,7 @@ func scaleRoute(shares []SnapshotShare, total int64) []SnapshotShare {
 	}
 	var assigned int64
 	for i := range out {
-		out[i].Recipients = shares[i].Recipients * total / sum
+		out[i].Recipients = out[i].Recipients * total / sum
 		assigned += out[i].Recipients
 	}
 	out[largest].Recipients += total - assigned

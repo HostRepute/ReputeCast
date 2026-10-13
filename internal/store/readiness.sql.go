@@ -120,6 +120,18 @@ func (q *Queries) ReadinessCampaign(ctx context.Context, arg ReadinessCampaignPa
 	return i, err
 }
 
+const readinessCampaignWorkspace = `-- name: ReadinessCampaignWorkspace :one
+SELECT workspace_id FROM campaigns WHERE id = $1 AND deleted_at IS NULL
+`
+
+// The workspace of a campaign (the sending engine asks by campaign id).
+func (q *Queries) ReadinessCampaignWorkspace(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, readinessCampaignWorkspace, id)
+	var workspace_id uuid.UUID
+	err := row.Scan(&workspace_id)
+	return workspace_id, err
+}
+
 const readinessEndProgress = `-- name: ReadinessEndProgress :exec
 DELETE FROM readiness_progress WHERE campaign_id = $1 AND run_id = $2
 `

@@ -201,12 +201,7 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	// A held send.
 	if h, err := s.Q.ApprovalOpenHold(ctx, c.ID); err == nil {
-		var d HoldDetail
-		_ = json.Unmarshal(h.Detail, &d)
-		if d.Blocks == nil {
-			d.Blocks = []readiness.ReadinessCheck{}
-		}
-		out.Held = &ReviewHeld{Since: h.TrippedAt, Reason: d.Reason, Held: h.Held, Blocks: d.Blocks}
+		out.Held = s.heldView(ctx, h)
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return out, err
 	}
