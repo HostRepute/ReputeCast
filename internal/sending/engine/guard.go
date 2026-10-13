@@ -3,10 +3,8 @@ package engine
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
-	"sort"
 	"strings"
 	"time"
 
@@ -584,9 +582,6 @@ func (e *Engine) moveShare(ctx context.Context, q *store.Queries, campaign, from
 	if err := q.SendingAddPlanned(ctx, store.SendingAddPlannedParams{CampaignID: campaign, ProviderID: to, Planned: moved}); err != nil {
 		return 0, err
 	}
-	if _, err := q.SendingRoutes(ctx, campaign); err != nil {
-		return 0, err
-	}
 	routes, err := q.SendingRoutes(ctx, campaign)
 	if err != nil {
 		return 0, err
@@ -595,9 +590,6 @@ func (e *Engine) moveShare(ctx context.Context, q *store.Queries, campaign, from
 		switch rt.ProviderID {
 		case from:
 			d, _ := json.Marshal(map[string]any{"decision": "move", "to": to.String(), "moved": moved})
-			if _, err := q.SendingRoutes(ctx, campaign); err != nil {
-				return 0, err
-			}
 			if err := q.SendingSetRouteStatus(ctx, store.SendingSetRouteStatusParams{CampaignID: campaign, ProviderID: from, Status: "done", StatusDetail: string(d)}); err != nil {
 				return 0, err
 			}
@@ -814,7 +806,3 @@ func (e *Engine) finish(ctx context.Context, rs *runState, ts tallies, now time.
 func round2(v float64) float64 { return math.Round(v*100) / 100 }
 func round4(v float64) float64 { return math.Round(v*10000) / 10000 }
 
-// sortTrips is unused for now but keeps trips ordered when several trip at once.
-var _ = sort.Slice
-
-var _ = errors.New

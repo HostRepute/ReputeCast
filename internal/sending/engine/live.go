@@ -609,8 +609,17 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	if s.Recipients > 0 {
 		s.Percent = math.Round(float64(s.Sent)/float64(s.Recipients)*1000) / 10
 	}
-	if s.Rate > 0 && s.Queued > 0 && (s.State == "sending" || s.State == "partial") {
-		eta := int64(math.Ceil(float64(s.Queued) / s.Rate))
+	if s.Rate > 0 && (s.Queued > 0 || s.Waiting > 0) && (s.State == "sending" || s.State == "partial") {
+		// What sends now, then what waits for the A/B winner: it goes out
+		// once the test is decided, at the same rate.
+		secs := float64(s.Queued) / s.Rate
+		if s.Waiting > 0 && hasSend {
+			if ab := parseAB(snd.Ab); ab.Phase == "testing" && ab.DecideAt != nil {
+				secs = math.Max(secs, ab.DecideAt.Sub(now).Seconds())
+			}
+			secs += float64(s.Waiting) / s.Rate
+		}
+		eta := int64(math.Ceil(secs))
 		s.ETASeconds = &eta
 		f := now.Add(time.Duration(eta) * time.Second)
 		s.FinishesAt = &f

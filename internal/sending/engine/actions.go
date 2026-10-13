@@ -13,7 +13,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/providers/state"
-	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -393,6 +392,17 @@ func (e *Engine) RetryRoute(ctx context.Context, campaignID, by, provider uuid.U
 		if c.Status != "sending" && c.Status != "paused" {
 			return stateErr("%q isn't sending (it is %s).", c.Name, c.Status)
 		}
+		routes, err := q.SendingRoutes(ctx, campaignID)
+		if err != nil {
+			return err
+		}
+		held := false
+		for _, r := range routes {
+			held = held || (r.ProviderID == provider && r.Status == "held")
+		}
+		if !held {
+			return stateErr("That provider's share isn't on hold.")
+		}
 		until := now.Add(retryFor)
 		d, _ := json.Marshal(routeDetail{Decision: "retry", Until: &until})
 		if err := q.SendingSetRouteStatus(ctx, store.SendingSetRouteStatusParams{CampaignID: campaignID, ProviderID: provider, Status: "sending", StatusDetail: string(d)}); err != nil {
@@ -455,4 +465,3 @@ func (e *Engine) PickWinner(ctx context.Context, campaignID, by uuid.UUID, varia
 	return e.decideAB(ctx, cc, variant, rates, ref, name, e.now())
 }
 
-var _ = routing.MailboxProviders

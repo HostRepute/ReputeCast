@@ -6,11 +6,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/rivertype"
 
+	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/sending"
+	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // One job of each kind per campaign may wait or run at a time; a finished
@@ -235,6 +239,13 @@ func (e *Engine) Watch(ctx context.Context) error {
 			e.insert(ctx, PrepareArgs{CampaignID: a.CampaignID}, nil)
 		case a.Phase == "sending" && a.Status == "sending":
 			e.kick(ctx, a.CampaignID)
+		case a.Phase == "sending" && a.Status == "paused" && !a.ManualPause && !a.OpenIncident:
+			// It waited only for a decision that was taken elsewhere (the
+			// providers screen moved the held share, or the provider
+			// recovered while set to wait): send again.
+			if err := e.resumeDecided(ctx, a.CampaignID, now); err != nil {
+				e.log().WarnContext(ctx, "resume a decided send", "campaign", a.CampaignID, "err", err)
+			}
 		}
 	}
 	due, err := e.Q.SendingDueScheduled(ctx, &now)
@@ -255,6 +266,40 @@ func (e *Engine) Watch(ctx context.Context) error {
 		e.insert(ctx, OutboxArgs{}, nil)
 	}
 	return e.Q.SendingPurgeWindows(ctx, now.Add(-time.Minute).Unix())
+}
+
+// resumeDecided sends a campaign again once nothing holds it any more.
+func (e *Engine) resumeDecided(ctx context.Context, id uuid.UUID, now time.Time) error {
+	resumed := false
+	err := db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		c, err := q.SendingCampaignForUpdate(ctx, id)
+		if err != nil {
+			return err
+		}
+		snd, err := q.SendingGetSendForUpdate(ctx, id)
+		if err != nil {
+			return err
+		}
+		open, err := q.SendingOpenIncidents(ctx, id)
+		if err != nil {
+			return err
+		}
+		if c.Status != "paused" || snd.PausedAt != nil || len(open) > 0 {
+			return nil
+		}
+		if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: id, Status: "sending", At: now}); err != nil {
+			return err
+		}
+		resumed = true
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.send_resume", TargetType: "campaign", TargetID: id.String(), TargetName: c.Name,
+			Reason: "The decision on the held share was taken; nothing holds the send any more.", Actor: systemActor,
+			Before: map[string]any{"status": "paused"}, After: map[string]any{"status": "sending"}})
+	})
+	if err == nil && resumed {
+		e.kick(ctx, id)
+	}
+	return err
 }
 
 func uuidOr(p *uuid.UUID) uuid.UUID {

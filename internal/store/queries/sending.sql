@@ -100,7 +100,11 @@ UPDATE campaign_sends SET changes = @changes, updated_at = @at WHERE campaign_id
 UPDATE campaign_sends SET ab = @ab, updated_at = @at WHERE campaign_id = @campaign_id;
 
 -- name: SendingActiveSends :many
-SELECT s.campaign_id, s.phase, c.status
+-- Sends in progress, with what keeps a paused one paused: a person's pause
+-- or an incident still waiting for a decision.
+SELECT s.campaign_id, s.phase, c.status,
+       (s.paused_at IS NOT NULL)::boolean AS manual_pause,
+       EXISTS (SELECT 1 FROM campaign_incidents i WHERE i.campaign_id = s.campaign_id AND i.resolved_at IS NULL)::boolean AS open_incident
 FROM campaign_sends s JOIN campaigns c ON c.id = s.campaign_id
 WHERE s.phase IN ('preparing', 'sending') AND c.deleted_at IS NULL;
 

@@ -639,6 +639,8 @@ type Querier interface {
 	ScopeTotalsSince(ctx context.Context, arg ScopeTotalsSinceParams) ([]ScopeTotalsSinceRow, error)
 	SegmentMemberIDs(ctx context.Context, segmentID uuid.UUID) ([]uuid.UUID, error)
 	SendingABTotals(ctx context.Context, campaignID uuid.UUID) ([]SendingABTotalsRow, error)
+	// Sends in progress, with what keeps a paused one paused: a person's pause
+	// or an incident still waiting for a decision.
 	SendingActiveSends(ctx context.Context) ([]SendingActiveSendsRow, error)
 	SendingAddPlanned(ctx context.Context, arg SendingAddPlannedParams) error
 	SendingAddRouteCost(ctx context.Context, arg SendingAddRouteCostParams) error

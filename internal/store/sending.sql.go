@@ -55,17 +55,23 @@ func (q *Queries) SendingABTotals(ctx context.Context, campaignID uuid.UUID) ([]
 }
 
 const sendingActiveSends = `-- name: SendingActiveSends :many
-SELECT s.campaign_id, s.phase, c.status
+SELECT s.campaign_id, s.phase, c.status,
+       (s.paused_at IS NOT NULL)::boolean AS manual_pause,
+       EXISTS (SELECT 1 FROM campaign_incidents i WHERE i.campaign_id = s.campaign_id AND i.resolved_at IS NULL)::boolean AS open_incident
 FROM campaign_sends s JOIN campaigns c ON c.id = s.campaign_id
 WHERE s.phase IN ('preparing', 'sending') AND c.deleted_at IS NULL
 `
 
 type SendingActiveSendsRow struct {
-	CampaignID uuid.UUID `json:"campaignId"`
-	Phase      string    `json:"phase"`
-	Status     string    `json:"status"`
+	CampaignID   uuid.UUID `json:"campaignId"`
+	Phase        string    `json:"phase"`
+	Status       string    `json:"status"`
+	ManualPause  bool      `json:"manualPause"`
+	OpenIncident bool      `json:"openIncident"`
 }
 
+// Sends in progress, with what keeps a paused one paused: a person's pause
+// or an incident still waiting for a decision.
 func (q *Queries) SendingActiveSends(ctx context.Context) ([]SendingActiveSendsRow, error) {
 	rows, err := q.db.Query(ctx, sendingActiveSends)
 	if err != nil {
@@ -75,7 +81,13 @@ func (q *Queries) SendingActiveSends(ctx context.Context) ([]SendingActiveSendsR
 	items := []SendingActiveSendsRow{}
 	for rows.Next() {
 		var i SendingActiveSendsRow
-		if err := rows.Scan(&i.CampaignID, &i.Phase, &i.Status); err != nil {
+		if err := rows.Scan(
+			&i.CampaignID,
+			&i.Phase,
+			&i.Status,
+			&i.ManualPause,
+			&i.OpenIncident,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

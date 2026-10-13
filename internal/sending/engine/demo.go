@@ -220,6 +220,8 @@ func (e *Engine) resetDemo(ctx context.Context, id uuid.UUID) error {
 			`DELETE FROM campaign_links WHERE campaign_id = $1`,
 			`DELETE FROM campaign_sends WHERE campaign_id = $1`,
 			`DELETE FROM incidents WHERE campaign_id = $1`,
+			// An earlier send decided the A/B test on the campaign itself.
+			`UPDATE campaigns SET ab_test = ab_test - 'winner' WHERE id = $1 AND ab_test IS NOT NULL`,
 			`UPDATE campaigns SET status = 'scheduled', started_at = NULL, started_by = NULL, completed_at = NULL, updated_at = now() WHERE id = $1`,
 		} {
 			if _, err := tx.Exec(ctx, q, id); err != nil {
