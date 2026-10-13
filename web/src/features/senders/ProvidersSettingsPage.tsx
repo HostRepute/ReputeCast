@@ -47,8 +47,29 @@ export function ProvidersSettingsPage() {
           <span className="vh" role="status">
             Loading the provider settings…
           </span>
-          <Skeleton w="100%" h={190} r={10} />
-          <Skeleton w="100%" h={300} r={10} />
+          <section className="card flex flex-wrap" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className={cn('flex flex-[1_1_260px] flex-col gap-3 px-5 py-4.5', i < 2 && 'border-r border-line-2')}>
+                <Skeleton w="50%" h={16} />
+                <Skeleton w="100%" h={12} />
+                <Skeleton w="90%" h={12} />
+                <Skeleton w="80%" h={12} />
+                <Skeleton w="40%" h={12} />
+              </div>
+            ))}
+          </section>
+          <Grid min={380} gap={20}>
+            {[0, 1].map((i) => (
+              <section key={i} className="card flex flex-col gap-3 px-5 py-4.5" aria-hidden="true">
+                <Skeleton w="45%" h={16} />
+                <Skeleton w="85%" h={12} />
+                <Skeleton w="100%" h={36} r={8} />
+                <Skeleton w="100%" h={36} r={8} />
+                <Skeleton w="100%" h={36} r={8} />
+                <Skeleton w="100%" h={36} r={8} />
+              </section>
+            ))}
+          </Grid>
         </div>
       )}
     </Page>
