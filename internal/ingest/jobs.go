@@ -123,7 +123,7 @@ func (w *MailboxWorker) Poll(ctx context.Context, p store.Provider) (int, error)
 	if err != nil {
 		return 0, err
 	}
-	defer box.Close()
+	defer func() { _ = box.Close() }()
 	msgs, err := box.Fetch(ctx, 200)
 	if err != nil {
 		return 0, err

@@ -287,3 +287,18 @@ When they disagree we follow the design for UI and the spec for behaviour.
 | 16 | acme.io password sign-in | SSO sample data turns password sign-in off for @acme.io (break-glass Linh only) | The members table has Aisha signing in with a password | Demo keeps domain enforcement off so Aisha can sign in; turning it on shows the enforcement states. |
 | 17 | Workspace switching on phones and tablets | The switcher is hidden below 1101 px | People must be able to switch | The user menu lists workspaces below 1101 px. |
 | 18 | Authenticator key | One short line | RFC 6238 recommends 160-bit secrets | 160-bit key shown as two lines of four groups. |
+| 19 | Team bulk actions | SettingsTeam shows "2 selected" in the bulk bar but no way to pick rows | — | Member rows have checkboxes; the bar's checkbox selects or clears all. |
+| 20 | Workspace ID | General shows "ws_acme_newsletter" | API URLs use the workspace slug | The read-only field shows the slug ("acme-newsletter"). |
+| 21 | Pronouns | Team dialogs say "her" and "his" | — | Gender-neutral copy ("their", "them"). |
+| 22 | Audit diffs | Keys in the order they were written ("ses_us_east_1" first) | Before/after are stored as jsonb | Diffs list keys in stored order (jsonb sorts keys by length, then bytes). |
+| 23 | MCP scheduling | The agents matrix allows "Approve" for scheduling | A5 §5.13: anything that sends needs a person | `schedule_campaign` always records a proposal for a person; it never schedules by itself. |
+| 24 | Roles across workspaces | RoleEditorStates lists "2 members of Acme Engineering Blog · role is shared across workspaces" | Roles belong to one workspace | Not shown: a role change only affects the workspace's own members and their keys. |
+| 25 | "API keys and MCP agents moved" | SettingsAPI draws the card without padding (the `.sec`/`.pad` styles are missing from that board) | — | Prototype defect: the card uses the standard card header and padding. |
+| 26 | Creating a key | SettingsKeysStates' form has name, permissions and list scope | Keys can expire (the tables show an Expires column) | The form adds an optional description (agents: client or purpose) and an expiry. |
+| 27 | Delivery log length | SettingsAPI shows five deliveries | — | The five latest attempts, then "Show more". |
+| 28 | Audit date range | Last 7 days, 24 hours, 90 days, Custom | The API keeps the full retention | Adds Last 30 days and All retained; Custom picks dates in the workspace timezone. |
+| 29 | Recent agent actions | 09:21 is listed before 09:23 | — | Newest first. |
+| 30 | Invitation email | TeamInvite: "Sent on the System stream via Postmark" | `App.Mail` stays `mailer.Unavailable` until the providers workstream wires a System-stream sender | Invites use the copy-link fallback (TeamInviteNoProvider) until then; the sending path is ready. |
+| 31 | MCP limits | SettingsMCP shows the limits as checkboxes | Rate limit and approval expiry are always on (A5 §5.13) | Shown as checked items with "Change limits" to adjust the numbers. |
+| 32 | Team sign-in column | AccountSecurity gives Linh GitHub and Google identities; SettingsTeam shows "Password · passkey" | — | The list shows a member's own credentials when they have any, otherwise their SSO or social sign-in; the member page lists every method. |
+| 33 | General on phones | WorkspaceSettingsPhone lays the cards out two by two | — | Kept: the boards' narrow-screen rule (columns of at least 140 px). |

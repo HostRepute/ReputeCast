@@ -1,11 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { GeneralPage } from '@/features/workspace/GeneralPage'
 
 export const Route = createFileRoute('/w/$workspace/_app/settings/')({
-  component: () => (
-    <Page title="Settings">
-      <NotBuilt screen="Settings" />
-    </Page>
-  ),
+  component: GeneralPage,
 })

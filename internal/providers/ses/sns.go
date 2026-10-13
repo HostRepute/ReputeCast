@@ -104,7 +104,7 @@ func (p *Provider) cert(ctx context.Context, certURL string) (*x509.Certificate,
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("signing certificate: HTTP %d", resp.StatusCode)
 	}
@@ -135,7 +135,7 @@ func (p *Provider) verify(ctx context.Context, e Envelope) error {
 	}
 	c, err := p.cert(ctx, e.SigningCertURL)
 	if err != nil {
-		return fmt.Errorf("%w: %v", providers.ErrBadSignature, err)
+		return fmt.Errorf("%w: %w", providers.ErrBadSignature, err)
 	}
 	pub, ok := c.PublicKey.(*rsa.PublicKey)
 	if !ok {
@@ -200,7 +200,7 @@ func (p *Provider) Handshake(ctx context.Context, _ *http.Request, body []byte) 
 	if err != nil {
 		return true, nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64<<10))
 	if resp.StatusCode != http.StatusOK {
 		return true, nil, fmt.Errorf("confirm SNS subscription: HTTP %d", resp.StatusCode)

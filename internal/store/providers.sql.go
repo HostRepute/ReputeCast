@@ -705,6 +705,71 @@ func (q *Queries) ProvInsertIncident(ctx context.Context, arg ProvInsertIncident
 	return err
 }
 
+const provLastConfirmed = `-- name: ProvLastConfirmed :many
+SELECT m.id, m.email, m.provider_message_id, m.sent_at, m.status, m.delivered_at, m.kind,
+       coalesce(c.name, '')::text AS campaign_name,
+       coalesce(a.name, '')::text AS automation_name,
+       m.automation_node
+FROM messages m
+LEFT JOIN campaigns c ON c.id = m.campaign_id
+LEFT JOIN automations a ON a.id = m.automation_id
+WHERE m.provider_id = $1 AND m.sent_at IS NOT NULL AND m.sent_at <= $2
+  AND m.status IN ('delivered', 'deferred', 'bounced', 'complained', 'rejected')
+ORDER BY m.sent_at DESC, m.id DESC
+LIMIT 1
+`
+
+type ProvLastConfirmedParams struct {
+	ProviderID *uuid.UUID `json:"providerId"`
+	Before     *time.Time `json:"before"`
+}
+
+type ProvLastConfirmedRow struct {
+	ID                uuid.UUID  `json:"id"`
+	Email             string     `json:"email"`
+	ProviderMessageID *string    `json:"providerMessageId"`
+	SentAt            *time.Time `json:"sentAt"`
+	Status            string     `json:"status"`
+	DeliveredAt       *time.Time `json:"deliveredAt"`
+	Kind              string     `json:"kind"`
+	CampaignName      string     `json:"campaignName"`
+	AutomationName    string     `json:"automationName"`
+	AutomationNode    *string    `json:"automationNode"`
+}
+
+// The newest message a provider reported on before its webhooks went quiet
+// (the last row of "Messages awaiting status").
+func (q *Queries) ProvLastConfirmed(ctx context.Context, arg ProvLastConfirmedParams) ([]ProvLastConfirmedRow, error) {
+	rows, err := q.db.Query(ctx, provLastConfirmed, arg.ProviderID, arg.Before)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ProvLastConfirmedRow{}
+	for rows.Next() {
+		var i ProvLastConfirmedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.ProviderMessageID,
+			&i.SentAt,
+			&i.Status,
+			&i.DeliveredAt,
+			&i.Kind,
+			&i.CampaignName,
+			&i.AutomationName,
+			&i.AutomationNode,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const provListActive = `-- name: ProvListActive :many
 
 SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at FROM providers
@@ -1153,6 +1218,32 @@ func (q *Queries) ProvSentSince(ctx context.Context, arg ProvSentSinceParams) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const provSentThroughSince = `-- name: ProvSentThroughSince :one
+SELECT count(*)::bigint AS n
+FROM messages
+WHERE workspace_id = $1 AND stream = $2 AND provider_id = $3 AND sent_at >= $4
+`
+
+type ProvSentThroughSinceParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Stream      string     `json:"stream"`
+	ProviderID  *uuid.UUID `json:"providerId"`
+	Since       *time.Time `json:"since"`
+}
+
+// Mail of one stream a provider sent since a time (what failover moved to it).
+func (q *Queries) ProvSentThroughSince(ctx context.Context, arg ProvSentThroughSinceParams) (int64, error) {
+	row := q.db.QueryRow(ctx, provSentThroughSince,
+		arg.WorkspaceID,
+		arg.Stream,
+		arg.ProviderID,
+		arg.Since,
+	)
+	var n int64
+	err := row.Scan(&n)
+	return n, err
 }
 
 const provSetRouteStatus = `-- name: ProvSetRouteStatus :execrows
