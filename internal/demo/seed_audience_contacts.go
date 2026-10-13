@@ -177,6 +177,12 @@ type audGen struct {
 	now    time.Time
 }
 
+// audRand is a seeded generator, so the sample data is the same on every
+// run. It never produces anything secret.
+func audRand(a, b uint64) *rand.Rand {
+	return rand.New(rand.NewPCG(a, b)) //nolint:gosec // deterministic sample data
+}
+
 func (g *audGen) daysAgo(min, max float64) time.Time {
 	d := min + g.rng.Float64()*(max-min)
 	return g.now.Add(-time.Duration(d * 24 * float64(time.Hour))).Truncate(time.Second)
@@ -280,7 +286,7 @@ func (g *audGen) engagement(c *audContact) {
 
 // audGenerateContacts builds the 48,213 contacts of Acme Newsletter.
 func audGenerateContacts(s *Seeder, a *audSeed) {
-	g := &audGen{s: s, rng: rand.New(rand.NewPCG(48213, 2026)), emails: a.emails, now: s.Now}
+	g := &audGen{s: s, rng: audRand(48213, 2026), emails: a.emails, now: s.Now}
 	brevoAt := s.designDay(24, 16, 40)
 	mcAt := s.designDay(24, 14, 5)
 	a.sends = audSends(s)
@@ -901,7 +907,7 @@ func audWriteContacts(ctx context.Context, s *Seeder, a *audSeed, lists map[int]
 func audSeedEngineeringBlog(ctx context.Context, s *Seeder) error {
 	eng := s.Workspaces["acme-engineering-blog"]
 	list := s.Lists["Engineering Blog"]
-	g := &audGen{s: s, rng: rand.New(rand.NewPCG(6420, 7)), emails: map[string]bool{}, now: s.Now}
+	g := &audGen{s: s, rng: audRand(6420, 7), emails: map[string]bool{}, now: s.Now}
 	tiers := []struct {
 		tier string
 		n    int

@@ -1291,36 +1291,46 @@ func (q *Queries) SuppressionCounts(ctx context.Context, workspaceID uuid.UUID) 
 }
 
 const suppressionSyncStates = `-- name: SuppressionSyncStates :many
-SELECT p.id, p.name, p.adapter, p.label,
+SELECT p.id, p.name, p.adapter, p.label, p.capabilities, p.last_event_at,
        coalesce(s.mode, 'off')::text AS mode, s.last_push_at, s.last_pull_at,
        coalesce(s.pushed, 0)::bigint AS pushed, coalesce(s.pulled, 0)::bigint AS pulled,
        coalesce(s.pending, 0)::bigint AS pending,
        coalesce(s.status, '')::text AS status, coalesce(s.status_detail, '')::text AS status_detail,
-       (s.provider_id IS NOT NULL)::boolean AS has_sync
+       (s.provider_id IS NOT NULL)::boolean AS has_sync,
+       coalesce(a.n, 0)::bigint AS added, coalesce(a.last_at, p.connected_at)::timestamptz AS added_at
 FROM providers p
 LEFT JOIN provider_suppression_sync s ON s.provider_id = p.id
+LEFT JOIN LATERAL (
+    SELECT count(*) AS n, max(x.created_at) AS last_at FROM suppressions x
+    WHERE x.workspace_id = p.workspace_id AND x.source_provider_id = p.id
+) a ON true
 WHERE p.workspace_id = $1 AND p.disconnected_at IS NULL
 ORDER BY p.connected_at, p.name
 `
 
 type SuppressionSyncStatesRow struct {
-	ID           uuid.UUID  `json:"id"`
-	Name         string     `json:"name"`
-	Adapter      string     `json:"adapter"`
-	Label        string     `json:"label"`
-	Mode         string     `json:"mode"`
-	LastPushAt   *time.Time `json:"lastPushAt"`
-	LastPullAt   *time.Time `json:"lastPullAt"`
-	Pushed       int64      `json:"pushed"`
-	Pulled       int64      `json:"pulled"`
-	Pending      int64      `json:"pending"`
-	Status       string     `json:"status"`
-	StatusDetail string     `json:"statusDetail"`
-	HasSync      bool       `json:"hasSync"`
+	ID           uuid.UUID       `json:"id"`
+	Name         string          `json:"name"`
+	Adapter      string          `json:"adapter"`
+	Label        string          `json:"label"`
+	Capabilities json.RawMessage `json:"capabilities"`
+	LastEventAt  *time.Time      `json:"lastEventAt"`
+	Mode         string          `json:"mode"`
+	LastPushAt   *time.Time      `json:"lastPushAt"`
+	LastPullAt   *time.Time      `json:"lastPullAt"`
+	Pushed       int64           `json:"pushed"`
+	Pulled       int64           `json:"pulled"`
+	Pending      int64           `json:"pending"`
+	Status       string          `json:"status"`
+	StatusDetail string          `json:"statusDetail"`
+	HasSync      bool            `json:"hasSync"`
+	Added        int64           `json:"added"`
+	AddedAt      time.Time       `json:"addedAt"`
 }
 
 // One row per connected provider with its suppression sync state (kept by
-// the providers domain).
+// the providers domain) and, for providers without a suppression API, the
+// addresses their bounce and complaint events added to the shared list.
 func (q *Queries) SuppressionSyncStates(ctx context.Context, workspaceID uuid.UUID) ([]SuppressionSyncStatesRow, error) {
 	rows, err := q.db.Query(ctx, suppressionSyncStates, workspaceID)
 	if err != nil {
@@ -1335,6 +1345,8 @@ func (q *Queries) SuppressionSyncStates(ctx context.Context, workspaceID uuid.UU
 			&i.Name,
 			&i.Adapter,
 			&i.Label,
+			&i.Capabilities,
+			&i.LastEventAt,
 			&i.Mode,
 			&i.LastPushAt,
 			&i.LastPullAt,
@@ -1344,6 +1356,8 @@ func (q *Queries) SuppressionSyncStates(ctx context.Context, workspaceID uuid.UU
 			&i.Status,
 			&i.StatusDetail,
 			&i.HasSync,
+			&i.Added,
+			&i.AddedAt,
 		); err != nil {
 			return nil, err
 		}

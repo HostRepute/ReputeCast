@@ -3,8 +3,8 @@ package demo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"math/rand/v2"
 	"net/netip"
 	"time"
 
@@ -33,7 +33,7 @@ type audSupp struct {
 // unsubscribed, 812 hard bounces, 41 complaints) and 833 older ones.
 // Totals: 1,402 hard bounces, 96 complaints, 331 unsubscribed, 45 manual.
 func audGenerateSuppressions(s *Seeder, a *audSeed) []audSupp {
-	g := &audGen{s: s, rng: rand.New(rand.NewPCG(1874, 3)), emails: a.emails, now: s.Now}
+	g := &audGen{s: s, rng: audRand(1874, 3), emails: a.emails, now: s.Now}
 	out := []audSupp{
 		{email: "r.walker@outlook.com", reason: "hard_bounce", provider: "ses", code: "550 5.1.1 user unknown", campaign: "Weekly Digest #142", at: audToday(s, 9, 41).Add(12 * time.Second)},
 		{email: "k.nakamura@hotmail.com", reason: "hard_bounce", provider: "postal", code: "550 5.4.1 Access denied", campaign: "Weekly Digest #142", at: audToday(s, 9, 41)},
@@ -75,18 +75,17 @@ func audGenerateSuppressions(s *Seeder, a *audSeed) []audSupp {
 		case i >= 992:
 			reason = "complaint"
 		}
-		out = append(out, audSupp{email: addr(), reason: reason, source: "import", code: "blocklisted in Brevo", context: "Migration", brevo: true,
+		out = append(out, audSupp{email: addr(), reason: reason, source: "import:brevo", code: "blocklisted in Brevo", context: "Migration", brevo: true,
 			at: brevoAt.Add(-time.Duration(g.rng.IntN(200)) * time.Second)})
 	}
 	older := func() time.Time { return g.daysAgo(25, 210) }
 	bounceCodes := []string{"550 5.1.1 user unknown", "550 5.1.1 mailbox does not exist", "550 5.2.1 mailbox disabled", "554 5.7.1 recipient rejected"}
+	// Pulled from SES and Postmark before the migration. (Postal only joined
+	// nine days ago; its one bounce is k.nakamura's, on the first page.)
 	for i := 0; i < 587; i++ {
 		p := "ses"
-		switch {
-		case i >= 557:
+		if i >= 557 {
 			p = "postmark"
-		case i >= 527:
-			p = "postal"
 		}
 		out = append(out, audSupp{email: addr(), reason: "hard_bounce", provider: p, source: "provider_sync", code: bounceCodes[g.rng.IntN(len(bounceCodes))], at: older()})
 	}
@@ -137,7 +136,7 @@ func audSeedLate(ctx context.Context, s *Seeder, a *audSeed) error {
 		name string
 		fn   func() error
 	}{
-		{"suppressions", func() error { return audWriteSuppressions(ctx, s, a, welcome) }},
+		{"suppressions", func() error { return audLinkSuppressions(ctx, s, a, welcome) }},
 		{"segments", func() error { return audSegments(ctx, s, a) }},
 		{"segment events", func() error { return audSegmentEvents(ctx, s, a) }},
 		{"timelines", func() error { return audTimelines(ctx, s, a, welcome) }},
@@ -159,7 +158,7 @@ func audAutomation(ctx context.Context, s *Seeder, name string) (uuid.UUID, erro
 	if err == nil {
 		return id, nil
 	}
-	if err != pgx.ErrNoRows {
+	if !errors.Is(err, pgx.ErrNoRows) {
 		return id, err
 	}
 	id = ID()
@@ -183,16 +182,17 @@ func audProvider(s *Seeder, key string) *uuid.UUID {
 	return nil
 }
 
-func audWriteSuppressions(ctx context.Context, s *Seeder, a *audSeed, welcome uuid.UUID) error {
+// audWriteSuppressions writes the shared suppression list during the
+// audience step, before the providers seeder looks for one. Providers,
+// campaigns and flows don't exist yet; audLinkSuppressions fills them in.
+// (Each provider's sync state belongs to the providers seeder.)
+func audWriteSuppressions(ctx context.Context, s *Seeder, a *audSeed) error {
 	ws := s.WS()
 	rows := make([][]any, 0, len(a.supps))
 	for _, x := range a.supps {
-		var importID, auto *uuid.UUID
+		var importID *uuid.UUID
 		if x.brevo {
 			importID = &a.brevoImport
-		}
-		if x.automation != "" {
-			auto = &welcome
 		}
 		var by *uuid.UUID
 		if x.by != "" {
@@ -202,32 +202,37 @@ func audWriteSuppressions(ctx context.Context, s *Seeder, a *audSeed, welcome uu
 		}
 		source := x.source
 		if x.provider != "" && source == "" {
-			source = "provider"
+			source = "webhook"
 		}
-		rows = append(rows, []any{ID(), ws.ID, x.email, x.reason, source, audProvider(s, x.provider), x.code, by, x.at, x.scope,
-			audCampaign(s, x.campaign), auto, x.step, x.context, importID})
+		rows = append(rows, []any{ID(), ws.ID, x.email, x.reason, source, x.code, by, x.at, x.scope, x.step, x.context, importID})
 	}
-	if _, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"suppressions"}, []string{"id", "workspace_id", "email", "reason", "source", "source_provider_id",
-		"original_code", "created_by", "created_at", "scope", "campaign_id", "automation_id", "automation_step", "context", "import_id"}, pgx.CopyFromRows(rows)); err != nil {
-		return err
-	}
-	// Two-way sync with every provider, a minute ago.
-	for _, p := range []struct {
-		key            string
-		pulled, pushed int64
-		minute         int
-	}{{"ses", 612, 1262, 40}, {"postmark", 188, 1686, 40}, {"postal", 41, 1833, 41}} {
-		id := audProvider(s, p.key)
-		if id == nil {
+	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"suppressions"}, []string{"id", "workspace_id", "email", "reason", "source",
+		"original_code", "created_by", "created_at", "scope", "automation_step", "context", "import_id"}, pgx.CopyFromRows(rows))
+	return err
+}
+
+// audLinkSuppressions sets the provider, campaign and flow of each
+// suppression once those seeders ran.
+func audLinkSuppressions(ctx context.Context, s *Seeder, a *audSeed, welcome uuid.UUID) error {
+	var emails []string
+	var providers, campaigns, autos []*uuid.UUID
+	for _, x := range a.supps {
+		if x.provider == "" && x.campaign == "" && x.automation == "" {
 			continue
 		}
-		at := audToday(s, 9, p.minute)
-		if _, err := s.Tx.Exec(ctx, `INSERT INTO provider_suppression_sync (provider_id, mode, last_push_at, last_pull_at, pushed, pulled, pending, status)
-			VALUES ($1,'two_way',$2,$2,$3,$4,0,'ok') ON CONFLICT (provider_id) DO NOTHING`, *id, at, p.pushed, p.pulled); err != nil {
-			return err
+		var auto *uuid.UUID
+		if x.automation != "" {
+			auto = &welcome
 		}
+		emails = append(emails, x.email)
+		providers = append(providers, audProvider(s, x.provider))
+		campaigns = append(campaigns, audCampaign(s, x.campaign))
+		autos = append(autos, auto)
 	}
-	return nil
+	_, err := s.Tx.Exec(ctx, `UPDATE suppressions s SET source_provider_id = x.p, campaign_id = x.c, automation_id = x.a
+		FROM unnest($2::text[], $3::uuid[], $4::uuid[], $5::uuid[]) AS x(email, p, c, a)
+		WHERE s.workspace_id = $1 AND s.email = x.email`, s.WS().ID, emails, providers, campaigns, autos)
+	return err
 }
 
 // audSegments saves the seven segments of the Segments tab with the counts
@@ -299,10 +304,10 @@ func audSegmentEvents(ctx context.Context, s *Seeder, a *audSeed) error {
 		if c.ev.kind == "open" {
 			ua = audUserAgent(c.mailbox)
 		}
-		rows = append(rows, []any{ID(), ws.ID, audCampaign(s, c.ev.campaign), c.id, c.ev.kind, c.ev.at, c.mailbox, false, ua, audClickURL(c.ev)})
+		rows = append(rows, []any{ID(), ws.ID, audCampaign(s, c.ev.campaign), c.id, c.ev.kind, c.ev.at, c.mailbox, false, ua, audClickURL(c.ev), c.email, c.ev.at})
 	}
 	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"delivery_events"}, []string{"id", "workspace_id", "campaign_id", "contact_id", "type", "occurred_at",
-		"mailbox_provider", "machine", "user_agent", "url"}, pgx.CopyFromRows(rows))
+		"mailbox_provider", "machine", "user_agent", "url", "recipient", "received_at"}, pgx.CopyFromRows(rows))
 	return err
 }
 
@@ -464,8 +469,8 @@ func audWriteMessages(ctx context.Context, s *Seeder, c *audContact, msgs []audM
 		}
 		ev := func(typ string, at time.Time, code, diag, ua, url string) error {
 			_, err := s.Tx.Exec(ctx, `INSERT INTO delivery_events (id, workspace_id, message_id, campaign_id, contact_id, provider_id, type, occurred_at,
-				mailbox_provider, original_code, diagnostic, user_agent, url, machine) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-				ID(), ws.ID, id, campaign, c.id, provider, typ, at, c.mailbox, code, diag, ua, url, typ == "open" && m.machine)
+				mailbox_provider, original_code, diagnostic, user_agent, url, machine, recipient, received_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$8)`,
+				ID(), ws.ID, id, campaign, c.id, provider, typ, at, c.mailbox, code, diag, ua, url, typ == "open" && m.machine, c.email)
 			return err
 		}
 		if m.softBounce != nil {

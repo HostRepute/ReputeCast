@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/providers"
+	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -109,6 +110,9 @@ type SuppressionProviderSync struct {
 	At         *time.Time `json:"at,omitempty"`
 	Pulled     int64      `json:"pulled"`
 	Pushed     int64      `json:"pushed"`
+	// Local is set for providers without a suppression API: nothing is
+	// pushed; the shared list is checked before mail is handed to them.
+	Local bool `json:"local"`
 	// PulledNote explains what "pulled" covers for this provider.
 	PulledNote string `json:"pulledNote"`
 	Detail     string `json:"detail"`
@@ -313,20 +317,23 @@ func suppressionSource(source, provider, adapter, user, importSource string) Sup
 	if provider != "" {
 		return SuppressionSource{Kind: "provider", Label: provider, Adapter: adapter}
 	}
-	switch source {
-	case "preference_center":
+	switch {
+	case source == "preference_center":
 		return SuppressionSource{Kind: source, Label: "Preference center"}
-	case "one_click":
-		return SuppressionSource{Kind: source, Label: "List-Unsubscribe one-click"}
-	case "bounce_mailbox":
+	case source == "one_click" || source == "list_unsubscribe":
+		return SuppressionSource{Kind: "one_click", Label: "List-Unsubscribe one-click"}
+	case source == "bounce_mailbox":
 		return SuppressionSource{Kind: source, Label: "SMTP bounce mailbox"}
-	case "api":
+	case source == "api":
 		return SuppressionSource{Kind: source, Label: "API"}
-	case "import":
-		return SuppressionSource{Kind: source, Label: importerLabel(importSource) + " import"}
-	case "csv":
+	case source == "import" || strings.HasPrefix(source, "import:"):
+		if importSource == "" {
+			importSource = strings.TrimPrefix(source, "import:")
+		}
+		return SuppressionSource{Kind: "import", Label: importerLabel(importSource) + " import"}
+	case source == "csv":
 		return SuppressionSource{Kind: source, Label: "CSV upload"}
-	case "manual":
+	case source == "manual":
 		if user != "" {
 			return SuppressionSource{Kind: source, Label: user}
 		}
@@ -335,6 +342,11 @@ func suppressionSource(source, provider, adapter, user, importSource string) Sup
 	return SuppressionSource{Kind: source, Label: source}
 }
 
+// syncStates lists each connected provider's sync with the shared list.
+// Providers with a suppression API sync both ways (state kept by the
+// providers domain); for the others ReputeCast checks the shared list
+// before handing them mail, and "pulled" counts what their bounce and
+// complaint events added.
 func (s *Service) syncStates(ctx context.Context, ws *store.Workspace) ([]SuppressionProviderSync, error) {
 	rows, err := s.Q.SuppressionSyncStates(ctx, ws.ID)
 	if err != nil {
@@ -343,6 +355,19 @@ func (s *Service) syncStates(ctx context.Context, ws *store.Workspace) ([]Suppre
 	out := make([]SuppressionProviderSync, 0, len(rows))
 	for _, r := range rows {
 		ps := SuppressionProviderSync{ProviderID: r.ID.String(), Name: r.Name, Adapter: r.Adapter, Pulled: r.Pulled, Pushed: r.Pushed, Detail: r.StatusDetail}
+		if !state.Caps(store.Provider{Adapter: r.Adapter, Capabilities: r.Capabilities}).SuppressionSync {
+			ps.Local, ps.Status, ps.Pulled, ps.Pushed = true, "in_sync", r.Added, 0
+			ps.PulledNote = "pulled"
+			if r.Added > 0 {
+				at := r.AddedAt
+				ps.At = &at
+			}
+			if r.LastEventAt != nil && (ps.At == nil || r.LastEventAt.After(*ps.At)) {
+				ps.At = r.LastEventAt
+			}
+			out = append(out, ps)
+			continue
+		}
 		switch r.Adapter {
 		case "ses":
 			ps.PulledNote = "pulled from the account-level list"
@@ -357,9 +382,11 @@ func (s *Service) syncStates(ctx context.Context, ws *store.Workspace) ([]Suppre
 		}
 		ps.At = at
 		switch {
-		case !r.HasSync || r.Mode == "off":
+		case !r.HasSync:
+			ps.Status = "syncing" // the first sync hasn't run yet
+		case r.Mode == "off":
 			ps.Status = "off"
-		case r.Status == "error":
+		case r.Status != "" && r.Status != "ok":
 			ps.Status = "error"
 		case r.Pending > 0:
 			ps.Status = "syncing"

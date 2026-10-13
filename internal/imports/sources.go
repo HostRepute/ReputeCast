@@ -164,7 +164,7 @@ func (c *apiClient) get(ctx context.Context, path string, out any) error {
 			continue
 		}
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 32<<20))
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		switch {
 		case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden:
 			return &SourceError{Status: resp.StatusCode, Code: CodeAuthFailed, Message: fmt.Sprintf("%s rejected the API key (%s).", c.name, describe(body, resp.Status))}

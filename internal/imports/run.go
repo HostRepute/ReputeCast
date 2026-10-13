@@ -485,7 +485,7 @@ func (s *Service) suppressRow(ctx context.Context, tx pgx.Tx, st *runState, r ma
 	}
 	impID := st.imp.ID
 	_, err := q.InsertSuppression(ctx, store.InsertSuppressionParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: st.ws.ID, Email: r.Email, Reason: reason,
-		Source: "import", OriginalCode: code, CreatedBy: st.actor, Scope: suppressionScope(reason), Context: "Migration", ImportID: &impID, CreatedAt: now})
+		Source: "import:" + st.imp.Source, OriginalCode: code, CreatedBy: st.actor, Scope: suppressionScope(reason), Context: "Migration", ImportID: &impID, CreatedAt: now})
 	added := err == nil
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = nil

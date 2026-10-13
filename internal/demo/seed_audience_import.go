@@ -6,7 +6,6 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"math/rand/v2"
 	"strings"
 	"time"
 
@@ -193,7 +192,7 @@ func audStageDraft(ctx context.Context, s *Seeder, a *audSeed) error {
 	linh := s.Users["linh@acme.io"]
 	id := a.mailchimpDraft
 	checked := audToday(s, 9, 44)
-	g := &audGen{s: s, rng: rand.New(rand.NewPCG(13739, 9)), emails: a.emails, now: s.Now}
+	g := &audGen{s: s, rng: audRand(13739, 9), emails: a.emails, now: s.Now}
 	fields := []map[string]string{
 		{"key": "EMAIL", "label": "EMAIL", "type": "email"}, {"key": "FNAME", "label": "FNAME", "type": "text"}, {"key": "LNAME", "label": "LNAME", "type": "text"},
 		{"key": "COMPANY", "label": "COMPANY", "type": "text"}, {"key": "PLAN", "label": "PLAN", "type": "text"}, {"key": "MRR", "label": "MRR", "type": "number"},

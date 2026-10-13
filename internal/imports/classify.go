@@ -3,7 +3,6 @@ package imports
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -268,11 +267,4 @@ func riskyAction(o ImportRiskyActions, class string) string {
 		return o.Trap
 	}
 	return ""
-}
-
-func lowerFirst(s string) string {
-	if s == "" {
-		return s
-	}
-	return strings.ToLower(s[:1]) + s[1:]
 }

@@ -101,12 +101,12 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkI
 	actor := actorID(ctx)
 	switch in.Action {
 	case "add_to_list":
-		listID, err := uuid.Parse(in.ListID)
-		if err != nil {
+		listID, perr := uuid.Parse(in.ListID)
+		if perr != nil {
 			return out, api.Invalid("body.listId", "Pick a list.")
 		}
-		l, err := s.Q.GetList(ctx, store.GetListParams{WorkspaceID: ws.ID, ID: listID})
-		if err != nil {
+		l, lerr := s.Q.GetList(ctx, store.GetListParams{WorkspaceID: ws.ID, ID: listID})
+		if lerr != nil {
 			return out, api.Invalid("body.listId", "That list doesn't exist in this workspace.")
 		}
 		if !scopeAllowsList(ctx, listID) {
@@ -178,14 +178,13 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkI
 			out.Note = fmt.Sprintf("%d were already on the suppression list.", res.Already)
 		}
 	case "resend_optin":
-		var contacts []store.Contact
-		rows, err := s.Pool.Query(ctx, `SELECT * FROM contacts WHERE id = ANY ($1) LIMIT 5000`, ids)
-		if err != nil {
-			return out, err
+		rows, qerr := s.Pool.Query(ctx, `SELECT * FROM contacts WHERE id = ANY ($1) LIMIT 5000`, ids)
+		if qerr != nil {
+			return out, qerr
 		}
-		contacts, err = pgx.CollectRows(rows, pgx.RowToStructByName[store.Contact])
-		if err != nil {
-			return out, err
+		contacts, cerr := pgx.CollectRows(rows, pgx.RowToStructByName[store.Contact])
+		if cerr != nil {
+			return out, cerr
 		}
 		if s.Mail == nil || !s.Mail.SystemAvailable(ctx, &ws.ID) {
 			return out, api.Err(409, "no_system_provider", "No sending provider is connected to the System stream, so opt-in emails can't go out yet. Connect one in Sending providers.")

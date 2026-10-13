@@ -419,7 +419,7 @@ func (s *Service) UpdateContact(ctx context.Context, ws *store.Workspace, id uui
 
 func contactFieldsSnapshot(c store.Contact) map[string]any {
 	return map[string]any{"firstName": c.FirstName, "lastName": c.LastName, "company": c.Company, "country": c.Country,
-		"timezone": c.Timezone, "language": c.Language, "tags": c.Tags, "fields": json.RawMessage(c.Attributes)}
+		"timezone": c.Timezone, "language": c.Language, "tags": c.Tags, "fields": c.Attributes}
 }
 
 func cleanTags(in []string) []string {

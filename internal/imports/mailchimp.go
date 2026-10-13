@@ -2,6 +2,7 @@ package imports
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -43,7 +44,7 @@ func (m *Mailchimp) Connect(ctx context.Context) (ImportConnection, error) {
 		AccountName string `json:"account_name"`
 	}
 	if err := m.c.get(ctx, "/", &acct); err != nil {
-		if se, ok := err.(*SourceError); ok && se.Code == CodeAuthFailed {
+		if se := (*SourceError)(nil); errors.As(err, &se) && se.Code == CodeAuthFailed {
 			se.Message = fmt.Sprintf(`Mailchimp rejected the API key from the %s data center. Keys look like xxxxxxxx-%s; the suffix must match the data center the account lives in.`, m.DC, m.DC)
 		}
 		return ImportConnection{}, err

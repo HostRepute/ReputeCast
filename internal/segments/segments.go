@@ -294,7 +294,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, actor *uuid.U
 		if err != nil {
 			return err
 		}
-		if err := s.storeCount(ctx, q, seg.ID, res, countErr, ids); err != nil {
+		if err := s.storeCount(ctx, q, seg.ID, res, countErr == nil, ids); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{
@@ -336,12 +336,12 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, actor *uuid.U
 		if err != nil {
 			return err
 		}
-		if err := s.storeCount(ctx, q, seg.ID, res, countErr, ids); err != nil {
+		if err := s.storeCount(ctx, q, seg.ID, res, countErr == nil, ids); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{
 			WorkspaceID: &ws.ID, Action: "segment.update", TargetType: "segment", TargetID: seg.ID.String(), TargetName: seg.Name,
-			Before: map[string]any{"name": before.Name, "mode": before.Mode, "refresh": before.Refresh, "definition": json.RawMessage(before.Definition), "sql": before.Sql},
+			Before: map[string]any{"name": before.Name, "mode": before.Mode, "refresh": before.Refresh, "definition": before.Definition, "sql": before.Sql},
 			After:  map[string]any{"name": seg.Name, "mode": seg.Mode, "refresh": seg.Refresh, "definition": in.Definition, "sql": in.SQL},
 		})
 	})
@@ -359,7 +359,9 @@ func (s *Service) snapshot(ctx context.Context, ws *store.Workspace, in SegmentI
 	return s.ids(ctx, ws.ID, compiled, userSQL)
 }
 
-func (s *Service) storeCount(ctx context.Context, q *store.Queries, id uuid.UUID, res SegmentCountResult, countErr error, ids []uuid.UUID) error {
+// storeCount keeps a static segment's members and, when counted is true,
+// the count (a count that timed out keeps the last one).
+func (s *Service) storeCount(ctx context.Context, q *store.Queries, id uuid.UUID, res SegmentCountResult, counted bool, ids []uuid.UUID) error {
 	if ids != nil {
 		if err := q.ClearSegmentMembers(ctx, id); err != nil {
 			return err
@@ -368,7 +370,7 @@ func (s *Service) storeCount(ctx context.Context, q *store.Queries, id uuid.UUID
 			return err
 		}
 	}
-	if countErr != nil {
+	if !counted {
 		return nil
 	}
 	tiers, _ := json.Marshal(res.Tiers)
@@ -394,7 +396,7 @@ func (s *Service) Recount(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	if err != nil {
 		return res, err
 	}
-	return res, s.storeCount(ctx, s.Q, seg.ID, res, nil, nil)
+	return res, s.storeCount(ctx, s.Q, seg.ID, res, true, nil)
 }
 
 // Delete removes a segment.
@@ -410,7 +412,7 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{
 			WorkspaceID: &ws.ID, Action: "segment.delete", TargetType: "segment", TargetID: id.String(), TargetName: seg.Name,
-			Before: map[string]any{"name": seg.Name, "mode": seg.Mode, "definition": json.RawMessage(seg.Definition), "sql": seg.Sql},
+			Before: map[string]any{"name": seg.Name, "mode": seg.Mode, "definition": seg.Definition, "sql": seg.Sql},
 		})
 	})
 }

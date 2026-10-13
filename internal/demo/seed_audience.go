@@ -71,6 +71,9 @@ func seedAudienceImpl(ctx context.Context, s *Seeder) error {
 			a.supps = audGenerateSuppressions(s, a)
 			return audWriteContacts(ctx, s, a, bits)
 		}},
+		// Written now so the providers seeder sees the list exists; the
+		// provider, campaign and flow of each row are linked afterwards.
+		{"suppressions", func() error { return audWriteSuppressions(ctx, s, a) }},
 		{"import reports", func() error { return audImportReports(ctx, s, a) }},
 		{"engineering blog", func() error { return audSeedEngineeringBlog(ctx, s) }},
 		{"saved views", func() error { return audSavedViews(ctx, s) }},
@@ -90,22 +93,29 @@ func seedAudienceImpl(ctx context.Context, s *Seeder) error {
 // is seeded earlier in the day every such time moves back by the same
 // amount, so nothing is in the future and the order is kept.
 func audToday(s *Seeder, hour, minute int) time.Time {
-	t := s.designDay(0, hour, minute)
-	if lead := s.designDay(0, 11, 0).Sub(s.Now); lead > 0 {
-		t = t.Add(-lead)
-	}
-	return t
+	return s.designDay(0, hour, minute)
 }
 
-// audTierRun is the last nightly tier run: 03:00 today in the workspace
-// timezone, or yesterday when the demo is seeded before 03:00.
+// audTierRun is the last nightly tier run on the real clock: 03:00 today in
+// the workspace timezone, or yesterday when it isn't 03:00 yet. (The design
+// day can lag the real date; the tier job compares against the real one, and
+// an older run would make it recompute every tier as soon as the server
+// starts.)
 func audTierRun(s *Seeder) time.Time {
-	t := s.designDay(0, 3, 0)
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		loc = time.UTC
+	}
+	n := s.Now.In(loc)
+	t := time.Date(n.Year(), n.Month(), n.Day(), audTierHour, 0, 0, 0, loc)
 	if t.After(s.Now) {
 		t = t.AddDate(0, 0, -1)
 	}
 	return t
 }
+
+// audTierHour is when the nightly tier run happens (audience.TierRunHour).
+const audTierHour = 3
 
 func audCustomFields(ctx context.Context, s *Seeder) error {
 	fields := []struct {

@@ -373,7 +373,8 @@ type Querier interface {
 	// Suppressions -----------------------------------------------------------------
 	SuppressionCounts(ctx context.Context, workspaceID uuid.UUID) (SuppressionCountsRow, error)
 	// One row per connected provider with its suppression sync state (kept by
-	// the providers domain).
+	// the providers domain) and, for providers without a suppression API, the
+	// addresses their bounce and complaint events added to the shared list.
 	SuppressionSyncStates(ctx context.Context, workspaceID uuid.UUID) ([]SuppressionSyncStatesRow, error)
 	// Workspaces with their timezone and the last tier run, for the nightly job.
 	TierRunWorkspaces(ctx context.Context) ([]TierRunWorkspacesRow, error)

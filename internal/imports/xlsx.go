@@ -48,7 +48,7 @@ func readXLSX(data []byte, maxRows int) ([][]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 	return sheetRows(io.LimitReader(rc, 512<<20), shared, dateStyles, maxRows)
 }
 
@@ -57,7 +57,7 @@ func readZipXML(f *zip.File, v any) error {
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 	return xml.NewDecoder(io.LimitReader(rc, 64<<20)).Decode(v)
 }
 
@@ -146,8 +146,8 @@ func dateStyleIndexes(f *zip.File) (map[int]bool, error) {
 			NumFmtID int `xml:"numFmtId,attr"`
 		} `xml:"cellXfs>xf"`
 	}
-	if err := readZipXML(f, &st); err != nil {
-		return out, nil // styles are optional for reading values
+	if readZipXML(f, &st) != nil {
+		return out, nil //nolint:nilerr // styles are optional: values read without them
 	}
 	custom := map[int]bool{}
 	for _, nf := range st.NumFmts {
@@ -189,7 +189,7 @@ func sheetRows(r io.Reader, shared []string, dateStyles map[int]bool, maxRows in
 	var cur []string
 	for {
 		tok, err := dec.Token()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

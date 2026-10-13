@@ -129,8 +129,8 @@ func Register(h huma.API, s *Service) {
 			ws := api.WorkspaceFrom(ctx)
 			id := uuid.MustParse(in.ID)
 			out, err := s.Recount(ctx, ws, id)
-			if errors.Is(err, ErrTimeout) {
-				p := Problem(err).(*api.Problem)
+			var p *api.Problem
+			if errors.Is(err, ErrTimeout) && errors.As(Problem(err), &p) {
 				if cur, gerr := s.Get(ctx, ws, id); gerr == nil && cur.Count != nil {
 					p = p.WithMeta("lastCount", *cur.Count, "countedAt", cur.CountedAt)
 				}

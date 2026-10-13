@@ -138,17 +138,17 @@ func guessTarget(f SourceField, custom map[string]store.CustomField) ImportField
 	c := ImportFieldChoice{Source: f.Key}
 	n := norm(f.Key)
 	n = strings.TrimPrefix(strings.TrimPrefix(n, "attribs"), "data")
-	switch {
-	case f.Type == "email":
+	switch f.Type {
+	case "email":
 		c.Target = TargetEmail
 		return c
-	case f.Type == "consent":
+	case "consent":
 		c.Target = TargetEvidence
 		return c
-	case f.Type == "tags":
+	case "tags":
 		c.Target = TargetTags
 		return c
-	case f.Type == "status":
+	case "status":
 		c.Target = TargetStatus
 		return c
 	}
@@ -454,7 +454,7 @@ func (s *Service) SaveFields(ctx context.Context, ws *store.Workspace, id uuid.U
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if err := q.SetImportFieldMap(ctx, store.SetImportFieldMapParams{ID: imp.ID, FieldMap: mustJSON(FieldMap{Fields: in.Fields})}); err != nil {
+		if err := q.SetImportFieldMap(ctx, store.SetImportFieldMapParams{ID: imp.ID, FieldMap: mustJSON(FieldMap(in))}); err != nil {
 			return err
 		}
 		if err := q.SetImportStep(ctx, store.SetImportStepParams{ID: imp.ID, Step: "consent"}); err != nil {

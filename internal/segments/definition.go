@@ -127,6 +127,14 @@ type ValidationError struct {
 
 func (e *ValidationError) Error() string { return e.Message }
 
+// condProblem is a sentence saying what's wrong with one condition; the
+// caller wraps it in a ValidationError with the condition's location.
+type condProblem string
+
+func (p condProblem) Error() string { return string(p) }
+
+func problemf(format string, a ...any) error { return condProblem(fmt.Sprintf(format, a...)) }
+
 // Validate checks every condition against the catalog. custom maps custom
 // field keys to their definition; lists holds the workspace's list ids.
 func (d SegmentDefinition) Validate(custom map[string]CustomField, lists map[uuid.UUID]string) error {
@@ -157,32 +165,32 @@ func (d SegmentDefinition) Validate(custom map[string]CustomField, lists map[uui
 func (c SegmentCondition) validate(custom map[string]CustomField, lists map[uuid.UUID]string) error {
 	ops, kind, label := c.spec(custom)
 	if ops == nil {
-		return fmt.Errorf("%q is not a field you can filter on.", c.Field)
+		return problemf("%q is not a field you can filter on.", c.Field)
 	}
 	if !contains(ops, c.Op) {
-		return fmt.Errorf("%s can't use the operator %q.", label, c.Op)
+		return problemf("%s can't use the operator %q.", label, c.Op)
 	}
 	switch {
 	case c.Op == "never" || c.Op == "is_empty" || c.Op == "is_not_empty" || c.Op == "is_true" || c.Op == "is_false":
 		return nil
 	case kind == KindPeriod:
 		if c.Amount < 1 || c.Amount > 3650 {
-			return fmt.Errorf("%s needs a number of days or weeks between 1 and 3650.", label)
+			return problemf("%s needs a number of days or weeks between 1 and 3650.", label)
 		}
 		if c.Unit != "days" && c.Unit != "weeks" {
-			return fmt.Errorf("%s needs days or weeks.", label)
+			return problemf("%s needs days or weeks.", label)
 		}
 	case kind == KindList:
 		id, err := uuid.Parse(c.Value)
 		if err != nil {
-			return fmt.Errorf("Pick a list for %s.", strings.ToLower(label))
+			return problemf("Pick a list for %s.", strings.ToLower(label))
 		}
 		if _, ok := lists[id]; !ok {
-			return fmt.Errorf("That list doesn't exist in this workspace any more.")
+			return problemf("That list doesn't exist in this workspace any more.")
 		}
 	case kind == KindCampaign:
 		if _, err := uuid.Parse(c.Value); err != nil {
-			return fmt.Errorf("Pick a campaign.")
+			return problemf("Pick a campaign.")
 		}
 	case kind == KindEnum && c.Field != "source":
 		ok := false
@@ -192,19 +200,19 @@ func (c SegmentCondition) validate(custom map[string]CustomField, lists map[uuid
 			}
 		}
 		if !ok {
-			return fmt.Errorf("Pick a value for %s.", strings.ToLower(label))
+			return problemf("Pick a value for %s.", strings.ToLower(label))
 		}
 	case kind == KindNumber:
 		if _, err := strconv.ParseFloat(strings.TrimSpace(c.Value), 64); err != nil {
-			return fmt.Errorf("%s needs a number.", label)
+			return problemf("%s needs a number.", label)
 		}
 	case kind == KindDate:
 		if !dateRe.MatchString(strings.TrimSpace(c.Value)) {
-			return fmt.Errorf("%s needs a date like 2026-10-30.", label)
+			return problemf("%s needs a date like 2026-10-30.", label)
 		}
 	default:
 		if strings.TrimSpace(c.Value) == "" {
-			return fmt.Errorf("Enter a value for %s.", strings.ToLower(label))
+			return problemf("Enter a value for %s.", strings.ToLower(label))
 		}
 	}
 	return nil

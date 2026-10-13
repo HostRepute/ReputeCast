@@ -223,6 +223,6 @@ func (s *Service) DeleteView(ctx context.Context, ws *store.Workspace, id uuid.U
 		if _, err := q.DeleteSavedView(ctx, store.DeleteSavedViewParams{WorkspaceID: ws.ID, ID: id}); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "contact_view.delete", TargetType: "saved_view", TargetID: id.String(), TargetName: v.Name, Before: json.RawMessage(v.Filters)})
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "contact_view.delete", TargetType: "saved_view", TargetID: id.String(), TargetName: v.Name, Before: v.Filters})
 	})
 }

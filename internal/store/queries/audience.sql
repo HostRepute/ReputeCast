@@ -197,15 +197,21 @@ DELETE FROM suppressions WHERE workspace_id = @workspace_id AND id = @id;
 
 -- name: SuppressionSyncStates :many
 -- One row per connected provider with its suppression sync state (kept by
--- the providers domain).
-SELECT p.id, p.name, p.adapter, p.label,
+-- the providers domain) and, for providers without a suppression API, the
+-- addresses their bounce and complaint events added to the shared list.
+SELECT p.id, p.name, p.adapter, p.label, p.capabilities, p.last_event_at,
        coalesce(s.mode, 'off')::text AS mode, s.last_push_at, s.last_pull_at,
        coalesce(s.pushed, 0)::bigint AS pushed, coalesce(s.pulled, 0)::bigint AS pulled,
        coalesce(s.pending, 0)::bigint AS pending,
        coalesce(s.status, '')::text AS status, coalesce(s.status_detail, '')::text AS status_detail,
-       (s.provider_id IS NOT NULL)::boolean AS has_sync
+       (s.provider_id IS NOT NULL)::boolean AS has_sync,
+       coalesce(a.n, 0)::bigint AS added, coalesce(a.last_at, p.connected_at)::timestamptz AS added_at
 FROM providers p
 LEFT JOIN provider_suppression_sync s ON s.provider_id = p.id
+LEFT JOIN LATERAL (
+    SELECT count(*) AS n, max(x.created_at) AS last_at FROM suppressions x
+    WHERE x.workspace_id = p.workspace_id AND x.source_provider_id = p.id
+) a ON true
 WHERE p.workspace_id = @workspace_id AND p.disconnected_at IS NULL
 ORDER BY p.connected_at, p.name;
 
