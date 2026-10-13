@@ -862,8 +862,8 @@ type Querier interface {
 	SendingCancelRemaining(ctx context.Context, arg SendingCancelRemainingParams) (int64, error)
 	// Send loop -------------------------------------------------------------
 	// Claims up to lim queued messages of one sending provider and mailbox
-	// provider, oldest first, skipping rows another worker holds. A claim older
-	// than the stale time belonged to a worker that died.
+	// provider in the send's shuffled order, skipping rows another worker
+	// holds. A claim older than the stale time belonged to a worker that died.
 	SendingClaim(ctx context.Context, arg SendingClaimParams) ([]SendingClaimRow, error)
 	SendingClearLinks(ctx context.Context, campaignID uuid.UUID) error
 	// A send that is prepared again (after a failed preparation) starts clean.

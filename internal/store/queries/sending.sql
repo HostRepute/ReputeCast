@@ -197,15 +197,15 @@ WHERE cr.campaign_id = @campaign_id AND cr.provider_id = d.provider_id;
 
 -- name: SendingClaim :many
 -- Claims up to lim queued messages of one sending provider and mailbox
--- provider, oldest first, skipping rows another worker holds. A claim older
--- than the stale time belonged to a worker that died.
+-- provider in the send's shuffled order, skipping rows another worker
+-- holds. A claim older than the stale time belonged to a worker that died.
 WITH picked AS (
     SELECT m.id FROM messages m
     WHERE m.campaign_id = @campaign_id AND m.provider_id = @provider_id AND m.mailbox_provider = @mailbox_provider
       AND m.status = 'queued'
       AND (m.claimed_at IS NULL OR m.claimed_at < @stale::timestamptz)
       AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= @now::timestamptz)
-    ORDER BY m.id
+    ORDER BY m.send_order, m.id
     LIMIT @lim
     FOR UPDATE SKIP LOCKED
 ), upd AS (

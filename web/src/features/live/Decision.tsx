@@ -120,7 +120,8 @@ function Choice({ name, option, checked, onChange }: { name: string; option: Inc
   const body = <span className="k">{option.body}</span>
   return (
     <label className="opt">
-      <input type="radio" name={name} value={option.key} checked={checked} onChange={onChange} />
+      {/* On the boards the radio is a flex item that shrinks beside long text (to 13 px). */}
+      <input type="radio" className="shrink" name={name} value={option.key} checked={checked} onChange={onChange} />
       <span>
         {title}
         <br />
@@ -188,7 +189,7 @@ function Causes({ incident, border }: { incident: Incident; border?: boolean }) 
   return (
     <Column title="Likely causes" border={border}>
       {causes.length ? (
-        <ol className="m-0 flex flex-col gap-2 pl-[18px] text-[13px]">
+        <ol className="m-0 flex list-decimal flex-col gap-2 pl-[18px] text-[13px]">
           {causes.map((c, i) => (
             <li key={i}>
               {c.lead ? <strong>{c.lead}</strong> : null}
@@ -209,7 +210,7 @@ function Recommended({ incident }: { incident: Incident }) {
   return (
     <Column title="Recommended" border={false}>
       {recs.length ? (
-        <ul className="m-0 flex flex-col gap-2 pl-[18px] text-[13px]">
+        <ul className="m-0 flex list-disc flex-col gap-2 pl-[18px] text-[13px]">
           {recs.map((r, i) => (
             <li key={i}>{r}</li>
           ))}

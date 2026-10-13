@@ -695,7 +695,7 @@ WITH picked AS (
       AND m.status = 'queued'
       AND (m.claimed_at IS NULL OR m.claimed_at < $4::timestamptz)
       AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= $5::timestamptz)
-    ORDER BY m.id
+    ORDER BY m.send_order, m.id
     LIMIT $6
     FOR UPDATE SKIP LOCKED
 ), upd AS (
@@ -742,8 +742,8 @@ type SendingClaimRow struct {
 
 // Send loop -------------------------------------------------------------
 // Claims up to lim queued messages of one sending provider and mailbox
-// provider, oldest first, skipping rows another worker holds. A claim older
-// than the stale time belonged to a worker that died.
+// provider in the send's shuffled order, skipping rows another worker
+// holds. A claim older than the stale time belonged to a worker that died.
 func (q *Queries) SendingClaim(ctx context.Context, arg SendingClaimParams) ([]SendingClaimRow, error) {
 	rows, err := q.db.Query(ctx, sendingClaim,
 		arg.CampaignID,

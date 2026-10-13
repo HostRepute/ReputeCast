@@ -899,6 +899,7 @@ type Message struct {
 	ClaimedAt         *time.Time      `json:"claimedAt"`
 	ContentRef        json.RawMessage `json:"contentRef"`
 	HumanOpenedAt     *time.Time      `json:"humanOpenedAt"`
+	SendOrder         int32           `json:"sendOrder"`
 }
 
 type MxCache struct {

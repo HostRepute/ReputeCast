@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"math/rand/v2"
 	"slices"
 	"strings"
 	"time"
@@ -246,7 +247,10 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			}
 			pid := rt.provider
 			variant, status, next := assignVariant(ab, c.ID, sendAt)
-			msgs = append(msgs, []any{newID(), cc.WorkspaceID, "broadcast", &campaignID, &c.ID, c.Email, variant, &pid, mbp, status, now, next, rt.note, rt.failover})
+			// A random send order: the first minutes of the send are a fair
+			// sample of the audience (migration 00652).
+			order := rand.Int32() //nolint:gosec // an order, not a secret
+			msgs = append(msgs, []any{newID(), cc.WorkspaceID, "broadcast", &campaignID, &c.ID, c.Email, variant, &pid, mbp, status, now, next, rt.note, rt.failover, order})
 			planned[pid]++
 		}
 		last := rows[len(rows)-1].ID
@@ -264,7 +268,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			}
 			if len(msgs) > 0 {
 				if _, err := tx.CopyFrom(ctx, pgx.Identifier{"messages"}, []string{"id", "workspace_id", "stream", "campaign_id", "contact_id", "email", "variant", "provider_id",
-					"mailbox_provider", "status", "queued_at", "next_attempt_at", "route_note", "failover"}, pgx.CopyFromRows(msgs)); err != nil {
+					"mailbox_provider", "status", "queued_at", "next_attempt_at", "route_note", "failover", "send_order"}, pgx.CopyFromRows(msgs)); err != nil {
 					return err
 				}
 			}
