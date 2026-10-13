@@ -7,6 +7,8 @@ window.rcTurnstileError = function (code) {
   if (url) {
     var body = new URLSearchParams()
     body.set('code', String(code))
+    var held = form.querySelector('input[name="challenge"]')
+    body.set('challenge', held ? held.value : '')
     try {
       if (navigator.sendBeacon) navigator.sendBeacon(url, body)
       else fetch(url, { method: 'POST', body: body, credentials: 'omit' })

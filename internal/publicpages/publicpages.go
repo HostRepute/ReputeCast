@@ -578,8 +578,12 @@ func (h *Handler) turnstileError(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := r.ParseForm(); err == nil {
-		if err := h.Forms.ReportTurnstileError(r.Context(), s.ws, r.PostForm.Get("code")); err != nil {
+	ip := "unknown"
+	if a := clientIP(r); a != nil {
+		ip = a.String()
+	}
+	if h.Forms.AllowPerMinute("turnstile-error:"+ip, 3) && h.parseForm(w, r, 4<<10) {
+		if err := h.Forms.ReportTurnstileError(r.Context(), s.ws, r.PostForm.Get("challenge"), r.PostForm.Get("code")); err != nil {
 			h.log().WarnContext(r.Context(), "record turnstile error", "err", err)
 		}
 	}

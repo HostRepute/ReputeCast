@@ -388,6 +388,11 @@ func (h *Handler) subscribePost(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) subscribeResult(w http.ResponseWriter, r *http.Request, s *site, c forms.Config, page bool, sub forms.Submission, out forms.Outcome) {
 	publisher := s.set.Branding.PublisherName
+	// The address as it was saved (trimmed, lower case), not as it was typed.
+	email := out.Email
+	if email == "" {
+		email = strings.ToLower(strings.TrimSpace(sub.Email))
+	}
 	archive := []action{}
 	if s.set.Pages.Archive.Enabled {
 		archive = append(archive, action{Label: "Read past issues", Href: s.links.Archive()})
@@ -400,12 +405,12 @@ func (h *Handler) subscribeResult(w http.ResponseWriter, r *http.Request, s *sit
 		}
 		if out.Status == forms.OutcomeConfirm {
 			h.message(w, r, s, http.StatusOK, "Check your inbox · "+publisher, messageBody{Icon: "mail", Heading: "Check your inbox",
-				Text: "We sent a confirmation link to", Email: sub.Email, TextAfter: ". Click it to start getting emails from " + publisher + "; until then you won't hear from us.",
+				Text: "We sent a confirmation link to", Email: email, TextAfter: ". Click it to start getting emails from " + publisher + "; until then you won't hear from us.",
 				Actions: archive, Footer: "No email after a few minutes? Check your spam folder, or sign up again."}, true)
 			return
 		}
 		h.message(w, r, s, http.StatusOK, "You're subscribed · "+publisher, messageBody{Icon: "tick", Heading: "You're subscribed",
-			Text: "Thanks for joining " + publisher + ". The next issue goes to", Email: sub.Email, TextAfter: ".", Actions: archive}, true)
+			Text: "Thanks for joining " + publisher + ". The next issue goes to", Email: email, TextAfter: ".", Actions: archive}, true)
 	case forms.OutcomeInvalid, forms.OutcomeError:
 		status := http.StatusUnprocessableEntity
 		if out.Status == forms.OutcomeError {

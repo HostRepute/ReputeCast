@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
@@ -20,8 +21,9 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// SiteverifyURL is Cloudflare Turnstile's server-side verification endpoint.
-const SiteverifyURL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+// SiteverifyURL is Cloudflare Turnstile's server-side verification endpoint
+// (a variable so tests can point it at a fake).
+var SiteverifyURL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 // TurnstileScript is the widget script a challenge page loads (only when a
 // submission looked automated; the pages load no third-party code otherwise).
@@ -180,7 +182,9 @@ func (s *Service) RemoveTurnstile(ctx context.Context, ws *store.Workspace) (Pub
 // ReportTurnstileError records an error the widget showed on a challenge
 // page (a site key Cloudflare doesn't accept for this domain): spam
 // protection falls back to the honeypot and timing check until it's fixed.
-func (s *Service) ReportTurnstileError(ctx context.Context, ws *store.Workspace, code string) error {
+// Reports count only from the page of a submission still held for its
+// check, so nobody can switch Turnstile off from outside.
+func (s *Service) ReportTurnstileError(ctx context.Context, ws *store.Workspace, challengeID, code string) error {
 	code = strings.TrimSpace(code)
 	if len(code) < 3 || len(code) > 12 || strings.Trim(code, "0123456789") != "" {
 		return nil
@@ -189,7 +193,21 @@ func (s *Service) ReportTurnstileError(ctx context.Context, ws *store.Workspace,
 	if !strings.HasPrefix(code, "110") {
 		return nil
 	}
+	id, ok := parseID(challengeID)
+	if !ok {
+		return nil // not from a challenge page: ignored
+	}
+	live, err := s.Q.FormChallengeLive(ctx, store.FormChallengeLiveParams{ID: id, WorkspaceID: ws.ID, At: s.now()})
+	if err != nil || !live {
+		return err
+	}
 	return s.Q.PublicSettingsTurnstileError(ctx, store.PublicSettingsTurnstileErrorParams{WorkspaceID: ws.ID, Error: turnstileErrorWords(code), At: ptrTime(s.now())})
+}
+
+// parseID reads a uuid from a form field.
+func parseID(s string) (uuid.UUID, bool) {
+	id, err := uuid.Parse(strings.TrimSpace(s))
+	return id, err == nil
 }
 
 // turnstileSecret opens the stored secret.

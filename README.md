@@ -31,6 +31,7 @@ workspace limit and nothing behind an upgrade prompt.
 - [Installing without Docker](#installing-without-docker)
 - [Configuration](#configuration)
 - [Running in production](#running-in-production)
+- [Custom domains for public pages](#custom-domains-for-public-pages)
 - [How it works](#how-it-works)
 - [Security](#security)
 - [API, webhooks and MCP](#api-webhooks-and-mcp)
@@ -238,6 +239,48 @@ Authentication**, not in configuration.
   release notes; Instance admin › Version & updates shows what changed.
 - **Health.** `/healthz` (liveness) and `/readyz` (database reachable) for
   orchestrators; `/metrics` for Prometheus.
+
+## Custom domains for public pages
+
+Subscribers reach the public pages (subscribe, confirmation, preference
+center, unsubscribe and the archive) on ReputeCast's own address under
+`/p/<workspace>/…`, or on a domain of yours at the root
+(`https://news.acme.io/subscribe`, `https://news.acme.io/archive`):
+
+1. In **Forms & public pages › Branding**, enter the domain.
+2. Point it at the server: a `CNAME` record to the host of
+   `REPUTECAST_HTTP__PUBLIC_URL`, or `A`/`AAAA` records with the same
+   addresses for an apex domain. Where neither works, add the TXT record
+   `_reputecast.<domain>` with the value shown under the field.
+3. ReputeCast checks DNS at once and every 10 minutes until the domain is
+   verified, then daily; a verified domain survives one failed check. The
+   pages answer on the domain only once it's verified.
+4. Give the proxy a certificate for the domain. With Caddy, on-demand TLS
+   asks ReputeCast before issuing one, so certificates exist only for
+   verified domains:
+
+   ```caddyfile
+   {
+   	on_demand_tls {
+   		ask http://localhost:8080/p/_/tls-check
+   	}
+   }
+   reputecast.example.com {
+   	reverse_proxy localhost:8080
+   }
+   https:// {
+   	tls {
+   		on_demand
+   	}
+   	reverse_proxy localhost:8080
+   }
+   ```
+
+   With nginx or Traefik, add the domain to a certificate and forward its
+   requests with the original `Host` header.
+
+Embed scripts and form submissions live under `/p/<workspace>/forms/…` on
+either host, and links in emails keep using `REPUTECAST_HTTP__PUBLIC_URL`.
 
 ## How it works
 

@@ -284,6 +284,24 @@ func (q *Queries) FormChallengeInsert(ctx context.Context, arg FormChallengeInse
 	return err
 }
 
+const formChallengeLive = `-- name: FormChallengeLive :one
+SELECT EXISTS (SELECT 1 FROM form_challenges WHERE id = $1 AND workspace_id = $2 AND expires_at > $3)::boolean
+`
+
+type FormChallengeLiveParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	At          time.Time `json:"at"`
+}
+
+// A held submission still waiting for its Turnstile check.
+func (q *Queries) FormChallengeLive(ctx context.Context, arg FormChallengeLiveParams) (bool, error) {
+	row := q.db.QueryRow(ctx, formChallengeLive, arg.ID, arg.WorkspaceID, arg.At)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const formChallengeTake = `-- name: FormChallengeTake :one
 DELETE FROM form_challenges WHERE id = $1 AND workspace_id = $2 AND expires_at > $3
 RETURNING id, workspace_id, form_id, payload_enc, origin, created_at, expires_at

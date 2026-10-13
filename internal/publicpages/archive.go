@@ -448,11 +448,13 @@ type rssFeed struct {
 }
 
 type rssChannel struct {
+	// The atom self link comes first: readers that ignore namespaces then
+	// take the channel's own <link>.
+	Self        rssAtom   `xml:"atom:link"`
 	Title       string    `xml:"title"`
 	Link        string    `xml:"link"`
 	Description string    `xml:"description"`
 	Language    string    `xml:"language"`
-	Self        rssAtom   `xml:"atom:link"`
 	Updated     string    `xml:"lastBuildDate,omitempty"`
 	Items       []rssItem `xml:"item"`
 }

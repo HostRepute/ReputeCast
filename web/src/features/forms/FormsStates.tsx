@@ -78,7 +78,7 @@ export function BlockedOriginAlert({ form, blocked }: { form: Schemas['SignupFor
   }
   const n = blocked.count
   return (
-    <div role="alert" className="card fb-alert bad">
+    <div role="alert" className="card fb-alert alert-bad">
       <div className="flex items-center gap-2.5">
         <Badge tone="bad">Blocked</Badge>
         <span className="font-semibold">
@@ -129,7 +129,7 @@ export function TurnstileAlert({ turnstile }: { turnstile: Schemas['PublicTurnst
     }
   }
   return (
-    <div role="alert" className="card fb-alert warn">
+    <div role="alert" className="card fb-alert alert-warn">
       <div className="flex items-center gap-2.5">
         <Badge tone="warn">Turnstile</Badge>
         <span className="font-semibold">{turnstile.error || 'Cloudflare rejected the Turnstile keys'}</span>
@@ -140,7 +140,7 @@ export function TurnstileAlert({ turnstile }: { turnstile: Schemas['PublicTurnst
       <label className="lbl">
         Turnstile site key
         <input
-          className="fb-in mono warn"
+          className="fb-in mono in-warn"
           placeholder="0x4AAAAAAA…"
           value={key}
           disabled={Boolean(reason)}

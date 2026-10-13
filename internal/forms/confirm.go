@@ -361,5 +361,10 @@ func (s *Service) SendPreferenceLink(ctx context.Context, ws *store.Workspace, s
 	return err
 }
 
+// SystemMailAvailable reports whether System mail can go out for ws.
+func (s *Service) SystemMailAvailable(ctx context.Context, ws *store.Workspace) bool {
+	return s.mail().SystemAvailable(ctx, &ws.ID)
+}
+
 // IsNoSystemMail reports that System mail can't go out yet.
 func IsNoSystemMail(err error) bool { return errors.Is(err, errNoSystemMail) }

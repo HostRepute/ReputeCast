@@ -262,6 +262,8 @@ type Querier interface {
 	FormBySlug(ctx context.Context, arg FormBySlugParams) (Form, error)
 	// Turnstile challenges --------------------------------------------------------
 	FormChallengeInsert(ctx context.Context, arg FormChallengeInsertParams) error
+	// A held submission still waiting for its Turnstile check.
+	FormChallengeLive(ctx context.Context, arg FormChallengeLiveParams) (bool, error)
 	FormChallengeTake(ctx context.Context, arg FormChallengeTakeParams) (FormChallenge, error)
 	FormChallengesPurge(ctx context.Context, at time.Time) (int64, error)
 	FormDelete(ctx context.Context, arg FormDeleteParams) (int64, error)

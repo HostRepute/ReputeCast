@@ -15,7 +15,6 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/db"
-	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -397,6 +396,12 @@ func (h *Handler) requestPost(w http.ResponseWriter, r *http.Request) {
 		sent()
 		return
 	}
+	// Whether mail can go out is the same for every address, so saying so
+	// reveals nothing; after that, every address gets the same answer.
+	if !h.Forms.SystemMailAvailable(r.Context(), s.ws) {
+		retry(http.StatusServiceUnavailable, "", publisher+" can't send emails right now. Use the preferences link at the bottom of any of their emails instead.")
+		return
+	}
 	id, found, err := h.Audience.FindPublicContact(r.Context(), h.Q, s.ws, email)
 	if err != nil {
 		h.serverError(w, r, s, err)
@@ -404,10 +409,6 @@ func (h *Handler) requestPost(w http.ResponseWriter, r *http.Request) {
 	}
 	if found && h.Forms.Allow("prefs-contact:"+id.String(), 10*time.Minute) {
 		if err := h.Forms.SendPreferenceLink(r.Context(), s.ws, s.set, id); err != nil {
-			if forms.IsNoSystemMail(err) {
-				retry(http.StatusServiceUnavailable, "", publisher+" can't send emails right now. Use the preferences link at the bottom of any of their emails instead.")
-				return
-			}
 			h.log().WarnContext(r.Context(), "send preference link", "err", err)
 		}
 	}

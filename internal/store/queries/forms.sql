@@ -166,6 +166,10 @@ VALUES (@id, @workspace_id, @form_id, @payload_enc, @origin, @at, @expires_at);
 DELETE FROM form_challenges WHERE id = @id AND workspace_id = @workspace_id AND expires_at > @at
 RETURNING *;
 
+-- name: FormChallengeLive :one
+-- A held submission still waiting for its Turnstile check.
+SELECT EXISTS (SELECT 1 FROM form_challenges WHERE id = @id AND workspace_id = @workspace_id AND expires_at > @at)::boolean;
+
 -- name: FormChallengesPurge :execrows
 DELETE FROM form_challenges WHERE expires_at <= @at;
 
