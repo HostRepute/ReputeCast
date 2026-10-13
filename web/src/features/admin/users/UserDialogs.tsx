@@ -246,7 +246,7 @@ export function MakeAdminDialog({ user, admins, onClose }: { user: User; admins:
         </>
       }
     >
-      <ul className="m-0 flex list-disc flex-col gap-1 pl-[18px] text-[13.5px] text-[#374151]">
+      <ul className="m-0 flex list-disc flex-col gap-1 pl-[18px] text-[13.5px] text-ink-nav">
         <li>Manages users, sign-in methods, SSO, security policies and workspaces for the whole instance</li>
         <li>{roles.length ? `Does not change their workspace roles (${roles.join(', ')})` : 'Does not add them to any workspace'}</li>
         <li>{twofa}</li>
@@ -305,7 +305,7 @@ export function DeactivateUserDialog({ user, onClose }: { user: User; onClose: (
       onOpenChange={(o) => !o && onClose()}
       badge="Deactivate account"
       title={`Deactivate ${user.name}?`}
-      description={`Signs ${name} out of ${user.sessions} ${user.sessions === 1 ? 'session' : 'sessions'} and every workspace now. Their history, campaigns and audit entries stay; you can reactivate the account later.`}
+      description={`Signs ${name} out${user.sessions > 0 ? ` of ${user.sessions} ${user.sessions === 1 ? 'session' : 'sessions'} and` : ' of'} every workspace now. Their history, campaigns and audit entries stay; you can reactivate the account later.`}
       confirmLabel="Deactivate account"
       busyLabel="Deactivating…"
       reason={{ label: 'Reason · recorded in the audit log', minLength: 3 }}

@@ -30,7 +30,12 @@ import (
 func (a *App) providerFactory() *manage.Factory {
 	// Provider URLs come from workspace admins: every adapter call goes through
 	// the SSRF guard (metadata and link-local addresses are always refused).
-	guard := netguard.Policy{AllowPrivate: a.Cfg.Providers.AllowPrivateNetworks}
+	// RegisterOperations (the openapi command) wires an App without a
+	// config; its handlers never run, so the strict default is enough there.
+	guard := netguard.Policy{}
+	if a.Cfg != nil {
+		guard.AllowPrivate = a.Cfg.Providers.AllowPrivateNetworks
+	}
 	return &manage.Factory{Box: a.Secrets, HTTP: guard.Client(30 * time.Second)}
 }
 

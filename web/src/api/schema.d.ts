@@ -8936,7 +8936,7 @@ export interface components {
             url?: string;
         };
         SSOEnforcementInput: {
-            confirm: boolean;
+            confirm?: boolean;
             domains: string[];
         };
         SSOEnforcementMember: {

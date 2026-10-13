@@ -16245,8 +16245,7 @@
           }
         },
         "required": [
-          "domains",
-          "confirm"
+          "domains"
         ],
         "type": "object"
       },

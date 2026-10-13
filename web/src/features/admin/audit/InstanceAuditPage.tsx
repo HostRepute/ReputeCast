@@ -77,7 +77,7 @@ function InstanceAudit({ search }: { search: InstanceAuditSearch }) {
   const items = q.data?.pages.flatMap((p) => p.items) ?? []
   return (
     <>
-      <TopBar list={first} filters={filters} onRetention={() => setDialog('retention')} />
+      <TopBar list={first} loading={q.isPending} filters={filters} onRetention={() => setDialog('retention')} />
       <section className="card" aria-labelledby="iev-h">
         <div className="sec">
           <div className="flex min-w-0 flex-col gap-0.5">
@@ -143,7 +143,7 @@ function InstanceAudit({ search }: { search: InstanceAuditSearch }) {
   )
 }
 
-function TopBar({ list, filters, onRetention }: { list?: List; filters: ReturnType<typeof apiFilters>; onRetention: () => void }) {
+function TopBar({ list, loading, filters, onRetention }: { list?: List; loading: boolean; filters: ReturnType<typeof apiFilters>; onRetention: () => void }) {
   const [busy, setBusy] = useState<'csv' | 'json'>()
   const [failed, setFailed] = useState<string>()
   const download = async (format: 'csv' | 'json') => {
@@ -188,7 +188,7 @@ function TopBar({ list, filters, onRetention }: { list?: List; filters: ReturnTy
           <span className="k">Sign-ins, SSO, policies, users and every workspace&apos;s events</span>
         </div>
         <div className="row gap-2">
-          {list ? <span className="k">Retained {list.retentionDays} days · immutable</span> : <Skeleton w={160} h={12} />}
+          {list ? <span className="k">Retained {list.retentionDays} days · immutable</span> : loading ? <Skeleton w={160} h={12} /> : null}
           <Button size="sm" loading={busy === 'csv'} onClick={() => void download('csv')}>
             Export CSV
           </Button>

@@ -4,14 +4,13 @@ import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { CardSection } from '@/components/ui/Card'
-import { ConfirmDialog, DialogRow } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { AccessTable } from '@/features/access/parts'
 import { timezoneOptions } from '@/features/workspace/timezones'
-import { count, usDate } from '@/lib/format'
+import { andList, count, usDate } from '@/lib/format'
 import { meQueryKey, useMe } from '@/lib/session'
 
 type Workspace = Schemas['InstanceWorkspace']
@@ -233,42 +232,92 @@ function CreateWorkspaceDialog({ onClose }: { onClose: () => void }) {
   )
 }
 
+/**
+ * Delete a workspace as an instance admin: the designed delete dialog
+ * (WorkspaceDialogs: consequences, export first, typed name), whether or
+ * not the admin belongs to the workspace.
+ */
 function DeleteWorkspaceDialog({ w, onClose }: { w: Workspace; onClose: () => void }) {
   const qc = useQueryClient()
   const del = $api.useMutation('post', '/api/v1/admin/workspaces/{workspaceId}/delete')
+  const [typed, setTyped] = useState('')
+  const match = typed.trim() === w.name
   return (
-    <ConfirmDialog
+    <Dialog
       open
-      onOpenChange={(o) => !o && onClose()}
-      badge="Delete workspace"
-      title={`Delete ${w.name}?`}
-      description="This permanently deletes the workspace after a 7-day hold during which an instance admin can restore it. Scheduled sends stop immediately."
-      confirmLabel="Delete workspace"
-      busyLabel="Deleting…"
-      secondary={
-        w.member ? (
-          <ButtonAnchor href={`/api/v1/workspaces/${w.slug}/export`} newTab={false} download="">
-            Export everything first
-          </ButtonAnchor>
-        ) : undefined
+      onOpenChange={(o) => !o && !del.isPending && onClose()}
+      eyebrow={<span className="k">Dialog · instance admin · typed confirmation</span>}
+      title={<span className="text-bad-fg">Delete {w.name}?</span>}
+      description={
+        <span className="text-[13.5px]">
+          This permanently deletes the workspace after a 7-day hold during which an instance admin can restore it. Scheduled sends stop immediately.
+        </span>
       }
-      typedConfirmation={{ label: `Type ${w.name} to confirm`, expected: w.name, hint: 'Must match exactly.' }}
-      onConfirm={async () => {
-        const r = await del.mutateAsync({ params: { path: { workspaceId: w.id } }, body: { confirm: w.name } })
-        await Promise.all([qc.invalidateQueries({ queryKey: ['get', '/api/v1/admin/workspaces'] }), qc.invalidateQueries({ queryKey: meQueryKey })])
-        toast({ kind: 'deleted', title: `${w.name} deleted`, detail: `restorable until ${usDate(r.purgeAt)}` })
-      }}
+      className="card border-bad-line"
+      hideClose
+      dismissible={false}
+      footer={
+        <>
+          <Button onClick={onClose} disabled={del.isPending}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger-primary"
+            loading={del.isPending}
+            disabledReason={match ? undefined : 'Type the workspace name to enable'}
+            onClick={async () => {
+              try {
+                const r = await del.mutateAsync({ params: { path: { workspaceId: w.id } }, body: { confirm: w.name } })
+                await Promise.all([qc.invalidateQueries({ queryKey: ['get', '/api/v1/admin/workspaces'] }), qc.invalidateQueries({ queryKey: meQueryKey })])
+                toast({ kind: 'deleted', title: `${w.name} deleted`, detail: `restorable until ${usDate(r.purgeAt)}` })
+                onClose()
+              } catch (e) {
+                toast({ kind: 'error', title: "Couldn't delete the workspace", detail: errorMessage(e) })
+              }
+            }}
+          >
+            Delete workspace
+          </Button>
+        </>
+      }
     >
-      <DialogRow tone="bad" label="Deletes" first>
-        {count(w.subscribers)} contacts with consent history, campaigns, automations and reports
-      </DialogRow>
-      <DialogRow tone="bad" label="Stops">
-        {w.providers.length ? `${w.providers.join(', ')}: routing and warm-up plans (the provider accounts themselves are untouched)` : 'Scheduled sends'}; API keys and MCP agents
-        of this workspace stop working
-      </DialogRow>
-      <DialogRow tone="ok" label="Kept">
-        The shared suppression list, the audit log and the members&apos; accounts ({w.members} {w.members === 1 ? 'member' : 'members'})
-      </DialogRow>
-    </ConfirmDialog>
+      <ul className="m-0 flex list-disc flex-col gap-1 pl-[18px] text-[13.5px] text-ink-nav">
+        <li>{count(w.subscribers)} contacts with their lists, segments and consent history</li>
+        <li>Campaigns with reports, automations and templates</li>
+        <li>
+          {w.providers.length
+            ? `${andList(w.providers)}: routing rules and warm-up plans (provider accounts themselves are untouched)`
+            : 'Routing rules and warm-up plans'}
+        </li>
+        <li>API keys and MCP agents of this workspace stop working</li>
+        <li>
+          <b>Kept:</b> the shared suppression list, the audit log and the members&apos; accounts ({w.members} {w.members === 1 ? 'member' : 'members'})
+        </li>
+      </ul>
+      <div className="note i">
+        <Badge tone="info">Recommended</Badge>
+        <span className="col gap-1.5">
+          <span>Export everything first: contacts with consent, campaigns as MJML, reports as CSV, audit log as JSON.</span>
+          <span>
+            {w.member ? (
+              <ButtonAnchor size="sm" href={`/api/v1/workspaces/${w.slug}/export`} newTab={false} download="">
+                Export everything first
+              </ButtonAnchor>
+            ) : (
+              <Button size="sm" disabledReason={`Exports come from inside ${w.name}: ask its Owner${w.owner ? `, ${w.owner},` : ''} to export first.`}>
+                Export everything first
+              </Button>
+            )}
+          </span>
+        </span>
+      </div>
+      <label className="lbl">
+        <span>
+          Type <b>{w.name}</b> to confirm
+        </span>
+        <input className="in" type="text" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false} />
+        <span className="k font-medium">Must match exactly.</span>
+      </label>
+    </Dialog>
   )
 }

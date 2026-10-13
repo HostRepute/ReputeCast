@@ -385,8 +385,9 @@ func socialName(k string) string {
 type SSOEnforcementInput struct {
 	// Domains to enforce; empty turns enforcement off.
 	Domains []string `json:"domains" maxItems:"20"`
-	// Confirm acknowledges who keeps password access (the dialog's list).
-	Confirm bool `json:"confirm"`
+	// Confirm acknowledges who keeps password access (the dialog's list);
+	// required when turning enforcement on.
+	Confirm bool `json:"confirm,omitempty"`
 }
 
 // SetEnforcement turns password, passkey and social sign-in off for the

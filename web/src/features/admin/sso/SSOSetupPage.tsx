@@ -310,7 +310,7 @@ function PresetCard({ d, f, set }: CardProps) {
                 key={p.key}
                 size="sm"
                 aria-pressed={on}
-                className={on ? 'border-accent! bg-[#E3F1EE]!' : undefined}
+                className={on ? 'border-accent! bg-accent-soft!' : undefined}
                 disabledReason={!on && live ? `Disable ${d.name} before switching presets, or add another provider` : undefined}
                 onClick={() => {
                   if (on) return
@@ -367,7 +367,7 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
           <label className="lbl">
             Issuer URL
             <input
-              className="in err mono"
+              className="in mono"
               value={f.issuerUrl}
               placeholder={preset.issuerPattern}
               onChange={(e) => set({ issuerUrl: e.target.value })}
@@ -439,14 +439,14 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
           <div className="row flex-nowrap gap-2">
             <input
               id={`${id}-issuer`}
-              className={error ? 'in err mono flex-1' : 'in mono flex-1'}
+              className="in mono flex-1"
               value={f.issuerUrl}
               placeholder={preset.issuerPattern}
               onChange={(e) => set({ issuerUrl: e.target.value })}
               spellCheck={false}
               autoComplete="off"
               aria-invalid={error ? true : undefined}
-              aria-describedby={`${id}-disc`}
+              aria-describedby={error ? `${id}-disc ${id}-disc-err` : `${id}-disc`}
             />
             <Button loading={discover.isPending} onClick={() => void test()}>
               Test discovery
@@ -463,7 +463,7 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
           </span>
         </div>
         {error ? (
-          <span className="err" role="alert">
+          <span className="err" role="alert" id={`${id}-disc-err`}>
             {error}
           </span>
         ) : null}

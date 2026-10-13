@@ -175,7 +175,7 @@ function UserRow({ u, menuOpen, onMenu, onDialog }: { u: User; menuOpen: boolean
   const [first, ...rest] = u.workspaces
   const person = <PersonCell name={u.name} sub={u.email} color={u.avatarColor} muted={off} />
   return (
-    <tr className={off ? 'text-ink-3' : undefined} style={menuOpen ? { background: '#F8FAFC' } : undefined}>
+    <tr className={off ? 'text-ink-3' : undefined} style={menuOpen ? { background: 'var(--ground-2)' } : undefined}>
       <Td>
         {u.instanceAdmin ? (
           <div className="col gap-1">
@@ -249,7 +249,7 @@ function UserMenu({ u, open, onOpenChange, onDialog }: { u: User; open: boolean;
       open={open}
       onOpenChange={onOpenChange}
       trigger={
-        <button type="button" className="ibtn" aria-label={`Actions for ${u.name}`} style={open ? { background: '#EEF0F3' } : undefined}>
+        <button type="button" className="ibtn" aria-label={`Actions for ${u.name}`} style={open ? { background: 'var(--line-2)' } : undefined}>
           ⋯
         </button>
       }

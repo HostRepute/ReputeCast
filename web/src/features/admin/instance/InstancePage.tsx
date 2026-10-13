@@ -172,7 +172,7 @@ function URLCheckPanel({ check }: { check: Schemas['URLCheck'] }) {
   ]
   const tone = (st: string) => (st === 'ok' ? 'ok' : st === 'warn' ? 'warn' : st === 'bad' ? 'bad' : 'neutral')
   return (
-    <div className="card flex flex-col gap-2 bg-[#F9FAFB] px-3.5 py-3" role="status" aria-label="URL check result">
+    <div className="card flex flex-col gap-2 bg-ground-3 px-3.5 py-3" role="status" aria-label="URL check result">
       <span className="k">Public URL checked {ago(check.checkedAt)}</span>
       {lines.map(([label, l]) => (
         <div key={label} className="row gap-2">
