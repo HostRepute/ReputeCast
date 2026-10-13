@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -247,7 +248,9 @@ func customCondition(t *sqlText, key string, f CustomField, c Condition) {
 		} else {
 			t.raw(expr + " > ")
 		}
-		t.bind(str(strings.TrimSpace(c.Value)))
+		v := strings.TrimSpace(c.Value)
+		d, _ := time.Parse("2006-01-02", v)
+		t.bind(arg{v: d, literal: quote(v)})
 		t.raw("::date")
 	default:
 		switch c.Op {
