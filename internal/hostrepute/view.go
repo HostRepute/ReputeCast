@@ -158,7 +158,7 @@ func (s *Service) Connection(ctx context.Context, ws uuid.UUID) (HostReputeConne
 	ca := conn.ConnectedAt
 	out.ConnectedAt = &ca
 	if conn.ConnectedBy != nil {
-		if u, err := s.Q.UserName(ctx, *conn.ConnectedBy); err == nil {
+		if u, err := s.Q.HostReputeUserName(ctx, *conn.ConnectedBy); err == nil {
 			out.ConnectedBy = u.Name
 			if out.ConnectedBy == "" {
 				out.ConnectedBy = u.Email
@@ -169,7 +169,7 @@ func (s *Service) Connection(ctx context.Context, ws uuid.UUID) (HostReputeConne
 	if conn.LastSyncError != "" {
 		out.SyncError, out.SyncErrorAt = conn.LastSyncError, conn.LastSyncAttemptAt
 	}
-	if run, err := s.Q.RunningCheckRun(ctx, store.RunningCheckRunParams{WorkspaceID: ws, AliveAfter: s.now().Add(-10 * time.Minute)}); err == nil && run.Via == "hostrepute" {
+	if run, err := s.Q.RunningDeliverabilityCheckRun(ctx, store.RunningDeliverabilityCheckRunParams{WorkspaceID: ws, AliveAfter: s.now().Add(-10 * time.Minute)}); err == nil && run.Via == "hostrepute" {
 		out.Syncing = true
 	}
 	for _, k := range Scopes {
@@ -242,15 +242,15 @@ func (s *Service) Overview(ctx context.Context, ws uuid.UUID) (IntegrationsOverv
 		return IntegrationsOverview{}, err
 	}
 	out := IntegrationsOverview{HostRepute: hr}
-	wh, err := s.Q.CountWorkspaceWebhooks(ctx, ws)
+	wh, err := s.Q.HostReputeCountWebhooks(ctx, ws)
 	if err != nil {
 		return out, err
 	}
 	out.Webhooks = WebhooksSummary{Endpoints: wh.Endpoints, Failing: wh.Failing}
-	if out.MCP.Agents, err = s.Q.CountWorkspaceAgents(ctx, ws); err != nil {
+	if out.MCP.Agents, err = s.Q.HostReputeCountAgents(ctx, ws); err != nil {
 		return out, err
 	}
-	via, err := s.Q.DataSourceVia(ctx, ws)
+	via, err := s.Q.HostReputeDataSourceVia(ctx, ws)
 	if err != nil {
 		return out, err
 	}

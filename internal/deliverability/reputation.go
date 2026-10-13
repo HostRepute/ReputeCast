@@ -163,7 +163,7 @@ type DelistingOutcome struct {
 // on each list's own page.
 func (s *Service) RequestDelisting(ctx context.Context, ws *store.Workspace, asset, source string) (DelistingRequest, error) {
 	asset = strings.ToLower(strings.TrimSpace(asset))
-	rows, err := s.Q.ListBlocklistResults(ctx, ws.ID)
+	rows, err := s.Q.ListDeliverabilityBlocklistResults(ctx, ws.ID)
 	if err != nil {
 		return DelistingRequest{}, err
 	}
@@ -201,7 +201,7 @@ func (s *Service) RequestDelisting(ctx context.Context, ws *store.Workspace, ass
 		}
 		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 			q := store.New(tx)
-			if err := q.SetBlocklistDelisting(ctx, store.SetBlocklistDelistingParams{WorkspaceID: ws.ID, Via: "hostrepute", Asset: asset, Source: b.Source,
+			if err := q.SetDeliverabilityBlocklistDelisting(ctx, store.SetDeliverabilityBlocklistDelistingParams{WorkspaceID: ws.ID, Via: "hostrepute", Asset: asset, Source: b.Source,
 				Delisting: status, RequestedAt: &d.RequestedAt}); err != nil {
 				return err
 			}

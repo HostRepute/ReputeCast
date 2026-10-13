@@ -117,11 +117,11 @@ func parseDay(s string) (time.Time, error) { return time.Parse("2006-01-02", s) 
 func Apply(ctx context.Context, tx pgx.Tx, ws uuid.UUID, snap Snapshot, now time.Time) ([]Alert, error) {
 	q := store.New(tx)
 	if snap.Blocklists.Results != nil {
-		if err := q.DeleteBlocklistResultsVia(ctx, store.DeleteBlocklistResultsViaParams{WorkspaceID: ws, Via: "hostrepute"}); err != nil {
+		if err := q.DeleteDeliverabilityBlocklistResults(ctx, store.DeleteDeliverabilityBlocklistResultsParams{WorkspaceID: ws, Via: "hostrepute"}); err != nil {
 			return nil, err
 		}
 		for _, r := range snap.Blocklists.Results {
-			p := store.InsertBlocklistResultParams{
+			p := store.InsertDeliverabilityBlocklistResultParams{
 				ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws, Via: "hostrepute", AssetType: r.AssetType, Asset: strings.ToLower(r.Asset),
 				Source: r.Source, Impact: impact(r.Impact), Rank: int32(r.Rank), Listed: r.Listed, ListedSince: r.ListedSince,
 				DelistUrl: r.DelistURL, Detail: r.Detail, CheckedAt: r.CheckedAt,
@@ -137,7 +137,7 @@ func Apply(ctx context.Context, tx pgx.Tx, ws uuid.UUID, snap Snapshot, now time
 				t := r.Delisting.RequestedAt
 				p.DelistingRequestedAt = &t
 			}
-			if err := q.InsertBlocklistResult(ctx, p); err != nil {
+			if err := q.InsertDeliverabilityBlocklistResult(ctx, p); err != nil {
 				return nil, fmt.Errorf("blocklist %s on %s: %w", r.Asset, r.Source, err)
 			}
 		}
@@ -153,7 +153,7 @@ func Apply(ctx context.Context, tx pgx.Tx, ws uuid.UUID, snap Snapshot, now time
 				f := int32(*d.FBLFlagged)
 				fbl = &f
 			}
-			if err := q.UpsertPostmasterDay(ctx, store.UpsertPostmasterDayParams{
+			if err := q.UpsertDeliverabilityPostmasterDay(ctx, store.UpsertDeliverabilityPostmasterDayParams{
 				WorkspaceID: ws, Domain: strings.ToLower(domain), Day: day, Via: "hostrepute", SpamRate: d.SpamRate,
 				DomainReputation: strings.ToLower(d.DomainReputation), IpReputation: strings.ToLower(d.IPReputation),
 				SpfRate: d.SPFRate, DkimRate: d.DKIMRate, DmarcRate: d.DMARCRate, TlsRate: d.TLSRate, DeliveryErrors: d.DeliveryErrors, FblFlagged: fbl,
@@ -168,7 +168,7 @@ func Apply(ctx context.Context, tx pgx.Tx, ws uuid.UUID, snap Snapshot, now time
 			if err != nil {
 				continue
 			}
-			if err := q.UpsertSNDSDay(ctx, store.UpsertSNDSDayParams{
+			if err := q.UpsertDeliverabilitySNDSDay(ctx, store.UpsertDeliverabilitySNDSDayParams{
 				WorkspaceID: ws, Ip: ip, Day: day, Via: "hostrepute", FilterResult: filterResult(d.FilterResult),
 				ComplaintRate: d.ComplaintRate, TrapHits: int32(d.TrapHits), Messages: d.Messages, JmrpReports: int32(d.JMRPReports),
 			}); err != nil {
@@ -179,7 +179,7 @@ func Apply(ctx context.Context, tx pgx.Tx, ws uuid.UUID, snap Snapshot, now time
 	for _, r := range snap.DMARC {
 		policy, _ := json.Marshal(r.Policy)
 		records, _ := json.Marshal(nonNil(r.Records))
-		if err := q.UpsertDMARCReport(ctx, store.UpsertDMARCReportParams{
+		if err := q.UpsertDeliverabilityDMARCReport(ctx, store.UpsertDeliverabilityDMARCReportParams{
 			ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws, Domain: strings.ToLower(r.Domain), OrgName: r.OrgName, ReportID: r.ReportID,
 			DateBegin: r.DateBegin, DateEnd: r.DateEnd, Policy: policy, Records: records, Via: "hostrepute", ReceivedAt: now,
 		}); err != nil {
@@ -191,12 +191,12 @@ func Apply(ctx context.Context, tx pgx.Tx, ws uuid.UUID, snap Snapshot, now time
 	for _, a := range snap.Alerts {
 		var provider *uuid.UUID
 		if ip, err := netip.ParseAddr(a.Asset); err == nil {
-			if p, err := q.ProviderForIP(ctx, store.ProviderForIPParams{WorkspaceID: ws, Ip: ip.String()}); err == nil {
+			if p, err := q.HostReputeProviderForIP(ctx, store.HostReputeProviderForIPParams{WorkspaceID: ws, Ip: ip.String()}); err == nil {
 				provider = &p.ID
 			}
 		}
 		ext := a.ID
-		_, err := q.InsertIncident(ctx, store.InsertIncidentParams{
+		_, err := q.InsertDeliverabilityIncident(ctx, store.InsertDeliverabilityIncidentParams{
 			ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws, OccurredAt: a.CreatedAt, Kind: incidentKind(a.Kind), Severity: severity(a.Severity),
 			Title: a.Title, Detail: a.Detail, ProviderID: provider, Source: "hostrepute", Asset: strings.ToLower(a.Asset), ExternalID: &ext,
 		})
@@ -460,7 +460,7 @@ func (s *Service) recheck(ctx context.Context, c Client, conn store.HostreputeCo
 	deadline := time.Now().Add(recheckTimeout)
 	for {
 		if runID != nil {
-			_ = s.Q.UpdateCheckRunProgress(ctx, store.UpdateCheckRunProgressParams{ID: *runID, Total: int32(chk.Total), Answered: int32(chk.Answered)})
+			_ = s.Q.UpdateDeliverabilityCheckRunProgress(ctx, store.UpdateDeliverabilityCheckRunProgressParams{ID: *runID, Total: int32(chk.Total), Answered: int32(chk.Answered)})
 		}
 		if chk.Status != "running" || time.Now().After(deadline) {
 			return nil
@@ -495,7 +495,7 @@ func (s *Service) syncFailed(ctx context.Context, conn store.HostreputeConnectio
 			}); err != nil {
 				return err
 			}
-			slug, _ := q.WorkspaceSlug(ctx, conn.WorkspaceID)
+			slug, _ := q.HostReputeWorkspaceSlug(ctx, conn.WorkspaceID)
 			if err := notify.ToMembersWith(ctx, tx, conn.WorkspaceID, authz.IntegrationsHostRepute, notify.Notification{
 				Kind: notify.KindHostReputeAlert, Severity: "warn", Title: "HostRepute needs reconnecting",
 				Body: "HostRepute rejected the token. Blocklist, Postmaster, SNDS and DMARC data is stale until someone reconnects; Send Readiness marks the reputation check as unknown.",
@@ -539,14 +539,14 @@ func (s *Service) finishRun(ctx context.Context, id *uuid.UUID, status string, a
 	if id == nil {
 		return
 	}
-	_ = s.Q.FinishCheckRun(ctx, store.FinishCheckRunParams{ID: *id, Status: status, Answered: int32(answered), Total: int32(total), Listed: int32(listed), Error: msg, FinishedAt: ptr(s.now())})
+	_ = s.Q.FinishDeliverabilityCheckRun(ctx, store.FinishDeliverabilityCheckRunParams{ID: *id, Status: status, Answered: int32(answered), Total: int32(total), Listed: int32(listed), Error: msg, FinishedAt: ptr(s.now())})
 }
 
 func (s *Service) finishRunTx(ctx context.Context, tx pgx.Tx, id *uuid.UUID, status string, answered, total, listed int, msg string) error {
 	if id == nil {
 		return nil
 	}
-	return store.New(tx).FinishCheckRun(ctx, store.FinishCheckRunParams{ID: *id, Status: status, Answered: int32(answered), Total: int32(total), Listed: int32(listed), Error: msg, FinishedAt: ptr(s.now())})
+	return store.New(tx).FinishDeliverabilityCheckRun(ctx, store.FinishDeliverabilityCheckRunParams{ID: *id, Status: status, Answered: int32(answered), Total: int32(total), Listed: int32(listed), Error: msg, FinishedAt: ptr(s.now())})
 }
 
 func ptr[T any](v T) *T { return &v }
@@ -559,7 +559,7 @@ func (s *Service) notifyAlerts(ctx context.Context, tx pgx.Tx, ws uuid.UUID, ale
 		return nil
 	}
 	q := store.New(tx)
-	slug, err := q.WorkspaceSlug(ctx, ws)
+	slug, err := q.HostReputeWorkspaceSlug(ctx, ws)
 	if err != nil {
 		return err
 	}

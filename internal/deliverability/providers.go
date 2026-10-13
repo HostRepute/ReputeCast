@@ -39,7 +39,7 @@ type providerData struct {
 	}
 }
 
-func readProvider(p store.ListActiveProvidersRow) providerData {
+func readProvider(p store.HostReputeActiveProvidersRow) providerData {
 	var d providerData
 	_ = json.Unmarshal(p.Config, &d.Config)
 	_ = json.Unmarshal(p.Limits, &d.Limits)
@@ -85,7 +85,7 @@ func statusTone(status string) string {
 }
 
 // streams returns the streams a provider is primary for.
-func (st *state) primaryStreams(p store.ListActiveProvidersRow) []string {
+func (st *state) primaryStreams(p store.HostReputeActiveProvidersRow) []string {
 	var out []string
 	for _, s := range st.streams {
 		if s.ProviderID == p.ID && !s.Fallback && !slices.Contains(out, s.Stream) {
@@ -127,7 +127,7 @@ func (st *state) pools() []PoolHealth {
 
 // accountWord is the provider's own word for its account standing: the
 // approval state Postmark reports ("Approved"), else the status label.
-func accountWord(p store.ListActiveProvidersRow, d providerData) string {
+func accountWord(p store.HostReputeActiveProvidersRow, d providerData) string {
 	if p.Adapter == "postmark" && p.Status == "healthy" {
 		if w, _, _ := strings.Cut(p.StatusDetail, " · "); w != "" {
 			return w

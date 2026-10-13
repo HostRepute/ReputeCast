@@ -55,7 +55,7 @@ func RecordIncident(ctx context.Context, q *store.Queries, workspaceID uuid.UUID
 	if in.Severity == "" {
 		in.Severity = "info"
 	}
-	_, err := q.InsertIncident(ctx, store.InsertIncidentParams{
+	_, err := q.InsertDeliverabilityIncident(ctx, store.InsertDeliverabilityIncidentParams{
 		ID: uuid.Must(uuid.NewV7()), WorkspaceID: workspaceID, OccurredAt: in.OccurredAt, Kind: in.Kind, Severity: in.Severity,
 		Title: in.Title, Detail: in.Detail, CampaignID: in.CampaignID, ProviderID: in.ProviderID, ResolvedAt: in.ResolvedAt,
 		Source: "reputecast", Asset: in.Asset,

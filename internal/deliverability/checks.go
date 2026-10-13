@@ -80,15 +80,15 @@ type ScheduleWorker struct {
 
 // Work implements river.Worker.
 func (w *ScheduleWorker) Work(ctx context.Context, _ *river.Job[ScheduleArgs]) error {
-	if _, err := w.S.Q.FailStaleCheckRuns(ctx, time.Now().Add(-runTTL)); err != nil {
+	if _, err := w.S.Q.FailStaleDeliverabilityCheckRuns(ctx, time.Now().Add(-runTTL)); err != nil {
 		return err
 	}
-	ids, err := w.S.Q.WorkspacesWithSendingSetup(ctx)
+	ids, err := w.S.Q.DeliverabilityWorkspaces(ctx)
 	if err != nil {
 		return err
 	}
 	for _, id := range ids {
-		last, err := w.S.Q.LastAssetCheckAt(ctx, id)
+		last, err := w.S.Q.LastDeliverabilityAssetCheckAt(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -125,7 +125,7 @@ func (s *Service) queueBuiltin(ctx context.Context, tx pgx.Tx, ws uuid.UUID, by 
 	for _, a := range assets {
 		names = append(names, a.Name)
 	}
-	run, err := q.CreateCheckRun(ctx, store.CreateCheckRunParams{
+	run, err := q.CreateDeliverabilityCheckRun(ctx, store.CreateDeliverabilityCheckRunParams{
 		ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws, Via: "builtin", Trigger: trigger, Assets: names,
 		Total: int32(len(dnscheck.Pairs(s.lists(), assets))), RequestedBy: by, StartedAt: s.now(),
 	})
@@ -171,10 +171,10 @@ const manualCheckGap = time.Minute
 // instead of starting another.
 func (s *Service) RunNow(ctx context.Context, ws *store.Workspace, builtinOnly bool) (CheckRun, error) {
 	now := s.now()
-	if run, err := s.Q.RunningCheckRun(ctx, store.RunningCheckRunParams{WorkspaceID: ws.ID, AliveAfter: now.Add(-runTTL)}); err == nil {
+	if run, err := s.Q.RunningDeliverabilityCheckRun(ctx, store.RunningDeliverabilityCheckRunParams{WorkspaceID: ws.ID, AliveAfter: now.Add(-runTTL)}); err == nil {
 		return runView(run), nil
 	}
-	if run, err := s.Q.LatestCheckRun(ctx, ws.ID); err == nil && run.Trigger == "manual" && now.Sub(run.StartedAt) < manualCheckGap &&
+	if run, err := s.Q.LatestDeliverabilityCheckRun(ctx, ws.ID); err == nil && run.Trigger == "manual" && now.Sub(run.StartedAt) < manualCheckGap &&
 		(!builtinOnly || run.Via == "builtin") {
 		return runView(run), nil
 	}
@@ -204,7 +204,7 @@ func (s *Service) RunNow(ctx context.Context, ws *store.Workspace, builtinOnly b
 		} else if _, err := s.queueBuiltin(ctx, tx, ws.ID, by, "manual"); err != nil {
 			return err
 		}
-		run, err := q.LatestCheckRun(ctx, ws.ID)
+		run, err := q.LatestDeliverabilityCheckRun(ctx, ws.ID)
 		if err != nil {
 			return err
 		}
@@ -217,7 +217,7 @@ func (s *Service) RunNow(ctx context.Context, ws *store.Workspace, builtinOnly b
 
 // Run returns a check run (progress polling).
 func (s *Service) Run(ctx context.Context, ws uuid.UUID, id uuid.UUID) (CheckRun, error) {
-	run, err := s.Q.GetCheckRun(ctx, store.GetCheckRunParams{ID: id, WorkspaceID: ws})
+	run, err := s.Q.GetDeliverabilityCheckRun(ctx, store.GetDeliverabilityCheckRunParams{ID: id, WorkspaceID: ws})
 	if err != nil {
 		return CheckRun{}, api.MapError(err, "Check run")
 	}
@@ -251,12 +251,12 @@ func (s *Service) RunChecks(ctx context.Context, args CheckArgs) error {
 			return
 		}
 		last = time.Now()
-		_ = q.UpdateCheckRunProgress(ctx, store.UpdateCheckRunProgressParams{ID: *args.RunID, Total: int32(total), Answered: int32(done)})
+		_ = q.UpdateDeliverabilityCheckRunProgress(ctx, store.UpdateDeliverabilityCheckRunProgressParams{ID: *args.RunID, Total: int32(total), Answered: int32(done)})
 	})
 	now := s.now()
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		tq := store.New(tx)
-		previous, err := tq.ListBlocklistResults(ctx, ws)
+		previous, err := tq.ListDeliverabilityBlocklistResults(ctx, ws)
 		if err != nil {
 			return err
 		}
@@ -266,7 +266,7 @@ func (s *Service) RunChecks(ctx context.Context, args CheckArgs) error {
 				wasListed[b.Asset+"|"+b.Source] = b
 			}
 		}
-		if err := tq.DeleteBlocklistResultsVia(ctx, store.DeleteBlocklistResultsViaParams{WorkspaceID: ws, Via: "builtin"}); err != nil {
+		if err := tq.DeleteDeliverabilityBlocklistResults(ctx, store.DeleteDeliverabilityBlocklistResultsParams{WorkspaceID: ws, Via: "builtin"}); err != nil {
 			return err
 		}
 		listed := 0
@@ -276,7 +276,7 @@ func (s *Service) RunChecks(ctx context.Context, args CheckArgs) error {
 				errs++
 				continue // unknown, not clean: no row
 			}
-			p := store.InsertBlocklistResultParams{
+			p := store.InsertDeliverabilityBlocklistResultParams{
 				ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws, Via: "builtin", AssetType: r.List.Kind, Asset: r.Asset, Source: r.List.Name,
 				Impact: r.List.Impact, Rank: int32(r.List.Rank), Listed: r.Listed, DelistUrl: r.List.DelistURL, Detail: r.Reason, CheckedAt: now,
 			}
@@ -290,7 +290,7 @@ func (s *Service) RunChecks(ctx context.Context, args CheckArgs) error {
 				}
 				p.ListedSince = &since
 			}
-			if err := tq.InsertBlocklistResult(ctx, p); err != nil {
+			if err := tq.InsertDeliverabilityBlocklistResult(ctx, p); err != nil {
 				return err
 			}
 		}
@@ -301,7 +301,7 @@ func (s *Service) RunChecks(ctx context.Context, args CheckArgs) error {
 		if errs > 0 {
 			msg = fmt.Sprintf("%d of %d lookups didn't answer; they show as unknown.", errs, len(results))
 		}
-		return tq.FinishCheckRun(ctx, store.FinishCheckRunParams{ID: *args.RunID, Status: "done", Answered: int32(len(results)), Total: int32(len(results)),
+		return tq.FinishDeliverabilityCheckRun(ctx, store.FinishDeliverabilityCheckRunParams{ID: *args.RunID, Status: "done", Answered: int32(len(results)), Total: int32(len(results)),
 			Listed: int32(listed), Error: msg, FinishedAt: &now})
 	})
 }
@@ -312,7 +312,7 @@ func (s *Service) newListing(ctx context.Context, tx pgx.Tx, ws uuid.UUID, r dns
 	q := store.New(tx)
 	var provider *uuid.UUID
 	if ip, err := netip.ParseAddr(r.Asset); err == nil {
-		if p, err := q.ProviderForIP(ctx, store.ProviderForIPParams{WorkspaceID: ws, Ip: ip.String()}); err == nil {
+		if p, err := q.HostReputeProviderForIP(ctx, store.HostReputeProviderForIPParams{WorkspaceID: ws, Ip: ip.String()}); err == nil {
 			provider = &p.ID
 		}
 	}
@@ -322,13 +322,13 @@ func (s *Service) newListing(ctx context.Context, tx pgx.Tx, ws uuid.UUID, r dns
 	}
 	title := fmt.Sprintf("%s listed on %s", r.Asset, r.List.Name)
 	detail := fmt.Sprintf("Found by the built-in daily check (%s impact).", r.List.Impact)
-	if _, err := q.InsertIncident(ctx, store.InsertIncidentParams{
+	if _, err := q.InsertDeliverabilityIncident(ctx, store.InsertDeliverabilityIncidentParams{
 		ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws, OccurredAt: now, Kind: "blocklist_listed", Severity: sev, Title: title,
 		Detail: detail, ProviderID: provider, Source: "builtin", Asset: r.Asset,
 	}); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return err
 	}
-	slug, err := q.WorkspaceSlug(ctx, ws)
+	slug, err := q.HostReputeWorkspaceSlug(ctx, ws)
 	if err != nil {
 		return err
 	}
@@ -341,7 +341,7 @@ func (s *Service) newListing(ctx context.Context, tx pgx.Tx, ws uuid.UUID, r dns
 // authChecks runs the DNS authentication checks of every sending domain and
 // its organization domain, and reverse DNS of every dedicated IP.
 func (s *Service) authChecks(ctx context.Context, ws uuid.UUID) error {
-	domains, err := s.Q.ListAssetSources(ctx, ws)
+	domains, err := s.Q.HostReputeAssetSources(ctx, ws)
 	if err != nil {
 		return err
 	}
@@ -355,7 +355,7 @@ func (s *Service) authChecks(ctx context.Context, ws uuid.UUID) error {
 		if err != nil {
 			return err
 		}
-		return s.Q.UpsertAssetCheck(ctx, store.UpsertAssetCheckParams{WorkspaceID: ws, Asset: asset, AssetType: typ, Result: b, CheckedAt: now})
+		return s.Q.UpsertDeliverabilityAssetCheck(ctx, store.UpsertDeliverabilityAssetCheckParams{WorkspaceID: ws, Asset: asset, AssetType: typ, Result: b, CheckedAt: now})
 	}
 	for _, d := range domains {
 		auth := dnscheck.CheckDomain(ctx, s.DNS, d.Domain, Requirements(d.DnsRecords))
@@ -366,7 +366,7 @@ func (s *Service) authChecks(ctx context.Context, ws uuid.UUID) error {
 	for _, c := range cands {
 		switch c.Role {
 		case hostrepute.RoleOrganizationDomain:
-			if slices.ContainsFunc(domains, func(d store.ListAssetSourcesRow) bool { return d.Domain == c.Asset }) {
+			if slices.ContainsFunc(domains, func(d store.HostReputeAssetSourcesRow) bool { return d.Domain == c.Asset }) {
 				continue
 			}
 			if err := save(c.Asset, "domain", map[string]any{"dmarc": dnscheck.CheckDMARC(ctx, s.DNS, c.Asset)}); err != nil {

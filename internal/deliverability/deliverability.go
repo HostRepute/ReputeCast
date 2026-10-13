@@ -69,15 +69,15 @@ type state struct {
 	zone        *time.Location
 	conn        *store.HostreputeConnection
 	cands       []hostrepute.Candidate
-	providers   []store.ListActiveProvidersRow
-	streams     []store.ListProviderStreamsRow
-	warmups     []store.ListActiveWarmupPlansRow
+	providers   []store.HostReputeActiveProvidersRow
+	streams     []store.DeliverabilityProviderStreamsRow
+	warmups     []store.DeliverabilityWarmupPlansRow
 	blocklists  []store.BlocklistResult
 	checks      map[string]store.DeliverabilityAssetCheck
 	postmaster  []store.PostmasterDaily
 	snds        []store.SndsDaily
 	dmarc       []store.DmarcReport
-	domains     []store.ListAssetSourcesRow
+	domains     []store.HostReputeAssetSourcesRow
 	monitored   map[string]monitored
 	running     *store.DeliverabilityCheckRun
 	lastBuiltin *store.DeliverabilityCheckRun
@@ -119,22 +119,22 @@ func (s *Service) load(ctx context.Context, ws uuid.UUID, tz string) (*state, er
 	if st.cands, err = hostrepute.Candidates(ctx, q, ws); err != nil {
 		return nil, err
 	}
-	if st.domains, err = q.ListAssetSources(ctx, ws); err != nil {
+	if st.domains, err = q.HostReputeAssetSources(ctx, ws); err != nil {
 		return nil, err
 	}
-	if st.providers, err = q.ListActiveProviders(ctx, ws); err != nil {
+	if st.providers, err = q.HostReputeActiveProviders(ctx, ws); err != nil {
 		return nil, err
 	}
-	if st.streams, err = q.ListProviderStreams(ctx, ws); err != nil {
+	if st.streams, err = q.DeliverabilityProviderStreams(ctx, ws); err != nil {
 		return nil, err
 	}
-	if st.warmups, err = q.ListActiveWarmupPlans(ctx, ws); err != nil {
+	if st.warmups, err = q.DeliverabilityWarmupPlans(ctx, ws); err != nil {
 		return nil, err
 	}
-	if st.blocklists, err = q.ListBlocklistResults(ctx, ws); err != nil {
+	if st.blocklists, err = q.ListDeliverabilityBlocklistResults(ctx, ws); err != nil {
 		return nil, err
 	}
-	checks, err := q.ListAssetChecks(ctx, ws)
+	checks, err := q.ListDeliverabilityAssetChecks(ctx, ws)
 	if err != nil {
 		return nil, err
 	}
@@ -142,19 +142,19 @@ func (s *Service) load(ctx context.Context, ws uuid.UUID, tz string) (*state, er
 		st.checks[strings.ToLower(c.Asset)] = c
 	}
 	since := st.today.AddDate(0, 0, -hostrepute.PostmasterDays)
-	if st.postmaster, err = q.ListPostmasterDays(ctx, store.ListPostmasterDaysParams{WorkspaceID: ws, Since: since}); err != nil {
+	if st.postmaster, err = q.ListDeliverabilityPostmasterDays(ctx, store.ListDeliverabilityPostmasterDaysParams{WorkspaceID: ws, Since: since}); err != nil {
 		return nil, err
 	}
-	if st.snds, err = q.ListSNDSDays(ctx, store.ListSNDSDaysParams{WorkspaceID: ws, Since: since}); err != nil {
+	if st.snds, err = q.ListDeliverabilitySNDSDays(ctx, store.ListDeliverabilitySNDSDaysParams{WorkspaceID: ws, Since: since}); err != nil {
 		return nil, err
 	}
-	if st.dmarc, err = q.ListDMARCReports(ctx, store.ListDMARCReportsParams{WorkspaceID: ws, Since: st.now.AddDate(0, 0, -hostrepute.DMARCDays)}); err != nil {
+	if st.dmarc, err = q.ListDeliverabilityDMARCReports(ctx, store.ListDeliverabilityDMARCReportsParams{WorkspaceID: ws, Since: st.now.AddDate(0, 0, -hostrepute.DMARCDays)}); err != nil {
 		return nil, err
 	}
-	if run, err := q.RunningCheckRun(ctx, store.RunningCheckRunParams{WorkspaceID: ws, AliveAfter: st.now.Add(-runTTL)}); err == nil {
+	if run, err := q.RunningDeliverabilityCheckRun(ctx, store.RunningDeliverabilityCheckRunParams{WorkspaceID: ws, AliveAfter: st.now.Add(-runTTL)}); err == nil {
 		st.running = &run
 	}
-	if run, err := q.LatestFinishedCheckRun(ctx, store.LatestFinishedCheckRunParams{WorkspaceID: ws, Via: "builtin"}); err == nil {
+	if run, err := q.LatestFinishedDeliverabilityCheckRun(ctx, store.LatestFinishedDeliverabilityCheckRunParams{WorkspaceID: ws, Via: "builtin"}); err == nil {
 		st.lastBuiltin = &run
 	}
 	return st, nil

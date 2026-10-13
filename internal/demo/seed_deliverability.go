@@ -149,7 +149,7 @@ func seedDeliverabilityImpl(ctx context.Context, s *Seeder) error {
 		if err != nil {
 			return err
 		}
-		return q.UpsertAssetCheck(ctx, store.UpsertAssetCheckParams{WorkspaceID: ws.ID, Asset: asset, AssetType: typ, Result: b, CheckedAt: checked})
+		return q.UpsertDeliverabilityAssetCheck(ctx, store.UpsertDeliverabilityAssetCheckParams{WorkspaceID: ws.ID, Asset: asset, AssetType: typ, Result: b, CheckedAt: checked})
 	}
 	if err := save("news.acme.io", "domain", map[string]any{"auth": dnscheck.CheckDomain(ctx, r, "news.acme.io", reqs)}); err != nil {
 		return err
@@ -169,7 +169,7 @@ func seedDeliverabilityImpl(ctx context.Context, s *Seeder) error {
 			if !l.Applies(a) {
 				continue
 			}
-			if err := q.InsertBlocklistResult(ctx, store.InsertBlocklistResultParams{
+			if err := q.InsertDeliverabilityBlocklistResult(ctx, store.InsertDeliverabilityBlocklistResultParams{
 				ID: ID(), WorkspaceID: ws.ID, Via: "builtin", AssetType: a.Kind, Asset: a.Name, Source: l.Name, Impact: l.Impact,
 				Rank: int32(l.Rank), DelistUrl: l.DelistURL, CheckedAt: checked.Add(time.Minute),
 			}); err != nil {

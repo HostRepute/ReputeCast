@@ -298,7 +298,7 @@ func (s *Service) queueSync(ctx context.Context, tx pgx.Tx, ws uuid.UUID, by *uu
 	if err != nil {
 		return err
 	}
-	run, err := q.CreateCheckRun(ctx, store.CreateCheckRunParams{
+	run, err := q.CreateDeliverabilityCheckRun(ctx, store.CreateDeliverabilityCheckRunParams{
 		ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws, Via: "hostrepute", Trigger: trigger, Assets: nonNil(monitoredNames(conn.Monitored)),
 		Total: conn.Sources, RequestedBy: by, StartedAt: s.now(),
 	})
@@ -772,7 +772,7 @@ func (s *Service) SyncNow(ctx context.Context, ws *store.Workspace) (SyncQueued,
 		if err := s.queueSync(ctx, tx, ws.ID, principalUserID(ctx), "manual", false, false); err != nil {
 			return err
 		}
-		run, err := q.LatestCheckRun(ctx, ws.ID)
+		run, err := q.LatestDeliverabilityCheckRun(ctx, ws.ID)
 		if err != nil {
 			return err
 		}

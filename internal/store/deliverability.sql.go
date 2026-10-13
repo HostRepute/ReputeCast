@@ -29,13 +29,13 @@ func (q *Queries) CountDeliverabilityIncidents(ctx context.Context, arg CountDel
 	return count, err
 }
 
-const createCheckRun = `-- name: CreateCheckRun :one
+const createDeliverabilityCheckRun = `-- name: CreateDeliverabilityCheckRun :one
 INSERT INTO deliverability_check_runs (id, workspace_id, via, trigger, status, assets, total, requested_by, started_at)
 VALUES ($1, $2, $3, $4, 'running', $5, $6, $7, $8)
 RETURNING id, workspace_id, via, trigger, status, assets, total, answered, listed, error, requested_by, started_at, finished_at
 `
 
-type CreateCheckRunParams struct {
+type CreateDeliverabilityCheckRunParams struct {
 	ID          uuid.UUID  `json:"id"`
 	WorkspaceID uuid.UUID  `json:"workspaceId"`
 	Via         string     `json:"via"`
@@ -46,8 +46,8 @@ type CreateCheckRunParams struct {
 	StartedAt   time.Time  `json:"startedAt"`
 }
 
-func (q *Queries) CreateCheckRun(ctx context.Context, arg CreateCheckRunParams) (DeliverabilityCheckRun, error) {
-	row := q.db.QueryRow(ctx, createCheckRun,
+func (q *Queries) CreateDeliverabilityCheckRun(ctx context.Context, arg CreateDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error) {
+	row := q.db.QueryRow(ctx, createDeliverabilityCheckRun,
 		arg.ID,
 		arg.WorkspaceID,
 		arg.Via,
@@ -76,25 +76,130 @@ func (q *Queries) CreateCheckRun(ctx context.Context, arg CreateCheckRunParams) 
 	return i, err
 }
 
-const failStaleCheckRuns = `-- name: FailStaleCheckRuns :execrows
+const deliverabilityProviderStreams = `-- name: DeliverabilityProviderStreams :many
+SELECT DISTINCT r.stream, (s ->> 'provider_id')::uuid AS provider_id, false AS fallback
+FROM routing_rules r, jsonb_array_elements(r.splits) s
+WHERE r.workspace_id = $1 AND r.enabled
+UNION
+SELECT DISTINCT r.stream, r.fallback_provider_id AS provider_id, true AS fallback
+FROM routing_rules r
+WHERE r.workspace_id = $1 AND r.enabled AND r.fallback_provider_id IS NOT NULL
+`
+
+type DeliverabilityProviderStreamsRow struct {
+	Stream     string    `json:"stream"`
+	ProviderID uuid.UUID `json:"providerId"`
+	Fallback   bool      `json:"fallback"`
+}
+
+// Which streams each provider serves, as primary (in a split) or fallback.
+func (q *Queries) DeliverabilityProviderStreams(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityProviderStreamsRow, error) {
+	rows, err := q.db.Query(ctx, deliverabilityProviderStreams, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DeliverabilityProviderStreamsRow{}
+	for rows.Next() {
+		var i DeliverabilityProviderStreamsRow
+		if err := rows.Scan(&i.Stream, &i.ProviderID, &i.Fallback); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const deliverabilityWarmupPlans = `-- name: DeliverabilityWarmupPlans :many
+SELECT w.provider_id, w.ip, w.start_date, w.days, w.status FROM warmup_plans w
+JOIN providers p ON p.id = w.provider_id AND p.workspace_id = $1 AND p.disconnected_at IS NULL
+WHERE w.status <> 'done'
+`
+
+type DeliverabilityWarmupPlansRow struct {
+	ProviderID uuid.UUID `json:"providerId"`
+	Ip         string    `json:"ip"`
+	StartDate  time.Time `json:"startDate"`
+	Days       int32     `json:"days"`
+	Status     string    `json:"status"`
+}
+
+func (q *Queries) DeliverabilityWarmupPlans(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityWarmupPlansRow, error) {
+	rows, err := q.db.Query(ctx, deliverabilityWarmupPlans, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DeliverabilityWarmupPlansRow{}
+	for rows.Next() {
+		var i DeliverabilityWarmupPlansRow
+		if err := rows.Scan(
+			&i.ProviderID,
+			&i.Ip,
+			&i.StartDate,
+			&i.Days,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const deliverabilityWorkspaces = `-- name: DeliverabilityWorkspaces :many
+SELECT w.id FROM workspaces w
+WHERE w.deleted_at IS NULL
+  AND (EXISTS (SELECT 1 FROM sending_domains d WHERE d.workspace_id = w.id)
+       OR EXISTS (SELECT 1 FROM providers p WHERE p.workspace_id = w.id AND p.disconnected_at IS NULL))
+`
+
+// Workspaces the daily checks look at: they send through something.
+func (q *Queries) DeliverabilityWorkspaces(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, deliverabilityWorkspaces)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const failStaleDeliverabilityCheckRuns = `-- name: FailStaleDeliverabilityCheckRuns :execrows
 UPDATE deliverability_check_runs SET status = 'failed', error = 'The check stopped answering.', finished_at = now()
 WHERE status = 'running' AND started_at < $1
 `
 
-func (q *Queries) FailStaleCheckRuns(ctx context.Context, aliveAfter time.Time) (int64, error) {
-	result, err := q.db.Exec(ctx, failStaleCheckRuns, aliveAfter)
+func (q *Queries) FailStaleDeliverabilityCheckRuns(ctx context.Context, aliveAfter time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, failStaleDeliverabilityCheckRuns, aliveAfter)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
 }
 
-const finishCheckRun = `-- name: FinishCheckRun :exec
+const finishDeliverabilityCheckRun = `-- name: FinishDeliverabilityCheckRun :exec
 UPDATE deliverability_check_runs SET status = $1, answered = $2, total = $3, listed = $4, error = $5, finished_at = $6
 WHERE id = $7
 `
 
-type FinishCheckRunParams struct {
+type FinishDeliverabilityCheckRunParams struct {
 	Status     string     `json:"status"`
 	Answered   int32      `json:"answered"`
 	Total      int32      `json:"total"`
@@ -104,8 +209,8 @@ type FinishCheckRunParams struct {
 	ID         uuid.UUID  `json:"id"`
 }
 
-func (q *Queries) FinishCheckRun(ctx context.Context, arg FinishCheckRunParams) error {
-	_, err := q.db.Exec(ctx, finishCheckRun,
+func (q *Queries) FinishDeliverabilityCheckRun(ctx context.Context, arg FinishDeliverabilityCheckRunParams) error {
+	_, err := q.db.Exec(ctx, finishDeliverabilityCheckRun,
 		arg.Status,
 		arg.Answered,
 		arg.Total,
@@ -117,20 +222,20 @@ func (q *Queries) FinishCheckRun(ctx context.Context, arg FinishCheckRunParams) 
 	return err
 }
 
-const getBlocklistListing = `-- name: GetBlocklistListing :one
+const getDeliverabilityBlocklistListing = `-- name: GetDeliverabilityBlocklistListing :one
 SELECT id, workspace_id, asset_type, asset, source, impact, listed, listed_since, delist_url, checked_at, via, rank, detail, delisting, delisting_requested_at FROM blocklist_results
 WHERE workspace_id = $1 AND via = $2 AND asset = $3 AND source = $4
 `
 
-type GetBlocklistListingParams struct {
+type GetDeliverabilityBlocklistListingParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	Via         string    `json:"via"`
 	Asset       string    `json:"asset"`
 	Source      string    `json:"source"`
 }
 
-func (q *Queries) GetBlocklistListing(ctx context.Context, arg GetBlocklistListingParams) (BlocklistResult, error) {
-	row := q.db.QueryRow(ctx, getBlocklistListing,
+func (q *Queries) GetDeliverabilityBlocklistListing(ctx context.Context, arg GetDeliverabilityBlocklistListingParams) (BlocklistResult, error) {
+	row := q.db.QueryRow(ctx, getDeliverabilityBlocklistListing,
 		arg.WorkspaceID,
 		arg.Via,
 		arg.Asset,
@@ -157,17 +262,17 @@ func (q *Queries) GetBlocklistListing(ctx context.Context, arg GetBlocklistListi
 	return i, err
 }
 
-const getCheckRun = `-- name: GetCheckRun :one
+const getDeliverabilityCheckRun = `-- name: GetDeliverabilityCheckRun :one
 SELECT id, workspace_id, via, trigger, status, assets, total, answered, listed, error, requested_by, started_at, finished_at FROM deliverability_check_runs WHERE id = $1 AND workspace_id = $2
 `
 
-type GetCheckRunParams struct {
+type GetDeliverabilityCheckRunParams struct {
 	ID          uuid.UUID `json:"id"`
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 }
 
-func (q *Queries) GetCheckRun(ctx context.Context, arg GetCheckRunParams) (DeliverabilityCheckRun, error) {
-	row := q.db.QueryRow(ctx, getCheckRun, arg.ID, arg.WorkspaceID)
+func (q *Queries) GetDeliverabilityCheckRun(ctx context.Context, arg GetDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error) {
+	row := q.db.QueryRow(ctx, getDeliverabilityCheckRun, arg.ID, arg.WorkspaceID)
 	var i DeliverabilityCheckRun
 	err := row.Scan(
 		&i.ID,
@@ -187,23 +292,23 @@ func (q *Queries) GetCheckRun(ctx context.Context, arg GetCheckRunParams) (Deliv
 	return i, err
 }
 
-const lastAssetCheckAt = `-- name: LastAssetCheckAt :one
+const lastDeliverabilityAssetCheckAt = `-- name: LastDeliverabilityAssetCheckAt :one
 SELECT coalesce(max(checked_at), 'epoch'::timestamptz)::timestamptz AS checked_at FROM deliverability_asset_checks WHERE workspace_id = $1
 `
 
-func (q *Queries) LastAssetCheckAt(ctx context.Context, workspaceID uuid.UUID) (time.Time, error) {
-	row := q.db.QueryRow(ctx, lastAssetCheckAt, workspaceID)
+func (q *Queries) LastDeliverabilityAssetCheckAt(ctx context.Context, workspaceID uuid.UUID) (time.Time, error) {
+	row := q.db.QueryRow(ctx, lastDeliverabilityAssetCheckAt, workspaceID)
 	var checked_at time.Time
 	err := row.Scan(&checked_at)
 	return checked_at, err
 }
 
-const latestCheckRun = `-- name: LatestCheckRun :one
+const latestDeliverabilityCheckRun = `-- name: LatestDeliverabilityCheckRun :one
 SELECT id, workspace_id, via, trigger, status, assets, total, answered, listed, error, requested_by, started_at, finished_at FROM deliverability_check_runs WHERE workspace_id = $1 ORDER BY started_at DESC LIMIT 1
 `
 
-func (q *Queries) LatestCheckRun(ctx context.Context, workspaceID uuid.UUID) (DeliverabilityCheckRun, error) {
-	row := q.db.QueryRow(ctx, latestCheckRun, workspaceID)
+func (q *Queries) LatestDeliverabilityCheckRun(ctx context.Context, workspaceID uuid.UUID) (DeliverabilityCheckRun, error) {
+	row := q.db.QueryRow(ctx, latestDeliverabilityCheckRun, workspaceID)
 	var i DeliverabilityCheckRun
 	err := row.Scan(
 		&i.ID,
@@ -223,19 +328,19 @@ func (q *Queries) LatestCheckRun(ctx context.Context, workspaceID uuid.UUID) (De
 	return i, err
 }
 
-const latestFinishedCheckRun = `-- name: LatestFinishedCheckRun :one
+const latestFinishedDeliverabilityCheckRun = `-- name: LatestFinishedDeliverabilityCheckRun :one
 SELECT id, workspace_id, via, trigger, status, assets, total, answered, listed, error, requested_by, started_at, finished_at FROM deliverability_check_runs
 WHERE workspace_id = $1 AND via = $2 AND status = 'done'
 ORDER BY finished_at DESC LIMIT 1
 `
 
-type LatestFinishedCheckRunParams struct {
+type LatestFinishedDeliverabilityCheckRunParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	Via         string    `json:"via"`
 }
 
-func (q *Queries) LatestFinishedCheckRun(ctx context.Context, arg LatestFinishedCheckRunParams) (DeliverabilityCheckRun, error) {
-	row := q.db.QueryRow(ctx, latestFinishedCheckRun, arg.WorkspaceID, arg.Via)
+func (q *Queries) LatestFinishedDeliverabilityCheckRun(ctx context.Context, arg LatestFinishedDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error) {
+	row := q.db.QueryRow(ctx, latestFinishedDeliverabilityCheckRun, arg.WorkspaceID, arg.Via)
 	var i DeliverabilityCheckRun
 	err := row.Scan(
 		&i.ID,
@@ -255,52 +360,12 @@ func (q *Queries) LatestFinishedCheckRun(ctx context.Context, arg LatestFinished
 	return i, err
 }
 
-const listActiveWarmupPlans = `-- name: ListActiveWarmupPlans :many
-SELECT w.provider_id, w.ip, w.start_date, w.days, w.status FROM warmup_plans w
-JOIN providers p ON p.id = w.provider_id AND p.workspace_id = $1 AND p.disconnected_at IS NULL
-WHERE w.status <> 'done'
-`
-
-type ListActiveWarmupPlansRow struct {
-	ProviderID uuid.UUID `json:"providerId"`
-	Ip         string    `json:"ip"`
-	StartDate  time.Time `json:"startDate"`
-	Days       int32     `json:"days"`
-	Status     string    `json:"status"`
-}
-
-func (q *Queries) ListActiveWarmupPlans(ctx context.Context, workspaceID uuid.UUID) ([]ListActiveWarmupPlansRow, error) {
-	rows, err := q.db.Query(ctx, listActiveWarmupPlans, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListActiveWarmupPlansRow{}
-	for rows.Next() {
-		var i ListActiveWarmupPlansRow
-		if err := rows.Scan(
-			&i.ProviderID,
-			&i.Ip,
-			&i.StartDate,
-			&i.Days,
-			&i.Status,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listAssetChecks = `-- name: ListAssetChecks :many
+const listDeliverabilityAssetChecks = `-- name: ListDeliverabilityAssetChecks :many
 SELECT workspace_id, asset, asset_type, result, checked_at FROM deliverability_asset_checks WHERE workspace_id = $1 ORDER BY asset
 `
 
-func (q *Queries) ListAssetChecks(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityAssetCheck, error) {
-	rows, err := q.db.Query(ctx, listAssetChecks, workspaceID)
+func (q *Queries) ListDeliverabilityAssetChecks(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityAssetCheck, error) {
+	rows, err := q.db.Query(ctx, listDeliverabilityAssetChecks, workspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -325,7 +390,7 @@ func (q *Queries) ListAssetChecks(ctx context.Context, workspaceID uuid.UUID) ([
 	return items, nil
 }
 
-const listBlocklistResults = `-- name: ListBlocklistResults :many
+const listDeliverabilityBlocklistResults = `-- name: ListDeliverabilityBlocklistResults :many
 SELECT id, workspace_id, asset_type, asset, source, impact, listed, listed_since, delist_url, checked_at, via, rank, detail, delisting, delisting_requested_at FROM blocklist_results
 WHERE workspace_id = $1
 ORDER BY via, listed DESC, rank, source, asset
@@ -333,8 +398,8 @@ ORDER BY via, listed DESC, rank, source, asset
 
 // Every blocklist result of a workspace, most important first: listings,
 // then by the source's rank.
-func (q *Queries) ListBlocklistResults(ctx context.Context, workspaceID uuid.UUID) ([]BlocklistResult, error) {
-	rows, err := q.db.Query(ctx, listBlocklistResults, workspaceID)
+func (q *Queries) ListDeliverabilityBlocklistResults(ctx context.Context, workspaceID uuid.UUID) ([]BlocklistResult, error) {
+	rows, err := q.db.Query(ctx, listDeliverabilityBlocklistResults, workspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -369,19 +434,19 @@ func (q *Queries) ListBlocklistResults(ctx context.Context, workspaceID uuid.UUI
 	return items, nil
 }
 
-const listDMARCReports = `-- name: ListDMARCReports :many
+const listDeliverabilityDMARCReports = `-- name: ListDeliverabilityDMARCReports :many
 SELECT id, workspace_id, domain, org_name, report_id, date_begin, date_end, policy, records, received_at, via FROM dmarc_reports
 WHERE workspace_id = $1 AND date_end >= $2
 ORDER BY date_end DESC, org_name
 `
 
-type ListDMARCReportsParams struct {
+type ListDeliverabilityDMARCReportsParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	Since       time.Time `json:"since"`
 }
 
-func (q *Queries) ListDMARCReports(ctx context.Context, arg ListDMARCReportsParams) ([]DmarcReport, error) {
-	rows, err := q.db.Query(ctx, listDMARCReports, arg.WorkspaceID, arg.Since)
+func (q *Queries) ListDeliverabilityDMARCReports(ctx context.Context, arg ListDeliverabilityDMARCReportsParams) ([]DmarcReport, error) {
+	rows, err := q.db.Query(ctx, listDeliverabilityDMARCReports, arg.WorkspaceID, arg.Since)
 	if err != nil {
 		return nil, err
 	}
@@ -498,19 +563,19 @@ func (q *Queries) ListDeliverabilityIncidents(ctx context.Context, arg ListDeliv
 	return items, nil
 }
 
-const listPostmasterDays = `-- name: ListPostmasterDays :many
+const listDeliverabilityPostmasterDays = `-- name: ListDeliverabilityPostmasterDays :many
 SELECT workspace_id, domain, day, spam_rate, domain_reputation, ip_reputation, spf_rate, dkim_rate, dmarc_rate, tls_rate, delivery_errors, via, fbl_flagged FROM postmaster_daily
 WHERE workspace_id = $1 AND day >= $2::date
 ORDER BY domain, day
 `
 
-type ListPostmasterDaysParams struct {
+type ListDeliverabilityPostmasterDaysParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	Since       time.Time `json:"since"`
 }
 
-func (q *Queries) ListPostmasterDays(ctx context.Context, arg ListPostmasterDaysParams) ([]PostmasterDaily, error) {
-	rows, err := q.db.Query(ctx, listPostmasterDays, arg.WorkspaceID, arg.Since)
+func (q *Queries) ListDeliverabilityPostmasterDays(ctx context.Context, arg ListDeliverabilityPostmasterDaysParams) ([]PostmasterDaily, error) {
+	rows, err := q.db.Query(ctx, listDeliverabilityPostmasterDays, arg.WorkspaceID, arg.Since)
 	if err != nil {
 		return nil, err
 	}
@@ -543,56 +608,19 @@ func (q *Queries) ListPostmasterDays(ctx context.Context, arg ListPostmasterDays
 	return items, nil
 }
 
-const listProviderStreams = `-- name: ListProviderStreams :many
-SELECT DISTINCT r.stream, (s ->> 'provider_id')::uuid AS provider_id, false AS fallback
-FROM routing_rules r, jsonb_array_elements(r.splits) s
-WHERE r.workspace_id = $1 AND r.enabled
-UNION
-SELECT DISTINCT r.stream, r.fallback_provider_id AS provider_id, true AS fallback
-FROM routing_rules r
-WHERE r.workspace_id = $1 AND r.enabled AND r.fallback_provider_id IS NOT NULL
-`
-
-type ListProviderStreamsRow struct {
-	Stream     string    `json:"stream"`
-	ProviderID uuid.UUID `json:"providerId"`
-	Fallback   bool      `json:"fallback"`
-}
-
-// Which streams each provider serves, as primary (in a split) or fallback.
-func (q *Queries) ListProviderStreams(ctx context.Context, workspaceID uuid.UUID) ([]ListProviderStreamsRow, error) {
-	rows, err := q.db.Query(ctx, listProviderStreams, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListProviderStreamsRow{}
-	for rows.Next() {
-		var i ListProviderStreamsRow
-		if err := rows.Scan(&i.Stream, &i.ProviderID, &i.Fallback); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listSNDSDays = `-- name: ListSNDSDays :many
+const listDeliverabilitySNDSDays = `-- name: ListDeliverabilitySNDSDays :many
 SELECT workspace_id, ip, day, filter_result, complaint_rate, trap_hits, messages, via, jmrp_reports FROM snds_daily
 WHERE workspace_id = $1 AND day >= $2::date
 ORDER BY ip, day
 `
 
-type ListSNDSDaysParams struct {
+type ListDeliverabilitySNDSDaysParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	Since       time.Time `json:"since"`
 }
 
-func (q *Queries) ListSNDSDays(ctx context.Context, arg ListSNDSDaysParams) ([]SndsDaily, error) {
-	rows, err := q.db.Query(ctx, listSNDSDays, arg.WorkspaceID, arg.Since)
+func (q *Queries) ListDeliverabilitySNDSDays(ctx context.Context, arg ListDeliverabilitySNDSDaysParams) ([]SndsDaily, error) {
+	rows, err := q.db.Query(ctx, listDeliverabilitySNDSDays, arg.WorkspaceID, arg.Since)
 	if err != nil {
 		return nil, err
 	}
@@ -621,20 +649,20 @@ func (q *Queries) ListSNDSDays(ctx context.Context, arg ListSNDSDaysParams) ([]S
 	return items, nil
 }
 
-const runningCheckRun = `-- name: RunningCheckRun :one
+const runningDeliverabilityCheckRun = `-- name: RunningDeliverabilityCheckRun :one
 SELECT id, workspace_id, via, trigger, status, assets, total, answered, listed, error, requested_by, started_at, finished_at FROM deliverability_check_runs
 WHERE workspace_id = $1 AND status = 'running' AND started_at > $2
 ORDER BY started_at DESC LIMIT 1
 `
 
-type RunningCheckRunParams struct {
+type RunningDeliverabilityCheckRunParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	AliveAfter  time.Time `json:"aliveAfter"`
 }
 
 // A run still in progress (runs older than ten minutes are considered dead).
-func (q *Queries) RunningCheckRun(ctx context.Context, arg RunningCheckRunParams) (DeliverabilityCheckRun, error) {
-	row := q.db.QueryRow(ctx, runningCheckRun, arg.WorkspaceID, arg.AliveAfter)
+func (q *Queries) RunningDeliverabilityCheckRun(ctx context.Context, arg RunningDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error) {
+	row := q.db.QueryRow(ctx, runningDeliverabilityCheckRun, arg.WorkspaceID, arg.AliveAfter)
 	var i DeliverabilityCheckRun
 	err := row.Scan(
 		&i.ID,
@@ -654,12 +682,12 @@ func (q *Queries) RunningCheckRun(ctx context.Context, arg RunningCheckRunParams
 	return i, err
 }
 
-const setBlocklistDelisting = `-- name: SetBlocklistDelisting :exec
+const setDeliverabilityBlocklistDelisting = `-- name: SetDeliverabilityBlocklistDelisting :exec
 UPDATE blocklist_results SET delisting = $1, delisting_requested_at = $2
 WHERE workspace_id = $3 AND via = $4 AND asset = $5 AND source = $6
 `
 
-type SetBlocklistDelistingParams struct {
+type SetDeliverabilityBlocklistDelistingParams struct {
 	Delisting   string     `json:"delisting"`
 	RequestedAt *time.Time `json:"requestedAt"`
 	WorkspaceID uuid.UUID  `json:"workspaceId"`
@@ -668,8 +696,8 @@ type SetBlocklistDelistingParams struct {
 	Source      string     `json:"source"`
 }
 
-func (q *Queries) SetBlocklistDelisting(ctx context.Context, arg SetBlocklistDelistingParams) error {
-	_, err := q.db.Exec(ctx, setBlocklistDelisting,
+func (q *Queries) SetDeliverabilityBlocklistDelisting(ctx context.Context, arg SetDeliverabilityBlocklistDelistingParams) error {
+	_, err := q.db.Exec(ctx, setDeliverabilityBlocklistDelisting,
 		arg.Delisting,
 		arg.RequestedAt,
 		arg.WorkspaceID,
@@ -680,28 +708,28 @@ func (q *Queries) SetBlocklistDelisting(ctx context.Context, arg SetBlocklistDel
 	return err
 }
 
-const updateCheckRunProgress = `-- name: UpdateCheckRunProgress :exec
+const updateDeliverabilityCheckRunProgress = `-- name: UpdateDeliverabilityCheckRunProgress :exec
 UPDATE deliverability_check_runs SET total = $1, answered = $2 WHERE id = $3
 `
 
-type UpdateCheckRunProgressParams struct {
+type UpdateDeliverabilityCheckRunProgressParams struct {
 	Total    int32     `json:"total"`
 	Answered int32     `json:"answered"`
 	ID       uuid.UUID `json:"id"`
 }
 
-func (q *Queries) UpdateCheckRunProgress(ctx context.Context, arg UpdateCheckRunProgressParams) error {
-	_, err := q.db.Exec(ctx, updateCheckRunProgress, arg.Total, arg.Answered, arg.ID)
+func (q *Queries) UpdateDeliverabilityCheckRunProgress(ctx context.Context, arg UpdateDeliverabilityCheckRunProgressParams) error {
+	_, err := q.db.Exec(ctx, updateDeliverabilityCheckRunProgress, arg.Total, arg.Answered, arg.ID)
 	return err
 }
 
-const upsertAssetCheck = `-- name: UpsertAssetCheck :exec
+const upsertDeliverabilityAssetCheck = `-- name: UpsertDeliverabilityAssetCheck :exec
 INSERT INTO deliverability_asset_checks (workspace_id, asset, asset_type, result, checked_at)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (workspace_id, asset) DO UPDATE SET asset_type = EXCLUDED.asset_type, result = EXCLUDED.result, checked_at = EXCLUDED.checked_at
 `
 
-type UpsertAssetCheckParams struct {
+type UpsertDeliverabilityAssetCheckParams struct {
 	WorkspaceID uuid.UUID       `json:"workspaceId"`
 	Asset       string          `json:"asset"`
 	AssetType   string          `json:"assetType"`
@@ -709,8 +737,8 @@ type UpsertAssetCheckParams struct {
 	CheckedAt   time.Time       `json:"checkedAt"`
 }
 
-func (q *Queries) UpsertAssetCheck(ctx context.Context, arg UpsertAssetCheckParams) error {
-	_, err := q.db.Exec(ctx, upsertAssetCheck,
+func (q *Queries) UpsertDeliverabilityAssetCheck(ctx context.Context, arg UpsertDeliverabilityAssetCheckParams) error {
+	_, err := q.db.Exec(ctx, upsertDeliverabilityAssetCheck,
 		arg.WorkspaceID,
 		arg.Asset,
 		arg.AssetType,
@@ -718,32 +746,4 @@ func (q *Queries) UpsertAssetCheck(ctx context.Context, arg UpsertAssetCheckPara
 		arg.CheckedAt,
 	)
 	return err
-}
-
-const workspacesWithSendingSetup = `-- name: WorkspacesWithSendingSetup :many
-SELECT w.id FROM workspaces w
-WHERE w.deleted_at IS NULL
-  AND (EXISTS (SELECT 1 FROM sending_domains d WHERE d.workspace_id = w.id)
-       OR EXISTS (SELECT 1 FROM providers p WHERE p.workspace_id = w.id AND p.disconnected_at IS NULL))
-`
-
-// Workspaces the daily checks look at: they send through something.
-func (q *Queries) WorkspacesWithSendingSetup(ctx context.Context) ([]uuid.UUID, error) {
-	rows, err := q.db.Query(ctx, workspacesWithSendingSetup)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []uuid.UUID{}
-	for rows.Next() {
-		var id uuid.UUID
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }

@@ -41,11 +41,11 @@ type Candidate struct {
 // Candidates lists the workspace's assets: sending domains, their
 // organization domains, dedicated IPs and self-hosted server hostnames.
 func Candidates(ctx context.Context, q *store.Queries, workspaceID uuid.UUID) ([]Candidate, error) {
-	domains, err := q.ListAssetSources(ctx, workspaceID)
+	domains, err := q.HostReputeAssetSources(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}
-	providers, err := q.ListActiveProviders(ctx, workspaceID)
+	providers, err := q.HostReputeActiveProviders(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}

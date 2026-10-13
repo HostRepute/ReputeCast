@@ -1,29 +1,29 @@
--- name: ListBlocklistResults :many
+-- name: ListDeliverabilityBlocklistResults :many
 -- Every blocklist result of a workspace, most important first: listings,
 -- then by the source's rank.
 SELECT * FROM blocklist_results
 WHERE workspace_id = @workspace_id
 ORDER BY via, listed DESC, rank, source, asset;
 
--- name: GetBlocklistListing :one
+-- name: GetDeliverabilityBlocklistListing :one
 SELECT * FROM blocklist_results
 WHERE workspace_id = @workspace_id AND via = @via AND asset = @asset AND source = @source;
 
--- name: SetBlocklistDelisting :exec
+-- name: SetDeliverabilityBlocklistDelisting :exec
 UPDATE blocklist_results SET delisting = @delisting, delisting_requested_at = @requested_at
 WHERE workspace_id = @workspace_id AND via = @via AND asset = @asset AND source = @source;
 
--- name: ListPostmasterDays :many
+-- name: ListDeliverabilityPostmasterDays :many
 SELECT * FROM postmaster_daily
 WHERE workspace_id = @workspace_id AND day >= @since::date
 ORDER BY domain, day;
 
--- name: ListSNDSDays :many
+-- name: ListDeliverabilitySNDSDays :many
 SELECT * FROM snds_daily
 WHERE workspace_id = @workspace_id AND day >= @since::date
 ORDER BY ip, day;
 
--- name: ListDMARCReports :many
+-- name: ListDeliverabilityDMARCReports :many
 SELECT * FROM dmarc_reports
 WHERE workspace_id = @workspace_id AND date_end >= @since
 ORDER BY date_end DESC, org_name;
@@ -56,53 +56,53 @@ LIMIT @lim;
 -- name: CountDeliverabilityIncidents :one
 SELECT count(*) FROM incidents WHERE workspace_id = @workspace_id AND occurred_at >= @since;
 
--- name: CreateCheckRun :one
+-- name: CreateDeliverabilityCheckRun :one
 INSERT INTO deliverability_check_runs (id, workspace_id, via, trigger, status, assets, total, requested_by, started_at)
 VALUES (@id, @workspace_id, @via, @trigger, 'running', @assets, @total, @requested_by, @started_at)
 RETURNING *;
 
--- name: GetCheckRun :one
+-- name: GetDeliverabilityCheckRun :one
 SELECT * FROM deliverability_check_runs WHERE id = @id AND workspace_id = @workspace_id;
 
--- name: LatestCheckRun :one
+-- name: LatestDeliverabilityCheckRun :one
 SELECT * FROM deliverability_check_runs WHERE workspace_id = @workspace_id ORDER BY started_at DESC LIMIT 1;
 
--- name: LatestFinishedCheckRun :one
+-- name: LatestFinishedDeliverabilityCheckRun :one
 SELECT * FROM deliverability_check_runs
 WHERE workspace_id = @workspace_id AND via = @via AND status = 'done'
 ORDER BY finished_at DESC LIMIT 1;
 
--- name: RunningCheckRun :one
+-- name: RunningDeliverabilityCheckRun :one
 -- A run still in progress (runs older than ten minutes are considered dead).
 SELECT * FROM deliverability_check_runs
 WHERE workspace_id = @workspace_id AND status = 'running' AND started_at > @alive_after
 ORDER BY started_at DESC LIMIT 1;
 
--- name: UpdateCheckRunProgress :exec
+-- name: UpdateDeliverabilityCheckRunProgress :exec
 UPDATE deliverability_check_runs SET total = @total, answered = @answered WHERE id = @id;
 
--- name: FinishCheckRun :exec
+-- name: FinishDeliverabilityCheckRun :exec
 UPDATE deliverability_check_runs SET status = @status, answered = @answered, total = @total, listed = @listed, error = @error, finished_at = @finished_at
 WHERE id = @id;
 
--- name: FailStaleCheckRuns :execrows
+-- name: FailStaleDeliverabilityCheckRuns :execrows
 UPDATE deliverability_check_runs SET status = 'failed', error = 'The check stopped answering.', finished_at = now()
 WHERE status = 'running' AND started_at < @alive_after;
 
--- name: UpsertAssetCheck :exec
+-- name: UpsertDeliverabilityAssetCheck :exec
 INSERT INTO deliverability_asset_checks (workspace_id, asset, asset_type, result, checked_at)
 VALUES (@workspace_id, @asset, @asset_type, @result, @checked_at)
 ON CONFLICT (workspace_id, asset) DO UPDATE SET asset_type = EXCLUDED.asset_type, result = EXCLUDED.result, checked_at = EXCLUDED.checked_at;
 
--- name: ListAssetChecks :many
+-- name: ListDeliverabilityAssetChecks :many
 SELECT * FROM deliverability_asset_checks WHERE workspace_id = @workspace_id ORDER BY asset;
 
--- name: ListActiveWarmupPlans :many
+-- name: DeliverabilityWarmupPlans :many
 SELECT w.provider_id, w.ip, w.start_date, w.days, w.status FROM warmup_plans w
 JOIN providers p ON p.id = w.provider_id AND p.workspace_id = @workspace_id AND p.disconnected_at IS NULL
 WHERE w.status <> 'done';
 
--- name: ListProviderStreams :many
+-- name: DeliverabilityProviderStreams :many
 -- Which streams each provider serves, as primary (in a split) or fallback.
 SELECT DISTINCT r.stream, (s ->> 'provider_id')::uuid AS provider_id, false AS fallback
 FROM routing_rules r, jsonb_array_elements(r.splits) s
@@ -112,12 +112,12 @@ SELECT DISTINCT r.stream, r.fallback_provider_id AS provider_id, true AS fallbac
 FROM routing_rules r
 WHERE r.workspace_id = @workspace_id AND r.enabled AND r.fallback_provider_id IS NOT NULL;
 
--- name: WorkspacesWithSendingSetup :many
+-- name: DeliverabilityWorkspaces :many
 -- Workspaces the daily checks look at: they send through something.
 SELECT w.id FROM workspaces w
 WHERE w.deleted_at IS NULL
   AND (EXISTS (SELECT 1 FROM sending_domains d WHERE d.workspace_id = w.id)
        OR EXISTS (SELECT 1 FROM providers p WHERE p.workspace_id = w.id AND p.disconnected_at IS NULL));
 
--- name: LastAssetCheckAt :one
+-- name: LastDeliverabilityAssetCheckAt :one
 SELECT coalesce(max(checked_at), 'epoch'::timestamptz)::timestamptz AS checked_at FROM deliverability_asset_checks WHERE workspace_id = @workspace_id;

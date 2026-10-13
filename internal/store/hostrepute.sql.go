@@ -34,36 +34,6 @@ func (q *Queries) ConsumeHostReputeOAuthState(ctx context.Context, stateHash []b
 	return i, err
 }
 
-const countWorkspaceAgents = `-- name: CountWorkspaceAgents :one
-SELECT count(*)::bigint FROM api_keys
-WHERE workspace_id = $1 AND kind = 'mcp_agent' AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > now())
-`
-
-func (q *Queries) CountWorkspaceAgents(ctx context.Context, workspaceID uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countWorkspaceAgents, workspaceID)
-	var column_1 int64
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
-const countWorkspaceWebhooks = `-- name: CountWorkspaceWebhooks :one
-SELECT count(*)::bigint AS endpoints,
-       count(*) FILTER (WHERE failing_since IS NOT NULL OR (last_status IS NOT NULL AND (last_status < 200 OR last_status >= 300)))::bigint AS failing
-FROM webhooks WHERE workspace_id = $1 AND enabled
-`
-
-type CountWorkspaceWebhooksRow struct {
-	Endpoints int64 `json:"endpoints"`
-	Failing   int64 `json:"failing"`
-}
-
-func (q *Queries) CountWorkspaceWebhooks(ctx context.Context, workspaceID uuid.UUID) (CountWorkspaceWebhooksRow, error) {
-	row := q.db.QueryRow(ctx, countWorkspaceWebhooks, workspaceID)
-	var i CountWorkspaceWebhooksRow
-	err := row.Scan(&i.Endpoints, &i.Failing)
-	return i, err
-}
-
 const createHostReputeOAuthState = `-- name: CreateHostReputeOAuthState :exec
 INSERT INTO hostrepute_oauth_states (id, workspace_id, user_id, state_hash, verifier_enc, redirect_uri, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -92,35 +62,17 @@ func (q *Queries) CreateHostReputeOAuthState(ctx context.Context, arg CreateHost
 	return err
 }
 
-const dataSourceVia = `-- name: DataSourceVia :one
-SELECT coalesce((SELECT via FROM postmaster_daily WHERE postmaster_daily.workspace_id = $1 ORDER BY day DESC LIMIT 1), '')::text AS postmaster,
-       coalesce((SELECT via FROM snds_daily WHERE snds_daily.workspace_id = $1 ORDER BY day DESC LIMIT 1), '')::text AS snds
-`
-
-type DataSourceViaRow struct {
-	Postmaster string `json:"postmaster"`
-	Snds       string `json:"snds"`
-}
-
-// Where Postmaster and SNDS data come from now (hostrepute, direct or none).
-func (q *Queries) DataSourceVia(ctx context.Context, workspaceID uuid.UUID) (DataSourceViaRow, error) {
-	row := q.db.QueryRow(ctx, dataSourceVia, workspaceID)
-	var i DataSourceViaRow
-	err := row.Scan(&i.Postmaster, &i.Snds)
-	return i, err
-}
-
-const deleteBlocklistResultsVia = `-- name: DeleteBlocklistResultsVia :exec
+const deleteDeliverabilityBlocklistResults = `-- name: DeleteDeliverabilityBlocklistResults :exec
 DELETE FROM blocklist_results WHERE workspace_id = $1 AND via = $2
 `
 
-type DeleteBlocklistResultsViaParams struct {
+type DeleteDeliverabilityBlocklistResultsParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	Via         string    `json:"via"`
 }
 
-func (q *Queries) DeleteBlocklistResultsVia(ctx context.Context, arg DeleteBlocklistResultsViaParams) error {
-	_, err := q.db.Exec(ctx, deleteBlocklistResultsVia, arg.WorkspaceID, arg.Via)
+func (q *Queries) DeleteDeliverabilityBlocklistResults(ctx context.Context, arg DeleteDeliverabilityBlocklistResultsParams) error {
+	_, err := q.db.Exec(ctx, deleteDeliverabilityBlocklistResults, arg.WorkspaceID, arg.Via)
 	return err
 }
 
@@ -243,111 +195,14 @@ func (q *Queries) GetHostReputeConnectionForUpdate(ctx context.Context, workspac
 	return i, err
 }
 
-const insertBlocklistResult = `-- name: InsertBlocklistResult :exec
-INSERT INTO blocklist_results (id, workspace_id, via, asset_type, asset, source, impact, rank, listed, listed_since, delist_url, detail,
-    delisting, delisting_requested_at, checked_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-    $13, $14, $15)
-ON CONFLICT (workspace_id, via, asset, source) DO UPDATE SET
-    asset_type = EXCLUDED.asset_type, impact = EXCLUDED.impact, rank = EXCLUDED.rank, listed = EXCLUDED.listed,
-    listed_since = CASE WHEN EXCLUDED.listed THEN coalesce(blocklist_results.listed_since, EXCLUDED.listed_since) END,
-    delist_url = EXCLUDED.delist_url, detail = EXCLUDED.detail, delisting = EXCLUDED.delisting,
-    delisting_requested_at = EXCLUDED.delisting_requested_at, checked_at = EXCLUDED.checked_at
-`
-
-type InsertBlocklistResultParams struct {
-	ID                   uuid.UUID  `json:"id"`
-	WorkspaceID          uuid.UUID  `json:"workspaceId"`
-	Via                  string     `json:"via"`
-	AssetType            string     `json:"assetType"`
-	Asset                string     `json:"asset"`
-	Source               string     `json:"source"`
-	Impact               string     `json:"impact"`
-	Rank                 int32      `json:"rank"`
-	Listed               bool       `json:"listed"`
-	ListedSince          *time.Time `json:"listedSince"`
-	DelistUrl            string     `json:"delistUrl"`
-	Detail               string     `json:"detail"`
-	Delisting            string     `json:"delisting"`
-	DelistingRequestedAt *time.Time `json:"delistingRequestedAt"`
-	CheckedAt            time.Time  `json:"checkedAt"`
-}
-
-func (q *Queries) InsertBlocklistResult(ctx context.Context, arg InsertBlocklistResultParams) error {
-	_, err := q.db.Exec(ctx, insertBlocklistResult,
-		arg.ID,
-		arg.WorkspaceID,
-		arg.Via,
-		arg.AssetType,
-		arg.Asset,
-		arg.Source,
-		arg.Impact,
-		arg.Rank,
-		arg.Listed,
-		arg.ListedSince,
-		arg.DelistUrl,
-		arg.Detail,
-		arg.Delisting,
-		arg.DelistingRequestedAt,
-		arg.CheckedAt,
-	)
-	return err
-}
-
-const insertIncident = `-- name: InsertIncident :one
-INSERT INTO incidents (id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id, resolved_at, source, asset, external_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-ON CONFLICT (workspace_id, external_id) WHERE external_id IS NOT NULL DO NOTHING
-RETURNING id
-`
-
-type InsertIncidentParams struct {
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	OccurredAt  time.Time  `json:"occurredAt"`
-	Kind        string     `json:"kind"`
-	Severity    string     `json:"severity"`
-	Title       string     `json:"title"`
-	Detail      string     `json:"detail"`
-	CampaignID  *uuid.UUID `json:"campaignId"`
-	ProviderID  *uuid.UUID `json:"providerId"`
-	ResolvedAt  *time.Time `json:"resolvedAt"`
-	Source      string     `json:"source"`
-	Asset       string     `json:"asset"`
-	ExternalID  *string    `json:"externalId"`
-}
-
-// Incidents with an external id (HostRepute alerts) are stored once; the
-// returned row count says whether this one is new.
-func (q *Queries) InsertIncident(ctx context.Context, arg InsertIncidentParams) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, insertIncident,
-		arg.ID,
-		arg.WorkspaceID,
-		arg.OccurredAt,
-		arg.Kind,
-		arg.Severity,
-		arg.Title,
-		arg.Detail,
-		arg.CampaignID,
-		arg.ProviderID,
-		arg.ResolvedAt,
-		arg.Source,
-		arg.Asset,
-		arg.ExternalID,
-	)
-	var id uuid.UUID
-	err := row.Scan(&id)
-	return id, err
-}
-
-const listActiveProviders = `-- name: ListActiveProviders :many
+const hostReputeActiveProviders = `-- name: HostReputeActiveProviders :many
 SELECT id, adapter, name, label, config, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, connected_at
 FROM providers
 WHERE workspace_id = $1 AND disconnected_at IS NULL
 ORDER BY connected_at, name
 `
 
-type ListActiveProvidersRow struct {
+type HostReputeActiveProvidersRow struct {
 	ID           uuid.UUID       `json:"id"`
 	Adapter      string          `json:"adapter"`
 	Name         string          `json:"name"`
@@ -365,15 +220,15 @@ type ListActiveProvidersRow struct {
 }
 
 // … and the connected sending providers (dedicated IPs, shared pools, server hostnames).
-func (q *Queries) ListActiveProviders(ctx context.Context, workspaceID uuid.UUID) ([]ListActiveProvidersRow, error) {
-	rows, err := q.db.Query(ctx, listActiveProviders, workspaceID)
+func (q *Queries) HostReputeActiveProviders(ctx context.Context, workspaceID uuid.UUID) ([]HostReputeActiveProvidersRow, error) {
+	rows, err := q.db.Query(ctx, hostReputeActiveProviders, workspaceID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListActiveProvidersRow{}
+	items := []HostReputeActiveProvidersRow{}
 	for rows.Next() {
-		var i ListActiveProvidersRow
+		var i HostReputeActiveProvidersRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Adapter,
@@ -400,12 +255,12 @@ func (q *Queries) ListActiveProviders(ctx context.Context, workspaceID uuid.UUID
 	return items, nil
 }
 
-const listAssetSources = `-- name: ListAssetSources :many
+const hostReputeAssetSources = `-- name: HostReputeAssetSources :many
 SELECT id, domain, dns_records, created_at FROM sending_domains
 WHERE workspace_id = $1 ORDER BY created_at, domain
 `
 
-type ListAssetSourcesRow struct {
+type HostReputeAssetSourcesRow struct {
 	ID         uuid.UUID       `json:"id"`
 	Domain     string          `json:"domain"`
 	DnsRecords json.RawMessage `json:"dnsRecords"`
@@ -414,15 +269,15 @@ type ListAssetSourcesRow struct {
 
 // Everything an asset list is built from: sending domains (with the records
 // their providers require) …
-func (q *Queries) ListAssetSources(ctx context.Context, workspaceID uuid.UUID) ([]ListAssetSourcesRow, error) {
-	rows, err := q.db.Query(ctx, listAssetSources, workspaceID)
+func (q *Queries) HostReputeAssetSources(ctx context.Context, workspaceID uuid.UUID) ([]HostReputeAssetSourcesRow, error) {
+	rows, err := q.db.Query(ctx, hostReputeAssetSources, workspaceID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListAssetSourcesRow{}
+	items := []HostReputeAssetSourcesRow{}
 	for rows.Next() {
-		var i ListAssetSourcesRow
+		var i HostReputeAssetSourcesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Domain,
@@ -437,6 +292,202 @@ func (q *Queries) ListAssetSources(ctx context.Context, workspaceID uuid.UUID) (
 		return nil, err
 	}
 	return items, nil
+}
+
+const hostReputeCountAgents = `-- name: HostReputeCountAgents :one
+SELECT count(*)::bigint FROM api_keys
+WHERE workspace_id = $1 AND kind = 'mcp_agent' AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > now())
+`
+
+func (q *Queries) HostReputeCountAgents(ctx context.Context, workspaceID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, hostReputeCountAgents, workspaceID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const hostReputeCountWebhooks = `-- name: HostReputeCountWebhooks :one
+SELECT count(*)::bigint AS endpoints,
+       count(*) FILTER (WHERE failing_since IS NOT NULL OR (last_status IS NOT NULL AND (last_status < 200 OR last_status >= 300)))::bigint AS failing
+FROM webhooks WHERE workspace_id = $1 AND enabled
+`
+
+type HostReputeCountWebhooksRow struct {
+	Endpoints int64 `json:"endpoints"`
+	Failing   int64 `json:"failing"`
+}
+
+func (q *Queries) HostReputeCountWebhooks(ctx context.Context, workspaceID uuid.UUID) (HostReputeCountWebhooksRow, error) {
+	row := q.db.QueryRow(ctx, hostReputeCountWebhooks, workspaceID)
+	var i HostReputeCountWebhooksRow
+	err := row.Scan(&i.Endpoints, &i.Failing)
+	return i, err
+}
+
+const hostReputeDataSourceVia = `-- name: HostReputeDataSourceVia :one
+SELECT coalesce((SELECT via FROM postmaster_daily WHERE postmaster_daily.workspace_id = $1 ORDER BY day DESC LIMIT 1), '')::text AS postmaster,
+       coalesce((SELECT via FROM snds_daily WHERE snds_daily.workspace_id = $1 ORDER BY day DESC LIMIT 1), '')::text AS snds
+`
+
+type HostReputeDataSourceViaRow struct {
+	Postmaster string `json:"postmaster"`
+	Snds       string `json:"snds"`
+}
+
+// Where Postmaster and SNDS data come from now (hostrepute, direct or none).
+func (q *Queries) HostReputeDataSourceVia(ctx context.Context, workspaceID uuid.UUID) (HostReputeDataSourceViaRow, error) {
+	row := q.db.QueryRow(ctx, hostReputeDataSourceVia, workspaceID)
+	var i HostReputeDataSourceViaRow
+	err := row.Scan(&i.Postmaster, &i.Snds)
+	return i, err
+}
+
+const hostReputeProviderForIP = `-- name: HostReputeProviderForIP :one
+SELECT id, name FROM providers
+WHERE workspace_id = $1 AND disconnected_at IS NULL AND $2::text = ANY(ips)
+ORDER BY connected_at LIMIT 1
+`
+
+type HostReputeProviderForIPParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Ip          string    `json:"ip"`
+}
+
+type HostReputeProviderForIPRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// The connected provider that sends from a dedicated IP.
+func (q *Queries) HostReputeProviderForIP(ctx context.Context, arg HostReputeProviderForIPParams) (HostReputeProviderForIPRow, error) {
+	row := q.db.QueryRow(ctx, hostReputeProviderForIP, arg.WorkspaceID, arg.Ip)
+	var i HostReputeProviderForIPRow
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
+const hostReputeUserName = `-- name: HostReputeUserName :one
+SELECT name, email FROM users WHERE id = $1
+`
+
+type HostReputeUserNameRow struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+func (q *Queries) HostReputeUserName(ctx context.Context, id uuid.UUID) (HostReputeUserNameRow, error) {
+	row := q.db.QueryRow(ctx, hostReputeUserName, id)
+	var i HostReputeUserNameRow
+	err := row.Scan(&i.Name, &i.Email)
+	return i, err
+}
+
+const hostReputeWorkspaceSlug = `-- name: HostReputeWorkspaceSlug :one
+SELECT slug FROM workspaces WHERE id = $1
+`
+
+func (q *Queries) HostReputeWorkspaceSlug(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, hostReputeWorkspaceSlug, id)
+	var slug string
+	err := row.Scan(&slug)
+	return slug, err
+}
+
+const insertDeliverabilityBlocklistResult = `-- name: InsertDeliverabilityBlocklistResult :exec
+INSERT INTO blocklist_results (id, workspace_id, via, asset_type, asset, source, impact, rank, listed, listed_since, delist_url, detail,
+    delisting, delisting_requested_at, checked_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+    $13, $14, $15)
+ON CONFLICT (workspace_id, via, asset, source) DO UPDATE SET
+    asset_type = EXCLUDED.asset_type, impact = EXCLUDED.impact, rank = EXCLUDED.rank, listed = EXCLUDED.listed,
+    listed_since = CASE WHEN EXCLUDED.listed THEN coalesce(blocklist_results.listed_since, EXCLUDED.listed_since) END,
+    delist_url = EXCLUDED.delist_url, detail = EXCLUDED.detail, delisting = EXCLUDED.delisting,
+    delisting_requested_at = EXCLUDED.delisting_requested_at, checked_at = EXCLUDED.checked_at
+`
+
+type InsertDeliverabilityBlocklistResultParams struct {
+	ID                   uuid.UUID  `json:"id"`
+	WorkspaceID          uuid.UUID  `json:"workspaceId"`
+	Via                  string     `json:"via"`
+	AssetType            string     `json:"assetType"`
+	Asset                string     `json:"asset"`
+	Source               string     `json:"source"`
+	Impact               string     `json:"impact"`
+	Rank                 int32      `json:"rank"`
+	Listed               bool       `json:"listed"`
+	ListedSince          *time.Time `json:"listedSince"`
+	DelistUrl            string     `json:"delistUrl"`
+	Detail               string     `json:"detail"`
+	Delisting            string     `json:"delisting"`
+	DelistingRequestedAt *time.Time `json:"delistingRequestedAt"`
+	CheckedAt            time.Time  `json:"checkedAt"`
+}
+
+func (q *Queries) InsertDeliverabilityBlocklistResult(ctx context.Context, arg InsertDeliverabilityBlocklistResultParams) error {
+	_, err := q.db.Exec(ctx, insertDeliverabilityBlocklistResult,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.Via,
+		arg.AssetType,
+		arg.Asset,
+		arg.Source,
+		arg.Impact,
+		arg.Rank,
+		arg.Listed,
+		arg.ListedSince,
+		arg.DelistUrl,
+		arg.Detail,
+		arg.Delisting,
+		arg.DelistingRequestedAt,
+		arg.CheckedAt,
+	)
+	return err
+}
+
+const insertDeliverabilityIncident = `-- name: InsertDeliverabilityIncident :one
+INSERT INTO incidents (id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id, resolved_at, source, asset, external_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+ON CONFLICT (workspace_id, external_id) WHERE external_id IS NOT NULL DO NOTHING
+RETURNING id
+`
+
+type InsertDeliverabilityIncidentParams struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	OccurredAt  time.Time  `json:"occurredAt"`
+	Kind        string     `json:"kind"`
+	Severity    string     `json:"severity"`
+	Title       string     `json:"title"`
+	Detail      string     `json:"detail"`
+	CampaignID  *uuid.UUID `json:"campaignId"`
+	ProviderID  *uuid.UUID `json:"providerId"`
+	ResolvedAt  *time.Time `json:"resolvedAt"`
+	Source      string     `json:"source"`
+	Asset       string     `json:"asset"`
+	ExternalID  *string    `json:"externalId"`
+}
+
+// Incidents with an external id (HostRepute alerts) are stored once; the
+// returned row count says whether this one is new.
+func (q *Queries) InsertDeliverabilityIncident(ctx context.Context, arg InsertDeliverabilityIncidentParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, insertDeliverabilityIncident,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.OccurredAt,
+		arg.Kind,
+		arg.Severity,
+		arg.Title,
+		arg.Detail,
+		arg.CampaignID,
+		arg.ProviderID,
+		arg.ResolvedAt,
+		arg.Source,
+		arg.Asset,
+		arg.ExternalID,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const listConnectedHostRepute = `-- name: ListConnectedHostRepute :many
@@ -544,30 +595,6 @@ func (q *Queries) MarkHostReputeTokenRejected(ctx context.Context, arg MarkHostR
 	return result.RowsAffected(), nil
 }
 
-const providerForIP = `-- name: ProviderForIP :one
-SELECT id, name FROM providers
-WHERE workspace_id = $1 AND disconnected_at IS NULL AND $2::text = ANY(ips)
-ORDER BY connected_at LIMIT 1
-`
-
-type ProviderForIPParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	Ip          string    `json:"ip"`
-}
-
-type ProviderForIPRow struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-}
-
-// The connected provider that sends from a dedicated IP.
-func (q *Queries) ProviderForIP(ctx context.Context, arg ProviderForIPParams) (ProviderForIPRow, error) {
-	row := q.db.QueryRow(ctx, providerForIP, arg.WorkspaceID, arg.Ip)
-	var i ProviderForIPRow
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
-}
-
 const recordHostReputeSyncError = `-- name: RecordHostReputeSyncError :exec
 UPDATE hostrepute_connections SET last_sync_attempt_at = $1, last_sync_error = $2, updated_at = $1
 WHERE workspace_id = $3
@@ -622,7 +649,7 @@ func (q *Queries) UpdateHostReputeTokens(ctx context.Context, arg UpdateHostRepu
 	return err
 }
 
-const upsertDMARCReport = `-- name: UpsertDMARCReport :exec
+const upsertDeliverabilityDMARCReport = `-- name: UpsertDeliverabilityDMARCReport :exec
 INSERT INTO dmarc_reports (id, workspace_id, domain, org_name, report_id, date_begin, date_end, policy, records, via, received_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 ON CONFLICT (workspace_id, org_name, report_id) DO UPDATE SET
@@ -630,7 +657,7 @@ ON CONFLICT (workspace_id, org_name, report_id) DO UPDATE SET
     records = EXCLUDED.records, via = EXCLUDED.via
 `
 
-type UpsertDMARCReportParams struct {
+type UpsertDeliverabilityDMARCReportParams struct {
 	ID          uuid.UUID       `json:"id"`
 	WorkspaceID uuid.UUID       `json:"workspaceId"`
 	Domain      string          `json:"domain"`
@@ -644,8 +671,8 @@ type UpsertDMARCReportParams struct {
 	ReceivedAt  time.Time       `json:"receivedAt"`
 }
 
-func (q *Queries) UpsertDMARCReport(ctx context.Context, arg UpsertDMARCReportParams) error {
-	_, err := q.db.Exec(ctx, upsertDMARCReport,
+func (q *Queries) UpsertDeliverabilityDMARCReport(ctx context.Context, arg UpsertDeliverabilityDMARCReportParams) error {
+	_, err := q.db.Exec(ctx, upsertDeliverabilityDMARCReport,
 		arg.ID,
 		arg.WorkspaceID,
 		arg.Domain,
@@ -657,6 +684,88 @@ func (q *Queries) UpsertDMARCReport(ctx context.Context, arg UpsertDMARCReportPa
 		arg.Records,
 		arg.Via,
 		arg.ReceivedAt,
+	)
+	return err
+}
+
+const upsertDeliverabilityPostmasterDay = `-- name: UpsertDeliverabilityPostmasterDay :exec
+INSERT INTO postmaster_daily (workspace_id, domain, day, via, spam_rate, domain_reputation, ip_reputation, spf_rate, dkim_rate, dmarc_rate,
+    tls_rate, delivery_errors, fbl_flagged)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+    $11, $12, $13)
+ON CONFLICT (workspace_id, domain, day) DO UPDATE SET
+    via = EXCLUDED.via, spam_rate = EXCLUDED.spam_rate, domain_reputation = EXCLUDED.domain_reputation,
+    ip_reputation = EXCLUDED.ip_reputation, spf_rate = EXCLUDED.spf_rate, dkim_rate = EXCLUDED.dkim_rate,
+    dmarc_rate = EXCLUDED.dmarc_rate, tls_rate = EXCLUDED.tls_rate, delivery_errors = EXCLUDED.delivery_errors,
+    fbl_flagged = EXCLUDED.fbl_flagged
+`
+
+type UpsertDeliverabilityPostmasterDayParams struct {
+	WorkspaceID      uuid.UUID `json:"workspaceId"`
+	Domain           string    `json:"domain"`
+	Day              time.Time `json:"day"`
+	Via              string    `json:"via"`
+	SpamRate         *float64  `json:"spamRate"`
+	DomainReputation string    `json:"domainReputation"`
+	IpReputation     string    `json:"ipReputation"`
+	SpfRate          *float64  `json:"spfRate"`
+	DkimRate         *float64  `json:"dkimRate"`
+	DmarcRate        *float64  `json:"dmarcRate"`
+	TlsRate          *float64  `json:"tlsRate"`
+	DeliveryErrors   *float64  `json:"deliveryErrors"`
+	FblFlagged       *int32    `json:"fblFlagged"`
+}
+
+func (q *Queries) UpsertDeliverabilityPostmasterDay(ctx context.Context, arg UpsertDeliverabilityPostmasterDayParams) error {
+	_, err := q.db.Exec(ctx, upsertDeliverabilityPostmasterDay,
+		arg.WorkspaceID,
+		arg.Domain,
+		arg.Day,
+		arg.Via,
+		arg.SpamRate,
+		arg.DomainReputation,
+		arg.IpReputation,
+		arg.SpfRate,
+		arg.DkimRate,
+		arg.DmarcRate,
+		arg.TlsRate,
+		arg.DeliveryErrors,
+		arg.FblFlagged,
+	)
+	return err
+}
+
+const upsertDeliverabilitySNDSDay = `-- name: UpsertDeliverabilitySNDSDay :exec
+INSERT INTO snds_daily (workspace_id, ip, day, via, filter_result, complaint_rate, trap_hits, messages, jmrp_reports)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+ON CONFLICT (workspace_id, ip, day) DO UPDATE SET
+    via = EXCLUDED.via, filter_result = EXCLUDED.filter_result, complaint_rate = EXCLUDED.complaint_rate,
+    trap_hits = EXCLUDED.trap_hits, messages = EXCLUDED.messages, jmrp_reports = EXCLUDED.jmrp_reports
+`
+
+type UpsertDeliverabilitySNDSDayParams struct {
+	WorkspaceID   uuid.UUID `json:"workspaceId"`
+	Ip            string    `json:"ip"`
+	Day           time.Time `json:"day"`
+	Via           string    `json:"via"`
+	FilterResult  string    `json:"filterResult"`
+	ComplaintRate *float64  `json:"complaintRate"`
+	TrapHits      int32     `json:"trapHits"`
+	Messages      int64     `json:"messages"`
+	JmrpReports   int32     `json:"jmrpReports"`
+}
+
+func (q *Queries) UpsertDeliverabilitySNDSDay(ctx context.Context, arg UpsertDeliverabilitySNDSDayParams) error {
+	_, err := q.db.Exec(ctx, upsertDeliverabilitySNDSDay,
+		arg.WorkspaceID,
+		arg.Ip,
+		arg.Day,
+		arg.Via,
+		arg.FilterResult,
+		arg.ComplaintRate,
+		arg.TrapHits,
+		arg.Messages,
+		arg.JmrpReports,
 	)
 	return err
 }
@@ -756,113 +865,4 @@ func (q *Queries) UpsertHostReputeConnection(ctx context.Context, arg UpsertHost
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const upsertPostmasterDay = `-- name: UpsertPostmasterDay :exec
-INSERT INTO postmaster_daily (workspace_id, domain, day, via, spam_rate, domain_reputation, ip_reputation, spf_rate, dkim_rate, dmarc_rate,
-    tls_rate, delivery_errors, fbl_flagged)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-    $11, $12, $13)
-ON CONFLICT (workspace_id, domain, day) DO UPDATE SET
-    via = EXCLUDED.via, spam_rate = EXCLUDED.spam_rate, domain_reputation = EXCLUDED.domain_reputation,
-    ip_reputation = EXCLUDED.ip_reputation, spf_rate = EXCLUDED.spf_rate, dkim_rate = EXCLUDED.dkim_rate,
-    dmarc_rate = EXCLUDED.dmarc_rate, tls_rate = EXCLUDED.tls_rate, delivery_errors = EXCLUDED.delivery_errors,
-    fbl_flagged = EXCLUDED.fbl_flagged
-`
-
-type UpsertPostmasterDayParams struct {
-	WorkspaceID      uuid.UUID `json:"workspaceId"`
-	Domain           string    `json:"domain"`
-	Day              time.Time `json:"day"`
-	Via              string    `json:"via"`
-	SpamRate         *float64  `json:"spamRate"`
-	DomainReputation string    `json:"domainReputation"`
-	IpReputation     string    `json:"ipReputation"`
-	SpfRate          *float64  `json:"spfRate"`
-	DkimRate         *float64  `json:"dkimRate"`
-	DmarcRate        *float64  `json:"dmarcRate"`
-	TlsRate          *float64  `json:"tlsRate"`
-	DeliveryErrors   *float64  `json:"deliveryErrors"`
-	FblFlagged       *int32    `json:"fblFlagged"`
-}
-
-func (q *Queries) UpsertPostmasterDay(ctx context.Context, arg UpsertPostmasterDayParams) error {
-	_, err := q.db.Exec(ctx, upsertPostmasterDay,
-		arg.WorkspaceID,
-		arg.Domain,
-		arg.Day,
-		arg.Via,
-		arg.SpamRate,
-		arg.DomainReputation,
-		arg.IpReputation,
-		arg.SpfRate,
-		arg.DkimRate,
-		arg.DmarcRate,
-		arg.TlsRate,
-		arg.DeliveryErrors,
-		arg.FblFlagged,
-	)
-	return err
-}
-
-const upsertSNDSDay = `-- name: UpsertSNDSDay :exec
-INSERT INTO snds_daily (workspace_id, ip, day, via, filter_result, complaint_rate, trap_hits, messages, jmrp_reports)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-ON CONFLICT (workspace_id, ip, day) DO UPDATE SET
-    via = EXCLUDED.via, filter_result = EXCLUDED.filter_result, complaint_rate = EXCLUDED.complaint_rate,
-    trap_hits = EXCLUDED.trap_hits, messages = EXCLUDED.messages, jmrp_reports = EXCLUDED.jmrp_reports
-`
-
-type UpsertSNDSDayParams struct {
-	WorkspaceID   uuid.UUID `json:"workspaceId"`
-	Ip            string    `json:"ip"`
-	Day           time.Time `json:"day"`
-	Via           string    `json:"via"`
-	FilterResult  string    `json:"filterResult"`
-	ComplaintRate *float64  `json:"complaintRate"`
-	TrapHits      int32     `json:"trapHits"`
-	Messages      int64     `json:"messages"`
-	JmrpReports   int32     `json:"jmrpReports"`
-}
-
-func (q *Queries) UpsertSNDSDay(ctx context.Context, arg UpsertSNDSDayParams) error {
-	_, err := q.db.Exec(ctx, upsertSNDSDay,
-		arg.WorkspaceID,
-		arg.Ip,
-		arg.Day,
-		arg.Via,
-		arg.FilterResult,
-		arg.ComplaintRate,
-		arg.TrapHits,
-		arg.Messages,
-		arg.JmrpReports,
-	)
-	return err
-}
-
-const userName = `-- name: UserName :one
-SELECT name, email FROM users WHERE id = $1
-`
-
-type UserNameRow struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
-}
-
-func (q *Queries) UserName(ctx context.Context, id uuid.UUID) (UserNameRow, error) {
-	row := q.db.QueryRow(ctx, userName, id)
-	var i UserNameRow
-	err := row.Scan(&i.Name, &i.Email)
-	return i, err
-}
-
-const workspaceSlug = `-- name: WorkspaceSlug :one
-SELECT slug FROM workspaces WHERE id = $1
-`
-
-func (q *Queries) WorkspaceSlug(ctx context.Context, id uuid.UUID) (string, error) {
-	row := q.db.QueryRow(ctx, workspaceSlug, id)
-	var slug string
-	err := row.Scan(&slug)
-	return slug, err
 }

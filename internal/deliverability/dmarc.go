@@ -51,7 +51,7 @@ type sourceKey struct {
 
 // attribute names the provider that sent from ip: a dedicated IP of a
 // connected provider, else a provider whose PTR domain matches.
-func (st *state) attribute(ip, ptr string) (store.ListActiveProvidersRow, bool) {
+func (st *state) attribute(ip, ptr string) (store.HostReputeActiveProvidersRow, bool) {
 	for _, p := range st.providers {
 		for _, a := range p.Ips {
 			if a == ip {
@@ -61,7 +61,7 @@ func (st *state) attribute(ip, ptr string) (store.ListActiveProvidersRow, bool) 
 	}
 	ptr = strings.ToLower(strings.TrimSuffix(ptr, "."))
 	if ptr == "" {
-		return store.ListActiveProvidersRow{}, false
+		return store.HostReputeActiveProvidersRow{}, false
 	}
 	for _, p := range st.providers {
 		for _, suf := range ptrSuffixes[p.Adapter] {
@@ -70,7 +70,7 @@ func (st *state) attribute(ip, ptr string) (store.ListActiveProvidersRow, bool) 
 			}
 		}
 	}
-	return store.ListActiveProvidersRow{}, false
+	return store.HostReputeActiveProvidersRow{}, false
 }
 
 // ownedDomain reports whether a From domain belongs to the workspace.
@@ -540,7 +540,7 @@ func (s *Service) UploadReport(ctx context.Context, ws *store.Workspace, data []
 	records, _ := json.Marshal(rep.Records)
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if err := q.UpsertDMARCReport(ctx, store.UpsertDMARCReportParams{
+		if err := q.UpsertDeliverabilityDMARCReport(ctx, store.UpsertDeliverabilityDMARCReportParams{
 			ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, Domain: rep.Domain, OrgName: rep.OrgName, ReportID: rep.ReportID,
 			DateBegin: rep.DateBegin, DateEnd: rep.DateEnd, Policy: policy, Records: records, Via: "upload", ReceivedAt: s.now(),
 		}); err != nil {
