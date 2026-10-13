@@ -79,7 +79,7 @@ export function BlockedOriginAlert({ form, blocked }: { form: Schemas['SignupFor
   const n = blocked.count
   return (
     <div role="alert" className="card fb-alert alert-bad">
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5 max-md:flex-wrap">
         <Badge tone="bad">Blocked</Badge>
         <span className="font-semibold">
           {count(n)} {n === 1 ? 'submission' : 'submissions'} from {blocked.origin} {n === 1 ? 'was' : 'were'} rejected today
@@ -130,7 +130,7 @@ export function TurnstileAlert({ turnstile }: { turnstile: Schemas['PublicTurnst
   }
   return (
     <div role="alert" className="card fb-alert alert-warn">
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5 max-md:flex-wrap">
         <Badge tone="warn">Turnstile</Badge>
         <span className="font-semibold">{turnstile.error || 'Cloudflare rejected the Turnstile keys'}</span>
       </div>
