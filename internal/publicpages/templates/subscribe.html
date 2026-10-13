@@ -13,13 +13,13 @@
       </label>
       {{if $f.Error}}<span class="err" id="{{$f.ID}}-err" role="alert">{{$f.Error}}</span>{{end}}
     </div>
-    {{end}}{{if .Lists}}<fieldset class="lists">
+    {{end}}{{if .Lists}}<fieldset class="lists"{{if .ListError}} aria-describedby="lists-err"{{end}}>
       <legend>{{.ListsLabel}}</legend>
       {{range .Lists}}<label class="listopt"><input type="checkbox" name="list" value="{{.ID}}"{{if .Checked}} checked{{end}}><span><span class="nm">{{.Name}}</span>{{with .Text}}<br><span class="ds">{{.}}</span>{{end}}</span></label>
-      {{end}}{{with .ListError}}<span class="err" role="alert">{{.}}</span>{{end}}
+      {{end}}{{with .ListError}}<span class="err" id="lists-err" role="alert">{{.}}</span>{{end}}
     </fieldset>
-    {{end}}{{if .Consent.Text}}<label class="consent"><input type="checkbox" name="consent" value="1"{{if .ConsentChecked}} checked{{end}} required{{if .ConsentError}} aria-invalid="true"{{end}}><span>{{.Consent.Before}}{{if .Consent.Href}}<a href="{{.Consent.Href}}">{{.Consent.Link}}</a>{{end}}{{.Consent.After}}</span></label>
-    {{with .ConsentError}}<span class="err" role="alert">{{.}}</span>{{end}}
+    {{end}}{{if .Consent.Text}}<label class="consent"><input type="checkbox" name="consent" value="1"{{if .ConsentChecked}} checked{{end}} required{{if .ConsentError}} aria-invalid="true" aria-describedby="consent-err"{{end}}><span>{{.Consent.Before}}{{if .Consent.Href}}<a href="{{.Consent.Href}}">{{.Consent.Link}}</a>{{end}}{{.Consent.After}}</span></label>
+    {{with .ConsentError}}<span class="err" id="consent-err" role="alert">{{.}}</span>{{end}}
     {{end}}{{if .Honeypot}}<div class="hp" aria-hidden="true"><label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
     {{end}}<button class="btn-pri" type="submit"{{if $.Preview}} disabled{{end}}>{{.Button}}</button>
     {{with .Alert}}<div class="alert" role="alert">{{.}}</div>{{end}}

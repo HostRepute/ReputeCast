@@ -510,7 +510,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
 /** What double opt-in does, with the provider that sends the confirmations. */
 export function doubleOptInNote(on: boolean, provider: string): string {
   if (!on) return 'off: contacts are subscribed as soon as they submit'
-  if (!provider) return 'confirmations wait until a provider handles the System stream; contacts stay "pending" until they click'
+  if (!provider) return 'confirmations wait until System mail can be sent; contacts stay "pending" until they click'
   return `confirmation sent on the System stream via ${provider}; contacts stay "pending" until they click`
 }
 
@@ -700,7 +700,7 @@ function NumbersSection({ form, systemMail }: { form: SignupForm; systemMail: bo
       {form.doubleOptIn && s.pending > 0 ? (
         <span className="k">
           {count(s.pending)} {s.pending === 1 ? 'confirmation is' : 'confirmations are'} pending;{' '}
-          {systemMail ? 'reminders go out after 24 h.' : 'reminders wait for a System stream provider.'}
+          {systemMail ? 'reminders go out after 24 h.' : 'reminders wait until System mail can be sent.'}
         </span>
       ) : null}
       {form.doubleOptIn && form.waiting > 0 ? (

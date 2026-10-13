@@ -77,7 +77,7 @@ describe('forms builder helpers', () => {
 
   it('says how confirmations go out, or that they wait', () => {
     expect(doubleOptInNote(true, 'Postmark')).toBe('confirmation sent on the System stream via Postmark; contacts stay "pending" until they click')
-    expect(doubleOptInNote(true, '')).toBe('confirmations wait until a provider handles the System stream; contacts stay "pending" until they click')
+    expect(doubleOptInNote(true, '')).toBe('confirmations wait until System mail can be sent; contacts stay "pending" until they click')
     expect(doubleOptInNote(false, 'Postmark')).toBe('off: contacts are subscribed as soon as they submit')
   })
 })

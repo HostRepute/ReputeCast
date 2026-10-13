@@ -468,6 +468,13 @@ func TestSubscribeValidation(t *testing.T) {
 		if !strings.Contains(r.Body, `value="Casey &lt;b&gt;"`) {
 			t.Error("the typed name isn't escaped back into the form")
 		}
+		// Each error is tied to its control.
+		for _, want := range []string{`aria-invalid="true" aria-describedby="consent-err"`, `id="consent-err" role="alert"`,
+			`<fieldset class="lists" aria-describedby="lists-err">`, `id="lists-err" role="alert"`} {
+			if !strings.Contains(r.Body, want) {
+				t.Errorf("the page lacks %s", want)
+			}
+		}
 		if r.Header.Get("Cache-Control") != "no-store" {
 			t.Error("a page with typed values is cached")
 		}
