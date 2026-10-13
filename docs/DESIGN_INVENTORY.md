@@ -280,3 +280,5 @@ When they disagree we follow the design for UI and the spec for behaviour.
 | 9 | Rail labels | `display:none` on labels at ≤1100 px | WCAG: links need names | Labels stay visually hidden (accessible) with tooltips. |
 | 10 | Avatars in the shell | Main and the access boards draw them as centred circles; on Campaigns, Providers, Audience and others the `.av` class is missing from the board's CSS, so the initials sit top-left in a square | — | Prototype defect: the app draws every avatar as on the boards where `.av` is defined. |
 | 11 | Table page size | Campaigns shows 9 rows ("Showing 9 of 48") | — | Lists page by 25; the count line reads "Showing 1–25 of 48". |
+| 12 | Built-in blocklists | Settings › Integrations lists SORBS-SPAM | SORBS shut down in 2024 | The built-in checks use Mailspike instead; the Postal IP's sample listing is UCEPROTECT Level 3 everywhere. |
+| 13 | Provider rates in the demo | Providers and Deliverability show Postmark 0.2% / 0.01% and Postal 0.9% / 0.05% | Rates are computed from 7 days of provider stats | Both screens use the same computation; the demo's daily stats are tuned to the boards' values. |

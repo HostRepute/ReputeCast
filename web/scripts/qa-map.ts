@@ -59,6 +59,8 @@ export const entries: Entry[] = [
   { board: 'Deliverability', path: `${ws}/deliverability` },
   { board: 'DeliverabilityNoHostRepute', manual: true },
   { board: 'DeliverabilityStates', manual: true },
+  { board: 'ConnectHostRepute', manual: true },
+  { board: 'HostReputeStates', manual: true },
   { board: 'Contacts', path: `${ws}/audience` },
   { board: 'SegmentBuilder', manual: true },
   { board: 'ListHealth', path: `${ws}/audience/health` },
