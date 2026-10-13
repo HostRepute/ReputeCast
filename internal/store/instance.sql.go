@@ -17,7 +17,7 @@ UPDATE instance_settings
 SET name = $1, public_url = $2, default_timezone = $3,
     update_check = $4, setup_completed_at = now(), updated_at = now()
 WHERE id
-RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at
+RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error
 `
 
 type CompleteInstanceSetupParams struct {
@@ -60,12 +60,17 @@ func (q *Queries) CompleteInstanceSetup(ctx context.Context, arg CompleteInstanc
 		&i.LatestReleaseAt,
 		&i.UpdatedAt,
 		&i.BasicsConfirmedAt,
+		&i.PasswordReuse,
+		&i.PublicUrlCheck,
+		&i.PublicUrlCheckedAt,
+		&i.UpdateCheckedAt,
+		&i.UpdateCheckError,
 	)
 	return i, err
 }
 
 const getInstanceSettings = `-- name: GetInstanceSettings :one
-SELECT id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at FROM instance_settings WHERE id
+SELECT id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error FROM instance_settings WHERE id
 `
 
 func (q *Queries) GetInstanceSettings(ctx context.Context) (InstanceSetting, error) {
@@ -96,6 +101,11 @@ func (q *Queries) GetInstanceSettings(ctx context.Context) (InstanceSetting, err
 		&i.LatestReleaseAt,
 		&i.UpdatedAt,
 		&i.BasicsConfirmedAt,
+		&i.PasswordReuse,
+		&i.PublicUrlCheck,
+		&i.PublicUrlCheckedAt,
+		&i.UpdateCheckedAt,
+		&i.UpdateCheckError,
 	)
 	return i, err
 }
@@ -118,7 +128,7 @@ SET allowed_methods = $1, password_min_length = $2,
     lockout_minutes = $9, jit_domain_allowlist = $10,
     updated_at = now()
 WHERE id
-RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at
+RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error
 `
 
 type UpdateAuthPolicyParams struct {
@@ -173,6 +183,11 @@ func (q *Queries) UpdateAuthPolicy(ctx context.Context, arg UpdateAuthPolicyPara
 		&i.LatestReleaseAt,
 		&i.UpdatedAt,
 		&i.BasicsConfirmedAt,
+		&i.PasswordReuse,
+		&i.PublicUrlCheck,
+		&i.PublicUrlCheckedAt,
+		&i.UpdateCheckedAt,
+		&i.UpdateCheckError,
 	)
 	return i, err
 }
@@ -182,7 +197,7 @@ UPDATE instance_settings
 SET name = $1, logo_svg = $2, public_url = $3,
     default_timezone = $4, update_check = $5, updated_at = now()
 WHERE id
-RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at
+RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error
 `
 
 type UpdateInstanceBasicsParams struct {
@@ -227,6 +242,11 @@ func (q *Queries) UpdateInstanceBasics(ctx context.Context, arg UpdateInstanceBa
 		&i.LatestReleaseAt,
 		&i.UpdatedAt,
 		&i.BasicsConfirmedAt,
+		&i.PasswordReuse,
+		&i.PublicUrlCheck,
+		&i.PublicUrlCheckedAt,
+		&i.UpdateCheckedAt,
+		&i.UpdateCheckError,
 	)
 	return i, err
 }
@@ -235,7 +255,7 @@ const updateSocialProviders = `-- name: UpdateSocialProviders :one
 UPDATE instance_settings
 SET social_providers = $1, social_secrets_enc = $2, updated_at = now()
 WHERE id
-RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at
+RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error
 `
 
 type UpdateSocialProvidersParams struct {
@@ -271,6 +291,11 @@ func (q *Queries) UpdateSocialProviders(ctx context.Context, arg UpdateSocialPro
 		&i.LatestReleaseAt,
 		&i.UpdatedAt,
 		&i.BasicsConfirmedAt,
+		&i.PasswordReuse,
+		&i.PublicUrlCheck,
+		&i.PublicUrlCheckedAt,
+		&i.UpdateCheckedAt,
+		&i.UpdateCheckError,
 	)
 	return i, err
 }

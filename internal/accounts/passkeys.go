@@ -343,6 +343,11 @@ func (s *Service) PasskeySignIn(ctx context.Context, challenge string, credentia
 		return SignInResult{}, nil, api.Err(http.StatusForbidden, "account_deactivated", "This account was deactivated. Ask your instance admin to reactivate it; nothing was deleted.").
 			WithMeta("deactivatedAt", u.DeactivatedAt)
 	}
+	// Domain enforcement turns passkeys off too, except for break-glass Owners.
+	if p, _ := s.enforcingProvider(ctx, u.Email); p != nil && !u.BreakGlass {
+		return SignInResult{}, nil, api.Err(http.StatusForbidden, "sso_required", emailDomain(u.Email)+" signs in with "+p.Name+". Passkey sign-in is turned off for this domain.").
+			WithMeta("providerId", p.ID.String(), "provider", p.Name, "preset", p.Preset)
+	}
 	pk, ok := found.key(cred.ID)
 	if !ok {
 		return SignInResult{}, nil, passkeyFailed()
@@ -433,7 +438,7 @@ func (s *Service) TwoFactorPasskey(ctx context.Context, challenge, passkeyChalle
 	}
 	_ = s.Q.DeleteChallenge(ctx, ch.ID)
 	pid := pk.ID
-	cookie, err := s.completeSignIn(ctx, u, data.Method+"+passkey", true, data.Remember, &pid)
+	cookie, err := s.completeSignInWith(ctx, u, data.Method+"+passkey", true, data.Remember, &pid, data.Extra)
 	if err != nil {
 		return SignInResult{}, nil, err
 	}

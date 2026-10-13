@@ -155,6 +155,56 @@ type Querier interface {
 	// Stores a notification unless the person turned both in-app and email off
 	// for its event type. email_status is 'pending' when they asked for email.
 	InsertNotification(ctx context.Context, arg InsertNotificationParams) (int64, error)
+	InstanceAdminAdminNames(ctx context.Context) ([]InstanceAdminAdminNamesRow, error)
+	InstanceAdminCancelScheduled(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	InstanceAdminCountAdmins(ctx context.Context) (int64, error)
+	InstanceAdminDeactivateMemberships(ctx context.Context, arg InstanceAdminDeactivateMembershipsParams) (int64, error)
+	InstanceAdminDeactivateUser(ctx context.Context, arg InstanceAdminDeactivateUserParams) (int64, error)
+	InstanceAdminIdentities(ctx context.Context) ([]InstanceAdminIdentitiesRow, error)
+	InstanceAdminLockedCount(ctx context.Context) (InstanceAdminLockedCountRow, error)
+	// Every membership in a live workspace, oldest workspace first.
+	InstanceAdminMemberships(ctx context.Context) ([]InstanceAdminMembershipsRow, error)
+	// The hashes of a person's previous passwords, newest first.
+	InstanceAdminPasswordHistory(ctx context.Context, arg InstanceAdminPasswordHistoryParams) ([]string, error)
+	// Deletes a workspace for good once its restore hold is over (cascade).
+	InstanceAdminPurgeWorkspace(ctx context.Context, id uuid.UUID) (InstanceAdminPurgeWorkspaceRow, error)
+	// Only the memberships deactivated together with the account come back.
+	InstanceAdminReactivateMemberships(ctx context.Context, arg InstanceAdminReactivateMembershipsParams) (int64, error)
+	InstanceAdminReactivateUser(ctx context.Context, id uuid.UUID) (int64, error)
+	InstanceAdminRecordRelease(ctx context.Context, latestRelease json.RawMessage) error
+	InstanceAdminRecordReleaseError(ctx context.Context, error string) error
+	// Removes the authenticator and recovery codes; passkeys stay. The grace
+	// period restarts so the person can set two-factor up again.
+	InstanceAdminResetTwoFactor(ctx context.Context, arg InstanceAdminResetTwoFactorParams) error
+	InstanceAdminRestoreWorkspace(ctx context.Context, arg InstanceAdminRestoreWorkspaceParams) error
+	InstanceAdminRevokeKeysCreatedBy(ctx context.Context, userID *uuid.UUID) (int64, error)
+	InstanceAdminSavePolicy(ctx context.Context, arg InstanceAdminSavePolicyParams) (InstanceSetting, error)
+	// Instance settings, logo, public URL check and updates -----------------------
+	InstanceAdminSaveSettings(ctx context.Context, arg InstanceAdminSaveSettingsParams) (InstanceSetting, error)
+	InstanceAdminSaveSocial(ctx context.Context, arg InstanceAdminSaveSocialParams) error
+	InstanceAdminSetLogo(ctx context.Context, logoSvg *string) error
+	InstanceAdminSetURLCheck(ctx context.Context, result json.RawMessage) error
+	InstanceAdminSetUpdateCheck(ctx context.Context, enabled bool) error
+	// The latest sign-in attempts at instance level (Users › Recent sign-in events).
+	InstanceAdminSignInEvents(ctx context.Context, lim int32) ([]InstanceAdminSignInEventsRow, error)
+	// The slug is freed for new workspaces; the suffix keeps it unique and
+	// within the 63-character limit.
+	InstanceAdminSoftDeleteWorkspace(ctx context.Context, id uuid.UUID) (*time.Time, error)
+	// Live workspaces where the user is the only active Owner.
+	InstanceAdminSoleOwnerships(ctx context.Context, userID uuid.UUID) ([]InstanceAdminSoleOwnershipsRow, error)
+	// The System-stream provider of the oldest workspace that has one, for "the
+	// email goes out via Postmark".
+	InstanceAdminSystemProvider(ctx context.Context) (InstanceAdminSystemProviderRow, error)
+	InstanceAdminUnlockUser(ctx context.Context, id uuid.UUID) error
+	InstanceAdminUser(ctx context.Context, id uuid.UUID) (InstanceAdminUserRow, error)
+	// Instance admin: users, workspaces, policies, instance settings and updates (W14).
+	InstanceAdminUsers(ctx context.Context) ([]InstanceAdminUsersRow, error)
+	// People in a two-factor grace period without a second factor yet.
+	InstanceAdminUsersInGrace(ctx context.Context) ([]InstanceAdminUsersInGraceRow, error)
+	InstanceAdminWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
+	// Workspaces ---------------------------------------------------------------
+	// Live workspaces and the ones deleted within the 7-day restore hold.
+	InstanceAdminWorkspaces(ctx context.Context) ([]InstanceAdminWorkspacesRow, error)
 	InvalidatePasswordResets(ctx context.Context, userID uuid.UUID) error
 	LastDeliverabilityAssetCheckAt(ctx context.Context, workspaceID uuid.UUID) (time.Time, error)
 	LastPasswordResetAt(ctx context.Context, userID uuid.UUID) (time.Time, error)
@@ -296,6 +346,39 @@ type Querier interface {
 	RoutingUpsertPolicy(ctx context.Context, arg RoutingUpsertPolicyParams) error
 	// A run still in progress (runs older than ten minutes are considered dead).
 	RunningDeliverabilityCheckRun(ctx context.Context, arg RunningDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
+	SSOCreateIdentity(ctx context.Context, arg SSOCreateIdentityParams) (UserIdentity, error)
+	SSOCreateMember(ctx context.Context, arg SSOCreateMemberParams) error
+	SSOCreateProvider(ctx context.Context, arg SSOCreateProviderParams) (SsoProvider, error)
+	SSOCreateUser(ctx context.Context, arg SSOCreateUserParams) (User, error)
+	SSODeleteProvider(ctx context.Context, id uuid.UUID) (int64, error)
+	// Another enabled provider already enforces one of these domains.
+	SSODomainEnforcedElsewhere(ctx context.Context, arg SSODomainEnforcedElsewhereParams) (string, error)
+	// Active accounts with an email at one of the domains, with what they sign in with today.
+	SSODomainUsers(ctx context.Context, arg SSODomainUsersParams) ([]SSODomainUsersRow, error)
+	// The people who sign in with this provider (for the enforcement preview).
+	SSOIdentityUsers(ctx context.Context, providerID *uuid.UUID) ([]SSOIdentityUsersRow, error)
+	SSOMarkBreakGlass(ctx context.Context, ids []uuid.UUID) (int64, error)
+	SSOMembership(ctx context.Context, arg SSOMembershipParams) (SSOMembershipRow, error)
+	// Active Owners of live workspaces, oldest membership first.
+	SSOOwners(ctx context.Context) ([]SSOOwnersRow, error)
+	SSOPendingInvitation(ctx context.Context, tokenHash []byte) (SSOPendingInvitationRow, error)
+	SSOProvider(ctx context.Context, id uuid.UUID) (SsoProvider, error)
+	SSOProviderBySlug(ctx context.Context, slug string) (SsoProvider, error)
+	// SSO providers, social sign-in and the identities they link (W14).
+	SSOProviders(ctx context.Context) ([]SsoProvider, error)
+	SSOSetClientSecret(ctx context.Context, arg SSOSetClientSecretParams) error
+	SSOSetDiscovery(ctx context.Context, arg SSOSetDiscoveryParams) error
+	SSOSetEnforcement(ctx context.Context, arg SSOSetEnforcementParams) error
+	SSOSetLastTest(ctx context.Context, arg SSOSetLastTestParams) error
+	SSOSetMemberRole(ctx context.Context, arg SSOSetMemberRoleParams) error
+	SSOSetStatus(ctx context.Context, arg SSOSetStatusParams) (SsoProvider, error)
+	// Recent sign-in rejections for a provider (setup page "sign-ins rejected").
+	SSOSignInFailures(ctx context.Context, providerID string) ([]SSOSignInFailuresRow, error)
+	SSOTouchIdentity(ctx context.Context, arg SSOTouchIdentityParams) error
+	SSOUpdateProvider(ctx context.Context, arg SSOUpdateProviderParams) (SsoProvider, error)
+	SSOUserIdentityOfKind(ctx context.Context, arg SSOUserIdentityOfKindParams) (UserIdentity, error)
+	// Workspaces and their roles, for the JIT default and group mapping pickers.
+	SSOWorkspaceRoles(ctx context.Context) ([]SSOWorkspaceRolesRow, error)
 	// Restarts the idle clock now (the middleware only touches sessions every
 	// 30 seconds). The absolute lifetime (expires_at) never moves.
 	SessionExtRestartIdle(ctx context.Context, arg SessionExtRestartIdleParams) (SessionExtRestartIdleRow, error)

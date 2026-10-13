@@ -78,6 +78,9 @@ type SignInResult struct {
 type twoFactorChallenge struct {
 	Remember bool   `json:"remember"`
 	Method   string `json:"method"`
+	// Extra is added to the sign-in's audit entry (an SSO sign-in that
+	// still needs the person's own second factor keeps its provider).
+	Extra map[string]any `json:"extra,omitempty"`
 }
 
 // PasswordSignIn checks a password and either signs in or asks for a second factor.
@@ -200,6 +203,17 @@ func (s *Service) secondFactors(ctx context.Context, u store.User) ([]string, st
 // completeSignIn creates the session and records the sign-in. passkeyID
 // names the passkey the person used, if any.
 func (s *Service) completeSignIn(ctx context.Context, u store.User, method string, mfa, remember bool, passkeyID *uuid.UUID) (http.Cookie, error) {
+	return s.completeSignInWith(ctx, u, method, mfa, remember, passkeyID, nil)
+}
+
+// completeSignInWith is completeSignIn with extra audit metadata.
+func (s *Service) completeSignInWith(ctx context.Context, u store.User, method string, mfa, remember bool, passkeyID *uuid.UUID, extra map[string]any) (http.Cookie, error) {
+	meta := map[string]any{"method": method, "mfa": mfa}
+	for k, v := range extra {
+		if _, taken := meta[k]; !taken {
+			meta[k] = v
+		}
+	}
 	var cookie http.Cookie
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -217,7 +231,7 @@ func (s *Service) completeSignIn(ctx context.Context, u store.User, method strin
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "auth.sign_in", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u),
-			Metadata: map[string]any{"method": method, "mfa": mfa}})
+			Metadata: meta})
 	})
 	return cookie, err
 }
@@ -283,7 +297,7 @@ func (s *Service) TwoFactor(ctx context.Context, challenge, method, code string)
 		return SignInResult{}, nil, api.BadRequest("Unknown method. Use totp or recovery; passkeys use /auth/two-factor/passkey.")
 	}
 	_ = s.Q.DeleteChallenge(ctx, ch.ID)
-	cookie, err := s.completeSignIn(ctx, u, data.Method+"+"+method, true, data.Remember, nil)
+	cookie, err := s.completeSignInWith(ctx, u, data.Method+"+"+method, true, data.Remember, nil, data.Extra)
 	if err != nil {
 		return SignInResult{}, nil, err
 	}

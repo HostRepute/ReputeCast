@@ -548,6 +548,11 @@ type InstanceSetting struct {
 	LatestReleaseAt    *time.Time      `json:"latestReleaseAt"`
 	UpdatedAt          time.Time       `json:"updatedAt"`
 	BasicsConfirmedAt  *time.Time      `json:"basicsConfirmedAt"`
+	PasswordReuse      int32           `json:"passwordReuse"`
+	PublicUrlCheck     json.RawMessage `json:"publicUrlCheck"`
+	PublicUrlCheckedAt *time.Time      `json:"publicUrlCheckedAt"`
+	UpdateCheckedAt    *time.Time      `json:"updateCheckedAt"`
+	UpdateCheckError   string          `json:"updateCheckError"`
 }
 
 type Invitation struct {
@@ -883,25 +888,32 @@ type SndsDaily struct {
 }
 
 type SsoProvider struct {
-	ID              uuid.UUID       `json:"id"`
-	Preset          string          `json:"preset"`
-	Name            string          `json:"name"`
-	IssuerUrl       string          `json:"issuerUrl"`
-	ClientID        string          `json:"clientId"`
-	ClientSecretEnc []byte          `json:"clientSecretEnc"`
-	Scopes          []string        `json:"scopes"`
-	ClaimMap        json.RawMessage `json:"claimMap"`
-	AllowedDomains  []string        `json:"allowedDomains"`
-	JitEnabled      bool            `json:"jitEnabled"`
-	JitWorkspaceID  *uuid.UUID      `json:"jitWorkspaceId"`
-	JitRoleKey      *string         `json:"jitRoleKey"`
-	GroupMappings   json.RawMessage `json:"groupMappings"`
-	EnforceDomains  []string        `json:"enforceDomains"`
-	Status          string          `json:"status"`
-	LastTest        json.RawMessage `json:"lastTest"`
-	Discovery       json.RawMessage `json:"discovery"`
-	CreatedAt       time.Time       `json:"createdAt"`
-	UpdatedAt       time.Time       `json:"updatedAt"`
+	ID                    uuid.UUID       `json:"id"`
+	Preset                string          `json:"preset"`
+	Name                  string          `json:"name"`
+	IssuerUrl             string          `json:"issuerUrl"`
+	ClientID              string          `json:"clientId"`
+	ClientSecretEnc       []byte          `json:"clientSecretEnc"`
+	Scopes                []string        `json:"scopes"`
+	ClaimMap              json.RawMessage `json:"claimMap"`
+	AllowedDomains        []string        `json:"allowedDomains"`
+	JitEnabled            bool            `json:"jitEnabled"`
+	JitWorkspaceID        *uuid.UUID      `json:"jitWorkspaceId"`
+	JitRoleKey            *string         `json:"jitRoleKey"`
+	GroupMappings         json.RawMessage `json:"groupMappings"`
+	EnforceDomains        []string        `json:"enforceDomains"`
+	Status                string          `json:"status"`
+	LastTest              json.RawMessage `json:"lastTest"`
+	Discovery             json.RawMessage `json:"discovery"`
+	CreatedAt             time.Time       `json:"createdAt"`
+	UpdatedAt             time.Time       `json:"updatedAt"`
+	Slug                  string          `json:"slug"`
+	TwofaMode             *string         `json:"twofaMode"`
+	ClientSecretSetAt     *time.Time      `json:"clientSecretSetAt"`
+	ClientSecretSetBy     *uuid.UUID      `json:"clientSecretSetBy"`
+	ClientSecretExpiresOn *time.Time      `json:"clientSecretExpiresOn"`
+	EnabledAt             *time.Time      `json:"enabledAt"`
+	CreatedBy             *uuid.UUID      `json:"createdBy"`
 }
 
 type StreamFailover struct {
@@ -1040,6 +1052,13 @@ type UserPasskey struct {
 	Credential      json.RawMessage `json:"credential"`
 	Attachment      string          `json:"attachment"`
 	Provider        string          `json:"provider"`
+}
+
+type UserPasswordHistory struct {
+	ID           int64     `json:"id"`
+	UserID       uuid.UUID `json:"userId"`
+	PasswordHash string    `json:"passwordHash"`
+	ReplacedAt   time.Time `json:"replacedAt"`
 }
 
 type UserRecoveryCode struct {
