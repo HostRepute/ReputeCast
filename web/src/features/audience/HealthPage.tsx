@@ -245,7 +245,7 @@ function PolicyCard({ h }: { h: Health }) {
           </label>
         </div>
         <label className="flex items-start gap-2.5 text-[13px]">
-          <input type="checkbox" className="mt-[3px]" checked={reengage} onChange={(e) => setReengage(e.target.checked)} />
+          <input type="checkbox" className="mt-[3px] flex-initial max-md:min-w-0" checked={reengage} onChange={(e) => setReengage(e.target.checked)} />
           <span>
             Send one re-engagement email when a contact enters Sunset{' '}
             <span className="k">
@@ -254,13 +254,13 @@ function PolicyCard({ h }: { h: Health }) {
           </span>
         </label>
         <label className="flex items-start gap-2.5 text-[13px]">
-          <input type="checkbox" className="mt-[3px]" checked={stop} onChange={(e) => setStop(e.target.checked)} />
+          <input type="checkbox" className="mt-[3px] flex-initial max-md:min-w-0" checked={stop} onChange={(e) => setStop(e.target.checked)} />
           <span>
             Stop sending Broadcasts {p.stopAfterDays} days after that if there's still no open <span className="k">· Automations and System mail continue</span>
           </span>
         </label>
         <label className="flex items-start gap-2.5 text-[13px]">
-          <input type="checkbox" className="mt-[3px]" checked={del} onChange={(e) => setDel(e.target.checked)} />
+          <input type="checkbox" className="mt-[3px] flex-initial max-md:min-w-0" checked={del} onChange={(e) => setDel(e.target.checked)} />
           <span>
             Delete the contact after {p.deleteAfterMonths} months in Sunset{' '}
             <span className="k">· {del ? 'erased with their consent history; suppressions stay' : 'off; GDPR retention is handled in Settings'}</span>
