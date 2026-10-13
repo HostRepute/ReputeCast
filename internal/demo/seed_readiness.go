@@ -30,7 +30,7 @@ const readinessPolicy = `{"rules":{"audience_min":{"enabled":true,"n":10000},"wa
 	`"approver_roles":["owner","admin"],"automation_publish":false,"emergency_bypass":true}`
 
 // readinessThresholds are the auto-pause thresholds of the boards.
-const readinessThresholds = `{"bounce":2,"complaint":0.1,"mailbox_complaint":0.1,"provider_errors":5,"scope":"route"}`
+const readinessThresholds = `{"bounce":2,"complaint":0.1,"mailbox_complaint":0.1,"api_errors":5,"scope":"route"}`
 
 // seedReadinessImpl seeds Review & send and send approvals: complete Send
 // Readiness runs for Weekly Digest #142 (SendReadiness: ready with two

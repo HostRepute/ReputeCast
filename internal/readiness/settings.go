@@ -34,11 +34,15 @@ type ReadinessThresholds struct {
 	Scope string `json:"scope" enum:"route,campaign"`
 }
 
+// dbThresholds is campaigns.thresholds as the sending engine reads it
+// (api_errors is the provider errors threshold; provider_errors and
+// hard_bounce are older spellings still read).
 type dbThresholds struct {
 	Bounce           *float64 `json:"bounce,omitempty"`
 	HardBounce       *float64 `json:"hard_bounce,omitempty"`
 	Complaint        *float64 `json:"complaint,omitempty"`
 	MailboxComplaint *float64 `json:"mailbox_complaint,omitempty"`
+	APIErrors        *float64 `json:"api_errors,omitempty"`
 	ProviderErrors   *float64 `json:"provider_errors,omitempty"`
 	Scope            string   `json:"scope,omitempty"`
 }
@@ -67,6 +71,9 @@ func ParseThresholds(campaign, workspace json.RawMessage) ReadinessThresholds {
 		if d.ProviderErrors != nil {
 			t.ProviderErrors = *d.ProviderErrors
 		}
+		if d.APIErrors != nil {
+			t.ProviderErrors = *d.APIErrors
+		}
 		if d.Scope == "route" || d.Scope == "campaign" {
 			t.Scope = d.Scope
 		}
@@ -74,9 +81,19 @@ func ParseThresholds(campaign, workspace json.RawMessage) ReadinessThresholds {
 	return t
 }
 
-func (t ReadinessThresholds) toDB() json.RawMessage {
-	r := func(v float64) *float64 { x := math.Round(v*100) / 100; return &x }
-	b, _ := json.Marshal(dbThresholds{Bounce: r(t.Bounce), Complaint: r(t.Complaint), MailboxComplaint: r(t.MailboxComplaint), ProviderErrors: r(t.ProviderErrors), Scope: t.Scope})
+// toDB writes the thresholds into the stored ones, keeping the keys this
+// screen doesn't edit (the engine's deferral threshold).
+func (t ReadinessThresholds) toDB(stored json.RawMessage) json.RawMessage {
+	r := func(v float64) float64 { return math.Round(v*100) / 100 }
+	m := map[string]any{}
+	_ = json.Unmarshal(stored, &m)
+	if m == nil {
+		m = map[string]any{}
+	}
+	delete(m, "hard_bounce")
+	delete(m, "provider_errors")
+	m["bounce"], m["complaint"], m["mailbox_complaint"], m["api_errors"], m["scope"] = r(t.Bounce), r(t.Complaint), r(t.MailboxComplaint), r(t.ProviderErrors), t.Scope
+	b, _ := json.Marshal(m)
 	return b
 }
 
@@ -163,7 +180,7 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 		}
 		// Compared as values: Postgres hands jsonb back reformatted, so the
 		// stored text never equals freshly marshalled JSON.
-		if next := t.toDB(); ParseThresholds(next, nil) != ParseThresholds(thresholds, ws.SendThresholds) {
+		if next := t.toDB(thresholds); ParseThresholds(next, nil) != ParseThresholds(thresholds, ws.SendThresholds) {
 			before["thresholds"], after["thresholds"] = nonEmptyJSON(thresholds), next
 			thresholds = next
 		}
