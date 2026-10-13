@@ -1,0 +1,302 @@
+/*
+ * Review & send (Send Readiness): classes specific to the SendReadiness,
+ * SendReadinessBlocked, SendReadinessConfirm and SendReadinessStates boards,
+ * copied value for value and prefixed `rv-` so they never collide with the
+ * shared vocabulary in app.css (.row, .grp and .sum mean other things there).
+ */
+@layer components {
+  /* The verdict banner above everything (the boards' first <section>). */
+  .rv-verdict {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 22px;
+    border-radius: 12px;
+    border: 1px solid;
+    flex-wrap: wrap;
+  }
+  .rv-verdict.v-warn {
+    background: #fffbeb;
+    border-color: #fcd34d;
+    color: #78350f;
+  }
+  .rv-verdict.v-bad {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #7f1d1d;
+  }
+  .rv-verdict.v-ok {
+    background: #f0fdf4;
+    border-color: #86efac;
+    color: #14532d;
+  }
+  .rv-verdict.v-plain {
+    background: #fff;
+    border-color: var(--line);
+    color: var(--ink);
+  }
+  .rv-vtext {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1 1 300px;
+  }
+  .rv-vtitle {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .rv-vacts {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  /* The banner's main action and the aside's send button. */
+  .btn.rv-big {
+    min-height: 40px;
+    padding: 0 18px;
+  }
+  .btn.rv-cta {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .btn.rv-off,
+  .btn.rv-off[aria-disabled='true'],
+  .btn.rv-off[aria-disabled='true']:hover {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn.pri.rv-off[aria-disabled='true']:hover {
+    background: var(--accent);
+  }
+
+  /* Checks running (SendReadinessStates): a spinner, the count and a bar. */
+  .spin.rv-spin-lg {
+    width: 36px;
+    height: 36px;
+    border-width: 3px;
+  }
+
+  /* The checklist: group headings and one row per check. */
+  .rv-grp {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #f9fafb;
+    border-top: 1px solid var(--line);
+  }
+  .rv-grp:first-child {
+    border-top: 0;
+    border-radius: 10px 10px 0 0;
+  }
+  .rv-grp.g-bad {
+    background: #fef2f2;
+  }
+  .rv-grp.g-bad .h2,
+  .rv-grp.g-bad .k {
+    color: #991b1b;
+  }
+  .rv-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 11px 16px;
+    border-top: 1px solid var(--line-2);
+  }
+  .rv-row.r-warn {
+    background: #fffbeb;
+  }
+  .rv-row.r-bad {
+    background: #fff5f5;
+  }
+  .rv-row:last-child {
+    border-radius: 0 0 10px 10px;
+  }
+  .rv-rt {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+  .rv-t {
+    font-weight: 500;
+  }
+  .rv-fixes {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  /* The running, error and unknown lists: one line per group. */
+  .rv-line {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 16px;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .rv-line:first-child {
+    border-top: 0;
+  }
+  .rv-line.l-queued {
+    color: #6b7280;
+  }
+
+  /* The aside: estimates and settings cards. */
+  .rv-aside {
+    flex: 1 1 340px;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .rv-card {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .rv-card.c-tight {
+    gap: 10px;
+  }
+  .rv-sum {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .rv-sum.s-minus {
+    color: var(--ink-3);
+  }
+  .rv-sum.s-final {
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+    font-size: 15px;
+  }
+  .rv-who {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  /* The route table: inline styles on the board, not the shared .tbl. */
+  .rv-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .rv-tbl th {
+    text-align: left;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .rv-tbl th.r,
+  .rv-tbl td.r {
+    text-align: right;
+  }
+  .rv-tbl td {
+    padding: 1px;
+  }
+  .rv-tbl td:first-child {
+    padding: 8px 0;
+  }
+  .rv-tbl tr.t-total td {
+    border-top: 1px solid var(--line);
+  }
+  .rv-tbl tr.t-total td:first-child {
+    font-weight: 600;
+  }
+
+  /* Scheduling options. */
+  label.rv-rad {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  label.rv-rad input {
+    margin-top: 3px;
+  }
+  label.rv-rad:has(> input:checked) {
+    border-color: var(--accent);
+    background: #f0fdfa;
+  }
+  label.rv-rad:has(> input:disabled) {
+    cursor: default;
+  }
+  .rv-when {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .rv-when > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  /* SendReadinessConfirm: a card with ruled sections. */
+  .rv-confirm {
+    width: 100%;
+    max-width: 640px;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 24px 60px rgba(11, 18, 32, 0.3);
+  }
+  .rv-confirm:focus {
+    outline: none;
+  }
+  .rv-confirm > section {
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .rv-confirm > section.c-head {
+    padding: 22px 24px 16px;
+    gap: 6px;
+  }
+  .rv-confirm > section.c-acks {
+    gap: 10px;
+  }
+  .rv-confirm > section.c-last {
+    padding: 16px 24px 22px;
+    border-bottom: 0;
+  }
+  .rv-confirm .c-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  label.rv-chk {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  label.rv-chk input {
+    margin-top: 3px;
+  }
+  .rv-typed {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .in.rv-count {
+    height: 44px;
+    font-size: 16px;
+    letter-spacing: 0.08em;
+  }
+}
