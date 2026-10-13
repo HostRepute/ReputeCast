@@ -13,7 +13,7 @@ import { cn } from '@/lib/cn'
 import { clock, clockSeconds, count, dayMonthDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
-import { ProvidersTabs } from './common'
+import { ProvidersTabs, throwIfForbidden } from './common'
 
 type EventType = Schemas['ProviderLogEvent']['type']
 
@@ -63,6 +63,7 @@ function EventLog({ search }: { search: EventsSearch }) {
   const page = search.page ?? 1
   const query = { provider: search.provider, type: search.type, q: search.q, page, pageSize: PAGE_SIZE }
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/provider-events', { params: { path: { workspace: slug }, query } }, { placeholderData: keepPreviousData })
+  throwIfForbidden(q.error)
   const providers = $api.useQuery('get', '/api/v1/workspaces/{workspace}/providers', { params: { path: { workspace: slug } } })
   const go = (next: EventsSearch) =>
     void navigate({ to: '/w/$workspace/providers/events', params: { workspace: slug }, search: { ...search, page: undefined, ...next }, replace: true })
@@ -81,7 +82,7 @@ function EventLog({ search }: { search: EventsSearch }) {
           <span className="k">Every raw provider event beside the normalized ReputeCast event. The original code is always kept.</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          <select className="in pr-2.5 max-md:w-full" aria-label="Provider" value={search.provider ?? ''} onChange={(e) => go({ provider: e.target.value || undefined })}>
+          <select className="in max-md:w-full" aria-label="Provider" value={search.provider ?? ''} onChange={(e) => go({ provider: e.target.value || undefined })}>
             <option value="">All sending providers</option>
             {providers.data?.providers.map((p) => (
               <option key={p.id} value={p.id}>
@@ -89,7 +90,7 @@ function EventLog({ search }: { search: EventsSearch }) {
               </option>
             ))}
           </select>
-          <select className="in pr-2.5 max-md:w-full" aria-label="Event type" value={search.type ?? ''} onChange={(e) => go({ type: (e.target.value || undefined) as EventType | undefined })}>
+          <select className="in max-md:w-full" aria-label="Event type" value={search.type ?? ''} onChange={(e) => go({ type: (e.target.value || undefined) as EventType | undefined })}>
             <option value="">All events</option>
             {typeOptions.map((t) => (
               <option key={t.value} value={t.value}>

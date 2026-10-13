@@ -13,7 +13,7 @@ import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { ago, clock, count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
-import { onProviderColor, providerColor, ProvidersTabs, streamName, type FailoverPolicy, type Stream } from './common'
+import { onProviderColor, providerColor, ProvidersTabs, streamName, throwIfForbidden, type FailoverPolicy, type Stream } from './common'
 import { BulkWarningView } from './BulkWarning'
 import { RouteTester } from './RouteTester'
 import {
@@ -41,6 +41,7 @@ const providersKey = ['get', '/api/v1/workspaces/{workspace}/providers'] as cons
 export function RoutingPage() {
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/routing', { params: { path: { workspace: slug } } })
+  throwIfForbidden(q.error)
   if (q.isError || q.isPending) {
     return (
       <Page title="Sending providers & routing" filters={<ProvidersTabs />}>

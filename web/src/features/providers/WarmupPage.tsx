@@ -14,7 +14,7 @@ import { toast } from '@/components/ui/Toast'
 import { cn } from '@/lib/cn'
 import { count, shortDate, weekdayName } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
-import { limitPct, ProvidersTabs } from './common'
+import { limitPct, ProvidersTabs, throwIfForbidden } from './common'
 import { parseNumber } from './ProviderSettingsDialog'
 import { audienceText, dayStatus, rampHeight, visibleDays, type WarmupPlan } from './warmup-model'
 
@@ -25,6 +25,7 @@ const providersKey = ['get', '/api/v1/workspaces/{workspace}/providers'] as cons
 export function WarmupPage() {
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/warmup', { params: { path: { workspace: slug } } })
+  throwIfForbidden(q.error)
   const [picked, setPicked] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const plans = q.data?.plans ?? []

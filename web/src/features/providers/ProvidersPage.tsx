@@ -9,7 +9,7 @@ import { Grid } from '@/components/ui/Layout'
 import { cn } from '@/lib/cn'
 import { ago, clock, count, money, monthName } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
-import { failoverText, providerColor, ProvidersTabs, streamName, type Stream } from './common'
+import { failoverText, providerColor, ProvidersTabs, streamName, throwIfForbidden, type Stream } from './common'
 import { AuthBanner, AuthCard, AwaitingTable, IncidentTimeline, OutageAlert, SilentAlert } from './ProviderIncidents'
 import { CompactRow, DownRow, OutageRow, ProviderRow, SilentRow } from './ProviderRows'
 import { ProviderSettingsDialog } from './ProviderSettingsDialog'
@@ -29,6 +29,7 @@ const statusWord: Record<Schemas['ProviderStatusCount']['status'], string> = {
 export function ProvidersPage() {
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/providers', { params: { path: { workspace: slug } } }, { refetchInterval: 60_000 })
+  throwIfForbidden(q.error)
   const [settings, setSettings] = useState<{ id: string; focus?: 'credentials' } | null>(null)
   const data = q.data
   const empty = data && data.providers.length === 0

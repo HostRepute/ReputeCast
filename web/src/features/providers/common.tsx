@@ -1,4 +1,4 @@
-import type { Schemas } from '@/api/client'
+import { ApiError, type Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { NavTabs } from '@/components/ui/Tabs'
 import { cn } from '@/lib/cn'
@@ -28,6 +28,14 @@ export const failoverText: Record<FailoverPolicy, string> = {
   automatic: 'automatic',
   pause_and_ask: 'pause and ask',
   warm_only: 'automatic, warmed-up only',
+}
+
+/**
+ * A role without access to this screen gets the shell's 403 state (the
+ * route's error component); other load errors stay inline with a retry.
+ */
+export function throwIfForbidden(error: unknown) {
+  if (error instanceof ApiError && error.status === 403) throw error
 }
 
 /** The five sections of Sending providers & routing, inline after the title. */

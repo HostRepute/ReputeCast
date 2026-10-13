@@ -601,10 +601,16 @@ func mustJSON(v any) json.RawMessage {
 func seedProviderDKIM(ctx context.Context, s *Seeder) error {
 	ws := s.WS()
 	selectors := map[string]string{"ses": "ses-2026", "postmark": "pm-2026", "postal": "postal-2026"}
-	var domainID uuid.UUID
 	var records json.RawMessage
-	err := s.Tx.QueryRow(ctx, `SELECT id, dns_records FROM sending_domains WHERE workspace_id = $1 AND domain = 'news.acme.io'`, ws.ID).Scan(&domainID, &records)
-	if errors.Is(err, pgx.ErrNoRows) {
+	// The senders seeder owns the sending domains; use its news.acme.io.
+	domainID, known := s.Domains["news.acme.io"]
+	var err error
+	if known {
+		err = s.Tx.QueryRow(ctx, `SELECT dns_records FROM sending_domains WHERE id = $1`, domainID).Scan(&records)
+	} else {
+		err = s.Tx.QueryRow(ctx, `SELECT id, dns_records FROM sending_domains WHERE workspace_id = $1 AND domain = 'news.acme.io'`, ws.ID).Scan(&domainID, &records)
+	}
+	if !known && errors.Is(err, pgx.ErrNoRows) {
 		domainID = ID()
 		records = json.RawMessage(`[]`)
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO sending_domains (id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at)

@@ -11,7 +11,7 @@ import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
-import { ProvidersTabs } from './common'
+import { ProvidersTabs, throwIfForbidden } from './common'
 
 type Overview = Schemas['AdaptersOverview']
 type Community = Schemas['AdapterCommunity']
@@ -46,6 +46,7 @@ export default defineAdapter({
 export function AdaptersPage() {
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/adapters', { params: { path: { workspace: slug } } })
+  throwIfForbidden(q.error)
   const [installing, setInstalling] = useState(false)
   const data = q.data
   const reason = data && !data.canInstall ? adminReason : undefined
