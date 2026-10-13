@@ -116,7 +116,9 @@ func TestPasswordResetExpiresAndSSOAccounts(t *testing.T) {
 		t.Fatalf("break-glass Owner keeps a password to reset: %v", res)
 	}
 
-	// An SSO-only account outside an enforced domain is told the same.
+	// An SSO-only account outside an enforced domain gets the answer any
+	// email gets, so the answer doesn't reveal it; the email says how it
+	// signs in.
 	if _, err := env.App.Pool.Exec(ctx, `UPDATE sso_providers SET enforce_domains = '{}'`); err != nil {
 		t.Fatal(err)
 	}
@@ -127,8 +129,15 @@ func TestPasswordResetExpiresAndSSOAccounts(t *testing.T) {
 	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO user_identities (id, user_id, kind, sso_provider_id, subject, email) VALUES ($1, $2, 'sso', $3, 'g-123', 'marcus@acme.io')`, uuid.Must(uuid.NewV7()), marcus.ID, sso); err != nil {
 		t.Fatal(err)
 	}
-	c.Do("POST", "/auth/password-reset", map[string]any{"email": "marcus@acme.io"}).MustStatus(t, 200).JSON(t, &res)
-	if res["status"] != "sso" {
-		t.Fatalf("SSO-only account: %v", res)
+	mail := &fakeMail{available: true}
+	mc := withMail(t, env, mail).Client()
+	var unknown, ssoOnly map[string]any
+	mc.Do("POST", "/auth/password-reset", map[string]any{"email": "nobody@acme.io"}).MustStatus(t, 200).JSON(t, &unknown)
+	mc.Do("POST", "/auth/password-reset", map[string]any{"email": "marcus@acme.io"}).MustStatus(t, 200).JSON(t, &ssoOnly)
+	if ssoOnly["status"] != "sent" || unknown["status"] != "sent" || ssoOnly["sso"] != nil {
+		t.Fatalf("SSO-only account: %v, unknown email: %v", ssoOnly, unknown)
+	}
+	if msg := mail.last(t); msg.To != "marcus@acme.io" || !strings.Contains(msg.Text, "signs in with Google Workspace") || strings.Contains(msg.Text, "/reset-password/") {
+		t.Fatalf("reminder: %+v", msg)
 	}
 }

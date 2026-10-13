@@ -44535,9 +44535,6 @@
         "security": [
           {
             "session": []
-          },
-          {
-            "bearer": []
           }
         ],
         "summary": "General settings, approval and team summaries, danger-zone counts",
