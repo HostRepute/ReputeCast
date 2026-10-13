@@ -206,7 +206,7 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
     <section className="card" aria-label="Campaigns">
       <Table
         phoneWrap
-        className="[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(8)]:min-w-[120px] [&_td:nth-child(8)]:whitespace-normal [&_td]:whitespace-nowrap"
+        className="[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(8)]:min-w-[120px] [&_td:nth-child(8)]:whitespace-normal [&_td:nth-child(8)_.badge]:my-px [&_td]:whitespace-nowrap"
       >
         <thead>
           <tr>
