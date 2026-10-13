@@ -25,7 +25,7 @@ const levelTone: Record<Schemas['MCPCapabilityCell']['level'], Tone> = { allow: 
 
 /** A mono chip for a tool name (SettingsMCP `.tool`). */
 function Tool({ children }: { children: string }) {
-  return <span className="mono inline-flex h-6 items-center rounded-md border border-line bg-ground px-2 text-[11.5px]">{children}</span>
+  return <span className="mono inline-flex h-6 items-center rounded-[6px] border border-line bg-ground px-2 text-[11.5px]">{children}</span>
 }
 
 /** A5 §5.10 MCP server (SettingsMCP): endpoint, the agents' capabilities, recent calls, tools and limits. */

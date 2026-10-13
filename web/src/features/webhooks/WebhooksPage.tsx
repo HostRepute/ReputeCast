@@ -33,9 +33,13 @@ export function WebhooksPage() {
       title="Settings"
       tabs={settingsTabs(slug)}
       actions={
+        // This board's action row doesn't centre its items, so the buttons
+        // stretch to the 38px bell beside them.
         <>
-          <ButtonAnchor href={API_DOCS}>API reference</ButtonAnchor>
-          <ButtonLink to="/w/$workspace/settings/keys" params={{ workspace: slug }}>
+          <ButtonAnchor href={API_DOCS} className="self-stretch">
+            API reference
+          </ButtonAnchor>
+          <ButtonLink to="/w/$workspace/settings/keys" params={{ workspace: slug }} className="self-stretch">
             API keys &amp; MCP
           </ButtonLink>
         </>
@@ -308,7 +312,7 @@ function DeliveryLog({
           Delivery log
         </h2>
         <div className="flex gap-2">
-          <select className="h-[30px] rounded-lg border border-line-strong px-2 text-[12px]" aria-label="Endpoint" value={filter} onChange={(e) => setFilter(e.target.value)}>
+          <select className="h-[30px] rounded-[8px] border border-line-strong bg-white px-2 text-[12px]" aria-label="Endpoint" value={filter} onChange={(e) => setFilter(e.target.value)}>
             <option value="">All endpoints</option>
             {webhooks.map((w) => (
               <option key={w.id} value={w.id}>
