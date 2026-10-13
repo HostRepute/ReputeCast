@@ -20,6 +20,7 @@ package publicurl
 import (
 	"net/url"
 	"strings"
+	"sync/atomic"
 )
 
 // Path prefixes, for routers.
@@ -29,20 +30,53 @@ const (
 	ReportPrefix   = "/r"
 )
 
-// Builder joins paths onto the instance's public URL.
-type Builder struct{ base string }
+// Source is the instance's public URL as it is now: the server's
+// http.public_url until an instance admin saves another one. Every Builder
+// made from a Source follows its changes.
+type Source struct{ v atomic.Pointer[string] }
 
-// New returns a Builder for the configured public URL (http.public_url).
-func New(publicURL string) Builder {
-	return Builder{base: strings.TrimRight(publicURL, "/")}
+// NewSource returns a Source set to publicURL.
+func NewSource(publicURL string) *Source {
+	s := &Source{}
+	s.Set(publicURL)
+	return s
 }
 
+// Get returns the public URL without a trailing slash.
+func (s *Source) Get() string {
+	if p := s.v.Load(); p != nil {
+		return *p
+	}
+	return ""
+}
+
+// Set changes the public URL and reports whether it changed.
+func (s *Source) Set(publicURL string) bool {
+	u := strings.TrimRight(strings.TrimSpace(publicURL), "/")
+	old := s.v.Swap(&u)
+	return old == nil || *old != u
+}
+
+// Builder joins paths onto the instance's public URL.
+type Builder struct{ src *Source }
+
+// New returns a Builder for a fixed public URL.
+func New(publicURL string) Builder { return Builder{src: NewSource(publicURL)} }
+
+// From returns a Builder that follows src.
+func From(src *Source) Builder { return Builder{src: src} }
+
 // Base returns the public URL without a trailing slash.
-func (b Builder) Base() string { return b.base }
+func (b Builder) Base() string {
+	if b.src == nil {
+		return ""
+	}
+	return b.src.Get()
+}
 
 func (b Builder) join(parts ...string) string {
 	var sb strings.Builder
-	sb.WriteString(b.base)
+	sb.WriteString(b.Base())
 	for _, p := range parts {
 		sb.WriteByte('/')
 		sb.WriteString(url.PathEscape(p))

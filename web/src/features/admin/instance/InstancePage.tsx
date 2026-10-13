@@ -9,6 +9,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { timezoneOptions } from '@/features/workspace/timezones'
+import { copyText } from '@/features/access/parts'
 import { ago, usDate } from '@/lib/format'
 import { AdminPage } from '../AdminPage'
 import { WorkspacesCard } from './WorkspacesCard'
@@ -30,6 +31,9 @@ export function InstancePage() {
 
 function InstanceCard() {
   const q = $api.useQuery('get', '/api/v1/admin/instance')
+  // What the last save that moved the public URL did to provider webhooks
+  // (the form remounts after a save, so it lives here).
+  const [moved, setMoved] = useState<Schemas['PublicURLWebhooks']>()
   return (
     <section className="card" aria-labelledby="inst-h">
       <CardSection title={<span id="inst-h">Instance</span>} caption="Name, logo, public URL and timezone" />
@@ -47,13 +51,21 @@ function InstanceCard() {
           <Skeleton w="100%" h={110} r={10} />
         </div>
       ) : (
-        <InstanceForm key={`${q.data.name}|${q.data.publicUrl}|${q.data.defaultTimezone}`} s={q.data} />
+        <InstanceForm key={`${q.data.name}|${q.data.publicUrl}|${q.data.defaultTimezone}`} s={q.data} moved={moved} onMoved={setMoved} />
       )}
     </section>
   )
 }
 
-function InstanceForm({ s }: { s: Schemas['InstanceSettings'] }) {
+function InstanceForm({
+  s,
+  moved,
+  onMoved,
+}: {
+  s: Schemas['InstanceSettings']
+  moved?: Schemas['PublicURLWebhooks']
+  onMoved: (m: Schemas['PublicURLWebhooks'] | undefined) => void
+}) {
   const qc = useQueryClient()
   const [name, setName] = useState(s.name)
   const [url, setUrl] = useState(s.publicUrl || s.configPublicUrl || '')
@@ -121,16 +133,16 @@ function InstanceForm({ s }: { s: Schemas['InstanceSettings'] }) {
           </Button>
         </div>
         <span className="k font-medium" id="inst-url-hint">
-          Used for SSO redirect URIs, sign-in links and system emails. Provider webhooks, tracking links and public pages use the server&apos;s http.public_url; keep
-          both on the same address.
+          Used for provider webhooks, SSO redirect URIs and public pages. Changing it re-registers webhooks at every provider that supports it and warns about the rest.
         </span>
       </label>
       {s.configPublicUrl && trimSlash(url) !== trimSlash(s.configPublicUrl) ? (
         <Note tone="warn" label="Server setting">
-          The server runs with http.public_url = <span className="mono">{s.configPublicUrl}</span>. Provider webhooks, tracking links and public pages keep using it
-          until you set REPUTECAST_HTTP__PUBLIC_URL to the same address and restart.
+          The server was started with http.public_url = <span className="mono">{s.configPublicUrl}</span>. Links, public pages and webhooks use the address above; set
+          REPUTECAST_HTTP__PUBLIC_URL to it as well, since HTTPS-only cookies and HSTS follow the server setting.
         </Note>
       ) : null}
+      {moved && (moved.reregistering > 0 || moved.manual.length > 0) ? <WebhookMove moved={moved} /> : null}
       <LogoRow s={s} />
       {check ? <URLCheckPanel check={check} /> : null}
       {error ? (
@@ -146,7 +158,8 @@ function InstanceForm({ s }: { s: Schemas['InstanceSettings'] }) {
           onClick={async () => {
             setError(undefined)
             try {
-              await save.mutateAsync({ body: { name: name.trim(), publicUrl: url.trim(), defaultTimezone: tz } })
+              const r = await save.mutateAsync({ body: { name: name.trim(), publicUrl: url.trim(), defaultTimezone: tz } })
+              if (r.webhooks) onMoved(r.webhooks)
               await refresh()
               toast({ kind: 'success', title: 'Instance settings saved' })
             } catch (e) {
@@ -163,6 +176,41 @@ function InstanceForm({ s }: { s: Schemas['InstanceSettings'] }) {
 }
 
 const trimSlash = (u: string) => u.trim().replace(/\/+$/, '')
+
+/** What moving the public URL did to provider webhooks. */
+function WebhookMove({ moved }: { moved: Schemas['PublicURLWebhooks'] }) {
+  const n = moved.reregistering
+  return (
+    <Note tone={moved.manual.length > 0 ? 'warn' : 'ok'} label="Webhooks">
+      {n > 0 ? <>Re-registering the webhook at {n === 1 ? '1 provider' : `${n} providers`} on the new address. </> : null}
+      {moved.manual.length > 0 ? (
+        <>
+          {moved.manual.length === 1
+            ? 'This provider keeps its webhook in its own settings; paste the new address there:'
+            : 'These providers keep their webhooks in their own settings; paste the new addresses there:'}
+          <ul className="mt-1.5 flex flex-col gap-1.5">
+            {moved.manual.map((m) => (
+              <li key={m.url} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="font-semibold">{m.provider}</span>
+                <span className="k">{m.workspace}</span>
+                <span className="mono min-w-0 break-all">{m.url}</span>
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    const ok = await copyText(m.url)
+                    toast(ok ? { kind: 'success', title: 'Webhook address copied' } : { kind: 'error', title: "Couldn't copy", detail: 'Select the address and copy it by hand.' })
+                  }}
+                >
+                  Copy
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+    </Note>
+  )
+}
 
 function URLCheckPanel({ check }: { check: Schemas['URLCheck'] }) {
   const lines: [string, Schemas['CheckLine']][] = [

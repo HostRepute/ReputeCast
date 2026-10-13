@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -37,7 +38,24 @@ func (a *App) instanceService() *instance.Service {
 		Accounts: a.accountsForSSO(), SSO: a.ssoService(),
 		Mail:           func() mailer.Sender { return a.notifyMailer() },
 		Jobs:           func() *jobs.Client { return a.Jobs },
-		OnPolicyChange: a.InvalidatePolicy}
+		OnPolicyChange: a.InvalidatePolicy,
+		OnPublicURL:    a.publicURLSaved}
+}
+
+// publicURLSaved switches this process to a newly saved public URL (the
+// others follow within publicURLRefresh) and moves provider webhooks to it.
+func (a *App) publicURLSaved(ctx context.Context, before, after string) (*instance.PublicURLWebhooks, error) {
+	a.setPublicURL(after)
+	to := a.effectivePublicURL(after)
+	if a.effectivePublicURL(before) == to {
+		return nil, nil
+	}
+	mv, err := a.providersService().PublicURLMoved(ctx, to)
+	out := &instance.PublicURLWebhooks{Reregistering: mv.Reregistering, Manual: []instance.PublicURLManualHook{}}
+	for _, m := range mv.Manual {
+		out.Manual = append(out.Manual, instance.PublicURLManualHook{Workspace: m.Workspace, Provider: m.Provider, URL: m.URL})
+	}
+	return out, err
 }
 
 func init() {

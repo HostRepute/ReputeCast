@@ -14,7 +14,7 @@ func (a *App) mcpserver() *mcpserver.Service {
 	return &mcpserver.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Sending: a.Sending, Mail: a.Mail,
 		Campaigns: &campaigns.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
-		PublicURL: func(context.Context) string { return a.Cfg.HTTP.PublicURL },
+		PublicURL: func(context.Context) string { return a.URLs.Base() },
 	}
 }
 

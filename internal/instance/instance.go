@@ -45,6 +45,9 @@ type Service struct {
 	Jobs func() *jobs.Client
 	// OnPolicyChange drops the cached authentication policy (App.InvalidatePolicy).
 	OnPolicyChange func()
+	// OnPublicURL applies a new saved public URL (before and after; empty
+	// means http.public_url) and moves provider webhooks to it.
+	OnPublicURL func(ctx context.Context, before, after string) (*PublicURLWebhooks, error)
 	// HTTP fetches releases and checks the public URL. Nil uses a client
 	// with a 10 s timeout.
 	HTTP *http.Client

@@ -36,10 +36,25 @@ type InstanceSettings struct {
 	// URLCheck is the last public URL check.
 	URLCheck *accounts.URLCheck `json:"urlCheck,omitempty"`
 	// ConfigPublicURL is the URL the server was started with
-	// (http.public_url). Provider webhooks, tracking links and public pages
-	// are built on it (App.URLs); SSO redirect URIs, sign-in links and system
-	// emails use PublicURL, falling back to it.
+	// (http.public_url). A saved PublicURL replaces it for every link and
+	// webhook; the command line and the HTTPS-only cookie setting still read
+	// it.
 	ConfigPublicURL string `json:"configPublicUrl,omitempty"`
+	// Webhooks is set on a save that moved the public URL.
+	Webhooks *PublicURLWebhooks `json:"webhooks,omitempty"`
+}
+
+// PublicURLWebhooks is what a new public URL did to provider webhooks.
+type PublicURLWebhooks struct {
+	Reregistering int                   `json:"reregistering" doc:"Providers whose webhook ReputeCast moves to the new URL, in the background"`
+	Manual        []PublicURLManualHook `json:"manual" doc:"Providers whose webhook is set up in the provider itself"`
+}
+
+// PublicURLManualHook is a provider whose webhook has to be changed by hand.
+type PublicURLManualHook struct {
+	Workspace string `json:"workspace"`
+	Provider  string `json:"provider"`
+	URL       string `json:"url" doc:"The provider's webhook address on the new public URL"`
 }
 
 // Settings returns the instance settings.
@@ -120,7 +135,17 @@ func (s *Service) SaveSettings(ctx context.Context, in InstanceSettingsInput) (I
 	if err != nil {
 		return InstanceSettings{}, err
 	}
-	return s.Settings(ctx)
+	out, err := s.Settings(ctx)
+	if err != nil || before.PublicUrl == pub || s.OnPublicURL == nil {
+		return out, err
+	}
+	// The setting is saved; moving the webhooks follows from it.
+	moved, err := s.OnPublicURL(ctx, before.PublicUrl, pub)
+	if err != nil {
+		s.Log.WarnContext(ctx, "move provider webhooks to the new public URL", "err", err)
+	}
+	out.Webhooks = moved
+	return out, nil
 }
 
 func normalizePublicURL(raw string) (string, error) {

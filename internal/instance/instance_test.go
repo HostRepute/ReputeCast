@@ -420,6 +420,21 @@ func TestInstanceSettingsAndLogo(t *testing.T) {
 	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'instance.settings_updated' AND metadata->>'summary' LIKE '%public URL https://mail.acme.io%'`); n != 1 {
 		t.Fatal("settings change not audited")
 	}
+	// The saved URL replaces http.public_url for every link the app builds
+	// (the demo's providers have no real webhook to move).
+	if got := env.App.URLs.Report("tok"); got != "https://mail.acme.io/r/tok" {
+		t.Fatalf("links after the change: %q", got)
+	}
+	var moved struct {
+		Webhooks *struct {
+			Reregistering int
+			Manual        []struct{ Provider string }
+		}
+	}
+	admin.Do("PUT", "/admin/instance", map[string]any{"name": "Acme Mail", "publicUrl": "https://news.acme.io", "defaultTimezone": "Europe/Berlin"}).MustStatus(t, 200).JSON(t, &moved)
+	if moved.Webhooks == nil || moved.Webhooks.Reregistering != 0 || len(moved.Webhooks.Manual) != 0 || env.App.URLs.Base() != "https://news.acme.io" {
+		t.Fatalf("second change: %+v, %q", moved.Webhooks, env.App.URLs.Base())
+	}
 	// SVG logos are checked: no scripts, no external references.
 	for _, bad := range []string{
 		`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><script>alert(1)</script></svg>`,

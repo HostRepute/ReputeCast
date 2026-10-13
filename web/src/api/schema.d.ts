@@ -7854,6 +7854,7 @@ export interface components {
             name: string;
             publicUrl: string;
             urlCheck?: components["schemas"]["URLCheck"];
+            webhooks?: components["schemas"]["PublicURLWebhooks"];
         };
         InstanceSettingsInput: {
             defaultTimezone: string;
@@ -9150,6 +9151,21 @@ export interface components {
             suppressions: number;
             /** Format: date-time */
             syncedAt?: string;
+        };
+        PublicURLManualHook: {
+            provider: string;
+            /** @description The provider's webhook address on the new public URL */
+            url: string;
+            workspace: string;
+        };
+        PublicURLWebhooks: {
+            /** @description Providers whose webhook is set up in the provider itself */
+            manual: components["schemas"]["PublicURLManualHook"][];
+            /**
+             * Format: int64
+             * @description Providers whose webhook ReputeCast moves to the new URL, in the background
+             */
+            reregistering: number;
         };
         ReadinessSummary: {
             /** Format: int64 */

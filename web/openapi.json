@@ -11150,6 +11150,9 @@
           },
           "urlCheck": {
             "$ref": "#/components/schemas/URLCheck"
+          },
+          "webhooks": {
+            "$ref": "#/components/schemas/PublicURLWebhooks"
           }
         },
         "required": [
@@ -15688,6 +15691,49 @@
           "costToDate",
           "suppressions",
           "inSync"
+        ],
+        "type": "object"
+      },
+      "PublicURLManualHook": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "url": {
+            "description": "The provider's webhook address on the new public URL",
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace",
+          "provider",
+          "url"
+        ],
+        "type": "object"
+      },
+      "PublicURLWebhooks": {
+        "additionalProperties": false,
+        "properties": {
+          "manual": {
+            "description": "Providers whose webhook is set up in the provider itself",
+            "items": {
+              "$ref": "#/components/schemas/PublicURLManualHook"
+            },
+            "type": "array"
+          },
+          "reregistering": {
+            "description": "Providers whose webhook ReputeCast moves to the new URL, in the background",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reregistering",
+          "manual"
         ],
         "type": "object"
       },
