@@ -317,3 +317,18 @@ export function monthName(d: string | number | Date, style: 'short' | 'long' = '
 export function weekdayName(d: string | number | Date): string {
   return fmt('weekday-long', 'en-US', { weekday: 'long' }).format(toDate(d))
 }
+
+/* ---- W02 · Audience (appended) ---- */
+
+/**
+ * When an address was suppressed: "Today 09:41", "Sat 11 Oct" within the
+ * week, "18 Sep" before, with the year when it isn't this year.
+ */
+export function suppressedWhen(d: string | number | Date, now: Date = new Date()): string {
+  const t = toDate(d)
+  const days = daysBetween(t, now)
+  if (days <= 0) return `Today ${clock(t)}`
+  if (days < 7) return shortDate(t)
+  const year = notificationDateParts(t).year
+  return year === notificationDateParts(now).year ? dayMonthDate(t) : `${dayMonthDate(t)} ${year}`
+}

@@ -1,0 +1,54 @@
+[
+  {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "topic": "/subscriptions/{subscription-id}/resourceGroups/acme/providers/microsoft.communication/communicationservices/acme-mail",
+    "subject": "sender/DoNotReply@news.acme.io/message/0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40",
+    "data": {"sender": "DoNotReply@news.acme.io", "recipient": "D.F@outlook.com", "messageId": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40", "status": "Delivered",
+      "deliveryStatusDetails": {"statusMessage": "250 2.6.0 <0199d5a8@news.acme.io> Queued mail for delivery", "recipientMailServerHostName": "outlook-com.olc.protection.outlook.com"},
+      "deliveryAttemptTimeStamp": "2026-10-12T13:41:02.2855749+00:00"},
+    "eventType": "Microsoft.Communication.EmailDeliveryReportReceived", "dataVersion": "1.0", "metadataVersion": "1", "eventTime": "2026-10-12T13:41:02.822Z"
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000002",
+    "topic": "/subscriptions/{subscription-id}/resourceGroups/acme/providers/microsoft.communication/communicationservices/acme-mail",
+    "subject": "sender/DoNotReply@news.acme.io/message/0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e41",
+    "data": {"sender": "DoNotReply@news.acme.io", "recipient": "john@example.com", "messageId": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e41", "status": "Bounced",
+      "deliveryStatusDetails": {"statusMessage": "550 5.1.1 RESOLVER.ADR.RecipNotFound; not found", "recipientMailServerHostName": "example-com.mail.protection.outlook.com"},
+      "deliveryAttemptTimestamp": "2026-10-12T13:41:15.1234567+00:00"},
+    "eventType": "Microsoft.Communication.EmailDeliveryReportReceived", "dataVersion": "1.0", "metadataVersion": "1", "eventTime": "2026-10-12T13:41:15.900Z"
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000003",
+    "topic": "/subscriptions/{subscription-id}/resourceGroups/acme/providers/microsoft.communication/communicationservices/acme-mail",
+    "subject": "sender/DoNotReply@news.acme.io/message/0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e42",
+    "data": {"sender": "DoNotReply@news.acme.io", "recipient": "k.n@hotmail.com", "messageId": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e42", "status": "Bounced",
+      "deliveryStatusDetails": {"statusMessage": "550 5.7.1 Service unavailable, Client host [52.100.0.1] blocked using Spamhaus"},
+      "deliveryAttemptTimestamp": "2026-10-12T13:41:20.0000000+00:00"},
+    "eventType": "Microsoft.Communication.EmailDeliveryReportReceived", "dataVersion": "1.0", "metadataVersion": "1", "eventTime": "2026-10-12T13:41:20.500Z"
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000004",
+    "topic": "/subscriptions/{subscription-id}/resourceGroups/acme/providers/microsoft.communication/communicationservices/acme-mail",
+    "subject": "sender/DoNotReply@news.acme.io/message/0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e44",
+    "data": {"sender": "DoNotReply@news.acme.io", "recipient": "old@example.org", "messageId": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e44", "status": "Suppressed",
+      "deliveryStatusDetails": {"statusMessage": "Recipient previously hard bounced and is suppressed"},
+      "deliveryAttemptTimestamp": "2026-10-12T13:41:21.0000000+00:00"},
+    "eventType": "Microsoft.Communication.EmailDeliveryReportReceived", "dataVersion": "1.0", "metadataVersion": "1", "eventTime": "2026-10-12T13:41:21.100Z"
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000005",
+    "topic": "/subscriptions/{subscription-id}/resourceGroups/acme/providers/microsoft.communication/communicationservices/acme-mail",
+    "subject": "sender/DoNotReply@news.acme.io/message/0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e46",
+    "data": {"sender": "DoNotReply@news.acme.io", "recipient": "list@example.com", "messageId": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e46", "status": "Expanded",
+      "deliveryStatusDetails": {"statusMessage": "Distribution group expanded"}, "deliveryAttemptTimestamp": "2026-10-12T13:41:22.0000000+00:00"},
+    "eventType": "Microsoft.Communication.EmailDeliveryReportReceived", "dataVersion": "1.0", "metadataVersion": "1", "eventTime": "2026-10-12T13:41:22.100Z"
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000006",
+    "topic": "/subscriptions/{subscription-id}/resourceGroups/acme/providers/microsoft.communication/communicationservices/acme-mail",
+    "subject": "sender/DoNotReply@news.acme.io/message/0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e47",
+    "data": {"sender": "DoNotReply@news.acme.io", "recipient": "b.h@yahoo.com", "messageId": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e47", "status": "FilteredSpam",
+      "deliveryStatusDetails": {"statusMessage": "The message was identified as spam and rejected"}, "deliveryAttemptTimestamp": "2026-10-12T13:41:23.0000000+00:00"},
+    "eventType": "Microsoft.Communication.EmailDeliveryReportReceived", "dataVersion": "1.0", "metadataVersion": "1", "eventTime": "2026-10-12T13:41:23.100Z"
+  }
+]

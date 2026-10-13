@@ -79,6 +79,14 @@ type WebhookHandshaker interface {
 	Handshake(ctx context.Context, r *http.Request, body []byte) (handled bool, response []byte, err error)
 }
 
+// WebhookSecrets names the request headers that carry a shared webhook
+// secret in plain text, beyond Authorization (which is never stored). The
+// ingest endpoint leaves them out of the stored raw event; normalization
+// runs on verified events and never needs them.
+type WebhookSecrets interface {
+	WebhookSecretHeaders() []string
+}
+
 // WebhookStatus is the provider-side view of the webhook pointing at us.
 type WebhookStatus struct {
 	Registered bool

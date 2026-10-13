@@ -1,0 +1,15 @@
+{
+  "signature": {"token": "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3", "timestamp": "1760276495", "signature": "__SIGNATURE__"},
+  "event-data": {
+    "event": "failed",
+    "id": "Ku1-wd4QQ9ONa8wYh7zD3g",
+    "timestamp": 1760276495.1,
+    "log-level": "error",
+    "recipient": "old@example.org",
+    "reason": "suppress-bounce",
+    "severity": "permanent",
+    "message": {"headers": {"message-id": "20261012134102.9d4e5f6a7b8c9d0e@mg.acme.io"}},
+    "delivery-status": {"attempt-no": 1, "message": "", "code": 605, "description": "Not delivering to previously bounced address", "session-seconds": 0},
+    "user-variables": {"rc_message": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e44"}
+  }
+}

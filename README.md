@@ -274,6 +274,7 @@ Authentication**, not in configuration.
 - **The web app** (React 19, TanStack Router and Query, Tailwind 4) is built
   with Vite and embedded in the binary; API types are generated from the
   OpenAPI document.
+- **Adding a provider:** [docs/adapters.md](docs/adapters.md) shows how an adapter is written and contract-tested, and how to map any HTTP API without code.
 
 ## Security
 

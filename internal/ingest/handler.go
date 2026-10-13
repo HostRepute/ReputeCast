@@ -15,6 +15,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -139,6 +140,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sigOK := !errors.Is(verr, providers.ErrBadSignature)
+	var secretHeaders []string
+	if s, ok := prov.(providers.WebhookSecrets); ok {
+		secretHeaders = s.WebhookSecretHeaders()
+	}
 	stored := body
 	if !sigOK && len(stored) > 2048 {
 		stored = stored[:2048] // unverified payloads are kept only for diagnosis
@@ -147,7 +152,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err = db.Tx(ctx, h.Pool, func(tx pgx.Tx) error {
 		if err := store.New(tx).IngestInsertRaw(ctx, store.IngestInsertRawParams{
 			ID: id, WorkspaceID: p.WorkspaceID, ProviderID: p.ID, ReceivedAt: h.now(), ContentType: r.Header.Get("Content-Type"),
-			Body: stored, Headers: keepHeaders(r.Header), SignatureOk: sigOK, Source: "webhook",
+			Body: stored, Headers: keepHeaders(r.Header, secretHeaders...), SignatureOk: sigOK, Source: "webhook",
 		}); err != nil {
 			return err
 		}
@@ -173,13 +178,17 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // keepHeaders stores the request headers parsing may need, never
-// credentials.
-func keepHeaders(h http.Header) json.RawMessage {
+// credentials: neither the standard ones nor the adapter's secret headers
+// named in drop.
+func keepHeaders(h http.Header, drop ...string) json.RawMessage {
 	out := map[string]string{}
 	size := 0
 	for k, v := range h {
 		lk := strings.ToLower(k)
 		if lk == "authorization" || lk == "cookie" || lk == "proxy-authorization" || len(v) == 0 {
+			continue
+		}
+		if slices.ContainsFunc(drop, func(d string) bool { return strings.EqualFold(d, k) }) {
 			continue
 		}
 		val := v[0]
