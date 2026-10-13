@@ -161,9 +161,12 @@ func injectTop(doc, top string) string {
 
 // emailCSP is the policy of an email shown in the browser: inline styles
 // (email HTML is made of them), images and fonts from anywhere, no script,
-// no frames, no forms.
+// no frames, no forms. The stored HTML is the publisher's, so the document
+// is also sandboxed: it gets an opaque origin, and nothing in it could act
+// on ReputeCast's origin (its cookies, its API) even if a script slipped
+// through. Links still open, in the same tab or a new one.
 const emailCSP = "default-src 'none'; img-src 'self' https: http: data:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; " +
-	"form-action 'none'; frame-ancestors 'none'; base-uri 'none'; script-src 'none'"
+	"form-action 'none'; frame-ancestors 'none'; base-uri 'none'; script-src 'none'; sandbox allow-popups allow-popups-to-escape-sandbox"
 
 // emailHeaders sets the headers of an email document. Private documents
 // (view online) are never cached or indexed.

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog, UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
+import { ScrollPre } from '@/components/ui/ScrollPre'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input } from '@/components/ui/Field'
 import { Menu, MenuItem, MenuSeparator, Popover } from '@/components/ui/Menu'
@@ -652,7 +653,9 @@ function EmbedSection({ form }: { form: SignupForm }) {
     <div className="fb-sec">
       <span className="fb-title">Embed code</span>
       <span className="k">Loads a {Math.max(form.urls.scriptKb, 1)} KB script; the form renders with your site's fonts and no iframe.</span>
-      <pre className="fb-pre">{snippet}</pre>
+      <ScrollPre className="fb-pre" label="Embed code">
+        {snippet}
+      </ScrollPre>
       <div className="fb-row flex gap-1.5">
         <Button size="sm" onClick={() => void copy(snippet, 'Script embed')}>
           Copy script embed

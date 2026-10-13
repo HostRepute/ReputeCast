@@ -1076,6 +1076,10 @@ func TestArchive(t *testing.T) {
 		if !strings.Contains(csp, "script-src 'none'") || !strings.Contains(csp, "default-src 'none'") || strings.Contains(csp, "script-src 'self'") {
 			t.Errorf("an issue page never runs scripts: %s", csp)
 		}
+		// The stored email HTML runs in an opaque origin, away from the app's cookies.
+		if !strings.Contains(csp, "sandbox allow-popups") || strings.Contains(csp, "allow-scripts") || strings.Contains(csp, "allow-same-origin") {
+			t.Errorf("an issue page isn't sandboxed: %s", csp)
+		}
 		if strings.Contains(r.Body, "{{") || strings.Contains(r.Body, "first_name |") {
 			t.Error("Liquid tokens are left in the issue")
 		}

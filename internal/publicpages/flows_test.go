@@ -302,8 +302,12 @@ func TestViewOnline(t *testing.T) {
 	if !strings.Contains(r.Body, "/p/acme-newsletter/unsubscribe/") && !strings.Contains(r.Body, "/p/acme-newsletter/preferences/") {
 		t.Error("the email's footer links weren't filled in for Sam")
 	}
+	// The publisher's HTML never runs script, and runs in an opaque origin.
 	csp := r.Header.Get("Content-Security-Policy")
-	if !strings.Contains(csp, "script-src 'none'") || r.Header.Get("Cache-Control") != "no-store" || !strings.Contains(r.Header.Get("X-Robots-Tag"), "noindex") {
+	if !strings.Contains(csp, "script-src 'none'") || !strings.Contains(csp, "sandbox allow-popups") || strings.Contains(csp, "allow-scripts") || strings.Contains(csp, "allow-same-origin") {
+		t.Errorf("view online CSP: %s", csp)
+	}
+	if r.Header.Get("Cache-Control") != "no-store" || !strings.Contains(r.Header.Get("X-Robots-Tag"), "noindex") {
 		t.Errorf("view online headers: %v", r.Header)
 	}
 	for name, tok := range map[string]string{
