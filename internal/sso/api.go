@@ -67,10 +67,8 @@ func Register(h huma.API, s *Service) {
 			SSOProviderPath
 			SSOStartQuery
 		}) (*redirectOut, error) {
-			id, err := uuid.Parse(in.ProviderID)
-			if err != nil {
-				return redirect(s.errorRedirect(ctx, "Single sign-on", nil, "sso", &flowError{Code: "unknown_provider", Detail: "No such SSO provider."}, in.LoginHint)), nil
-			}
+			// An unparsable id is an unknown provider: StartSSO explains it.
+			id, _ := uuid.Parse(in.ProviderID)
 			return redirect(s.StartSSO(ctx, id, in.request())), nil
 		})
 

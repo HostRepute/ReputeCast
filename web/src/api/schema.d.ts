@@ -4899,7 +4899,7 @@ export interface components {
         };
         InstanceDeactivateInput: {
             reason: string;
-            revokeKeys: boolean;
+            revokeKeys?: boolean;
         };
         InstanceDeactivateResult: {
             /** Format: int64 */

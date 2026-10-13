@@ -82,7 +82,8 @@ func seedInstanceImpl(ctx context.Context, s *Seeder) error {
 	if err != nil {
 		return err
 	}
-	googleDiscovery := map[string]any{"ok": true, "checked_at": s.designDay(53, 9, 40), "url": "https://accounts.google.com/.well-known/openid-configuration",
+	googleDiscovery := map[string]any{ //nolint:gosec // G101: public endpoint URLs, not credentials
+		"ok": true, "checked_at": s.designDay(53, 9, 40), "url": "https://accounts.google.com/.well-known/openid-configuration",
 		"status": 200, "ms": 96, "issuer": "https://accounts.google.com", "authorization_endpoint": "https://accounts.google.com/o/oauth2/v2/auth",
 		"token_endpoint": "https://oauth2.googleapis.com/token", "userinfo_endpoint": "https://openidconnect.googleapis.com/v1/userinfo",
 		"jwks_uri": "https://www.googleapis.com/oauth2/v3/certs", "keys": 2}

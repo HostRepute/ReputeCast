@@ -59,7 +59,7 @@ type SocialEndpoints struct {
 }
 
 // DefaultSocialEndpoints are the real providers.
-var DefaultSocialEndpoints = SocialEndpoints{
+var DefaultSocialEndpoints = SocialEndpoints{ //nolint:gosec // G101: public endpoint URLs, not credentials
 	GoogleIssuer:   "https://accounts.google.com",
 	MicrosoftBase:  "https://login.microsoftonline.com",
 	GitHubAuthURL:  "https://github.com/login/oauth/authorize",
@@ -374,5 +374,3 @@ func mustJSON(v any) json.RawMessage {
 	b, _ := json.Marshal(v)
 	return b
 }
-
-func ptr[T any](v T) *T { return &v }

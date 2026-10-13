@@ -20,7 +20,6 @@ import (
 // the signing keys of each provider itself.
 type cachedProvider struct {
 	provider *oidc.Provider
-	doc      discovery
 	at       time.Time
 }
 

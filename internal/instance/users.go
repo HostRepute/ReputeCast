@@ -353,7 +353,7 @@ func (s *Service) SignOut(ctx context.Context, id uuid.UUID, in InstanceUserReas
 type InstanceDeactivateInput struct {
 	Reason string `json:"reason" minLength:"3" maxLength:"500"`
 	// RevokeKeys revokes the API keys and agents the person created.
-	RevokeKeys bool `json:"revokeKeys"`
+	RevokeKeys bool `json:"revokeKeys,omitempty"`
 }
 
 // InstanceDeactivateResult says what the deactivation ended.

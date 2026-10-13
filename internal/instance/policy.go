@@ -187,7 +187,7 @@ func (s *Service) SavePolicy(ctx context.Context, in InstancePolicyInput) (Insta
 			}
 		}
 	}
-	if !in.Methods.Password && !in.Methods.Passkeys && !(in.Methods.SSO && enabledSSO) && !anySocial {
+	if !in.Methods.Password && !in.Methods.Passkeys && (!in.Methods.SSO || !enabledSSO) && !anySocial {
 		return InstancePolicy{}, api.Invalid("body.methods", "Keep at least one way to sign in turned on.")
 	}
 	if err := s.keepsAWayIn(ctx, me, in, enabledSSO); err != nil {

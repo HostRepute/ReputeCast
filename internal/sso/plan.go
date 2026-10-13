@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -132,9 +131,7 @@ func claimStrings(v any) []string {
 	case []string:
 		out = append(out, t...)
 	case string:
-		for _, s := range strings.FieldsFunc(t, func(r rune) bool { return r == ',' || r == ' ' }) {
-			out = append(out, s)
-		}
+		out = append(out, strings.FieldsFunc(t, func(r rune) bool { return r == ',' || r == ' ' })...)
 	}
 	return out
 }
@@ -256,7 +253,7 @@ func (s *Service) plan(ctx context.Context, q *store.Queries, p store.SsoProvide
 			pl.Create = true
 		}
 		if pl.Reject != nil {
-			return pl, nil
+			return pl, nil //nolint:nilerr // a rejection is part of the plan, not a failure
 		}
 	}
 
@@ -396,7 +393,7 @@ func describe(p store.SsoProvider, id identity, pl signInPlan) []SSOTestOutcome 
 	}
 	if pl.GroupsMissing {
 		n := pl.Mappings
-		out = append(out, SSOTestOutcome{Tone: "warn", Label: "Mappings inactive", Detail: fmt.Sprintf("No groups claim · %s don't apply", plural(n, "the group mapping", fmt.Sprintf("the %d group mappings", n)))})
+		out = append(out, SSOTestOutcome{Tone: "warn", Label: "Mappings inactive", Detail: "No groups claim · " + plural(n, "the group mapping doesn't apply", fmt.Sprintf("the %d group mappings don't apply", n))})
 	}
 	mfa := SSOTestOutcome{Tone: "ok", Label: "Two-factor", Detail: pl.MFANote}
 	if !pl.MFA {
@@ -542,11 +539,3 @@ func avatarColor(email string) string {
 }
 
 func isNoRows(err error) bool { return errors.Is(err, pgx.ErrNoRows) }
-
-// timeOrNil returns nil for the zero time.
-func timeOrNil(t time.Time) *time.Time {
-	if t.IsZero() {
-		return nil
-	}
-	return &t
-}

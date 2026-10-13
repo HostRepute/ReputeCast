@@ -103,10 +103,15 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 		return SignInResult{}, nil, api.Err(http.StatusForbidden, "account_deactivated", "This account was deactivated. Ask your instance admin to reactivate it; nothing was deleted.").
 			WithMeta("deactivatedAt", u.DeactivatedAt)
 	}
+	// extra marks break-glass sign-ins under domain enforcement in the audit log.
+	var extra map[string]any
 	if exists {
-		if p, _ := s.enforcingProvider(ctx, email); p != nil && !u.BreakGlass {
-			return SignInResult{}, nil, api.Err(http.StatusForbidden, "sso_required", email[strings.Index(email, "@")+1:]+" signs in with "+p.Name+". Password sign-in is turned off for this domain.").
-				WithMeta("providerId", p.ID.String(), "provider", p.Name, "preset", p.Preset)
+		if p, _ := s.enforcingProvider(ctx, email); p != nil {
+			if !u.BreakGlass {
+				return SignInResult{}, nil, api.Err(http.StatusForbidden, "sso_required", email[strings.Index(email, "@")+1:]+" signs in with "+p.Name+". Password sign-in is turned off for this domain.").
+					WithMeta("providerId", p.ID.String(), "provider", p.Name, "preset", p.Preset)
+			}
+			extra = map[string]any{"break_glass": true, "enforced_by": p.Name}
 		}
 		if !methodAllowed(pol, "password") && !u.BreakGlass {
 			return SignInResult{}, nil, api.Err(http.StatusForbidden, "method_disabled", "Password sign-in is turned off on this instance. Use a passkey or single sign-on.")
@@ -160,14 +165,14 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 			TokenHash: hash,
 			Kind:      "two_factor",
 			UserID:    &uid,
-			Data:      mustJSON(twoFactorChallenge{Remember: remember, Method: "password"}),
+			Data:      mustJSON(twoFactorChallenge{Remember: remember, Method: "password", Extra: extra}),
 			ExpiresAt: s.now().Add(10 * time.Minute),
 		}); err != nil {
 			return SignInResult{}, nil, err
 		}
 		return SignInResult{Status: "two_factor", Challenge: token, Methods: methods, PasskeyHint: hint, Email: u.Email, RecoveryCodesLeft: left, RecoveryCodesTotal: total}, nil, nil
 	}
-	cookie, err := s.completeSignIn(ctx, u, "password", false, remember, nil)
+	cookie, err := s.completeSignInWith(ctx, u, "password", false, remember, nil, extra)
 	if err != nil {
 		return SignInResult{}, nil, err
 	}

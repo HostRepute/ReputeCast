@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"image"
 	"image/png"
@@ -275,6 +276,7 @@ func pngInSVG(p []byte, b image.Rectangle) string {
 var (
 	svgEvent   = regexp.MustCompile(`(?i)\son[a-z]+\s*=`)
 	svgBadHref = regexp.MustCompile(`(?i)(?:xlink:)?href\s*=\s*["'](?:\s*)(?:javascript:|data:(?:text|application)|https?:|//)`)
+	svgCSSURL  = regexp.MustCompile(`(?i)(?:url\(\s*["']?\s*(?:https?:|//|javascript:)|@import)`)
 )
 
 // checkSVG accepts a well-formed SVG without scripts, event handlers,
@@ -288,14 +290,14 @@ func checkSVG(raw []byte) error {
 			return fmt.Errorf("the SVG contains %s, which isn't allowed in a logo", strings.Trim(bad, "<:"))
 		}
 	}
-	if svgEvent.MatchString(string(raw)) || svgBadHref.MatchString(string(raw)) {
+	if svgEvent.MatchString(string(raw)) || svgBadHref.MatchString(string(raw)) || svgCSSURL.MatchString(string(raw)) {
 		return fmt.Errorf("the SVG contains event handlers or external links, which aren't allowed in a logo")
 	}
 	d := xml.NewDecoder(bytes.NewReader(raw))
 	root := ""
 	for {
 		tok, err := d.Token()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

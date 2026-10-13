@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -141,8 +142,7 @@ func formatClaims(c map[string]any) string {
 	var b strings.Builder
 	b.WriteString("{\n")
 	for i, k := range keys {
-		kb, _ := json.Marshal(k)
-		b.WriteString("  " + string(kb) + ": " + claimValue(c[k]))
+		b.WriteString("  " + jsonText(k) + ": " + claimValue(c[k]))
 		if i < len(keys)-1 {
 			b.WriteString(",")
 		}
@@ -156,13 +156,39 @@ func claimValue(v any) string {
 	if arr, ok := v.([]any); ok {
 		parts := make([]string, len(arr))
 		for i, e := range arr {
-			eb, _ := json.Marshal(e)
-			parts[i] = string(eb)
+			parts[i] = claimValue(e)
 		}
 		return "[" + strings.Join(parts, ", ") + "]"
 	}
-	vb, _ := json.Marshal(v)
-	return string(vb)
+	if s, ok := v.(string); ok {
+		v = shortValue(s)
+	}
+	return jsonText(v)
+}
+
+// jsonText is v as JSON without HTML escaping ("&" stays "&").
+func jsonText(v any) string {
+	var b strings.Builder
+	enc := json.NewEncoder(&b)
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(v)
+	return strings.TrimSuffix(b.String(), "\n")
+}
+
+var guidRe = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
+
+// shortValue shortens identifiers in the debug view like the design: a
+// GUID value to 3f2a9d1e-…-c91, a GUID inside a URL to 7c1a…5c6d, and a
+// long opaque subject to its first 24 characters.
+func shortValue(s string) string {
+	if len(s) == 36 && guidRe.MatchString(s) {
+		return shortID(s)
+	}
+	s = guidRe.ReplaceAllStringFunc(s, func(g string) string { return g[:4] + "…" + g[32:] })
+	if len(s) > 32 && !strings.ContainsAny(s, "/@. ") {
+		return s[:24] + "…"
+	}
+	return s
 }
 
 // SSOTestView is the last test sign-in.
@@ -753,9 +779,9 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in SSOProviderInput)
 
 // providerAuditView is what the audit log keeps of a provider (no secret).
 func providerAuditView(p store.SsoProvider) map[string]any {
-	return map[string]any{"name": p.Name, "issuer": p.IssuerUrl, "client_id": p.ClientID, "scopes": p.Scopes, "claims": json.RawMessage(p.ClaimMap),
+	return map[string]any{"name": p.Name, "issuer": p.IssuerUrl, "client_id": p.ClientID, "scopes": p.Scopes, "claims": p.ClaimMap,
 		"allowed_domains": p.AllowedDomains, "jit": p.JitEnabled, "jit_workspace_id": p.JitWorkspaceID, "jit_role": p.JitRoleKey,
-		"group_mappings": json.RawMessage(p.GroupMappings), "enforced": p.EnforceDomains, "status": p.Status}
+		"group_mappings": p.GroupMappings, "enforced": p.EnforceDomains, "status": p.Status}
 }
 
 // validate checks a provider input and returns the update and a summary of
@@ -768,7 +794,7 @@ func (s *Service) validate(ctx context.Context, admin *store.User, before store.
 	}
 	if p.IssuerUrl != "" {
 		u, err := url.Parse(p.IssuerUrl)
-		if err != nil || u.Host == "" || (u.Scheme != "https" && !(u.Scheme == "http" && isLocalHost(u.Hostname()))) {
+		if err != nil || u.Host == "" || (u.Scheme != "https" && (u.Scheme != "http" || !isLocalHost(u.Hostname()))) {
 			return p, nil, api.Invalid("body.issuerUrl", "Enter the issuer as an https URL, like "+PresetFor(before.Preset).IssuerPattern+".")
 		}
 	}
