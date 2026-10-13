@@ -111,14 +111,11 @@ func (s *Service) Policy(ctx context.Context) (InstancePolicy, error) {
 	if locked, err := s.Q.InstanceAdminLockedCount(ctx); err == nil {
 		p.LockedNow = int(max(locked.Users, locked.Emails))
 	}
-	var email string
-	var at time.Time
-	err = s.Pool.QueryRow(ctx, `SELECT target_name, occurred_at FROM audit_events
-		WHERE workspace_id IS NULL AND result = 'denied' AND action = 'signin.rejected'
-		  AND (metadata ->> 'code' = 'domain_not_allowed' OR reason LIKE '%domain not allowed%')
-		ORDER BY occurred_at DESC LIMIT 1`).Scan(&email, &at)
-	if err == nil {
-		p.LastRejection = &InstanceDomainRejection{Email: email, At: at}
+	switch last, err := s.Q.InstanceAdminLastDomainRejection(ctx); {
+	case err == nil:
+		p.LastRejection = &InstanceDomainRejection{Email: last.TargetName, At: last.OccurredAt}
+	case !isNoRows(err):
+		return p, err
 	}
 	return p, nil
 }
@@ -212,20 +209,20 @@ func (s *Service) SavePolicy(ctx context.Context, in InstancePolicyInput) (Insta
 		c.Enabled = toggles[k]
 		cfgs[k] = c
 	}
-	socialJSON, _ := json.Marshal(cfgs)
+	socialJSON, err := json.Marshal(cfgs)
+	if err != nil {
+		return InstancePolicy{}, err
+	}
 	params := store.InstanceAdminSavePolicyParams{
 		AllowedMethods: methods, PasswordMinLength: int32(in.PasswordMinLength), PasswordReuse: int32(in.PasswordReuse), BreachedCheck: in.BreachedCheck,
 		TwofaEnforcement: in.TwoFactor, TwofaGraceDays: int32(in.GraceDays),
 		SessionLifetime: time.Duration(in.SessionLifetimeHours) * time.Hour, SessionIdle: time.Duration(in.SessionIdleMinutes) * time.Minute,
-		LockoutAttempts: int32(in.LockoutAttempts), LockoutMinutes: int32(in.LockoutMinutes), JitDomainAllowlist: domains,
+		LockoutAttempts: int32(in.LockoutAttempts), LockoutMinutes: int32(in.LockoutMinutes), JitDomainAllowlist: domains, SocialProviders: socialJSON,
 	}
 	target, changes := policyChanges(before, in, domains)
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if _, err := q.InstanceAdminSavePolicy(ctx, params); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `UPDATE instance_settings SET social_providers = $1 WHERE id`, socialJSON); err != nil {
 			return err
 		}
 		if len(changes) == 0 {

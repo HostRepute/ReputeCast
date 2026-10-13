@@ -294,10 +294,11 @@ func (s *Service) List(ctx context.Context) (SSOProviderList, error) {
 	return out, nil
 }
 
-// refs are the workspaces and roles names resolve against.
+// refs are the workspaces, roles and lists names resolve against.
 type refs struct {
 	roles  []store.SSOWorkspaceRolesRow
 	owners []store.SSOOwnersRow
+	lists  []store.SSOWorkspaceListsRow
 	users  map[uuid.UUID]int // identities per provider
 }
 
@@ -310,22 +311,31 @@ func (s *Service) loadRefs(ctx context.Context) (refs, error) {
 	if err != nil {
 		return refs{}, err
 	}
-	r := refs{roles: roles, owners: owners, users: map[uuid.UUID]int{}}
-	rows, err := s.Pool.Query(ctx, `SELECT sso_provider_id, count(*) FROM user_identities i JOIN users u ON u.id = i.user_id AND u.status = 'active'
-		WHERE kind = 'sso' GROUP BY 1`)
+	lists, err := s.Q.SSOWorkspaceLists(ctx)
 	if err != nil {
 		return refs{}, err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var id uuid.UUID
-		var n int
-		if err := rows.Scan(&id, &n); err != nil {
-			return refs{}, err
-		}
-		r.users[id] = n
+	counts, err := s.Q.SSOProviderMemberCounts(ctx)
+	if err != nil {
+		return refs{}, err
 	}
-	return r, rows.Err()
+	r := refs{roles: roles, owners: owners, lists: lists, users: map[uuid.UUID]int{}}
+	for _, c := range counts {
+		if c.SsoProviderID != nil {
+			r.users[*c.SsoProviderID] = int(c.Members)
+		}
+	}
+	return r, nil
+}
+
+// listIn reports whether a list belongs to a workspace.
+func (r refs) listIn(ws, list uuid.UUID) bool {
+	for _, l := range r.lists {
+		if l.WorkspaceID == ws && l.ID == list {
+			return true
+		}
+	}
+	return false
 }
 
 func (r refs) role(ws uuid.UUID, key string) (store.SSOWorkspaceRolesRow, bool) {
@@ -521,22 +531,12 @@ func (s *Service) choices(ctx context.Context, r refs, admin *store.User) ([]SSO
 		}
 		out[i].Roles = append(out[i].Roles, c)
 	}
-	rows, err := s.Pool.Query(ctx, `SELECT workspace_id, id, name FROM lists WHERE deleted_at IS NULL ORDER BY created_at`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var ws, id uuid.UUID
-		var name string
-		if err := rows.Scan(&ws, &id, &name); err != nil {
-			return nil, err
-		}
-		if i, ok := index[ws]; ok {
-			out[i].Lists = append(out[i].Lists, SSOListChoice{ID: id.String(), Name: name})
+	for _, l := range r.lists {
+		if i, ok := index[l.WorkspaceID]; ok {
+			out[i].Lists = append(out[i].Lists, SSOListChoice{ID: l.ID.String(), Name: l.Name})
 		}
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
 // canGrant applies the escalation guard: the admin must hold every
@@ -900,10 +900,12 @@ func (s *Service) validate(ctx context.Context, admin *store.User, before store.
 		var scope authz.Scope
 		for _, l := range m.Lists {
 			lid, err := uuid.Parse(l)
-			if err != nil {
-				return p, nil, api.Invalid(loc+".lists", "Unknown list.")
+			if err != nil || !r.listIn(ws, lid) {
+				return p, nil, api.Invalid(loc+".lists", "Pick lists of "+role.WorkspaceName+".")
 			}
-			scope.Lists = append(scope.Lists, lid)
+			if !slices.Contains(scope.Lists, lid) {
+				scope.Lists = append(scope.Lists, lid)
+			}
 		}
 		nm := mapping{Group: group, Label: strings.TrimSpace(m.Label), WorkspaceID: ws, RoleKey: role.RoleKey, Scope: scope}
 		unchanged := slices.ContainsFunc(old, func(o mapping) bool {

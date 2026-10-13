@@ -158,11 +158,8 @@ func (s *Service) AcceptInvitationExternal(ctx context.Context, token string, id
 			user = created
 		}
 		if _, err := q.GetIdentity(ctx, store.GetIdentityParams{Kind: id.Kind, SsoProviderID: id.ProviderID, Subject: id.Subject}); isNoRows(err) {
-			ident, err := q.CreateIdentity(ctx, store.CreateIdentityParams{ID: uuid.Must(uuid.NewV7()), UserID: user.ID, Kind: id.Kind, SsoProviderID: id.ProviderID, Subject: id.Subject, Email: strings.ToLower(id.Email)})
-			if err != nil {
-				return err
-			}
-			if _, err := tx.Exec(ctx, `UPDATE user_identities SET username = $2, details = $3, last_used_at = now() WHERE id = $1`, ident.ID, id.Username, details); err != nil {
+			if _, err := q.SSOCreateIdentity(ctx, store.SSOCreateIdentityParams{ID: uuid.Must(uuid.NewV7()), UserID: user.ID, Kind: id.Kind, SsoProviderID: id.ProviderID,
+				Subject: id.Subject, Email: strings.ToLower(id.Email), Username: id.Username, Details: details}); err != nil {
 				return err
 			}
 		} else if err != nil {

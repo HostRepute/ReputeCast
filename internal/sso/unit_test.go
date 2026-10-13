@@ -95,4 +95,22 @@ func TestDescribe(t *testing.T) {
 	if len(rej) != 1 || rej[0].Detail != "kim@gmail.com: email domain not allowed for Microsoft Entra ID SSO" {
 		t.Fatalf("reject: %+v", rej)
 	}
+
+	// Leaving a mapped group: the membership ends, or falls back to the
+	// JIT default role in the JIT workspace.
+	exits := signInPlan{User: &u, MFA: true, MFANote: "amr includes mfa · counts as two-factor via IdP", Changes: []memberChange{
+		{WorkspaceName: "Acme Engineering Blog", FromKey: "admin", FromName: "Admin", LeftGroup: "Eng Leads", Remove: true, MemberID: &u.ID},
+		{WorkspaceName: "Acme Newsletter", FromKey: "editor", FromName: "Editor", To: store.SSOWorkspaceRolesRow{RoleKey: "viewer", RoleName: "Viewer"}, LeftGroup: "Marketing", MemberID: &u.ID},
+	}}
+	got = got[:0]
+	for _, o := range describe(p, id, exits)[1:3] {
+		got = append(got, o.Tone+" "+o.Label+": "+o.Detail+" ["+o.Strong+"]")
+	}
+	want = []string{
+		"warn Removed: Acme Engineering Blog: leaves the workspace · no longer in group “Eng Leads”, which granted Admin [Admin]",
+		"warn Role change: Acme Newsletter: Editor → Viewer (JIT default) · no longer in group “Marketing” [Editor → Viewer]",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("exits:\n%s", strings.Join(got, "\n"))
+	}
 }

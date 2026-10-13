@@ -7,6 +7,7 @@ import { Button, ButtonAnchor } from '@/components/ui/Button'
 import { CardSection } from '@/components/ui/Card'
 import { ConfirmDialog, UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
+import { Popover } from '@/components/ui/Menu'
 import { Note } from '@/components/ui/Note'
 import { Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
@@ -909,23 +910,7 @@ function MappingsTable({ d, f, set, preset }: CardProps & { preset: Preset }) {
                 </select>
               </Td>
               <Td>
-                {ws && ws.lists.length > 0 ? (
-                  <select
-                    className="in w-[150px]"
-                    value={m.lists?.[0] ?? ''}
-                    aria-label={`Scope for group ${label}`}
-                    onChange={(e) => update(i, { lists: e.target.value ? [e.target.value] : [] })}
-                  >
-                    <option value="">All lists</option>
-                    {ws.lists.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name} only
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="k">all lists</span>
-                )}
+                <ScopePicker lists={ws?.lists ?? []} value={m.lists ?? []} group={label} onChange={(lists) => update(i, { lists })} />
               </Td>
               <Td>
                 <Button size="sm" variant="danger" onClick={() => set({ groupMappings: f.groupMappings.filter((_, j) => j !== i) })}>
@@ -937,6 +922,45 @@ function MappingsTable({ d, f, set, preset }: CardProps & { preset: Preset }) {
         })}
       </tbody>
     </AccessTable>
+  )
+}
+
+/**
+ * A mapping's scope as the board writes it ("all lists", "Weekly Digest
+ * only", "2 lists"): the text opens a picker of the workspace's lists, and
+ * no list picked means every list.
+ */
+function ScopePicker({ lists, value, group, onChange }: { lists: Schemas['SSOListChoice'][]; value: string[]; group: string; onChange: (lists: string[]) => void }) {
+  const picked = lists.filter((l) => value.includes(l.id))
+  const text = picked.length === 0 ? 'all lists' : picked.length === 1 ? `${picked[0]!.name} only` : `${picked.length} lists`
+  if (lists.length === 0) return <span className="k">{text}</span>
+  const toggle = (id: string) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id])
+  return (
+    <Popover
+      align="start"
+      label={`Lists for group ${group}`}
+      className="w-[280px] max-w-[calc(100vw-24px)]"
+      trigger={
+        <button
+          type="button"
+          className="k inline-flex min-h-6 cursor-pointer items-center border-0 bg-transparent p-0 text-left hover:text-ink hover:underline"
+          aria-label={`Scope for group ${group}: ${text}`}
+        >
+          {text}
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-1 p-1">
+        <span className="mh">Lists the role applies to</span>
+        {lists.map((l) => (
+          <label key={l.id} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-ground">
+            <input type="checkbox" checked={value.includes(l.id)} onChange={() => toggle(l.id)} />
+            <span className="flex-1">{l.name}</span>
+          </label>
+        ))}
+        <span className="k border-t border-line-2 px-2.5 pt-2 pb-1">With no list picked, the role covers every list.</span>
+      </div>
+    </Popover>
   )
 }
 

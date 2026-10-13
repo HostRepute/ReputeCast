@@ -128,6 +128,36 @@ WHERE m.workspace_id = @workspace_id AND m.user_id = @user_id;
 -- name: SSOSetMemberRole :exec
 UPDATE workspace_members SET role_id = @role_id, scope = @scope, source = @source WHERE id = @id;
 
+-- name: SSOGroupMemberships :many
+-- A person's active memberships that a group mapping granted, for the
+-- re-application of the mappings at every sign-in.
+SELECT m.id, m.workspace_id, w.name AS workspace_name, m.role_id, m.source, r.key AS role_key, r.name AS role_name, r.builtin AS role_builtin
+FROM workspace_members m
+JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
+JOIN roles r ON r.id = m.role_id
+WHERE m.user_id = @user_id AND m.status = 'active' AND m.source = 'sso_group'
+ORDER BY w.created_at, w.id;
+
+-- name: SSOProviderMemberCounts :many
+-- How many active people sign in with each SSO provider.
+SELECT i.sso_provider_id, count(*)::bigint AS members
+FROM user_identities i
+JOIN users u ON u.id = i.user_id AND u.status = 'active'
+WHERE i.kind = 'sso' AND i.sso_provider_id IS NOT NULL
+GROUP BY i.sso_provider_id;
+
+-- name: SSOSocialIdentityCounts :many
+-- How many people linked each social sign-in provider.
+SELECT kind, count(*)::bigint AS linked FROM user_identities WHERE kind <> 'sso' GROUP BY kind;
+
+-- name: SSOWorkspaceLists :many
+-- The lists a group mapping can be scoped to, per live workspace.
+SELECT l.workspace_id, l.id, l.name
+FROM lists l
+JOIN workspaces w ON w.id = l.workspace_id AND w.deleted_at IS NULL
+WHERE l.deleted_at IS NULL
+ORDER BY l.created_at, l.id;
+
 -- name: SSOCreateMember :exec
 INSERT INTO workspace_members (id, workspace_id, user_id, role_id, scope, source)
 VALUES (@id, @workspace_id, @user_id, @role_id, @scope, @source);

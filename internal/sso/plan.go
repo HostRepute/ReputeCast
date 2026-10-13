@@ -151,6 +151,19 @@ type memberChange struct {
 	Kept string
 	// MemberID of the existing membership.
 	MemberID *uuid.UUID
+	// LeftGroup is set when the person is no longer in the group whose
+	// mapping granted the membership ("Marketing"): the membership ends
+	// (Remove), or, in the JIT workspace, falls back to the default role.
+	LeftGroup string
+	Remove    bool
+}
+
+// grant is the role a sign-in gives in a workspace: the best matching
+// group mapping (the role with most permissions) or the JIT default.
+type grant struct {
+	role  store.SSOWorkspaceRolesRow
+	scope authz.Scope
+	group string
 }
 
 // signInPlan is what a sign-in would do; the test sign-in shows it and a
@@ -270,12 +283,7 @@ func (s *Service) plan(ctx context.Context, q *store.Queries, p store.SsoProvide
 		return store.SSOWorkspaceRolesRow{}, false
 	}
 	// The best matching mapping per workspace: the role with most permissions.
-	type target struct {
-		role  store.SSOWorkspaceRolesRow
-		scope authz.Scope
-		group string
-	}
-	targets := map[uuid.UUID]target{}
+	targets := map[uuid.UUID]grant{}
 	order := []uuid.UUID{}
 	if len(maps) > 0 && !id.GroupsClaim {
 		pl.GroupsMissing = true
@@ -298,14 +306,14 @@ func (s *Service) plan(ctx context.Context, q *store.Queries, p store.SsoProvide
 				order = append(order, m.WorkspaceID)
 			}
 			if !seen || len(authz.Effective(r.RoleKey, r.Builtin, r.Permissions)) > len(authz.Effective(cur.role.RoleKey, cur.role.Builtin, cur.role.Permissions)) {
-				targets[m.WorkspaceID] = target{role: r, scope: m.Scope, group: label}
+				targets[m.WorkspaceID] = grant{role: r, scope: m.Scope, group: label}
 			}
 		}
 	}
 	if pl.Create && p.JitEnabled && p.JitWorkspaceID != nil && p.JitRoleKey != nil {
 		if _, mapped := targets[*p.JitWorkspaceID]; !mapped {
 			if r, ok := role(*p.JitWorkspaceID, *p.JitRoleKey); ok && r.RoleKey != authz.RoleOwner {
-				targets[*p.JitWorkspaceID] = target{role: r}
+				targets[*p.JitWorkspaceID] = grant{role: r}
 				order = append([]uuid.UUID{*p.JitWorkspaceID}, order...)
 			}
 		}
@@ -336,7 +344,64 @@ func (s *Service) plan(ctx context.Context, q *store.Queries, p store.SsoProvide
 		}
 		pl.Changes = append(pl.Changes, c)
 	}
+	exits, err := s.groupExits(ctx, q, p, maps, id, pl.User, targets, role)
+	if err != nil {
+		return pl, err
+	}
+	pl.Changes = append(pl.Changes, exits...)
 	return pl, nil
+}
+
+// groupExits re-applies the mappings to the memberships they granted
+// earlier: when the IdP's groups claim no longer contains a group that
+// maps into a workspace, the role that mapping gave ends. In the JIT
+// workspace the person falls back to the default role; elsewhere the
+// membership is removed. Only memberships a mapping of this provider
+// granted (source sso_group, a role the provider maps to there) change: a
+// role someone set by hand afterwards, an Owner, or a workspace this
+// provider doesn't map into stays as it is. Without a groups claim nothing
+// changes, since the person's groups aren't known.
+func (s *Service) groupExits(ctx context.Context, q *store.Queries, p store.SsoProvider, maps []mapping, id identity, u *store.User,
+	targets map[uuid.UUID]grant, role func(uuid.UUID, string) (store.SSOWorkspaceRolesRow, bool)) ([]memberChange, error) {
+	if !id.GroupsClaim || u == nil || len(maps) == 0 {
+		return nil, nil
+	}
+	rows, err := q.SSOGroupMemberships(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
+	out := []memberChange{}
+	for _, m := range rows {
+		if _, mapped := targets[m.WorkspaceID]; mapped || (m.RoleKey == authz.RoleOwner && m.RoleBuiltin) {
+			continue
+		}
+		left := ""
+		for _, mp := range maps {
+			if mp.WorkspaceID == m.WorkspaceID && mp.RoleKey == m.RoleKey {
+				left = firstNonEmpty(mp.Label, mp.Group)
+				break
+			}
+		}
+		if left == "" {
+			continue
+		}
+		memberID := m.ID
+		c := memberChange{WorkspaceID: m.WorkspaceID, WorkspaceName: m.WorkspaceName, FromKey: m.RoleKey, FromName: m.RoleName, FromSource: m.Source,
+			MemberID: &memberID, LeftGroup: left, Source: "sso_jit"}
+		if p.JitEnabled && p.JitWorkspaceID != nil && *p.JitWorkspaceID == m.WorkspaceID && p.JitRoleKey != nil {
+			if r, ok := role(m.WorkspaceID, *p.JitRoleKey); ok && r.RoleKey != authz.RoleOwner {
+				if r.RoleID == m.RoleID {
+					continue // the default role is the one the group gave
+				}
+				c.To = r
+				out = append(out, c)
+				continue
+			}
+		}
+		c.Remove = true
+		out = append(out, c)
+	}
+	return out, nil
 }
 
 // SSOTestOutcome is one row of "What this sign-in would do".
@@ -371,6 +436,13 @@ func describe(p store.SsoProvider, id identity, pl signInPlan) []SSOTestOutcome 
 			from = " (JIT default)"
 		}
 		switch {
+		case c.Remove:
+			out = append(out, SSOTestOutcome{Tone: "warn", Label: "Removed", Strong: c.FromName,
+				Detail: c.WorkspaceName + ": leaves the workspace · no longer in group “" + c.LeftGroup + "”, which granted " + c.FromName})
+		case c.LeftGroup != "":
+			change := c.FromName + " → " + c.To.RoleName
+			out = append(out, SSOTestOutcome{Tone: "warn", Label: "Role change", Strong: change,
+				Detail: c.WorkspaceName + ": " + change + " (JIT default) · no longer in group “" + c.LeftGroup + "”"})
 		case c.Kept == "owner":
 			out = append(out, SSOTestOutcome{Tone: "neutral", Label: "Role", Detail: c.WorkspaceName + ": stays Owner · mappings never change an Owner"})
 		case c.Kept == "deactivated":
@@ -488,8 +560,14 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, p store.SsoProvider, id 
 		if c.Kept != "" {
 			continue
 		}
-		scope := mustJSON(c.Scope)
 		ws := c.WorkspaceID
+		if c.Remove {
+			if err := s.removeMember(ctx, q, p, u, c); err != nil {
+				return u, err
+			}
+			continue
+		}
+		scope := mustJSON(c.Scope)
 		if c.MemberID == nil {
 			if err := q.SSOCreateMember(ctx, store.SSOCreateMemberParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws, UserID: u.ID, RoleID: c.To.RoleID, Scope: scope, Source: c.Source}); err != nil {
 				return u, err
@@ -506,10 +584,13 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, p store.SsoProvider, id 
 		if c.MemberID != nil {
 			action, before = "member.role_changed", map[string]any{"role": c.FromKey}
 		}
+		meta := map[string]any{"source": c.Source, "group": c.Group, "provider": p.Name, "provider_id": p.ID.String()}
+		if c.LeftGroup != "" {
+			meta["left_group"] = c.LeftGroup
+		}
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws, Action: action, TargetType: "member", TargetID: u.ID.String(), TargetName: displayName(u),
 			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: sourceReason(p, c),
-			Before: before, After: map[string]any{"role": c.To.RoleKey, "scope": c.Scope},
-			Metadata: map[string]any{"source": c.Source, "group": c.Group, "provider": p.Name, "provider_id": p.ID.String()}}); err != nil {
+			Before: before, After: map[string]any{"role": c.To.RoleKey, "scope": c.Scope}, Metadata: meta}); err != nil {
 			return u, err
 		}
 	}
@@ -517,10 +598,36 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, p store.SsoProvider, id 
 }
 
 func sourceReason(p store.SsoProvider, c memberChange) string {
-	if c.Group != "" {
+	switch {
+	case c.LeftGroup != "":
+		return "no longer in " + p.Name + " group “" + c.LeftGroup + "” · just-in-time default role of " + p.Name + " SSO"
+	case c.Group != "":
 		return p.Name + " group “" + c.Group + "” maps to " + c.To.RoleName
 	}
 	return "just-in-time default role of " + p.Name + " SSO"
+}
+
+// removeMember ends a membership whose group mapping no longer matches,
+// like removing a member in Team: the API keys and agents the person
+// created in the workspace stop working too.
+func (s *Service) removeMember(ctx context.Context, q *store.Queries, p store.SsoProvider, u store.User, c memberChange) error {
+	ws := c.WorkspaceID
+	revoked, err := q.TeamRevokeKeysCreatedBy(ctx, store.TeamRevokeKeysCreatedByParams{WorkspaceID: ws, UserID: &u.ID})
+	if err != nil {
+		return err
+	}
+	names := []string{}
+	for _, k := range revoked {
+		names = append(names, k.Name)
+	}
+	if _, err := q.DeleteMember(ctx, store.DeleteMemberParams{ID: *c.MemberID, WorkspaceID: ws}); err != nil {
+		return err
+	}
+	return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws, Action: "member.removed", TargetType: "member", TargetID: c.MemberID.String(), TargetName: displayName(u),
+		Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: "no longer in " + p.Name + " group “" + c.LeftGroup + "”, which granted " + c.FromName,
+		Before:   map[string]any{"email": u.Email, "role": c.FromName, "status": "active"},
+		After:    map[string]any{"keys_revoked": names},
+		Metadata: map[string]any{"source": "sso_group", "group": c.LeftGroup, "provider": p.Name, "provider_id": p.ID.String(), "user_id": u.ID.String()}})
 }
 
 func actorOf(u store.User) *audit.Actor {

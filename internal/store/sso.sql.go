@@ -299,6 +299,57 @@ func (q *Queries) SSODomainUsers(ctx context.Context, arg SSODomainUsersParams) 
 	return items, nil
 }
 
+const sSOGroupMemberships = `-- name: SSOGroupMemberships :many
+SELECT m.id, m.workspace_id, w.name AS workspace_name, m.role_id, m.source, r.key AS role_key, r.name AS role_name, r.builtin AS role_builtin
+FROM workspace_members m
+JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
+JOIN roles r ON r.id = m.role_id
+WHERE m.user_id = $1 AND m.status = 'active' AND m.source = 'sso_group'
+ORDER BY w.created_at, w.id
+`
+
+type SSOGroupMembershipsRow struct {
+	ID            uuid.UUID `json:"id"`
+	WorkspaceID   uuid.UUID `json:"workspaceId"`
+	WorkspaceName string    `json:"workspaceName"`
+	RoleID        uuid.UUID `json:"roleId"`
+	Source        string    `json:"source"`
+	RoleKey       string    `json:"roleKey"`
+	RoleName      string    `json:"roleName"`
+	RoleBuiltin   bool      `json:"roleBuiltin"`
+}
+
+// A person's active memberships that a group mapping granted, for the
+// re-application of the mappings at every sign-in.
+func (q *Queries) SSOGroupMemberships(ctx context.Context, userID uuid.UUID) ([]SSOGroupMembershipsRow, error) {
+	rows, err := q.db.Query(ctx, sSOGroupMemberships, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SSOGroupMembershipsRow{}
+	for rows.Next() {
+		var i SSOGroupMembershipsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.WorkspaceName,
+			&i.RoleID,
+			&i.Source,
+			&i.RoleKey,
+			&i.RoleName,
+			&i.RoleBuiltin,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sSOIdentityUsers = `-- name: SSOIdentityUsers :many
 SELECT i.user_id, i.last_used_at FROM user_identities i WHERE i.kind = 'sso' AND i.sso_provider_id = $1
 `
@@ -560,6 +611,40 @@ func (q *Queries) SSOProviderBySlug(ctx context.Context, slug string) (SsoProvid
 	return i, err
 }
 
+const sSOProviderMemberCounts = `-- name: SSOProviderMemberCounts :many
+SELECT i.sso_provider_id, count(*)::bigint AS members
+FROM user_identities i
+JOIN users u ON u.id = i.user_id AND u.status = 'active'
+WHERE i.kind = 'sso' AND i.sso_provider_id IS NOT NULL
+GROUP BY i.sso_provider_id
+`
+
+type SSOProviderMemberCountsRow struct {
+	SsoProviderID *uuid.UUID `json:"ssoProviderId"`
+	Members       int64      `json:"members"`
+}
+
+// How many active people sign in with each SSO provider.
+func (q *Queries) SSOProviderMemberCounts(ctx context.Context) ([]SSOProviderMemberCountsRow, error) {
+	rows, err := q.db.Query(ctx, sSOProviderMemberCounts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SSOProviderMemberCountsRow{}
+	for rows.Next() {
+		var i SSOProviderMemberCountsRow
+		if err := rows.Scan(&i.SsoProviderID, &i.Members); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sSOProviders = `-- name: SSOProviders :many
 
 SELECT id, preset, name, issuer_url, client_id, client_secret_enc, scopes, claim_map, allowed_domains, jit_enabled, jit_workspace_id, jit_role_key, group_mappings, enforce_domains, status, last_test, discovery, created_at, updated_at, slug, twofa_mode, client_secret_set_at, client_secret_set_by, client_secret_expires_on, enabled_at, created_by FROM sso_providers ORDER BY created_at, id
@@ -808,6 +893,36 @@ func (q *Queries) SSOSignInFailures(ctx context.Context, providerID string) ([]S
 	return items, nil
 }
 
+const sSOSocialIdentityCounts = `-- name: SSOSocialIdentityCounts :many
+SELECT kind, count(*)::bigint AS linked FROM user_identities WHERE kind <> 'sso' GROUP BY kind
+`
+
+type SSOSocialIdentityCountsRow struct {
+	Kind   string `json:"kind"`
+	Linked int64  `json:"linked"`
+}
+
+// How many people linked each social sign-in provider.
+func (q *Queries) SSOSocialIdentityCounts(ctx context.Context) ([]SSOSocialIdentityCountsRow, error) {
+	rows, err := q.db.Query(ctx, sSOSocialIdentityCounts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SSOSocialIdentityCountsRow{}
+	for rows.Next() {
+		var i SSOSocialIdentityCountsRow
+		if err := rows.Scan(&i.Kind, &i.Linked); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sSOTouchIdentity = `-- name: SSOTouchIdentity :exec
 UPDATE user_identities SET last_used_at = now(), email = $1, username = $2, details = $3 WHERE id = $4
 `
@@ -931,6 +1046,41 @@ func (q *Queries) SSOUserIdentityOfKind(ctx context.Context, arg SSOUserIdentity
 		&i.Details,
 	)
 	return i, err
+}
+
+const sSOWorkspaceLists = `-- name: SSOWorkspaceLists :many
+SELECT l.workspace_id, l.id, l.name
+FROM lists l
+JOIN workspaces w ON w.id = l.workspace_id AND w.deleted_at IS NULL
+WHERE l.deleted_at IS NULL
+ORDER BY l.created_at, l.id
+`
+
+type SSOWorkspaceListsRow struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+}
+
+// The lists a group mapping can be scoped to, per live workspace.
+func (q *Queries) SSOWorkspaceLists(ctx context.Context) ([]SSOWorkspaceListsRow, error) {
+	rows, err := q.db.Query(ctx, sSOWorkspaceLists)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SSOWorkspaceListsRow{}
+	for rows.Next() {
+		var i SSOWorkspaceListsRow
+		if err := rows.Scan(&i.WorkspaceID, &i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const sSOWorkspaceRoles = `-- name: SSOWorkspaceRoles :many

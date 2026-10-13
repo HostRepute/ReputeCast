@@ -98,19 +98,13 @@ func (s *Service) SocialProviders(ctx context.Context) ([]SSOSocialProvider, err
 		return nil, err
 	}
 	cfgs, secrets := SocialConfigs(st), s.socialSecrets(st)
-	counts := map[string]int{}
-	rows, err := s.Pool.Query(ctx, `SELECT kind, count(*) FROM user_identities WHERE kind <> 'sso' GROUP BY kind`)
+	rows, err := s.Q.SSOSocialIdentityCounts(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var k string
-		var n int
-		if err := rows.Scan(&k, &n); err != nil {
-			return nil, err
-		}
-		counts[k] = n
+	counts := map[string]int{}
+	for _, r := range rows {
+		counts[r.Kind] = int(r.Linked)
 	}
 	base := s.publicURL(ctx)
 	out := make([]SSOSocialProvider, 0, len(SocialKinds))
@@ -120,7 +114,7 @@ func (s *Service) SocialProviders(ctx context.Context) ([]SSOSocialProvider, err
 			ClientID: c.ClientID, SecretSet: secrets[k] != "", SecretSetAt: c.SecretSetAt, Org: c.Org, Tenant: c.Tenant,
 			RedirectURI: base + SocialRedirectPath(k), Linked: counts[k]})
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
 // SSOSocialInput configures a social provider. The secret is write-only.

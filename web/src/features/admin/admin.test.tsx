@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { instanceAuditTime, setDisplayTimeZone } from '@/lib/format'
+import { dayPartWords, instanceAuditTime, setDisplayTimeZone } from '@/lib/format'
 import { richHint, shortURL } from './sso/hints'
 
 describe('instance audit time', () => {
@@ -8,6 +8,22 @@ describe('instance audit time', () => {
   it('shows seconds today', () => expect(instanceAuditTime('2026-10-12T09:12:03Z', now)).toBe('09:12:03'))
   it('shows the weekday this week', () => expect(instanceAuditTime('2026-10-11T14:02:00Z', now)).toBe('Sun 11 Oct 14:02'))
   it('shows month and day before that', () => expect(instanceAuditTime('2026-09-30T17:10:00Z', now)).toBe('Sep 30 17:10'))
+})
+
+describe('day part words', () => {
+  afterAll(() => setDisplayTimeZone(undefined))
+  const now = new Date('2026-10-12T21:46:00Z')
+  it('names the part of today in the workspace timezone', () => {
+    setDisplayTimeZone('America/New_York')
+    expect(dayPartWords('2026-10-12T13:12:03Z', now)).toBe('this morning')
+    expect(dayPartWords('2026-10-12T19:00:00Z', now)).toBe('this afternoon')
+    expect(dayPartWords('2026-10-12T23:30:00Z', now)).toBe('this evening')
+  })
+  it('says yesterday, then the date', () => {
+    setDisplayTimeZone('America/New_York')
+    expect(dayPartWords('2026-10-11T21:00:00Z', now)).toBe('yesterday')
+    expect(dayPartWords('2026-10-09T13:00:00Z', now)).toBe('on Oct 9')
+  })
 })
 
 describe('SSO preset hints', () => {

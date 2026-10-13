@@ -2,6 +2,7 @@ package sso_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -40,6 +41,16 @@ func TestDiscovery(t *testing.T) {
 	}
 	if p := admin.Do("POST", "/admin/sso/"+d.ID+"/enable", nil).MustStatus(t, 409).Problem(t); p["code"] != "sso_incomplete" {
 		t.Fatalf("enable with failed discovery: %v", p)
+	}
+	// Each test is audited; the issuer change shows before and after.
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'sso.provider.discovery_tested' AND target_id = $1
+		AND metadata->>'summary' = 'issuer changed · discovery failed: returned 404 Not Found' AND after->>'issuer' = $2 AND before->>'issuer' = $3`,
+		d.ID, wrong, idp.Issuer()); n != 1 {
+		t.Fatalf("%d failed discovery tests audited", n)
+	}
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'sso.provider.discovery_tested' AND target_id = $1
+		AND metadata->>'summary' = 'issuer changed · discovery OK · 4 endpoints · 1 signing key'`, d.ID); n != 1 {
+		t.Fatalf("%d passed discovery tests audited", n)
 	}
 
 	// An issuer that doesn't match its document, plain http off localhost,
@@ -263,10 +274,58 @@ func TestGroupMappings(t *testing.T) {
 		t.Fatalf("kenji: %s", got)
 	}
 
+	// Mappings are re-applied at every sign-in: leaving a group ends the
+	// role it gave. Outside the JIT workspace the membership goes; in it,
+	// the JIT default role applies.
+	signIn("sofia@acme.io")
+	if got := role("sofia@acme.io", "acme-engineering-blog"); got != "" {
+		t.Fatalf("sofia left Eng Leads but stays in the blog: %s", got)
+	}
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'member.removed' AND metadata->>'group' = 'Eng Leads' AND actor_type = 'system'
+		AND reason = 'no longer in Test IdP group “Eng Leads”, which granted Admin'`); n != 1 {
+		t.Fatalf("%d removals audited", n)
+	}
+	if got := role("sofia@acme.io", "acme-newsletter"); got != "editor/sso_jit" {
+		t.Fatalf("sofia's newsletter role didn't come from a group: %s", got)
+	}
+	signIn("marcus@acme.io", "unrelated")
+	if got := role("marcus@acme.io", "acme-newsletter"); got != "viewer/sso_jit" {
+		t.Fatalf("marcus falls back to the JIT default: %s", got)
+	}
+	// A role someone set by hand after the mapping stays.
+	signIn("sofia@acme.io", "g-eng-leads")
+	if _, err := env.App.Pool.Exec(context.Background(), `UPDATE workspace_members m SET role_id = r.id FROM roles r, users u
+		WHERE r.workspace_id = m.workspace_id AND r.key = 'editor' AND u.id = m.user_id AND u.email = 'sofia@acme.io' AND m.workspace_id = $1`, eng); err != nil {
+		t.Fatal(err)
+	}
+	signIn("sofia@acme.io")
+	if got := role("sofia@acme.io", "acme-engineering-blog"); got != "editor/sso_group" {
+		t.Fatalf("a role set by hand changed: %s", got)
+	}
+	// Without a groups claim the person's groups aren't known: nothing changes.
+	idp.Claims = map[string]any{"sub": "sub-daniel@acme.io", "email": "daniel@acme.io", "email_verified": true, "amr": []string{"mfa"}}
+	b := newBrowser(t, env)
+	b.follow("/api/v1/auth/sso/" + d.ID + "/start")
+	if b.me() != "daniel@acme.io" {
+		t.Fatalf("daniel didn't sign in: %v", b.Visited)
+	}
+	if got := role("daniel@acme.io", "acme-newsletter"); got != "editor/sso_group" {
+		t.Fatalf("daniel without a groups claim: %s", got)
+	}
+
 	// Owner can never be mapped, and the escalation guard stops admins
 	// from granting roles they don't hold.
 	body := providerBody(env, t, idp)
 	body["allowedDomains"] = []string{"acme.io"}
+	// A scope only takes lists of the mapping's workspace.
+	var digest string
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT id::text FROM lists WHERE workspace_id = $1 AND name = 'Weekly Digest'`, newsletter).Scan(&digest); err != nil {
+		t.Fatal(err)
+	}
+	body["groupMappings"] = []map[string]any{{"group": "g-x", "workspaceId": eng, "roleKey": "viewer", "lists": []string{digest}}}
+	if p := admin.Do("PUT", "/admin/sso/"+d.ID, body).MustStatus(t, 422).Problem(t); !strings.Contains(fmt.Sprint(p), "Pick lists of Acme Engineering Blog") {
+		t.Fatalf("list of another workspace: %v", p)
+	}
 	body["groupMappings"] = []map[string]any{{"group": "g-x", "workspaceId": newsletter, "roleKey": "owner"}}
 	if p := admin.Do("PUT", "/admin/sso/"+d.ID, body).MustStatus(t, 403).Problem(t); p["code"] != "escalation_denied" {
 		t.Fatalf("owner mapping: %v", p)

@@ -121,9 +121,16 @@ function InstanceForm({ s }: { s: Schemas['InstanceSettings'] }) {
           </Button>
         </div>
         <span className="k font-medium" id="inst-url-hint">
-          Used for provider webhooks, SSO redirect URIs and public pages. Changing it re-registers webhooks at every provider that supports it and warns about the rest.
+          Used for SSO redirect URIs, sign-in links and system emails. Provider webhooks, tracking links and public pages use the server&apos;s http.public_url; keep
+          both on the same address.
         </span>
       </label>
+      {s.configPublicUrl && trimSlash(url) !== trimSlash(s.configPublicUrl) ? (
+        <Note tone="warn" label="Server setting">
+          The server runs with http.public_url = <span className="mono">{s.configPublicUrl}</span>. Provider webhooks, tracking links and public pages keep using it
+          until you set REPUTECAST_HTTP__PUBLIC_URL to the same address and restart.
+        </Note>
+      ) : null}
       <LogoRow s={s} />
       {check ? <URLCheckPanel check={check} /> : null}
       {error ? (
@@ -154,6 +161,8 @@ function InstanceForm({ s }: { s: Schemas['InstanceSettings'] }) {
     </div>
   )
 }
+
+const trimSlash = (u: string) => u.trim().replace(/\/+$/, '')
 
 function URLCheckPanel({ check }: { check: Schemas['URLCheck'] }) {
   const lines: [string, Schemas['CheckLine']][] = [
@@ -302,9 +311,14 @@ function Version({ v }: { v: Schemas['InstanceVersion'] }) {
               </span>
               <span className="k">
                 Released {usDate(latest.publishedAt)} ·{' '}
-                <a href={latest.url} target="_blank" rel="noopener noreferrer">
-                  changelog on GitHub
-                </a>
+                {latest.demo ? (
+                  // The demo's sample release isn't on GitHub: say so instead of linking.
+                  'sample release from the demo data'
+                ) : (
+                  <a href={latest.url} target="_blank" rel="noopener noreferrer">
+                    changelog on GitHub
+                  </a>
+                )}
               </span>
             </>
           ) : (

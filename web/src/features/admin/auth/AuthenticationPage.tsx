@@ -9,7 +9,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { AccessTable, ProviderMark } from '@/features/access/parts'
-import { andList, usDate } from '@/lib/format'
+import { andList, dayPartWords } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { AdminPage } from '../AdminPage'
 import { SocialSettingsDialog } from './SocialSettingsDialog'
@@ -472,23 +472,12 @@ function AllowlistCard({ p, v, set }: { p: Policy; v: Input; set: (x: Partial<In
         <span className="k">
           Applies to just-in-time accounts from SSO. Invited people can use any email.{' '}
           {v.jitDomains.length === 0 ? 'With no domain listed, any domain an SSO provider allows can get an account.' : 'Sign-ins from other domains are rejected and logged'}
-          {v.jitDomains.length > 0 && last ? ` (for example ${last.email} ${whenWords(last.at)})` : ''}
+          {v.jitDomains.length > 0 && last ? ` (for example ${last.email} ${dayPartWords(last.at)})` : ''}
           {v.jitDomains.length > 0 ? '.' : ''}
         </span>
       </div>
     </section>
   )
-}
-
-/** "this morning", "yesterday", "on Oct 9". */
-function whenWords(at: string) {
-  const d = new Date(at)
-  const now = new Date()
-  if (d.toDateString() === now.toDateString()) return d.getHours() < 12 ? 'this morning' : d.getHours() < 18 ? 'this afternoon' : 'this evening'
-  const y = new Date(now)
-  y.setDate(now.getDate() - 1)
-  if (d.toDateString() === y.toDateString()) return 'yesterday'
-  return `on ${usDate(at).replace(/, \d{4}$/, '')}`
 }
 
 export function ssoStatusBadge(status: string) {

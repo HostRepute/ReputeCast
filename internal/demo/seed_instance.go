@@ -120,8 +120,8 @@ func seedInstanceImpl(ctx context.Context, s *Seeder) error {
 		created_by, created_at, updated_at)
 		VALUES ($1, 'entra', 'Microsoft Entra ID', $2, 'a9f3c1e2-4b7d-4e8f-9a0b-1c2d3e4f5a6b', $3, $4, $5, $6, ARRAY['openid', 'profile', 'email'],
 		'{"email":"email","email_verified":"email_verified","name":"name","groups":"groups"}', ARRAY['acme.io'], true, $7, 'viewer', $8, 'draft', $9, $10, $5, $11, $12)`,
-		entra, issuer, eSecret, s.designDay(1, 14, 0), linh.ID, s.designDay(-180, 0, 0), newsletter.ID, instanceJSON(mappings),
-		instanceJSON(entraDiscovery), instanceJSON(test), s.designDay(1, 13, 30), s.designDay(1, 14, 2)); err != nil {
+		entra, issuer, eSecret, s.instanceDay(1, 14, 0), linh.ID, s.instanceDay(-180, 0, 0), newsletter.ID, instanceJSON(mappings),
+		instanceJSON(entraDiscovery), instanceJSON(test), s.instanceDay(1, 13, 30), s.instanceDay(1, 14, 2)); err != nil {
 		return err
 	}
 	s.Extra["sso:entra"] = entra
@@ -173,32 +173,32 @@ func seedInstanceAudit(ctx context.Context, s *Seeder, google, entra uuid.UUID) 
 	tom := s.Users["tom@acme.io"]
 	linh := s.Users["linh@acme.io"]
 	events := []instanceAudit{
-		{at: s.designDay(0, 9, 41).Add(12 * time.Second), actor: "linh@acme.io", action: "signin.succeeded", targetType: "user", targetID: linh.ID.String(), targetName: "linh@acme.io",
+		{at: s.Ago(48 * time.Second), actor: "linh@acme.io", action: "signin.succeeded", targetType: "user", targetID: linh.ID.String(), targetName: "linh@acme.io",
 			ip: "203.0.113.9", ua: chrome, meta: m("method", "password+totp", "summary", "Password + TOTP · break-glass Owner", "source", "auth", "via", "203.0.113.9")},
-		{at: s.designDay(0, 9, 12).Add(3 * time.Second), action: "signin.rejected", targetType: "user", targetName: "kim@gmail.com", result: "denied",
+		{at: s.Ago(29*time.Minute + 57*time.Second), action: "signin.rejected", targetType: "user", targetName: "kim@gmail.com", result: "denied",
 			reason: "email domain not allowed for Google Workspace SSO", ip: "203.0.113.77",
 			meta: m("method", "sso", "provider", "Google Workspace", "provider_id", google.String(), "code", "domain_not_allowed", "reference", "auth_7f3k9dqe",
 				"summary", "Google Workspace SSO · email domain not allowed · reference auth_7f3k9dqe", "source", "auth", "via", "203.0.113.77")},
-		{at: s.designDay(0, 8, 55).Add(40 * time.Second), actor: "marcus@acme.io", action: "signin.succeeded", targetType: "user", targetName: "marcus@acme.io", ip: "198.51.100.40", ua: chrome,
+		{at: s.Ago(46*time.Minute + 20*time.Second), actor: "marcus@acme.io", action: "signin.succeeded", targetType: "user", targetName: "marcus@acme.io", ip: "198.51.100.40", ua: chrome,
 			meta: m("method", "sso", "provider", "Google Workspace", "provider_id", google.String(), "amr", "pwd+mfa",
 				"summary", "Google Workspace SSO · amr pwd+mfa · workspace Acme Newsletter", "source", "auth", "via", "198.51.100.40")},
-		{at: s.designDay(1, 14, 2), actor: "linh@acme.io", action: "sso.provider.updated", targetType: "sso_provider", targetID: entra.String(), targetName: "Microsoft Entra ID",
+		{at: s.instanceDay(1, 14, 2), actor: "linh@acme.io", action: "sso.provider.updated", targetType: "sso_provider", targetID: entra.String(), targetName: "Microsoft Entra ID",
 			ip: "203.0.113.9", ua: chrome, meta: m("summary", "draft saved · client secret replaced · 2 group mappings", "secret_replaced", true),
 			before: m("group_mappings", 0, "status", "draft"), after: m("group_mappings", 2, "status", "draft")},
-		{at: s.designDay(1, 13, 48), actor: "linh@acme.io", action: "policy.updated", targetType: "instance_policy", targetName: "Two-factor enforcement", ip: "203.0.113.9", ua: chrome,
+		{at: s.instanceDay(1, 13, 48), actor: "linh@acme.io", action: "policy.updated", targetType: "instance_policy", targetName: "Two-factor enforcement", ip: "203.0.113.9", ua: chrome,
 			meta: m("summary", "required for sensitive permissions · grace 7 days (was 14)"), before: m("two_factor", "sensitive", "grace_days", 14), after: m("two_factor", "sensitive", "grace_days", 7)},
-		{at: s.designDay(1, 17, 20), actor: "aisha@acme.io", action: "signin.failed", targetType: "user", targetName: "aisha@acme.io", result: "denied", reason: "wrong password",
+		{at: s.instanceDay(1, 17, 20), actor: "aisha@acme.io", action: "signin.failed", targetType: "user", targetName: "aisha@acme.io", result: "denied", reason: "wrong password",
 			ip: "198.51.100.77", meta: m("method", "password", "summary", "wrong password · attempt 1 of 10", "source", "auth", "via", "198.51.100.77")},
-		{at: s.designDay(1, 17, 21), actor: "aisha@acme.io", action: "signin.failed", targetType: "user", targetName: "aisha@acme.io", result: "denied", reason: "wrong password",
+		{at: s.instanceDay(1, 17, 21), actor: "aisha@acme.io", action: "signin.failed", targetType: "user", targetName: "aisha@acme.io", result: "denied", reason: "wrong password",
 			ip: "198.51.100.77", meta: m("method", "password", "summary", "wrong password · attempt 2 of 10", "source", "auth", "via", "198.51.100.77")},
-		{at: s.designDay(1, 17, 22), actor: "aisha@acme.io", action: "signin.failed", targetType: "user", targetName: "aisha@acme.io", result: "denied", reason: "wrong password",
+		{at: s.instanceDay(1, 17, 22), actor: "aisha@acme.io", action: "signin.failed", targetType: "user", targetName: "aisha@acme.io", result: "denied", reason: "wrong password",
 			ip: "198.51.100.77", meta: m("method", "password", "summary", "wrong password · attempt 3 of 10", "source", "auth", "via", "198.51.100.77")},
-		{at: s.designDay(1, 17, 24), actor: "aisha@acme.io", action: "signin.succeeded", targetType: "user", targetName: "aisha@acme.io", ip: "198.51.100.77",
+		{at: s.instanceDay(1, 17, 24), actor: "aisha@acme.io", action: "signin.succeeded", targetType: "user", targetName: "aisha@acme.io", ip: "198.51.100.77",
 			meta: m("method", "password", "summary", "Password · after 3 failed attempts", "source", "auth", "via", "198.51.100.77")},
-		{at: s.designDay(12, 17, 10), actor: "linh@acme.io", action: "user.deactivated", targetType: "user", targetID: tom.ID.String(), targetName: "Tom Becker · tom@acme.io",
+		{at: s.instanceDay(12, 17, 10), actor: "linh@acme.io", action: "user.deactivated", targetType: "user", targetID: tom.ID.String(), targetName: "Tom Becker · tom@acme.io",
 			reason: "left the company", ip: "203.0.113.9", ua: chrome, meta: m("summary", "reason: left the company · 1 API key revoked · 2 sessions ended"),
 			before: m("status", "active"), after: m("status", "deactivated")},
-		{at: s.designDay(12, 17, 8), actor: "linh@acme.io", action: "instance_admin.granted", targetType: "user", targetID: linh.ID.String(), targetName: "Linh Nguyen",
+		{at: s.instanceDay(12, 17, 8), actor: "linh@acme.io", action: "instance_admin.granted", targetType: "user", targetID: linh.ID.String(), targetName: "Linh Nguyen",
 			ip: "203.0.113.9", ua: chrome, meta: m("summary", "break-glass Owner marked for acme.io enforcement"), before: m("break_glass", false), after: m("break_glass", true)},
 	}
 	for _, e := range events {
@@ -239,4 +239,17 @@ func seedInstanceAudit(ctx context.Context, s *Seeder, google, entra uuid.UUID) 
 func instanceJSON(v any) json.RawMessage {
 	b, _ := json.Marshal(v)
 	return b
+}
+
+// instanceDay is daysAgo days before today at hour:minute in the demo's
+// timezone (America/New_York), so yesterday's sample events read
+// "yesterday" whatever the hour the demo was loaded. Today's events use
+// s.Ago instead, which is never in the future.
+func (s *Seeder) instanceDay(daysAgo, hour, minute int) time.Time {
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		loc = time.UTC
+	}
+	n := s.Now.In(loc)
+	return time.Date(n.Year(), n.Month(), n.Day()-daysAgo, hour, minute, 0, 0, loc)
 }

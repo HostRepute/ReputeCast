@@ -180,6 +180,14 @@ func (s *Service) loadUsers(ctx context.Context, me *store.User) ([]InstanceUser
 	for _, i := range idents {
 		idsByUser[i.UserID] = append(idsByUser[i.UserID], i)
 	}
+	sole, err := s.Q.InstanceAdminSoleOwners(ctx)
+	if err != nil {
+		return nil, err
+	}
+	soleOf := map[uuid.UUID][]string{}
+	for _, o := range sole {
+		soleOf[o.UserID] = append(soleOf[o.UserID], o.Name)
+	}
 	type sorted struct {
 		u    InstanceUser
 		rank int
@@ -187,7 +195,7 @@ func (s *Service) loadUsers(ctx context.Context, me *store.User) ([]InstanceUser
 	}
 	list := make([]sorted, 0, len(rows))
 	for _, r := range rows {
-		u := s.userView(ctx, r, byUser[r.ID], idsByUser[r.ID], st, me)
+		u := s.userView(r, byUser[r.ID], idsByUser[r.ID], soleOf[r.ID], st, me)
 		rank := 5
 		for _, m := range byUser[r.ID] {
 			if m.Status == "active" {
@@ -215,10 +223,10 @@ func (s *Service) loadUsers(ctx context.Context, me *store.User) ([]InstanceUser
 	return out, nil
 }
 
-func (s *Service) userView(ctx context.Context, r store.InstanceAdminUsersRow, ms []store.InstanceAdminMembershipsRow, ids []store.InstanceAdminIdentitiesRow, st store.InstanceSetting, me *store.User) InstanceUser {
+func (s *Service) userView(r store.InstanceAdminUsersRow, ms []store.InstanceAdminMembershipsRow, ids []store.InstanceAdminIdentitiesRow, soleOwnerOf []string, st store.InstanceSetting, me *store.User) InstanceUser {
 	u := InstanceUser{ID: r.ID.String(), Email: r.Email, Name: displayName(r.Name, r.Email), AvatarColor: r.AvatarColor, InstanceAdmin: r.IsInstanceAdmin,
 		BreakGlass: r.BreakGlass, Workspaces: []InstanceUserWorkspace{}, LastSignInAt: r.LastSignInAt,
-		Status: r.Status, DeactivatedAt: r.DeactivatedAt, Sessions: int(r.Sessions), APIKeys: int(r.ApiKeys), SoleOwnerOf: []string{},
+		Status: r.Status, DeactivatedAt: r.DeactivatedAt, Sessions: int(r.Sessions), APIKeys: int(r.ApiKeys), SoleOwnerOf: append([]string{}, soleOwnerOf...),
 		HasPassword: r.HasPassword, Self: me != nil && me.ID == r.ID}
 	if r.AvatarUpdatedAt != nil {
 		u.AvatarURL = fmt.Sprintf("/api/v1/users/%s/avatar?v=%d", r.ID, r.AvatarUpdatedAt.Unix())
@@ -257,11 +265,6 @@ func (s *Service) userView(ctx context.Context, r store.InstanceAdminUsersRow, m
 		GraceUntil: r.TwofaGraceUntil, Required: requiresTwoFactor(st, ms), Now: s.now()})
 	if r.Status != "active" {
 		u.Methods = []access.MemberSignInMethod{}
-	}
-	if sole, err := s.Q.InstanceAdminSoleOwnerships(ctx, r.ID); err == nil {
-		for _, w := range sole {
-			u.SoleOwnerOf = append(u.SoleOwnerOf, w.Name)
-		}
 	}
 	return u
 }
@@ -383,7 +386,7 @@ func (s *Service) Deactivate(ctx context.Context, id uuid.UUID, in InstanceDeact
 	}
 	if u.IsInstanceAdmin {
 		if n, err := s.Q.InstanceAdminCountAdmins(ctx); err == nil && n <= 1 {
-			return InstanceDeactivateResult{}, api.Err(http.StatusConflict, "last_admin", displayName(u.Name, u.Email)+" is the last instance admin. Make someone else an instance admin first.")
+			return InstanceDeactivateResult{}, lastAdmin(u)
 		}
 	}
 	if sole, err := s.Q.InstanceAdminSoleOwnerships(ctx, id); err == nil && len(sole) > 0 {
@@ -400,6 +403,11 @@ func (s *Service) Deactivate(ctx context.Context, id uuid.UUID, in InstanceDeact
 	var res InstanceDeactivateResult
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
+		if u.IsInstanceAdmin {
+			if err := keepsAnAdmin(ctx, q, u); err != nil {
+				return err
+			}
+		}
 		at := s.now()
 		if n, err := q.InstanceAdminDeactivateUser(ctx, store.InstanceAdminDeactivateUserParams{ID: id, At: &at}); err != nil {
 			return err
@@ -691,17 +699,8 @@ func (s *Service) SetInstanceAdmin(ctx context.Context, id uuid.UUID, in Instanc
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if !in.Admin {
-			// Counted inside the transaction so two admins removing each
-			// other can't both succeed.
-			if _, err := tx.Exec(ctx, `LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE`); err != nil {
+			if err := keepsAnAdmin(ctx, q, u); err != nil {
 				return err
-			}
-			n, err := q.InstanceAdminCountAdmins(ctx)
-			if err != nil {
-				return err
-			}
-			if n <= 1 {
-				return api.Err(http.StatusConflict, "last_admin", displayName(u.Name, u.Email)+" is the last instance admin. Make someone else an instance admin first.")
 			}
 		}
 		if err := q.SetUserInstanceAdmin(ctx, store.SetUserInstanceAdminParams{ID: id, IsInstanceAdmin: in.Admin}); err != nil {
@@ -714,4 +713,23 @@ func (s *Service) SetInstanceAdmin(ctx context.Context, id uuid.UUID, in Instanc
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: action, TargetType: "user", TargetID: id.String(), TargetName: displayName(u.Name, u.Email),
 			Before: map[string]any{"instance_admin": u.IsInstanceAdmin}, After: map[string]any{"instance_admin": in.Admin}})
 	})
+}
+
+// keepsAnAdmin refuses to take away the last active instance admin. It
+// locks the admins' rows, so two admins removing (or deactivating) each
+// other at the same time can't both succeed: the second waits for the
+// first and then sees one admin left.
+func keepsAnAdmin(ctx context.Context, q *store.Queries, u store.InstanceAdminUserRow) error {
+	admins, err := q.InstanceAdminLockAdmins(ctx)
+	if err != nil {
+		return err
+	}
+	if slices.Contains(admins, u.ID) && len(admins) <= 1 {
+		return lastAdmin(u)
+	}
+	return nil
+}
+
+func lastAdmin(u store.InstanceAdminUserRow) error {
+	return api.Err(http.StatusConflict, "last_admin", displayName(u.Name, u.Email)+" is the last instance admin. Make someone else an instance admin first.")
 }

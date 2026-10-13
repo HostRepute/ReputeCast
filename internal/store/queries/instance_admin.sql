@@ -52,8 +52,29 @@ WHERE m.user_id = @user_id AND m.status = 'active'
     WHERE m2.workspace_id = m.workspace_id AND m2.status = 'active' AND m2.user_id <> m.user_id)
 ORDER BY w.created_at;
 
+-- name: InstanceAdminSoleOwners :many
+-- Every person who is the only active Owner of a live workspace, with the
+-- workspace (the users list reads them in one query).
+SELECT m.user_id, w.name
+FROM workspace_members m
+JOIN roles r ON r.id = m.role_id AND r.key = 'owner' AND r.builtin
+JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
+WHERE m.status = 'active'
+  AND NOT EXISTS (
+    SELECT 1 FROM workspace_members m2
+    JOIN roles r2 ON r2.id = m2.role_id AND r2.key = 'owner' AND r2.builtin
+    JOIN users u2 ON u2.id = m2.user_id AND u2.status = 'active'
+    WHERE m2.workspace_id = m.workspace_id AND m2.status = 'active' AND m2.user_id <> m.user_id)
+ORDER BY w.created_at, w.id;
+
 -- name: InstanceAdminCountAdmins :one
 SELECT count(*) FROM users WHERE is_instance_admin AND status = 'active';
+
+-- name: InstanceAdminLockAdmins :many
+-- The active instance admins, locked until the transaction ends: two admins
+-- removing (or deactivating) each other can't both succeed, because the
+-- second waits and then re-reads who is still an admin.
+SELECT id FROM users WHERE is_instance_admin AND status = 'active' ORDER BY id FOR UPDATE;
 
 -- name: InstanceAdminAdminNames :many
 SELECT id, name, email FROM users WHERE is_instance_admin AND status = 'active' ORDER BY created_at;
@@ -152,8 +173,11 @@ RETURNING id, name;
 -- Instance settings, logo, public URL check and updates -----------------------
 
 -- name: InstanceAdminSaveSettings :one
+-- A new public URL drops the last URL check, which describes the old one.
 UPDATE instance_settings
-SET name = @name, public_url = @public_url, default_timezone = @default_timezone, updated_at = now()
+SET name = @name, public_url = @public_url, default_timezone = @default_timezone, updated_at = now(),
+    public_url_check = CASE WHEN public_url = @public_url THEN public_url_check END,
+    public_url_checked_at = CASE WHEN public_url = @public_url THEN public_url_checked_at END
 WHERE id
 RETURNING *;
 
@@ -179,9 +203,19 @@ UPDATE instance_settings
 SET allowed_methods = @allowed_methods, password_min_length = @password_min_length, password_reuse = @password_reuse,
     breached_check = @breached_check, twofa_enforcement = @twofa_enforcement, twofa_grace_days = @twofa_grace_days,
     session_lifetime = @session_lifetime, session_idle = @session_idle, lockout_attempts = @lockout_attempts,
-    lockout_minutes = @lockout_minutes, jit_domain_allowlist = @jit_domain_allowlist, updated_at = now()
+    lockout_minutes = @lockout_minutes, jit_domain_allowlist = @jit_domain_allowlist, social_providers = @social_providers,
+    updated_at = now()
 WHERE id
 RETURNING *;
+
+-- name: InstanceAdminLastDomainRejection :one
+-- The latest sign-in turned away because of its email domain (the
+-- allowlist's "for example kim@gmail.com this morning").
+SELECT target_name, occurred_at FROM audit_events
+WHERE workspace_id IS NULL AND result = 'denied' AND action = 'signin.rejected'
+  AND (metadata ->> 'code' = 'domain_not_allowed' OR reason LIKE '%domain not allowed%')
+ORDER BY occurred_at DESC
+LIMIT 1;
 
 -- name: InstanceAdminSaveSocial :exec
 UPDATE instance_settings

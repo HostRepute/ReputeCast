@@ -2,6 +2,7 @@ package sso
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"slices"
@@ -40,7 +41,19 @@ func (s *Service) TestDiscovery(ctx context.Context, id uuid.UUID, in SSODiscove
 		// A live provider keeps its issuer: a typo here mustn't lock people out.
 		issuer = p.IssuerUrl
 	}
-	if err := s.Q.SSOSetDiscovery(ctx, store.SSOSetDiscoveryParams{ID: id, Discovery: mustJSON(d), IssuerUrl: issuer}); err != nil {
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := q.SSOSetDiscovery(ctx, store.SSOSetDiscoveryParams{ID: id, Discovery: mustJSON(d), IssuerUrl: issuer}); err != nil {
+			return err
+		}
+		ev := audit.Event{Action: "sso.provider.discovery_tested", TargetType: "sso_provider", TargetID: id.String(), TargetName: p.Name,
+			Metadata: map[string]any{"url": d.URL, "status": d.Status, "ms": d.Millis, "ok": d.OK, "summary": discoverySummary(d, issuer != p.IssuerUrl)}}
+		if issuer != p.IssuerUrl {
+			ev.Before, ev.After = map[string]any{"issuer": p.IssuerUrl}, map[string]any{"issuer": issuer}
+		}
+		return s.Audit.LogWith(ctx, q, ev)
+	})
+	if err != nil {
 		return SSOProviderDetail{}, err
 	}
 	s.forget(issuer)
@@ -57,6 +70,27 @@ func (s *Service) TestDiscovery(ctx context.Context, id uuid.UUID, in SSODiscove
 		out.Discovery.URL = d.URL
 	}
 	return out, nil
+}
+
+// discoverySummary describes a discovery test for the audit log:
+// "discovery OK · 4 endpoints · 3 signing keys", or why it failed.
+func discoverySummary(d discovery, issuerChanged bool) string {
+	parts := []string{}
+	if issuerChanged {
+		parts = append(parts, "issuer changed")
+	}
+	if d.OK {
+		n := 0
+		for _, e := range []string{d.AuthURL, d.TokenURL, d.UserInfo, d.JWKSURL} {
+			if e != "" {
+				n++
+			}
+		}
+		parts = append(parts, "discovery OK", fmt.Sprintf("%d endpoints", n), fmt.Sprintf("%d signing %s", d.Keys, plural(d.Keys, "key", "keys")))
+	} else {
+		parts = append(parts, "discovery failed: "+strings.TrimSuffix(d.Error, "."))
+	}
+	return strings.Join(parts, " · ")
 }
 
 // SSOTestStart is where the test sign-in popup goes.

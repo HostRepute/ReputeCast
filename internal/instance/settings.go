@@ -35,8 +35,10 @@ type InstanceSettings struct {
 	LogoSVG string `json:"logoSvg,omitempty"`
 	// URLCheck is the last public URL check.
 	URLCheck *accounts.URLCheck `json:"urlCheck,omitempty"`
-	// ConfigPublicURL is the URL the server was started with, used until
-	// one is saved here.
+	// ConfigPublicURL is the URL the server was started with
+	// (http.public_url). Provider webhooks, tracking links and public pages
+	// are built on it (App.URLs); SSO redirect URIs, sign-in links and system
+	// emails use PublicURL, falling back to it.
 	ConfigPublicURL string `json:"configPublicUrl,omitempty"`
 }
 
@@ -92,15 +94,10 @@ func (s *Service) SaveSettings(ctx context.Context, in InstanceSettingsInput) (I
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
+		// A new URL also drops the last URL check, which describes the old one.
 		after, err := q.InstanceAdminSaveSettings(ctx, store.InstanceAdminSaveSettingsParams{Name: name, PublicUrl: pub, DefaultTimezone: tz})
 		if err != nil {
 			return err
-		}
-		if before.PublicUrl != after.PublicUrl {
-			// The old check describes another URL.
-			if _, err := tx.Exec(ctx, `UPDATE instance_settings SET public_url_check = NULL, public_url_checked_at = NULL WHERE id`); err != nil {
-				return err
-			}
 		}
 		var changes []string
 		if before.Name != after.Name {
@@ -285,13 +282,16 @@ var (
 // emails and downloads too.
 func checkSVG(raw []byte) error {
 	lower := strings.ToLower(string(raw))
-	for _, bad := range []string{"<script", "<foreignobject", "<!entity", "<iframe", "<embed", "<object", "javascript:"} {
-		if strings.Contains(lower, bad) {
-			return fmt.Errorf("the SVG contains %s, which isn't allowed in a logo", strings.Trim(bad, "<:"))
+	for _, bad := range []struct{ token, what string }{
+		{"<script", "a script"}, {"<foreignobject", "embedded HTML"}, {"<!entity", "an XML entity"}, {"<iframe", "an iframe"},
+		{"<embed", "embedded content"}, {"<object", "embedded content"}, {"javascript:", "a javascript: link"},
+	} {
+		if strings.Contains(lower, bad.token) {
+			return fmt.Errorf("The SVG contains %s, which isn't allowed in a logo. Export it again as a plain image.", bad.what) //nolint:staticcheck // ST1005: shown to people as a sentence
 		}
 	}
 	if svgEvent.MatchString(string(raw)) || svgBadHref.MatchString(string(raw)) || svgCSSURL.MatchString(string(raw)) {
-		return fmt.Errorf("the SVG contains event handlers or external links, which aren't allowed in a logo")
+		return errors.New("The SVG contains event handlers or external links, which aren't allowed in a logo. Export it again as a plain image.") //nolint:staticcheck // ST1005: shown to people as a sentence
 	}
 	d := xml.NewDecoder(bytes.NewReader(raw))
 	root := ""
@@ -301,14 +301,14 @@ func checkSVG(raw []byte) error {
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("the SVG isn't well-formed XML")
+			return errors.New("The SVG isn't well-formed XML. Export it again from your design tool.") //nolint:staticcheck // ST1005: shown to people as a sentence
 		}
 		if se, ok := tok.(xml.StartElement); ok && root == "" {
 			root = se.Name.Local
 		}
 	}
 	if root != "svg" {
-		return fmt.Errorf("the file isn't an SVG image")
+		return errors.New("The file isn't an SVG image. Upload an SVG or a square PNG.") //nolint:staticcheck // ST1005: shown to people as a sentence
 	}
 	return nil
 }

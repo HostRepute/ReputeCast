@@ -151,6 +151,55 @@ func (q *Queries) InstanceAdminIdentities(ctx context.Context) ([]InstanceAdminI
 	return items, nil
 }
 
+const instanceAdminLastDomainRejection = `-- name: InstanceAdminLastDomainRejection :one
+SELECT target_name, occurred_at FROM audit_events
+WHERE workspace_id IS NULL AND result = 'denied' AND action = 'signin.rejected'
+  AND (metadata ->> 'code' = 'domain_not_allowed' OR reason LIKE '%domain not allowed%')
+ORDER BY occurred_at DESC
+LIMIT 1
+`
+
+type InstanceAdminLastDomainRejectionRow struct {
+	TargetName string    `json:"targetName"`
+	OccurredAt time.Time `json:"occurredAt"`
+}
+
+// The latest sign-in turned away because of its email domain (the
+// allowlist's "for example kim@gmail.com this morning").
+func (q *Queries) InstanceAdminLastDomainRejection(ctx context.Context) (InstanceAdminLastDomainRejectionRow, error) {
+	row := q.db.QueryRow(ctx, instanceAdminLastDomainRejection)
+	var i InstanceAdminLastDomainRejectionRow
+	err := row.Scan(&i.TargetName, &i.OccurredAt)
+	return i, err
+}
+
+const instanceAdminLockAdmins = `-- name: InstanceAdminLockAdmins :many
+SELECT id FROM users WHERE is_instance_admin AND status = 'active' ORDER BY id FOR UPDATE
+`
+
+// The active instance admins, locked until the transaction ends: two admins
+// removing (or deactivating) each other can't both succeed, because the
+// second waits and then re-reads who is still an admin.
+func (q *Queries) InstanceAdminLockAdmins(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, instanceAdminLockAdmins)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const instanceAdminLockedCount = `-- name: InstanceAdminLockedCount :one
 SELECT
   (SELECT count(*) FROM users WHERE status = 'active' AND locked_until > now())::bigint AS users,
@@ -371,23 +420,25 @@ UPDATE instance_settings
 SET allowed_methods = $1, password_min_length = $2, password_reuse = $3,
     breached_check = $4, twofa_enforcement = $5, twofa_grace_days = $6,
     session_lifetime = $7, session_idle = $8, lockout_attempts = $9,
-    lockout_minutes = $10, jit_domain_allowlist = $11, updated_at = now()
+    lockout_minutes = $10, jit_domain_allowlist = $11, social_providers = $12,
+    updated_at = now()
 WHERE id
 RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error, audit_stream_enabled, audit_stream_url, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status
 `
 
 type InstanceAdminSavePolicyParams struct {
-	AllowedMethods     []string      `json:"allowedMethods"`
-	PasswordMinLength  int32         `json:"passwordMinLength"`
-	PasswordReuse      int32         `json:"passwordReuse"`
-	BreachedCheck      bool          `json:"breachedCheck"`
-	TwofaEnforcement   string        `json:"twofaEnforcement"`
-	TwofaGraceDays     int32         `json:"twofaGraceDays"`
-	SessionLifetime    time.Duration `json:"sessionLifetime"`
-	SessionIdle        time.Duration `json:"sessionIdle"`
-	LockoutAttempts    int32         `json:"lockoutAttempts"`
-	LockoutMinutes     int32         `json:"lockoutMinutes"`
-	JitDomainAllowlist []string      `json:"jitDomainAllowlist"`
+	AllowedMethods     []string        `json:"allowedMethods"`
+	PasswordMinLength  int32           `json:"passwordMinLength"`
+	PasswordReuse      int32           `json:"passwordReuse"`
+	BreachedCheck      bool            `json:"breachedCheck"`
+	TwofaEnforcement   string          `json:"twofaEnforcement"`
+	TwofaGraceDays     int32           `json:"twofaGraceDays"`
+	SessionLifetime    time.Duration   `json:"sessionLifetime"`
+	SessionIdle        time.Duration   `json:"sessionIdle"`
+	LockoutAttempts    int32           `json:"lockoutAttempts"`
+	LockoutMinutes     int32           `json:"lockoutMinutes"`
+	JitDomainAllowlist []string        `json:"jitDomainAllowlist"`
+	SocialProviders    json.RawMessage `json:"socialProviders"`
 }
 
 func (q *Queries) InstanceAdminSavePolicy(ctx context.Context, arg InstanceAdminSavePolicyParams) (InstanceSetting, error) {
@@ -403,6 +454,7 @@ func (q *Queries) InstanceAdminSavePolicy(ctx context.Context, arg InstanceAdmin
 		arg.LockoutAttempts,
 		arg.LockoutMinutes,
 		arg.JitDomainAllowlist,
+		arg.SocialProviders,
 	)
 	var i InstanceSetting
 	err := row.Scan(
@@ -448,7 +500,9 @@ func (q *Queries) InstanceAdminSavePolicy(ctx context.Context, arg InstanceAdmin
 const instanceAdminSaveSettings = `-- name: InstanceAdminSaveSettings :one
 
 UPDATE instance_settings
-SET name = $1, public_url = $2, default_timezone = $3, updated_at = now()
+SET name = $1, public_url = $2, default_timezone = $3, updated_at = now(),
+    public_url_check = CASE WHEN public_url = $2 THEN public_url_check END,
+    public_url_checked_at = CASE WHEN public_url = $2 THEN public_url_checked_at END
 WHERE id
 RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error, audit_stream_enabled, audit_stream_url, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status
 `
@@ -460,6 +514,7 @@ type InstanceAdminSaveSettingsParams struct {
 }
 
 // Instance settings, logo, public URL check and updates -----------------------
+// A new public URL drops the last URL check, which describes the old one.
 func (q *Queries) InstanceAdminSaveSettings(ctx context.Context, arg InstanceAdminSaveSettingsParams) (InstanceSetting, error) {
 	row := q.db.QueryRow(ctx, instanceAdminSaveSettings, arg.Name, arg.PublicUrl, arg.DefaultTimezone)
 	var i InstanceSetting
@@ -612,6 +667,47 @@ func (q *Queries) InstanceAdminSoftDeleteWorkspace(ctx context.Context, id uuid.
 	var deleted_at *time.Time
 	err := row.Scan(&deleted_at)
 	return deleted_at, err
+}
+
+const instanceAdminSoleOwners = `-- name: InstanceAdminSoleOwners :many
+SELECT m.user_id, w.name
+FROM workspace_members m
+JOIN roles r ON r.id = m.role_id AND r.key = 'owner' AND r.builtin
+JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
+WHERE m.status = 'active'
+  AND NOT EXISTS (
+    SELECT 1 FROM workspace_members m2
+    JOIN roles r2 ON r2.id = m2.role_id AND r2.key = 'owner' AND r2.builtin
+    JOIN users u2 ON u2.id = m2.user_id AND u2.status = 'active'
+    WHERE m2.workspace_id = m.workspace_id AND m2.status = 'active' AND m2.user_id <> m.user_id)
+ORDER BY w.created_at, w.id
+`
+
+type InstanceAdminSoleOwnersRow struct {
+	UserID uuid.UUID `json:"userId"`
+	Name   string    `json:"name"`
+}
+
+// Every person who is the only active Owner of a live workspace, with the
+// workspace (the users list reads them in one query).
+func (q *Queries) InstanceAdminSoleOwners(ctx context.Context) ([]InstanceAdminSoleOwnersRow, error) {
+	rows, err := q.db.Query(ctx, instanceAdminSoleOwners)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []InstanceAdminSoleOwnersRow{}
+	for rows.Next() {
+		var i InstanceAdminSoleOwnersRow
+		if err := rows.Scan(&i.UserID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const instanceAdminSoleOwnerships = `-- name: InstanceAdminSoleOwnerships :many

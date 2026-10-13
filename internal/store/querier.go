@@ -386,6 +386,13 @@ type Querier interface {
 	InstanceAdminDeactivateMemberships(ctx context.Context, arg InstanceAdminDeactivateMembershipsParams) (int64, error)
 	InstanceAdminDeactivateUser(ctx context.Context, arg InstanceAdminDeactivateUserParams) (int64, error)
 	InstanceAdminIdentities(ctx context.Context) ([]InstanceAdminIdentitiesRow, error)
+	// The latest sign-in turned away because of its email domain (the
+	// allowlist's "for example kim@gmail.com this morning").
+	InstanceAdminLastDomainRejection(ctx context.Context) (InstanceAdminLastDomainRejectionRow, error)
+	// The active instance admins, locked until the transaction ends: two admins
+	// removing (or deactivating) each other can't both succeed, because the
+	// second waits and then re-reads who is still an admin.
+	InstanceAdminLockAdmins(ctx context.Context) ([]uuid.UUID, error)
 	InstanceAdminLockedCount(ctx context.Context) (InstanceAdminLockedCountRow, error)
 	// Every membership in a live workspace, oldest workspace first.
 	InstanceAdminMemberships(ctx context.Context) ([]InstanceAdminMembershipsRow, error)
@@ -405,6 +412,7 @@ type Querier interface {
 	InstanceAdminRevokeKeysCreatedBy(ctx context.Context, userID *uuid.UUID) (int64, error)
 	InstanceAdminSavePolicy(ctx context.Context, arg InstanceAdminSavePolicyParams) (InstanceSetting, error)
 	// Instance settings, logo, public URL check and updates -----------------------
+	// A new public URL drops the last URL check, which describes the old one.
 	InstanceAdminSaveSettings(ctx context.Context, arg InstanceAdminSaveSettingsParams) (InstanceSetting, error)
 	InstanceAdminSaveSocial(ctx context.Context, arg InstanceAdminSaveSocialParams) error
 	InstanceAdminSetLogo(ctx context.Context, logoSvg *string) error
@@ -415,6 +423,9 @@ type Querier interface {
 	// The slug is freed for new workspaces; the suffix keeps it unique and
 	// within the 63-character limit.
 	InstanceAdminSoftDeleteWorkspace(ctx context.Context, id uuid.UUID) (*time.Time, error)
+	// Every person who is the only active Owner of a live workspace, with the
+	// workspace (the users list reads them in one query).
+	InstanceAdminSoleOwners(ctx context.Context) ([]InstanceAdminSoleOwnersRow, error)
 	// Live workspaces where the user is the only active Owner.
 	InstanceAdminSoleOwnerships(ctx context.Context, userID uuid.UUID) ([]InstanceAdminSoleOwnershipsRow, error)
 	// The System-stream provider of the oldest workspace that has one, for "the
@@ -713,6 +724,9 @@ type Querier interface {
 	SSODomainEnforcedElsewhere(ctx context.Context, arg SSODomainEnforcedElsewhereParams) (string, error)
 	// Active accounts with an email at one of the domains, with what they sign in with today.
 	SSODomainUsers(ctx context.Context, arg SSODomainUsersParams) ([]SSODomainUsersRow, error)
+	// A person's active memberships that a group mapping granted, for the
+	// re-application of the mappings at every sign-in.
+	SSOGroupMemberships(ctx context.Context, userID uuid.UUID) ([]SSOGroupMembershipsRow, error)
 	// The people who sign in with this provider (for the enforcement preview).
 	SSOIdentityUsers(ctx context.Context, providerID *uuid.UUID) ([]SSOIdentityUsersRow, error)
 	SSOMarkBreakGlass(ctx context.Context, ids []uuid.UUID) (int64, error)
@@ -722,6 +736,8 @@ type Querier interface {
 	SSOPendingInvitation(ctx context.Context, tokenHash []byte) (SSOPendingInvitationRow, error)
 	SSOProvider(ctx context.Context, id uuid.UUID) (SsoProvider, error)
 	SSOProviderBySlug(ctx context.Context, slug string) (SsoProvider, error)
+	// How many active people sign in with each SSO provider.
+	SSOProviderMemberCounts(ctx context.Context) ([]SSOProviderMemberCountsRow, error)
 	// SSO providers, social sign-in and the identities they link (W14).
 	SSOProviders(ctx context.Context) ([]SsoProvider, error)
 	SSOSetClientSecret(ctx context.Context, arg SSOSetClientSecretParams) error
@@ -733,9 +749,13 @@ type Querier interface {
 	SSOSetStatus(ctx context.Context, arg SSOSetStatusParams) (SsoProvider, error)
 	// Recent sign-in rejections for a provider (setup page "sign-ins rejected").
 	SSOSignInFailures(ctx context.Context, providerID string) ([]SSOSignInFailuresRow, error)
+	// How many people linked each social sign-in provider.
+	SSOSocialIdentityCounts(ctx context.Context) ([]SSOSocialIdentityCountsRow, error)
 	SSOTouchIdentity(ctx context.Context, arg SSOTouchIdentityParams) error
 	SSOUpdateProvider(ctx context.Context, arg SSOUpdateProviderParams) (SsoProvider, error)
 	SSOUserIdentityOfKind(ctx context.Context, arg SSOUserIdentityOfKindParams) (UserIdentity, error)
+	// The lists a group mapping can be scoped to, per live workspace.
+	SSOWorkspaceLists(ctx context.Context) ([]SSOWorkspaceListsRow, error)
 	// Workspaces and their roles, for the JIT default and group mapping pickers.
 	SSOWorkspaceRoles(ctx context.Context) ([]SSOWorkspaceRolesRow, error)
 	SaveComposerContent(ctx context.Context, arg SaveComposerContentParams) error
