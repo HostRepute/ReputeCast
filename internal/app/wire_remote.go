@@ -24,7 +24,7 @@ func (a *App) remoteRuntime() *remote.Runtime {
 	}
 	rt := &remote.Runtime{
 		Pool: a.Pool, Box: a.Secrets, Log: a.Log,
-		AllowPrivate: func() bool { return a.Cfg != nil && a.Cfg.Adapters.AllowPrivateNetworks },
+		AllowPrivate: func() bool { return a.Cfg != nil && a.Cfg.Providers.AllowPrivateNetworks },
 		PublicURL:    func() string { return a.URLs.Base() },
 		Kinds:        map[string]remote.KindDescriptor{"http": httpgeneric.CommunityDescriptor},
 	}
@@ -39,7 +39,7 @@ func (a *App) CommunityRuntime() *remote.Runtime { return a.remoteRuntime() }
 func (a *App) remoteService() *remote.Service {
 	return &remote.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Runtime: a.remoteRuntime(),
-		AllowPrivate: func() bool { return a.Cfg != nil && a.Cfg.Adapters.AllowPrivateNetworks },
+		AllowPrivate: func() bool { return a.Cfg != nil && a.Cfg.Providers.AllowPrivateNetworks },
 	}
 }
 

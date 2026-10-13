@@ -5,6 +5,9 @@ name: reputecast-dev
 services:
   postgres:
     image: postgres:18-alpine
+    # Integration tests clone a database per test, and `go test ./...` runs
+    # packages in parallel: allow more connections than the default 100.
+    command: ["postgres", "-c", "max_connections=300"]
     environment:
       POSTGRES_USER: reputecast
       POSTGRES_PASSWORD: reputecast

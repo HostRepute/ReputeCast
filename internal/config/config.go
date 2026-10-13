@@ -47,8 +47,9 @@ type Config struct {
 	Updates  UpdatesConfig  `koanf:"updates"`
 	Metrics  MetricsConfig  `koanf:"metrics"`
 	Webhooks WebhooksConfig `koanf:"webhooks"`
-	// Adapters configures community adapters (internal/providers/remote).
-	Adapters AdaptersConfig `koanf:"adapters"`
+	// Providers configures outbound calls to sending-provider APIs and
+	// community adapters.
+	Providers ProvidersConfig `koanf:"providers"`
 	// HostRepute and DNS configure Deliverability (internal/hostrepute, internal/dnscheck).
 	HostRepute HostReputeConfig `koanf:"hostrepute"`
 	DNS        DNSConfig        `koanf:"dns"`
@@ -148,22 +149,24 @@ type MetricsConfig struct {
 	Addr    string `koanf:"addr"` // empty serves /metrics on the main listener
 }
 
+// ProvidersConfig configures calls to sending-provider APIs.
+type ProvidersConfig struct {
+	// AllowPrivateNetworks lets provider URLs a workspace enters (a Postal
+	// server, a generic HTTP adapter, an Azure endpoint) resolve to loopback
+	// and private (RFC 1918) addresses, for providers on the same network.
+	// Off by default so workspace admins can't reach internal services
+	// (SSRF); link-local and cloud metadata addresses are always blocked.
+	// It also decides whether a community adapter's process may listen on
+	// such an address (a sidecar); plain http:// only reaches those.
+	AllowPrivateNetworks bool `koanf:"allow_private_networks"`
+}
+
 // WebhooksConfig configures outgoing webhooks and the audit stream.
 type WebhooksConfig struct {
 	// AllowPrivateNetworks lets endpoints resolve to loopback and private
 	// (RFC 1918) addresses, for receivers on the same network. Off by
 	// default: user-supplied URLs must not reach internal services (SSRF).
 	// Link-local and cloud metadata addresses are always blocked.
-	AllowPrivateNetworks bool `koanf:"allow_private_networks"`
-}
-
-// AdaptersConfig configures community adapters, which run in their own
-// process and are called over HTTP(S) (docs/adapters.md).
-type AdaptersConfig struct {
-	// AllowPrivateNetworks lets an adapter's address be loopback or private
-	// (RFC 1918), for a sidecar on the same host or network; plain http:// is
-	// only used for such addresses. Off by default. Link-local and cloud
-	// metadata addresses are always refused.
 	AllowPrivateNetworks bool `koanf:"allow_private_networks"`
 }
 

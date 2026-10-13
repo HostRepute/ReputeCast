@@ -92,7 +92,7 @@ func TestRuntimeEndToEnd(t *testing.T) {
 	// install, update and removal hooks still sync).
 	env.App.CommunityRuntime().Stop()
 	env.SeedDemo()
-	env.App.Cfg.Adapters.AllowPrivateNetworks = true
+	env.App.Cfg.Providers.AllowPrivateNetworks = true
 	ctx := context.Background()
 
 	// The adapter process (a Go fake) and its installation from the CLI.
@@ -141,9 +141,9 @@ func TestRuntimeEndToEnd(t *testing.T) {
 
 	// Addresses are checked.
 	owner.Do("PUT", base, map[string]string{"endpointUrl": "http://169.254.169.254/latest"}).MustStatus(t, 422)
-	env.App.Cfg.Adapters.AllowPrivateNetworks = false
+	env.App.Cfg.Providers.AllowPrivateNetworks = false
 	owner.Do("PUT", base, map[string]string{"endpointUrl": srv.URL}).MustStatus(t, 422)
-	env.App.Cfg.Adapters.AllowPrivateNetworks = true
+	env.App.Cfg.Providers.AllowPrivateNetworks = true
 
 	var rt remote.AdapterRuntime
 	r := owner.Do("PUT", base, map[string]string{"endpointUrl": srv.URL + "/"}).MustStatus(t, 200)

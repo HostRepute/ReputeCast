@@ -224,7 +224,7 @@ func adapterService(ctx context.Context, cfg *config.Config, log *slog.Logger) (
 		return nil, nil, err
 	}
 	q := store.New(pool)
-	allow := func() bool { return cfg.Adapters.AllowPrivateNetworks }
+	allow := func() bool { return cfg.Providers.AllowPrivateNetworks }
 	s := &remote.Service{Pool: pool, Q: q, Audit: audit.New(q, log), Box: box, AllowPrivate: allow,
 		Runtime: &remote.Runtime{Pool: pool, Box: box, Log: log, AllowPrivate: allow, PublicURL: func() string { return cfg.HTTP.PublicURL }}}
 	return s, pool.Close, nil
