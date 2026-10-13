@@ -414,7 +414,7 @@ func (s *Service) apiConfig(d providers.Descriptor, prov *store.Provider, values
 			if _, ok := b.creds[f.Key]; !ok && f.Required {
 				return b, api.Invalid("body.values."+f.Key, "Enter the "+strings.ToLower(f.Label)+".")
 			}
-		case v != "" && fieldType(f) == providers.FieldNumber:
+		case v != "" && fieldType(f) == fieldNumber:
 			n, ok := wholeNumber(v)
 			if !ok {
 				return b, api.Invalid("body.values."+f.Key, "Enter a whole number, like 10000.")
@@ -443,20 +443,20 @@ func (s *Service) apiConfig(d providers.Descriptor, prov *store.Provider, values
 	return b, nil
 }
 
-// fieldType is a form field's type: the adapter's own, else "number" for
-// the fields adapters read as whole numbers (allowances and rate limits,
-// which the flex settings types also accept as text), else "text".
+// fieldNumber is the form type of a field that holds a whole number.
+const fieldNumber = "number"
+
+// fieldType is a form field's type: "number" for the fields adapters read
+// as whole numbers (ports, allowances and rate limits, which the flex
+// settings types also accept as text), else "text".
 func fieldType(f providers.Field) string {
-	if f.Type != "" {
-		return f.Type
-	}
 	if f.Secret || len(f.Options) > 0 {
 		return "text"
 	}
 	k := f.Key
 	if k == "port" || strings.HasSuffix(k, "_limit") || strings.HasPrefix(k, "per_") || strings.HasSuffix(k, "_per_day") ||
 		strings.HasSuffix(k, "_per_hour") || strings.HasSuffix(k, "_per_minute") || strings.HasSuffix(k, "_cap") {
-		return providers.FieldNumber
+		return fieldNumber
 	}
 	return "text"
 }

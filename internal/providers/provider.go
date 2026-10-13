@@ -269,13 +269,7 @@ type Field struct {
 	Required bool     `json:"required"`
 	Options  []string `json:"options,omitempty"`
 	Help     string   `json:"help,omitempty"`
-	// Type is FieldNumber for a whole number (a plan allowance, a rate
-	// limit), which the connect form stores as a JSON number; empty is text.
-	Type string `json:"type,omitempty"`
 }
-
-// FieldNumber marks a Field that holds a whole number.
-const FieldNumber = "number"
 
 var registry = map[string]Descriptor{}
 
