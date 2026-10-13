@@ -240,11 +240,6 @@ export function monthDay(d: string | number | Date): string {
 
 /* ---- W01 · Sending providers (appended) ---- */
 
-/** "09:41:02" (event logs, incident timelines). */
-export function clockSeconds(d: string | number | Date): string {
-  return fmt('time-s', 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(toDate(d))
-}
-
 /** "Oct" or "October". */
 export function monthName(d: string | number | Date, style: 'short' | 'long' = 'short'): string {
   return fmt(`month-${style}`, 'en-US', { month: style }).format(toDate(d))
