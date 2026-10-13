@@ -154,6 +154,7 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 	var callErr error
 	var quota providers.Quota
 	var adapter providers.Provider
+	var reputation *state.Reputation
 	probed := false
 	if probe {
 		var err error
@@ -169,6 +170,13 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 			case providers.Verifier:
 				quota, callErr = a.Verify(cctx)
 				probed = true
+			}
+			// The provider's own bounce and complaint rates, when it reports
+			// them; a failure here doesn't make the provider unhealthy.
+			if rr, ok := adapter.(providers.ReputationReporter); ok && callErr == nil {
+				if r, err := rr.Reputation(cctx); err == nil {
+					reputation = &state.Reputation{Bounce: r.Bounce, Complaint: r.Complaint, Window: r.Window, CheckedAt: now}
+				}
 			}
 			cancel()
 		}
@@ -204,6 +212,10 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 				h.Account = quota.Account
 			}
 			h.Sandbox = quota.Sandbox
+			h.VDM = quota.VDM
+			if reputation != nil {
+				h.Reputation = reputation
+			}
 		} else {
 			h.ConsecutiveFailures++
 			rec := CallRecordOf(opName(p.Adapter), callErr, now)
@@ -440,7 +452,7 @@ func (s *Service) diagnose(ctx context.Context, p store.Provider, adapter provid
 // SelfTestSignature authenticates a self-test request for a provider.
 func SelfTestSignature(token string, ts int64) string {
 	mac := hmac.New(sha256.New, []byte(token))
-	fmt.Fprintf(mac, "self-test:%d", ts)
+	_, _ = fmt.Fprintf(mac, "self-test:%d", ts)
 	return strconv.FormatInt(ts, 10) + "." + hex.EncodeToString(mac.Sum(nil))
 }
 
@@ -478,7 +490,7 @@ func (s *Service) selfTest(ctx context.Context, p store.Provider) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	return resp.StatusCode, nil
 }
 

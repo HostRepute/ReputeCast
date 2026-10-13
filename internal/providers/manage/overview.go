@@ -293,6 +293,12 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 		v := round2(float64(week.Complained) / float64(week.Delivered) * 100)
 		c.Complaint.Value = &v
 	}
+	// What the provider itself measures wins while it is fresh: its review
+	// and pause levels apply to its own numbers.
+	if r := state.ReputationOf(h, sn.now); r != nil {
+		b, cp := r.Bounce, r.Complaint
+		c.Bounce.Value, c.Complaint.Value = &b, &cp
+	}
 	// Quota and rate from the provider's API, the warm-up plan overriding
 	// both while the provider warms up.
 	c.Quota = ProviderQuotaUse{Kind: "none"}

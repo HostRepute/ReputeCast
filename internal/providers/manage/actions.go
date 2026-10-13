@@ -203,7 +203,7 @@ func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, id st
 	}
 	pb, _ := json.Marshal(pricing)
 	lb, _ := json.Marshal(limits)
-	before := map[string]any{"label": p.Label, "pricing": json.RawMessage(p.Pricing), "limits": json.RawMessage(p.Limits)}
+	before := map[string]any{"label": p.Label, "pricing": p.Pricing, "limits": p.Limits}
 	after := map[string]any{"label": label, "pricing": json.RawMessage(pb), "limits": json.RawMessage(lb)}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)

@@ -3,6 +3,7 @@ package demo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -68,7 +69,9 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 			caps:   pmCaps,
 			limits: state.Limits{Bounce: state.Limit{Limit: 10, Label: "Postmark"}, Complaint: state.Limit{Limit: 0.1, Label: "Postmark"}},
 			health: state.Health{Quota: &state.Quota{Kind: "monthly_plan", Max: 10000, Used: 3412}, Rate: &state.Rate{PeakToday: 3},
-				Account: "Approved · 10,000 per month plan", LastSuccessAt: &checked, LastSuccessOp: "GET /server"},
+				Account: "Approved · 10,000 per month plan", LastSuccessAt: &checked, LastSuccessOp: "GET /server",
+				// Postmark reports its own rates (outbound stats): 0.2% and 0.01%.
+				Reputation: &state.Reputation{Bounce: 0.2, Complaint: 0.01, Window: "7 d", CheckedAt: checked}},
 			pricing: state.Pricing{Model: "plan", Monthly: 15, NextTier: &state.NextTier{Adds: 50000, Price: 115}},
 			tracking: state.Tracking{OpenPixel: true, LinkRewrite: true, Scope: "Transactional stream", Mode: "reputecast", CheckedAt: &checked,
 				Detail: "Server setting TrackOpens is on, and TrackLinks is HtmlAndText. Opens on System and Automations mail would count twice, and links get rewritten to click.pstmrk.it before ReputeCast's redirect."},
@@ -342,13 +345,17 @@ func seedDailyStats(ctx context.Context, s *Seeder, loc *time.Location, sched []
 			}
 		}
 	}
-	// Postal: the warm-up days (0.4% API errors).
+	// Postal: the warm-up days (0.4% API errors), with the last seven days
+	// adding up to the boards' 0.9% bounces and 0.05% complaints (the plan
+	// keeps each day's own rate for the warm-up table).
 	postal := s.Providers["postal"]
 	startDay := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC)
+	postalRows := make([]dailyRow, 0, len(postalDays))
 	for i, d := range postalDays {
-		r := dailyRow{day: startDay.AddDate(0, 0, i), sent: d.sent}
-		r.bounced = int64(math.Round(float64(d.sent) * d.bounce / 100))
-		r.complained = int64(math.Round(float64(d.sent-r.bounced) * d.complaint / 100))
+		postalRows = append(postalRows, dailyRow{day: startDay.AddDate(0, 0, i), sent: d.sent})
+	}
+	spreadOutcomes(postalRows, weekStart, 0.9, 0.05)
+	for _, r := range postalRows {
 		if err := insertDaily(ctx, s, postal, r, 0.4, 1); err != nil {
 			return err
 		}
@@ -597,7 +604,7 @@ func seedProviderDKIM(ctx context.Context, s *Seeder) error {
 	var domainID uuid.UUID
 	var records json.RawMessage
 	err := s.Tx.QueryRow(ctx, `SELECT id, dns_records FROM sending_domains WHERE workspace_id = $1 AND domain = 'news.acme.io'`, ws.ID).Scan(&domainID, &records)
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		domainID = ID()
 		records = json.RawMessage(`[]`)
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO sending_domains (id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at)

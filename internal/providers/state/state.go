@@ -168,6 +168,34 @@ type Health struct {
 	// Version is the provider software version when it reports one
 	// (Postal's webhook User-Agent).
 	Version string `json:"version,omitempty"`
+	// VDM is true when Amazon SES's Virtual Deliverability Manager is on.
+	VDM bool `json:"vdm,omitempty"`
+	// Reputation is the bounce and complaint rate the provider itself
+	// reports for the account, when its API offers one. Screens prefer it
+	// to ReputeCast's own count while it is fresh (see ReputationOf).
+	Reputation *Reputation `json:"reputation,omitempty"`
+}
+
+// Reputation is a provider-reported bounce and complaint rate.
+type Reputation struct {
+	// Bounce and Complaint are percentages (0.2 means 0.2%).
+	Bounce    float64 `json:"bounce"`
+	Complaint float64 `json:"complaint"`
+	// Window is the period the provider measured ("7 d").
+	Window    string    `json:"window,omitempty"`
+	CheckedAt time.Time `json:"checkedAt"`
+}
+
+// ReputationFresh is how long a provider-reported reputation is used.
+const ReputationFresh = 48 * time.Hour
+
+// ReputationOf returns the provider-reported reputation when it is recent
+// enough to show instead of ReputeCast's own 7-day count.
+func ReputationOf(h Health, now time.Time) *Reputation {
+	if h.Reputation == nil || now.Sub(h.Reputation.CheckedAt) > ReputationFresh {
+		return nil
+	}
+	return h.Reputation
 }
 
 // HealthOf decodes a provider's health snapshot.

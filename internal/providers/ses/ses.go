@@ -224,8 +224,10 @@ func (p *Provider) sendOne(ctx context.Context, m providers.Message) (providers.
 	res := providers.SendResult{MessageID: m.ID}
 	raw, _, err := mimemsg.Build(m, time.Now(), nil)
 	if err != nil {
+		// A message that can't be rendered fails on its own; the rest of the
+		// batch still goes out.
 		res.Err = &providers.SendError{Code: "Render", Message: err.Error()}
-		return res, nil
+		return res, nil //nolint:nilerr // reported on the result, not as a batch error
 	}
 	in := &sesv2.SendEmailInput{
 		FromEmailAddress: aws.String(m.From.Address),
@@ -263,7 +265,7 @@ func validTag(s string) bool {
 		return false
 	}
 	for _, r := range s {
-		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' || r == '-') {
+		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '_' && r != '-' {
 			return false
 		}
 	}
@@ -341,6 +343,9 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 		enforcement = "sending disabled"
 	}
 	q.Account = mode + " · " + enforcement
+	if out.VdmAttributes != nil && out.VdmAttributes.VdmEnabled == types.FeatureStatusEnabled {
+		q.VDM = true
+	}
 	return q, nil
 }
 
@@ -397,7 +402,7 @@ func (p *Provider) AddDomain(ctx context.Context, domain string) ([]providers.DN
 	_, err := p.client.CreateEmailIdentity(ctx, &sesv2.CreateEmailIdentityInput{EmailIdentity: aws.String(domain), ConfigurationSetName: optional(p.s.ConfigurationSet)})
 	if err != nil {
 		var ae smithy.APIError
-		if !(errors.As(err, &ae) && ae.ErrorCode() == "AlreadyExistsException") {
+		if !errors.As(err, &ae) || ae.ErrorCode() != "AlreadyExistsException" {
 			return nil, callError("CreateEmailIdentity", err)
 		}
 	}
