@@ -127,11 +127,17 @@
     margin: 3px 3px 0 5px;
     flex: 0 1 auto;
   }
+  /* A checkbox beside its text, with the browser's margins (3px 3px 3px 4px). */
+  input[type='checkbox'].pv-check {
+    margin: 3px 3px 3px 4px;
+    flex: 0 1 auto;
+  }
   /* On phones the boards give every input min-width 0, so a radio beside a
      long text shrinks further. */
   @media (max-width: 767px) {
     label.pv-tg input,
-    label.opt.pv-opt input {
+    label.opt.pv-opt input,
+    input[type='checkbox'].pv-check {
       min-width: 0;
     }
   }
