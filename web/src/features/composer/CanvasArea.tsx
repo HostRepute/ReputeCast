@@ -550,14 +550,21 @@ function useZoom(editor: Editor | null, stage: HTMLElement | null, device: Devic
 }
 
 /** Keeps the scaled frame from reserving its unscaled height. */
-function useZoomHeight(editor: Editor | null, zoom: number, tick: number) {
+function useZoomHeight(editor: Editor | null, zoom: number, tick: number, device: DeviceId, host: HTMLElement | null) {
   useLayoutEffect(() => {
     const frames = editor?.Canvas.getElement()?.querySelector<HTMLElement>('.gjs-cv-canvas__frames')
     const frame = editor?.Canvas.getFrameEl()
     if (!frames || !frame) return
     const h = frame.offsetHeight
-    frames.style.marginBottom = zoom < 1 ? `${-Math.round((1 - zoom) * h)}px` : ''
-  }, [editor, zoom, tick])
+    const width = parseInt(DEVICES[device].width, 10)
+    const zoomed = zoom < 1
+    // Scaled from its top-left corner and centred by hand: a frame wider
+    // than the column can't be centred with auto margins.
+    frames.style.width = zoomed ? `${width}px` : ''
+    frames.style.transformOrigin = zoomed ? '0 0' : ''
+    frames.style.marginLeft = zoomed && host ? `${Math.max(0, Math.floor((host.clientWidth - width * zoom) / 2))}px` : ''
+    frames.style.marginBottom = zoomed ? `${-Math.round((1 - zoom) * h)}px` : ''
+  }, [editor, zoom, tick, device, host])
 }
 
 /** CSS of the head's mj-style (responsive rules) and the dark-mode check, inside the canvas frame. */
@@ -593,7 +600,7 @@ export function CanvasArea({
   const ed = c.editor
   const zoom = useZoom(ed, stage, c.device)
   const tick = useCanvasTick(ed, host)
-  useZoomHeight(ed, zoom, tick)
+  useZoomHeight(ed, zoom, tick, c.device, host)
   useFrameStyles(ed, c.head, c.darkCanvas && c.device === 'mobile')
   const frameWidth = parseInt(DEVICES[c.device].width, 10) * zoom
   const setContainer = useCallback(

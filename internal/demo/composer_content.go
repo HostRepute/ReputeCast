@@ -18,6 +18,12 @@ const composerDigestHead = `  <mj-head>
       <mj-all font-family="Georgia, 'Times New Roman', serif"></mj-all>
       <mj-text color="#1F2937" padding="0px"></mj-text>
     </mj-attributes>
+    <mj-style>
+      @media only screen and (max-width:480px) {
+        .rc-btn-block table { width: 100%% !important; }
+        .rc-btn-block a { display: block !important; padding: 13px 14px !important; font-size: 14px !important; line-height: 18px !important; }
+      }
+    </mj-style>
   </mj-head>`
 
 const composerDigestHeader = `    <!-- rc:header-logo -->
@@ -38,7 +44,7 @@ const composerDigestFooter = `    <!-- rc:footer -->
     </mj-section>`
 
 func composerButton(href, label string) string {
-	return `<mj-button href="` + href + `" align="left" background-color="#0F766E" color="#ffffff" font-family="` + composerPlexFont + `" font-size="13px" font-weight="600" border-radius="6px" inner-padding="9px 14px" padding="0px">` + label + `</mj-button>`
+	return `<mj-button href="` + href + `" css-class="rc-btn-block" align="left" background-color="#0F766E" color="#ffffff" font-family="` + composerPlexFont + `" font-size="13px" font-weight="600" border-radius="6px" inner-padding="9px 14px" padding="0px">` + label + `</mj-button>`
 }
 
 func composerDigestCards(padding string) string {

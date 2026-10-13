@@ -33,8 +33,9 @@ export function statusText(status: SaveStatus, campaignStatus: string): string {
 
 function RouteButton() {
   const { campaign, context, slug } = useComposer()
+  // A campaign without its own split follows the Broadcasts routing rule.
+  const fromRule = campaign.route.source !== 'campaign'
   const route = campaign.route.shares.length ? campaign.route : context.broadcastRoute
-  const fromRule = campaign.route.shares.length === 0
   const label = (
     <>
       {fromRule ? (

@@ -110,10 +110,15 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
     if (!editorWanted || !containerRef.current) return
     let cancelled = false
     let created: ComposerEditor | null = null
-    void createComposerEditor(containerRef.current, { body: bodyRef.current, head: () => canvasHead(headRef.current), device })
+    // Each editor gets its own mount: a cancelled one (React re-running the
+    // effect) is destroyed later and must not take the next one with it.
+    const mount = document.createElement('div')
+    containerRef.current.appendChild(mount)
+    void createComposerEditor(mount, { body: bodyRef.current, head: () => canvasHead(headRef.current), device })
       .then((inst) => {
         if (cancelled) {
           inst.editor.destroy()
+          mount.remove()
           return
         }
         created = inst
@@ -142,6 +147,8 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
       tracker.current = null
       if (geRef.current === created) geRef.current = null
       created?.editor.destroy()
+      if (created) mount.remove()
+      else mount.style.display = 'none' // removed once its editor has loaded and been destroyed
       setGe(null)
       setSelected(null)
     }

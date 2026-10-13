@@ -163,9 +163,9 @@ function LayersTab() {
   const c = useComposer()
   const [open, setOpen] = useState<Set<string>>(() => new Set())
   const root = c.editor?.getWrapper()?.components().filter((x: Component) => tagOf(x) === 'mjml')[0]
-  // Ancestors of the selection are open.
+  // The selection and its ancestors are open.
   const auto = new Set<string>()
-  let cur = c.selected?.parent()
+  let cur = c.selected ?? undefined
   while (cur) {
     auto.add(cur.cid)
     cur = cur.parent()

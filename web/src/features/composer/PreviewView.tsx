@@ -408,10 +408,11 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
       {slot
         ? createPortal(
             <>
-              <label className="k flex items-center gap-1.5">
+              <label className="k flex min-w-0 max-w-full items-center gap-1.5">
                 Preview as
                 <select
-                  className="in"
+                  className="in min-w-0 max-w-full"
+                  style={{ maxWidth: 'min(520px, calc(100vw - 110px))' }}
                   value={sampleValue}
                   onChange={(e) => {
                     const v = e.target.value
