@@ -4,7 +4,7 @@ import { $api, ApiError, http } from '@/api/client'
 import { ForbiddenState, NotFoundState, problemReference, ServerErrorState } from '@/components/shell/SystemScreens'
 import { ButtonLink } from '@/components/ui/Button'
 import { useDocumentTitle } from '@/lib/hooks'
-import { useWorkspace } from '@/lib/session'
+import { useCan, useWorkspace } from '@/lib/session'
 import { Composer, type ComposerSearch } from './Composer'
 import './composer.css'
 
@@ -47,8 +47,9 @@ export function ComposerSkeleton({ title, detail }: { title: string; detail: str
  * The composer is full screen, so its 403/404/500 states use the shared
  * system states in a centred frame instead of the app shell.
  */
-function ComposerError({ error, path, retry }: { error: unknown; path: string; retry?: () => void }) {
+function ComposerError({ error, path, campaignId, retry }: { error: unknown; path: string; campaignId?: string; retry?: () => void }) {
   const { slug } = useWorkspace()
+  const canAudit = useCan('audit:view')
   const back = (
     <ButtonLink to="/w/$workspace/campaigns" params={{ workspace: slug }}>
       Back to campaigns
@@ -60,9 +61,26 @@ function ComposerError({ error, path, retry }: { error: unknown; path: string; r
   if (error instanceof ApiError && status === 403 && error.problem.permission) {
     body = <ForbiddenState permission={error.problem.permission} title={path.endsWith('/new') ? "Your role can't create campaigns" : "Your role can't open this campaign"} readOnly={back} />
   } else if (status === 404) {
+    // SystemStates' 404: "Go to campaigns" and "Search the audit log". (The board says deleted
+    // campaigns stay in the log for 90 days; the retention is the workspace's own, 365 by default.)
     body = (
-      <NotFoundState path={path} reference={problemReference(error)} primary={back}>
-        The campaign may have been deleted, or the link is from another workspace.
+      <NotFoundState
+        path={path}
+        reference={problemReference(error)}
+        primary={
+          <ButtonLink variant="primary" to="/w/$workspace/campaigns" params={{ workspace: slug }}>
+            Go to campaigns
+          </ButtonLink>
+        }
+        secondary={
+          canAudit ? (
+            <ButtonLink to="/w/$workspace/settings/audit" params={{ workspace: slug }} search={{ q: campaignId, range: 'all' }}>
+              Search the audit log
+            </ButtonLink>
+          ) : undefined
+        }
+      >
+        The campaign may have been deleted, or the link was copied before it was saved. Deleted campaigns stay in the audit log.
       </NotFoundState>
     )
   } else {
@@ -84,7 +102,7 @@ export function ComposerPage({ campaignId, search, onSearch }: { campaignId: str
   const context = $api.useQuery('get', '/api/v1/workspaces/{workspace}/composer', { params: { path: { workspace: slug } } }, { staleTime: 60_000 })
   useDocumentTitle(campaign.data ? `${campaign.data.name} · Composer · ReputeCast` : 'Composer · ReputeCast')
   const path = `/campaigns/${campaignId}/edit`
-  if (campaign.isError) return <ComposerError error={campaign.error} path={path} retry={() => void campaign.refetch()} />
+  if (campaign.isError) return <ComposerError error={campaign.error} path={path} campaignId={campaignId} retry={() => void campaign.refetch()} />
   if (context.isError) return <ComposerError error={context.error} path={path} retry={() => void context.refetch()} />
   if (!campaign.data || !context.data) return <ComposerSkeleton title="Opening the campaign" detail="Content, audience and sender · usually under a second" />
   return <Composer key={campaign.data.id} campaign={campaign.data} context={context.data} search={search} onSearch={onSearch} />
