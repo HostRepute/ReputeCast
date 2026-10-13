@@ -22,10 +22,17 @@ func TestSubjectHeuristics(t *testing.T) {
 			t.Fatalf("%q: got %q want %q", subject, got, want)
 		}
 	}
-	if got := SuggestSubject("FLASH SALE!!! 48 HOURS ONLY"); got != "Flash sale: 48 hours only" {
+	if got := SuggestSubject("FLASH SALE!!! 48 HOURS ONLY"); got != "48-hour flash sale" {
 		t.Fatalf("suggestion: %q", got)
 	}
 	if got := SuggestSubject("Big news!!"); got != "Big news" {
+		t.Fatalf("suggestion: %q", got)
+	}
+	// A suggestion never trips a heuristic itself; with nothing left, there is none.
+	if got := SuggestSubject("HURRY!!! LAST CHANCE"); got != "" {
+		t.Fatalf("suggestion: %q", got)
+	}
+	if got := SuggestSubject("Don't miss our spring sale!!"); got != "Our spring sale" {
 		t.Fatalf("suggestion: %q", got)
 	}
 }

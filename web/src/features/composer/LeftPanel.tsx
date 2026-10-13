@@ -20,7 +20,7 @@ function blocksApi(editor: NonNullable<ReturnType<typeof useComposer>['editor']>
 export function insertBlock(c: ReturnType<typeof useComposer>, def: Pick<BlockDef, 'kind' | 'content' | 'label'>) {
   const ed = c.editor
   if (!ed) return
-  const body = ed.getWrapper()?.find('mj-body')[0]
+  const body = ed.getWrapper()?.findType('mj-body')[0]
   if (!body) return
   const sel = c.selected
   if (def.kind === 'section') {
@@ -35,7 +35,7 @@ export function insertBlock(c: ReturnType<typeof useComposer>, def: Pick<BlockDe
   while (col && tagOf(col) !== 'mj-column' && tagOf(col) !== 'mj-hero') col = col.parent()
   if (!col) {
     const sec = sectionOf(sel)
-    col = sec?.find('mj-column')[0]
+    col = sec?.findType('mj-column')[0]
   }
   if (!col) {
     toast({ kind: 'info', title: 'Select a column first', detail: `${def.label} goes inside a column; select one on the canvas, or drag the block there.` })

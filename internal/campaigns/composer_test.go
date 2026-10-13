@@ -279,9 +279,9 @@ func TestComposerChecksAndPreview(t *testing.T) {
 		SubjectHeuristics []string
 		FooterRemovedAt   *string
 		Issues            []struct {
-			ID, Severity, Group, Title, Tag string
-			Path                            []int
-			Fixes                           []struct{ Kind, Label, Value string }
+			ID, Severity, Group, Title, Tag, Detail string
+			Path                                    []int
+			Fixes                                   []struct{ Kind, Label, Value string }
 		}
 	}
 	c.Do("POST", ws+"/campaigns/"+flash+"/checks", map[string]any{"subject": d.Subject, "preheader": d.Preheader, "mjml": d.MJML, "html": d.HTML}).MustStatus(t, 200).JSON(t, &checks)
@@ -308,15 +308,23 @@ func TestComposerChecksAndPreview(t *testing.T) {
 				t.Fatalf("alt issue: %+v", is)
 			}
 		case "subject.spam":
-			if is.Fixes[0].Value != "Flash sale: 48 hours only" {
+			if is.Fixes[0].Value != "48-hour flash sale" {
 				t.Fatalf("subject suggestion: %+v", is)
+			}
+		case "content.size":
+			if !strings.Contains(is.Detail, "Four product cards with inline CSS are the bulk of it.") || len(is.Fixes) == 0 || is.Fixes[len(is.Fixes)-1].Label != "Remove the second row" {
+				t.Fatalf("size issue: %+v", is)
 			}
 		}
 	}
+	// Exactly the ComposerWarnings board's set: two blocks, alt text, size, subject.
 	for _, id := range []string{"links.blocklist", "compliance.footer", "content.alt_text", "content.size", "subject.spam"} {
 		if !found[id] {
 			t.Fatalf("missing %s in %+v", id, checks.Issues)
 		}
+	}
+	if len(found) != 5 {
+		t.Fatalf("unexpected issues: %+v", checks.Issues)
 	}
 
 	// The digest is clean.

@@ -166,7 +166,11 @@ type scan struct {
 	sections []mjml.Section
 	// section byte sizes of the MJML source, to apportion the HTML size
 	sectionBytes []int
-	parsed       bool
+	// columns and inline style attributes per section (cards pasted with
+	// their CSS are a common reason for a heavy email)
+	sectionCols   []int
+	sectionStyles []int
+	parsed        bool
 }
 
 // Check runs every check on the content.
@@ -234,7 +238,7 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 	}
 
 	// Image-to-text ratio.
-	if share, ok := imageShare(s.images, r.PlainText); ok && share > 0.7 {
+	if share, ok := imageShare(s.images, r.PlainText); ok && share > 0.85 {
 		add(ContentCheckIssue{ID: "content.image_ratio", Severity: Warn, Group: "Content", Title: fmt.Sprintf("The email is %d%% image", int(math.Round(share*100))),
 			Detail: "Spam filters score image-heavy mail higher, and most of it disappears when images are off. Add text or use fewer images.", Section: -1})
 	}
@@ -401,6 +405,18 @@ func (c *Checker) scanContent(mjmlSrc, htmlSrc string) scan {
 				for i, n := range body.Children {
 					s.sections = append(s.sections, mjml.Section{Index: i, Tag: n.Tag, Label: mjml.SectionLabel(n, i, total), Marker: n.Marker, Line: n.Line})
 					s.sectionBytes = append(s.sectionBytes, n.End-n.Start)
+					cols := 0
+					for _, ch := range n.Children {
+						if ch.Tag == "mj-column" || ch.Tag == "mj-group" {
+							cols++
+						}
+					}
+					s.sectionCols = append(s.sectionCols, cols)
+					styles := 0
+					if n.Start >= 0 && n.End <= len(mjmlSrc) && n.Start < n.End {
+						styles = strings.Count(mjmlSrc[n.Start:n.End], "style=")
+					}
+					s.sectionStyles = append(s.sectionStyles, styles)
 					header := s.sections[i].Label == "header"
 					n.Walk(func(x *mjml.Node, rel []int) {
 						path := append([]int{i}, rel...)
@@ -549,6 +565,22 @@ func bulkOf(s scan, size int) (string, *ContentCheckFix) {
 		what = fmt.Sprintf("The %s %s sections are", numberWord(len(g.indexes)), g.label)
 	}
 	sentence := fmt.Sprintf("%s the bulk of it (%d%%).", what, int(math.Round(share*100)))
+	// Rows of cards: count the cards themselves ("Four product cards with inline CSS…").
+	if strings.HasSuffix(g.label, "cards") && len(s.sectionCols) == len(s.sections) {
+		cards, styles := 0, 0
+		for _, i := range g.indexes {
+			cards += s.sectionCols[i]
+			styles += s.sectionStyles[i]
+		}
+		if cards > 1 {
+			w := numberWord(cards)
+			what = strings.ToUpper(w[:1]) + w[1:] + " " + g.label
+			if styles >= cards*4 {
+				what += " with inline CSS"
+			}
+			sentence = what + " are the bulk of it."
+		}
+	}
 	last := g.indexes[len(g.indexes)-1]
 	label := "Remove the " + g.label + " section"
 	if len(g.indexes) > 1 {
@@ -803,25 +835,42 @@ func SubjectHeuristics(subject string) []string {
 	return out
 }
 
-// SuggestSubject rewrites a shouty subject: sentence case, repeated
-// punctuation collapsed ("FLASH SALE!!! 48 HOURS ONLY" → "Flash sale: 48
-// hours only").
+var (
+	suggestPunct    = regexp.MustCompile(`\s*[!?]{2,}\s*`)
+	suggestHours    = regexp.MustCompile(`(?i)\b(\d+)\s+(hour|day|minute)s?(\s+only)?\b`)
+	suggestUrgent   = regexp.MustCompile(`(?i)\s*\b(act now|hurry|last chance|today only|don'?t miss( out)?|now or never|only)\b\s*`)
+	suggestLeadTerm = regexp.MustCompile(`^([^:]+):\s+(\d+-(?:hour|day|minute))$`)
+	suggestSpaces   = regexp.MustCompile(`\s{2,}`)
+)
+
+// SuggestSubject rewrites a shouty subject so that it trips none of the
+// heuristics: sentence case, repeated punctuation collapsed and urgency
+// softened ("FLASH SALE!!! 48 HOURS ONLY" → "48-hour flash sale"). It
+// returns "" when no such rewrite exists.
 func SuggestSubject(subject string) string {
 	s := strings.TrimSpace(subject)
 	letters := len(letterRe.FindAllString(s, -1))
 	if letters > 0 && float64(len(upperRe.FindAllString(s, -1)))/float64(letters) >= 0.7 {
-		lower := []rune(strings.ToLower(s))
-		for i, r := range lower {
-			if letterRe.MatchString(string(r)) {
-				lower[i] = []rune(strings.ToUpper(string(r)))[0]
-				break
-			}
-		}
-		s = string(lower)
+		s = strings.ToLower(s)
 	}
-	s = regexp.MustCompile(`\s*[!?]{2,}\s*`).ReplaceAllStringFunc(s, func(m string) string {
-		return ": "
-	})
-	s = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(s), ":"))
+	s = suggestPunct.ReplaceAllString(s, ": ")
+	s = suggestHours.ReplaceAllString(s, "$1-$2")
+	s = suggestUrgent.ReplaceAllString(s, " ")
+	s = suggestSpaces.ReplaceAllString(strings.TrimSpace(s), " ")
+	s = strings.TrimSpace(strings.TrimSuffix(s, ":"))
+	// "flash sale: 48-hour" reads better as "48-hour flash sale".
+	if m := suggestLeadTerm.FindStringSubmatch(s); m != nil {
+		s = m[2] + " " + strings.ToLower(m[1])
+	}
+	if s == "" {
+		return ""
+	}
+	// Sentence case: a capital only when the subject starts with a letter.
+	if r := []rune(s); letterRe.MatchString(string(r[0])) {
+		s = strings.ToUpper(string(r[0])) + string(r[1:])
+	}
+	if len(SubjectHeuristics(s)) > 0 {
+		return ""
+	}
 	return s
 }

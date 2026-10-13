@@ -229,6 +229,14 @@ function SelectionOverlay({ host, tick }: { host: HTMLElement | null; tick: numb
     }
   }, [ed])
   const box = useMemo(() => (ed && sel ? boxOf(ed, sel.getEl(), host) : null), [ed, sel, host, tick]) // eslint-disable-line react-hooks/exhaustive-deps
+  // A selected section shows its columns as dashed guides.
+  const cols = useMemo(() => {
+    if (!ed || !sel || (tagOf(sel) !== 'mj-section' && tagOf(sel) !== 'mj-group')) return []
+    return mjChildren(sel)
+      .filter((x) => tagOf(x) === 'mj-column')
+      .map((x) => boxOf(ed, x.getEl(), host))
+      .filter((b): b is Box => !!b)
+  }, [ed, sel, host, tick]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!ed || !sel || !box || !tagOf(sel) || tagOf(sel) === 'mj-body' || tagOf(sel) === 'mjml') return null
   const parent = sel.parent()
   const canParent = !!parent && !!tagOf(parent) && tagOf(parent) !== 'mjml'
@@ -244,42 +252,48 @@ function SelectionOverlay({ host, tick }: { host: HTMLElement | null; tick: numb
     ed.select(sel)
   }
   return (
-    <div className="cmp-sel" style={{ top: box.top, left: box.left, width: box.width, height: box.height }}>
-      {rte ? null : <span className="lab">{componentLabel(sel)}</span>}
-      {c.canEdit && !rte ? (
-        <div className="tb" role="toolbar" aria-label="Component tools">
-          {canParent ? (
-            <button type="button" aria-label="Select parent" title="Select parent" onClick={() => ed.runCommand('core:component-exit')}>
-              <ToolIcon name="parent" />
-            </button>
-          ) : null}
-          <button
-            type="button"
-            aria-label="Move (drag, or press the up and down arrow keys)"
-            title="Drag to move · arrow keys move up or down"
-            style={{ cursor: 'grab' }}
-            onMouseDown={(e) => {
-              e.preventDefault()
-              ed.runCommand('tlb-move', { target: sel, event: e.nativeEvent })
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    <>
+      {cols.map((b, i) => (
+        <div key={i} className="cmp-col" style={{ top: b.top, left: b.left, width: b.width, height: b.height }} aria-hidden="true" />
+      ))}
+      <div className="cmp-sel" style={{ top: box.top, left: box.left, width: box.width, height: box.height }}>
+        <div className="cmp-sel-box" aria-hidden="true" />
+        {rte ? null : <span className="lab">{componentLabel(sel)}</span>}
+        {c.canEdit && !rte ? (
+          <div className="tb" role="toolbar" aria-label="Component tools">
+            {canParent ? (
+              <button type="button" aria-label="Select parent" title="Select parent" onClick={() => ed.runCommand('core:component-exit')}>
+                <ToolIcon name="parent" />
+              </button>
+            ) : null}
+            <button
+              type="button"
+              aria-label="Move (drag, or press the up and down arrow keys)"
+              title="Drag to move · arrow keys move up or down"
+              style={{ cursor: 'grab' }}
+              onMouseDown={(e) => {
                 e.preventDefault()
-                move(e.key === 'ArrowUp' ? -1 : 1)
-              }
-            }}
-          >
-            <ToolIcon name="move" />
-          </button>
-          <button type="button" aria-label="Duplicate" title="Duplicate" onClick={() => ed.runCommand('tlb-clone')}>
-            <ToolIcon name="duplicate" />
-          </button>
-          <button type="button" aria-label="Delete" title="Delete" onClick={() => ed.runCommand('core:component-delete')}>
-            <ToolIcon name="delete" />
-          </button>
-        </div>
-      ) : null}
-    </div>
+                ed.runCommand('tlb-move', { target: sel, event: e.nativeEvent })
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                  e.preventDefault()
+                  move(e.key === 'ArrowUp' ? -1 : 1)
+                }
+              }}
+            >
+              <ToolIcon name="move" />
+            </button>
+            <button type="button" aria-label="Duplicate" title="Duplicate" onClick={() => ed.runCommand('tlb-clone')}>
+              <ToolIcon name="duplicate" />
+            </button>
+            <button type="button" aria-label="Delete" title="Delete" onClick={() => ed.runCommand('core:component-delete')}>
+              <ToolIcon name="delete" />
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </>
   )
 }
 
@@ -294,7 +308,10 @@ function WarningOverlays({ host, tick }: { host: HTMLElement | null; tick: numbe
     const out: { issue: Issue; box: Box; target: Component }[] = []
     for (const issue of issues) {
       const target = componentAt(c, issue.path)
-      const box = target ? boxOf(ed, target.getEl(), host) : null
+      const el = target?.getEl()
+      // Mark the image or the button itself, not the row around it.
+      const inner = tagOf(target) === 'mj-image' ? el?.querySelector('img') : tagOf(target) === 'mj-button' ? el?.querySelector('a, p') : null
+      const box = target ? boxOf(ed, inner ?? el, host) : null
       if (target && box) out.push({ issue, box, target })
     }
     return out
@@ -304,7 +321,8 @@ function WarningOverlays({ host, tick }: { host: HTMLElement | null; tick: numbe
       {placed.map(({ issue, box, target }, i) => {
         const tone = issue.severity === 'block' ? 'b' : 'w'
         const isImage = tagOf(target) === 'mj-image'
-        const tagStyle = isImage ? { top: box.top + 8, left: box.left + 12 } : { top: box.top - 30, left: box.left + box.width / 2, transform: 'translateX(-50%)' }
+        // As on the board: an image's tag sits on its top-left corner, a link's above it, centred.
+        const tagStyle = isImage ? { top: box.top - 12, left: box.left - 12 } : { top: box.top - 14, left: box.left + box.width / 2, transform: 'translateX(-50%)' }
         return (
           <div key={`${issue.id}-${i}`}>
             <div className={`wbox ${tone}`} style={{ top: box.top, left: box.left, width: box.width, height: box.height }} aria-hidden="true" />
@@ -313,7 +331,7 @@ function WarningOverlays({ host, tick }: { host: HTMLElement | null; tick: numbe
               {issue.tag}
             </button>
             {issue.url && issue.id.startsWith('links.') ? (
-              <span className="mono" style={{ position: 'absolute', top: box.top + box.height + 10, left: box.left, width: box.width, textAlign: 'center', fontSize: 11, color: tone === 'b' ? '#991B1B' : '#92400E', pointerEvents: 'none' }}>
+              <span className="mono" style={{ position: 'absolute', zIndex: 2, top: box.top + box.height + 10, left: box.left - 40, width: box.width + 80, textAlign: 'center', fontSize: 11, color: tone === 'b' ? '#991B1B' : '#92400E', pointerEvents: 'none' }}>
                 {issue.url.replace(/^https?:\/\//, '')}
               </span>
             ) : null}

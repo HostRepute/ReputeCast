@@ -517,6 +517,17 @@ label.tg {
   background: var(--accent-tint);
 }
 
+/* The canvas in the code and preview views: laid out, invisible, unreachable. */
+.cmp-offstage {
+  position: absolute !important;
+  left: -10000px;
+  top: 0;
+  width: 900px;
+  max-width: none;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* ------------------------------------------------------------ canvas */
 .cmp-canvas {
   position: relative;
@@ -648,6 +659,20 @@ label.tg {
   position: absolute;
   pointer-events: none;
   z-index: 3;
+}
+.cmp-sel-box {
+  position: absolute;
+  inset: 0;
+  outline: 2px solid #1d4ed8;
+  outline-offset: -2px;
+  pointer-events: none;
+}
+.cmp-col {
+  position: absolute;
+  outline: 1px dashed #93c5fd;
+  outline-offset: 2px;
+  pointer-events: none;
+  z-index: 2;
 }
 .cmp-sel .lab {
   position: absolute;

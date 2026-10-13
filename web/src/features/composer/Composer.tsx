@@ -119,6 +119,8 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
         created = inst
         geRef.current = inst
         const ed = inst.editor
+        // Dev builds expose the live editor to the visual QA scripts.
+        if (import.meta.env.DEV) (window as unknown as { __rcComposer?: typeof ed }).__rcComposer = ed
         tracker.current = trackChanges(ed)
         ed.on('update', markDirty)
         ed.on('component:toggled', () => setSelected(ed.getSelected() ?? null))
@@ -155,7 +157,7 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
   useEffect(() => {
     if (!ge) return
     const body = ge.editor.getWrapper()
-    body?.find('mj-section, mj-hero, mj-wrapper, mj-raw').forEach((c: Component) => (c.view as unknown as { rerender?: () => void })?.rerender?.())
+    for (const t of ['mj-section', 'mj-hero', 'mj-wrapper', 'mj-raw']) body?.findType(t).forEach((c: Component) => (c.view as unknown as { rerender?: () => void })?.rerender?.())
   }, [ge, head])
 
   // ---------------------------------------------------------------- content
@@ -563,11 +565,12 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
         <Header onReview={goReview} />
         {!campaign.access.canSend && canEditPerm ? <PermissionBanner /> : null}
         {view === 'preview' ? <PreviewView onReview={goReview} /> : null}
-        <div hidden={view === 'preview'} className="flex flex-1 flex-col">
+        {/* The canvas stays mounted off screen in the other views: GrapesJS keeps its state and compiles. */}
+        <div className={`flex flex-1 flex-col${view === 'preview' ? ' cmp-offstage' : ''}`} inert={view === 'preview' || undefined} aria-hidden={view === 'preview' || undefined}>
           {view === 'visual' ? <SubjectBar /> : null}
           <div className="cmp-body">
             {view === 'visual' ? <LeftPanel /> : null}
-            <div className="cmp-main" hidden={view !== 'visual'}>
+            <div className={`cmp-main${view !== 'visual' ? ' cmp-offstage' : ''}`} inert={view !== 'visual' || undefined} aria-hidden={view !== 'visual' || undefined}>
               <CanvasArea containerRef={containerRef} savedCard={savedCard} onCloseSaved={() => setSavedCard(null)} onReview={goReview} />
             </div>
             {view === 'mjml' || view === 'html' ? <CodeView /> : null}

@@ -23,9 +23,10 @@ func init() { seedComposer = seedComposerImpl }
 var composerAssets embed.FS
 
 // ComposerFlashSaleBloat is the number of pasted spans per plan card; it puts the
-// flash sale at about 98 KB, inside the "approaching Gmail's clipping
-// limit" warning of the ComposerWarnings board.
-const ComposerFlashSaleBloat = 42
+// flash sale at about 98 KB as the composer compiles it (mjml-browser), inside
+// the "approaching Gmail's clipping limit" warning of the ComposerWarnings
+// board. The server's compile (gomjml) is a few KB lighter.
+const ComposerFlashSaleBloat = 38
 
 // seedComposerImpl gives the demo campaigns their content and history:
 // Weekly Digest #142 (the Composer board, 14 versions, an A/B subject

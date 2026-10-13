@@ -30,16 +30,17 @@ export function markerOf(c: Component): string {
   return ''
 }
 
+/**
+ * Blocks whose marker names the section. Card rows are named by their
+ * layout ("2 columns"), as the boards' layer tree and selection label do.
+ */
 const markerLabels: Record<string, string> = {
   'header-logo': 'header',
   header: 'header',
-  'article-cards': 'article cards',
-  'article-card': 'article cards',
-  'product-card': 'product cards',
-  'product-cards': 'product cards',
   footer: 'footer',
   hero: 'hero',
 }
+const layoutMarkers = new Set(['article-cards', 'article-card', 'product-card', 'product-cards'])
 
 function walk(c: Component, fn: (x: Component) => void) {
   fn(c)
@@ -64,7 +65,7 @@ function px(v: unknown): number {
 /** Names a top-level body section the way the layer tree and warnings do. */
 export function sectionLabel(c: Component): string {
   const marker = markerOf(c)
-  if (marker) return markerLabels[marker] ?? marker.replace(/-/g, ' ')
+  if (marker && !layoutMarkers.has(marker)) return markerLabels[marker] ?? marker.replace(/-/g, ' ')
   const tag = tagOf(c)
   if (tag === 'mj-hero') return 'hero'
   if (tag === 'mj-raw') return 'raw HTML'

@@ -13,13 +13,14 @@ import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { chromium } from '@playwright/test'
 
-type Img = { file: string; w: number; h: number; label: string }
+/** `transparent` renders a PNG with an alpha channel (logos, so the dark-mode check sees a transparent logo). */
+type Img = { file: string; w: number; h: number; label: string; transparent?: boolean }
 
 const sets: { out: string; images: Img[] }[] = [
   {
     out: resolve('../internal/demo/assets/composer'),
     images: [
-      { file: 'acme-logo.png', w: 96, h: 28, label: 'Logo · 96×28' },
+      { file: 'acme-logo.png', w: 96, h: 28, label: 'Logo · 96×28', transparent: true },
       { file: 'q4-roadmap.png', w: 552, h: 180, label: 'Hero image · 552×180 · alt "Q4 roadmap illustration"' },
       { file: 'article-card.png', w: 268, h: 120, label: 'Image · 268×120' },
       { file: 'sale-hero.png', w: 552, h: 220, label: 'sale-hero.png · 552×220 · 212 KB' },
@@ -30,7 +31,7 @@ const sets: { out: string; images: Img[] }[] = [
   {
     out: resolve('../internal/templates/starters'),
     images: [
-      { file: 'logo.png', w: 120, h: 32, label: 'Your logo' },
+      { file: 'logo.png', w: 120, h: 32, label: 'Your logo', transparent: true },
       { file: 'hero.png', w: 552, h: 220, label: 'Hero image · 552×220' },
       { file: 'card.png', w: 268, h: 140, label: 'Image · 268×140' },
       { file: 'product.png', w: 168, h: 120, label: 'Product · 168×120' },
@@ -47,14 +48,14 @@ async function main() {
     for (const img of set.images) {
       await page.setContent(`<!doctype html><html><head>
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500&display=swap" rel="stylesheet">
-        <style>body{margin:0;background:#fff}
+        <style>body{margin:0;background:${img.transparent ? 'transparent' : '#fff'}}
         .ph{box-sizing:border-box;width:${img.w}px;height:${img.h}px;display:flex;align-items:center;justify-content:center;
-        background:#E9ECF0;color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500;
+        background:${img.transparent ? 'rgba(233,236,240,.92)' : '#E9ECF0'};color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500;
         border:1px dashed #C9CED6;white-space:nowrap;overflow:hidden}</style></head>
         <body><div class="ph">${img.label.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div></body></html>`)
       await page.evaluate('document.fonts.ready')
       await page.waitForTimeout(150)
-      await page.locator('.ph').screenshot({ path: `${set.out}/${img.file}`, omitBackground: false })
+      await page.locator('.ph').screenshot({ path: `${set.out}/${img.file}`, omitBackground: !!img.transparent })
       console.log(`${set.out}/${img.file}`)
     }
   }

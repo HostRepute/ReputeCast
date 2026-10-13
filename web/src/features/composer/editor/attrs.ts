@@ -15,9 +15,9 @@ type Attrs = Record<string, string>
 /** MJML 4 defaults for the attributes the inspector shows. */
 export const MJML_DEFAULTS: Record<string, Attrs> = {
   'mj-body': { width: '600px', 'background-color': '' },
-  'mj-section': { 'background-color': '', padding: '20px 0px', 'text-align': 'center', border: 'none', 'border-radius': '', direction: 'ltr' },
-  'mj-wrapper': { 'background-color': '', padding: '20px 0px', 'text-align': 'center', border: 'none', 'border-radius': '' },
-  'mj-column': { 'background-color': '', padding: '0px', 'vertical-align': 'top', border: 'none', 'border-radius': '' },
+  'mj-section': { 'background-color': '', padding: '20px 0px', 'text-align': 'center', border: 'none', 'border-radius': '0px', direction: 'ltr' },
+  'mj-wrapper': { 'background-color': '', padding: '20px 0px', 'text-align': 'center', border: 'none', 'border-radius': '0px' },
+  'mj-column': { 'background-color': '', padding: '0px', 'vertical-align': 'top', border: 'none', 'border-radius': '0px' },
   'mj-group': { 'background-color': '', 'vertical-align': 'top', direction: 'ltr' },
   'mj-hero': { 'background-color': '#ffffff', mode: 'fixed-height', height: '0px', padding: '0px', 'vertical-align': 'top', 'background-url': '' },
   'mj-text': {

@@ -9,7 +9,7 @@ export type Fix = Issue['fixes'][number]
 
 /** mj-body of the canvas. */
 export function bodyOf(c: ComposerState): Component | undefined {
-  return c.editor?.getWrapper()?.find('mj-body')[0]
+  return c.editor?.getWrapper()?.findType('mj-body')[0]
 }
 
 /** The component an issue points at (element-index path from mj-body). */

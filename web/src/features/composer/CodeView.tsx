@@ -199,7 +199,8 @@ export function CodeView() {
   const errors = failed ? [failed] : []
   const tokens = c.context.tokens
   const fmtToken = (t: (typeof tokens)[number]) => (t.fallback !== undefined && t.fallback !== '' ? `{{ ${t.key} | default: "${t.fallback}" }}` : `{{ ${t.key} }}`)
-  const contactTokens = tokens.filter((t) => t.kind !== 'system').slice(0, 3)
+  // Names first (the address is rarely personalized in copy), then the first custom field.
+  const contactTokens = [...tokens.filter((t) => t.kind === 'contact' && t.key !== 'email').slice(0, 2), ...tokens.filter((t) => t.kind === 'custom').slice(0, 1)]
   const systemTokens = tokens.filter((t) => t.kind === 'system').slice(0, 3)
 
   return (
@@ -231,7 +232,7 @@ export function CodeView() {
           </button>
           <span className="k">mjml 4 · grapesjs-mjml 1.0 · changes here update the canvas and the layer tree</span>
           {c.view === 'mjml' && c.canEdit ? (
-            <button type="button" className="btn pri" style={{ marginLeft: 'auto' }} disabled={!changed} onClick={() => apply() && c.setView('visual')}>
+            <button type="button" className="btn pri" style={{ marginLeft: 'auto' }} onClick={() => apply() && c.setView('visual')}>
               Apply to canvas
             </button>
           ) : null}

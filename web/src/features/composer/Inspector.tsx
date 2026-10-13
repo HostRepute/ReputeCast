@@ -289,6 +289,20 @@ function ColumnWidthsProp({ section }: { section: Component }) {
   )
 }
 
+/** The text that carries the section's body copy: the one with the most words (headings are short). */
+function bodyText(texts: Component[]): Component {
+  let best = texts[0]!
+  let most = -1
+  for (const t of texts) {
+    const n = (t.getEl()?.textContent ?? '').trim().length
+    if (n > most) {
+      best = t
+      most = n
+    }
+  }
+  return best
+}
+
 function fontOptions(current: string) {
   const opts = FONTS.map((f) => ({ value: f.value, label: f.label }))
   if (current && !opts.some((o) => o.value === current)) opts.unshift({ value: current, label: fontLabel(current) })
@@ -390,7 +404,7 @@ export function StyleFields({ c }: { c: Component }) {
           {tag === 'mj-section' ? <ColumnWidthsProp section={c} /> : null}
           <BorderProp c={c} />
           <TextProp c={c} k="border-radius" title="Border radius" px />
-          {texts.length ? <TypographyProp targets={texts} sample={texts[0]!} title="Typography · inherited by children" /> : null}
+          {texts.length ? <TypographyProp targets={texts} sample={bodyText(texts)} title="Typography · inherited by children" /> : null}
         </>
       )
     }
@@ -642,7 +656,7 @@ function VisibilityProp({ c }: { c: Component }) {
   const toggle = (which: 'mobile' | 'desktop', on: boolean) => {
     toggleClass(c, VISIBILITY[which], on)
     // Keep the media-query rule in the head only while something uses it.
-    const body = ctx.editor?.getWrapper()?.find('mj-body')[0]
+    const body = ctx.editor?.getWrapper()?.findType('mj-body')[0]
     const all: Component[] = []
     const walk = (x: Component) => {
       all.push(x)

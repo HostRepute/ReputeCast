@@ -172,12 +172,15 @@ function useDarkChecks(doc: Document | null, assets: Schemas['MediaAsset'][] | u
       const w = worst as { ratio: number; bg: string }
       out.push(w.ratio >= 4.5 ? { tone: 'ok', text: `Button text contrast ${w.ratio.toFixed(1)}:1 on ${w.bg} in both modes` } : { tone: 'warn', text: `Button text contrast is ${w.ratio.toFixed(1)}:1 on ${w.bg}; aim for 4.5:1` })
     }
-    // Small text on a background that clients darken, with its colour kept (Outlook for Windows).
-    let low: { ratio: number; color: string } | null = null
-    doc.querySelectorAll('div, td, p, span, a').forEach((el) => {
-      if (!el.textContent?.trim() || el.children.length > 3) return
+    // Small visible text on a light background that clients darken while keeping the text colour (Outlook for Windows).
+    let low: { ratio: number; color: string; footer: boolean } | null = null
+    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT)
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const el = n.parentElement
+      if (!el || !n.textContent?.trim()) continue
       const cs = win!.getComputedStyle(el)
-      if (parseFloat(cs.fontSize) >= 14) return
+      const size = parseFloat(cs.fontSize)
+      if (size >= 14 || size < 6 || !el.getClientRects().length || cs.visibility === 'hidden') continue
       const fg = parseRgb(cs.color)
       let bgNode: Element | null = el
       let bg: RGB | null = null
@@ -185,16 +188,18 @@ function useDarkChecks(doc: Document | null, assets: Schemas['MediaAsset'][] | u
         bg = parseRgb(win!.getComputedStyle(bgNode).backgroundColor)
         bgNode = bgNode.parentElement
       }
-      if (!fg || !bg || luminance(bg) < 0.45) return
+      if (!fg || !bg || luminance(bg) < 0.45) continue
       const ratio = contrast(fg, invertLightness(bg))
-      if (!low || ratio < low.ratio) low = { ratio, color: toHex(fg) }
-    })
+      const block = el.closest('td, div')
+      const footer = /unsubscribe/i.test(block?.textContent ?? '')
+      if (!low || ratio < low.ratio) low = { ratio, color: toHex(fg), footer }
+    }
     if (low) {
-      const l = low as { ratio: number; color: string }
+      const l = low as { ratio: number; color: string; footer: boolean }
       out.push(
         l.ratio >= 4.5
           ? { tone: 'ok', text: `Small text keeps ${l.ratio.toFixed(1)}:1 contrast on inverted backgrounds` }
-          : { tone: 'warn', text: `Outlook for Windows ignores dark-mode meta; small text in ${l.color} drops to ${l.ratio.toFixed(1)}:1 on inverted background` },
+          : { tone: 'warn', text: `Outlook for Windows ignores dark-mode meta; ${l.footer ? 'footer grey' : 'small text in'} ${l.color} drops to ${l.ratio.toFixed(1)}:1 on inverted background` },
       )
     }
     return out
@@ -317,7 +322,7 @@ function ABPanel() {
               {t.metric === 'human_opens' ? 'Human opens exclude Apple Mail prefetches, so the winner is real.' : null}
             </span>
             {c.canEdit ? (
-              <button type="button" className="btn sm self-start" onClick={() => c.setABTest(null)}>
+              <button type="button" className="k self-start" style={{ border: 0, background: 'none', padding: 0, minHeight: 24, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }} onClick={() => c.setABTest(null)}>
                 Stop testing
               </button>
             ) : null}
@@ -410,7 +415,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
                   value={sampleValue}
                   onChange={(e) => {
                     const v = e.target.value
-                    setSample(v.startsWith('c:') ? { sample: 'contact', contactId: v.slice(2) } : { sample: v as Sample['sample'] })
+                    setSample(v.startsWith('c:') ? { sample: 'contact', contactId: v.slice(2) || undefined } : { sample: v as Sample['sample'] })
                   }}
                 >
                   {(contacts.data?.items ?? []).map((ct) => (
@@ -418,6 +423,12 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
                       {ct.name || ct.email} · {ct.email} · {ct.label}
                     </option>
                   ))}
+                  {/* No contacts in the audience yet: the server previews as a sample person. */}
+                  {!contacts.data?.items.length && preview?.contact ? (
+                    <option value="c:">
+                      {preview.contact.name} · {preview.contact.email} · {preview.contact.label}
+                    </option>
+                  ) : null}
                   <option value="no_first_name">Contact without first_name · fallback “{firstName?.token.match(/default:\s*"([^"]*)"/)?.[1] ?? 'there'}”</option>
                   <option value="random">Random Active contact</option>
                 </select>
