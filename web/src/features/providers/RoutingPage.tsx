@@ -204,7 +204,7 @@ function StreamCard({
   return (
     <section className="card flex flex-col" aria-labelledby={titleId}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 max-md:flex-wrap">
           <h2 className="h2" id={titleId}>
             {streamName[stream]}
           </h2>

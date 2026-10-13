@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { errorMessage, http } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { Field, OptionCard, Select } from '@/components/ui/Field'
+import { Field, Select } from '@/components/ui/Field'
 import { Grid } from '@/components/ui/Layout'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
@@ -10,7 +10,7 @@ import { cn } from '@/lib/cn'
 import { count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { streamName, type FailoverPolicy, type Stream } from './common'
-import { providerOption, type BulkIssue, type Draft, type RoutingConfig, type RoutingProvider } from './routing-model'
+import { providerOption, setPrimary, type BulkIssue, type Draft, type RoutingConfig, type RoutingProvider } from './routing-model'
 
 type Fix = 'create' | 'other' | 'none' | 'keep'
 
@@ -29,6 +29,36 @@ function termName(p: RoutingProvider, variant: string) {
 
 /** "Transactional" from "Transactional stream". */
 const variantWord = (label: string) => label.replace(/ stream$/, '')
+
+/** One way to fix the route (`label.opt`): title and explanation flow inline, as on the board. */
+function FixOption({
+  value,
+  fix,
+  onPick,
+  title,
+  description,
+  dashed,
+  disabled,
+}: {
+  value: Fix
+  fix: Fix
+  onPick: (f: Fix) => void
+  title: ReactNode
+  description: ReactNode
+  dashed?: boolean
+  disabled?: boolean
+}) {
+  return (
+    <label className={cn('opt pv-opt', dashed && 'border-dashed', disabled && 'cursor-not-allowed opacity-60')}>
+      <input type="radio" name="pv-fix" value={value} checked={fix === value} disabled={disabled} onChange={() => onPick(value)} />
+      <span>
+        <span className="font-semibold">{title}</span>
+        <br />
+        <span className="k">{description}</span>
+      </span>
+    </label>
+  )
+}
 
 /**
  * The routing draft would send Broadcasts through a provider whose terms
@@ -117,8 +147,9 @@ export function BulkWarningView({
             Broadcasts would {fallbackIssue ? 'fail over to' : 'go through'} a provider whose terms don&apos;t allow bulk marketing
           </span>
           <span className="text-[#78350F]">
-            You set the Broadcasts {issue.where === 'fallback' ? 'fallback' : issue.where === 'split' ? 'split' : 'condition'} to {bad.name}&apos;s &ldquo;{variant}&rdquo; message stream.{' '}
-            {bad.terms.find((t) => t.active)?.note ?? `${bad.name}'s terms don't allow bulk mail on it.`}
+            You set the Broadcasts {issue.where === 'fallback' ? 'fallback' : issue.where === 'split' ? 'split' : 'condition'} to {bad.name}&apos;s &quot;{variant}&quot;
+            {variant ? ' message stream' : ''}. {bad.name}&apos;s terms restrict {variant ? `${variant.toLowerCase()} streams` : 'this account'} to one-to-one mail; newsletters on it
+            risk account suspension.
             {bad.broadcastStreamCreatable ? ` ${bad.name} does allow bulk mail on a Broadcast message stream, and ReputeCast can create one.` : ''}
           </span>
         </div>
@@ -136,15 +167,14 @@ export function BulkWarningView({
         </div>
         <Grid min={260} gap={16} className="px-5 py-[18px]">
           <Field label="Primary" hint={others.length ? `Weighted with ${others.map((o) => `${o.p!.short} · ${o.s.weight}%${o.p!.warmingUp ? ', warming up' : ''}`).join('; ')}` : undefined}>
-            <Select value={primary?.id ?? ''} disabled>
-              {primary ? (
-                <option value={primary.id}>
-                  {providerOption(primary)}
+            <Select value={primary?.id ?? ''} disabled={Boolean(readOnlyReason)} onChange={(e) => onDraft({ ...draft, broadcast: setPrimary(b, e.target.value) })}>
+              {primary ? null : <option value="">Choose a provider</option>}
+              {cfg.providers.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {providerOption(p)}
                   {b.splits.length > 1 ? ` · ${b.splits[0]!.weight}%` : ''}
                 </option>
-              ) : (
-                <option value="">None</option>
-              )}
+              ))}
             </Select>
           </Field>
           <div className={cn('lbl', fallbackIssue && 'text-warn-fg')}>
@@ -187,23 +217,19 @@ export function BulkWarningView({
           </span>
           <Grid min={280} gap={12} role="radiogroup" aria-labelledby="pv-fix-title">
             {bad.broadcastStreamCreatable ? (
-              <OptionCard
-                name="pv-fix"
-              className="pv-opt"
+              <FixOption
                 value="create"
-                checked={fix === 'create'}
-                onChange={() => setFix('create')}
+                fix={fix}
+                onPick={setFix}
                 title={`Create a ${bad.name} Broadcast stream (recommended)`}
                 description={`ReputeCast creates "ReputeCast Broadcasts" in your ${bad.name} server, registers webhooks and uses it as the ${fallbackIssue ? 'fallback' : 'route'}. About 1 minute.`}
               />
             ) : null}
-            <OptionCard
-              name="pv-fix"
-              className="pv-opt"
+            <FixOption
               value="other"
-              checked={fix === 'other'}
+              fix={fix}
+              onPick={setFix}
               disabled={!alt}
-              onChange={() => setFix('other')}
               title={`Use a different ${fallbackIssue ? 'fallback' : 'provider'}`}
               description={
                 !alt
@@ -214,22 +240,19 @@ export function BulkWarningView({
               }
             />
             {fallbackIssue ? (
-              <OptionCard
-                name="pv-fix"
-              className="pv-opt"
+              <FixOption
                 value="none"
-                checked={fix === 'none'}
-                onChange={() => setFix('none')}
+                fix={fix}
+                onPick={setFix}
                 title="No fallback, pause and ask"
                 description={`If ${primary?.short ?? 'the primary'} fails mid-send, the campaign holds and you decide.`}
               />
             ) : null}
-            <OptionCard
-              name="pv-fix"
-              className="pv-opt border-dashed"
+            <FixOption
               value="keep"
-              checked={fix === 'keep'}
-              onChange={() => setFix('keep')}
+              fix={fix}
+              onPick={setFix}
+              dashed
               title={<span className="text-bad-fg">{`Keep ${bad.name} ${variant} anyway`}</span>}
               description="Recorded in the audit log. Send Readiness will show a Block on every broadcast until this is changed."
             />

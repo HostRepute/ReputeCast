@@ -100,7 +100,7 @@ export function RouteTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft 
                 <span className="n">{mailboxName[r.mailboxProvider] ?? r.mailboxProvider}</span>
               </Row>
               <Row k="DKIM selector">
-                <span className="mono">{r.dkimSelector || 'not set up yet'}</span>
+                <span className="mono min-w-0 text-right break-all">{r.dkimSelector || 'not set up yet'}</span>
               </Row>
               <Row k="Cost">
                 <span className="n">{costText(r.cost)}</span>
@@ -129,7 +129,7 @@ export function RouteTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft 
 function Row({ k, children }: { k: string; children: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-3 text-[13px] max-md:flex-wrap">
-      <span className="k">{k}</span>
+      <span className="k shrink-0">{k}</span>
       {children}
     </div>
   )

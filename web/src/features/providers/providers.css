@@ -120,10 +120,20 @@
     cursor: pointer;
   }
   /* The boards keep the browser's radio margins (3px 3px 0 5px), with
-     margin-top 3px from the label rule. */
+     margin-top 3px from the label rule, and let the radio shrink like any
+     flex item when the text beside it is long. */
   label.pv-tg input,
   label.opt.pv-opt input {
     margin: 3px 3px 0 5px;
+    flex: 0 1 auto;
+  }
+  /* On phones the boards give every input min-width 0, so a radio beside a
+     long text shrinks further. */
+  @media (max-width: 767px) {
+    label.pv-tg input,
+    label.opt.pv-opt input {
+      min-width: 0;
+    }
   }
 
   /* Warm-up ramp chart (.col, .cap, .sent) */
