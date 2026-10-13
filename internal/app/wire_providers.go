@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/ingest"
 	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/sending"
@@ -28,7 +28,10 @@ import (
 
 // W01 · Sending providers & routing.
 func (a *App) providerFactory() *manage.Factory {
-	return &manage.Factory{Box: a.Secrets, HTTP: &http.Client{Timeout: 30 * time.Second}}
+	// Provider URLs come from workspace admins: every adapter call goes through
+	// the SSRF guard (metadata and link-local addresses are always refused).
+	guard := netguard.Policy{AllowPrivate: a.Cfg.Providers.AllowPrivateNetworks}
+	return &manage.Factory{Box: a.Secrets, HTTP: guard.Client(30 * time.Second)}
 }
 
 func (a *App) providersService() *manage.Service {
