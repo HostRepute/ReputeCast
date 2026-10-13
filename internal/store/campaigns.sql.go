@@ -110,6 +110,508 @@ func (q *Queries) CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSin
 	return i, err
 }
 
+const composerAudienceLists = `-- name: ComposerAudienceLists :many
+SELECT l.id, l.name,
+       (SELECT count(*) FROM list_memberships m
+        JOIN contacts c ON c.id = m.contact_id
+        WHERE m.list_id = l.id AND m.status = 'subscribed' AND c.status = 'active' AND c.erased_at IS NULL)::bigint AS subscribers
+FROM lists l
+WHERE l.workspace_id = $1 AND l.deleted_at IS NULL
+ORDER BY l.created_at
+`
+
+type ComposerAudienceListsRow struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Subscribers int64     `json:"subscribers"`
+}
+
+// Lists with their subscribed, active contacts (suppressed addresses excluded).
+func (q *Queries) ComposerAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceListsRow, error) {
+	rows, err := q.db.Query(ctx, composerAudienceLists, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ComposerAudienceListsRow{}
+	for rows.Next() {
+		var i ComposerAudienceListsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Subscribers); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const composerAudienceSegments = `-- name: ComposerAudienceSegments :many
+SELECT id, name, cached_count FROM segments WHERE workspace_id = $1 ORDER BY name
+`
+
+type ComposerAudienceSegmentsRow struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	CachedCount *int64    `json:"cachedCount"`
+}
+
+func (q *Queries) ComposerAudienceSegments(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceSegmentsRow, error) {
+	rows, err := q.db.Query(ctx, composerAudienceSegments, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ComposerAudienceSegmentsRow{}
+	for rows.Next() {
+		var i ComposerAudienceSegmentsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.CachedCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const composerCountListAudience = `-- name: ComposerCountListAudience :one
+SELECT count(DISTINCT c.id)::bigint
+FROM contacts c
+JOIN list_memberships m ON m.contact_id = c.id
+WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
+  AND m.status = 'subscribed' AND m.list_id = ANY($2::uuid[])
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($3::uuid[]))
+  AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)
+`
+
+type ComposerCountListAudienceParams struct {
+	WorkspaceID  uuid.UUID   `json:"workspaceId"`
+	Lists        []uuid.UUID `json:"lists"`
+	ExcludeLists []uuid.UUID `json:"excludeLists"`
+}
+
+// Recipients of lists minus excluded lists and suppressions.
+func (q *Queries) ComposerCountListAudience(ctx context.Context, arg ComposerCountListAudienceParams) (int64, error) {
+	row := q.db.QueryRow(ctx, composerCountListAudience, arg.WorkspaceID, arg.Lists, arg.ExcludeLists)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const composerCountMissingField = `-- name: ComposerCountMissingField :one
+SELECT count(DISTINCT c.id)::bigint
+FROM contacts c
+JOIN list_memberships m ON m.contact_id = c.id
+WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
+  AND m.status = 'subscribed' AND m.list_id = ANY($2::uuid[]) AND c.first_name = ''
+`
+
+type ComposerCountMissingFieldParams struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	Lists       []uuid.UUID `json:"lists"`
+}
+
+// Audience contacts whose first name is empty (they see the fallback).
+func (q *Queries) ComposerCountMissingField(ctx context.Context, arg ComposerCountMissingFieldParams) (int64, error) {
+	row := q.db.QueryRow(ctx, composerCountMissingField, arg.WorkspaceID, arg.Lists)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const composerCustomFields = `-- name: ComposerCustomFields :many
+SELECT key, label, type FROM custom_fields WHERE workspace_id = $1 ORDER BY created_at, key
+`
+
+type ComposerCustomFieldsRow struct {
+	Key   string `json:"key"`
+	Label string `json:"label"`
+	Type  string `json:"type"`
+}
+
+func (q *Queries) ComposerCustomFields(ctx context.Context, workspaceID uuid.UUID) ([]ComposerCustomFieldsRow, error) {
+	rows, err := q.db.Query(ctx, composerCustomFields, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ComposerCustomFieldsRow{}
+	for rows.Next() {
+		var i ComposerCustomFieldsRow
+		if err := rows.Scan(&i.Key, &i.Label, &i.Type); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const composerDefaultSender = `-- name: ComposerDefaultSender :one
+SELECT coalesce(w.default_sender_id::text, '')::text AS sender_id, w.branding
+FROM workspaces w WHERE w.id = $1
+`
+
+type ComposerDefaultSenderRow struct {
+	SenderID string          `json:"senderId"`
+	Branding json.RawMessage `json:"branding"`
+}
+
+func (q *Queries) ComposerDefaultSender(ctx context.Context, id uuid.UUID) (ComposerDefaultSenderRow, error) {
+	row := q.db.QueryRow(ctx, composerDefaultSender, id)
+	var i ComposerDefaultSenderRow
+	err := row.Scan(&i.SenderID, &i.Branding)
+	return i, err
+}
+
+const composerLastSentCampaign = `-- name: ComposerLastSentCampaign :one
+SELECT c.id, c.name, c.mjml, coalesce(c.started_at, c.updated_at)::timestamptz AS sent_at
+FROM campaigns c
+WHERE c.workspace_id = $1 AND c.deleted_at IS NULL AND c.status = 'sent' AND c.origin = '' AND c.mjml <> ''
+ORDER BY c.started_at DESC NULLS LAST
+LIMIT 1
+`
+
+type ComposerLastSentCampaignRow struct {
+	ID     uuid.UUID `json:"id"`
+	Name   string    `json:"name"`
+	Mjml   string    `json:"mjml"`
+	SentAt time.Time `json:"sentAt"`
+}
+
+func (q *Queries) ComposerLastSentCampaign(ctx context.Context, workspaceID uuid.UUID) (ComposerLastSentCampaignRow, error) {
+	row := q.db.QueryRow(ctx, composerLastSentCampaign, workspaceID)
+	var i ComposerLastSentCampaignRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Mjml,
+		&i.SentAt,
+	)
+	return i, err
+}
+
+const composerLatestReadiness = `-- name: ComposerLatestReadiness :one
+SELECT rr.verdict,
+       (SELECT count(*) FROM jsonb_array_elements(coalesce(rr.checks -> 'checks', '[]'::jsonb)) e WHERE e ->> 'status' IN ('warn', 'block'))::bigint AS issues
+FROM readiness_runs rr WHERE rr.campaign_id = $1 ORDER BY rr.ran_at DESC LIMIT 1
+`
+
+type ComposerLatestReadinessRow struct {
+	Verdict string `json:"verdict"`
+	Issues  int64  `json:"issues"`
+}
+
+func (q *Queries) ComposerLatestReadiness(ctx context.Context, campaignID uuid.UUID) (ComposerLatestReadinessRow, error) {
+	row := q.db.QueryRow(ctx, composerLatestReadiness, campaignID)
+	var i ComposerLatestReadinessRow
+	err := row.Scan(&i.Verdict, &i.Issues)
+	return i, err
+}
+
+const composerLockCampaign = `-- name: ComposerLockCampaign :one
+SELECT c.id, c.status, c.version, c.subject, c.preheader, c.mjml, c.html, c.ab_test, c.content_hash, c.content_settings,
+       c.updated_by, c.autosaved_at, c.updated_at,
+       coalesce(u.name, '')::text AS updated_by_name
+FROM campaigns c
+LEFT JOIN users u ON u.id = c.updated_by
+WHERE c.workspace_id = $1 AND c.id = $2 AND c.deleted_at IS NULL
+FOR UPDATE OF c
+`
+
+type ComposerLockCampaignParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type ComposerLockCampaignRow struct {
+	ID              uuid.UUID       `json:"id"`
+	Status          string          `json:"status"`
+	Version         int32           `json:"version"`
+	Subject         string          `json:"subject"`
+	Preheader       string          `json:"preheader"`
+	Mjml            string          `json:"mjml"`
+	Html            string          `json:"html"`
+	AbTest          json.RawMessage `json:"abTest"`
+	ContentHash     string          `json:"contentHash"`
+	ContentSettings json.RawMessage `json:"contentSettings"`
+	UpdatedBy       *uuid.UUID      `json:"updatedBy"`
+	AutosavedAt     *time.Time      `json:"autosavedAt"`
+	UpdatedAt       time.Time       `json:"updatedAt"`
+	UpdatedByName   string          `json:"updatedByName"`
+}
+
+// Row lock for autosave: the version check and the new version are atomic.
+func (q *Queries) ComposerLockCampaign(ctx context.Context, arg ComposerLockCampaignParams) (ComposerLockCampaignRow, error) {
+	row := q.db.QueryRow(ctx, composerLockCampaign, arg.WorkspaceID, arg.ID)
+	var i ComposerLockCampaignRow
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.Version,
+		&i.Subject,
+		&i.Preheader,
+		&i.Mjml,
+		&i.Html,
+		&i.AbTest,
+		&i.ContentHash,
+		&i.ContentSettings,
+		&i.UpdatedBy,
+		&i.AutosavedAt,
+		&i.UpdatedAt,
+		&i.UpdatedByName,
+	)
+	return i, err
+}
+
+const composerPreviewContactByID = `-- name: ComposerPreviewContactByID :one
+SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier
+FROM contacts c
+WHERE c.workspace_id = $1 AND c.id = $2 AND c.erased_at IS NULL
+`
+
+type ComposerPreviewContactByIDParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type ComposerPreviewContactByIDRow struct {
+	ID         uuid.UUID       `json:"id"`
+	Email      string          `json:"email"`
+	FirstName  string          `json:"firstName"`
+	LastName   string          `json:"lastName"`
+	Attributes json.RawMessage `json:"attributes"`
+	Tier       string          `json:"tier"`
+}
+
+func (q *Queries) ComposerPreviewContactByID(ctx context.Context, arg ComposerPreviewContactByIDParams) (ComposerPreviewContactByIDRow, error) {
+	row := q.db.QueryRow(ctx, composerPreviewContactByID, arg.WorkspaceID, arg.ID)
+	var i ComposerPreviewContactByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.FirstName,
+		&i.LastName,
+		&i.Attributes,
+		&i.Tier,
+	)
+	return i, err
+}
+
+const composerPreviewContacts = `-- name: ComposerPreviewContacts :many
+SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier
+FROM contacts c
+WHERE c.workspace_id = $1 AND c.erased_at IS NULL AND c.status = 'active'
+  AND ($2::text = '' OR c.email ILIKE '%' || $2::text || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || $2::text || '%')
+  AND (cardinality($3::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY($3::uuid[])))
+ORDER BY (c.first_name = '') ASC, c.last_open_at DESC NULLS LAST, c.email
+LIMIT $4
+`
+
+type ComposerPreviewContactsParams struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	Query       string      `json:"query"`
+	Lists       []uuid.UUID `json:"lists"`
+	Lim         int32       `json:"lim"`
+}
+
+type ComposerPreviewContactsRow struct {
+	ID         uuid.UUID       `json:"id"`
+	Email      string          `json:"email"`
+	FirstName  string          `json:"firstName"`
+	LastName   string          `json:"lastName"`
+	Attributes json.RawMessage `json:"attributes"`
+	Tier       string          `json:"tier"`
+}
+
+// Contacts to preview as: the campaign's audience first, people with a first name first.
+func (q *Queries) ComposerPreviewContacts(ctx context.Context, arg ComposerPreviewContactsParams) ([]ComposerPreviewContactsRow, error) {
+	rows, err := q.db.Query(ctx, composerPreviewContacts,
+		arg.WorkspaceID,
+		arg.Query,
+		arg.Lists,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ComposerPreviewContactsRow{}
+	for rows.Next() {
+		var i ComposerPreviewContactsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.FirstName,
+			&i.LastName,
+			&i.Attributes,
+			&i.Tier,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const composerRandomContact = `-- name: ComposerRandomContact :one
+SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier
+FROM contacts c
+WHERE c.workspace_id = $1 AND c.erased_at IS NULL AND c.status = 'active' AND c.tier = 'active'
+ORDER BY random()
+LIMIT 1
+`
+
+type ComposerRandomContactRow struct {
+	ID         uuid.UUID       `json:"id"`
+	Email      string          `json:"email"`
+	FirstName  string          `json:"firstName"`
+	LastName   string          `json:"lastName"`
+	Attributes json.RawMessage `json:"attributes"`
+	Tier       string          `json:"tier"`
+}
+
+func (q *Queries) ComposerRandomContact(ctx context.Context, workspaceID uuid.UUID) (ComposerRandomContactRow, error) {
+	row := q.db.QueryRow(ctx, composerRandomContact, workspaceID)
+	var i ComposerRandomContactRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.FirstName,
+		&i.LastName,
+		&i.Attributes,
+		&i.Tier,
+	)
+	return i, err
+}
+
+const composerTestRecipients = `-- name: ComposerTestRecipients :many
+SELECT u.id, u.name, u.email
+FROM workspace_members m
+JOIN users u ON u.id = m.user_id AND u.status = 'active'
+WHERE m.workspace_id = $1 AND m.status = 'active'
+ORDER BY u.name
+`
+
+type ComposerTestRecipientsRow struct {
+	ID    uuid.UUID `json:"id"`
+	Name  string    `json:"name"`
+	Email string    `json:"email"`
+}
+
+// Active members of the workspace, for "Send test" (name and email).
+func (q *Queries) ComposerTestRecipients(ctx context.Context, workspaceID uuid.UUID) ([]ComposerTestRecipientsRow, error) {
+	rows, err := q.db.Query(ctx, composerTestRecipients, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ComposerTestRecipientsRow{}
+	for rows.Next() {
+		var i ComposerTestRecipientsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Email); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const composerUpdateCampaignMeta = `-- name: ComposerUpdateCampaignMeta :exec
+UPDATE campaigns
+SET name = $1, sender_id = $2, reply_to = $3, audience = $4,
+    audience_count = $5, content_settings = $6,
+    updated_by = $7, updated_at = $8
+WHERE workspace_id = $9 AND id = $10
+`
+
+type ComposerUpdateCampaignMetaParams struct {
+	Name            string          `json:"name"`
+	SenderID        *uuid.UUID      `json:"senderId"`
+	ReplyTo         string          `json:"replyTo"`
+	Audience        json.RawMessage `json:"audience"`
+	AudienceCount   *int64          `json:"audienceCount"`
+	ContentSettings json.RawMessage `json:"contentSettings"`
+	UpdatedBy       *uuid.UUID      `json:"updatedBy"`
+	Now             time.Time       `json:"now"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	ID              uuid.UUID       `json:"id"`
+}
+
+func (q *Queries) ComposerUpdateCampaignMeta(ctx context.Context, arg ComposerUpdateCampaignMetaParams) error {
+	_, err := q.db.Exec(ctx, composerUpdateCampaignMeta,
+		arg.Name,
+		arg.SenderID,
+		arg.ReplyTo,
+		arg.Audience,
+		arg.AudienceCount,
+		arg.ContentSettings,
+		arg.UpdatedBy,
+		arg.Now,
+		arg.WorkspaceID,
+		arg.ID,
+	)
+	return err
+}
+
+const composerVersionSources = `-- name: ComposerVersionSources :many
+SELECT version, saved_at, mjml, coalesce(u.name, '')::text AS saved_by_name
+FROM campaign_versions v
+LEFT JOIN users u ON u.id = v.saved_by
+WHERE v.campaign_id = $1
+ORDER BY v.version DESC
+LIMIT $2
+`
+
+type ComposerVersionSourcesParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	Lim        int32     `json:"lim"`
+}
+
+type ComposerVersionSourcesRow struct {
+	Version     int32     `json:"version"`
+	SavedAt     time.Time `json:"savedAt"`
+	Mjml        string    `json:"mjml"`
+	SavedByName string    `json:"savedByName"`
+}
+
+// The MJML of recent versions, newest first (to find when a section was removed).
+func (q *Queries) ComposerVersionSources(ctx context.Context, arg ComposerVersionSourcesParams) ([]ComposerVersionSourcesRow, error) {
+	rows, err := q.db.Query(ctx, composerVersionSources, arg.CampaignID, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ComposerVersionSourcesRow{}
+	for rows.Next() {
+		var i ComposerVersionSourcesRow
+		if err := rows.Scan(
+			&i.Version,
+			&i.SavedAt,
+			&i.Mjml,
+			&i.SavedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const countCampaigns = `-- name: CountCampaigns :one
 SELECT count(*) FROM campaigns c
 WHERE c.workspace_id = $1 AND c.deleted_at IS NULL
@@ -163,6 +665,270 @@ func (q *Queries) CountCampaignsByStatus(ctx context.Context, workspaceID uuid.U
 		return nil, err
 	}
 	return items, nil
+}
+
+const getComposerCampaign = `-- name: GetComposerCampaign :one
+
+SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.sender_id, c.reply_to, c.audience, c.audience_count,
+       c.editor_mode, c.mjml, c.html, c.plain_text, c.version, c.ab_test, c.schedule, c.content_hash, c.content_settings,
+       c.created_by, c.updated_by, c.created_at, c.updated_at, c.autosaved_at, c.scheduled_at, c.started_at,
+       coalesce(u.name, '')::text AS updated_by_name,
+       coalesce(s.name, '')::text AS sender_name,
+       coalesce(s.email, '')::text AS sender_email,
+       (SELECT count(*) FROM campaign_versions v WHERE v.campaign_id = c.id)::bigint AS version_count
+FROM campaigns c
+LEFT JOIN users u ON u.id = c.updated_by
+LEFT JOIN senders s ON s.id = c.sender_id
+WHERE c.workspace_id = $1 AND c.id = $2 AND c.deleted_at IS NULL
+`
+
+type GetComposerCampaignParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type GetComposerCampaignRow struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	Name            string          `json:"name"`
+	Status          string          `json:"status"`
+	Subject         string          `json:"subject"`
+	Preheader       string          `json:"preheader"`
+	SenderID        *uuid.UUID      `json:"senderId"`
+	ReplyTo         string          `json:"replyTo"`
+	Audience        json.RawMessage `json:"audience"`
+	AudienceCount   *int64          `json:"audienceCount"`
+	EditorMode      string          `json:"editorMode"`
+	Mjml            string          `json:"mjml"`
+	Html            string          `json:"html"`
+	PlainText       string          `json:"plainText"`
+	Version         int32           `json:"version"`
+	AbTest          json.RawMessage `json:"abTest"`
+	Schedule        json.RawMessage `json:"schedule"`
+	ContentHash     string          `json:"contentHash"`
+	ContentSettings json.RawMessage `json:"contentSettings"`
+	CreatedBy       *uuid.UUID      `json:"createdBy"`
+	UpdatedBy       *uuid.UUID      `json:"updatedBy"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	UpdatedAt       time.Time       `json:"updatedAt"`
+	AutosavedAt     *time.Time      `json:"autosavedAt"`
+	ScheduledAt     *time.Time      `json:"scheduledAt"`
+	StartedAt       *time.Time      `json:"startedAt"`
+	UpdatedByName   string          `json:"updatedByName"`
+	SenderName      string          `json:"senderName"`
+	SenderEmail     string          `json:"senderEmail"`
+	VersionCount    int64           `json:"versionCount"`
+}
+
+// ------------------------------------------------------------------ composer
+// One campaign with what the composer header shows.
+func (q *Queries) GetComposerCampaign(ctx context.Context, arg GetComposerCampaignParams) (GetComposerCampaignRow, error) {
+	row := q.db.QueryRow(ctx, getComposerCampaign, arg.WorkspaceID, arg.ID)
+	var i GetComposerCampaignRow
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.Status,
+		&i.Subject,
+		&i.Preheader,
+		&i.SenderID,
+		&i.ReplyTo,
+		&i.Audience,
+		&i.AudienceCount,
+		&i.EditorMode,
+		&i.Mjml,
+		&i.Html,
+		&i.PlainText,
+		&i.Version,
+		&i.AbTest,
+		&i.Schedule,
+		&i.ContentHash,
+		&i.ContentSettings,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.AutosavedAt,
+		&i.ScheduledAt,
+		&i.StartedAt,
+		&i.UpdatedByName,
+		&i.SenderName,
+		&i.SenderEmail,
+		&i.VersionCount,
+	)
+	return i, err
+}
+
+const getComposerSender = `-- name: GetComposerSender :one
+SELECT s.id, s.name, s.email, d.domain
+FROM senders s
+JOIN sending_domains d ON d.id = s.domain_id
+WHERE s.workspace_id = $1 AND s.id = $2
+`
+
+type GetComposerSenderParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type GetComposerSenderRow struct {
+	ID     uuid.UUID `json:"id"`
+	Name   string    `json:"name"`
+	Email  string    `json:"email"`
+	Domain string    `json:"domain"`
+}
+
+func (q *Queries) GetComposerSender(ctx context.Context, arg GetComposerSenderParams) (GetComposerSenderRow, error) {
+	row := q.db.QueryRow(ctx, getComposerSender, arg.WorkspaceID, arg.ID)
+	var i GetComposerSenderRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Domain,
+	)
+	return i, err
+}
+
+const getComposerVersion = `-- name: GetComposerVersion :one
+SELECT v.campaign_id, v.version, v.subject, v.preheader, v.mjml, v.html, v.plain_text, v.ab_test, v.saved_by, v.saved_at, v.label, v.source, v.size_bytes,
+       coalesce(u.name, '')::text AS saved_by_name
+FROM campaign_versions v
+LEFT JOIN users u ON u.id = v.saved_by
+WHERE v.campaign_id = $1 AND v.version = $2
+`
+
+type GetComposerVersionParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	Version    int32     `json:"version"`
+}
+
+type GetComposerVersionRow struct {
+	CampaignID  uuid.UUID       `json:"campaignId"`
+	Version     int32           `json:"version"`
+	Subject     string          `json:"subject"`
+	Preheader   string          `json:"preheader"`
+	Mjml        string          `json:"mjml"`
+	Html        string          `json:"html"`
+	PlainText   string          `json:"plainText"`
+	AbTest      json.RawMessage `json:"abTest"`
+	SavedBy     *uuid.UUID      `json:"savedBy"`
+	SavedAt     time.Time       `json:"savedAt"`
+	Label       string          `json:"label"`
+	Source      string          `json:"source"`
+	SizeBytes   int32           `json:"sizeBytes"`
+	SavedByName string          `json:"savedByName"`
+}
+
+func (q *Queries) GetComposerVersion(ctx context.Context, arg GetComposerVersionParams) (GetComposerVersionRow, error) {
+	row := q.db.QueryRow(ctx, getComposerVersion, arg.CampaignID, arg.Version)
+	var i GetComposerVersionRow
+	err := row.Scan(
+		&i.CampaignID,
+		&i.Version,
+		&i.Subject,
+		&i.Preheader,
+		&i.Mjml,
+		&i.Html,
+		&i.PlainText,
+		&i.AbTest,
+		&i.SavedBy,
+		&i.SavedAt,
+		&i.Label,
+		&i.Source,
+		&i.SizeBytes,
+		&i.SavedByName,
+	)
+	return i, err
+}
+
+const insertComposerCampaign = `-- name: InsertComposerCampaign :exec
+INSERT INTO campaigns (id, workspace_id, name, status, subject, preheader, sender_id, audience, audience_count,
+                       editor_mode, mjml, html, plain_text, version, ab_test, content_hash, created_by, updated_by, created_at, updated_at, autosaved_at)
+VALUES ($1, $2, $3, 'draft', $4, $5, $6, $7, $8,
+        'visual', $9, $10, $11, 1, $12, $13, $14, $14, $15, $15, $16)
+`
+
+type InsertComposerCampaignParams struct {
+	ID            uuid.UUID       `json:"id"`
+	WorkspaceID   uuid.UUID       `json:"workspaceId"`
+	Name          string          `json:"name"`
+	Subject       string          `json:"subject"`
+	Preheader     string          `json:"preheader"`
+	SenderID      *uuid.UUID      `json:"senderId"`
+	Audience      json.RawMessage `json:"audience"`
+	AudienceCount *int64          `json:"audienceCount"`
+	Mjml          string          `json:"mjml"`
+	Html          string          `json:"html"`
+	PlainText     string          `json:"plainText"`
+	AbTest        json.RawMessage `json:"abTest"`
+	ContentHash   string          `json:"contentHash"`
+	CreatedBy     *uuid.UUID      `json:"createdBy"`
+	Now           time.Time       `json:"now"`
+	AutosavedAt   *time.Time      `json:"autosavedAt"`
+}
+
+func (q *Queries) InsertComposerCampaign(ctx context.Context, arg InsertComposerCampaignParams) error {
+	_, err := q.db.Exec(ctx, insertComposerCampaign,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.Name,
+		arg.Subject,
+		arg.Preheader,
+		arg.SenderID,
+		arg.Audience,
+		arg.AudienceCount,
+		arg.Mjml,
+		arg.Html,
+		arg.PlainText,
+		arg.AbTest,
+		arg.ContentHash,
+		arg.CreatedBy,
+		arg.Now,
+		arg.AutosavedAt,
+	)
+	return err
+}
+
+const insertComposerVersion = `-- name: InsertComposerVersion :exec
+INSERT INTO campaign_versions (campaign_id, version, subject, preheader, mjml, html, plain_text, ab_test, saved_by, saved_at, label, source, size_bytes)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+`
+
+type InsertComposerVersionParams struct {
+	CampaignID uuid.UUID       `json:"campaignId"`
+	Version    int32           `json:"version"`
+	Subject    string          `json:"subject"`
+	Preheader  string          `json:"preheader"`
+	Mjml       string          `json:"mjml"`
+	Html       string          `json:"html"`
+	PlainText  string          `json:"plainText"`
+	AbTest     json.RawMessage `json:"abTest"`
+	SavedBy    *uuid.UUID      `json:"savedBy"`
+	SavedAt    time.Time       `json:"savedAt"`
+	Label      string          `json:"label"`
+	Source     string          `json:"source"`
+	SizeBytes  int32           `json:"sizeBytes"`
+}
+
+func (q *Queries) InsertComposerVersion(ctx context.Context, arg InsertComposerVersionParams) error {
+	_, err := q.db.Exec(ctx, insertComposerVersion,
+		arg.CampaignID,
+		arg.Version,
+		arg.Subject,
+		arg.Preheader,
+		arg.Mjml,
+		arg.Html,
+		arg.PlainText,
+		arg.AbTest,
+		arg.SavedBy,
+		arg.SavedAt,
+		arg.Label,
+		arg.Source,
+		arg.SizeBytes,
+	)
+	return err
 }
 
 const listCampaignIncidentSummaries = `-- name: ListCampaignIncidentSummaries :many
@@ -369,6 +1135,100 @@ func (q *Queries) ListCampaigns(ctx context.Context, arg ListCampaignsParams) ([
 	return items, nil
 }
 
+const listComposerSenders = `-- name: ListComposerSenders :many
+SELECT s.id, s.name, s.email, d.domain, d.status AS domain_status
+FROM senders s
+JOIN sending_domains d ON d.id = s.domain_id
+WHERE s.workspace_id = $1
+ORDER BY s.created_at, s.email
+`
+
+type ListComposerSendersRow struct {
+	ID           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	Email        string    `json:"email"`
+	Domain       string    `json:"domain"`
+	DomainStatus string    `json:"domainStatus"`
+}
+
+func (q *Queries) ListComposerSenders(ctx context.Context, workspaceID uuid.UUID) ([]ListComposerSendersRow, error) {
+	rows, err := q.db.Query(ctx, listComposerSenders, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListComposerSendersRow{}
+	for rows.Next() {
+		var i ListComposerSendersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.Domain,
+			&i.DomainStatus,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listComposerVersions = `-- name: ListComposerVersions :many
+SELECT v.version, v.saved_at, v.label, v.source, v.size_bytes, v.saved_by, coalesce(u.name, '')::text AS saved_by_name
+FROM campaign_versions v
+LEFT JOIN users u ON u.id = v.saved_by
+WHERE v.campaign_id = $1
+ORDER BY v.version DESC
+LIMIT $2
+`
+
+type ListComposerVersionsParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	Lim        int32     `json:"lim"`
+}
+
+type ListComposerVersionsRow struct {
+	Version     int32      `json:"version"`
+	SavedAt     time.Time  `json:"savedAt"`
+	Label       string     `json:"label"`
+	Source      string     `json:"source"`
+	SizeBytes   int32      `json:"sizeBytes"`
+	SavedBy     *uuid.UUID `json:"savedBy"`
+	SavedByName string     `json:"savedByName"`
+}
+
+func (q *Queries) ListComposerVersions(ctx context.Context, arg ListComposerVersionsParams) ([]ListComposerVersionsRow, error) {
+	rows, err := q.db.Query(ctx, listComposerVersions, arg.CampaignID, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListComposerVersionsRow{}
+	for rows.Next() {
+		var i ListComposerVersionsRow
+		if err := rows.Scan(
+			&i.Version,
+			&i.SavedAt,
+			&i.Label,
+			&i.Source,
+			&i.SizeBytes,
+			&i.SavedBy,
+			&i.SavedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWorkspaceLists = `-- name: ListWorkspaceLists :many
 SELECT id, name FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
 `
@@ -426,4 +1286,66 @@ func (q *Queries) ProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]P
 		return nil, err
 	}
 	return items, nil
+}
+
+const pruneComposerVersions = `-- name: PruneComposerVersions :execrows
+DELETE FROM campaign_versions v
+WHERE v.campaign_id = $1 AND v.source = 'autosave' AND v.version <> 1
+  AND v.version <= (SELECT max(x.version) FROM campaign_versions x WHERE x.campaign_id = $1) - $2::int
+`
+
+type PruneComposerVersionsParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	Keep       int32     `json:"keep"`
+}
+
+// Keeps the newest @keep versions; the first version and anything that is
+// not an autosave (restores, imports, ⌘S) are always kept.
+func (q *Queries) PruneComposerVersions(ctx context.Context, arg PruneComposerVersionsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, pruneComposerVersions, arg.CampaignID, arg.Keep)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const saveComposerContent = `-- name: SaveComposerContent :exec
+UPDATE campaigns
+SET subject = $1, preheader = $2, mjml = $3, html = $4, plain_text = $5,
+    ab_test = $6, content_hash = $7, version = $8,
+    updated_by = $9, updated_at = $10, autosaved_at = $10
+WHERE workspace_id = $11 AND id = $12
+`
+
+type SaveComposerContentParams struct {
+	Subject     string          `json:"subject"`
+	Preheader   string          `json:"preheader"`
+	Mjml        string          `json:"mjml"`
+	Html        string          `json:"html"`
+	PlainText   string          `json:"plainText"`
+	AbTest      json.RawMessage `json:"abTest"`
+	ContentHash string          `json:"contentHash"`
+	Version     int32           `json:"version"`
+	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
+	Now         time.Time       `json:"now"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	ID          uuid.UUID       `json:"id"`
+}
+
+func (q *Queries) SaveComposerContent(ctx context.Context, arg SaveComposerContentParams) error {
+	_, err := q.db.Exec(ctx, saveComposerContent,
+		arg.Subject,
+		arg.Preheader,
+		arg.Mjml,
+		arg.Html,
+		arg.PlainText,
+		arg.AbTest,
+		arg.ContentHash,
+		arg.Version,
+		arg.UpdatedBy,
+		arg.Now,
+		arg.WorkspaceID,
+		arg.ID,
+	)
+	return err
 }

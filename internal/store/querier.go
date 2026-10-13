@@ -105,6 +105,28 @@ type Querier interface {
 	ClearSignInThrottle(ctx context.Context, email string) error
 	ClearUserLockout(ctx context.Context, id uuid.UUID) error
 	CompleteInstanceSetup(ctx context.Context, arg CompleteInstanceSetupParams) (InstanceSetting, error)
+	// Lists with their subscribed, active contacts (suppressed addresses excluded).
+	ComposerAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceListsRow, error)
+	ComposerAudienceSegments(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceSegmentsRow, error)
+	// Recipients of lists minus excluded lists and suppressions.
+	ComposerCountListAudience(ctx context.Context, arg ComposerCountListAudienceParams) (int64, error)
+	// Audience contacts whose first name is empty (they see the fallback).
+	ComposerCountMissingField(ctx context.Context, arg ComposerCountMissingFieldParams) (int64, error)
+	ComposerCustomFields(ctx context.Context, workspaceID uuid.UUID) ([]ComposerCustomFieldsRow, error)
+	ComposerDefaultSender(ctx context.Context, id uuid.UUID) (ComposerDefaultSenderRow, error)
+	ComposerLastSentCampaign(ctx context.Context, workspaceID uuid.UUID) (ComposerLastSentCampaignRow, error)
+	ComposerLatestReadiness(ctx context.Context, campaignID uuid.UUID) (ComposerLatestReadinessRow, error)
+	// Row lock for autosave: the version check and the new version are atomic.
+	ComposerLockCampaign(ctx context.Context, arg ComposerLockCampaignParams) (ComposerLockCampaignRow, error)
+	ComposerPreviewContactByID(ctx context.Context, arg ComposerPreviewContactByIDParams) (ComposerPreviewContactByIDRow, error)
+	// Contacts to preview as: the campaign's audience first, people with a first name first.
+	ComposerPreviewContacts(ctx context.Context, arg ComposerPreviewContactsParams) ([]ComposerPreviewContactsRow, error)
+	ComposerRandomContact(ctx context.Context, workspaceID uuid.UUID) (ComposerRandomContactRow, error)
+	// Active members of the workspace, for "Send test" (name and email).
+	ComposerTestRecipients(ctx context.Context, workspaceID uuid.UUID) ([]ComposerTestRecipientsRow, error)
+	ComposerUpdateCampaignMeta(ctx context.Context, arg ComposerUpdateCampaignMetaParams) error
+	// The MJML of recent versions, newest first (to find when a section was removed).
+	ComposerVersionSources(ctx context.Context, arg ComposerVersionSourcesParams) ([]ComposerVersionSourcesRow, error)
 	ConfirmInstanceBasics(ctx context.Context) error
 	ConnectActiveContacts(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	ConnectCreateList(ctx context.Context, arg ConnectCreateListParams) error
@@ -133,6 +155,8 @@ type Querier interface {
 	// A state is single use: reading it deletes it.
 	ConsumeHostReputeOAuthState(ctx context.Context, stateHash []byte) (HostreputeOauthState, error)
 	ConsumePasswordReset(ctx context.Context, tokenHash []byte) (PasswordReset, error)
+	ContentCheckLinkListings(ctx context.Context, domains []string) ([]LinkDomainListing, error)
+	ContentCheckUpsertLinkListing(ctx context.Context, arg ContentCheckUpsertLinkListingParams) error
 	CountActiveOwners(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountAutomationHeldMessages(ctx context.Context, automationID *uuid.UUID) (int64, error)
 	CountAutomationInFlow(ctx context.Context, automationIds []uuid.UUID) ([]CountAutomationInFlowRow, error)
@@ -208,6 +232,7 @@ type Querier interface {
 	DomUpdateRecords(ctx context.Context, arg DomUpdateRecordsParams) error
 	DomUpdateTracking(ctx context.Context, arg DomUpdateTrackingParams) error
 	EmailTaken(ctx context.Context, arg EmailTakenParams) (bool, error)
+	EmailTemplateNameTaken(ctx context.Context, arg EmailTemplateNameTakenParams) (bool, error)
 	// Must run inside the same transaction as PurgeAuditEvents (retention job only).
 	EnableAuditPurge(ctx context.Context) error
 	EnabledSSOProviders(ctx context.Context) ([]EnabledSSOProvidersRow, error)
@@ -224,14 +249,23 @@ type Querier interface {
 	GetAutomationVersion(ctx context.Context, arg GetAutomationVersionParams) (GetAutomationVersionRow, error)
 	GetAvatar(ctx context.Context, userID uuid.UUID) (UserAvatar, error)
 	GetChallenge(ctx context.Context, arg GetChallengeParams) (AuthChallenge, error)
+	// ------------------------------------------------------------------ composer
+	// One campaign with what the composer header shows.
+	GetComposerCampaign(ctx context.Context, arg GetComposerCampaignParams) (GetComposerCampaignRow, error)
+	GetComposerSender(ctx context.Context, arg GetComposerSenderParams) (GetComposerSenderRow, error)
+	GetComposerVersion(ctx context.Context, arg GetComposerVersionParams) (GetComposerVersionRow, error)
 	GetDeliverabilityBlocklistListing(ctx context.Context, arg GetDeliverabilityBlocklistListingParams) (BlocklistResult, error)
 	GetDeliverabilityCheckRun(ctx context.Context, arg GetDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
+	GetEmailTemplate(ctx context.Context, arg GetEmailTemplateParams) (GetEmailTemplateRow, error)
 	GetHostReputeConnection(ctx context.Context, workspaceID uuid.UUID) (HostreputeConnection, error)
 	GetHostReputeConnectionForUpdate(ctx context.Context, workspaceID uuid.UUID) (HostreputeConnection, error)
 	GetIdentity(ctx context.Context, arg GetIdentityParams) (UserIdentity, error)
 	GetInstanceSettings(ctx context.Context) (InstanceSetting, error)
 	GetInvitationByToken(ctx context.Context, tokenHash []byte) (GetInvitationByTokenRow, error)
 	GetInvitationView(ctx context.Context, tokenHash []byte) (GetInvitationViewRow, error)
+	GetMediaAsset(ctx context.Context, arg GetMediaAssetParams) (GetMediaAssetRow, error)
+	// Public serving: by id only (ids are unguessable UUIDv7s embedded in emails).
+	GetMediaAssetData(ctx context.Context, id uuid.UUID) (GetMediaAssetDataRow, error)
 	GetMember(ctx context.Context, arg GetMemberParams) (GetMemberRow, error)
 	GetMembership(ctx context.Context, arg GetMembershipParams) (GetMembershipRow, error)
 	GetNotificationSettings(ctx context.Context, userID uuid.UUID) (NotificationSetting, error)
@@ -250,6 +284,7 @@ type Querier interface {
 	GetUserSession(ctx context.Context, arg GetUserSessionParams) (Session, error)
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
+	HideMediaAsset(ctx context.Context, arg HideMediaAssetParams) (int64, error)
 	// Takes a due delivery for one attempt. Returns no row when someone else has it.
 	HooksClaimDelivery(ctx context.Context, id uuid.UUID) (HooksClaimDeliveryRow, error)
 	HooksCreate(ctx context.Context, arg HooksCreateParams) (Webhook, error)
@@ -315,10 +350,15 @@ type Querier interface {
 	InsertAutomationRun(ctx context.Context, arg InsertAutomationRunParams) (int64, error)
 	InsertAutomationVersion(ctx context.Context, arg InsertAutomationVersionParams) error
 	InsertAutomationWebhookCall(ctx context.Context, arg InsertAutomationWebhookCallParams) error
+	InsertComposerCampaign(ctx context.Context, arg InsertComposerCampaignParams) error
+	InsertComposerVersion(ctx context.Context, arg InsertComposerVersionParams) error
 	InsertDeliverabilityBlocklistResult(ctx context.Context, arg InsertDeliverabilityBlocklistResultParams) error
 	// Incidents with an external id (HostRepute alerts) are stored once; the
 	// returned row count says whether this one is new.
 	InsertDeliverabilityIncident(ctx context.Context, arg InsertDeliverabilityIncidentParams) (uuid.UUID, error)
+	InsertEmailTemplate(ctx context.Context, arg InsertEmailTemplateParams) error
+	// Uploading the same bytes twice returns the existing asset (and shows it again).
+	InsertMediaAsset(ctx context.Context, arg InsertMediaAssetParams) (InsertMediaAssetRow, error)
 	// Notification center, preferences and email delivery. Owned by internal/notify.
 	// Stores a notification unless the person turned both in-app and email off
 	// for its event type. email_status is 'pending' when they asked for email.
@@ -365,6 +405,8 @@ type Querier interface {
 	// One page of the campaigns list. Status groups: drafts = draft, approval,
 	// approved; sending = sending, paused; sent = sent, cancelled, failed.
 	ListCampaigns(ctx context.Context, arg ListCampaignsParams) ([]ListCampaignsRow, error)
+	ListComposerSenders(ctx context.Context, workspaceID uuid.UUID) ([]ListComposerSendersRow, error)
+	ListComposerVersions(ctx context.Context, arg ListComposerVersionsParams) ([]ListComposerVersionsRow, error)
 	// Workspaces whose HostRepute connection the hourly sync refreshes.
 	ListConnectedHostRepute(ctx context.Context) ([]uuid.UUID, error)
 	ListDeliverabilityAssetChecks(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityAssetCheck, error)
@@ -377,8 +419,10 @@ type Querier interface {
 	ListDeliverabilityIncidents(ctx context.Context, arg ListDeliverabilityIncidentsParams) ([]ListDeliverabilityIncidentsRow, error)
 	ListDeliverabilityPostmasterDays(ctx context.Context, arg ListDeliverabilityPostmasterDaysParams) ([]PostmasterDaily, error)
 	ListDeliverabilitySNDSDays(ctx context.Context, arg ListDeliverabilitySNDSDaysParams) ([]SndsDaily, error)
+	ListEmailTemplates(ctx context.Context, arg ListEmailTemplatesParams) ([]ListEmailTemplatesRow, error)
 	ListIdentities(ctx context.Context, userID uuid.UUID) ([]UserIdentity, error)
 	ListIdentitiesWithProvider(ctx context.Context, userID uuid.UUID) ([]ListIdentitiesWithProviderRow, error)
+	ListMediaAssets(ctx context.Context, arg ListMediaAssetsParams) ([]ListMediaAssetsRow, error)
 	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]ListMembersRow, error)
 	// Used to name who can help when a permission is missing.
 	ListMembersWithRoles(ctx context.Context, workspaceID uuid.UUID) ([]ListMembersWithRolesRow, error)
@@ -501,6 +545,9 @@ type Querier interface {
 	ProvUpdateSettings(ctx context.Context, arg ProvUpdateSettingsParams) error
 	ProvUpdateTracking(ctx context.Context, arg ProvUpdateTrackingParams) error
 	ProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]ProviderNamesRow, error)
+	// Keeps the newest @keep versions; the first version and anything that is
+	// not an autosave (restores, imports, ⌘S) are always kept.
+	PruneComposerVersions(ctx context.Context, arg PruneComposerVersionsParams) (int64, error)
 	PublishAutomationVersion(ctx context.Context, arg PublishAutomationVersionParams) error
 	PurgeAuditEvents(ctx context.Context, arg PurgeAuditEventsParams) (int64, error)
 	PurgeAutomationEvents(ctx context.Context, before *time.Time) (int64, error)
@@ -553,6 +600,7 @@ type Querier interface {
 	RoutingUpsertPolicy(ctx context.Context, arg RoutingUpsertPolicyParams) error
 	// A run still in progress (runs older than ten minutes are considered dead).
 	RunningDeliverabilityCheckRun(ctx context.Context, arg RunningDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
+	SaveComposerContent(ctx context.Context, arg SaveComposerContentParams) error
 	// Campaigns that are not sent yet and use the sender (deleting it clears them).
 	SenderCampaignCount(ctx context.Context, senderID *uuid.UUID) (int64, error)
 	SenderCreate(ctx context.Context, arg SenderCreateParams) (Sender, error)
@@ -612,6 +660,7 @@ type Querier interface {
 	SetupSave(ctx context.Context, arg SetupSaveParams) (ProviderSetup, error)
 	SlugTaken(ctx context.Context, slug string) (bool, error)
 	SoftDeleteAutomation(ctx context.Context, arg SoftDeleteAutomationParams) error
+	SoftDeleteEmailTemplate(ctx context.Context, arg SoftDeleteEmailTemplateParams) (int64, error)
 	SoftDeleteWorkspace(ctx context.Context, id uuid.UUID) error
 	// Addresses each provider's bounce and complaint events added to the shared
 	// list (the "pulled in" count of providers without a suppression API).
@@ -686,6 +735,7 @@ type Querier interface {
 	UpdateAutomationMeta(ctx context.Context, arg UpdateAutomationMetaParams) (Automation, error)
 	UpdateAutomationRun(ctx context.Context, arg UpdateAutomationRunParams) error
 	UpdateDeliverabilityCheckRunProgress(ctx context.Context, arg UpdateDeliverabilityCheckRunProgressParams) error
+	UpdateEmailTemplate(ctx context.Context, arg UpdateEmailTemplateParams) error
 	UpdateHostReputeTokens(ctx context.Context, arg UpdateHostReputeTokensParams) error
 	UpdateInstanceBasics(ctx context.Context, arg UpdateInstanceBasicsParams) (InstanceSetting, error)
 	UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) (WorkspaceMember, error)
