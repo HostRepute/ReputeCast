@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -37,9 +38,10 @@ func count(t *testing.T, env *apptest.Env, sql string, args ...any) int {
 	return n
 }
 
-// connect adds a provider connected through the community adapter to the
-// demo workspace, with sealed credentials and a webhook token.
-func connect(t *testing.T, env *apptest.Env) store.Provider {
+// connect adds a provider connected through the community adapter registered
+// as adapter to the demo workspace, with sealed credentials and a webhook
+// token.
+func connect(t *testing.T, env *apptest.Env, adapter string) store.Provider {
 	t.Helper()
 	ctx := context.Background()
 	w, err := env.App.Q.GetWorkspaceBySlug(ctx, "acme-newsletter")
@@ -59,8 +61,8 @@ func connect(t *testing.T, env *apptest.Env) store.Provider {
 	token, _ := authn.NewToken()
 	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO providers (id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail,
 		ip_mode, ips, capabilities, limits, health, pricing, tracking, connected_at)
-		VALUES ($1,$2,'community:fake-esp','Fake ESP','community','{"region":"eu"}',$3,$4,$5,'healthy','','shared','{}','{}','{}','{}','{}','{}', now())`,
-		id, w.ID, creds, token, hook); err != nil {
+		VALUES ($1,$2,$6,'Fake ESP','community','{"region":"eu"}',$3,$4,$5,'healthy','','shared','{}','{}','{}','{}','{}','{}', now())`,
+		id, w.ID, creds, token, hook, adapter); err != nil {
 		t.Fatal(err)
 	}
 	p, err = env.App.Q.ProvGetAny(ctx, id)
@@ -191,7 +193,7 @@ func TestRuntimeEndToEnd(t *testing.T) {
 	}
 
 	// A provider connected through the adapter: health comes from quota.
-	p := connect(t, env)
+	p := connect(t, env, "community:fake-esp")
 	svc := &manage.Service{Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit, URLs: env.App.URLs,
 		Factory: &manage.Factory{Box: env.App.Secrets, HTTP: http.DefaultClient}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		SelfTest: func(context.Context, string, http.Header) (int, error) { return http.StatusOK, nil }}
@@ -297,6 +299,88 @@ func TestRuntimeEndToEnd(t *testing.T) {
 	}
 	if c := count(t, env, `SELECT count(*) FROM adapter_runtimes`); c != 0 {
 		t.Fatal("the runtime row must go with the adapter")
+	}
+}
+
+// Failures reach the provider's health like a built-in adapter's: rejected
+// credentials mark it Down · auth failed at once, an adapter process that
+// stops answering marks it Down after two failed checks, and good checks
+// bring it back.
+func TestAdapterFailuresReachProviderHealth(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	m := remotetest.Manifest()
+	m.ID, m.Name = "health-esp", "Health ESP"
+	var mode atomic.Value
+	mode.Store("")
+	fa := &remotetest.Adapter{Manifest: m, Mode: func() string { return mode.Load().(string) }}
+	srv := httptest.NewServer(fa)
+	defer srv.Close()
+	cli := &remote.Service{Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit, Box: env.App.Secrets, Runtime: env.App.CommunityRuntime(),
+		AllowPrivate: func() bool { return true }}
+	res, err := cli.Install(ctx, remotetest.ManifestJSON(m), "", srv.URL, remote.CLIActor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fa.Secrets = []string{res.Secret}
+	p := connect(t, env, m.Key())
+
+	// Checks run four minutes apart, so each one's call is alone in the
+	// three-minute error-rate window.
+	now := time.Now()
+	svc := &manage.Service{Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit, URLs: env.App.URLs,
+		Factory: &manage.Factory{Box: env.App.Secrets, HTTP: http.DefaultClient}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		SelfTest: func(context.Context, string, http.Header) (int, error) { return http.StatusOK, nil }, Now: func() time.Time { return now }}
+	check := func(status, detail string) state.Health {
+		t.Helper()
+		now = now.Add(4 * time.Minute)
+		got, err := svc.Check(ctx, p, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Status != status || (detail != "" && got.StatusDetail != detail) {
+			t.Fatalf("status %s %q, want %s %q; health %s", got.Status, got.StatusDetail, status, detail, got.Health)
+		}
+		return state.HealthOf(got)
+	}
+	check(state.Healthy, "")
+
+	// The provider behind the adapter rejects the credentials.
+	mode.Store(contracttest.ModeAuth)
+	if h := check(state.Down, "Down · auth failed"); h.LastError == nil || h.LastError.Code != "invalid_api_key" {
+		t.Fatalf("last error %+v", h.LastError)
+	}
+	mode.Store(contracttest.ModeOK)
+	check(state.Down, "") // recovering
+	check(state.Healthy, "")
+
+	// The adapter process stops answering: one failed check is a blip, two
+	// are an outage.
+	srv.Close()
+	check(state.Healthy, "")
+	if h := check(state.Down, "Down"); h.Down == nil || h.Down.Reason != "outage" || h.LastError == nil || h.LastError.Code != "adapter_unreachable" {
+		t.Fatalf("health while the adapter is down %+v", h)
+	}
+	if in, ok := env.App.CommunityRuntime().Installation(m.Key()); !ok {
+		t.Fatal("the adapter must stay registered while its process is down")
+	} else if st, _, last := in.BreakerState(); st != remote.BreakerClosed || last == "" {
+		t.Fatalf("two failures don't open the breaker, but are remembered: %s %q", st, last)
+	}
+
+	// Clean up the process-wide registry for the tests that follow.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE providers SET disconnected_at = now() WHERE id = $1`, p.ID); err != nil {
+		t.Fatal(err)
+	}
+	row, err := cli.RowByKey(ctx, m.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := cli.Remove(ctx, row, remote.CLIActor); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := providers.Lookup(m.Key()); ok {
+		t.Fatal("a removed adapter must leave the registry")
 	}
 }
 
