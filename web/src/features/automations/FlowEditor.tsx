@@ -540,7 +540,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   const zoomKey = isMac ? '⌘' : 'Ctrl'
 
   return (
-    <div className="fe">
+    <div className="fe rc-app">
       <a href="#main" className="skip">
         Skip to content
       </a>
@@ -946,7 +946,7 @@ function FlowStatsPanel({ stats, inFlow, published }: { stats?: Schemas['Automat
 
 function EditorSkeleton() {
   return (
-    <div className="fe" aria-busy="true">
+    <div className="fe rc-app" aria-busy="true">
       <span className="vh" role="status">
         Loading the automation
       </span>
@@ -1004,7 +1004,7 @@ function EditorError({ error, onRetry, title }: { error: unknown; onRetry?: () =
     text = errorMessage(error)
   }
   return (
-    <div className="fe">
+    <div className="fe rc-app">
       <header className="fe-head">
         <ButtonLink to="/w/$workspace/automations" params={{ workspace: slug }} iconOnly icon="chevronLeft" aria-label="Back to automations" />
         <h1 className="m-0 text-[15px] font-bold">Automation</h1>

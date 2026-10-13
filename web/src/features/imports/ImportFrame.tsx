@@ -71,7 +71,7 @@ export function ImportFrame({
   const ws = useWorkspace()
   useDocumentTitle(`${documentTitle ?? title} · ${ws.me.workspace.name} · ReputeCast`)
   return (
-    <div className="mig">
+    <div className="mig rc-app">
       <header>
         <Link to="/w/$workspace" params={{ workspace: ws.slug }} className="flex items-center gap-2.5 text-ink" aria-label="ReputeCast home">
           <LogoMark size={26} />

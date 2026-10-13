@@ -11,7 +11,7 @@ import './composer.css'
 /** Loading state (ComposerStates): the composer's frame with skeletons while a campaign opens. */
 export function ComposerSkeleton({ title, detail }: { title: string; detail: string }) {
   return (
-    <div className="cmp" aria-busy="true">
+    <div className="cmp rc-app" aria-busy="true">
       <h1 className="vh">Opening the composer</h1>
       <div className="cmp-head" style={{ gap: 12 }}>
         <span className="sk" style={{ width: 32, height: 32 }} />
@@ -69,7 +69,7 @@ function ComposerError({ error, path, retry }: { error: unknown; path: string; r
     body = <ServerErrorState reference={problemReference(error)} savedNote={retry ? undefined : 'Nothing was created.'} onRetry={retry ?? (() => window.location.reload())} back={back} />
   }
   return (
-    <div className="cmp items-center" style={{ padding: '56px 16px' }}>
+    <div className="cmp rc-app items-center" style={{ padding: '56px 16px' }}>
       <main id="main" className="w-full max-w-[640px]">
         {body}
       </main>

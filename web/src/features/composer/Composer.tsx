@@ -621,7 +621,7 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
 
   return (
     <ComposerCtx.Provider value={state}>
-      <div className="cmp">
+      <div className="cmp rc-app">
         <a href="#main" className="skip">
           Skip to content
         </a>
