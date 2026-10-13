@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -304,29 +305,45 @@ func (r *readinessSeed) flashSale(ctx context.Context) error {
 const novemberSubject = "November Product Update: faster exports, new API, and a Postal milestone"
 const novemberPreheader = "Plus: the new team permissions and what changed in approvals"
 
-// novemberMJML is Daniel's draft. Its third link goes through bit.ly (the
-// URL-shortener warning of the sample data).
+// novemberMJML is Daniel's draft at each of its nine versions. The last one
+// is the short teaser the approval review previews (ApprovalReview board):
+// a header, a teal banner, the headline with an excerpt and a button, and
+// the footer, sized so the review's 420 px preview draws it as the board
+// does. Its button goes through bit.ly (the URL-shortener warning of the
+// sample data). The banner is a coloured block, not an image, so the short
+// email stays under the image-to-text warning.
 func novemberMJML(stage int) string {
-	headline := "Faster exports, a new API and a Postal milestone"
-	body := `Hi {{ first_name | default: "there" }}, exports now finish in under a minute for 100k rows, the v2 API ships with batch endpoints, and our self-hosted mail server completed warm-up.`
-	if stage < 3 {
-		headline, body = "What shipped in November", `Hi {{ first_name | default: "there" }}, here's what shipped this month at Acme.`
+	date := ""
+	if stage >= 2 {
+		date = `
+      <mj-column width="50%" vertical-align="middle">
+        <mj-text align="right" font-size="14.3px" font-weight="500" color="#5B6472">November 2026</mj-text>
+      </mj-column>`
 	}
-	permissions := ""
+	headline, excerpt := "What shipped in November", "Here's what shipped this month at Acme."
+	if stage >= 3 {
+		headline = "Faster exports, a new API and a Postal milestone"
+	}
+	if stage >= 5 {
+		excerpt = "Exports now finish in under a minute for 100k rows, the v2 API ships with batch endpoints, and our self-hosted mail server completed warm-up…"
+	}
+	gradient := ""
 	if stage >= 6 {
-		permissions = `
-    <mj-section background-color="#ffffff" padding="8px 24px 18px">
+		gradient = `
+    <mj-style>.nov-hero, .nov-hero > table { background-image: linear-gradient(135deg, #0F766E, #115E59) !important; }</mj-style>`
+	}
+	button := "https://acme.io/blog/november-2026-update"
+	if stage >= 7 {
+		button = "https://bit.ly/3xK9tQ"
+	}
+	footer := composerDigestFooter
+	if stage >= 8 {
+		footer = `    <!-- rc:footer -->
+    <mj-section background-color="#ffffff" padding="14.6px 20px" border-top="1px solid #EEF0F3">
       <mj-column>
-        <mj-divider border-width="1px" border-color="#E3E6EB" padding="0px 0px 14px"></mj-divider>
-        <mj-text font-size="17px" line-height="1.3" font-weight="700" color="#0B1220" padding="0px 0px 6px">Team permissions and approvals</mj-text>
-        <mj-text font-size="14px" line-height="1.5" color="#374151">Content Writers can now prepare a send and ask for approval. <a href="https://docs.acme.io/approvals" style="color:#0F766E">How approvals work</a>.</mj-text>
+        <mj-text font-size="14.3px" line-height="20.7px" color="#6B7280">Acme Inc · 500 Market St, San Francisco, CA · <a href="{{ unsubscribe_url }}" style="color:#6B7280">Unsubscribe</a> · <a href="{{ preferences_url }}" style="color:#6B7280">Preferences</a></mj-text>
       </mj-column>
     </mj-section>`
-	}
-	button := ""
-	if stage >= 7 {
-		button = `
-        ` + composerButton("https://bit.ly/3xK9tQ", "Read the update")
 	}
 	return `<mjml>
   <mj-head>
@@ -334,31 +351,31 @@ func novemberMJML(stage int) string {
     <mj-preview>` + composerXMLText(novemberPreheader) + `</mj-preview>
     <mj-attributes>
       <mj-all font-family="` + composerPlexFont + `"></mj-all>
-      <mj-text color="#1F2937" padding="0px"></mj-text>
-    </mj-attributes>
+      <mj-text color="#374151" padding="0px" font-size="15.7px" line-height="22.8px"></mj-text>
+    </mj-attributes>` + gradient + `
   </mj-head>
   <mj-body width="600px" background-color="#F3F4F6">
-    <!-- rc:header-logo -->
-    <mj-section background-color="#ffffff" padding="16px 24px" border-bottom="1px solid #EEF0F3">
+    <!-- rc:header -->
+    <mj-section background-color="#ffffff" padding="14.6px 20px" border-bottom="1px solid #EEF0F3">
       <mj-column width="50%" vertical-align="middle">
-        <mj-image src="@@acme-logo.png@@" alt="Acme" href="https://acme.io" width="96px" height="28px" align="left" padding="0px"></mj-image>
-      </mj-column>
-      <mj-column width="50%" vertical-align="middle">
-        <mj-text align="right" font-size="12px" color="#5B6472">November 2026</mj-text>
+        <mj-text font-weight="700" color="#0B1220"><a href="https://acme.io" style="color:#0B1220;text-decoration:none">Acme</a></mj-text>
+      </mj-column>` + date + `
+    </mj-section>
+    <!-- rc:hero -->
+    <mj-section background-color="#0F766E" css-class="nov-hero" padding="0px">
+      <mj-column>
+        <mj-spacer height="129px"></mj-spacer>
       </mj-column>
     </mj-section>
-    <mj-section background-color="#0F766E" padding="0px">
+    <!-- rc:article -->
+    <mj-section background-color="#ffffff" padding="17.1px 20px">
       <mj-column>
-        <mj-image src="@@october-hero.png@@" alt="Exports, API and Postal milestones" width="600px" height="180px" padding="0px"></mj-image>
+        <mj-text font-size="20px" line-height="29px" font-weight="700" color="#0B1220" padding="0px 0px 8.6px">` + headline + `</mj-text>
+        <mj-text padding="0px 0px 8.6px">` + excerpt + `</mj-text>
+        <mj-button href="` + button + `" align="left" background-color="#0F766E" color="#ffffff" font-size="15.7px" font-weight="600" line-height="22.8px" border-radius="8.6px" inner-padding="8.6px 14.3px" padding="0px">Read the update</mj-button>
       </mj-column>
     </mj-section>
-    <mj-section background-color="#ffffff" padding="20px 24px 8px">
-      <mj-column>
-        <mj-text font-size="22px" line-height="1.25" font-weight="700" color="#0B1220" padding="0px 0px 10px">` + headline + `</mj-text>
-        <mj-text font-size="15px" line-height="1.55" padding="0px 0px 14px">` + body + ` Read about the <a href="https://docs.acme.io/exports" style="color:#0F766E">new exports</a>.</mj-text>` + button + `
-      </mj-column>
-    </mj-section>` + permissions + `
-` + composerDigestFooter + `
+` + footer + `
   </mj-body>
 </mjml>
 `
@@ -390,7 +407,7 @@ func (r *readinessSeed) november(ctx context.Context) error {
 		s.Campaigns["November Product Update"] = id
 	}
 	// Nine versions by Daniel, the last two hours ago.
-	labels := []string{"created from template “Acme digest v3”", "header and date", "hero copy", "subject and preheader", "exports link", "permissions section",
+	labels := []string{"created from template “Acme digest v3”", "header and date", "hero copy", "subject and preheader", "release notes", "banner colours",
 		"button link", "footer", "preheader"}
 	var html, src string
 	for i, label := range labels {
@@ -408,13 +425,16 @@ func (r *readinessSeed) november(ctx context.Context) error {
 		if i == 0 {
 			source = "template"
 		}
-		subject := novemberSubject
-		if i < 3 {
-			subject = "November at Acme"
+		subject, preheader := novemberSubject, novemberPreheader
+		switch {
+		case i < 3:
+			subject, preheader = "November at Acme", "What shipped at Acme this month"
+		case i < len(labels)-1:
+			preheader = "Plus: the new team permissions"
 		}
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO campaign_versions (campaign_id, version, subject, preheader, mjml, html, plain_text, saved_by, saved_at, label, source, size_bytes)
 			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-			id, i+1, subject, novemberPreheader, src, html, contentcheck.PlainText(html), daniel.ID, at, label, source, len(html)); err != nil {
+			id, i+1, subject, preheader, src, html, contentcheck.PlainText(html), daniel.ID, at, label, source, len(html)); err != nil {
 			return err
 		}
 	}
@@ -466,7 +486,11 @@ func (r *readinessSeed) november(ctx context.Context) error {
 	if err := r.routeKey(ctx, &snap); err != nil {
 		return err
 	}
-	snap.AudienceBaseline = r.baseline(ctx, audience)
+	// Contacts joined since Daniel asked: today's audience is 0.3% larger
+	// than at the request (ApprovalReview: "+0.3% since request").
+	if b := r.baseline(ctx, audience); b > 0 {
+		snap.AudienceBaseline = int64(math.Round(float64(b) / 1.003))
+	}
 	note := "The Postal share is intentional: it's day 9 of the warm-up and the planner caps it at 4,800 today. I kept the shortener link because marketing tracks it; happy to swap it if you prefer."
 	reqID := ID()
 	if err := r.insertRequest(ctx, reqID, id, daniel.ID, requested, note, "pending", snap, &runID, nil, nil); err != nil {

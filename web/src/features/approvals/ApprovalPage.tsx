@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Avatar } from '@/components/ui/Avatar'
@@ -409,11 +409,32 @@ function CampaignCard({ detail: d, busy, onTest }: { detail: Detail; busy: boole
       </div>
       {open && preview.data ? (
         <Dialog open onOpenChange={setOpen} size="lg" title={preview.data.subject || d.name} description={preview.data.preheader || `Version ${preview.data.version}`}>
-          <iframe title={`Full preview of “${d.name}”`} sandbox="" srcDoc={preview.data.html} className="h-[70vh] w-full rounded-lg border border-line bg-white" />
+          <iframe title={`Full preview of “${d.name}”`} sandbox="allow-same-origin" srcDoc={withAppFonts(preview.data.html)} className="h-[70vh] w-full rounded-lg border border-line bg-white" />
         </Dialog>
       ) : null}
     </Sec>
   )
+}
+
+/** The app's IBM Plex @font-face rules, so the email renders in the fonts it names (as in the composer). */
+function plexFontFaces(): string {
+  const out: string[] = []
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules: CSSRuleList
+    try {
+      rules = sheet.cssRules
+    } catch {
+      continue
+    }
+    for (const r of Array.from(rules)) if (r instanceof CSSFontFaceRule && r.cssText.includes('IBM Plex')) out.push(r.cssText)
+  }
+  return out.join('\n')
+}
+
+/** The email's HTML with the app's Plex fonts available to it. */
+function withAppFonts(html: string): string {
+  const style = `<style>${plexFontFaces()}</style>`
+  return html.includes('</head>') ? html.replace('</head>', `${style}</head>`) : style + html
 }
 
 /** The email at 600 px, scaled into the board's 420 px frame, cut at 300 px. */
@@ -421,7 +442,8 @@ function EmailThumb({ html, title }: { html: string; title: string }) {
   const box = useRef<HTMLDivElement>(null)
   const frame = useRef<HTMLIFrameElement>(null)
   const [scale, setScale] = useState(0.7)
-  const [height, setHeight] = useState(900)
+  const [height, setHeight] = useState(430)
+  const doc = useMemo(() => withAppFonts(html), [html])
   useEffect(() => {
     const el = box.current
     if (!el) return
@@ -429,9 +451,10 @@ function EmailThumb({ html, title }: { html: string; title: string }) {
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
+  // The body's own height: the document's is at least the frame's.
   const measure = () => {
-    const doc = frame.current?.contentDocument
-    if (doc?.body) setHeight(Math.max(200, doc.documentElement.scrollHeight))
+    const body = frame.current?.contentDocument?.body
+    if (body) setHeight(Math.max(120, body.scrollHeight))
   }
   const visible = Math.min(300, height * scale)
   return (
@@ -440,9 +463,13 @@ function EmailThumb({ html, title }: { html: string; title: string }) {
         ref={frame}
         title={title}
         sandbox="allow-same-origin"
-        srcDoc={html}
+        srcDoc={doc}
         tabIndex={-1}
-        onLoad={measure}
+        onLoad={() => {
+          measure()
+          // Web fonts change the text's height once they load.
+          void frame.current?.contentDocument?.fonts?.ready.then(measure)
+        }}
         style={{ width: 600, height, transform: `scale(${scale})` }}
       />
     </div>
