@@ -1,4 +1,4 @@
-import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
+import { Handle, Position, useUpdateNodeInternals, type Node, type NodeProps } from '@xyflow/react'
 import { memo, type CSSProperties, type ReactNode } from 'react'
 import { count } from '@/lib/format'
 import { cn } from '@/lib/cn'
@@ -33,6 +33,7 @@ function share(part: number, whole: number): number {
 function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
   const v = useFlowView()
   const t = useCountUp()
+  const updateNodeInternals = useUpdateNodeInternals()
   const node = nodeById(v.graph, id) ?? { id, type, data, position: { x: 0, y: 0 } }
   const st = v.stats.get(id)
   const isNew = v.published && !v.liveIds.has(id)
@@ -189,8 +190,13 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
     )
   return (
     <div
-      className={cn('fn', isCompact(type) && 'compact', isNew && 'new', selected && 'sel', hasIssue && 'issue')}
+      className={cn('fn', isCompact(type) && 'compact', isNew && 'new', selected && 'sel', hasIssue && 'issue', delay === undefined && 'later')}
       style={style}
+      onAnimationEnd={(e) => {
+        // React Flow measured the handles while the step was still sliding in;
+        // measure again now that it sits still, so edges meet the handles.
+        if (e.animationName === 'fl-node-in' && e.target === e.currentTarget) updateNodeInternals(id)
+      }}
     >
       <span className="hit" aria-hidden="true" />
       {type !== 'trigger' ? <Handle type="target" position={Position.Top} className="fn-hb i" /> : null}

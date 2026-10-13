@@ -274,15 +274,15 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   const [rightTab, setRightTab] = useState<EditorPanel>(search.panel ?? 'step')
   const [seen, setSeen] = useState(search)
   if (seen.step !== search.step || seen.panel !== search.panel) {
-    // The URL changed from outside (back button, a link): follow it.
+    // The URL changed: our own update arriving, or the back button or a link
+    // (then follow it).
     setSeen(search)
-    if (search.step && search.step !== selectedId && flow.nodes.some((n) => n.id === search.step)) setSelectedId(search.step)
-    if ((search.panel ?? 'step') !== rightTab) setRightTab(search.panel ?? 'step')
+    if (search.step !== seen.step && search.step && search.step !== selectedId && flow.nodes.some((n) => n.id === search.step)) setSelectedId(search.step)
+    if (search.panel !== seen.panel && (search.panel ?? 'step') !== rightTab) setRightTab(search.panel ?? 'step')
   }
   const select = useCallback(
     (step?: string) => {
       setSelectedId(step)
-      setSeen((s) => ({ ...s, step }))
       onSearch({ step, panel: rightTab === 'step' ? undefined : rightTab })
     },
     [onSearch, rightTab],
@@ -290,7 +290,6 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   const showTab = (tab: EditorPanel) => {
     setRightTab(tab)
     const panel = tab === 'step' ? undefined : tab
-    setSeen((s) => ({ ...s, panel }))
     onSearch({ step: selectedId, panel })
   }
   const [leftTab, setLeftTab] = useState<'steps' | 'stats'>('steps')

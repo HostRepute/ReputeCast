@@ -307,6 +307,11 @@
 .fn.compact {
   padding: 7px 11px;
 }
+/* A step added while editing fades in where it lands. */
+.fn.later {
+  animation-name: fl-fade-in;
+  animation-duration: 0.3s;
+}
 .fn.new {
   border-style: dashed;
 }
@@ -487,6 +492,11 @@
     opacity: 1;
     translate: 0 0;
     scale: 1;
+  }
+}
+@keyframes fl-fade-in {
+  from {
+    opacity: 0;
   }
 }
 @keyframes fl-draw {
