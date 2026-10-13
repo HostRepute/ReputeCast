@@ -55,7 +55,7 @@ function fromDetail(d: Schemas['SegmentDetail']): Draft {
     refresh: d.refresh === 'static' ? 'static' : 'dynamic',
     mode: d.mode === 'sql' ? 'sql' : 'builder',
     sql: d.sql,
-    groups: (d.definition.groups ?? []).map((g) => ({
+    groups: (d.definition?.groups ?? []).map((g) => ({
       key: k(),
       match: g.match === 'any' ? 'any' : 'all',
       conditions: (g.conditions ?? []).map((c) => ({

@@ -141,6 +141,12 @@ func audSeedLate(ctx context.Context, s *Seeder, a *audSeed) error {
 		{"segment events", func() error { return audSegmentEvents(ctx, s, a) }},
 		{"timelines", func() error { return audTimelines(ctx, s, a, welcome) }},
 		{"consent history", func() error { return audConsentHistory(ctx, s, a) }},
+		// Planner statistics for the bulk-loaded tables, so segment counts and
+		// list health are fast right after seeding (autovacuum gets there later).
+		{"statistics", func() error {
+			_, err := s.Tx.Exec(ctx, `ANALYZE contacts, list_memberships, lists, suppressions, delivery_events`)
+			return err
+		}},
 	}
 	for _, st := range steps {
 		if err := st.fn(); err != nil {

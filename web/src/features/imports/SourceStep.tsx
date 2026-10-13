@@ -369,9 +369,8 @@ function ConnectCard({ d }: { d: Detail }) {
   if (connect.isPending) return <ReadingSource title={`Checking the key and reading ${info?.unit ?? 'list'}s from ${d.sourceName}`} />
   if (authFailed) {
     const msg = connect.error instanceof ApiError ? connect.error.message : (d.error?.message ?? '')
-    // The source's own words: "Mailchimp rejected the API key (API key invalid)." → "API key invalid".
-    const said = /\(([^()]+)\)\.?$/.exec(msg)?.[1]
-    const dc = dataCenter(key) ?? d.connection?.dataCenter
+    // The card title already says who rejected the key.
+    const body = msg.replace(/^.*? rejected the API key:\s*/, '')
     return (
       <div role="alert" className="card flex flex-col gap-2 border-[#FCA5A5] px-4.5 py-4">
         <div className="flex items-center gap-2.5">
@@ -379,15 +378,8 @@ function ConnectCard({ d }: { d: Detail }) {
           <span className="font-semibold">{d.sourceName} rejected the API key</span>
         </div>
         <span className="k">
-          {d.source === 'mailchimp' ? (
-            <>
-              {said ? `"${said}"` : msg}
-              {dc ? ` from the ${dc} data center` : ''}. Keys look like <span className="mono">xxxxxxxx-us21</span>; the suffix must match the data center the account lives
-              in.
-            </>
-          ) : (
-            `${said ? `"${said}".` : msg} Check that the key is active and allowed to read contacts.`
-          )}
+          {body.split(/(x{8}-[a-z]{2}\d{1,3})/).map((part, i) => (i % 2 ? <span key={i} className="mono">{part}</span> : part))}
+          {d.source === 'mailchimp' ? '' : ' Check that the key is active and allowed to read contacts.'}
         </span>
         <form
           className="contents"

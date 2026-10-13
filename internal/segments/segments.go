@@ -86,12 +86,13 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace) (SegmentList, e
 
 // SegmentDetail is one segment for the builder.
 type SegmentDetail struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Mode        string            `json:"mode" enum:"builder,sql"`
-	Refresh     string            `json:"refresh" enum:"dynamic,static"`
-	Definition  SegmentDefinition `json:"definition"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Mode        string `json:"mode" enum:"builder,sql"`
+	Refresh     string `json:"refresh" enum:"dynamic,static"`
+	// Definition is the builder's groups (builder mode).
+	Definition SegmentDefinition `json:"definition,omitempty" required:"false"`
 	// SQL is the person's own SQL (SQL mode).
 	SQL string `json:"sql"`
 	// GeneratedSQL is the builder's SQL with values inlined.
@@ -170,12 +171,14 @@ func (s *Service) lists(ctx context.Context, ws uuid.UUID) (map[uuid.UUID]string
 
 // SegmentInput is what the builder saves or counts.
 type SegmentInput struct {
-	Name        string            `json:"name" maxLength:"120"`
-	Description string            `json:"description,omitempty" maxLength:"500"`
-	Mode        string            `json:"mode" enum:"builder,sql"`
-	Refresh     string            `json:"refresh,omitempty" enum:"dynamic,static"`
-	Definition  SegmentDefinition `json:"definition"`
-	SQL         string            `json:"sql,omitempty" maxLength:"20000"`
+	// Name is required to save; a preview doesn't need one.
+	Name        string `json:"name,omitempty" maxLength:"120"`
+	Description string `json:"description,omitempty" maxLength:"500"`
+	Mode        string `json:"mode" enum:"builder,sql"`
+	Refresh     string `json:"refresh,omitempty" enum:"dynamic,static"`
+	// Definition is the builder's groups; SQL mode leaves it out.
+	Definition SegmentDefinition `json:"definition,omitempty" required:"false"`
+	SQL        string            `json:"sql,omitempty" maxLength:"20000"`
 }
 
 // validate checks the input and returns the compiled builder SQL or the

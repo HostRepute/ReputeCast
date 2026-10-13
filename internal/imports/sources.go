@@ -96,6 +96,8 @@ type SourceError struct {
 	Status  int
 	Code    string // auth_failed, rate_limited, unavailable, bad_response
 	Message string
+	// Reason is the source's own short words ("API Key Invalid").
+	Reason string
 	// RetryAfter is set for rate limits.
 	RetryAfter time.Duration
 }
@@ -196,7 +198,8 @@ func (c *apiClient) get(ctx context.Context, path string, out any) error {
 		_ = resp.Body.Close()
 		switch {
 		case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden:
-			return &SourceError{Status: resp.StatusCode, Code: CodeAuthFailed, Message: fmt.Sprintf("%s rejected the API key (%s).", c.name, describe(body, resp.Status))}
+			return &SourceError{Status: resp.StatusCode, Code: CodeAuthFailed, Message: fmt.Sprintf("%s rejected the API key (%s).", c.name, describe(body, resp.Status)),
+				Reason: describeFirst(body, resp.Status, "title", "detail", "message", "error")}
 		case resp.StatusCode == http.StatusTooManyRequests:
 			wait := retryAfter(resp.Header.Get("Retry-After"))
 			lastErr = &SourceError{Status: 429, Code: CodeRateLimited, Message: fmt.Sprintf("%s is rate-limiting requests (429).", c.name), RetryAfter: wait}
@@ -255,9 +258,14 @@ func retryAfter(h string) time.Duration {
 
 // describe pulls a human message out of an error body.
 func describe(body []byte, fallback string) string {
+	return describeFirst(body, fallback, "detail", "message", "title", "error")
+}
+
+// describeFirst returns the first of keys the JSON body has as text.
+func describeFirst(body []byte, fallback string, keys ...string) string {
 	var m map[string]any
 	if json.Unmarshal(body, &m) == nil {
-		for _, k := range []string{"detail", "message", "title", "error"} {
+		for _, k := range keys {
 			if s, ok := m[k].(string); ok && s != "" {
 				return strings.TrimSuffix(s, ".")
 			}

@@ -13438,7 +13438,6 @@
           "description",
           "mode",
           "refresh",
-          "definition",
           "sql",
           "generatedSql",
           "tiers",
@@ -13505,9 +13504,7 @@
           }
         },
         "required": [
-          "name",
-          "mode",
-          "definition"
+          "mode"
         ],
         "type": "object"
       },

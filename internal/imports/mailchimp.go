@@ -45,7 +45,11 @@ func (m *Mailchimp) Connect(ctx context.Context) (ImportConnection, error) {
 	}
 	if err := m.c.get(ctx, "/", &acct); err != nil {
 		if se := (*SourceError)(nil); errors.As(err, &se) && se.Code == CodeAuthFailed {
-			se.Message = fmt.Sprintf(`Mailchimp rejected the API key from the %s data center. Keys look like xxxxxxxx-%s; the suffix must match the data center the account lives in.`, m.DC, m.DC)
+			said := ""
+			if se.Reason != "" {
+				said = fmt.Sprintf(": %q", se.Reason)
+			}
+			se.Message = fmt.Sprintf(`Mailchimp rejected the API key%s from the %s data center. Keys look like xxxxxxxx-%s; the suffix must match the data center the account lives in.`, said, m.DC, m.DC)
 		}
 		return ImportConnection{}, err
 	}

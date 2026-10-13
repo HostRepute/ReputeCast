@@ -7261,7 +7261,7 @@ export interface components {
             countMs?: number;
             /** Format: date-time */
             countedAt?: string;
-            definition: components["schemas"]["SegmentDefinition"];
+            definition?: components["schemas"]["SegmentDefinition"];
             description: string;
             generatedSql: string;
             id: string;
@@ -7285,11 +7285,11 @@ export interface components {
             match: "all" | "any";
         };
         SegmentInput: {
-            definition: components["schemas"]["SegmentDefinition"];
+            definition?: components["schemas"]["SegmentDefinition"];
             description?: string;
             /** @enum {string} */
             mode: "builder" | "sql";
-            name: string;
+            name?: string;
             /** @enum {string} */
             refresh?: "dynamic" | "static";
             sql?: string;

@@ -28,6 +28,10 @@ import (
 // BatchSize is how many rows one batch imports.
 const BatchSize = 500
 
+// analyzeAfterRows is the import size after which the contact tables are
+// analyzed again.
+const analyzeAfterRows = 5000
+
 // RunArgs imports the staged rows of an import.
 type RunArgs struct {
 	ImportID uuid.UUID `json:"importId"`
@@ -899,6 +903,13 @@ func (s *Service) finish(ctx context.Context, st *runState, status string, start
 	})
 	if err != nil {
 		return err
+	}
+	// A big import changes the tables' shape; fresh planner statistics keep
+	// segment counts and List health fast before autovacuum gets there.
+	if st.progress.Processed >= analyzeAfterRows {
+		if _, err := s.Pool.Exec(ctx, `ANALYZE contacts, list_memberships, suppressions`); err != nil {
+			_ = s.log(ctx, s.Q, st.imp.ID, "info", "Couldn't refresh the planner statistics: "+err.Error())
+		}
 	}
 	if st.imp.CreatedBy != nil && status == "done" {
 		wsID := st.ws.ID
