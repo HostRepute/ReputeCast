@@ -713,6 +713,11 @@ func TestEmbedScript(t *testing.T) {
 	if cfg.Messages[OutcomeConfirm].Title != "Check your inbox" || cfg.Popup["delay"] != 8 {
 		t.Errorf("messages %+v, popup %+v", cfg.Messages, cfg.Popup)
 	}
+	// A failed submit shows the error's sentence (FormsStates: "We couldn't
+	// save your subscription just now…"), never the message object.
+	if cfg.Messages["error"].Text != msgSaveFailed || strings.Count(js, "cfg.messages.error.text") != 2 || strings.Contains(js, "cfg.messages.error)") {
+		t.Errorf("the failed-submit message: %+v", cfg.Messages["error"])
+	}
 	if strings.ContainsRune(js, '\u2028') || strings.ContainsRune(js, '\u2029') {
 		t.Error("a raw U+2028/U+2029 line separator from the settings is in the script")
 	}

@@ -264,12 +264,12 @@
             window.location.href = j.challengeUrl
             return
           }
-          showErrors(j.errors, j.message || cfg.messages.error)
+          showErrors(j.errors, j.message || cfg.messages.error.text)
         })
         .catch(function () {
           button.disabled = false
           button.removeAttribute('aria-busy')
-          showErrors(null, cfg.messages.error)
+          showErrors(null, cfg.messages.error.text)
         })
     })
     return form
