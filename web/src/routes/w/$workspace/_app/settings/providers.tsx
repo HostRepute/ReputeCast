@@ -1,11 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { ProvidersSettingsPage } from '@/features/senders/ProvidersSettingsPage'
 
+/** 7.13 Settings › Providers: provider summaries and workspace-wide sending defaults. */
 export const Route = createFileRoute('/w/$workspace/_app/settings/providers')({
-  component: () => (
-    <Page title="Settings">
-      <NotBuilt screen="Settings" />
-    </Page>
-  ),
+  component: ProvidersSettingsPage,
 })

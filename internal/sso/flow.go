@@ -145,12 +145,19 @@ func clearFlowCookie(state string) http.Cookie {
 	return http.Cookie{Name: flowCookieName(state), Value: "", Path: "/auth/", MaxAge: -1, Expires: time.Unix(0, 0), HttpOnly: true, SameSite: http.SameSiteLaxMode} //nolint:gosec // G124: deletion cookie.
 }
 
-// safeNext keeps only same-origin relative paths.
+// safeNext keeps only same-origin relative paths. Browsers drop tabs and
+// newlines from URLs and read a backslash as a slash, so none of them may
+// appear: "/<tab>/host" and "/\host" would both lead to "//host".
 func safeNext(next string) string {
-	if strings.HasPrefix(next, "/") && !strings.HasPrefix(next, "//") && !strings.HasPrefix(next, "/\\") && len(next) < 1000 {
-		return next
+	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || len(next) >= 1000 || strings.ContainsRune(next, '\\') {
+		return ""
 	}
-	return ""
+	for _, r := range next {
+		if r < 0x20 || r == 0x7f {
+			return ""
+		}
+	}
+	return next
 }
 
 // errorRedirect sends the browser to the sign-in page's error state and

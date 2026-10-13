@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}}</title>
+{{with .Description}}<meta name="description" content="{{.}}">
+{{end}}<meta name="robots" content="{{.Robots}}">
+{{with .Canonical}}<link rel="canonical" href="{{.}}">
+{{end}}{{with .OG}}<meta property="og:type" content="{{.Type}}">
+<meta property="og:site_name" content="{{.SiteName}}">
+<meta property="og:title" content="{{.Title}}">
+{{with .Description}}<meta property="og:description" content="{{.}}">
+{{end}}<meta property="og:url" content="{{.URL}}">
+{{with .Image}}<meta property="og:image" content="{{.}}">
+{{end}}{{with .Published}}<meta property="article:published_time" content="{{.}}">
+{{end}}<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{.Title}}">
+{{with .Description}}<meta name="twitter:description" content="{{.}}">
+{{end}}{{end}}{{with .Feed}}<link rel="alternate" type="application/rss+xml" title="{{$.FeedTitle}}" href="{{.}}">
+{{end}}<link rel="stylesheet" href="{{.CSS}}">
+<link rel="stylesheet" href="{{.Theme}}">
+{{with .Brand.Logo}}<link rel="icon" href="{{.}}">
+{{end}}{{with .JSONLD}}<script type="application/ld+json">{{.}}</script>
+{{end}}{{range .Scripts}}<script src="{{.}}" defer></script>
+{{end}}</head>
+<body{{if .Preview}} class="preview" inert{{end}}>
+<a href="#main" class="skip">Skip to content</a>
+<div class="page">
+{{template "content" .}}
+{{template "foot" .}}
+</div>
+</body>
+</html>
+{{define "brand"}}<div class="brand">{{if .Brand.Logo}}<span class="mark logo"><img src="{{.Brand.Logo}}" alt="" width="40" height="40"></span>{{else}}<span class="mark" aria-hidden="true">{{.Brand.Initial}}</span>{{end}}<span class="brand-name">{{.Brand.Name}}</span></div>{{end}}
+{{define "rc"}}{{if .PoweredBy}}<a href="{{.Landing}}" class="rc"><svg width="14" height="14" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>Sent with ReputeCast</a>{{end}}{{end}}
+{{define "rcplain"}}{{if .PoweredBy}}<a href="{{.Landing}}">Sent with ReputeCast</a>{{end}}{{end}}
+{{define "sep"}}<span aria-hidden="true">·</span>{{end}}

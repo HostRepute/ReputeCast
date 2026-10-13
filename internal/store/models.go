@@ -97,6 +97,20 @@ type ApprovalRequest struct {
 	DecidedAt         *time.Time      `json:"decidedAt"`
 }
 
+type ArchiveIssue struct {
+	CampaignID  uuid.UUID  `json:"campaignId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Slug        string     `json:"slug"`
+	ListID      *uuid.UUID `json:"listId"`
+	Title       string     `json:"title"`
+	Excerpt     string     `json:"excerpt"`
+	Label       string     `json:"label"`
+	Hidden      bool       `json:"hidden"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+	UpdatedBy   *uuid.UUID `json:"updatedBy"`
+}
+
 type AudienceDaily struct {
 	WorkspaceID  uuid.UUID `json:"workspaceId"`
 	Scope        string    `json:"scope"`
@@ -496,6 +510,7 @@ type ConsentEvent struct {
 	ConsentVersion string      `json:"consentVersion"`
 	ActorID        *uuid.UUID  `json:"actorId"`
 	ImportID       *uuid.UUID  `json:"importId"`
+	ConsentText    string      `json:"consentText"`
 }
 
 type Contact struct {
@@ -645,6 +660,59 @@ type Form struct {
 	CreatedBy      *uuid.UUID      `json:"createdBy"`
 	CreatedAt      time.Time       `json:"createdAt"`
 	UpdatedAt      time.Time       `json:"updatedAt"`
+	PublicID       string          `json:"publicId"`
+	DefaultListIds []uuid.UUID     `json:"defaultListIds"`
+	ListChoice     bool            `json:"listChoice"`
+	ConsentText    string          `json:"consentText"`
+	ConsentVersion int32           `json:"consentVersion"`
+	AllowedOrigins []string        `json:"allowedOrigins"`
+	AfterSubmit    string          `json:"afterSubmit"`
+	RedirectUrl    string          `json:"redirectUrl"`
+	PublishedAt    *time.Time      `json:"publishedAt"`
+	UpdatedBy      *uuid.UUID      `json:"updatedBy"`
+}
+
+type FormChallenge struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	FormID      *uuid.UUID `json:"formId"`
+	PayloadEnc  []byte     `json:"payloadEnc"`
+	Origin      string     `json:"origin"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	ExpiresAt   time.Time  `json:"expiresAt"`
+}
+
+type FormDaily struct {
+	FormID      uuid.UUID `json:"formId"`
+	Day         time.Time `json:"day"`
+	Views       int64     `json:"views"`
+	Submissions int64     `json:"submissions"`
+	Confirmed   int64     `json:"confirmed"`
+	Blocked     int64     `json:"blocked"`
+}
+
+type FormRejection struct {
+	FormID      uuid.UUID  `json:"formId"`
+	Day         time.Time  `json:"day"`
+	Reason      string     `json:"reason"`
+	Origin      string     `json:"origin"`
+	Count       int64      `json:"count"`
+	LastAt      time.Time  `json:"lastAt"`
+	DismissedAt *time.Time `json:"dismissedAt"`
+}
+
+type FormSubmission struct {
+	ID            uuid.UUID   `json:"id"`
+	WorkspaceID   uuid.UUID   `json:"workspaceId"`
+	FormID        *uuid.UUID  `json:"formId"`
+	ContactID     uuid.UUID   `json:"contactId"`
+	ListIds       []uuid.UUID `json:"listIds"`
+	DoubleOptIn   bool        `json:"doubleOptIn"`
+	CreatedAt     time.Time   `json:"createdAt"`
+	ConfirmSentAt *time.Time  `json:"confirmSentAt"`
+	SendAttempts  int32       `json:"sendAttempts"`
+	RemindedAt    *time.Time  `json:"remindedAt"`
+	ConfirmedAt   *time.Time  `json:"confirmedAt"`
 }
 
 type HostreputeConnection struct {
@@ -1031,6 +1099,20 @@ type ProviderRawEvent struct {
 	Events         int32           `json:"events"`
 }
 
+type ProviderSetup struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Adapter     string          `json:"adapter"`
+	ProviderID  *uuid.UUID      `json:"providerId"`
+	Step        string          `json:"step"`
+	Status      string          `json:"status"`
+	State       json.RawMessage `json:"state"`
+	CreatedBy   *uuid.UUID      `json:"createdBy"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+	FinishedAt  *time.Time      `json:"finishedAt"`
+}
+
 type ProviderSuppressionSync struct {
 	ProviderID   uuid.UUID  `json:"providerId"`
 	Mode         string     `json:"mode"`
@@ -1041,6 +1123,26 @@ type ProviderSuppressionSync struct {
 	Pending      int64      `json:"pending"`
 	Status       string     `json:"status"`
 	StatusDetail string     `json:"statusDetail"`
+}
+
+type PublicPageSetting struct {
+	WorkspaceID        uuid.UUID       `json:"workspaceId"`
+	HostedFormID       *uuid.UUID      `json:"hostedFormId"`
+	Pages              json.RawMessage `json:"pages"`
+	CustomDomain       *string         `json:"customDomain"`
+	DomainStatus       string          `json:"domainStatus"`
+	DomainDetail       string          `json:"domainDetail"`
+	DomainCheckedAt    *time.Time      `json:"domainCheckedAt"`
+	DomainVerifiedAt   *time.Time      `json:"domainVerifiedAt"`
+	TurnstileSiteKey   string          `json:"turnstileSiteKey"`
+	TurnstileSecretEnc []byte          `json:"turnstileSecretEnc"`
+	TurnstileStatus    string          `json:"turnstileStatus"`
+	TurnstileError     string          `json:"turnstileError"`
+	TurnstileCheckedAt *time.Time      `json:"turnstileCheckedAt"`
+	Logo               []byte          `json:"logo"`
+	LogoType           string          `json:"logoType"`
+	UpdatedBy          *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt          time.Time       `json:"updatedAt"`
 }
 
 type ReadinessRun struct {
@@ -1140,17 +1242,28 @@ type Sender struct {
 	ReplyTo      string          `json:"replyTo"`
 	Verification json.RawMessage `json:"verification"`
 	CreatedAt    time.Time       `json:"createdAt"`
+	Note         string          `json:"note"`
+	CreatedBy    *uuid.UUID      `json:"createdBy"`
+	UpdatedAt    time.Time       `json:"updatedAt"`
 }
 
 type SendingDomain struct {
-	ID            uuid.UUID       `json:"id"`
-	WorkspaceID   uuid.UUID       `json:"workspaceId"`
-	Domain        string          `json:"domain"`
-	DnsRecords    json.RawMessage `json:"dnsRecords"`
-	AuthSummary   json.RawMessage `json:"authSummary"`
-	Status        string          `json:"status"`
-	LastCheckedAt *time.Time      `json:"lastCheckedAt"`
-	CreatedAt     time.Time       `json:"createdAt"`
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	Domain         string          `json:"domain"`
+	DnsRecords     json.RawMessage `json:"dnsRecords"`
+	AuthSummary    json.RawMessage `json:"authSummary"`
+	Status         string          `json:"status"`
+	LastCheckedAt  *time.Time      `json:"lastCheckedAt"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	Note           string          `json:"note"`
+	TrackingDomain string          `json:"trackingDomain"`
+	TrackingStatus string          `json:"trackingStatus"`
+	DnsHost        string          `json:"dnsHost"`
+	Nameservers    []string        `json:"nameservers"`
+	AuthDetail     json.RawMessage `json:"authDetail"`
+	CreatedBy      *uuid.UUID      `json:"createdBy"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
 }
 
 type SendingRateWindow struct {
@@ -1455,6 +1568,7 @@ type Webhook struct {
 	SecretRotatedAt *time.Time `json:"secretRotatedAt"`
 	PausedAt        *time.Time `json:"pausedAt"`
 	UpdatedAt       time.Time  `json:"updatedAt"`
+	Demo            bool       `json:"demo"`
 }
 
 type WebhookDelivery struct {
@@ -1478,27 +1592,31 @@ type WebhookDelivery struct {
 }
 
 type Workspace struct {
-	ID                   uuid.UUID       `json:"id"`
-	Slug                 string          `json:"slug"`
-	Name                 string          `json:"name"`
-	Timezone             string          `json:"timezone"`
-	DefaultSenderID      *uuid.UUID      `json:"defaultSenderId"`
-	ApprovalPolicy       json.RawMessage `json:"approvalPolicy"`
-	SunsetPolicy         json.RawMessage `json:"sunsetPolicy"`
-	Branding             json.RawMessage `json:"branding"`
-	SendThresholds       json.RawMessage `json:"sendThresholds"`
-	AuditRetentionDays   int32           `json:"auditRetentionDays"`
-	AuditStreamUrl       *string         `json:"auditStreamUrl"`
-	CreatedBy            *uuid.UUID      `json:"createdBy"`
-	CreatedAt            time.Time       `json:"createdAt"`
-	UpdatedAt            time.Time       `json:"updatedAt"`
-	DeletedAt            *time.Time      `json:"deletedAt"`
-	McpSettings          json.RawMessage `json:"mcpSettings"`
-	AuditStreamEnabled   bool            `json:"auditStreamEnabled"`
-	AuditStreamSecretEnc []byte          `json:"auditStreamSecretEnc"`
-	AuditStreamCursorAt  *time.Time      `json:"auditStreamCursorAt"`
-	AuditStreamCursorID  *uuid.UUID      `json:"auditStreamCursorId"`
-	AuditStreamStatus    json.RawMessage `json:"auditStreamStatus"`
+	ID                        uuid.UUID       `json:"id"`
+	Slug                      string          `json:"slug"`
+	Name                      string          `json:"name"`
+	Timezone                  string          `json:"timezone"`
+	DefaultSenderID           *uuid.UUID      `json:"defaultSenderId"`
+	ApprovalPolicy            json.RawMessage `json:"approvalPolicy"`
+	SunsetPolicy              json.RawMessage `json:"sunsetPolicy"`
+	Branding                  json.RawMessage `json:"branding"`
+	SendThresholds            json.RawMessage `json:"sendThresholds"`
+	AuditRetentionDays        int32           `json:"auditRetentionDays"`
+	AuditStreamUrl            *string         `json:"auditStreamUrl"`
+	CreatedBy                 *uuid.UUID      `json:"createdBy"`
+	CreatedAt                 time.Time       `json:"createdAt"`
+	UpdatedAt                 time.Time       `json:"updatedAt"`
+	DeletedAt                 *time.Time      `json:"deletedAt"`
+	McpSettings               json.RawMessage `json:"mcpSettings"`
+	AuditStreamEnabled        bool            `json:"auditStreamEnabled"`
+	AuditStreamSecretEnc      []byte          `json:"auditStreamSecretEnc"`
+	AuditStreamCursorAt       *time.Time      `json:"auditStreamCursorAt"`
+	AuditStreamCursorID       *uuid.UUID      `json:"auditStreamCursorId"`
+	AuditStreamStatus         json.RawMessage `json:"auditStreamStatus"`
+	AuditStreamDemo           bool            `json:"auditStreamDemo"`
+	DefaultAutomationSenderID *uuid.UUID      `json:"defaultAutomationSenderId"`
+	DefaultSystemSenderID     *uuid.UUID      `json:"defaultSystemSenderId"`
+	SendingDefaults           json.RawMessage `json:"sendingDefaults"`
 }
 
 type WorkspaceMember struct {

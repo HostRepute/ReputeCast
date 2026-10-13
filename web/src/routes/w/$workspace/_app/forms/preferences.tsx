@@ -1,11 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { PreferencesTab } from '@/features/forms/PageTabs'
 
 export const Route = createFileRoute('/w/$workspace/_app/forms/preferences')({
-  component: () => (
-    <Page title="Forms & public pages">
-      <NotBuilt screen="Forms & public pages" />
-    </Page>
-  ),
+  component: PreferencesTab,
 })

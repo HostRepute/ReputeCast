@@ -171,6 +171,9 @@ type AutomationWebhook struct {
 	URL       string `json:"url,omitempty" maxLength:"2000"`
 	Method    string `json:"method,omitempty" maxLength:"6"`
 	HasSecret bool   `json:"hasSecret,omitempty" readOnly:"true"`
+	// Demo marks a step of the demo data: it is never called (its address is
+	// fictional), until someone points it at another URL.
+	Demo bool `json:"demo,omitempty" readOnly:"true"`
 }
 
 // AutomationListAction adds or removes a list or tag.

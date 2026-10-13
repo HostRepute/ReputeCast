@@ -152,6 +152,9 @@ var secretSegments = []*regexp.Regexp{
 	regexp.MustCompile(`^(/hooks/[^/]+/)[^/]+`),
 	regexp.MustCompile(`^(/(?:invite|reset-password)/)[^/]+`),
 	regexp.MustCompile(`^(/api/v1/(?:auth/password-reset|invitations|shared-reports)/)[^/]+`),
+	// The same email links on a workspace's custom domain, at the root
+	// (news.acme.io/unsubscribe/{token}).
+	regexp.MustCompile(`^(/(?:unsubscribe|preferences|confirm|view)/)[^/]+`),
 }
 
 // RedactPath replaces the secret part of a path with {token}, so logs never

@@ -60,7 +60,7 @@ func TestDomainsAndPaths(t *testing.T) {
 			t.Fatalf("%q accepted", bad)
 		}
 	}
-	for in, want := range map[string]string{"/w/acme/campaigns?x=1": "/w/acme/campaigns?x=1", "//evil.example": "", "/\\evil.example": "", "https://evil.example": "", "": ""} {
+	for in, want := range map[string]string{"/w/acme/campaigns?x=1": "/w/acme/campaigns?x=1", "//evil.example": "", "/\\evil.example": "", "/\t/evil.example": "", "/\n/evil.example": "", "/w/a\\b": "", "https://evil.example": "", "": ""} {
 		if got := safeNext(in); got != want {
 			t.Fatalf("safeNext(%q) = %q", in, got)
 		}
