@@ -120,14 +120,18 @@ function MovedCard() {
     keys.data ? `${keys.data.items.length} API ${keys.data.items.length === 1 ? 'key' : 'keys'}` : '',
     agents.data ? `${agents.data.items.length} MCP ${agents.data.items.length === 1 ? 'agent' : 'agents'}` : '',
   ].filter(Boolean)
-  // One compact block, as the board draws it (with the card padding the board's CSS lacks).
+  // As the board renders it: its CSS has no rules for the card's section
+  // and padding classes, so the block is compact and the button follows the
+  // sentence inline (on the same line when it fits, under it otherwise).
   return (
-    <section className="card flex flex-col gap-0.5 px-4.5 py-3" aria-labelledby="moved-h">
-      <h2 className="h2" id="moved-h">
-        API keys and MCP agents moved
-      </h2>
-      <span className="k">Now under the Keys &amp; MCP tab</span>
-      <div className="row justify-between">
+    <section className="card" aria-labelledby="moved-h">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <h2 className="h2" id="moved-h">
+          API keys and MCP agents moved
+        </h2>
+        <span className="k">Now under the Keys &amp; MCP tab</span>
+      </div>
+      <div>
         <span className="k">
           {counts.length ? `${counts.join(' · ')} · ` : ''}permissions use the same keys as roles and never exceed their creator&apos;s. Secrets are shown once.
         </span>
