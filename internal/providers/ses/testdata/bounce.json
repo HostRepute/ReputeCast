@@ -1,0 +1,32 @@
+{
+  "eventType": "Bounce",
+  "bounce": {
+    "bounceType": "Permanent",
+    "bounceSubType": "General",
+    "bouncedRecipients": [
+      {
+        "emailAddress": "r.w@outlook.com",
+        "action": "failed",
+        "status": "5.1.1",
+        "diagnosticCode": "smtp; 550 5.1.1 <r.w@outlook.com>: Recipient address rejected: User unknown"
+      }
+    ],
+    "timestamp": "2026-10-12T13:41:02.124Z",
+    "feedbackId": "0100018f2b4d5c6e-c2c3e4f5-a6b7-4c8d-9e0f-1a2b3c4d5e6f-000000",
+    "reportingMTA": "dsn; e226-55.smtp-out.us-east-1.amazonses.com"
+  },
+  "mail": {
+    "timestamp": "2026-10-12T13:41:00.000Z",
+    "source": "news@news.acme.io",
+    "sourceArn": "arn:aws:ses:us-east-1:123456789012:identity/news.acme.io",
+    "sendingAccountId": "123456789012",
+    "messageId": "0100018f2b4d5c6e-6f7a8b9c-0d1e-4f2a-8b3c-4d5e6f7a8b9c-000000",
+    "destination": ["r.w@outlook.com"],
+    "headersTruncated": false,
+    "tags": {
+      "ses:configuration-set": ["rc-broadcasts"],
+      "rc_message": ["0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e60"],
+      "rc_stream": ["broadcast"]
+    }
+  }
+}
