@@ -208,8 +208,12 @@ func (s *siteverify) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.calls = append(s.calls, r.PostForm)
 	s.mu.Unlock()
 	w.Header().Set("Content-Type", "application/json")
-	if r.PostForm.Get("response") == "pass" {
+	switch r.PostForm.Get("response") {
+	case "pass":
 		_, _ = w.Write([]byte(`{"success":true,"hostname":"news.acme.io"}`))
+		return
+	case "secret-gone":
+		_, _ = w.Write([]byte(`{"success":false,"error-codes":["invalid-input-secret"]}`))
 		return
 	}
 	_, _ = w.Write([]byte(`{"success":false,"error-codes":["invalid-input-response"]}`))
@@ -268,6 +272,39 @@ func TestTurnstileChallenge(t *testing.T) {
 		}
 		if n := count(t, env, `SELECT coalesce(sum(count), 0)::bigint FROM form_rejections WHERE form_id = $1 AND reason = 'turnstile'`, ids.signup); n != 1 {
 			t.Errorf("%d Turnstile rejections recorded, want 1", n)
+		}
+	})
+	t.Run("a refused secret switches Turnstile off and says so in the audit log", func(t *testing.T) {
+		id := hold("secret.gone@fastmail.com")
+		must(t, answer(id, "secret-gone"), 403)
+		if st := one[string](t, env, `SELECT turnstile_status FROM public_page_settings WHERE workspace_id = $1`, ids.ws); st != "error" {
+			t.Errorf("Turnstile status %q after Cloudflare refused the secret", st)
+		}
+		var actor, after string
+		if err := env.App.Pool.QueryRow(context.Background(), `SELECT actor_type, after::text FROM audit_events WHERE action = 'public_pages.turnstile_error' AND workspace_id = $1`, ids.ws).Scan(&actor, &after); err != nil {
+			t.Fatalf("no audit entry: %v", err)
+		}
+		if actor != "system" || !strings.Contains(after, "invalid-input-secret") {
+			t.Errorf("audit entry by %s: %s", actor, after)
+		}
+		// A widget error reported from a held check is recorded the same way, once.
+		if _, err := env.App.Pool.Exec(context.Background(), `UPDATE public_page_settings SET turnstile_status = 'ok', turnstile_error = '' WHERE workspace_id = $1`, ids.ws); err != nil {
+			t.Fatal(err)
+		}
+		id = hold("widget.error@fastmail.com")
+		for range 2 {
+			if r := do(t, env, http.MethodPost, "/p/acme-newsletter/turnstile-error", url.Values{"challenge": {id}, "code": {"110200"}}, nil); r.Status != 204 {
+				t.Fatalf("report: %d", r.Status)
+			}
+		}
+		if e := one[string](t, env, `SELECT turnstile_error FROM public_page_settings WHERE workspace_id = $1`, ids.ws); e != "Cloudflare rejected the site key (error 110200)" {
+			t.Errorf("Turnstile error %q", e)
+		}
+		if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'public_pages.turnstile_error' AND workspace_id = $1`, ids.ws); n != 2 {
+			t.Errorf("%d Turnstile error entries, want one per change (2)", n)
+		}
+		if _, err := env.App.Pool.Exec(context.Background(), `UPDATE public_page_settings SET turnstile_status = 'ok', turnstile_error = '' WHERE workspace_id = $1`, ids.ws); err != nil {
+			t.Fatal(err)
 		}
 	})
 	t.Run("another workspace's hold isn't taken", func(t *testing.T) {

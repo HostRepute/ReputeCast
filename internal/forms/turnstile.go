@@ -17,6 +17,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -201,7 +202,29 @@ func (s *Service) ReportTurnstileError(ctx context.Context, ws *store.Workspace,
 	if err != nil || !live {
 		return err
 	}
-	return s.Q.PublicSettingsTurnstileError(ctx, store.PublicSettingsTurnstileErrorParams{WorkspaceID: ws.ID, Error: turnstileErrorWords(code), At: ptrTime(s.now())})
+	return s.turnstileFailed(ctx, ws, turnstileErrorWords(code), map[string]any{"widgetError": code})
+}
+
+// turnstileFailed marks the Turnstile keys as failing (spam protection
+// falls back to the honeypot and timing check) and writes it to the audit
+// log as Cloudflare's doing, once per change of the message.
+func (s *Service) turnstileFailed(ctx context.Context, ws *store.Workspace, problem string, meta map[string]any) error {
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		before, err := q.PublicSettingsGet(ctx, ws.ID)
+		if err != nil {
+			return err
+		}
+		if err := q.PublicSettingsTurnstileError(ctx, store.PublicSettingsTurnstileErrorParams{WorkspaceID: ws.ID, Error: problem, At: ptrTime(s.now())}); err != nil {
+			return err
+		}
+		if before.TurnstileStatus == "error" && before.TurnstileError == problem {
+			return nil // already recorded
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "public_pages.turnstile_error", TargetType: "workspace", TargetID: ws.ID.String(),
+			TargetName: ws.Name, Actor: &audit.Actor{Type: authz.ActorSystem, Name: "Cloudflare Turnstile"},
+			Before: map[string]any{"status": before.TurnstileStatus}, After: map[string]any{"status": "error", "error": problem}, Metadata: meta})
+	})
 }
 
 // parseID reads a uuid from a form field.

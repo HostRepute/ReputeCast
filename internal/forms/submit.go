@@ -451,7 +451,9 @@ func (s *Service) SolveChallenge(ctx context.Context, ws *store.Workspace, set *
 	}
 	if !res.Success {
 		if res.SecretRejected() {
-			_ = s.Q.PublicSettingsTurnstileError(ctx, store.PublicSettingsTurnstileErrorParams{WorkspaceID: ws.ID, Error: "Cloudflare rejected the secret key (" + strings.Join(res.Codes, ", ") + ")", At: ptrTime(s.now())})
+			if err := s.turnstileFailed(ctx, ws, "Cloudflare rejected the secret key ("+strings.Join(res.Codes, ", ")+")", map[string]any{"codes": res.Codes}); err != nil {
+				s.log().WarnContext(ctx, "record turnstile error", "err", err)
+			}
 		}
 		s.recordReject(ctx, ws, c, "turnstile", h.Origin)
 		return Outcome{Status: OutcomeRejected, Message: "We couldn't confirm you're a person. Try the form again in a minute."}
