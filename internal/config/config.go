@@ -47,6 +47,8 @@ type Config struct {
 	Updates  UpdatesConfig  `koanf:"updates"`
 	Metrics  MetricsConfig  `koanf:"metrics"`
 	Webhooks WebhooksConfig `koanf:"webhooks"`
+	// Adapters configures community adapters (internal/providers/remote).
+	Adapters AdaptersConfig `koanf:"adapters"`
 	// HostRepute and DNS configure Deliverability (internal/hostrepute, internal/dnscheck).
 	HostRepute HostReputeConfig `koanf:"hostrepute"`
 	DNS        DNSConfig        `koanf:"dns"`
@@ -152,6 +154,16 @@ type WebhooksConfig struct {
 	// (RFC 1918) addresses, for receivers on the same network. Off by
 	// default: user-supplied URLs must not reach internal services (SSRF).
 	// Link-local and cloud metadata addresses are always blocked.
+	AllowPrivateNetworks bool `koanf:"allow_private_networks"`
+}
+
+// AdaptersConfig configures community adapters, which run in their own
+// process and are called over HTTP(S) (docs/adapters.md).
+type AdaptersConfig struct {
+	// AllowPrivateNetworks lets an adapter's address be loopback or private
+	// (RFC 1918), for a sidecar on the same host or network; plain http:// is
+	// only used for such addresses. Off by default. Link-local and cloud
+	// metadata addresses are always refused.
 	AllowPrivateNetworks bool `koanf:"allow_private_networks"`
 }
 

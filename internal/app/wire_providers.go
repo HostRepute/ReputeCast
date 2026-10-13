@@ -36,6 +36,8 @@ func (a *App) providersService() *manage.Service {
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Factory: a.providerFactory(), URLs: a.URLs, Log: a.Log,
 		Jobs:    func() *jobs.Client { return a.Jobs },
 		Sending: func() sending.Starter { return a.Sending },
+		// W16: community adapters of kind remote (wire_remote.go).
+		Community: a.remoteRuntime(),
 	}
 }
 

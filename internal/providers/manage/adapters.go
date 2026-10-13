@@ -26,10 +26,11 @@ import (
 	"github.com/hostrepute/reputecast/internal/version"
 )
 
-// Links on the Adapters tab.
+// Links on the Adapters tab: the SDK guide and the template live in the
+// repository (docs/adapters.md, sdk/adapter-template).
 const (
-	SDKURL      = "https://github.com/hostrepute/reputecast/tree/main/docs/adapter-sdk"
-	TemplateURL = "https://github.com/hostrepute/reputecast-adapter-template"
+	SDKURL      = "https://github.com/hostrepute/reputecast/blob/main/docs/adapters.md#community-adapters"
+	TemplateURL = "https://github.com/hostrepute/reputecast/tree/main/sdk/adapter-template"
 	RegistryURL = "https://github.com/hostrepute/reputecast-adapters"
 )
 
@@ -52,7 +53,7 @@ type AdapterBuiltin struct {
 type AdapterCommunity struct {
 	ID           string     `json:"id"`
 	Name         string     `json:"name"`
-	Kind         string     `json:"kind" enum:"http,wasm"`
+	Kind         string     `json:"kind" enum:"http,wasm,remote"`
 	Version      string     `json:"version"`
 	Maintainer   string     `json:"maintainer"`
 	Capabilities []string   `json:"capabilities"`
@@ -142,11 +143,16 @@ func (s *Service) Adapters(ctx context.Context, ws *store.Workspace) (AdaptersOv
 		}
 		c.ID = id.String()
 		var m struct {
-			Capabilities []string  `json:"capabilities"`
-			LastRelease  time.Time `json:"last_release"`
+			Capabilities json.RawMessage `json:"capabilities"`
+			LastRelease  time.Time       `json:"last_release"`
 		}
 		_ = json.Unmarshal(manifest, &m)
-		c.Capabilities = m.Capabilities
+		key, labels, remote := s.communityKey(c.Kind, c.Name, manifest)
+		if remote {
+			c.Capabilities = labels
+		} else {
+			_ = json.Unmarshal(m.Capabilities, &c.Capabilities)
+		}
 		if c.Capabilities == nil {
 			c.Capabilities = []string{}
 		}
@@ -160,7 +166,7 @@ func (s *Service) Adapters(ctx context.Context, ws *store.Workspace) (AdaptersOv
 		} else if c.LastRelease != nil && s.now().Sub(*c.LastRelease) > 365*24*time.Hour {
 			c.Update = "unmaintained"
 		}
-		c.Connected = connected["community:"+c.Name]
+		c.Connected = connected[key]
 		out.Community = append(out.Community, c)
 	}
 	if err := rows.Err(); err != nil {
@@ -179,13 +185,15 @@ func instanceAdmin(ctx context.Context) error {
 	return nil
 }
 
-// AdapterManifest is a community adapter's manifest.json.
+// AdapterManifest is a community adapter's manifest.json. Capabilities is
+// a list of labels for http and wasm adapters and an object for remote ones
+// (docs/adapters.md).
 type AdapterManifest struct {
 	Name         string          `json:"name"`
 	Version      string          `json:"version"`
 	Maintainer   string          `json:"maintainer"`
 	Kind         string          `json:"kind"`
-	Capabilities []string        `json:"capabilities"`
+	Capabilities json.RawMessage `json:"capabilities"`
 	SourceURL    string          `json:"source_url"`
 	Latest       string          `json:"latest_version"`
 	LastRelease  string          `json:"last_release"`
@@ -207,6 +215,14 @@ func (s *Service) InstallAdapter(ctx context.Context, ws *store.Workspace, in Ad
 	if err != nil {
 		return AdapterCommunity{}, api.Invalid("body.manifestUrl", err.Error())
 	}
+	if m.Kind == CommunityKindRemote {
+		if s.Community == nil {
+			return AdapterCommunity{}, api.Invalid("body.manifestUrl", "This build can't run community adapters of kind remote.")
+		}
+		if _, _, err := s.Community.ParseManifest(raw); err != nil {
+			return AdapterCommunity{}, api.Invalid("body.manifestUrl", "This manifest can't be used: "+err.Error()+".")
+		}
+	}
 	if m.SourceURL == "" {
 		m.SourceURL = in.ManifestURL
 	}
@@ -219,13 +235,19 @@ func (s *Service) InstallAdapter(ctx context.Context, ws *store.Workspace, in Ad
 			}
 			return err
 		}
+		if m.Kind == CommunityKindRemote {
+			if err := s.Community.Installed(ctx, tx, id, raw); err != nil {
+				return err
+			}
+		}
 		wsID := ws.ID
 		return s.Audit.LogWith(ctx, store.New(tx), audit.Event{WorkspaceID: &wsID, Action: "adapter.install", TargetType: "adapter", TargetID: id.String(), TargetName: m.Name,
-			After: map[string]any{"version": m.Version, "maintainer": m.Maintainer, "source": in.ManifestURL}})
+			After: map[string]any{"version": m.Version, "maintainer": m.Maintainer, "source": in.ManifestURL, "kind": m.Kind}})
 	})
 	if err != nil {
 		return AdapterCommunity{}, err
 	}
+	s.communityChanged(ctx, m.Kind)
 	return s.community(ctx, ws, id)
 }
 
@@ -258,10 +280,10 @@ func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id str
 	if err != nil {
 		return AdapterCommunity{}, api.NotFound("Adapter")
 	}
-	var name, ver, src string
+	var name, kind, ver, src string
 	var current json.RawMessage
 	var latest *string
-	if err := s.Pool.QueryRow(ctx, `SELECT name, version, source_url, manifest, latest_version FROM installed_adapters WHERE id = $1`, aid).Scan(&name, &ver, &src, &current, &latest); err != nil {
+	if err := s.Pool.QueryRow(ctx, `SELECT name, kind, version, source_url, manifest, latest_version FROM installed_adapters WHERE id = $1`, aid).Scan(&name, &kind, &ver, &src, &current, &latest); err != nil {
 		return AdapterCommunity{}, api.MapError(err, "Adapter")
 	}
 	var m AdapterManifest
@@ -284,6 +306,21 @@ func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id str
 	if m.Name != name {
 		return AdapterCommunity{}, api.Conflict("The manifest at " + src + " now describes " + m.Name + ", not " + name + ". Nothing was changed.")
 	}
+	if kind == CommunityKindRemote || m.Kind == CommunityKindRemote {
+		if m.Kind != kind {
+			return AdapterCommunity{}, api.Conflict("The manifest at " + src + " now describes a " + m.Kind + " adapter, not a " + kind + " one. Nothing was changed.")
+		}
+		if s.Community == nil {
+			return AdapterCommunity{}, api.Conflict("This build can't run community adapters of kind remote.")
+		}
+		newKey, _, err := s.Community.ParseManifest(raw)
+		if err != nil {
+			return AdapterCommunity{}, api.Err(http.StatusUnprocessableEntity, api.CodeValidation, "The new manifest at "+src+" can't be used: "+err.Error()+". Nothing was changed.")
+		}
+		if oldKey, _, _ := s.communityKey(kind, name, current); newKey != oldKey {
+			return AdapterCommunity{}, api.Conflict("The manifest at " + src + " now registers " + newKey + ", not " + oldKey + ". Nothing was changed.")
+		}
+	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `UPDATE installed_adapters SET version = $2, maintainer = $3, manifest = $4, latest_version = NULL WHERE id = $1`, aid, m.Version, m.Maintainer, raw); err != nil {
 			return err
@@ -295,6 +332,7 @@ func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id str
 	if err != nil {
 		return AdapterCommunity{}, err
 	}
+	s.communityChanged(ctx, kind)
 	return s.community(ctx, ws, aid)
 }
 
@@ -307,24 +345,31 @@ func (s *Service) RemoveAdapter(ctx context.Context, ws *store.Workspace, id str
 	if err != nil {
 		return api.NotFound("Adapter")
 	}
-	var name string
-	if err := s.Pool.QueryRow(ctx, `SELECT name FROM installed_adapters WHERE id = $1`, aid).Scan(&name); err != nil {
+	var name, kind string
+	var manifest json.RawMessage
+	if err := s.Pool.QueryRow(ctx, `SELECT name, kind, manifest FROM installed_adapters WHERE id = $1`, aid).Scan(&name, &kind, &manifest); err != nil {
 		return api.MapError(err, "Adapter")
 	}
+	key, _, _ := s.communityKey(kind, name, manifest)
 	var used int
-	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM providers WHERE adapter = $1 AND disconnected_at IS NULL`, "community:"+name).Scan(&used); err != nil {
+	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM providers WHERE adapter = $1 AND disconnected_at IS NULL`, key).Scan(&used); err != nil {
 		return err
 	}
 	if used > 0 {
 		return api.Conflict(fmt.Sprintf("%d connected provider(s) use %s. Disconnect them first.", used, name))
 	}
-	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `DELETE FROM installed_adapters WHERE id = $1`, aid); err != nil {
 			return err
 		}
 		wsID := ws.ID
 		return s.Audit.LogWith(ctx, store.New(tx), audit.Event{WorkspaceID: &wsID, Action: "adapter.remove", TargetType: "adapter", TargetID: aid.String(), TargetName: name})
 	})
+	if err != nil {
+		return err
+	}
+	s.communityChanged(ctx, kind)
+	return nil
 }
 
 // AdapterHTTPInput is a generic HTTP adapter mapping.
@@ -475,14 +520,13 @@ func fetchManifest(ctx context.Context, raw string) (AdapterManifest, json.RawMe
 	if err := json.Unmarshal(body, &m); err != nil {
 		return AdapterManifest{}, nil, problem("The file is not a valid adapter manifest (JSON expected).")
 	}
-	if m.Name == "" || m.Version == "" || (m.Kind != "http" && m.Kind != "wasm") {
-		return AdapterManifest{}, nil, problem("The manifest needs a name, a version and a kind (http or wasm).")
+	if m.Name == "" || m.Version == "" || (m.Kind != "http" && m.Kind != "wasm" && m.Kind != CommunityKindRemote) {
+		return AdapterManifest{}, nil, problem("The manifest needs a name, a version and a kind (remote, http or wasm).")
 	}
-	if m.Maintainer == "" {
-		m.Maintainer = "community"
-	}
-	if !strings.HasPrefix(m.Maintainer, "community") {
-		m.Maintainer = "community · " + m.Maintainer
+	// The Adapters tab shows "community · <maintainer>".
+	m.Maintainer = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(m.Maintainer), "community · "))
+	if m.Maintainer == "" || m.Maintainer == "community" {
+		m.Maintainer = "unknown"
 	}
 	return m, body, nil
 }
