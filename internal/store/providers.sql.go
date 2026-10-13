@@ -620,7 +620,7 @@ func (q *Queries) ProvHeldRoutes(ctx context.Context, arg ProvHeldRoutesParams) 
 }
 
 const provIncidentsSince = `-- name: ProvIncidentsSince :many
-SELECT id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id, resolved_at FROM incidents
+SELECT id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id, resolved_at, source, asset, external_id FROM incidents
 WHERE workspace_id = $1 AND occurred_at >= $2
   AND (provider_id = ANY($3::uuid[]) OR campaign_id = ANY($4::uuid[]))
 ORDER BY occurred_at DESC, id DESC
@@ -659,6 +659,9 @@ func (q *Queries) ProvIncidentsSince(ctx context.Context, arg ProvIncidentsSince
 			&i.CampaignID,
 			&i.ProviderID,
 			&i.ResolvedAt,
+			&i.Source,
+			&i.Asset,
+			&i.ExternalID,
 		); err != nil {
 			return nil, err
 		}
