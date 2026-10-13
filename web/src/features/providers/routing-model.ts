@@ -58,11 +58,19 @@ export function changedStreams(d: Draft, saved: Draft): Stream[] {
   return streams.filter((s) => JSON.stringify(toInput({ ...saved, [s]: d[s] }).streams) !== JSON.stringify(toInput(saved).streams))
 }
 
-/** Sets a stream's primary provider, keeping the split weights. */
+/**
+ * Sets a stream's primary provider, keeping the split weights: a provider
+ * already in the split swaps places with the old primary, any other
+ * provider takes the primary's place.
+ */
 export function setPrimary(sd: StreamDraft, providerId: string): StreamDraft {
-  const rest = sd.splits.slice(1).filter((x) => x.providerId !== providerId)
-  const weight = sd.splits.length ? sd.splits[0]!.weight + sd.splits.slice(1).filter((x) => x.providerId === providerId).reduce((n, x) => n + x.weight, 0) : 100
-  return { ...sd, splits: [{ providerId, weight }, ...rest], fallback: sd.fallback === providerId ? '' : sd.fallback }
+  const fallback = sd.fallback === providerId ? '' : sd.fallback
+  const [first, ...rest] = sd.splits
+  if (!first) return { ...sd, splits: [{ providerId, weight: 100 }], fallback }
+  if (first.providerId === providerId) return sd
+  const i = rest.findIndex((x) => x.providerId === providerId)
+  const others = i < 0 ? rest : rest.map((x, j) => (j === i ? { providerId: first.providerId, weight: x.weight } : x))
+  return { ...sd, splits: [{ providerId, weight: first.weight }, ...others], fallback }
 }
 
 /** Sets the share of a secondary provider; the primary keeps the rest. */
