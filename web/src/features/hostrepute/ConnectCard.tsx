@@ -62,7 +62,7 @@ export function ConnectCard({
         <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
           <div className="note g flex-col items-stretch gap-1.5">
             <span className="font-bold">Shared with HostRepute</span>
-            <ul className="m-0 flex flex-col gap-[3px] pl-[18px]">
+            <ul className="m-0 flex list-disc flex-col gap-[3px] pl-[18px]">
               {shared?.domains.length ? <li>Sending domains: {shared.domains.join(', ')}</li> : null}
               {shared?.ips.length ? <li>Dedicated IPs: {shared.ips.join(', ')}</li> : null}
               <li>Nothing else: no contacts, no email content, no reports</li>
@@ -70,7 +70,7 @@ export function ConnectCard({
           </div>
           <div className="note i flex-col items-stretch gap-1.5">
             <span className="font-bold">Received by ReputeCast</span>
-            <ul className="m-0 flex flex-col gap-[3px] pl-[18px]">
+            <ul className="m-0 flex list-disc flex-col gap-[3px] pl-[18px]">
               <li>Blocklist status across 80+ sources, with delisting links</li>
               <li>Google Postmaster Tools and Microsoft SNDS data</li>
               <li>DMARC report summaries</li>

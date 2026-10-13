@@ -14,7 +14,7 @@ import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { ago, clock, count, monthDay, trimPct, usDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ConnectCard } from './ConnectCard'
-import { numberWord, roleLabel, ShieldMark, useIntegrations, useRefreshConnection, useStartOAuth, type Connection, type Integrations } from './shared'
+import { numberWord, plainNote, roleLabel, ShieldMark, useIntegrations, useRefreshConnection, useStartOAuth, type Connection, type Integrations } from './shared'
 
 /** The answer to "Add to monitoring" when the HostRepute plan is full. */
 interface Limit {
@@ -317,7 +317,7 @@ function LimitCard({ limit, onClose }: { limit: Limit; onClose: () => void }) {
         </Badge>
       </div>
       <div className="pad col gap-3">
-        <Note tone="neutral" role="status">
+        <Note tone="neutral" className={plainNote} role="status">
           Your HostRepute team “{limit.team}” monitors {limit.used} of {limit.limit} assets allowed by its plan, so {limit.asset} can't be added right now. This is a HostRepute
           limit, not a ReputeCast one: ReputeCast stays fully usable and the {numberWord(limit.used)} monitored assets keep syncing.
         </Note>
@@ -385,14 +385,14 @@ function DisconnectDialog({ open, onOpenChange, team }: { open: boolean; onOpenC
       }
     >
       <span className="text-[12px] font-semibold text-ink-2">Stops working in ReputeCast</span>
-      <ul className="m-0 flex flex-col gap-[3px] pl-[18px] text-[13.5px] text-ink-nav">
+      <ul className="m-0 flex list-disc flex-col gap-[3px] pl-[18px] text-[13.5px] text-ink-nav">
         <li>Blocklist check in Send Readiness (shown as “not checked”)</li>
         <li>Postmaster, SNDS and DMARC panels in Deliverability</li>
         <li>HostRepute alerts in notifications</li>
         <li>“Add to monitoring” for new domains and IPs</li>
       </ul>
       <span className="text-[12px] font-semibold text-ink-2">Keeps working</span>
-      <ul className="m-0 pl-[18px] text-[13.5px] text-ink-nav">
+      <ul className="m-0 list-disc pl-[18px] text-[13.5px] text-ink-nav">
         <li>Every other feature, including provider health, routing, guarded sending and reports</li>
       </ul>
     </Dialog>
@@ -415,7 +415,7 @@ function OtherIntegrations({ d }: { d: Integrations }) {
           <span className="k">Everything here is part of the open-source edition</span>
         </div>
       </div>
-      <Table caption="Other integrations">
+      <Table density="compact" className="[&_td]:!whitespace-normal [&_td_.badge]:!whitespace-nowrap" caption="Other integrations">
         <thead>
           <tr>
             <Th>Integration</Th>

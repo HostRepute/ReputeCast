@@ -63,6 +63,13 @@ export function useIntegrations() {
   return $api.useQuery('get', integrationsPath, { params: { path: { workspace: slug } } })
 }
 
+/**
+ * Neutral notes use the boards' `.note.n`, which in the app also matches the
+ * global `.n` (bold tabular numbers); the add-on boards have no global `.n`,
+ * so their neutral notes are regular weight.
+ */
+export const plainNote = 'font-normal [font-variant-numeric:normal]'
+
 /** "three" for small counts, digits above ten. */
 export function numberWord(n: number): string {
   return ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'][n] ?? String(n)

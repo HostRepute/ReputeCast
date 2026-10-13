@@ -8,9 +8,10 @@ import { KeyValues } from '@/components/ui/Data'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { cn } from '@/lib/cn'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ConnectCard } from './ConnectCard'
-import { useIntegrations, useRefreshConnection, useStartOAuth, type Connection } from './shared'
+import { plainNote, useIntegrations, useRefreshConnection, useStartOAuth, type Connection } from './shared'
 import './hostrepute.css'
 
 export interface ConnectSearch {
@@ -87,9 +88,9 @@ export function ConnectPage({ search }: { search: ConnectSearch }) {
           </div>
         </div>
       ) : (
-        <div className="grid items-start gap-5 [grid-template-columns:minmax(0,3fr)_minmax(320px,2fr)] max-md:grid-cols-1 max-md:gap-3">
+        <div className="grid items-start gap-5 [grid-template-columns:minmax(0,3fr)_minmax(320px,2fr)] max-md:grid-cols-1">
           <ConnectCard conn={conn} onConnect={oauth.start} onUseKey={useKey} connecting={oauth.pending} />
-          <div className="col gap-5 max-md:gap-3">
+          <div className="col gap-5">
             {redirect ? <RedirectCard url={redirect} /> : null}
             {search.result === 'connected' && !redirect ? <BackCard conn={conn} /> : null}
             {search.result === 'error' && !redirect ? <ErrorCard reason={search.reason} onRetry={oauth.start} retrying={oauth.pending} /> : null}
@@ -192,7 +193,7 @@ function KeyCard({ inputRef, onCancel }: { inputRef: React.RefObject<HTMLInputEl
             </span>
           ) : null}
         </label>
-        <Note tone="neutral" className="text-[12.5px]" role="note">
+        <Note tone="neutral" className={cn(plainNote, 'text-[12.5px]')} role="note">
           Create a key in HostRepute → Settings → API with the monitor:read, alerts:read and assets:write scopes. The key is write-only here: it can be replaced but never read
           back.
         </Note>
@@ -277,7 +278,7 @@ function BackCard({ conn }: { conn: Connection }) {
               : []),
           ]}
         />
-        {limit ? <Note tone="neutral">{limit} ReputeCast stays fully usable.</Note> : null}
+        {limit ? <Note tone="neutral" className={plainNote}>{limit} ReputeCast stays fully usable.</Note> : null}
         <ButtonLink size="sm" variant="primary" className="self-start" to="/w/$workspace/settings/integrations" params={{ workspace: slug }}>
           Finish
         </ButtonLink>
