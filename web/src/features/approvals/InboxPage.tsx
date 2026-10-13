@@ -24,11 +24,16 @@ export interface InboxSearch {
 
 type Item = Schemas['ApprovalListItem']
 
-/** A5 §5.12 Approval inbox: requests by status, with filters, and the policy in force. */
+/**
+ * A5 §5.12 Approval inbox: requests by status, with filters, and the policy
+ * in force. It opens on every request of the period, as the ApprovalInbox
+ * board lists them (pending first: they're the newest); Pending narrows the
+ * list to what waits for a decision.
+ */
 export function InboxPage({ search }: { search: InboxSearch }) {
   const { slug } = useWorkspace()
   const navigate = useNavigate()
-  const status = search.status ?? 'pending'
+  const status = search.status ?? 'all'
   const days = search.days ?? 30
   const list = $api.useQuery(
     'get',
@@ -48,7 +53,7 @@ export function InboxPage({ search }: { search: InboxSearch }) {
           label="Approval status"
           className="ml-3 max-md:ml-0"
           value={status}
-          onChange={(next) => set({ status: next === 'pending' ? undefined : next })}
+          onChange={(next) => set({ status: next === 'all' ? undefined : next })}
           items={[
             { value: 'pending', label: `Pending${n(counts?.pending)}` },
             { value: 'approved', label: `Approved${n(counts?.approved)}` },
@@ -106,7 +111,7 @@ function RequestsCard({
         </div>
         <div className="row gap-2!">
           {data.allRequests ? (
-            <select className="in w-[150px] max-md:w-0 max-md:min-w-full" aria-label="Filter by author" value={search.author ?? ''} onChange={(e) => onFilter({ author: e.target.value || undefined })}>
+            <select className="in w-[150px] max-md:min-w-full" aria-label="Filter by author" value={search.author ?? ''} onChange={(e) => onFilter({ author: e.target.value || undefined })}>
               <option value="">Any author</option>
               {data.authors.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -115,7 +120,7 @@ function RequestsCard({
               ))}
             </select>
           ) : null}
-          <select className="in w-[150px] max-md:w-0 max-md:min-w-full" aria-label="Filter by approver" value={search.approver ?? ''} onChange={(e) => onFilter({ approver: e.target.value || undefined })}>
+          <select className="in w-[150px] max-md:min-w-full" aria-label="Filter by approver" value={search.approver ?? ''} onChange={(e) => onFilter({ approver: e.target.value || undefined })}>
             <option value="">Any approver</option>
             {data.approvers.map((a) => (
               <option key={a.id} value={a.id}>
@@ -123,7 +128,7 @@ function RequestsCard({
               </option>
             ))}
           </select>
-          <select className="in w-[140px] max-md:w-0 max-md:min-w-full" aria-label="Date range" value={days} onChange={(e) => onFilter({ days: Number(e.target.value) === 30 ? undefined : Number(e.target.value) })}>
+          <select className="in w-[140px] max-md:min-w-full" aria-label="Date range" value={days} onChange={(e) => onFilter({ days: Number(e.target.value) === 30 ? undefined : Number(e.target.value) })}>
             <option value={30}>Last 30 days</option>
             <option value={7}>Last 7 days</option>
             <option value={90}>Last 90 days</option>
