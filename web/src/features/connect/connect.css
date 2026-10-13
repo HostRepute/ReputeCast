@@ -240,6 +240,18 @@
   .cn-main .mono {
     overflow-wrap: anywhere;
   }
+  /* DNS records stay readable: names and values keep about 20 characters a
+     line and the table scrolls inside its card, as the design system's
+     tables do (the boards squeeze them to two characters a line). */
+  .cn-tbl .cn-val {
+    min-width: 150px;
+  }
+  .cn-tbl td:first-child {
+    min-width: 96px;
+  }
+  .cn-tbl td.mono {
+    overflow-wrap: normal;
+  }
   /* Status rows wrap: a time or the row's buttons keep their size and move
      under the sentence when they don't fit beside it (the boards squeeze
      them until "Retry" stacks letter by letter). */
