@@ -301,6 +301,7 @@
       stylesheet()
       session()
       var dlg = el('dialog', 'rcf-dialog')
+      dlg.style.setProperty('--rcf-accent', cfg.accent)
       dlg.setAttribute('aria-label', cfg.heading || cfg.publisher)
       var close = el('button', 'rcf-close', '×')
       close.type = 'button'
