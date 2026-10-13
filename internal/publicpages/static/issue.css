@@ -1,0 +1,19 @@
+/* The bar above an archived issue (/archive/<issue>). The issue itself is
+   the email's own HTML; every rule here is namespaced (.rcia) so neither
+   side restyles the other. Colours: the publisher's (set on .rcia) and the
+   Clearwater ink scale. */
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/ibm-plex-sans-latin-400-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 700; font-display: swap; src: url(fonts/ibm-plex-sans-latin-700-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+.rcia { display: block; margin: 0; padding: 0; background: var(--rcia-ground, #f5f3ff); border-bottom: 1px solid #e3e6eb; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.45; color: #5b6472; text-align: left; }
+.rcia * { box-sizing: border-box; }
+.rcia-in { max-width: 640px; margin: 0 auto; padding: 12px 16px 6px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.rcia a.rcia-home { display: inline-flex; align-items: center; gap: 10px; min-height: 24px; color: #0b1220; font-weight: 700; font-size: 15px; text-decoration: none; }
+.rcia a.rcia-home:hover { color: var(--rcia-hover, #3730a3); }
+.rcia-mark { width: 28px; height: 28px; border-radius: 7px; background: #0b1220; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex: none; overflow: hidden; }
+.rcia-mark.rcia-logo { background: transparent; }
+.rcia-mark img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.rcia a.rcia-sub { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 14px; border-radius: 9px; background: var(--rcia-accent, #4338ca); color: var(--rcia-on, #fff); font-weight: 700; font-size: 14px; text-decoration: none; }
+.rcia a.rcia-sub:hover { background: var(--rcia-hover, #3730a3); color: var(--rcia-on, #fff); }
+.rcia a:focus-visible { outline: 2px solid var(--rcia-accent, #4338ca); outline-offset: 2px; }
+.rcia-meta { max-width: 640px; margin: 0 auto; padding: 0 16px 12px; }
+@media (max-width: 767px) { .rcia-in { padding-top: 10px; } }

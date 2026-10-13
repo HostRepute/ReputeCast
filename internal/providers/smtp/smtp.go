@@ -159,11 +159,18 @@ func (p *Provider) client() (*gomail.Client, error) {
 	}
 	if p.s.Username != "" && p.s.Auth != "none" {
 		auth := gomail.SMTPAuthAutoDiscover
-		switch p.s.Auth {
-		case "plain":
-			auth = gomail.SMTPAuthPlain
-		case "login":
+		// With encryption turned off on purpose (a relay on a private
+		// network), the login goes over the plain connection.
+		noTLS := p.s.TLS == "none"
+		switch {
+		case p.s.Auth == "login" && noTLS:
+			auth = gomail.SMTPAuthLoginNoEnc
+		case p.s.Auth == "login":
 			auth = gomail.SMTPAuthLogin
+		case noTLS:
+			auth = gomail.SMTPAuthPlainNoEnc
+		case p.s.Auth == "plain":
+			auth = gomail.SMTPAuthPlain
 		}
 		opts = append(opts, gomail.WithSMTPAuth(auth), gomail.WithUsername(p.s.Username), gomail.WithPassword(p.c.Password))
 	}

@@ -129,7 +129,8 @@ func seedIntegrationsImpl(ctx context.Context, s *Seeder) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.Tx.Exec(ctx, `UPDATE workspaces SET audit_stream_enabled = true, audit_stream_url = 'https://warehouse.acme.io/ingest/audit',
+	// A demo stream: its address is fictional, so it is never sent to.
+	_, err = s.Tx.Exec(ctx, `UPDATE workspaces SET audit_stream_enabled = true, audit_stream_url = 'https://warehouse.acme.io/ingest/audit', audit_stream_demo = true,
 		audit_stream_secret_enc = $2, audit_stream_cursor_at = $3, audit_stream_status = $4 WHERE id = $1`,
 		ws.ID, secret, s.Now.Add(time.Second), json.RawMessage(fmt.Sprintf(`{"last_ok_at":%q,"delivered":41196}`, s.Ago(40*time.Second).UTC().Format(time.RFC3339))))
 	return err
@@ -175,8 +176,9 @@ func seedWebhooks(ctx context.Context, s *Seeder) error {
 			failing = &f
 			lastStatus = 502
 		}
+		// Demo endpoints: their addresses are fictional, so nothing is sent to them.
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO webhooks (id, workspace_id, name, description, url, events, secret_enc, enabled, created_by, created_at, secret_rotated_at,
-			last_status, last_delivery_at, failing_since) VALUES ($1,$2,$3,$4,$5,$6,$7,true,$8,$9,$10,$11,$12,$13)`,
+			last_status, last_delivery_at, failing_since, demo) VALUES ($1,$2,$3,$4,$5,$6,$7,true,$8,$9,$10,$11,$12,$13,true)`,
 			id, ws.ID, h.name, h.desc, h.url, h.events, secret, linh.ID, created, rotated, lastStatus, s.Ago(time.Minute), failing); err != nil {
 			return err
 		}

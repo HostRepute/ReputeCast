@@ -91,6 +91,14 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
     if (!hit) throw new Error(`no SSO provider named ${name}`)
     return hit.id
   },
+  // W10: the latest provider setup of an adapter ({setup:ses}).
+  async setup(ctx, adapter) {
+    const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/connect/setups`, { params: { adapter } })
+    const body = (await r.json()) as { items?: { id: string }[] }
+    const hit = body.items?.[0]
+    if (!hit) throw new Error(`no ${adapter} setup`)
+    return hit.id
+  },
 }
 
 async function resolvePath(ctx: BrowserContext, path: string) {
@@ -123,6 +131,7 @@ async function main() {
   mkdirSync(`${out}/img`, { recursive: true })
   const browser = await chromium.launch({ channel: 'chrome', headless: true })
   const contexts = new Map<string, BrowserContext>()
+  const signInErrors = new Map<string, string>()
   const results: Result[] = []
   try {
     for (const e of entries) {
@@ -136,10 +145,17 @@ async function main() {
         ctx = contexts.get(user)
         if (!ctx) {
           ctx = await browser.newContext({ deviceScaleFactor: 1, reducedMotion: 'reduce' })
-          if (user !== 'anon') await signIn(ctx, app, user)
+          try {
+            if (user !== 'anon') await signIn(ctx, app, user)
+          } catch (err) {
+            // Demo people who sign in only through SSO can't be signed in here:
+            // their boards are captured design-only, with the reason.
+            signInErrors.set(user, String(err).split('\n')[0]!)
+          }
           contexts.set(user, ctx)
         }
         try {
+          if (signInErrors.has(user)) throw new Error(signInErrors.get(user))
           path = await resolvePath(ctx, e.path)
         } catch (err) {
           pathError = String(err)

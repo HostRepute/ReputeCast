@@ -249,6 +249,16 @@ Authentication**, not in configuration.
   release notes; Instance admin › Version & updates shows what changed.
 - **Health.** `/healthz` (liveness) and `/readyz` (database reachable) for
   orchestrators; `/metrics` for Prometheus.
+- **Custom domains for public pages.** A workspace can serve its subscribe
+  page, preference center, unsubscribe page and archive at the root of its
+  own domain (`https://news.acme.io/subscribe`). Enter the domain in Forms &
+  public pages › Branding and point it at the server with a `CNAME` to the
+  public URL's host (`A`/`AAAA` records with the same addresses for an apex
+  domain, or the `_reputecast.<domain>` TXT record shown there); the pages
+  answer on it once the DNS check passes. Give the proxy a certificate for
+  the domain and keep the original `Host` header: with Caddy's on-demand
+  TLS, set `ask http://localhost:8080/p/_/tls-check` so certificates are
+  issued only for verified domains. Emails keep linking to the public URL.
 
 ## How it works
 

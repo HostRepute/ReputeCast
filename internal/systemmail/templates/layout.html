@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>{{.Subject}}</title>
+</head>
+<body style="margin:0;padding:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5">
+{{if .Preheader}}<div style="display:none;max-height:0;overflow:hidden;opacity:0">{{.Preheader}}</div>{{end}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F3F4F6">
+<tr><td align="center" style="padding:28px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px">
+<tr><td style="padding:20px 24px 4px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td style="width:22px;height:22px;border-radius:6px;background:{{.Accent}};color:#FFFFFF;font-size:13px;font-weight:700;text-align:center;line-height:22px">{{.Initial}}</td>
+<td style="padding-left:10px;font-size:15px;font-weight:700;color:#0B1220">{{.BrandName}}</td>
+</tr></table>
+</td></tr>
+<tr><td style="padding:12px 24px 20px;font-size:14px;line-height:1.5;color:#0B1220">
+{{.Body}}
+</td></tr>
+<tr><td style="padding:14px 24px 20px;border-top:1px solid #EEF0F3;font-size:12px;line-height:1.5;color:#5B6472">
+{{if .Reason}}{{.Reason}}<br>{{end}}{{.Footer}}
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>

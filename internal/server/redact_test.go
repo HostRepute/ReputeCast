@@ -20,6 +20,13 @@ func TestRedactPath(t *testing.T) {
 		"/p/acme-newsletter/archive/the-case-for-boring": "/p/acme-newsletter/archive/the-case-for-boring",
 		"/api/v1/workspaces/acme-newsletter/campaigns":   "/api/v1/workspaces/acme-newsletter/campaigns",
 		"/reset-password":                                "/reset-password",
+		// A workspace's custom domain serves the email links at the root.
+		"/unsubscribe/tok":             "/unsubscribe/{token}",
+		"/preferences/tok":             "/preferences/{token}",
+		"/confirm/tok":                 "/confirm/{token}",
+		"/view/tok":                    "/view/{token}",
+		"/preferences":                 "/preferences",
+		"/archive/the-case-for-boring": "/archive/the-case-for-boring",
 	} {
 		if got := RedactPath(in); got != want {
 			t.Errorf("RedactPath(%q) = %q, want %q", in, got, want)

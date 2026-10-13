@@ -144,6 +144,7 @@ func normData(d AutomationNodeData) []byte {
 	if d.Webhook != nil {
 		w := *d.Webhook
 		w.HasSecret = false
+		w.Demo = false
 		d.Webhook = &w
 	}
 	b, _ := json.Marshal(d)

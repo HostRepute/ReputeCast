@@ -30,6 +30,16 @@ const (
 	ReportPrefix   = "/r"
 )
 
+// Effective is the instance's public URL: the address saved in the instance
+// settings, else the server's http.public_url, without a trailing slash.
+// Every reader of the setting goes through it, so they all agree.
+func Effective(saved, configured string) string {
+	if s := strings.TrimSpace(saved); s != "" {
+		return strings.TrimRight(s, "/")
+	}
+	return strings.TrimRight(strings.TrimSpace(configured), "/")
+}
+
 // Source is the instance's public URL as it is now: the server's
 // http.public_url until an instance admin saves another one. Every Builder
 // made from a Source follows its changes.

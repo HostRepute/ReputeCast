@@ -159,7 +159,8 @@ function InstanceForm({
             setError(undefined)
             try {
               const r = await save.mutateAsync({ body: { name: name.trim(), publicUrl: url.trim(), defaultTimezone: tz } })
-              if (r.webhooks) onMoved(r.webhooks)
+              // A save that moved nothing clears the last move's notice.
+              onMoved(r.webhooks)
               await refresh()
               toast({ kind: 'success', title: 'Instance settings saved' })
             } catch (e) {

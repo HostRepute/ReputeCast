@@ -1,11 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { z } from 'zod'
+import { FormBuilderPage } from '@/features/forms/FormBuilderPage'
+
+const search = z.object({
+  form: z.string().uuid().optional().catch(undefined),
+})
 
 export const Route = createFileRoute('/w/$workspace/_app/forms/')({
-  component: () => (
-    <Page title="Forms & pages">
-      <NotBuilt screen="Forms & pages" />
-    </Page>
-  ),
+  validateSearch: search,
+  component: function FormsRoute() {
+    return <FormBuilderPage formId={Route.useSearch().form} />
+  },
 })

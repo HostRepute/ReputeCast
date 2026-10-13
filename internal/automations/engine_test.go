@@ -355,6 +355,27 @@ func TestWebhookStepsAreSignedLoggedAndNeverBlock(t *testing.T) {
 	if !strings.HasPrefix(calls.Calls[0].Error, "blocked:") {
 		t.Fatalf("blocked call %+v", calls.Calls[0])
 	}
+	// A demo step (its address is fictional) is logged as answered and never called.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE automation_versions SET graph = replace(graph::text, '"name": "crm"', '"name": "crm", "demo": true')::jsonb WHERE automation_id = $1`, flow); err != nil {
+		t.Fatal(err)
+	}
+	before = len(bodies)
+	mu.Unlock()
+	call(trusted)
+	mu.Lock()
+	if len(bodies) != before {
+		t.Fatal("a demo step was called")
+	}
+	var demo struct {
+		Calls []struct {
+			StatusCode int
+			Error      string
+		}
+	}
+	c.Do("GET", wsPath+"/"+flow+"/steps/w/calls", nil).MustStatus(t, 200).JSON(t, &demo)
+	if demo.Calls[0].StatusCode != http.StatusAccepted || demo.Calls[0].Error != "" {
+		t.Fatalf("demo call %+v", demo.Calls[0])
+	}
 }
 
 func TestGoalsAreDetectedAnywhereInTheFlow(t *testing.T) {

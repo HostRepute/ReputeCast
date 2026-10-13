@@ -1,0 +1,233 @@
+/* ReputeCast signup form (embedded and popup). Every rule is scoped to the
+   form, which takes the host page's font. Colours: Clearwater tokens and
+   the publisher's accent (set on the form by the script). */
+.rcf {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 520px;
+  margin: 0;
+  background: #fff;
+  border: 1px solid #e3e6eb;
+  border-radius: 14px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #1f2937;
+  font: inherit;
+  line-height: 1.45;
+  text-align: left;
+}
+.rcf *,
+.rcf *::before,
+.rcf *::after {
+  box-sizing: border-box;
+}
+.rcf-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rcf-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #0b1220;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  flex: none;
+  overflow: hidden;
+}
+.rcf-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.rcf-heading {
+  font-weight: 700;
+  font-size: 16px;
+  margin: 0;
+}
+.rcf-desc {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #374151;
+}
+.rcf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rcf-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: inherit;
+}
+.rcf-opt {
+  font-weight: 400;
+  color: #5b6472;
+}
+.rcf input[type='email'],
+.rcf input[type='text'],
+.rcf input[type='number'],
+.rcf input[type='date'],
+.rcf select {
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #8b94a3;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  width: 100%;
+  background: #fff;
+  color: #1f2937;
+  margin: 0;
+}
+.rcf input[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+.rcf input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--rcf-accent, #4338ca);
+}
+.rcf-lists {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.rcf-lists legend {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  margin: 0 0 6px;
+}
+.rcf-check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+.rcf-consent {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  color: #4b5563;
+}
+.rcf-consent input {
+  margin-top: 3px !important;
+}
+.rcf a {
+  color: var(--rcf-link, #4338ca);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rcf-submit {
+  height: 46px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--rcf-accent, #4338ca);
+  color: var(--rcf-on, #fff);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rcf-submit:hover {
+  background: var(--rcf-hover, #3730a3);
+}
+.rcf-submit[disabled] {
+  opacity: 0.7;
+  cursor: progress;
+}
+.rcf-foot {
+  font-size: 11.5px;
+  color: #5b6472;
+  text-align: center;
+}
+.rcf-err {
+  font-size: 12.5px;
+  color: #991b1b;
+}
+.rcf-alert {
+  font-size: 12px;
+  color: #991b1b;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: #fee2e2;
+}
+.rcf-done {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rcf-hp {
+  position: absolute !important;
+  left: -10000px !important;
+  top: auto !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+}
+.rcf :focus-visible {
+  outline: 2px solid var(--rcf-accent, #4338ca);
+  outline-offset: 2px;
+}
+.rcf-dialog {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  max-width: calc(100vw - 24px);
+  width: 520px;
+}
+.rcf-dialog::backdrop {
+  background: rgba(11, 18, 32, 0.45);
+}
+.rcf-dialog .rcf {
+  box-shadow: 0 24px 64px rgba(11, 18, 32, 0.28);
+}
+.rcf-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #4b5563;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.rcf-close:hover {
+  background: #f3f4f6;
+}
+.rcf-close:focus-visible {
+  outline: 2px solid var(--rcf-accent, #4338ca);
+  outline-offset: 2px;
+}
+@media (max-width: 767px) {
+  .rcf {
+    padding: 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rcf * {
+    transition: none !important;
+  }
+}

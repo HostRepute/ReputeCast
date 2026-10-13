@@ -2424,6 +2424,294 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/connect/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every sending adapter this build can connect, with capabilities, pricing and terms */
+        get: operations["connect-catalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The workspace's latest provider setups, newest first */
+        get: operations["list-provider-setups"];
+        put?: never;
+        /** Start connecting a provider (or resume the open setup) */
+        post: operations["start-provider-setup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A provider setup with everything its steps show */
+        get: operations["get-provider-setup"];
+        put?: never;
+        post?: never;
+        /**
+         * Cancel an unfinished setup
+         * @description A provider the setup connected that no route uses yet is disconnected again.
+         */
+        delete: operations["cancel-provider-setup"];
+        options?: never;
+        head?: never;
+        /** Record the step a setup is on */
+        patch: operations["set-provider-setup-step"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check the credentials and connect the provider
+         * @description Credentials are checked with the provider before they are stored, encrypted. They are never returned. A rejected key is recorded on the setup.
+         */
+        post: operations["connect-provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Importer sources, the provider's suppression list and the workspace's lists */
+        get: operations["get-setup-contacts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set up the provider for a sending domain, or skip the step
+         * @description Adding a new domain needs domains:manage.
+         */
+        post: operations["choose-setup-domain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish the setup */
+        post: operations["finish-provider-setup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/mailbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set up and test the SMTP bounce mailbox */
+        post: operations["connect-bounce-mailbox"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/polling": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Poll the provider's events API instead of webhooks */
+        post: operations["use-provider-polling"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/production-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the provider to lift its sandbox in a region */
+        post: operations["request-production-access"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/provision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry the failed provisioning steps */
+        post: operations["retry-provider-provisioning"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/region": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move an SES connection to another region */
+        put: operations["set-provider-region"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/streams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Assign the provider to streams (routing) */
+        put: operations["save-setup-streams"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The test send form and the delivery timeline of the latest test */
+        get: operations["get-setup-test"];
+        put?: never;
+        /** Send a test through the new provider */
+        post: operations["send-setup-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test the webhook endpoint again (optionally through a tunnel URL) and register it */
+        post: operations["retest-provider-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/webhook-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Show the webhook secret to set up in the provider by hand
+         * @description Only for providers whose webhook ReputeCast can't register itself (Azure Event Grid, the generic HTTP adapter). Showing it is audited.
+         */
+        post: operations["show-provider-webhook-secret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/contacts": {
         parameters: {
             query?: never;
@@ -2790,6 +3078,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/domains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a sending domain and fetch the records every provider needs */
+        post: operations["create-sending-domain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/domains/{domainId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A sending domain's DNS records with their live status */
+        get: operations["get-sending-domain"];
+        put?: never;
+        post?: never;
+        /** Delete a sending domain no sender uses */
+        delete: operations["delete-sending-domain"];
+        options?: never;
+        head?: never;
+        /** Rename a sending domain's note or set its tracking domain */
+        patch: operations["update-sending-domain"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/domains/{domainId}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check a sending domain's DNS now */
+        post: operations["check-sending-domain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/domains/{domainId}/cloudflare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add the missing records through the Cloudflare API
+         * @description The API token is used for this request only and never stored.
+         */
+        post: operations["add-sending-domain-records-cloudflare"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/domains/{domainId}/providers/{providerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fetch the records a provider needs for the domain */
+        post: operations["attach-sending-domain-provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/export": {
         parameters: {
             query?: never;
@@ -2841,6 +3219,160 @@ export interface paths {
         head?: never;
         /** Change a custom field's label, options or display */
         patch: operations["update-field"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List signup forms with the lists, fields and branding they use */
+        get: operations["list-signup-forms"];
+        put?: never;
+        /** Create a signup form (a draft until it's published) */
+        post: operations["create-signup-form"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a signup form with its numbers for the last 30 days */
+        get: operations["get-signup-form"];
+        /**
+         * Save a signup form (Save & publish)
+         * @description Changing the consent text starts a new consent version; every consent event records the exact text and its version.
+         */
+        put: operations["update-signup-form"];
+        post?: never;
+        /**
+         * Delete a signup form
+         * @description Contacts the form brought in stay. Embedded copies stop accepting submissions.
+         */
+        delete: operations["delete-signup-form"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/allowed-origins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Allow a site to submit a form */
+        post: operations["allow-signup-form-origin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/blocked-origins/keep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep a rejected site blocked and dismiss its alert */
+        post: operations["keep-signup-form-origin-blocked"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/rename": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rename a signup form
+         * @description The form's hosted page follows the new name (/subscribe/<name>); embed code keeps working.
+         */
+        post: operations["rename-signup-form"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause or resume a signup form */
+        post: operations["set-signup-form-status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/waiting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List signups whose confirmation email hasn't gone out
+         * @description Double opt-in signups of the last 30 days that nothing could email yet (no provider sends System mail, or it refused the message), newest first.
+         */
+        get: operations["list-signup-form-waiting"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/waiting/{submission}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get a waiting signup's confirmation link to send by hand (logged)
+         * @description The copy-link fallback while nothing can send System mail. Every link handed out is written to the audit log.
+         */
+        post: operations["signup-form-confirm-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/workspaces/{workspace}/imports": {
@@ -4002,6 +4534,213 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/public-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the public pages' branding, options, domain and Turnstile set-up
+         * @description The Turnstile secret is write-only: only whether one is stored is returned.
+         */
+        get: operations["get-public-pages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/archive/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the archive's issues, hidden ones included
+         * @description Sent campaigns of the archived lists are filed the first time the archive is read after they finish.
+         */
+        get: operations["list-archive-issues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/archive/issues/{campaign}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Hide, show or retitle an archived issue */
+        put: operations["update-archive-issue"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the public page branding
+         * @description Hover, tint and link colours are derived from the accent and the background so every text keeps WCAG 2.2 AA contrast.
+         */
+        put: operations["save-public-branding"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the custom domain of the public pages
+         * @description The pages move to the domain once its DNS points at this server (a CNAME, matching addresses or the TXT record _reputecast.<domain>).
+         */
+        put: operations["set-public-domain"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/domain/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the custom domain's DNS now */
+        post: operations["check-public-domain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload the publisher's logo */
+        put: operations["upload-public-logo"];
+        post?: never;
+        /** Remove the logo (the pages show the publisher's initial) */
+        delete: operations["remove-public-logo"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the options of the public pages
+         * @description Send the pages to change; the others keep their options.
+         */
+        put: operations["save-public-pages"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/preview/{page}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview a public page as a subscriber sees it */
+        get: operations["preview-public-page"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/turnstile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the Cloudflare Turnstile keys
+         * @description The secret is stored encrypted and never returned. Cloudflare checks it when it's saved.
+         */
+        put: operations["save-public-turnstile"];
+        post?: never;
+        /** Remove the Turnstile keys */
+        delete: operations["remove-public-turnstile"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/unsubscribe/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Unsubscribes from the public pages in the last 30 days */
+        get: operations["get-unsubscribe-stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/roles": {
         parameters: {
             query?: never;
@@ -4185,6 +4924,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/senders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sender identities, sending domains and sending defaults
+         * @description Verification is per sending provider: each provider signs with its own DKIM key.
+         */
+        get: operations["list-senders"];
+        put?: never;
+        /** Add a sender identity on a sending domain */
+        post: operations["create-sender"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/senders/defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save the default From, reply handling, footer address and link tracking domain */
+        put: operations["save-sender-defaults"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/senders/{senderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a sender identity
+         * @description Unsent campaigns that used it must pick another From before they send.
+         */
+        delete: operations["delete-sender"];
+        options?: never;
+        head?: never;
+        /** Change a sender's name, reply-to, default streams or providers */
+        patch: operations["update-sender"];
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/settings": {
         parameters: {
             query?: never;
@@ -4197,6 +4995,41 @@ export interface paths {
         /** Change the name, timezone and default sender */
         put: operations["update-workspace-settings"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/settings/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider summaries and workspace-wide sending defaults */
+        get: operations["get-provider-settings"];
+        /** Save the auto-pause thresholds, throttles and sync interval */
+        put: operations["save-provider-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/settings/providers/rotate-secrets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate every provider's webhook signing secret */
+        post: operations["rotate-webhook-secrets"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5064,6 +5897,58 @@ export interface components {
             /** @description Why, shown as the original code */
             note?: string;
         };
+        ArchiveIssueInput: {
+            /** @description Empty uses the preheader */
+            excerpt: string;
+            /** @description Hide the issue from the archive, the feed and the sitemap */
+            hidden: boolean;
+            /** @example #141 */
+            label: string;
+            /** @description The list the issue is filed under */
+            listId: string;
+            /** @description Empty uses the subject */
+            title: string;
+        };
+        ArchiveIssueItem: {
+            campaignId: string;
+            excerpt: string;
+            excerptOverride: string;
+            hidden: boolean;
+            label: string;
+            listId: string;
+            listName: string;
+            /** Format: date-time */
+            sentAt: string;
+            slug: string;
+            subject: string;
+            title: string;
+            titleOverride: string;
+            url: string;
+        };
+        ArchiveIssuePage: {
+            issues: components["schemas"]["ArchiveIssueItem"][];
+            lists: components["schemas"]["ArchiveListCount"][];
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pageSize: number;
+            /** Format: int64 */
+            published: number;
+            /** Format: int64 */
+            total: number;
+        };
+        ArchiveListCount: {
+            /** Format: int64 */
+            issues: number;
+            listId: string;
+            name: string;
+        };
+        ArchivePage: {
+            enabled: boolean;
+            index: boolean;
+            lists: string[];
+            subscribeBox: boolean;
+        };
         AudienceListInput: {
             description?: string;
             /** @description New signups confirm by email first (default true) */
@@ -5833,6 +6718,7 @@ export interface components {
             versions: components["schemas"]["AutomationVersionItem"][];
         };
         AutomationWebhook: {
+            readonly demo?: boolean;
             readonly hasSecret?: boolean;
             method?: string;
             name?: string;
@@ -5958,6 +6844,17 @@ export interface components {
             detail: string;
             /** @enum {string} */
             status: "ok" | "warn" | "bad" | "skipped";
+        };
+        CloudflareInput: {
+            /** @description A Cloudflare API token with Zone › DNS › Edit on the domain's zone. Used once, never stored. */
+            token: string;
+        };
+        CloudflareResult: {
+            created: string[];
+            failed: string[];
+            skipped: string[];
+            updated: string[];
+            zone: string;
         };
         ComposerABTest: {
             bestTime?: boolean;
@@ -6296,6 +7193,513 @@ export interface components {
         };
         "Confirm-email-changeRequest": {
             token: string;
+        };
+        ConfirmPage: {
+            inboxTip: boolean;
+            listText: {
+                [key: string]: string;
+            };
+            offerText: {
+                [key: string]: string;
+            };
+        };
+        ConnectAccess: {
+            launchUrl: string;
+            policy: string;
+            principal: string;
+            roleName: string;
+        };
+        ConnectAdapterInfo: {
+            adapter: string;
+            bulkAllowed: boolean;
+            canPoll: boolean;
+            canRegister: boolean;
+            connectionHint: string;
+            domainHint: string;
+            fields: components["schemas"]["ConnectField"][];
+            /** @enum {string} */
+            flow: "ses" | "smtp" | "api";
+            heading: string;
+            keyHint: string;
+            keysUrl: string;
+            lead: string;
+            name: string;
+            section: string;
+            short: string;
+            step1: string;
+            title: string;
+            verifyCall: string;
+            webhookEvents: string;
+            webhooks: string;
+        };
+        ConnectAuthResult: {
+            clipped: boolean;
+            /** @enum {string} */
+            dkim: "pass" | "fail" | "none";
+            /** @enum {string} */
+            dmarc: "pass" | "fail" | "none";
+            header: string;
+            receiver: string;
+            /** Format: int64 */
+            sizeKb: number;
+            /** @enum {string} */
+            spf: "pass" | "fail" | "none";
+        };
+        ConnectCatalog: {
+            builtin: components["schemas"]["ConnectCatalogEntry"][];
+            canConnect: boolean;
+            community: components["schemas"]["ConnectCommunityEntry"][];
+            helpers: string[];
+            open: components["schemas"]["ConnectOpenSetup"][];
+        };
+        ConnectCatalogEntry: {
+            adapter: string;
+            bulkAllowed: boolean;
+            chips: components["schemas"]["ConnectChip"][];
+            /** Format: int64 */
+            connected: number;
+            dedicatedIps: boolean;
+            /** @enum {string} */
+            kind: "api" | "smtp" | "self_hosted" | "community";
+            name: string;
+            pricing: string;
+            recommended: boolean;
+            short: string;
+            terms: string;
+            /** @enum {string} */
+            termsTone: "ok" | "warn" | "neutral";
+            webhooks: boolean;
+        };
+        ConnectChip: {
+            /** @enum {string} */
+            kind: "yes" | "partial" | "no";
+            label: string;
+        };
+        ConnectCommunityEntry: {
+            adapter: string;
+            configure: boolean;
+            id: string;
+            maintainer: string;
+            name: string;
+            reason?: string;
+            summary: string;
+            version: string;
+        };
+        ConnectConnection: {
+            /** @enum {string} */
+            access: "role" | "keys";
+            account: string;
+            accountId: string;
+            /** Format: date-time */
+            at?: string;
+            canContinue: boolean;
+            error?: components["schemas"]["ConnectError"];
+            externalId: string;
+            fields: components["schemas"]["ConnectField"][];
+            mailbox?: components["schemas"]["ConnectProbe"];
+            /** Format: int64 */
+            provisionDone: number;
+            /** Format: int64 */
+            provisionTotal: number;
+            provisioning: components["schemas"]["ConnectProvisionRow"][];
+            region: string;
+            regions: components["schemas"]["ConnectRegion"][];
+            roleArn: string;
+            sandbox?: components["schemas"]["ConnectSandbox"];
+            smtp?: components["schemas"]["ConnectProbe"];
+            smtpForm?: components["schemas"]["ConnectSMTPForm"];
+            /** @enum {string} */
+            status: "none" | "connected" | "failed";
+            summary: string;
+            template?: components["schemas"]["ConnectAccess"];
+            webhook?: components["schemas"]["ConnectWebhook"];
+            working: boolean;
+        };
+        ConnectContacts: {
+            lists: string[];
+            pull: boolean;
+            sources: components["schemas"]["ConnectImportSource"][];
+            suggested: string[];
+            suppressions: components["schemas"]["ConnectSuppressions"];
+        };
+        ConnectDomainChoice: {
+            domainId: string;
+            name: string;
+            skipped: boolean;
+            suggested: string;
+        };
+        ConnectDomainInput: {
+            domain?: string;
+            skip?: boolean;
+        };
+        ConnectDone: {
+            domain: string;
+            hostRepute: boolean;
+            /** Format: int64 */
+            minutes: number;
+            rows: components["schemas"]["ConnectDoneRow"][];
+            title: string;
+        };
+        ConnectDoneRow: {
+            importLink: boolean;
+            lead: string;
+            /** @enum {string} */
+            status: "done" | "skipped" | "failed" | "pending";
+            text: string;
+        };
+        ConnectError: {
+            code?: string;
+            detail?: string;
+            field?: string;
+            message: string;
+        };
+        ConnectField: {
+            help?: string;
+            key: string;
+            label: string;
+            options: components["schemas"]["ConnectOption"][];
+            required: boolean;
+            secret: boolean;
+            set: boolean;
+            /** @enum {string} */
+            type: "text" | "number";
+            value: string;
+        };
+        ConnectFinishInput: {
+            pullSuppressions: boolean;
+            /** @enum {string} */
+            source?: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "csv";
+            startEmpty: boolean;
+        };
+        ConnectImportSource: {
+            badge: string;
+            detail: string;
+            key: string;
+            name: string;
+            /** @enum {string} */
+            tone: "ok" | "neutral";
+        };
+        ConnectInput: {
+            publicUrl?: string;
+            ses?: components["schemas"]["ConnectSESInput"];
+            smtp?: components["schemas"]["ConnectSMTPInput"];
+            values?: {
+                [key: string]: string;
+            };
+        };
+        ConnectMailboxInput: {
+            /** @description The return-path address bounces go to */
+            address: string;
+            /** @enum {string} */
+            afterProcessing?: "move" | "delete" | "leave";
+            folder?: string;
+            host: string;
+            password?: string;
+            /** @enum {string} */
+            pollEvery?: "1m" | "5m" | "15m";
+            /** Format: int64 */
+            port: number;
+            /** @enum {string} */
+            protocol: "imap" | "pop3";
+            /** @enum {string} */
+            tls: "tls" | "starttls" | "none";
+            username: string;
+        };
+        ConnectOpenSetup: {
+            adapter: string;
+            id: string;
+            name: string;
+            step: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ConnectOption: {
+            label: string;
+            value: string;
+        };
+        ConnectProbe: {
+            /** Format: date-time */
+            at: string;
+            error?: string;
+            ok: boolean;
+            summary: string;
+            transcript: string;
+        };
+        ConnectProductionAccessInput: {
+            /** Format: int64 */
+            dailyVolume: number;
+            /** @enum {string} */
+            language: "en" | "ja";
+            /** @enum {string} */
+            mailType: "marketing" | "transactional";
+            region: string;
+            useCase: string;
+            /** Format: uri */
+            website: string;
+        };
+        ConnectProvisionRow: {
+            /** Format: date-time */
+            at?: string;
+            error?: string;
+            hint?: string;
+            key: string;
+            /** @enum {string} */
+            status: "waiting" | "running" | "done" | "failed";
+            text: string;
+        };
+        ConnectRegion: {
+            err?: string;
+            label: string;
+            /** Format: int64 */
+            max24h: number;
+            /** Format: double */
+            maxRate: number;
+            name: string;
+            production: boolean;
+            region: string;
+        };
+        ConnectRegionInput: {
+            region: string;
+        };
+        ConnectRegistration: {
+            /** Format: date-time */
+            at: string;
+            detail?: string;
+            /** @enum {string} */
+            status: "done" | "skipped" | "failed" | "manual";
+        };
+        ConnectSESInput: {
+            /** @enum {string} */
+            access: "role" | "keys";
+            accessKeyId?: string;
+            region?: string;
+            roleArn?: string;
+            secretAccessKey?: string;
+        };
+        ConnectSMTPForm: {
+            /** @enum {string} */
+            afterProcessing: "move" | "delete" | "leave";
+            dailyCap: string;
+            folder: string;
+            host: string;
+            mailboxHost: string;
+            mailboxPasswordSet: boolean;
+            /** Format: int64 */
+            mailboxPort: number;
+            /** @enum {string} */
+            mailboxTls: "tls" | "starttls" | "none";
+            mailboxUser: string;
+            maxRate: string;
+            passwordSet: boolean;
+            /** @enum {string} */
+            pollEvery: "1m" | "5m" | "15m";
+            /** Format: int64 */
+            port: number;
+            /** @enum {string} */
+            protocol: "imap" | "pop3";
+            returnPath: string;
+            /** @enum {string} */
+            tls: "starttls" | "tls" | "none";
+            username: string;
+        };
+        ConnectSMTPInput: {
+            /** @description Messages per day, e.g. 20,000 */
+            dailyCap?: string;
+            host: string;
+            /** @description Messages per second the server allows, e.g. 5 per second */
+            maxRate?: string;
+            password?: string;
+            /** Format: int64 */
+            port: number;
+            /** @enum {string} */
+            tls: "starttls" | "tls" | "none";
+            username?: string;
+        };
+        ConnectSandbox: {
+            /** Format: int64 */
+            dailyVolume: number;
+            /** @enum {string} */
+            language: "en" | "ja";
+            /** @enum {string} */
+            mailType: "marketing" | "transactional";
+            name: string;
+            region: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            selected: boolean;
+            useCase: string;
+            website: string;
+        };
+        ConnectSelfTest: {
+            /** Format: date-time */
+            at: string;
+            code?: string;
+            ok: boolean;
+            private: boolean;
+            reason?: string;
+        };
+        ConnectSenderOption: {
+            id: string;
+            label: string;
+            verified: boolean;
+        };
+        ConnectSetup: {
+            adapter: string;
+            canManage: boolean;
+            connection: components["schemas"]["ConnectConnection"];
+            /** Format: date-time */
+            createdAt: string;
+            domain: components["schemas"]["ConnectDomainChoice"];
+            done?: components["schemas"]["ConnectDone"];
+            /** Format: date-time */
+            finishedAt?: string;
+            helpers: string[];
+            id: string;
+            info: components["schemas"]["ConnectAdapterInfo"];
+            provider: string;
+            providerId: string;
+            /** @enum {string} */
+            status: "open" | "finished" | "abandoned";
+            /** @enum {string} */
+            step: "connection" | "domain" | "test" | "streams" | "contacts" | "done";
+            streams: components["schemas"]["ConnectStreams"];
+            summaries: components["schemas"]["ConnectSummaries"];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ConnectSetupInput: {
+            adapter: string;
+        };
+        ConnectSetupList: {
+            items: components["schemas"]["ConnectSetupSummary"][];
+        };
+        ConnectSetupSummary: {
+            adapter: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            name: string;
+            provider: string;
+            /** @enum {string} */
+            status: "open" | "finished" | "abandoned";
+            step: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ConnectStepInput: {
+            /** @enum {string} */
+            step: "connection" | "domain" | "test" | "streams" | "contacts";
+        };
+        ConnectStreamChoiceInput: {
+            enabled: boolean;
+            /** @enum {string} */
+            role?: "primary" | "split" | "fallback";
+            /** @enum {string} */
+            stream: "broadcast" | "automation" | "system";
+            /** Format: int64 */
+            weight?: number;
+        };
+        ConnectStreamView: {
+            allowed: boolean;
+            configurationSet: string;
+            current: string[];
+            description: string;
+            enabled: boolean;
+            failover: string;
+            hasRoute: boolean;
+            name: string;
+            reason?: string;
+            /** @enum {string} */
+            role: "primary" | "split" | "fallback";
+            roleLabel: string;
+            /** @enum {string} */
+            stream: "broadcast" | "automation" | "system";
+            tracking: string;
+            /** Format: int64 */
+            weight: number;
+        };
+        ConnectStreams: {
+            defaults: string;
+            saved: boolean;
+            streams: components["schemas"]["ConnectStreamView"][];
+            tips: string[];
+        };
+        ConnectStreamsInput: {
+            streams: components["schemas"]["ConnectStreamChoiceInput"][];
+        };
+        ConnectSummaries: {
+            connection: string;
+            domain: string;
+            domainShort: string;
+            provider: string;
+            streams: string;
+            test: string;
+        };
+        ConnectSuppressions: {
+            available: boolean;
+            /** Format: int64 */
+            bounces: number;
+            /** Format: int64 */
+            complaints: number;
+            error?: string;
+            provider: string;
+            short: string;
+            /** Format: int64 */
+            total: number;
+        };
+        ConnectTestInput: {
+            seeds?: {
+                [key: string]: string;
+            };
+            /** Format: uuid */
+            senderId: string;
+            subject: string;
+            to?: string;
+        };
+        ConnectTestStatus: {
+            auth?: components["schemas"]["ConnectAuthResult"];
+            listening: boolean;
+            messageId: string;
+            roundTrip: string;
+            seedList: {
+                [key: string]: string;
+            };
+            seeds: string[];
+            senderId: string;
+            senders: components["schemas"]["ConnectSenderOption"][];
+            subject: string;
+            timeline: components["schemas"]["ConnectTimelineStep"][];
+            to: string;
+        };
+        ConnectTimelineStep: {
+            /** Format: date-time */
+            at?: string;
+            detail: string;
+            /** @enum {string} */
+            key: "queued" | "accepted" | "sent" | "delivered" | "opened";
+            /** @enum {string} */
+            status: "done" | "waiting" | "failed";
+            title: string;
+        };
+        ConnectWebhook: {
+            /** @enum {string} */
+            mode: "webhook" | "polling" | "mailbox" | "none";
+            needsSecret: boolean;
+            publicUrl: string;
+            registration?: components["schemas"]["ConnectRegistration"];
+            secretHeader?: string;
+            selfTest?: components["schemas"]["ConnectSelfTest"];
+            url: string;
+        };
+        ConnectWebhookInput: {
+            publicUrl?: string;
+        };
+        ConnectWebhookSecret: {
+            header?: string;
+            secret: string;
+            url: string;
         };
         ContactActivityItem: {
             actor?: string;
@@ -7026,6 +8430,12 @@ export interface components {
             day: number;
             /** Format: int64 */
             days: number;
+        };
+        DomainInput: {
+            /** @description The domain senders use, e.g. news.acme.io */
+            domain: string;
+            /** @description What it is for, e.g. primary sending domain */
+            note?: string;
         };
         EmailTemplateDetail: {
             builtin: boolean;
@@ -8561,6 +9971,14 @@ export interface components {
             /** @enum {string} */
             tier: "active" | "cooling" | "at_risk" | "sunset";
         };
+        Pages: {
+            archive: components["schemas"]["ArchivePage"];
+            confirm: components["schemas"]["ConfirmPage"];
+            preferences: components["schemas"]["PreferencesPage"];
+            previewEmail: string;
+            subscribe: components["schemas"]["SubscribePage"];
+            unsubscribe: components["schemas"]["UnsubscribePage"];
+        };
         "Passkey-registerRequest": {
             challenge: string;
             /** @description The browser's RegistrationResponseJSON */
@@ -8616,6 +10034,15 @@ export interface components {
         };
         PreferenceLinkResult: {
             url: string;
+        };
+        PreferencesPage: {
+            firstName: boolean;
+            frequency: boolean;
+            listText: {
+                [key: string]: string;
+            };
+            lists: string[];
+            pause: boolean;
         };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
@@ -8990,6 +10417,11 @@ export interface components {
             limits?: components["schemas"]["ProviderLimitsInput"];
             pricing?: components["schemas"]["ProviderPricingInput"];
         };
+        ProviderSetupNote: {
+            provider: string;
+            providerId: string;
+            text: string;
+        };
         ProviderStatusCount: {
             /** Format: int64 */
             count: number;
@@ -9151,6 +10583,128 @@ export interface components {
             suppressions: number;
             /** Format: date-time */
             syncedAt?: string;
+        };
+        PublicBranding: {
+            accent: string;
+            accentHover: string;
+            accentSoft: string;
+            accentText: string;
+            background: string;
+            customFontFamily: string;
+            customFontUrl: string;
+            /** @enum {string} */
+            font: "plex" | "system" | "custom";
+            /** @description The letter on the logo tile when there is no logo */
+            initial: string;
+            logo?: components["schemas"]["PublicBrandingLogo"];
+            notes: string[];
+            onAccent: string;
+            /** @description Show "Sent with ReputeCast" in the footer */
+            poweredBy: boolean;
+            privacyUrl: string;
+            publisherName: string;
+        };
+        PublicBrandingInput: {
+            /** @example #4338CA */
+            accent: string;
+            /** @example #F5F3FF */
+            background: string;
+            customFontFamily?: string;
+            /** @description https URL of a .woff2 or .woff file */
+            customFontUrl?: string;
+            /** @enum {string} */
+            font: "plex" | "system" | "custom";
+            poweredBy: boolean;
+            privacyUrl?: string;
+            publisherName: string;
+        };
+        PublicBrandingLogo: {
+            /** @example acme-mark.svg */
+            name: string;
+            /** @example image/svg+xml */
+            type: string;
+            url: string;
+        };
+        PublicCustomDomain: {
+            /** Format: date-time */
+            checkedAt?: string;
+            detail: string;
+            /** @example news.acme.io */
+            domain: string;
+            /** @enum {string} */
+            status: "none" | "pending" | "verified" | "failed";
+            /** @example reputecast.acme.io */
+            target: string;
+            txtName: string;
+            txtValue: string;
+            /** Format: date-time */
+            verifiedAt?: string;
+        };
+        PublicDomainInput: {
+            /**
+             * @description Empty removes the custom domain
+             * @example news.acme.io
+             */
+            domain: string;
+        };
+        PublicPageInput: {
+            archive?: components["schemas"]["ArchivePage"];
+            confirm?: components["schemas"]["ConfirmPage"];
+            hostedFormId?: string;
+            preferences?: components["schemas"]["PreferencesPage"];
+            previewEmail?: string;
+            subscribe?: components["schemas"]["SubscribePage"];
+            unsubscribe?: components["schemas"]["UnsubscribePage"];
+        };
+        PublicPageList: {
+            description: string;
+            id: string;
+            name: string;
+            public: boolean;
+            /** Format: int64 */
+            subscribed: number;
+        };
+        PublicPagePreview: {
+            contact: string;
+            html: string;
+            url: string;
+        };
+        PublicPageURLs: {
+            archive: string;
+            feed: string;
+            /** @description Asks for a preference link by email */
+            preferences: string;
+            sitemap: string;
+            subscribe: string;
+        };
+        PublicPagesSettings: {
+            branding: components["schemas"]["PublicBranding"];
+            domain: components["schemas"]["PublicCustomDomain"];
+            forms: components["schemas"]["SignupFormSummary"][];
+            hostedFormId: string;
+            lists: components["schemas"]["PublicPageList"][];
+            pages: components["schemas"]["Pages"];
+            senderEmail: string;
+            turnstile: components["schemas"]["PublicTurnstile"];
+            /** Format: date-time */
+            updatedAt: string;
+            urls: components["schemas"]["PublicPageURLs"];
+        };
+        PublicTurnstile: {
+            /** Format: date-time */
+            checkedAt?: string;
+            /** @description Why Cloudflare rejected the keys, with its error code */
+            error: string;
+            hasSecret: boolean;
+            siteKey: string;
+            /** @enum {string} */
+            status: "off" | "ok" | "error";
+        };
+        PublicTurnstileInput: {
+            /** @description Write-only; omit to keep the stored secret */
+            secret?: string;
+            /** @example 0x4AAAAAAA… */
+            siteKey: string;
         };
         PublicURLManualHook: {
             provider: string;
@@ -10288,6 +11842,201 @@ export interface components {
             /** Format: int64 */
             sunset: number;
         };
+        SenderDefaults: {
+            automationSenderId: string;
+            defaultSenderId: string;
+            footerAddress: string;
+            /** @enum {string} */
+            replyHandling: "forward";
+            replyOptions: string[];
+            replyTo: string;
+            systemSenderId: string;
+            trackingDomain: string;
+            trackingOptions: components["schemas"]["SenderTrackingOption"][];
+        };
+        SenderDefaultsInput: {
+            /** @description Default From for new campaigns (the Broadcasts default) */
+            defaultSenderId?: string;
+            footerAddress: string;
+            /** @enum {string} */
+            replyHandling: "forward";
+            replyTo?: string;
+            /** @description Empty for the provider default */
+            trackingDomain?: string;
+        };
+        SenderDomainCell: {
+            text: string;
+            /** @enum {string} */
+            tone: "ok" | "warn" | "bad" | "neutral";
+        };
+        SenderIdentity: {
+            defaultFor: string[];
+            domain: string;
+            domainId: string;
+            email: string;
+            id: string;
+            name: string;
+            note: string;
+            pending: boolean;
+            replyTo: string;
+            verification: components["schemas"]["SenderVerification"][];
+        };
+        SenderInput: {
+            defaultFor?: ("broadcast" | "automation" | "system")[];
+            /** @description Required when creating; the address can't change later */
+            email?: string;
+            name: string;
+            notUsedWith?: string[];
+            /** @description Shown when the sender is no stream's default, e.g. personal sends */
+            note?: string;
+            replyTo?: string;
+        };
+        SenderProviderColumn: {
+            adapter: string;
+            id: string;
+            name: string;
+            short: string;
+        };
+        SenderTrackingOption: {
+            domain: string;
+            verified: boolean;
+        };
+        SenderVerification: {
+            providerId: string;
+            /** @enum {string} */
+            status: "verified" | "pending" | "failed" | "not_set_up" | "not_used";
+            text: string;
+        };
+        SendersOverview: {
+            canManage: boolean;
+            defaults: components["schemas"]["SenderDefaults"];
+            domains: components["schemas"]["SendingDomainRow"][];
+            helpers: string[];
+            providers: components["schemas"]["SenderProviderColumn"][];
+            senders: components["schemas"]["SenderIdentity"][];
+        };
+        SendingDefaults: {
+            /**
+             * Format: double
+             * @description Auto-pause at this hard-bounce rate, percent
+             */
+            bounce: number;
+            /**
+             * Format: double
+             * @description Auto-pause at this complaint rate, percent
+             */
+            complaint: number;
+            /**
+             * Format: int64
+             * @description Sends to more recipients need the count typed to confirm
+             */
+            confirmOver: number;
+            /**
+             * Format: double
+             * @description Auto-pause one mailbox provider at this complaint rate, percent
+             */
+            mailboxComplaint: number;
+            /** @enum {string} */
+            pauseScope: "route" | "campaign";
+            /**
+             * Format: double
+             * @description Treat a provider as failing at this API error rate over 3 minutes, percent
+             */
+            providerError: number;
+            /** Format: date-time */
+            secretsRotatedAt?: string;
+            /** @enum {string} */
+            suppressionSync: "15m" | "1h";
+            /** @description Messages per second per mailbox provider (gmail, outlook, yahoo, icloud); 0 = no limit */
+            throttles: {
+                [key: string]: number;
+            };
+        };
+        SendingDomainCloudflareResult: {
+            domain: components["schemas"]["SendingDomainDetail"];
+            result: components["schemas"]["CloudflareResult"];
+        };
+        SendingDomainCounts: {
+            /** Format: int64 */
+            missing: number;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            verified: number;
+        };
+        SendingDomainCreated: {
+            domain: components["schemas"]["SendingDomainDetail"];
+            notes: components["schemas"]["ProviderSetupNote"][];
+        };
+        SendingDomainDetail: {
+            bimi: string;
+            canManage: boolean;
+            /** Format: date-time */
+            checkedAt?: string;
+            cloudflare: boolean;
+            counts: components["schemas"]["SendingDomainCounts"];
+            dmarcTip: string;
+            dnsHost: string;
+            domain: string;
+            helpers: string[];
+            id: string;
+            nameservers: string[];
+            note: string;
+            notes: components["schemas"]["ProviderSetupNote"][];
+            providers: components["schemas"]["SenderProviderColumn"][];
+            records: components["schemas"]["SendingDomainRecord"][];
+            /** Format: int64 */
+            senders: number;
+            /** @enum {string} */
+            status: "pending" | "verified" | "partial" | "failed";
+            tracking: components["schemas"]["SendingDomainTracking"];
+        };
+        SendingDomainRecord: {
+            /** Format: date-time */
+            checkedAt?: string;
+            found?: string;
+            key: string;
+            label: string;
+            name: string;
+            note: string;
+            provider: string;
+            providerId: string;
+            /** @enum {string} */
+            purpose: "dkim" | "return_path" | "spf" | "dmarc" | "verification";
+            /** @enum {string} */
+            status: "verified" | "pending" | "wrong_value" | "missing" | "error";
+            statusText: string;
+            type: string;
+            value: string;
+            zoneLine: string;
+        };
+        SendingDomainRow: {
+            bimi: components["schemas"]["SenderDomainCell"];
+            /** Format: date-time */
+            checkedAt?: string;
+            dkim: components["schemas"]["SenderDomainCell"];
+            dmarc: components["schemas"]["SenderDomainCell"];
+            domain: string;
+            id: string;
+            note: string;
+            returnPath: components["schemas"]["SenderDomainCell"];
+            /** Format: int64 */
+            senders: number;
+            spf: components["schemas"]["SenderDomainCell"];
+            /** @enum {string} */
+            status: "pending" | "verified" | "partial" | "failed";
+            tracking: components["schemas"]["SenderDomainCell"];
+            usedBy: string[];
+        };
+        SendingDomainTracking: {
+            domain: string;
+            /** @enum {string} */
+            status: "none" | "pending" | "verified" | "wrong_value" | "missing" | "error";
+            suggested: string;
+            target: string;
+        };
         SessionTiming: {
             /**
              * Format: date-time
@@ -10336,6 +12085,63 @@ export interface components {
              * @description When this session was created
              */
             signedInAt: string;
+        };
+        SettingsProviderCard: {
+            /** Format: date-time */
+            connectedAt: string;
+            connectedVia: string;
+            cost: components["schemas"]["SettingsProviderCost"];
+            id: string;
+            identity: string;
+            identityLabel: string;
+            name: string;
+            /** @enum {string} */
+            status: "healthy" | "degraded" | "down" | "sandbox" | "warming_up" | "paused";
+            statusLabel: string;
+            /** @enum {string} */
+            statusTone: "ok" | "info" | "warn" | "bad" | "neutral";
+            streams: string;
+        };
+        SettingsProviderCost: {
+            /** @enum {string} */
+            basis: "metered" | "plan" | "self_hosted";
+            /** Format: double */
+            monthly: number;
+            /** Format: double */
+            toDate: number;
+        };
+        SettingsProviders: {
+            canManage: boolean;
+            defaults: components["schemas"]["SendingDefaults"];
+            helpers: string[];
+            /** Format: date-time */
+            monthStart: string;
+            providers: components["schemas"]["SettingsProviderCard"][];
+        };
+        SettingsProvidersInput: {
+            /** Format: double */
+            bounce: number;
+            /** Format: double */
+            complaint: number;
+            /** Format: int64 */
+            confirmOver: number;
+            /** Format: double */
+            mailboxComplaint: number;
+            /** @enum {string} */
+            pauseScope: "route" | "campaign";
+            /** Format: double */
+            providerError: number;
+            /** @enum {string} */
+            suppressionSync: "15m" | "1h";
+            throttles: {
+                [key: string]: number;
+            };
+        };
+        SettingsRotationResult: {
+            page: components["schemas"]["SettingsProviders"];
+            /** Format: int64 */
+            rotated: number;
+            skipped: string[];
         };
         "Setup-check-urlRequest": {
             /** Format: uri */
@@ -10424,6 +12230,240 @@ export interface components {
             recoveryCodesTotal?: number;
             /** @enum {string} */
             status: "signed_in" | "two_factor";
+        };
+        SignupForm: {
+            /** @enum {string} */
+            afterSubmit: "message" | "redirect";
+            allowedOrigins: string[];
+            blockedOrigins: components["schemas"]["SignupFormBlockedOrigin"][];
+            consentText: string;
+            /** Format: int64 */
+            consentVersion: number;
+            content: components["schemas"]["SignupFormContent"];
+            /** @description Offered lists that start checked */
+            defaultListIds: string[];
+            doubleOptIn: boolean;
+            fields: components["schemas"]["SignupFormField"][];
+            hostedPage: boolean;
+            hostedUrl: string;
+            id: string;
+            /** @enum {string} */
+            kind: "embedded" | "popup" | "hosted";
+            /** @description Visitors pick lists; off joins every offered list */
+            listChoice: boolean;
+            /** @description Lists offered on the form */
+            listIds: string[];
+            name: string;
+            plainHtml: string;
+            /** @example frm_8c2e1a */
+            publicId: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            redirectUrl: string;
+            slug: string;
+            spam: components["schemas"]["SignupFormSpam"];
+            stats: components["schemas"]["SignupFormStats"];
+            /** @enum {string} */
+            status: "draft" | "live" | "paused";
+            /** Format: date-time */
+            updatedAt: string;
+            urls: components["schemas"]["SignupFormURLs"];
+            /** Format: int64 */
+            waiting: number;
+        };
+        SignupFormBlockedOrigin: {
+            /** Format: int64 */
+            count: number;
+            /** Format: date-time */
+            lastAt: string;
+            /** @example staging.acme.io */
+            origin: string;
+        };
+        SignupFormConfirmLink: {
+            email: string;
+            url: string;
+        };
+        SignupFormContent: {
+            button: string;
+            description: string;
+            emailPlaceholder: string;
+            footnote: string;
+            heading: string;
+            listsLabel: string;
+            namePlaceholder: string;
+            /**
+             * Format: int64
+             * @description Seconds before a popup opens
+             */
+            popupDelay: number;
+            /**
+             * Format: int64
+             * @description Days a closed popup stays closed
+             */
+            popupRepeatDays: number;
+            /**
+             * Format: int64
+             * @description Percent of the page scrolled before a popup opens; 0 is off
+             */
+            popupScroll: number;
+        };
+        SignupFormCreateInput: {
+            /** @enum {string} */
+            kind: "embedded" | "popup" | "hosted";
+            name: string;
+        };
+        SignupFormCustomField: {
+            key: string;
+            label: string;
+            options: string[];
+            /** @enum {string} */
+            type: "text" | "number" | "date" | "boolean" | "select";
+        };
+        SignupFormField: {
+            /** @description email, first_name, last_name, company or a custom field key */
+            key: string;
+            /** @description Shown above the input; empty uses the field's name */
+            label: string;
+            required: boolean;
+        };
+        SignupFormInput: {
+            /** @enum {string} */
+            afterSubmit: "message" | "redirect";
+            allowedOrigins: string[];
+            consentText: string;
+            content: components["schemas"]["SignupFormContent"];
+            defaultListIds: string[];
+            doubleOptIn: boolean;
+            fields: components["schemas"]["SignupFormField"][];
+            /** @enum {string} */
+            kind: "embedded" | "popup" | "hosted";
+            listChoice: boolean;
+            listIds: string[];
+            name: string;
+            publish: boolean;
+            redirectUrl: string;
+            spam: components["schemas"]["SignupFormSpam"];
+        };
+        SignupFormList: {
+            description: string;
+            id: string;
+            name: string;
+            public: boolean;
+            /** Format: int64 */
+            subscribed: number;
+        };
+        SignupFormOriginInput: {
+            /** @example staging.acme.io */
+            origin: string;
+        };
+        SignupFormRenameInput: {
+            name: string;
+        };
+        SignupFormSpam: {
+            blockDisposable: boolean;
+            honeypot: boolean;
+            /**
+             * Format: int64
+             * @description Submissions faster than this look automated
+             */
+            minSeconds: number;
+            /**
+             * Format: int64
+             * @description Submissions per minute from one address
+             */
+            rateLimitPerIp: number;
+            turnstile: boolean;
+        };
+        SignupFormStats: {
+            /**
+             * Format: int64
+             * @description Submissions blocked as spam
+             */
+            blocked: number;
+            /** Format: int64 */
+            confirmed: number;
+            /** Format: double */
+            confirmedRate: number;
+            /** Format: int64 */
+            days: number;
+            /**
+             * Format: int64
+             * @description Double opt-in confirmations not clicked yet
+             */
+            pending: number;
+            /** Format: double */
+            submissionRate: number;
+            /** Format: int64 */
+            submissions: number;
+            /** Format: int64 */
+            views: number;
+        };
+        SignupFormStatusInput: {
+            /** @enum {string} */
+            status: "live" | "paused";
+        };
+        SignupFormSummary: {
+            hostedPage: boolean;
+            hostedUrl: string;
+            id: string;
+            /** @enum {string} */
+            kind: "embedded" | "popup" | "hosted";
+            name: string;
+            /** @example frm_8c2e1a */
+            publicId: string;
+            slug: string;
+            /** @enum {string} */
+            status: "draft" | "live" | "paused";
+        };
+        SignupFormURLs: {
+            hosted: string;
+            script: string;
+            /** Format: int64 */
+            scriptKb: number;
+            submit: string;
+        };
+        SignupFormWaiting: {
+            items: components["schemas"]["SignupFormWaitingItem"][];
+            systemMail: boolean;
+            /** Format: int64 */
+            total: number;
+        };
+        SignupFormWaitingItem: {
+            /**
+             * Format: int64
+             * @description How many times sending the email was tried
+             */
+            attempts: number;
+            /** Format: date-time */
+            createdAt: string;
+            email: string;
+            firstName: string;
+            /** @description The submission */
+            id: string;
+            /** @description The lists the signup waits to join */
+            lists: string[];
+        };
+        SignupFormsOverview: {
+            branding: components["schemas"]["PublicBranding"];
+            customFields: components["schemas"]["SignupFormCustomField"][];
+            domain: components["schemas"]["PublicCustomDomain"];
+            forms: components["schemas"]["SignupFormSummary"][];
+            hostedFormId: string;
+            hostedUrl: string;
+            lists: components["schemas"]["SignupFormList"][];
+            ownOrigins: string[];
+            systemMail: boolean;
+            systemProvider: string;
+            turnstile: components["schemas"]["PublicTurnstile"];
+        };
+        SubscribePage: {
+            description: string;
+            footnote: string;
+            heading: string;
+            index: boolean;
+            listText: {
+                [key: string]: string;
+            };
         };
         SunsetPolicy: {
             /** Format: int64 */
@@ -10863,6 +12903,40 @@ export interface components {
             dns: components["schemas"]["CheckLine"];
             reachable: components["schemas"]["CheckLine"];
             tls: components["schemas"]["CheckLine"];
+        };
+        UnsubscribePage: {
+            /** @description Offer the monthly best-of instead */
+            fewer: boolean;
+            fewerButton: string;
+            fewerText: string;
+            fewerTitle: string;
+            /** @description Ask why, optionally */
+            reasons: boolean;
+        };
+        UnsubscribeStats: {
+            /**
+             * Format: int64
+             * @description Said why they left
+             */
+            answered: number;
+            /**
+             * Format: int64
+             * @description Took the monthly best-of instead of leaving
+             */
+            choseFewer: number;
+            /** Format: int64 */
+            days: number;
+            /**
+             * Format: int64
+             * @description Of them, with their mail app's one-click unsubscribe
+             */
+            oneClick: number;
+            /** Format: int64 */
+            unsubscribed: number;
+        };
+        UpdateDomainInput: {
+            note?: string;
+            trackingDomain?: string;
         };
         WarmupCampaignUse: {
             /** Format: int64 */
@@ -16797,6 +18871,710 @@ export interface operations {
             };
         };
     };
+    "connect-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectCatalog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-provider-setups": {
+        parameters: {
+            query?: {
+                /** @description Only setups of this adapter (ses, smtp…) */
+                adapter?: string;
+                /** @description Only setups in this state */
+                status?: "open" | "finished" | "abandoned";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetupList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-provider-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectSetupInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-provider-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-provider-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-provider-setup-step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectStepInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-setup-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectContacts"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "choose-setup-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectDomainInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "finish-provider-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectFinishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-bounce-mailbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectMailboxInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "use-provider-polling": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "request-production-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectProductionAccessInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "retry-provider-provisioning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-provider-region": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectRegionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-setup-streams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectStreamsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-setup-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectTestStatus"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-setup-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectTestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectTestStatus"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "retest-provider-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectWebhookInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "show-provider-webhook-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectWebhookSecret"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-contacts": {
         parameters: {
             query?: {
@@ -17641,6 +20419,252 @@ export interface operations {
             };
         };
     };
+    "create-sending-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DomainInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingDomainCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sending-domain": {
+        parameters: {
+            query?: {
+                /** @description Only the records this provider needs (and the domain-wide ones) */
+                provider?: string;
+                /** @description Check DNS again first when the last check is older than 20 seconds */
+                refresh?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                domainId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingDomainDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-sending-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                domainId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sending-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                domainId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDomainInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingDomainDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-sending-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                domainId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingDomainDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-sending-domain-records-cloudflare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                domainId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloudflareInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingDomainCloudflareResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "attach-sending-domain-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                domainId: string;
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingDomainDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "export-workspace": {
         parameters: {
             query?: never;
@@ -17794,6 +20818,400 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustomFieldDef"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-signup-forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormsOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-signup-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormCreateInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-signup-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-signup-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-signup-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "allow-signup-form-origin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormOriginInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "keep-signup-form-origin-blocked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormOriginInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rename-signup-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormRenameInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-signup-form-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormStatusInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-signup-form-waiting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormWaiting"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "signup-form-confirm-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+                /** @description The signup (form submission) id */
+                submission: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormConfirmLink"];
                 };
             };
             /** @description Error */
@@ -20531,6 +23949,469 @@ export interface operations {
             };
         };
     };
+    "get-public-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-archive-issues": {
+        parameters: {
+            query?: {
+                /** @description Search titles, subjects and excerpts */
+                q?: string;
+                /** @description Only issues filed under this list (id) */
+                list?: string;
+                /** @description Page, from 1 (10 issues a page) */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveIssuePage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-archive-issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The issue's campaign id */
+                campaign: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArchiveIssueInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveIssueItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-public-branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicBrandingInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-public-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicDomainInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-public-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-public-logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description SVG, PNG, JPEG, GIF or WebP, up to 256 KB
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-public-logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-public-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicPageInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-public-page": {
+        parameters: {
+            query?: {
+                /** @description Show a form's hosted page (drafts too) instead of the subscribe page */
+                form?: string;
+                /** @description Unsaved page options to show: the body of save-public-pages, as JSON */
+                draft?: string;
+                /** @description Preview the pages of this subscriber */
+                contact?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                page: "subscribe" | "confirm" | "preferences" | "unsubscribe" | "archive";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-public-turnstile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicTurnstileInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-public-turnstile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-unsubscribe-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnsubscribeStats"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-roles": {
         parameters: {
             query?: never;
@@ -21112,6 +24993,178 @@ export interface operations {
             };
         };
     };
+    "list-senders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendersOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-sender": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SenderInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SenderIdentity"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-sender-defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SenderDefaultsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SenderDefaults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-sender": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                senderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sender": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                senderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SenderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SenderIdentity"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-workspace-settings": {
         parameters: {
             query?: never;
@@ -21166,6 +25219,106 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-provider-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsProviders"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-provider-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsProvidersInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsProviders"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rotate-webhook-secrets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsRotationResult"];
+                };
             };
             /** @description Error */
             default: {

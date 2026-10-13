@@ -2,6 +2,10 @@
 FROM gcr.io/distroless/static-debian13:nonroot
 ARG TARGETPLATFORM
 COPY $TARGETPLATFORM/reputecast /usr/local/bin/reputecast
+# The data directory (secret key) must belong to the runtime user, or a fresh
+# volume mounted there comes up owned by root. The image has no shell to
+# create it; its empty home directory is copied there instead.
+COPY --from=gcr.io/distroless/static-debian13:nonroot --chown=65532:65532 /home/nonroot /var/lib/reputecast
 ENV REPUTECAST_HTTP__ADDR=:8080 \
     REPUTECAST_SECRETS__KEY_FILE=/var/lib/reputecast/secret.key \
     REPUTECAST_LOG__FORMAT=json
