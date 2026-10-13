@@ -9,14 +9,21 @@ import (
 )
 
 // Drive runs a send on a virtual clock from start for d: one step a
-// second, applying the demo transport's events as they come due, exactly as
-// the worker would in real time. Tests use it, and the demo command uses
-// it to fast-forward a send so the monitor opens mid-send with consistent,
-// back-dated history. It returns the virtual time it stopped at and
-// whether the send ended (finished, paused or cancelled).
+// second while there is something to send, applying the demo transport's
+// events as they come due, exactly as the worker would in real time. When
+// nothing can send for a while (retry back-off, the A/B window) it jumps
+// ahead, stopping at every event that comes due. Tests use it, and the demo
+// command uses it to fast-forward a send so the monitor opens mid-send with
+// consistent, back-dated history. It returns the virtual time it stopped at
+// and whether the send ended (finished, paused or cancelled).
 func (e *Engine) Drive(ctx context.Context, campaignID uuid.UUID, start time.Time, d time.Duration) (time.Time, bool, error) {
 	end := start.Add(d)
 	t := start
+	unlock, err := e.lockSend(ctx, campaignID)
+	if err != nil {
+		return t, false, err
+	}
+	defer unlock()
 	rs, err := e.load(ctx, campaignID, t)
 	if errors.Is(err, errStopped) {
 		return t, true, e.drain(ctx, t, end)
@@ -24,11 +31,12 @@ func (e *Engine) Drive(ctx context.Context, campaignID uuid.UUID, start time.Tim
 	if err != nil {
 		return t, false, err
 	}
-	for ; t.Before(end); t = t.Add(time.Second) {
+	for t.Before(end) {
 		if err := ctx.Err(); err != nil {
 			return t, false, err
 		}
-		if _, err := e.Step(ctx, rs, t); err != nil {
+		idle, err := e.Step(ctx, rs, t)
+		if err != nil {
 			if errors.Is(err, errStopped) {
 				return t, true, e.drain(ctx, t, end)
 			}
@@ -37,20 +45,59 @@ func (e *Engine) Drive(ctx context.Context, campaignID uuid.UUID, start time.Tim
 		if _, _, err := e.PumpSim(ctx, t); err != nil {
 			return t, false, err
 		}
+		next := t.Add(time.Second)
+		if idle > time.Second {
+			skip := t.Add(idle.Truncate(time.Second))
+			if due, err := e.Q.SendingNextSimEvent(ctx); err == nil && due.Year() > 2000 && due.Before(skip) {
+				skip = due.Truncate(time.Second).Add(time.Second)
+			}
+			if skip.After(next) {
+				next = skip
+			}
+		}
+		t = minTime(next, end)
 	}
 	return t, false, nil
 }
 
 // drain applies the demo transport's events up to end once nothing sends
-// any more (deliveries and opens keep arriving after the last message).
+// any more (deliveries and opens keep arriving after the last message),
+// jumping from one due event to the next.
 func (e *Engine) drain(ctx context.Context, from, end time.Time) error {
-	for t := from; t.Before(end); t = t.Add(5 * time.Second) {
-		if _, _, err := e.PumpSim(ctx, t); err != nil {
+	t := from
+	for t.Before(end) {
+		if err := ctx.Err(); err != nil {
 			return err
+		}
+		n, next, err := e.PumpSim(ctx, t)
+		if err != nil {
+			return err
+		}
+		switch {
+		case n > 0:
+			continue // more may be due at t
+		case next == nil || !next.Before(end):
+			t = end
+		default:
+			t = minTime(maxTime(next.Truncate(time.Second).Add(time.Second), t.Add(time.Second)), end)
 		}
 	}
 	_, _, err := e.PumpSim(ctx, end)
 	return err
+}
+
+func minTime(a, b time.Time) time.Time {
+	if a.Before(b) {
+		return a
+	}
+	return b
+}
+
+func maxTime(a, b time.Time) time.Time {
+	if a.After(b) {
+		return a
+	}
+	return b
 }
 
 // DrivePrepare builds the recipient list on a virtual clock (tests and the

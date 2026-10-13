@@ -332,6 +332,12 @@ func (e *Engine) recordCall(k routeKey, at time.Time, err error) {
 		l.lastSuccess, l.firstFailure, l.failures = at, time.Time{}, 0
 		return
 	}
+	// Throttling is the provider pacing us, not an outage: the batch backs
+	// off and the call doesn't count toward holding the route.
+	var ce *providers.CallError
+	if asCallError(err, &ce) && ce.Throttled {
+		return
+	}
 	if l.firstFailure.IsZero() {
 		l.firstFailure = at
 	}

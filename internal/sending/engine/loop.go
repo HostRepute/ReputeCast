@@ -302,6 +302,14 @@ func (e *Engine) refreshQueue(ctx context.Context, rs *runState, now time.Time) 
 // run again (done when there is nothing left to do now).
 func (e *Engine) Run(ctx context.Context, id uuid.UUID, budget time.Duration) (again time.Duration, done bool, err error) {
 	start := e.now()
+	unlock, err := e.lockSend(ctx, id)
+	if errors.Is(err, errBusy) {
+		return 5 * time.Second, false, nil
+	}
+	if err != nil {
+		return 0, false, err
+	}
+	defer unlock()
 	rs, err := e.load(ctx, id, start)
 	if errors.Is(err, errStopped) {
 		return 0, true, nil

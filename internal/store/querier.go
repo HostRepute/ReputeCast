@@ -907,6 +907,8 @@ type Querier interface {
 	TrackingMessage(ctx context.Context, id uuid.UUID) (TrackingMessageRow, error)
 	TrackingSourceLabel(ctx context.Context, id uuid.UUID) (string, error)
 	TrackingTouchContactClick(ctx context.Context, arg TrackingTouchContactClickParams) error
+	// last_open_at counts every open, last_human_open_at only people's (tiers
+	// and the sunset policy use it); last_open_machine says what the latest was.
 	TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error
 	UpdateAuthPolicy(ctx context.Context, arg UpdateAuthPolicyParams) (InstanceSetting, error)
 	UpdateAutomationDraftGraph(ctx context.Context, arg UpdateAutomationDraftGraphParams) (int64, error)

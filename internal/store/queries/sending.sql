@@ -122,7 +122,8 @@ SELECT count(*)::bigint FROM campaign_audience_stage WHERE campaign_id = @campai
 -- segments) after the cursor, with everything that decides whether they
 -- receive the campaign. The caller filters and counts what is left out.
 SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.mailbox_provider, c.tier, c.status, c.source,
-       c.last_open_at,
+       c.last_open_at, c.last_human_open_at, c.consent, c.role_address,
+       (c.broadcasts_stopped_at IS NOT NULL)::boolean AS sunset_stopped,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)::boolean AS suppressed,
        coalesce((SELECT p.paused_until > @now::timestamptz FROM contact_preferences p WHERE p.contact_id = c.id), false)::boolean AS paused,
        EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY(@exclude_lists::uuid[]))::boolean AS excluded_list,
@@ -197,7 +198,7 @@ WITH picked AS (
 SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.mailbox_provider, upd.attempts,
        coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
        coalesce(c.attributes, '{}'::jsonb)::jsonb AS attributes, coalesce(c.tier, '')::text AS tier,
-       coalesce(c.source, '')::text AS source, (c.last_open_at IS NOT NULL)::boolean AS engaged,
+       coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NOT NULL)::boolean AS engaged,
        (c.id IS NULL OR c.erased_at IS NOT NULL OR c.status <> 'active')::boolean AS gone,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = upd.workspace_id AND s.email = upd.email)::boolean AS suppressed
 FROM upd
@@ -308,7 +309,7 @@ SELECT count(*)::bigint
 FROM messages m JOIN contacts c ON c.id = m.contact_id
 WHERE m.campaign_id = @campaign_id AND m.status IN ('queued', 'held')
   AND (@mailbox_provider::text = '' OR m.mailbox_provider = @mailbox_provider::text)
-  AND c.last_open_at IS NULL
+  AND c.last_human_open_at IS NULL
   AND (NOT @imported_only::boolean OR c.source LIKE 'import:%');
 
 -- name: SendingExcludeGroup :many
@@ -318,7 +319,7 @@ UPDATE messages m SET status = 'cancelled', claimed_at = NULL, error = @reason
 FROM contacts c
 WHERE c.id = m.contact_id AND m.campaign_id = @campaign_id AND m.status IN ('queued', 'held')
   AND (@mailbox_provider::text = '' OR m.mailbox_provider = @mailbox_provider::text)
-  AND c.last_open_at IS NULL
+  AND c.last_human_open_at IS NULL
   AND (NOT @imported_only::boolean OR c.source LIKE 'import:%')
 RETURNING m.contact_id;
 
@@ -351,8 +352,8 @@ UPDATE campaign_incidents SET detail = @detail, held = @held WHERE id = @id;
 -- Complaints of a campaign (optionally one mailbox provider) by how the
 -- complaining contacts joined and whether they ever engaged: the evidence
 -- behind "likely causes".
-SELECT coalesce(c.source, '')::text AS source, (c.last_open_at IS NULL)::boolean AS never_engaged,
-       coalesce((SELECT m2.status FROM list_memberships m2 WHERE m2.contact_id = c.id ORDER BY (m2.status = 'pending') DESC LIMIT 1), '')::text AS consent,
+SELECT coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NULL)::boolean AS never_engaged,
+       coalesce(c.consent, '')::text AS consent,
        count(*)::bigint AS n
 FROM delivery_events e
 JOIN messages m ON m.id = e.message_id
@@ -370,7 +371,7 @@ SELECT count(*)::bigint AS total,
 FROM messages m JOIN contacts c ON c.id = m.contact_id
 WHERE m.campaign_id = @campaign_id
   AND (@mailbox_provider::text = '' OR m.mailbox_provider = @mailbox_provider::text)
-  AND c.source = @source AND c.last_open_at IS NULL;
+  AND c.source = @source AND c.last_human_open_at IS NULL;
 
 -- name: SendingImportOf :one
 -- The most recent import from a source ("the Mailchimp import on 18 Sep").
@@ -484,7 +485,7 @@ SELECT upd.id, upd.workspace_id, upd.automation_id, upd.automation_node, upd.con
        coalesce(upd.content_ref, '{}'::jsonb)::jsonb AS content_ref,
        coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
        coalesce(c.attributes, '{}'::jsonb)::jsonb AS attributes, coalesce(c.tier, '')::text AS tier,
-       coalesce(c.source, '')::text AS source, (c.last_open_at IS NOT NULL)::boolean AS engaged,
+       coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NOT NULL)::boolean AS engaged,
        (c.id IS NULL OR c.erased_at IS NOT NULL OR c.status <> 'active')::boolean AS gone,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = upd.workspace_id AND s.email = upd.email)::boolean AS suppressed
 FROM upd

@@ -155,7 +155,8 @@ func (q *Queries) SendingApproval(ctx context.Context, campaignID *uuid.UUID) (S
 
 const sendingAudiencePage = `-- name: SendingAudiencePage :many
 SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.mailbox_provider, c.tier, c.status, c.source,
-       c.last_open_at,
+       c.last_open_at, c.last_human_open_at, c.consent, c.role_address,
+       (c.broadcasts_stopped_at IS NOT NULL)::boolean AS sunset_stopped,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)::boolean AS suppressed,
        coalesce((SELECT p.paused_until > $1::timestamptz FROM contact_preferences p WHERE p.contact_id = c.id), false)::boolean AS paused,
        EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($2::uuid[]))::boolean AS excluded_list,
@@ -190,6 +191,10 @@ type SendingAudiencePageRow struct {
 	Status          string          `json:"status"`
 	Source          string          `json:"source"`
 	LastOpenAt      *time.Time      `json:"lastOpenAt"`
+	LastHumanOpenAt *time.Time      `json:"lastHumanOpenAt"`
+	Consent         string          `json:"consent"`
+	RoleAddress     bool            `json:"roleAddress"`
+	SunsetStopped   bool            `json:"sunsetStopped"`
 	Suppressed      bool            `json:"suppressed"`
 	Paused          bool            `json:"paused"`
 	ExcludedList    bool            `json:"excludedList"`
@@ -228,6 +233,10 @@ func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePa
 			&i.Status,
 			&i.Source,
 			&i.LastOpenAt,
+			&i.LastHumanOpenAt,
+			&i.Consent,
+			&i.RoleAddress,
+			&i.SunsetStopped,
 			&i.Suppressed,
 			&i.Paused,
 			&i.ExcludedList,
@@ -674,7 +683,7 @@ WITH picked AS (
 SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.mailbox_provider, upd.attempts,
        coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
        coalesce(c.attributes, '{}'::jsonb)::jsonb AS attributes, coalesce(c.tier, '')::text AS tier,
-       coalesce(c.source, '')::text AS source, (c.last_open_at IS NOT NULL)::boolean AS engaged,
+       coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NOT NULL)::boolean AS engaged,
        (c.id IS NULL OR c.erased_at IS NOT NULL OR c.status <> 'active')::boolean AS gone,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = upd.workspace_id AND s.email = upd.email)::boolean AS suppressed
 FROM upd
@@ -823,7 +832,7 @@ SELECT count(*)::bigint AS total,
 FROM messages m JOIN contacts c ON c.id = m.contact_id
 WHERE m.campaign_id = $1
   AND ($2::text = '' OR m.mailbox_provider = $2::text)
-  AND c.source = $3 AND c.last_open_at IS NULL
+  AND c.source = $3 AND c.last_human_open_at IS NULL
 `
 
 type SendingCohortSizeParams struct {
@@ -847,8 +856,8 @@ func (q *Queries) SendingCohortSize(ctx context.Context, arg SendingCohortSizePa
 }
 
 const sendingComplaintCohorts = `-- name: SendingComplaintCohorts :many
-SELECT coalesce(c.source, '')::text AS source, (c.last_open_at IS NULL)::boolean AS never_engaged,
-       coalesce((SELECT m2.status FROM list_memberships m2 WHERE m2.contact_id = c.id ORDER BY (m2.status = 'pending') DESC LIMIT 1), '')::text AS consent,
+SELECT coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NULL)::boolean AS never_engaged,
+       coalesce(c.consent, '')::text AS consent,
        count(*)::bigint AS n
 FROM delivery_events e
 JOIN messages m ON m.id = e.message_id
@@ -1082,7 +1091,7 @@ UPDATE messages m SET status = 'cancelled', claimed_at = NULL, error = $1
 FROM contacts c
 WHERE c.id = m.contact_id AND m.campaign_id = $2 AND m.status IN ('queued', 'held')
   AND ($3::text = '' OR m.mailbox_provider = $3::text)
-  AND c.last_open_at IS NULL
+  AND c.last_human_open_at IS NULL
   AND (NOT $4::boolean OR c.source LIKE 'import:%')
 RETURNING m.contact_id
 `
@@ -1304,7 +1313,7 @@ SELECT count(*)::bigint
 FROM messages m JOIN contacts c ON c.id = m.contact_id
 WHERE m.campaign_id = $1 AND m.status IN ('queued', 'held')
   AND ($2::text = '' OR m.mailbox_provider = $2::text)
-  AND c.last_open_at IS NULL
+  AND c.last_human_open_at IS NULL
   AND (NOT $3::boolean OR c.source LIKE 'import:%')
 `
 
@@ -1773,7 +1782,7 @@ SELECT upd.id, upd.workspace_id, upd.automation_id, upd.automation_node, upd.con
        coalesce(upd.content_ref, '{}'::jsonb)::jsonb AS content_ref,
        coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
        coalesce(c.attributes, '{}'::jsonb)::jsonb AS attributes, coalesce(c.tier, '')::text AS tier,
-       coalesce(c.source, '')::text AS source, (c.last_open_at IS NOT NULL)::boolean AS engaged,
+       coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NOT NULL)::boolean AS engaged,
        (c.id IS NULL OR c.erased_at IS NOT NULL OR c.status <> 'active')::boolean AS gone,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = upd.workspace_id AND s.email = upd.email)::boolean AS suppressed
 FROM upd

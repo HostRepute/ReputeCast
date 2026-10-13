@@ -73,6 +73,8 @@ type Excluded struct {
 	Bounced      int64 `json:"bounced"`
 	Complained   int64 `json:"complained"`
 	Paused       int64 `json:"paused"`
+	Role         int64 `json:"role"`
+	Sunset       int64 `json:"sunset"`
 	Excluded     int64 `json:"excluded"`
 	Tiers        int64 `json:"tiers"`
 }
@@ -228,12 +230,13 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			if mbp == "" {
 				mbp = routing.MailboxProvider(c.Email)
 			}
-			pid, err := r.route(ctx, c, mbp)
+			rt, err := r.route(ctx, c, mbp)
 			if err != nil {
 				return e.fail(ctx, cc, err.Error(), now)
 			}
+			pid := rt.provider
 			variant, status, next := assignVariant(ab, c.ID, sendAt)
-			msgs = append(msgs, []any{newID(), cc.WorkspaceID, "broadcast", &campaignID, &c.ID, c.Email, variant, &pid, mbp, status, now, next})
+			msgs = append(msgs, []any{newID(), cc.WorkspaceID, "broadcast", &campaignID, &c.ID, c.Email, variant, &pid, mbp, status, now, next, rt.note, rt.failover})
 			planned[pid]++
 		}
 		last := rows[len(rows)-1].ID
@@ -251,7 +254,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			}
 			if len(msgs) > 0 {
 				if _, err := tx.CopyFrom(ctx, pgx.Identifier{"messages"}, []string{"id", "workspace_id", "stream", "campaign_id", "contact_id", "email", "variant", "provider_id",
-					"mailbox_provider", "status", "queued_at", "next_attempt_at"}, pgx.CopyFromRows(msgs)); err != nil {
+					"mailbox_provider", "status", "queued_at", "next_attempt_at", "route_note", "failover"}, pgx.CopyFromRows(msgs)); err != nil {
 					return err
 				}
 			}
@@ -435,6 +438,10 @@ func eligibility(c store.SendingAudiencePageRow, def audienceDef) string {
 		return "suppressed"
 	case c.Paused:
 		return "paused"
+	case c.RoleAddress:
+		return "role"
+	case c.SunsetStopped:
+		return "sunset"
 	case c.ExcludedList, c.ExcludedSegment:
 		return "excluded"
 	case slices.Contains(def.ExcludeTiers, c.Tier):
@@ -455,6 +462,10 @@ func (x *Excluded) add(why string) {
 		x.Suppressed++
 	case "paused":
 		x.Paused++
+	case "role":
+		x.Role++
+	case "sunset":
+		x.Sunset++
 	case "excluded":
 		x.Excluded++
 	case "tiers":
@@ -620,15 +631,25 @@ func (r *router) rate(ctx context.Context, p store.Provider) providerRate {
 	return pr
 }
 
+// routed is where one recipient goes and why (messages.route_note, shown on
+// the contact's activity timeline).
+type routed struct {
+	provider uuid.UUID
+	note     string
+	failover bool
+}
+
 // route picks the provider: the campaign's override, else the Broadcasts
 // rules (conditions, then the deterministic weighted split). A warming
 // provider only takes the engagement tiers of its day, up to its daily
-// cap; the rest goes to the warm provider of the same split.
-func (r *router) route(ctx context.Context, c store.SendingAudiencePageRow, mbp string) (uuid.UUID, error) {
+// cap; the rest goes to the warm provider of the same split. A provider
+// that is down fails over only when the Broadcast policy allows it and the
+// fallback is warm; otherwise the share stays and is held when it sends.
+func (r *router) route(ctx context.Context, c store.SendingAudiencePageRow, mbp string) (routed, error) {
 	if r.override != nil {
-		if _, ok := r.byID[*r.override]; ok {
-			r.planned[*r.override]++
-			return *r.override, nil
+		if p, ok := r.byID[*r.override]; ok {
+			r.planned[p.ID]++
+			return routed{provider: p.ID, note: "Campaign route: " + state.Short(p.Name, p.Adapter) + " only"}, nil
 		}
 	}
 	lists := make([]string, len(c.Lists))
@@ -637,24 +658,67 @@ func (r *router) route(ctx context.Context, c store.SendingAudiencePageRow, mbp 
 	}
 	d, ok := r.set.Resolve(routing.Recipient{Stream: providers.StreamBroadcast, Email: c.Email, Lists: lists, SenderDomain: r.senderDomain, MailboxProvider: mbp})
 	if !ok {
-		return uuid.Nil, errors.New("No sending provider is set up for Broadcasts. Add a route in Sending providers › Routing, then start the send again.")
+		return routed{}, errors.New("No sending provider is set up for Broadcasts. Add a route in Sending providers › Routing, then start the send again.")
 	}
 	pid := d.ProviderID
 	p, ok := r.byID[pid]
 	if !ok {
-		return uuid.Nil, errors.New("The Broadcasts route points at a provider that is no longer connected. Fix the route, then start the send again.")
+		return routed{}, errors.New("The Broadcasts route points at a provider that is no longer connected. Fix the route, then start the send again.")
 	}
-	if pr := r.rate(ctx, p); pr.WarmingUp {
+	out := routed{provider: pid}
+	short := state.Short(p.Name, p.Adapter)
+	switch {
+	case d.Matched != "" && d.Rule.Name != "":
+		out.note = short + " by rule: " + d.Rule.Name
+	case d.Split:
+		out.note = short + " share of the " + splitLabel(d.Rule.Splits) + " split"
+	}
+	pr := r.rate(ctx, p)
+	if pr.WarmingUp {
+		if d.Split {
+			out.note += fmt.Sprintf(", warm-up day %d", pr.WarmupDay)
+		}
 		allowed := len(pr.Tiers) == 0 || slices.Contains(pr.Tiers, c.Tier)
 		capLeft := pr.Cap <= 0 || pr.SentToday+r.planned[pid] < pr.Cap
 		if !allowed || !capLeft || pr.Paused {
 			if alt, ok := r.warmAlternative(ctx, d.Rule, pid); ok {
-				pid = alt
+				ap := r.byID[alt]
+				why := "over today's warm-up cap"
+				if !allowed {
+					why = fmt.Sprintf("not sending to %s contacts on warm-up day %d", strings.ReplaceAll(c.Tier, "_", " "), pr.WarmupDay)
+				}
+				if pr.Paused {
+					why = "warm-up paused"
+				}
+				out = routed{provider: alt, note: state.Short(ap.Name, ap.Adapter) + " instead of " + short + ": " + why}
 			}
 		}
 	}
-	r.planned[pid]++
-	return pid, nil
+	if cur := r.byID[out.provider]; !state.Available(cur) {
+		target, hold := routing.Failover(r.set.Policy(providers.StreamBroadcast), d.Fallback, func(id uuid.UUID) routing.ProviderState {
+			fp, ok := r.byID[id]
+			if !ok {
+				return routing.ProviderState{}
+			}
+			return routing.ProviderState{Available: state.Available(fp), WarmingUp: r.rate(ctx, fp).WarmingUp}
+		})
+		if !hold && target != nil && r.set.Policy(providers.StreamBroadcast) != routing.PauseAndAsk {
+			fb := r.byID[*target]
+			out = routed{provider: fb.ID, failover: true,
+				note: state.Short(cur.Name, cur.Adapter) + " was down; Broadcasts failed over to " + state.Short(fb.Name, fb.Adapter)}
+		}
+	}
+	r.planned[out.provider]++
+	return out, nil
+}
+
+// splitLabel is a split's weights: "90/10".
+func splitLabel(splits []routing.Split) string {
+	parts := make([]string, 0, len(splits))
+	for _, sp := range splits {
+		parts = append(parts, fmt.Sprint(sp.Weight))
+	}
+	return strings.Join(parts, "/")
 }
 
 // warmAlternative is the largest share of the same rule that isn't warming

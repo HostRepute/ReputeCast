@@ -58,6 +58,7 @@ func newRoot() *cobra.Command {
 		newInstallCmd(o),
 		newUserCmd(o),
 		newSeedCmd(o),
+		newDemoCmd(o),
 		newOpenAPICmd(),
 		newSecretsCmd(o),
 		newVersionCmd(),

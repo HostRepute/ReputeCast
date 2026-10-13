@@ -399,8 +399,13 @@ func (q *Queries) TrackingSourceLabel(ctx context.Context, id uuid.UUID) (string
 }
 
 const trackingTouchContactClick = `-- name: TrackingTouchContactClick :exec
-UPDATE contacts SET last_click_at = greatest(coalesce(last_click_at, $1::timestamptz), $1::timestamptz),
-                    last_open_at = greatest(coalesce(last_open_at, $1::timestamptz), $1::timestamptz), updated_at = now()
+UPDATE contacts
+SET last_click_at = greatest(coalesce(last_click_at, $1::timestamptz), $1::timestamptz),
+    last_open_at = greatest(coalesce(last_open_at, $1::timestamptz), $1::timestamptz),
+    last_human_open_at = greatest(coalesce(last_human_open_at, $1::timestamptz), $1::timestamptz),
+    last_open_machine = false,
+    last_activity_at = greatest(coalesce(last_activity_at, $1::timestamptz), $1::timestamptz),
+    updated_at = now()
 WHERE id = $2
 `
 
@@ -415,16 +420,24 @@ func (q *Queries) TrackingTouchContactClick(ctx context.Context, arg TrackingTou
 }
 
 const trackingTouchContactOpen = `-- name: TrackingTouchContactOpen :exec
-UPDATE contacts SET last_open_at = greatest(coalesce(last_open_at, $1::timestamptz), $1::timestamptz), updated_at = now()
-WHERE id = $2
+UPDATE contacts
+SET last_open_at = greatest(coalesce(last_open_at, $1::timestamptz), $1::timestamptz),
+    last_human_open_at = CASE WHEN $2::boolean THEN greatest(coalesce(last_human_open_at, $1::timestamptz), $1::timestamptz) ELSE last_human_open_at END,
+    last_open_machine = CASE WHEN last_open_at IS NULL OR $1::timestamptz >= last_open_at THEN NOT $2::boolean ELSE last_open_machine END,
+    last_activity_at = greatest(coalesce(last_activity_at, $1::timestamptz), $1::timestamptz),
+    updated_at = now()
+WHERE id = $3
 `
 
 type TrackingTouchContactOpenParams struct {
-	At time.Time `json:"at"`
-	ID uuid.UUID `json:"id"`
+	At    time.Time `json:"at"`
+	Human bool      `json:"human"`
+	ID    uuid.UUID `json:"id"`
 }
 
+// last_open_at counts every open, last_human_open_at only people's (tiers
+// and the sunset policy use it); last_open_machine says what the latest was.
 func (q *Queries) TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error {
-	_, err := q.db.Exec(ctx, trackingTouchContactOpen, arg.At, arg.ID)
+	_, err := q.db.Exec(ctx, trackingTouchContactOpen, arg.At, arg.Human, arg.ID)
 	return err
 }

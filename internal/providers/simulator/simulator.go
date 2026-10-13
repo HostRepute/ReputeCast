@@ -157,7 +157,7 @@ func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]provid
 	if p.Outage(now) {
 		return nil, p.outageError(now)
 	}
-	if len(msgs) > 0 && p.throttled(msgs[0].ID) {
+	if len(msgs) > 0 && p.throttled(msgs[0].ID, now) {
 		return nil, &providers.CallError{Op: p.op(), Status: 429, Code: "Throttling", Message: "Maximum sending rate exceeded.", Temporary: true, Throttled: true}
 	}
 	out := make([]providers.SendResult, len(msgs))
@@ -196,9 +196,11 @@ func (p *Provider) outageError(now time.Time) error {
 }
 
 // throttled is true for about one call in a thousand (SES) or 250 (Postal),
-// the API error rates on the boards.
-func (p *Provider) throttled(id uuid.UUID) bool {
-	r := float64(binary.BigEndian.Uint32(id[12:16])) / float64(math.MaxUint32)
+// the API error rates on the boards. The draw depends on the call's time
+// too, so a retry of the same message isn't throttled again for sure.
+func (p *Provider) throttled(id uuid.UUID, now time.Time) bool {
+	h := binary.BigEndian.Uint32(id[12:16]) ^ uint32(now.UnixNano()/int64(time.Millisecond))*2654435761
+	r := float64(h) / float64(math.MaxUint32)
 	limit := 0.001
 	if p.s.Mimic == "postal" {
 		limit = 0.004

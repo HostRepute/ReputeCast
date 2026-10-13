@@ -79,12 +79,24 @@ VALUES (@id, @workspace_id, @message_id, sqlc.narg(campaign_id), sqlc.narg(conta
         @mailbox_provider, @original_type, @diagnostic, @machine, @url, @user_agent, sqlc.narg(ip), @recipient, @source);
 
 -- name: TrackingTouchContactOpen :exec
-UPDATE contacts SET last_open_at = greatest(coalesce(last_open_at, @at::timestamptz), @at::timestamptz), updated_at = now()
+-- last_open_at counts every open, last_human_open_at only people's (tiers
+-- and the sunset policy use it); last_open_machine says what the latest was.
+UPDATE contacts
+SET last_open_at = greatest(coalesce(last_open_at, @at::timestamptz), @at::timestamptz),
+    last_human_open_at = CASE WHEN @human::boolean THEN greatest(coalesce(last_human_open_at, @at::timestamptz), @at::timestamptz) ELSE last_human_open_at END,
+    last_open_machine = CASE WHEN last_open_at IS NULL OR @at::timestamptz >= last_open_at THEN NOT @human::boolean ELSE last_open_machine END,
+    last_activity_at = greatest(coalesce(last_activity_at, @at::timestamptz), @at::timestamptz),
+    updated_at = now()
 WHERE id = @id;
 
 -- name: TrackingTouchContactClick :exec
-UPDATE contacts SET last_click_at = greatest(coalesce(last_click_at, @at::timestamptz), @at::timestamptz),
-                    last_open_at = greatest(coalesce(last_open_at, @at::timestamptz), @at::timestamptz), updated_at = now()
+UPDATE contacts
+SET last_click_at = greatest(coalesce(last_click_at, @at::timestamptz), @at::timestamptz),
+    last_open_at = greatest(coalesce(last_open_at, @at::timestamptz), @at::timestamptz),
+    last_human_open_at = greatest(coalesce(last_human_open_at, @at::timestamptz), @at::timestamptz),
+    last_open_machine = false,
+    last_activity_at = greatest(coalesce(last_activity_at, @at::timestamptz), @at::timestamptz),
+    updated_at = now()
 WHERE id = @id;
 
 -- name: TrackingSourceLabel :one

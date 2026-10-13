@@ -447,8 +447,8 @@ func (s *Service) apply(ctx context.Context, q *store.Queries, ev sending.Engage
 		case r.FirstHuman:
 			human, machine = 1, -1
 		}
-		if !v.Machine && m.ContactID != nil {
-			if err := q.TrackingTouchContactOpen(ctx, store.TrackingTouchContactOpenParams{ID: *m.ContactID, At: ev.At}); err != nil {
+		if m.ContactID != nil {
+			if err := q.TrackingTouchContactOpen(ctx, store.TrackingTouchContactOpenParams{ID: *m.ContactID, At: ev.At, Human: !v.Machine}); err != nil {
 				return err
 			}
 		}

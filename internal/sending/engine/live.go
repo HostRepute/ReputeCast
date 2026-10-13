@@ -248,6 +248,8 @@ type LiveExcluded struct {
 	Bounced      int64 `json:"bounced"`
 	Complained   int64 `json:"complained"`
 	Paused       int64 `json:"paused"`
+	Role         int64 `json:"role"`
+	Sunset       int64 `json:"sunset"`
 	Excluded     int64 `json:"excluded"`
 	Tiers        int64 `json:"tiers"`
 }

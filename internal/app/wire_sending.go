@@ -23,9 +23,10 @@ import (
 //	}
 var sendingReadiness = func(*App) sending.Readiness { return sending.ReadyAlways{} }
 
-// sendingSegments resolves segment audiences (the audience domain's
-// segments service); nil until it is wired, so only list audiences send.
-var sendingSegments = func(*App) sending.Segments { return nil }
+// sendingSegments resolves segment audiences: the audience domain's
+// segments service (dynamic segments are evaluated when the send starts,
+// static ones use their snapshot).
+var sendingSegments = func(a *App) sending.Segments { return a.segments() }
 
 // The engine keeps per-process state (provider call logs, live hubs,
 // parsed templates), so each App has exactly one.
