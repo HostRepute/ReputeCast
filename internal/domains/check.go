@@ -240,10 +240,7 @@ func (s *Service) verifyRecord(ctx context.Context, domain string, r Record) Rec
 
 // verifyTracking checks a custom tracking domain's CNAME.
 func (s *Service) verifyTracking(ctx context.Context, tracking string) string {
-	target := ""
-	if s.TrackingTarget != nil {
-		target = s.TrackingTarget()
-	}
+	target := s.trackingTarget()
 	got, err := s.DNS.CNAME(ctx, tracking)
 	switch {
 	case err != nil && dnscheck.IsNotFound(err):

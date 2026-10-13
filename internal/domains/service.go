@@ -13,6 +13,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/mail"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -32,6 +33,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/state"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -46,13 +48,13 @@ type Service struct {
 	NS func(ctx context.Context, name string) ([]string, error)
 	// TTL returns how long resolvers may cache a record set; nil skips it.
 	TTL TTLFunc
-	// TrackingTarget is the host custom tracking domains point to (the
-	// host of the public URL).
-	TrackingTarget func() string
-	Cloudflare     *Cloudflare
-	Jobs           func() *jobs.Client
-	Log            *slog.Logger
-	Now            func() time.Time
+	// URLs is the instance's public URL (App.URLs): custom tracking domains
+	// point to its host.
+	URLs       publicurl.Builder
+	Cloudflare *Cloudflare
+	Jobs       func() *jobs.Client
+	Log        *slog.Logger
+	Now        func() time.Time
 
 	checkMu   sync.Mutex
 	lastCheck map[uuid.UUID]time.Time
@@ -73,6 +75,19 @@ func (s *Service) log() *slog.Logger {
 }
 
 func newID() uuid.UUID { return uuid.Must(uuid.NewV7()) }
+
+// trackingTarget is the host custom tracking domains point to: the host of
+// the instance's public URL.
+func (s *Service) trackingTarget() string { return HostOf(s.URLs.Base()) }
+
+// HostOf returns the lower-case host name of a URL ("" when it has none).
+func HostOf(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return ""
+	}
+	return strings.ToLower(u.Hostname())
+}
 
 // Streams a sender can be the default for.
 var streamOrder = []string{"broadcast", "automation", "system"}

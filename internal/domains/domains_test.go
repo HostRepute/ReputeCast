@@ -85,7 +85,7 @@ func TestSendersOverview(t *testing.T) {
 	}
 	news := ov.Domains[0]
 	if news.Domain != "news.acme.io" || news.DKIM.Text != "3 of 3 providers" || news.SPF.Text != "pass · -all" || news.DMARC.Text != "p=quarantine" ||
-		news.Tracking.Text != "go.news.acme.io" || news.BIMI.Text != "Not set" || news.ReturnPath.Text != "bounce. · pm-bounces. · rp." ||
+		news.Tracking.Text != "go.news.acme.io" || news.BIMI.Text != "Not set" || news.ReturnPath.Text != "bounce. · rp." ||
 		strings.Join(news.UsedBy, " · ") != "SES · Postmark · Postal" || news.Note != "primary sending domain" {
 		t.Fatalf("news.acme.io: %+v", news)
 	}
@@ -97,6 +97,20 @@ func TestSendersOverview(t *testing.T) {
 	if ov.Defaults.DefaultSenderID != digest.ID || ov.Defaults.ReplyTo != "hello@acme.io" || !strings.HasPrefix(ov.Defaults.FooterAddress, "Acme Inc") ||
 		ov.Defaults.TrackingDomain != "go.news.acme.io" || len(ov.Defaults.TrackingOptions) != 1 || !ov.Defaults.TrackingOptions[0].Verified || !ov.CanManage {
 		t.Fatalf("defaults: %+v", ov.Defaults)
+	}
+
+	// Acme Engineering Blog sends from blog.acme.io through its own SES account.
+	var eng overviewT
+	c.Do("GET", "/workspaces/acme-engineering-blog/senders", nil).MustStatus(t, 200).JSON(t, &eng)
+	if len(eng.Senders) != 2 || eng.Senders[0].Email != "posts@blog.acme.io" || len(eng.Senders[0].DefaultFor) != 2 || eng.Senders[1].DefaultFor[0] != "system" ||
+		len(eng.Domains) != 1 || eng.Domains[0].Domain != "blog.acme.io" || eng.Domains[0].DKIM.Text != "Verified" || eng.Domains[0].SPF.Text != "pass · -all" ||
+		eng.Domains[0].DMARC.Text != "p=quarantine" || eng.Domains[0].ReturnPath.Text != "bounce." {
+		t.Fatalf("engineering blog: %+v", eng)
+	}
+	for _, sn := range eng.Senders {
+		if len(sn.Verification) != 1 || sn.Verification[0].Text != "Verified" {
+			t.Fatalf("engineering blog sender %s: %+v", sn.Email, sn.Verification)
+		}
 	}
 
 	// Viewers read; they can't change anything.

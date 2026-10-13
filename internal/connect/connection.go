@@ -553,8 +553,8 @@ func (s *Service) smtpConfig(prov *store.Provider, in ConnectSMTPInput) (built, 
 	if in.Password != "" {
 		b.creds["password"] = in.Password
 	}
-	if b.settings["helo"] == nil && s.PublicURL != nil {
-		if u, err := url.Parse(s.PublicURL()); err == nil && u.Hostname() != "" && u.Hostname() != "localhost" {
+	if b.settings["helo"] == nil {
+		if u, err := url.Parse(s.URLs.Base()); err == nil && u.Hostname() != "" && u.Hostname() != "localhost" {
 			b.settings["helo"] = u.Hostname()
 		}
 	}
@@ -776,10 +776,7 @@ func (s *Service) webhookBase(override string) string {
 	if base := strings.TrimRight(override, "/"); base != "" {
 		return base
 	}
-	if s.PublicURL != nil {
-		return strings.TrimRight(s.PublicURL(), "/")
-	}
-	return ""
+	return s.URLs.Base()
 }
 
 // setupEvents tests the webhook endpoint the way the provider would reach

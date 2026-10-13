@@ -197,10 +197,7 @@ func (s *Service) detailOf(ctx context.Context, ws *store.Workspace, d store.Sen
 	sum := decodeSummary(d.AuthSummary)
 	out.BIMI = sum.BIMI
 	out.DMARCTip = dmarcTip(d.Domain, kept, det, out.Providers)
-	target := ""
-	if s.TrackingTarget != nil {
-		target = s.TrackingTarget()
-	}
+	target := s.trackingTarget()
 	out.Tracking = SendingDomainTracking{Domain: d.TrackingDomain, Suggested: "go." + d.Domain, Target: target, Status: d.TrackingStatus}
 	if out.Tracking.Status == "" {
 		out.Tracking.Status = "none"

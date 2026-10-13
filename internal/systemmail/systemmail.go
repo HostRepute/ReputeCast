@@ -12,7 +12,9 @@
 // instance's oldest workspace with one.
 //
 // The From address is the workspace's System sender (Settings › Senders,
-// "Default for: System"), else its default sender, else its first sender.
+// "Default for: System"), else its default sender, else its first sender. A
+// workspace without any sender can't send system mail: it counts as having
+// no System provider (ErrNoSender matches mailer.ErrNoSystemProvider).
 //
 // Every message is recorded like any other send (messages, stream "system",
 // with its kind) so it shows in the provider's event log. The demo's sample
@@ -42,8 +44,18 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// ErrNoSender means the workspace has no sender identity to send from.
-var ErrNoSender = errors.New("the workspace has no sender address for system mail: add one in Settings › Senders")
+// ErrNoSender means the workspace has no sender identity to send from. It
+// counts as mailer.ErrNoSystemProvider, so callers fall back the way they do
+// without a System provider (copy a link, the CLI command).
+var ErrNoSender error = noSenderError{}
+
+type noSenderError struct{}
+
+func (noSenderError) Error() string {
+	return "the workspace has no sender address for system mail: add one in Settings › Senders"
+}
+
+func (noSenderError) Is(target error) bool { return target == mailer.ErrNoSystemProvider }
 
 // availabilityTTL is how long SystemAvailable answers from its cache.
 const availabilityTTL = 30 * time.Second
@@ -125,6 +137,17 @@ func (m *Mailer) plan(ctx context.Context, wsID uuid.UUID, to string) ([]store.P
 	return out, nil
 }
 
+// ready reports whether a workspace can send system mail: its System route
+// has a provider to try and it has an address to send from.
+func (m *Mailer) ready(ctx context.Context, wsID uuid.UUID) bool {
+	plan, err := m.plan(ctx, wsID, "probe@example.com")
+	if err != nil || len(plan) == 0 {
+		return false
+	}
+	_, _, err = m.sender(ctx, wsID)
+	return err == nil
+}
+
 // SystemAvailable implements mailer.Sender. It answers from a 30-second
 // cache, so screens can ask on every load.
 func (m *Mailer) SystemAvailable(ctx context.Context, workspaceID *uuid.UUID) bool {
@@ -141,11 +164,10 @@ func (m *Mailer) SystemAvailable(ctx context.Context, workspaceID *uuid.UUID) bo
 	m.mu.Unlock()
 	ok := false
 	if workspaceID != nil {
-		plan, err := m.plan(ctx, *workspaceID, "probe@example.com")
-		ok = err == nil && len(plan) > 0
+		ok = m.ready(ctx, *workspaceID)
 	} else if ids, err := m.Q.SysmailWorkspaces(ctx); err == nil {
 		for _, id := range ids {
-			if plan, err := m.plan(ctx, id, "probe@example.com"); err == nil && len(plan) > 0 {
+			if m.ready(ctx, id) {
 				ok = true
 				break
 			}

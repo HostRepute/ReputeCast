@@ -190,6 +190,21 @@ func TestSystemMailThroughTheSystemRoute(t *testing.T) {
 	if _, err := env.App.Mail.SendSystem(ctx, mailer.Message{WorkspaceID: &wsID, To: "marcus@acme.io", Subject: "S", Text: "x", Kind: "notification"}); err == nil {
 		t.Fatal("no error when every provider refused")
 	}
+
+	// Without a sender address the workspace can't send: callers see it as
+	// "no System provider" and fall back (copy the link, the CLI command).
+	primary.Reject, fallback.Reject = false, false
+	if _, err := env.App.Pool.Exec(ctx, `DELETE FROM senders WHERE workspace_id = $1`, wsID); err != nil {
+		t.Fatal(err)
+	}
+	env.App.Mail.(*systemmail.Mailer).Forget()
+	if env.App.Mail.SystemAvailable(ctx, &wsID) {
+		t.Fatal("a workspace without senders counts as able to send")
+	}
+	_, err = env.App.Mail.SendSystem(ctx, mailer.Message{WorkspaceID: &wsID, To: "marcus@acme.io", Subject: "S", Text: "x", Kind: "notification"})
+	if !errors.Is(err, mailer.ErrNoSystemProvider) || !errors.Is(err, systemmail.ErrNoSender) || !strings.Contains(err.Error(), "Settings › Senders") {
+		t.Fatalf("err = %v", err)
+	}
 }
 
 // In development the demo providers deliver to the mail catcher and record

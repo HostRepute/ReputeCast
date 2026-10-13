@@ -5,16 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
-	"net/url"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/connect"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/domains"
 	"github.com/hostrepute/reputecast/internal/providers"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -24,7 +25,8 @@ func init() { seedSenders = seedSendersImpl }
 // every board that names a From address): news.acme.io, the primary sending
 // domain set up on Amazon SES, Postmark and Postal with a tracking domain,
 // and acme.io, the corporate domain Marcus sends personal mail from, still
-// waiting for two of its three SES DKIM records.
+// waiting for two of its three SES DKIM records. Acme Engineering Blog sends
+// from blog.acme.io through its own Amazon SES account.
 //
 // This seeder runs right after the core data; the per-provider DNS records
 // and each sender's verification need the providers, so they are written
@@ -34,6 +36,24 @@ func init() { seedSenders = seedSendersImpl }
 // sendersAcmeDKIM are the SES Easy DKIM tokens of acme.io; only the first
 // is published in the demo DNS ("Pending CNAME 2 of 3").
 var sendersAcmeDKIM = []string{"q2w7e4r9t1y6u3i8o5p0a7s2d9f4g1h6", "m3n8b5v2c7x4z9l1k6j3h8g5f2d7s4a9", "w6e1r8t3y0u5i2o7p4a1s8d5f2g9h6j3"}
+
+// sendersBlogDKIM are the SES Easy DKIM tokens of blog.acme.io, all published.
+var sendersBlogDKIM = []string{"b4t8k2w", "h6m1q9z", "r3x5d7v"}
+
+// sendersDemoZone adds the names the senders demo publishes to the demo DNS
+// zone: acme.io's first SES DKIM record and blog.acme.io's SES records.
+func sendersDemoZone(z *dnscheck.Zone) {
+	t := sendersAcmeDKIM[0]
+	z.Add(t+"._domainkey.acme.io", "CNAME", t+".dkim.amazonses.com")
+	z.Add(t+".dkim.amazonses.com", "TXT", "p="+deliverabilityDemoKey)
+	z.Add("blog.acme.io", "TXT", "v=spf1 include:amazonses.com -all")
+	for _, t := range sendersBlogDKIM {
+		z.Add(t+"._domainkey.blog.acme.io", "CNAME", t+".dkim.amazonses.com")
+		z.Add(t+".dkim.amazonses.com", "TXT", "p="+deliverabilityDemoKey)
+	}
+	z.Add("bounce.blog.acme.io", "MX", "10 feedback-smtp.us-west-2.amazonses.com")
+	z.Add("bounce.blog.acme.io", "TXT", "v=spf1 include:amazonses.com ~all")
+}
 
 // SendersNameservers are the demo zone's nameservers (Cloudflare).
 var SendersNameservers = []string{"dana.ns.cloudflare.com", "rob.ns.cloudflare.com"}
@@ -53,6 +73,13 @@ var sendersDemo = []sendersDemoSender{
 	{"Marcus Chen", "marcus@acme.io", "marcus@acme.io", "personal sends", "acme.io", 12 * 24 * time.Hour},
 	{"Acme Product", "product@news.acme.io", "hello@acme.io", "product updates", "news.acme.io", 300 * 24 * time.Hour},
 	{"Acme Beta", "beta@news.acme.io", "hello@acme.io", "beta program", "news.acme.io", 200 * 24 * time.Hour},
+}
+
+// sendersEngineering are Acme Engineering Blog's senders: new posts, and
+// the System sender for its team and subscriber mail.
+var sendersEngineering = []sendersDemoSender{
+	{"Acme Engineering", "posts@blog.acme.io", "engineering@acme.io", "new posts", "blog.acme.io", 121 * 24 * time.Hour},
+	{"Acme Engineering Blog", "no-reply@blog.acme.io", "engineering@acme.io", "", "blog.acme.io", 120 * 24 * time.Hour},
 }
 
 func seedSendersImpl(ctx context.Context, s *Seeder) error {
@@ -101,8 +128,47 @@ func seedSendersImpl(ctx context.Context, s *Seeder) error {
 		ws.ID, digest, hello, noReply, defaults, SendersFooterAddress); err != nil {
 		return err
 	}
+	if err := seedSendersEngineering(ctx, s); err != nil {
+		return err
+	}
 	s.After(seedSendersRecords)
 	return nil
+}
+
+// seedSendersEngineering gives Acme Engineering Blog its sending domain,
+// blog.acme.io, and its two senders.
+func seedSendersEngineering(ctx context.Context, s *Seeder) error {
+	eng, ok := s.Workspaces["acme-engineering-blog"]
+	if !ok {
+		return nil
+	}
+	linh := s.Users["linh@acme.io"]
+	q := store.New(s.Tx)
+	if _, ok := s.Domains["blog.acme.io"]; !ok {
+		id := ID()
+		if _, err := q.DomCreate(ctx, store.DomCreateParams{ID: id, WorkspaceID: eng.ID, Domain: "blog.acme.io", Note: "engineering blog", DnsRecords: json.RawMessage(`[]`),
+			CreatedBy: &linh.ID, CreatedAt: s.Ago(121 * 24 * time.Hour)}); err != nil {
+			return err
+		}
+		s.Domains["blog.acme.io"] = id
+	}
+	for _, sn := range sendersEngineering {
+		if _, ok := s.Senders[sn.email]; ok {
+			continue
+		}
+		id := ID()
+		if _, err := q.SenderCreate(ctx, store.SenderCreateParams{ID: id, WorkspaceID: eng.ID, DomainID: s.Domains[sn.domain], Name: sn.name, Email: sn.email,
+			ReplyTo: sn.replyTo, Note: sn.note, Verification: json.RawMessage(`{}`), CreatedBy: &linh.ID, CreatedAt: s.Ago(sn.created)}); err != nil {
+			return err
+		}
+		s.Senders[sn.email] = id
+	}
+	posts, noReply := s.Senders["posts@blog.acme.io"], s.Senders["no-reply@blog.acme.io"]
+	defaults, _ := json.Marshal(map[string]any{"reply_handling": "forward", "reply_to": "engineering@acme.io"})
+	_, err := s.Tx.Exec(ctx, `UPDATE workspaces SET default_sender_id = $2, default_automation_sender_id = $2, default_system_sender_id = $3,
+		sending_defaults = sending_defaults || $4::jsonb, branding = jsonb_set(branding, '{footer_address}', to_jsonb($5::text)) WHERE id = $1`,
+		eng.ID, posts, noReply, defaults, SendersFooterAddress)
+	return err
 }
 
 // seedSendersRecords writes the records each demo provider needs for the
@@ -120,6 +186,12 @@ func seedSendersRecords(ctx context.Context, s *Seeder) error {
 	// publishes exactly these), in the senders domain's shape.
 	news := []domains.Record{}
 	for _, r := range deliverabilityDemoRecords(s) {
+		// Postmark sends with its own return path (pm.mtasv.net): the
+		// custom MAIL FROM domains are SES's and Postal's (SettingsSenders,
+		// SendReadiness).
+		if r["purpose"] == domains.PurposeReturnPath && r["provider_id"] == postmark.String() {
+			continue
+		}
 		rec := domains.Record{ProviderID: r["provider_id"].(string), Purpose: r["purpose"].(string), Type: r["type"].(string), Name: r["name"].(string),
 			Value: r["value"].(string), Source: "provider"}
 		if rec.Purpose == domains.PurposeSPF && rec.Name == "news.acme.io" {
@@ -136,7 +208,13 @@ func seedSendersRecords(ctx context.Context, s *Seeder) error {
 		acme = append(acme, domains.Record{ProviderID: ses.String(), Purpose: domains.PurposeDKIM, Type: "CNAME", Name: t + "._domainkey.acme.io", Value: t + ".dkim.amazonses.com", Source: "provider"})
 	}
 	acme = append(acme, domains.Record{Purpose: domains.PurposeDMARC, Type: "TXT", Name: "_dmarc.acme.io", Value: domains.SuggestDMARC(rua), Source: "reputecast"})
-	for name, recs := range map[string][]domains.Record{"news.acme.io": news, "acme.io": acme} {
+	records := map[string][]domains.Record{"news.acme.io": news, "acme.io": acme}
+	if blog, err := sendersBlogRecords(ctx, s); err != nil {
+		return err
+	} else if blog != nil {
+		records["blog.acme.io"] = blog
+	}
+	for name, recs := range records {
 		if err := q.DomUpdateRecords(ctx, store.DomUpdateRecordsParams{ID: s.Domains[name], DnsRecords: domains.EncodeRecords(recs), UpdatedAt: s.Ago(time.Hour)}); err != nil {
 			return err
 		}
@@ -156,7 +234,7 @@ func seedSendersRecords(ctx context.Context, s *Seeder) error {
 	}
 	svc := SendersDomainService(s.Tx, s.Cfg.HTTP.PublicURL)
 	svc.Now = func() time.Time { return s.Ago(4 * time.Minute) }
-	for _, name := range []string{"news.acme.io", "acme.io"} {
+	for name := range records {
 		d, err := q.DomGetAny(ctx, s.Domains[name])
 		if err != nil {
 			return err
@@ -166,6 +244,37 @@ func seedSendersRecords(ctx context.Context, s *Seeder) error {
 		}
 	}
 	return seedSendersSetup(ctx, s)
+}
+
+// sendersBlogRecords are the records Acme Engineering Blog's SES account
+// needs for blog.acme.io (nil when the workspace has no SES provider).
+func sendersBlogRecords(ctx context.Context, s *Seeder) ([]domains.Record, error) {
+	eng, ok := s.Workspaces["acme-engineering-blog"]
+	if _, has := s.Domains["blog.acme.io"]; !ok || !has {
+		return nil, nil
+	}
+	var ses uuid.UUID
+	err := s.Tx.QueryRow(ctx, `SELECT id FROM providers WHERE workspace_id = $1 AND adapter = 'ses' AND disconnected_at IS NULL ORDER BY connected_at LIMIT 1`, eng.ID).Scan(&ses)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	rua, err := store.New(s.Tx).DomDMARCReports(ctx, eng.ID)
+	if err != nil {
+		return nil, err
+	}
+	id := ses.String()
+	recs := []domains.Record{}
+	for _, t := range sendersBlogDKIM {
+		recs = append(recs, domains.Record{ProviderID: id, Purpose: domains.PurposeDKIM, Type: "CNAME", Name: t + "._domainkey.blog.acme.io", Value: t + ".dkim.amazonses.com", Source: "provider"})
+	}
+	return append(recs,
+		domains.Record{ProviderID: id, Purpose: domains.PurposeReturnPath, Type: "MX", Name: "bounce.blog.acme.io", Value: "10 feedback-smtp.us-west-2.amazonses.com", Source: "provider"},
+		domains.Record{ProviderID: id, Purpose: domains.PurposeSPF, Type: "TXT", Name: "bounce.blog.acme.io", Value: "v=spf1 include:amazonses.com ~all", Source: "provider"},
+		domains.Record{ProviderID: id, Purpose: domains.PurposeSPF, Type: "TXT", Name: "blog.acme.io", Mechanisms: []string{"include:amazonses.com"}, Source: "reputecast"},
+		domains.Record{Purpose: domains.PurposeDMARC, Type: "TXT", Name: "_dmarc.blog.acme.io", Value: domains.SuggestDMARC(rua), Source: "reputecast"},
+	), nil
 }
 
 // seedSendersSetup is the setup that connected Amazon SES (SetupSES to
@@ -294,37 +403,42 @@ func seedSendersMailgunAttempt(ctx context.Context, s *Seeder) error {
 // SendersDomainService is a domains service on the demo DNS zone, for the
 // seeder's checks.
 func SendersDomainService(tx store.DBTX, publicURL string) *domains.Service {
-	target := TrackingTarget(publicURL)
+	urls := publicurl.New(publicURL)
 	z, owned := DeliverabilityDNSZone()
-	r := SendersDNSOverlay(dnscheck.Overlay(z, owned, dnscheck.NewZone()), target)
-	return &domains.Service{Q: store.New(tx), DNS: r, NS: SendersNS(nil), TTL: SendersTTL(nil), TrackingTarget: func() string { return target }}
+	r := SendersDNSOverlay(dnscheck.Overlay(z, owned, dnscheck.NewZone()), urls.Base)
+	return &domains.Service{Q: store.New(tx), DNS: r, NS: SendersNS(nil), TTL: SendersTTL(nil), URLs: urls}
 }
 
-// TrackingTarget is the host custom tracking domains point to: the host of
-// the public URL.
-func TrackingTarget(publicURL string) string {
-	u, err := url.Parse(publicURL)
-	if err != nil {
-		return ""
-	}
-	return strings.ToLower(u.Hostname())
-}
-
-// SendersDNSOverlay answers the names only the senders demo needs (acme.io's
-// published SES DKIM key and the tracking domain's CNAME) on top of r, which
-// is normally the deliverability demo zone.
-func SendersDNSOverlay(r dnscheck.Resolver, trackingTarget string) dnscheck.Resolver {
+// SendersDNSOverlay answers what Settings › Senders shows differently from
+// the deliverability demo zone (acme.io's own DMARC policy, p=none on
+// SettingsSenders) and the tracking domain's CNAME, which points at the
+// host of publicURL as it is now, on top of r, which is normally the
+// deliverability demo zone (sendersDemoZone adds the senders' records there).
+func SendersDNSOverlay(r dnscheck.Resolver, publicURL func() string) dnscheck.Resolver {
 	z := dnscheck.NewZone()
-	t := sendersAcmeDKIM[0]
-	z.Add(t+"._domainkey.acme.io", "CNAME", t+".dkim.amazonses.com")
-	z.Add(t+".dkim.amazonses.com", "TXT", "p="+deliverabilityDemoKey)
 	// The corporate domain monitors (p=none) while its subdomains, the
 	// sending domain among them, quarantine (Settings › Senders).
 	z.Add("_dmarc.acme.io", "TXT", "v=DMARC1; p=none; sp=quarantine; adkim=r; aspf=r; rua=mailto:dmarc@reports.hostrepute.com")
-	if trackingTarget != "" {
-		z.Add("go.news.acme.io", "CNAME", trackingTarget)
+	return sendersTracking{Resolver: dnscheck.Overlay(z, nil, r), publicURL: publicURL}
+}
+
+// sendersTrackingDomain is the demo's custom link tracking domain.
+const sendersTrackingDomain = "go.news.acme.io"
+
+// sendersTracking answers the demo tracking domain's CNAME with the host of
+// the public URL, which an instance admin can change while the app runs.
+type sendersTracking struct {
+	dnscheck.Resolver
+	publicURL func() string
+}
+
+func (t sendersTracking) CNAME(ctx context.Context, name string) (string, error) {
+	if strings.EqualFold(strings.TrimSuffix(name, "."), sendersTrackingDomain) {
+		if host := domains.HostOf(t.publicURL()); host != "" {
+			return host, nil
+		}
 	}
-	return dnscheck.Overlay(z, nil, r)
+	return t.Resolver.CNAME(ctx, name)
 }
 
 // SendersTTL answers the demo zone's TTL (an hour, as the sample records

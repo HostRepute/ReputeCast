@@ -18,7 +18,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
-	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/systemmail"
@@ -164,8 +163,8 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, rawID strin
 	for _, to := range recipients {
 		id := uuid.Must(uuid.NewV7())
 		pixel := ""
-		if s.Links != nil && s.PublicURL != nil {
-			pixel = `<img src="` + html.EscapeString(openURL(s.PublicURL(), s.Links.Sign(linkClaims(ws.ID, id)))) + `" width="1" height="1" alt="" style="display:block">`
+		if s.Links != nil && s.URLs.Base() != "" {
+			pixel = `<img src="` + html.EscapeString(s.URLs.Open(s.Links.Sign(linkClaims(ws.ID, id)))) + `" width="1" height="1" alt="" style="display:block">`
 		}
 		body := fmt.Sprintf(`<p style="margin:0 0 12px">This is a test from <b>%s</b> through <b>%s</b>.</p><p style="margin:0 0 12px">If it reached your inbox, the provider works. The delivery timeline in ReputeCast shows each step, and opening this message shows up there too.</p>%s`,
 			html.EscapeString(ws.Name), html.EscapeString(p.Name), pixel)
@@ -566,8 +565,6 @@ func (s *Service) authResult(ctx context.Context, ws *store.Workspace, p store.P
 }
 
 // openURL is the open-pixel URL of a test message.
-func openURL(base, token string) string { return publicurl.New(base).Open(token) }
-
 // linkClaims signs the test message's open pixel.
 func linkClaims(ws, msg uuid.UUID) linktoken.Claims {
 	return linktoken.Claims{Kind: linktoken.Open, WorkspaceID: ws, MessageID: msg}

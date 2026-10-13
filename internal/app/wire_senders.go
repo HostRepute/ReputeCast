@@ -31,24 +31,23 @@ func (a *App) domainsService() *domains.Service {
 	resolver := dnscheck.NewResolver(dnscheck.Options{Servers: cfg.DNS.Servers, Timeout: cfg.DNS.Timeout})
 	ns := lookupNS(cfg)
 	ttl := domains.LookupTTL(cfg.DNS.Servers, cfg.DNS.Timeout)
-	target := demo.TrackingTarget(cfg.HTTP.PublicURL)
 	switch {
 	case cfg.IsDevelopment():
-		resolver = demo.SendersDNSOverlay(demo.DeliverabilityDNSOverlay(resolver), target)
+		resolver = demo.SendersDNSOverlay(demo.DeliverabilityDNSOverlay(resolver), a.URLs.Base)
 		ns = demo.SendersNS(ns)
 		ttl = demo.SendersTTL(ttl)
 	case cfg.Env == "test":
 		// Integration tests never touch real DNS: the demo zone answers,
 		// everything else doesn't exist.
-		resolver = demo.SendersDNSOverlay(demo.DeliverabilityDNSOverlay(dnscheck.NewZone()), target)
+		resolver = demo.SendersDNSOverlay(demo.DeliverabilityDNSOverlay(dnscheck.NewZone()), a.URLs.Base)
 		ns = demo.SendersNS(nil)
 		ttl = demo.SendersTTL(nil)
 	}
 	return &domains.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Factory: a.providerFactory(), DNS: resolver, NS: ns, TTL: ttl,
-		TrackingTarget: func() string { return demo.TrackingTarget(cfg.HTTP.PublicURL) },
-		Cloudflare:     &domains.Cloudflare{HTTP: &http.Client{Timeout: 20 * time.Second}},
-		Jobs:           func() *jobs.Client { return a.Jobs }, Log: a.Log,
+		URLs:       a.URLs,
+		Cloudflare: &domains.Cloudflare{HTTP: &http.Client{Timeout: 20 * time.Second}},
+		Jobs:       func() *jobs.Client { return a.Jobs }, Log: a.Log,
 	}
 }
 

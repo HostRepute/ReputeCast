@@ -41,6 +41,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -62,8 +63,9 @@ type Service struct {
 	Deliver      *systemmail.Deliverer
 	Links        *linktoken.Signer
 	Jobs         func() *jobs.Client
-	// PublicURL is the instance's public URL (provider webhooks point at it).
-	PublicURL func() string
+	// URLs is the instance's public URL (App.URLs): provider webhooks and
+	// the test message's open pixel point at it.
+	URLs publicurl.Builder
 	// TemplateURL is the published CloudFormation template (SES).
 	TemplateURL string
 	// Reachable tests a webhook URL from outside; nil uses the HTTP

@@ -33,15 +33,11 @@ func (a *App) deliverer() *systemmail.Deliverer {
 
 // instanceBrand is the instance name and public URL for system mail.
 func (a *App) instanceBrand(ctx context.Context) (string, string) {
-	st, err := a.Q.GetInstanceSettings(ctx)
-	if err != nil {
-		return "", a.Cfg.HTTP.PublicURL
+	name := ""
+	if st, err := a.Q.GetInstanceSettings(ctx); err == nil {
+		name = st.Name
 	}
-	public := st.PublicUrl
-	if public == "" {
-		public = a.Cfg.HTTP.PublicURL
-	}
-	return st.Name, public
+	return name, a.URLs.Base()
 }
 
 func init() {
