@@ -533,8 +533,10 @@
     box-sizing: border-box;
     min-width: 0;
   }
+  /* The boards leave placeholders at the browser's default grey (#757575,
+     4.6:1 on white); ink-4 drew them lighter than every board does. */
   .in::placeholder {
-    color: var(--ink-4);
+    color: #757575;
   }
   textarea.in {
     height: auto;
