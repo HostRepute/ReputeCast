@@ -72,9 +72,9 @@ export function SessionsCard({ policy }: { policy: Schemas['AccountSessionPolicy
         </div>
       ) : sessions.isPending ? (
         <div className="pad col" style={{ gap: 8 }} aria-busy="true" aria-label="Loading sessions">
-          <div className="h-3.5 w-[60%] rounded-md bg-line-2" />
-          <div className="h-3.5 w-[80%] rounded-md bg-line-2" />
-          <div className="h-3.5 w-[45%] rounded-md bg-line-2" />
+          <div className="h-3.5 w-[60%] rounded-[6px] bg-line-2" />
+          <div className="h-3.5 w-[80%] rounded-[6px] bg-line-2" />
+          <div className="h-3.5 w-[45%] rounded-[6px] bg-line-2" />
           <span className="k" role="status">
             Fetching your sessions…
           </span>
