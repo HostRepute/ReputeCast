@@ -116,6 +116,8 @@ func (rt *Runtime) Start(ctx context.Context) {
 	if interval <= 0 {
 		interval = SyncInterval
 	}
+	// The loop outlives the start-up context: it ends with Stop or the pool.
+	base := context.WithoutCancel(ctx)
 	go func() {
 		t := time.NewTicker(interval)
 		defer t.Stop()
@@ -125,7 +127,7 @@ func (rt *Runtime) Start(ctx context.Context) {
 				return
 			case <-t.C:
 			}
-			cctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			cctx, cancel := context.WithTimeout(base, 10*time.Second)
 			err := rt.Sync(cctx)
 			cancel()
 			if err != nil {

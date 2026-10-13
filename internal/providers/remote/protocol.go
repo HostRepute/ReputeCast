@@ -15,6 +15,8 @@ import (
 )
 
 // Operations of the adapter protocol (POST /v1/<operation>).
+//
+//nolint:gosec // G101: operation names, not credentials
 const (
 	OpHealth           = "health"
 	OpVerify           = "verify"

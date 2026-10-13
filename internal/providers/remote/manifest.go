@@ -217,10 +217,14 @@ func text(v json.RawMessage, maxLen int) (string, error) {
 }
 
 // Pull reports whether ReputeCast pulls the provider's suppressions.
-func (c Capabilities) Pull() bool { return c.SuppressionSync == "pull" || c.SuppressionSync == "two-way" }
+func (c Capabilities) Pull() bool {
+	return c.SuppressionSync == "pull" || c.SuppressionSync == "two-way"
+}
 
 // Push reports whether ReputeCast pushes the shared list to the provider.
-func (c Capabilities) Push() bool { return c.SuppressionSync == "push" || c.SuppressionSync == "two-way" }
+func (c Capabilities) Push() bool {
+	return c.SuppressionSync == "push" || c.SuppressionSync == "two-way"
+}
 
 // Key is the registry key of the adapter: "community:<id>".
 func (m Manifest) Key() string { return providers.RuntimePrefix + m.ID }
@@ -465,15 +469,4 @@ func (m Manifest) Descriptor(newFn func(providers.Config) (providers.Provider, e
 		d.SuppressionMode = "Local only"
 	}
 	return d
-}
-
-// declared reports whether the manifest's config declares key, and whether
-// it is a secret.
-func (m Manifest) declared(key string) (bool, bool) {
-	for _, f := range m.Config {
-		if f.Key == key {
-			return true, f.Secret
-		}
-	}
-	return false, false
 }

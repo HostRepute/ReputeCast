@@ -46,10 +46,10 @@ type Installation struct {
 	// endpointErr explains why the stored address can't be used.
 	endpointErr string
 	client      *http.Client
-	breaker *breaker
-	sem     chan struct{}
-	now     func() time.Time
-	log     *slog.Logger
+	breaker     *breaker
+	sem         chan struct{}
+	now         func() time.Time
+	log         *slog.Logger
 }
 
 // Options configure an installation.
