@@ -507,7 +507,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
           </div>
         </div>
       </section>
-      <aside className="cpanel" style={{ flex: '1 1 340px', maxWidth: 380, borderLeft: '1px solid var(--line)' }} aria-label="Inbox, personalization and A/B test">
+      <aside className="cpanel preview-side" aria-label="Inbox, personalization and A/B test">
         <div className="flex flex-col gap-2 border-b border-line-2" style={{ padding: '14px 16px' }}>
           <h2 className="m-0 text-[14px] font-semibold">Inbox preview</h2>
           <div className="flex flex-col gap-1 rounded-lg border border-line" style={{ padding: 10, background: 'var(--ground-3)', fontSize: 12 }}>

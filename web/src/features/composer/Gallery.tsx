@@ -49,7 +49,7 @@ export function EmptyGallery() {
           <span className="k">Templates are MJML, so everything stays editable. Your saved sections and the last campaign are here too.</span>
         </div>
         {g.isPending ? (
-          <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))' }} aria-busy="true">
+          <div className="tpl-grid grid gap-3" aria-busy="true">
             {Array.from({ length: 6 }, (_, i) => (
               <div key={i} className="tpl" aria-hidden="true">
                 <div className="thumb" />
@@ -61,7 +61,7 @@ export function EmptyGallery() {
           <p className="k">Templates couldn't load. {errorMessage(g.error)}</p>
         ) : (
           <>
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))' }}>
+            <div className="tpl-grid grid gap-3">
               {g.data.starters.map((t) => (
                 <button key={t.id} type="button" className="tpl" disabled={!c.canEdit} aria-busy={busy === t.id || undefined} onClick={() => void applyTemplate(t.id, t.name)}>
                   <Thumb items={t.thumb} blank={t.id === 'starter:blank'} />
@@ -72,7 +72,7 @@ export function EmptyGallery() {
             </div>
             <div className="flex flex-col gap-2">
               <span className="font-semibold">Yours</span>
-              <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))' }}>
+              <div className="tpl-grid grid gap-3">
                 {g.data.templates.map((t) => (
                   <button key={t.id} type="button" className="tpl" disabled={!c.canEdit} aria-busy={busy === t.id || undefined} onClick={() => void applyTemplate(t.id, t.name)}>
                     <Thumb items={t.thumb} />
