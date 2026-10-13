@@ -1,6 +1,7 @@
 import { classifyBounce } from "./bounce.ts";
 import type { Adapter, AdapterContext, AdapterEvent, SendOutcome, SendRefusal } from "./define.ts";
 import { AdapterError, BadSignatureError, cleanText, isAdapterError, isMessageRejected, toWireError } from "./errors.ts";
+import type { MessageRejected } from "./errors.ts";
 import type {
   DnsRecord,
   DomainInput,
@@ -121,7 +122,10 @@ function checkMessages(input: SendInput, batch: number): Message[] {
   return msgs as Message[];
 }
 
-function resultOf(messageId: string, r: SendOutcome | SendRefusal | undefined): SendResult {
+function resultOf(messageId: string, r: SendOutcome | SendRefusal | MessageRejected | undefined): SendResult {
+  if (isMessageRejected(r)) {
+    return { messageId, error: { code: cleanText(r.code, 200), message: cleanText(r.message), temporary: r.temporary, throttled: r.throttled } };
+  }
   if (isRecord(r) && isRecord(r["error"])) {
     const e = r["error"];
     const throttled = e["throttled"] === true;

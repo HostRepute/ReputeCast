@@ -1,3 +1,4 @@
+import type { MessageRejected } from "./errors.ts";
 import type { HttpClient } from "./http.ts";
 import type { Logger } from "./log.ts";
 import type { Capabilities, NormalizedCapabilities, Terms } from "./manifest.ts";
@@ -98,8 +99,12 @@ export interface AdapterDefinition<Raw = any> {
   http?: HttpSettings;
   /** Sends one message. Throw MessageRejected for a per-message refusal. */
   send?(msg: Message, ctx: AdapterContext): SendOutcome | Promise<SendOutcome>;
-  /** Sends a whole batch through a batch API; one result per message, in order. */
-  sendBatch?(msgs: Message[], ctx: AdapterContext): Array<SendOutcome | SendRefusal> | Promise<Array<SendOutcome | SendRefusal>>;
+  /**
+   * Sends a whole batch through a batch API: one result per message, in
+   * order (an outcome, a refusal or a MessageRejected). Throwing fails the
+   * whole call, so only throw when the provider accepted none of them.
+   */
+  sendBatch?(msgs: Message[], ctx: AdapterContext): Array<SendOutcome | SendRefusal | MessageRejected> | Promise<Array<SendOutcome | SendRefusal | MessageRejected>>;
   /** How many send() calls run at once for a batch (5). */
   sendConcurrency?: number;
   /** Checks the credentials; may return what it learned about the account. */

@@ -87,6 +87,23 @@ describe("serve", () => {
     expect(tooMany.body.error?.code).toBe("invalid_request");
   });
 
+  it("takes batch results from sendBatch", async () => {
+    const { client } = await start({
+      send: undefined,
+      sendBatch: (msgs) =>
+        msgs.map((m, i) =>
+          i === 1 ? new MessageRejected("full", { code: "mailbox_full", temporary: true }) : i === 2 ? { error: { message: "nope", code: "x" } } : i === 3 ? ({} as never) : { providerMessageId: "b-" + i },
+        ),
+    });
+    const msgs = Array.from({ length: 4 }, (_, i) => testMessage(i));
+    const res = (await client.call<SendOutput>("send", { messages: msgs }, { connection: conn })).body.result!.results;
+    expect(res[0]).toEqual({ messageId: msgs[0]!.id, providerMessageId: "b-0" });
+    expect(res[1]!.error).toEqual({ code: "mailbox_full", message: "full", temporary: true, throttled: false });
+    expect(res[2]!.error).toEqual({ code: "x", message: "nope", temporary: false, throttled: false });
+    // No provider id: the message may have gone out, so it is refused for good rather than retried.
+    expect(res[3]!.error).toMatchObject({ code: "adapter_bug", temporary: false });
+  });
+
   it("fails the call only while no message was accepted", async () => {
     let n = 0;
     const { client } = await start({
