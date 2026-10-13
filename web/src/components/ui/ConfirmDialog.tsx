@@ -48,7 +48,7 @@ export function DialogOption({
   return (
     <label className="dopt">
       <input type={type} name={name} checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span className="min-w-0">
+      <span>
         {type === 'radio' ? <b>{title}</b> : title}
         {description ? (
           <>

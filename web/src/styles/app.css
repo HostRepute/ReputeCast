@@ -1628,19 +1628,21 @@
 }
 
 /* Phone-width rules the prototype applies to every screen: badges and
-   buttons may wrap, long ids break, tables keep their own wrapping. */
+   buttons may wrap, long ids break, tables keep their own wrapping. Layers
+   rendered outside the shell (dialogs, toasts, the bottom-left notices)
+   follow them too, as they do on the boards. */
 @media (max-width: 767px) {
-  .rc-app {
+  :is(.rc-app, .ovl, .toasts, .corner) {
     overflow-wrap: anywhere;
   }
-  .rc-app table,
-  .rc-app td,
-  .rc-app th,
-  .rc-app .chip,
-  .rc-app .steps {
+  :is(.rc-app, .ovl, .toasts, .corner) table,
+  :is(.rc-app, .ovl, .toasts, .corner) td,
+  :is(.rc-app, .ovl, .toasts, .corner) th,
+  :is(.rc-app, .ovl, .toasts, .corner) .chip,
+  :is(.rc-app, .ovl, .toasts, .corner) .steps {
     overflow-wrap: normal;
   }
-  .rc-app .badge {
+  :is(.rc-app, .ovl, .toasts, .corner) .badge {
     white-space: normal;
     height: auto;
     min-height: 22px;
@@ -1649,23 +1651,23 @@
     padding-bottom: 2px;
     max-width: 100%;
   }
-  .rc-app .tabs .badge,
-  .rc-app .tbl td .badge {
+  :is(.rc-app, .ovl, .toasts, .corner) .tabs .badge,
+  :is(.rc-app, .ovl, .toasts, .corner) .tbl td .badge {
     white-space: nowrap;
   }
-  .rc-app .tbl.phone-wrap td .badge,
-  .rc-app .tbl.phone-wrap td .btn {
+  :is(.rc-app, .ovl, .toasts, .corner) .tbl.phone-wrap td .badge,
+  :is(.rc-app, .ovl, .toasts, .corner) .tbl.phone-wrap td .btn {
     white-space: normal;
   }
-  .rc-app .btn {
+  :is(.rc-app, .ovl, .toasts, .corner) .btn {
     white-space: normal;
     max-width: 100%;
   }
-  .rc-app .side .btn,
-  .rc-app .tbl td .btn {
+  :is(.rc-app, .ovl, .toasts, .corner) .side .btn,
+  :is(.rc-app, .ovl, .toasts, .corner) .tbl td .btn {
     white-space: nowrap;
   }
-  .rc-app .mono {
+  :is(.rc-app, .ovl, .toasts, .corner) .mono {
     overflow-wrap: anywhere;
   }
 }
@@ -1783,6 +1785,10 @@
     flex-direction: column;
     gap: 8px;
     pointer-events: none;
+    /* As on the board, a toast takes the full toast width (460 px of
+       content) rather than shrinking to its text. */
+    width: 486px;
+    max-width: calc(100vw - 32px);
   }
   .toasts > * {
     pointer-events: auto;
@@ -1807,7 +1813,6 @@
   }
   .toast .k {
     color: var(--dark-muted);
-    font-size: inherit;
   }
   .toast .btn {
     min-height: 28px;
@@ -1856,6 +1861,8 @@
       left: 12px;
       right: 12px;
       bottom: 84px;
+      width: auto;
+      max-width: none;
     }
     .toast {
       max-width: 100%;
@@ -2195,7 +2202,9 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    /* A 24 px target that takes the board's one-line height. */
     min-height: 24px;
+    margin-block: calc((1.45em - 24px) / 2);
   }
   .tray .job {
     display: flex;
@@ -2205,12 +2214,16 @@
   .tray .job .jh {
     display: flex;
     justify-content: space-between;
-    gap: 10px;
+    column-gap: 10px;
   }
   .tray .bar > i {
     background: var(--accent);
   }
   @media (max-width: 767px) {
+    /* The progress line wraps under a long title, as on the board. */
+    .tray .job .jh {
+      flex-wrap: wrap;
+    }
     .corner {
       left: 12px;
       right: 12px;
@@ -2223,12 +2236,18 @@
     }
   }
 
+  /* A dialog never grows past the screen because of a wide row. */
+  .ovl > .dlg {
+    min-width: 0;
+  }
+
   /* Confirmation dialogs (Dialogs board): one padded column, the blast
      radius first, a deliberate last step. */
   .dlg.cdlg {
-    max-width: 376px;
+    max-width: 376.66px;
     padding: 20px 22px;
     gap: 12px;
+    border: 1px solid var(--line);
   }
   .dlg.cdlg .ct {
     margin: 0;
@@ -2274,8 +2293,14 @@
     border-color: var(--accent);
     background: var(--accent-tint);
   }
+  /* As on the board: the browser's own control margins, and the control
+     may give a few pixels to a long label. */
   label.dopt input {
-    margin-top: 3px;
+    flex: 0 1 auto;
+    margin: 3px 3px 0 5px;
+  }
+  label.dopt input[type='checkbox'] {
+    margin: 3px 3px 3px 4px;
   }
   .lblc {
     display: flex;
@@ -2359,14 +2384,27 @@
 
   /* Disabled with a reason: the bubble under the control. */
   .tip.why {
+    position: relative;
     padding: 6px 9px;
     font-weight: 400;
     line-height: 1.45;
     max-width: none;
     white-space: nowrap;
   }
-  .tip.why .arrow {
-    fill: var(--ink);
+  .tip.why::before {
+    content: '';
+    position: absolute;
+    left: 14px;
+    top: -5px;
+    border: 5px solid transparent;
+    border-bottom-color: var(--ink);
+    border-top: 0;
+  }
+  .tip.why[data-side='top']::before {
+    top: auto;
+    bottom: -5px;
+    border-top: 5px solid var(--ink);
+    border-bottom: 0;
   }
   @media (max-width: 767px) {
     .tip.why {
@@ -2386,7 +2424,24 @@
     visibility: hidden;
   }
 
-  /* Keyboard shortcuts sheet. */
+  /* Keyboard shortcuts sheet: the board's card, as a modal. */
+  .dlg.kdlg {
+    max-width: 380.66px;
+    padding: 18px 20px;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .kdh {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .kdt {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
   .kbgrid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2395,10 +2450,5 @@
     margin: 0;
     padding: 0;
     list-style: none;
-  }
-  @media (max-width: 767px) {
-    .kbgrid {
-      grid-template-columns: minmax(0, 1fr);
-    }
   }
 }

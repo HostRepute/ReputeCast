@@ -2,6 +2,7 @@ import { Link, type LinkProps } from '@tanstack/react-router'
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 import { Icon, type IconName } from '../icons/Icon'
+import { DisabledReason } from './DisabledReason'
 
 export type ButtonVariant = 'default' | 'primary' | 'danger' | 'danger-primary' | 'ghost'
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg'
@@ -54,8 +55,9 @@ function content(
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, ButtonStyleProps {
   /**
    * Disables the button and explains why (principle 7: say why and who can
-   * help). The button stays focusable with aria-disabled so screen readers
-   * and keyboard users can reach the explanation.
+   * help). The button stays focusable with aria-disabled, and the reason
+   * shows in a bubble on hover and focus (Feedback board) and is the
+   * button's description for screen readers.
    */
   disabledReason?: string
   /**
@@ -65,20 +67,18 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, Bu
   busyLabel?: ReactNode
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant, size = 'md', icon, iconRight, iconOnly, block, loading, disabledReason, busyLabel, className, children, type = 'button', onClick, title, ...rest },
-  ref,
-) {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(props, ref) {
+  const { variant, size = 'md', icon, iconRight, iconOnly, block, loading, disabledReason, busyLabel, className, children, type = 'button', onClick, title, ...rest } = props
   const blocked = Boolean(disabledReason)
   const onDark = variant === 'primary' || variant === 'danger-primary'
-  return (
+  const button = (
     <button
       ref={ref}
       type={type}
       className={buttonClass({ variant, size, iconOnly, block }, className)}
       aria-disabled={blocked || undefined}
       aria-busy={loading || undefined}
-      title={disabledReason ?? title}
+      title={blocked ? undefined : title}
       onClick={blocked || loading ? (e) => e.preventDefault() : onClick}
       {...rest}
     >
@@ -96,6 +96,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       )}
     </button>
   )
+  // A button that can be disabled with a reason (the prop is passed, even as
+  // undefined) always goes through the bubble, so it keeps its DOM node and
+  // focus when the reason comes and goes. Other buttons skip it.
+  return 'disabledReason' in props ? <DisabledReason reason={disabledReason}>{button}</DisabledReason> : button
 })
 
 export type ButtonLinkProps = LinkProps & ButtonStyleProps & { className?: string; children?: ReactNode; 'aria-label'?: string; title?: string }

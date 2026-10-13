@@ -1,9 +1,8 @@
 import { useNavigate } from '@tanstack/react-router'
+import { Dialog as RDialog } from 'radix-ui'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
 import { focusPageSearch, GO_KEYS, modKeyLabel, runShortcutHandler, SEQUENCE_MS, shortcutFor, type GoTarget } from '@/lib/shortcuts'
-import { Button } from '../ui/Button'
-import { Dialog } from '../ui/Dialog'
 import { toast } from '../ui/Toast'
 
 const GO_PATHS: Record<GoTarget, string> = {
@@ -37,70 +36,72 @@ function Row({ children }: { children: ReactNode }) {
   return <li>{children}</li>
 }
 
-/** The "?" sheet (Feedback board). */
+/**
+ * The "?" sheet (Feedback board): the board's card as a modal. Esc or a
+ * click outside closes it; it opens from the keyboard only, so it needs no
+ * button of its own.
+ */
 export function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const mod = modKeyLabel()
   return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-      layout="confirm"
-      title="Keyboard shortcuts"
-      description={
-        <>
-          Press <kbd>?</kbd> to open this sheet from anywhere.
-        </>
-      }
-      footer={
-        <Button variant="primary" onClick={() => onOpenChange(false)}>
-          Done
-        </Button>
-      }
-    >
-      <ul className="kbgrid">
-        <Row>
-          <Keys keys={[mod, 'K']} />
-          Search everything
-        </Row>
-        <Row>
-          <Keys keys={['N']} />
-          New campaign
-        </Row>
-        <Row>
-          <Keys keys={[mod, 'S']} />
-          Save version
-        </Row>
-        <Row>
-          <Keys keys={[mod, 'Enter']} />
-          Open Send Readiness
-        </Row>
-        <Row>
-          <Keys keys={['G']} then={['O']} />
-          Overview
-        </Row>
-        <Row>
-          <Keys keys={['G']} then={['A']} />
-          Audience
-        </Row>
-        <Row>
-          <Keys keys={['Esc']} />
-          Close panel or dialog
-        </Row>
-        <Row>
-          <Keys keys={['?']} />
-          This sheet
-        </Row>
-        {Object.entries(GO_KEYS)
-          .filter(([key]) => key !== 'o' && key !== 'a')
-          .map(([key, g]) => (
-            <Row key={key}>
-              <Keys keys={['G']} then={[key.toUpperCase()]} />
-              {g.label}
-            </Row>
-          ))}
-      </ul>
-      <span className="k">Every shortcut has a visible button equivalent; none is required.</span>
-    </Dialog>
+    <RDialog.Root open={open} onOpenChange={onOpenChange}>
+      <RDialog.Portal>
+        <RDialog.Overlay className="ovl">
+          <RDialog.Content className="dlg kdlg">
+            <div className="kdh">
+              <RDialog.Title className="kdt">Keyboard shortcuts</RDialog.Title>
+              <span className="k" aria-hidden="true">
+                press <kbd>?</kbd>
+              </span>
+            </div>
+            <RDialog.Description className="vh">Press ? to open this sheet from anywhere, Escape to close it.</RDialog.Description>
+            <ul className="kbgrid">
+              <Row>
+                <Keys keys={[mod, 'K']} />
+                Search everything
+              </Row>
+              <Row>
+                <Keys keys={['N']} />
+                New campaign
+              </Row>
+              <Row>
+                <Keys keys={[mod, 'S']} />
+                Save version
+              </Row>
+              <Row>
+                <Keys keys={[mod, 'Enter']} />
+                Open Send Readiness
+              </Row>
+              <Row>
+                <Keys keys={['G']} then={['O']} />
+                Overview
+              </Row>
+              <Row>
+                <Keys keys={['G']} then={['A']} />
+                Audience
+              </Row>
+              <Row>
+                <Keys keys={['Esc']} />
+                Close panel or dialog
+              </Row>
+              <Row>
+                <Keys keys={['?']} />
+                This sheet
+              </Row>
+              {Object.entries(GO_KEYS)
+                .filter(([key]) => key !== 'o' && key !== 'a')
+                .map(([key, g]) => (
+                  <Row key={key}>
+                    <Keys keys={['G']} then={[key.toUpperCase()]} />
+                    {g.label}
+                  </Row>
+                ))}
+            </ul>
+            <span className="k">Every shortcut has a visible button equivalent; none is required.</span>
+          </RDialog.Content>
+        </RDialog.Overlay>
+      </RDialog.Portal>
+    </RDialog.Root>
   )
 }
 

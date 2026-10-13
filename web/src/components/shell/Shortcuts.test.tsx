@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { dismissToast } from '@/components/ui/Toast'
 import { useShortcutHandler } from '@/lib/shortcuts'
 import { renderInWorkspace, workspaceMe } from '@/test/app'
@@ -48,7 +48,7 @@ describe('GlobalShortcuts', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('? opens the sheet, where keys do nothing; Done closes it', async () => {
+  it('? opens the sheet, where keys do nothing; Escape closes it', async () => {
     const { router } = await renderInWorkspace(<GlobalShortcuts />)
     act(() => void press('?', { shiftKey: true }))
     const sheet = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })
@@ -60,7 +60,7 @@ describe('GlobalShortcuts', () => {
       press('o', {}, sheet)
     })
     expect(router.state.location.pathname).toBe('/w/acme-newsletter/campaigns')
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Done' }))
+    fireEvent.keyDown(sheet, { key: 'Escape' })
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Button } from './Button'
 import { DisabledReason } from './DisabledReason'
 import { ErrorSummary } from './ErrorSummary'
@@ -73,6 +73,24 @@ describe('DisabledReason', () => {
     expect(button).toHaveAccessibleDescription("Editors can't change routing · ask Linh or Marcus")
     fireEvent.click(button)
     expect(onClick).not.toHaveBeenCalled()
+  })
+
+  it('shows the reason in a bubble on focus', async () => {
+    render(<Button disabledReason="Editors can't change routing · ask Linh or Marcus">Save routing</Button>)
+    fireEvent.focus(screen.getByRole('button', { name: 'Save routing' }))
+    await waitFor(() => expect(document.querySelector('.tip.why')).toHaveTextContent("Editors can't change routing · ask Linh or Marcus"))
+  })
+
+  it('keeps the same button, and focus, when the reason goes away', () => {
+    const { rerender } = render(<Button disabledReason="Type acme-newsletter to confirm.">Delete workspace</Button>)
+    const button = screen.getByRole('button', { name: 'Delete workspace' })
+    button.focus()
+    expect(button).toHaveAccessibleDescription('Type acme-newsletter to confirm.')
+    rerender(<Button disabledReason={undefined}>Delete workspace</Button>)
+    expect(screen.getByRole('button', { name: 'Delete workspace' })).toBe(button)
+    expect(button).toHaveFocus()
+    expect(button).not.toHaveAttribute('aria-disabled')
+    expect(button).not.toHaveAccessibleDescription()
   })
 
   it('leaves an allowed control alone', () => {
