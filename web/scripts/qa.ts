@@ -123,6 +123,7 @@ async function main() {
   mkdirSync(`${out}/img`, { recursive: true })
   const browser = await chromium.launch({ channel: 'chrome', headless: true })
   const contexts = new Map<string, BrowserContext>()
+  const signInErrors = new Map<string, string>()
   const results: Result[] = []
   try {
     for (const e of entries) {
@@ -136,10 +137,17 @@ async function main() {
         ctx = contexts.get(user)
         if (!ctx) {
           ctx = await browser.newContext({ deviceScaleFactor: 1, reducedMotion: 'reduce' })
-          if (user !== 'anon') await signIn(ctx, app, user)
+          try {
+            if (user !== 'anon') await signIn(ctx, app, user)
+          } catch (err) {
+            // Demo people who sign in only through SSO can't be signed in here:
+            // their boards are captured design-only, with the reason.
+            signInErrors.set(user, String(err).split('\n')[0]!)
+          }
           contexts.set(user, ctx)
         }
         try {
+          if (signInErrors.has(user)) throw new Error(signInErrors.get(user))
           path = await resolvePath(ctx, e.path)
         } catch (err) {
           pathError = String(err)
