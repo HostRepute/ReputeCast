@@ -147,16 +147,28 @@ func (e *Engine) DemoSend(ctx context.Context, o DemoSendOptions) (DemoSendResul
 		err = e.prepare(ctx, c.ID, start)
 	}
 	if err == nil && o.Elapsed > 0 {
-		// The fast-forward replays seconds that already passed: free the
-		// demo providers' rate windows over them first, or a real-time send
-		// in those seconds would leave it no room.
 		ids := make([]uuid.UUID, 0, len(provs))
 		for _, p := range provs {
 			ids = append(ids, p.ID)
 		}
-		err = e.Q.SendingClearWindows(ctx, store.SendingClearWindowsParams{ProviderIds: ids, FromSec: start.Unix() - 1, ToSec: now.Unix() + 1})
-		if err == nil {
-			_, _, err = e.drive(ctx, c.ID, start, o.Elapsed)
+		t, end := start, now
+		for {
+			// The fast-forward replays seconds that already passed: free the
+			// demo providers' rate windows over them first, or a real-time
+			// send in those seconds would leave it no room.
+			if err = e.Q.SendingClearWindows(ctx, store.SendingClearWindowsParams{ProviderIds: ids, FromSec: t.Unix() - 1, ToSec: end.Unix() + 1}); err != nil {
+				break
+			}
+			var done bool
+			if t, done, err = e.drive(ctx, c.ID, t, end.Sub(t)); err != nil || done {
+				break
+			}
+			// Fast-forwarding took real time too: catch up with it, so the
+			// server's worker carries on from now without a gap.
+			if e.now().Sub(end) < 2*time.Second {
+				break
+			}
+			end = e.now()
 		}
 	}
 	unlock()

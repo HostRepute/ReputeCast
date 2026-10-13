@@ -83,4 +83,12 @@
     padding: 16px;
     gap: 14px;
   }
+  /* LiveMonitorMobile is a screen of its own: its header leads back to
+     the campaigns, and the shell's tab bar isn't drawn under it. */
+  .rc-app:has(.lv-mhead) .side {
+    display: none;
+  }
+  .rc-app:has(.lv-mhead) .mainc {
+    padding-bottom: 0;
+  }
 }
