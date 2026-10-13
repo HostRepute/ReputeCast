@@ -1274,11 +1274,8 @@
     padding: 16px 12px;
     gap: 6px;
     box-sizing: border-box;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    height: 100dvh;
-    overflow-y: auto;
+    /* As on every board, the sidebar runs the full height of the page and
+       scrolls with it; its footer sits at the bottom of the page. */
   }
   .side .home {
     display: flex;
