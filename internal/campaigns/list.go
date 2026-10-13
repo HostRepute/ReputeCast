@@ -35,6 +35,19 @@ type Service struct {
 	URLs publicurl.Builder
 	// Checker runs the content checks (blocklist and link probing plug in here).
 	Checker *contentcheck.Checker
+	// AfterChange runs once a save of the content, audience, sender or
+	// settings committed (the approvals domain re-checks open approvals).
+	AfterChange ChangeHook
+}
+
+// ChangeHook is told which campaign changed. The save already committed, so
+// a hook handles its own errors.
+type ChangeHook func(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID)
+
+func (s *Service) changed(ctx context.Context, ws *store.Workspace, id uuid.UUID) {
+	if s.AfterChange != nil {
+		s.AfterChange(ctx, ws, id)
+	}
 }
 
 func (s *Service) now() time.Time {

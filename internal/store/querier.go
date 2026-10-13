@@ -509,6 +509,43 @@ type Querier interface {
 	PurgeAuditEvents(ctx context.Context, arg PurgeAuditEventsParams) (int64, error)
 	PurgeAutomationEvents(ctx context.Context, before *time.Time) (int64, error)
 	PurgeAutomationWebhookCalls(ctx context.Context, before time.Time) (int64, error)
+	ReadinessAcceptUnknown(ctx context.Context, arg ReadinessAcceptUnknownParams) error
+	// Send Readiness (spec 5.1, 7.5): runs, the run in progress, the facts a
+	// run reads about the campaign and its audience, and the one-click fixes.
+	// A campaign with its sender and sending domain.
+	ReadinessCampaign(ctx context.Context, arg ReadinessCampaignParams) (ReadinessCampaignRow, error)
+	ReadinessEndProgress(ctx context.Context, arg ReadinessEndProgressParams) error
+	ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID) (ReadinessGetProgressRow, error)
+	ReadinessGetRun(ctx context.Context, arg ReadinessGetRunParams) (ReadinessGetRunRow, error)
+	ReadinessInsertRoute(ctx context.Context, arg ReadinessInsertRouteParams) error
+	ReadinessInsertRun(ctx context.Context, arg ReadinessInsertRunParams) error
+	ReadinessLatestRun(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestRunRow, error)
+	// Lists of the workspace, to tell "All subscribers" from a few lists.
+	ReadinessListCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	ReadinessListNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessListNamesRow, error)
+	// Keeps the 20 latest runs of a campaign and any run an approval refers to.
+	ReadinessPruneRuns(ctx context.Context, campaignID uuid.UUID) error
+	// The audience before suppressions and exclusions by address: active
+	// contacts subscribed to the lists (or in the segments), minus excluded lists
+	// and segments, with what the counts need per contact.
+	ReadinessRecipients(ctx context.Context, arg ReadinessRecipientsParams) ([]ReadinessRecipientsRow, error)
+	// The planned split of an unsent campaign, refreshed by each run.
+	ReadinessReplaceRoutes(ctx context.Context, campaignID uuid.UUID) error
+	// Scheduled campaigns starting within the window whose latest run is
+	// older than the window (checks run again 15 minutes before the send).
+	ReadinessScheduledDue(ctx context.Context, arg ReadinessScheduledDueParams) ([]ReadinessScheduledDueRow, error)
+	ReadinessSegmentNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessSegmentNamesRow, error)
+	ReadinessSetAudience(ctx context.Context, arg ReadinessSetAudienceParams) error
+	ReadinessSetAudienceCount(ctx context.Context, arg ReadinessSetAudienceCountParams) error
+	ReadinessSetContentSettings(ctx context.Context, arg ReadinessSetContentSettingsParams) error
+	ReadinessSetRouteOverride(ctx context.Context, arg ReadinessSetRouteOverrideParams) error
+	ReadinessSetSendSettings(ctx context.Context, arg ReadinessSetSendSettingsParams) error
+	// Starts a run unless one is already running (a run that stopped updating
+	// for two minutes is taken over).
+	ReadinessStartProgress(ctx context.Context, arg ReadinessStartProgressParams) (uuid.UUID, error)
+	// The latest test emails of a campaign, from the audit log.
+	ReadinessTestSends(ctx context.Context, arg ReadinessTestSendsParams) ([]ReadinessTestSendsRow, error)
+	ReadinessUpdateProgress(ctx context.Context, arg ReadinessUpdateProgressParams) error
 	RecordHostReputeSyncError(ctx context.Context, arg RecordHostReputeSyncErrorParams) error
 	RecordSignInFailure(ctx context.Context, arg RecordSignInFailureParams) (RecordSignInFailureRow, error)
 	RecordSignInSuccess(ctx context.Context, id uuid.UUID) error

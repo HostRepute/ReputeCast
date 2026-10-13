@@ -79,6 +79,12 @@ type ApprovalRequest struct {
 	Changes           json.RawMessage `json:"changes"`
 	BypassReason      string          `json:"bypassReason"`
 	DecidedAt         *time.Time      `json:"decidedAt"`
+	CampaignVersion   *int32          `json:"campaignVersion"`
+	ReadinessRunID    *uuid.UUID      `json:"readinessRunId"`
+	DecidedBy         *uuid.UUID      `json:"decidedBy"`
+	InvalidatedBy     *uuid.UUID      `json:"invalidatedBy"`
+	RemindedAt        *time.Time      `json:"remindedAt"`
+	PreviousID        *uuid.UUID      `json:"previousId"`
 }
 
 type AuditEvent struct {
@@ -882,15 +888,32 @@ type ProviderSuppressionSync struct {
 	StatusDetail string     `json:"statusDetail"`
 }
 
-type ReadinessRun struct {
-	ID         uuid.UUID       `json:"id"`
+type ReadinessProgress struct {
 	CampaignID uuid.UUID       `json:"campaignId"`
+	RunID      uuid.UUID       `json:"runId"`
 	Trigger    string          `json:"trigger"`
-	Verdict    string          `json:"verdict"`
-	Checks     json.RawMessage `json:"checks"`
-	Estimates  json.RawMessage `json:"estimates"`
-	RanAt      time.Time       `json:"ranAt"`
-	DurationMs int32           `json:"durationMs"`
+	StartedBy  *uuid.UUID      `json:"startedBy"`
+	StartedAt  time.Time       `json:"startedAt"`
+	UpdatedAt  time.Time       `json:"updatedAt"`
+	Groups     json.RawMessage `json:"groups"`
+	Done       int32           `json:"done"`
+	Total      int32           `json:"total"`
+}
+
+type ReadinessRun struct {
+	ID                uuid.UUID       `json:"id"`
+	CampaignID        uuid.UUID       `json:"campaignId"`
+	Trigger           string          `json:"trigger"`
+	Verdict           string          `json:"verdict"`
+	Checks            json.RawMessage `json:"checks"`
+	Estimates         json.RawMessage `json:"estimates"`
+	RanAt             time.Time       `json:"ranAt"`
+	DurationMs        int32           `json:"durationMs"`
+	RanBy             *uuid.UUID      `json:"ranBy"`
+	CampaignVersion   int32           `json:"campaignVersion"`
+	Fingerprint       string          `json:"fingerprint"`
+	UnknownAcceptedAt *time.Time      `json:"unknownAcceptedAt"`
+	UnknownAcceptedBy *uuid.UUID      `json:"unknownAcceptedBy"`
 }
 
 type ReportShare struct {
