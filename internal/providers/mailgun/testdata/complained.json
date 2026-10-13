@@ -1,0 +1,13 @@
+{
+  "signature": {"token": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4", "timestamp": "1760280000", "signature": "__SIGNATURE__"},
+  "event-data": {
+    "event": "complained",
+    "id": "rIVDlyk8SY-mJauQoYmNFA",
+    "timestamp": 1760280000.2684145,
+    "log-level": "warn",
+    "recipient": "M.G@aol.com",
+    "envelope": {"sending-ip": "161.38.194.10"},
+    "message": {"headers": {"to": "m.g@aol.com", "message-id": "20261012134102.ae5f6a7b8c9d0e1f@mg.acme.io", "from": "Acme Newsletter <news@news.acme.io>", "subject": "The October issue"}},
+    "user-variables": {"rc_message": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e42"}
+  }
+}

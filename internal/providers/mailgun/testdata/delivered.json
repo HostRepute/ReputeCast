@@ -1,0 +1,17 @@
+{
+  "signature": {"token": "e0b5477167110d68991efc6b9f89f0a11066af27834600e123", "timestamp": "1760276463", "signature": "__SIGNATURE__"},
+  "event-data": {
+    "event": "delivered",
+    "id": "MXcc2gEpS-eN8HfkOnmK2w",
+    "timestamp": 1760276462.6585283,
+    "log-level": "info",
+    "recipient": "D.F@outlook.com",
+    "recipient-domain": "outlook.com",
+    "tags": [],
+    "envelope": {"sender": "bounce+31b0c4.0199d5a8-d.f=outlook.com@mg.acme.io", "targets": "d.f@outlook.com", "transport": "smtp", "sending-ip": "161.38.194.10"},
+    "flags": {"is-authenticated": true, "is-test-mode": false},
+    "message": {"headers": {"to": "\"D. F\" <d.f@outlook.com>", "message-id": "20261012134102.58bbb7ce85a423e5@mg.acme.io", "from": "Acme Newsletter <news@news.acme.io>", "subject": "The October issue"}, "size": 18322},
+    "delivery-status": {"attempt-no": 1, "code": 250, "message": "OK", "description": null, "session-seconds": 0.892, "enhanced-code": "2.0.0", "mx-host": "outlook-com.olc.protection.outlook.com", "tls": true, "utf8": true},
+    "user-variables": {"rc_message": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40", "rc_stream": "broadcast", "campaign": "october"}
+  }
+}
