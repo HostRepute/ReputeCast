@@ -1,0 +1,44 @@
+package app
+
+import (
+	"context"
+
+	"github.com/danielgtaylor/huma/v2"
+
+	"github.com/hostrepute/reputecast/internal/audience"
+	"github.com/hostrepute/reputecast/internal/reports"
+	"github.com/hostrepute/reputecast/internal/store"
+)
+
+// W09 · Campaign reports and read-only report links.
+func init() {
+	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
+		reports.Register(h, &reports.Service{
+			Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, URLs: a.URLs,
+			Suppress: reportSuppressor{a}, Limits: reports.NewLimiter(),
+		})
+	})
+}
+
+// reportSuppressor adds bounced addresses from a report to the shared
+// suppression list through the audience domain (which marks the contacts
+// suppressed, records their consent history and writes the audit entry),
+// then has the suppression sync tell every provider.
+type reportSuppressor struct{ a *App }
+
+// maxNote is the longest note the suppression list keeps.
+const maxNote = 300
+
+func (r reportSuppressor) AddSuppressions(ctx context.Context, ws *store.Workspace, emails []string, note string) (int, int, error) {
+	if n := []rune(note); len(n) > maxNote {
+		note = string(n[:maxNote-1]) + "…"
+	}
+	res, err := r.a.audience().AddSuppressions(ctx, ws, audience.AddSuppressionsInput{Emails: emails, Note: note})
+	if err != nil {
+		return 0, 0, err
+	}
+	if res.Added > 0 && r.a.Jobs != nil {
+		r.a.suppressionSync().Enqueue(ctx, ws.ID)
+	}
+	return res.Added, res.Already, nil
+}

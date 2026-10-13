@@ -413,12 +413,13 @@ type CampaignLink struct {
 }
 
 type CampaignRoute struct {
-	CampaignID   uuid.UUID `json:"campaignId"`
-	ProviderID   uuid.UUID `json:"providerId"`
-	Planned      int64     `json:"planned"`
-	Status       string    `json:"status"`
-	StatusDetail string    `json:"statusDetail"`
-	CostMicros   int64     `json:"costMicros"`
+	CampaignID    uuid.UUID `json:"campaignId"`
+	ProviderID    uuid.UUID `json:"providerId"`
+	Planned       int64     `json:"planned"`
+	Status        string    `json:"status"`
+	StatusDetail  string    `json:"statusDetail"`
+	CostMicros    int64     `json:"costMicros"`
+	DeliveryP50Ms *int32    `json:"deliveryP50Ms"`
 }
 
 type CampaignVersion struct {
@@ -993,13 +994,17 @@ type ReadinessRun struct {
 }
 
 type ReportShare struct {
-	ID         uuid.UUID  `json:"id"`
-	CampaignID uuid.UUID  `json:"campaignId"`
-	TokenHash  []byte     `json:"tokenHash"`
-	CreatedBy  *uuid.UUID `json:"createdBy"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	ExpiresAt  *time.Time `json:"expiresAt"`
-	RevokedAt  *time.Time `json:"revokedAt"`
+	ID           uuid.UUID  `json:"id"`
+	CampaignID   uuid.UUID  `json:"campaignId"`
+	TokenHash    []byte     `json:"tokenHash"`
+	CreatedBy    *uuid.UUID `json:"createdBy"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	ExpiresAt    *time.Time `json:"expiresAt"`
+	RevokedAt    *time.Time `json:"revokedAt"`
+	TokenSealed  []byte     `json:"tokenSealed"`
+	RevokedBy    *uuid.UUID `json:"revokedBy"`
+	Views        int64      `json:"views"`
+	LastViewedAt *time.Time `json:"lastViewedAt"`
 }
 
 type Role struct {
