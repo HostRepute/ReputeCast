@@ -48,10 +48,10 @@ type ContactBulkFailure struct {
 // ContactBulkResult reports a bulk action ("Added 2,116 of 2,118 contacts to
 // 'Re-permission'; 2 failed").
 type ContactBulkResult struct {
-	Action   string        `json:"action"`
-	Matched  int64         `json:"matched"`
-	Done     int64         `json:"done"`
-	Failed   int64         `json:"failed"`
+	Action   string               `json:"action"`
+	Matched  int64                `json:"matched"`
+	Done     int64                `json:"done"`
+	Failed   int64                `json:"failed"`
 	Failures []ContactBulkFailure `json:"failures" doc:"Up to 20 examples"`
 	// Target names the list or tag ("Re-permission").
 	Target string `json:"target,omitempty"`

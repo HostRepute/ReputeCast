@@ -25,11 +25,11 @@ type Source interface {
 
 // ImportConnection describes the source account.
 type ImportConnection struct {
-	Account    string       `json:"account"`
-	DataCenter string       `json:"dataCenter,omitempty"`
-	BaseURL    string       `json:"baseUrl,omitempty"`
+	Account    string             `json:"account"`
+	DataCenter string             `json:"dataCenter,omitempty"`
+	BaseURL    string             `json:"baseUrl,omitempty"`
 	Lists      []ImportSourceList `json:"lists"`
-	CheckedAt  time.Time    `json:"checkedAt"`
+	CheckedAt  time.Time          `json:"checkedAt"`
 }
 
 // ImportSourceList is an audience, list or group in the source.

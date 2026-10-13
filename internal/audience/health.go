@@ -36,10 +36,10 @@ type HealthTrendWeek struct {
 
 // ListHealthRow is one row of "Health per list": a list or a followed view.
 type ListHealthRow struct {
-	Kind     string     `json:"kind" enum:"list,view"`
-	ID       string     `json:"id"`
-	Name     string     `json:"name"`
-	Contacts int64      `json:"contacts"`
+	Kind     string             `json:"kind" enum:"list,view"`
+	ID       string             `json:"id"`
+	Name     string             `json:"name"`
+	Contacts int64              `json:"contacts"`
 	Tiers    AudienceTierCounts `json:"tiers"`
 	// NetGrowth is joins minus departures over 30 days.
 	NetGrowth int64 `json:"netGrowth"`
@@ -70,15 +70,15 @@ type ListHealthInsight struct {
 
 // ListHealth is the List health screen.
 type ListHealth struct {
-	ComputedAt *time.Time   `json:"computedAt,omitempty"`
-	Total      int64        `json:"total"`
-	Tiers      []HealthTierCard   `json:"tiers"`
-	Trend      []HealthTrendWeek  `json:"trend"`
-	PolicyWeek int          `json:"policyWeek" doc:"Index of the trend column when the policy started, -1 if none"`
-	Policy     SunsetPolicy `json:"policy"`
+	ComputedAt *time.Time        `json:"computedAt,omitempty"`
+	Total      int64             `json:"total"`
+	Tiers      []HealthTierCard  `json:"tiers"`
+	Trend      []HealthTrendWeek `json:"trend"`
+	PolicyWeek int               `json:"policyWeek" doc:"Index of the trend column when the policy started, -1 if none"`
+	Policy     SunsetPolicy      `json:"policy"`
 	// WinBackRate is the share of re-engaged contacts who came back, percent.
-	WinBackRate *float64       `json:"winBackRate,omitempty"`
-	ThisWeek    SunsetThisWeek       `json:"thisWeek"`
+	WinBackRate *float64           `json:"winBackRate,omitempty"`
+	ThisWeek    SunsetThisWeek     `json:"thisWeek"`
 	Rows        []ListHealthRow    `json:"rows"`
 	Insight     *ListHealthInsight `json:"insight,omitempty"`
 }

@@ -17,7 +17,7 @@ type SegmentDefinition struct {
 
 // SegmentGroup is one box of conditions in the builder.
 type SegmentGroup struct {
-	Match      string      `json:"match" enum:"all,any" doc:"all = every condition, any = at least one"`
+	Match      string             `json:"match" enum:"all,any" doc:"all = every condition, any = at least one"`
 	Conditions []SegmentCondition `json:"conditions"`
 }
 

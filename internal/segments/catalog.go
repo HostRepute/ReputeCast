@@ -21,9 +21,9 @@ type SegmentOperator struct {
 
 // SegmentCatalogField is a field the builder can filter on.
 type SegmentCatalogField struct {
-	Key   string     `json:"key"`
-	Label string     `json:"label"`
-	Kind  string     `json:"kind" enum:"enum,list,campaign,text,number,date,boolean,period"`
+	Key   string            `json:"key"`
+	Label string            `json:"label"`
+	Kind  string            `json:"kind" enum:"enum,list,campaign,text,number,date,boolean,period"`
 	Ops   []SegmentOperator `json:"ops"`
 	// Options are the values of enum, list and campaign fields.
 	Options []SegmentOption `json:"options"`

@@ -29,8 +29,8 @@ type ContactActivityItem struct {
 	Type     string    `json:"type" doc:"delivered, soft_bounce, open, click… or a consent action"`
 	At       time.Time `json:"at"`
 	// Subject is the email: "Weekly Digest #141", "Welcome series · step 2".
-	Subject  string            `json:"subject"`
-	Variant  string            `json:"variant,omitempty"`
+	Subject  string                   `json:"subject"`
+	Variant  string                   `json:"variant,omitempty"`
 	Provider *ContactActivityProvider `json:"provider,omitempty"`
 	// Imported names the tool that sent the email before the migration ("Brevo").
 	Imported   string `json:"imported,omitempty"`
@@ -59,8 +59,8 @@ type ContactActivityItem struct {
 // ContactActivityPage is one page of the timeline, newest first.
 type ContactActivityPage struct {
 	Items      []ContactActivityItem `json:"items"`
-	Total      int64          `json:"total" doc:"Events matching the filter"`
-	NextCursor string         `json:"nextCursor,omitempty"`
+	Total      int64                 `json:"total" doc:"Events matching the filter"`
+	NextCursor string                `json:"nextCursor,omitempty"`
 }
 
 var deliveryTypes = []string{"delivered", "deferred", "hard_bounce", "soft_bounce", "complaint", "rejected"}

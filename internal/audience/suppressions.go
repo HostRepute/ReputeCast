@@ -122,14 +122,14 @@ type SuppressionFilterOption struct {
 
 // SuppressionList is one page of the suppression list.
 type SuppressionList struct {
-	Items    []SuppressionItem     `json:"items"`
-	Total    int64                 `json:"total" doc:"Rows matching, groups counted once"`
-	Matching int64                 `json:"matching" doc:"Addresses matching the filter"`
-	Page     int                   `json:"page"`
-	PageSize int                   `json:"pageSize"`
-	Counts   SuppressionCountsView `json:"counts"`
-	Sync     []SuppressionProviderSync        `json:"sync"`
-	Sources  []SuppressionFilterOption        `json:"sources"`
+	Items    []SuppressionItem         `json:"items"`
+	Total    int64                     `json:"total" doc:"Rows matching, groups counted once"`
+	Matching int64                     `json:"matching" doc:"Addresses matching the filter"`
+	Page     int                       `json:"page"`
+	PageSize int                       `json:"pageSize"`
+	Counts   SuppressionCountsView     `json:"counts"`
+	Sync     []SuppressionProviderSync `json:"sync"`
+	Sources  []SuppressionFilterOption `json:"sources"`
 }
 
 // SuppressionFilter narrows the list.
@@ -656,7 +656,7 @@ func (s *Service) addUploaded(ctx context.Context, ws *store.Workspace, emails [
 // SuppressionPullResult reports suppressions pulled from sending providers.
 type SuppressionPullResult struct {
 	Providers []SuppressionPullProvider `json:"providers"`
-	Added     int            `json:"added"`
+	Added     int                       `json:"added"`
 }
 
 // SuppressionPullProvider is one provider's part of a pull.

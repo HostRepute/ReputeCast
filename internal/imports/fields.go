@@ -64,21 +64,21 @@ type ImportFieldOption struct {
 
 // ImportFieldRow is one row of the mapping table.
 type ImportFieldRow struct {
-	Source  string        `json:"source"`
-	Label   string        `json:"label"`
-	Samples []string      `json:"samples"`
-	Target  string        `json:"target"`
-	Type    string        `json:"type" doc:"What ReputeCast stores: email, text, number, date, timezone, consent, tags, or – when skipped"`
-	Status  string        `json:"status" enum:"mapped,new,skipped"`
+	Source  string              `json:"source"`
+	Label   string              `json:"label"`
+	Samples []string            `json:"samples"`
+	Target  string              `json:"target"`
+	Type    string              `json:"type" doc:"What ReputeCast stores: email, text, number, date, timezone, consent, tags, or – when skipped"`
+	Status  string              `json:"status" enum:"mapped,new,skipped"`
 	Options []ImportFieldOption `json:"options"`
 }
 
 // ImportFieldMapping is the "Map fields" step.
 type ImportFieldMapping struct {
 	Fields  []ImportFieldRow `json:"fields"`
-	Mapped  int        `json:"mapped"`
-	New     int        `json:"new"`
-	Skipped int        `json:"skipped"`
+	Mapped  int              `json:"mapped"`
+	New     int              `json:"new"`
+	Skipped int              `json:"skipped"`
 	// Ready is false while rows are still being read from the source.
 	Ready bool `json:"ready"`
 }

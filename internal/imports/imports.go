@@ -94,16 +94,16 @@ type ImportOptions struct {
 	// Lists are the source lists to import and where each goes: a list id
 	// or "new:<name>" to create one.
 	Lists            []ImportListChoice `json:"lists"`
-	ImportTags       bool         `json:"importTags"`
-	ImportEngagement bool         `json:"importEngagement"`
-	PullSuppressions bool         `json:"pullSuppressions"`
-	RecordHistory    bool         `json:"recordHistory"`
+	ImportTags       bool               `json:"importTags"`
+	ImportEngagement bool               `json:"importEngagement"`
+	PullSuppressions bool               `json:"pullSuppressions"`
+	RecordHistory    bool               `json:"recordHistory"`
 	// Evidence: trust (keep the source's opt-in as evidence) or
 	// repermission (import as pending and send a confirmation email).
 	Evidence string `json:"evidence" enum:"trust,repermission"`
 	// OnConflict for contacts that already exist: fill (empty fields only),
 	// overwrite, or keep (ReputeCast values win).
-	OnConflict string       `json:"onConflict" enum:"fill,overwrite,keep"`
+	OnConflict string             `json:"onConflict" enum:"fill,overwrite,keep"`
 	Risky      ImportRiskyActions `json:"risky"`
 	// SkipRows are file lines left out (rows with the wrong column count).
 	SkipRows []int `json:"skipRows"`
@@ -170,7 +170,7 @@ type storedConnection struct {
 	Fields []SourceField `json:"fields"`
 	// BadRows are file rows with the wrong column count.
 	BadRows []ImportBadRow `json:"badRows,omitempty"`
-	Header  int      `json:"header,omitempty"`
+	Header  int            `json:"header,omitempty"`
 	// Staged remembers which lists the staged rows came from.
 	StagedLists []string `json:"stagedLists,omitempty"`
 	// Error is the last failure talking to the source.
@@ -200,12 +200,12 @@ func credentialsAD(id uuid.UUID) string { return "import:" + id.String() + ":cre
 
 // ImportError explains why the source or the file can't be used.
 type ImportError struct {
-	Code    string     `json:"code" doc:"source_auth_failed, source_rate_limited, source_unavailable, file_columns, file_unreadable"`
-	Message string     `json:"message"`
-	Status  int        `json:"status,omitempty" doc:"HTTP status from the source (401, 429)"`
-	BadRows []ImportBadRow   `json:"badRows,omitempty"`
-	Header  int        `json:"header,omitempty"`
-	RetryAt *time.Time `json:"retryAt,omitempty"`
+	Code    string         `json:"code" doc:"source_auth_failed, source_rate_limited, source_unavailable, file_columns, file_unreadable"`
+	Message string         `json:"message"`
+	Status  int            `json:"status,omitempty" doc:"HTTP status from the source (401, 429)"`
+	BadRows []ImportBadRow `json:"badRows,omitempty"`
+	Header  int            `json:"header,omitempty"`
+	RetryAt *time.Time     `json:"retryAt,omitempty"`
 	// Row is where a paused import stopped.
 	Row int64 `json:"row,omitempty"`
 }
@@ -245,9 +245,9 @@ type ImportStats struct {
 	Reasons map[string]int64 `json:"reasons"`
 	// Lists are the target lists and their size after the import.
 	Lists        []ImportListAfter `json:"lists"`
-	DurationMs   int64       `json:"durationMs"`
-	PushedTo     []string    `json:"pushedTo" doc:"Providers the new suppressions were pushed to"`
-	ConfirmsSent int64       `json:"confirmsSent" doc:"Re-permission emails sent through the System stream"`
+	DurationMs   int64             `json:"durationMs"`
+	PushedTo     []string          `json:"pushedTo" doc:"Providers the new suppressions were pushed to"`
+	ConfirmsSent int64             `json:"confirmsSent" doc:"Re-permission emails sent through the System stream"`
 }
 
 // ImportListAfter is a target list and its size after the import.
@@ -258,25 +258,25 @@ type ImportListAfter struct {
 
 // ImportDetail is one import for the wizard.
 type ImportDetail struct {
-	ID             string       `json:"id"`
-	Source         string       `json:"source"`
-	SourceName     string       `json:"sourceName"`
-	Status         string       `json:"status" enum:"draft,staging,mapping,previewing,running,paused,done,failed,cancelled"`
-	Step           string       `json:"step" enum:"source,fields,consent,preview,import,done"`
-	FileName       string       `json:"fileName"`
-	HasCredentials bool         `json:"hasCredentials" doc:"An API key is stored (it is never returned)"`
-	Connection     *ImportConnection  `json:"connection,omitempty"`
-	Options        ImportOptions      `json:"options"`
-	StagedRows     int64        `json:"stagedRows"`
-	StagedAt       *time.Time   `json:"stagedAt,omitempty"`
-	Progress       ImportProgress     `json:"progress"`
-	Stats          *ImportStats       `json:"stats,omitempty"`
-	Error          *ImportError `json:"error,omitempty"`
-	Log            []ImportLogEntry   `json:"log"`
-	CreatedAt      time.Time    `json:"createdAt"`
-	StartedAt      *time.Time   `json:"startedAt,omitempty"`
-	FinishedAt     *time.Time   `json:"finishedAt,omitempty"`
-	CreatedBy      string       `json:"createdBy"`
+	ID             string            `json:"id"`
+	Source         string            `json:"source"`
+	SourceName     string            `json:"sourceName"`
+	Status         string            `json:"status" enum:"draft,staging,mapping,previewing,running,paused,done,failed,cancelled"`
+	Step           string            `json:"step" enum:"source,fields,consent,preview,import,done"`
+	FileName       string            `json:"fileName"`
+	HasCredentials bool              `json:"hasCredentials" doc:"An API key is stored (it is never returned)"`
+	Connection     *ImportConnection `json:"connection,omitempty"`
+	Options        ImportOptions     `json:"options"`
+	StagedRows     int64             `json:"stagedRows"`
+	StagedAt       *time.Time        `json:"stagedAt,omitempty"`
+	Progress       ImportProgress    `json:"progress"`
+	Stats          *ImportStats      `json:"stats,omitempty"`
+	Error          *ImportError      `json:"error,omitempty"`
+	Log            []ImportLogEntry  `json:"log"`
+	CreatedAt      time.Time         `json:"createdAt"`
+	StartedAt      *time.Time        `json:"startedAt,omitempty"`
+	FinishedAt     *time.Time        `json:"finishedAt,omitempty"`
+	CreatedBy      string            `json:"createdBy"`
 	// Fields found in the source (merge fields, attributes, columns).
 	FieldCount int `json:"fieldCount"`
 	// Previous is the latest finished import, for "Previous imports".
@@ -461,9 +461,9 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 // ImportUpdateInput changes the draft: its source (before connecting), options
 // and the step the person is on.
 type ImportUpdateInput struct {
-	Source  string   `json:"source,omitempty" enum:"brevo,mailchimp,mailerlite,listmonk,keila,csv,xlsx,"`
+	Source  string         `json:"source,omitempty" enum:"brevo,mailchimp,mailerlite,listmonk,keila,csv,xlsx,"`
 	Options *ImportOptions `json:"options,omitempty"`
-	Step    string   `json:"step,omitempty" enum:"source,fields,consent,preview,"`
+	Step    string         `json:"step,omitempty" enum:"source,fields,consent,preview,"`
 }
 
 // Update saves changes to a draft.

@@ -70,22 +70,22 @@ func (m ImportConsentMap) handling(status string) string {
 
 // ImportConsentStatus is one row of the consent table.
 type ImportConsentStatus struct {
-	Status   string        `json:"status"`
-	Label    string        `json:"label" doc:"The source's own word: subscribed, cleaned, archived with \"abuse\" complaint"`
-	Note     string        `json:"note,omitempty"`
-	Tone     string        `json:"tone" enum:"ok,warn,bad,neutral"`
-	Contacts int64         `json:"contacts"`
-	Handling string        `json:"handling"`
+	Status   string              `json:"status"`
+	Label    string              `json:"label" doc:"The source's own word: subscribed, cleaned, archived with \"abuse\" complaint"`
+	Note     string              `json:"note,omitempty"`
+	Tone     string              `json:"tone" enum:"ok,warn,bad,neutral"`
+	Contacts int64               `json:"contacts"`
+	Handling string              `json:"handling"`
 	Options  []ImportFieldOption `json:"options"`
-	Locked   bool          `json:"locked"`
-	Effect   string        `json:"effect"`
+	Locked   bool                `json:"locked"`
+	Effect   string              `json:"effect"`
 }
 
 // ImportConsentMapping is the "Consent" step.
 type ImportConsentMapping struct {
 	Statuses      []ImportConsentStatus `json:"statuses"`
-	SuppressCount int64           `json:"suppressCount"`
-	Evidence      string          `json:"evidence" enum:"trust,repermission"`
+	SuppressCount int64                 `json:"suppressCount"`
+	Evidence      string                `json:"evidence" enum:"trust,repermission"`
 	// EvidenceSource names what the source's opt-in proof is ("OPTIN_TIME and OPTIN_IP").
 	EvidenceSource   string `json:"evidenceSource"`
 	DoubleOptIn      bool   `json:"doubleOptIn"`
@@ -277,9 +277,9 @@ func (s *Service) historyExample(ctx context.Context, ws *store.Workspace, imp s
 // ImportSaveConsentInput is the consent step's choices.
 type ImportSaveConsentInput struct {
 	Map              ImportConsentMap `json:"map"`
-	Evidence         string     `json:"evidence" enum:"trust,repermission"`
-	PullSuppressions bool       `json:"pullSuppressions"`
-	RecordHistory    bool       `json:"recordHistory"`
+	Evidence         string           `json:"evidence" enum:"trust,repermission"`
+	PullSuppressions bool             `json:"pullSuppressions"`
+	RecordHistory    bool             `json:"recordHistory"`
 }
 
 // SaveConsent stores the consent mapping and moves on to the preview.

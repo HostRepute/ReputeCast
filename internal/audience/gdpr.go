@@ -14,12 +14,12 @@ import (
 // contactExport is everything ReputeCast stores about one person, for a
 // data subject access request ("Export data (GDPR)").
 type contactExport struct {
-	ExportedAt  time.Time           `json:"exportedAt"`
-	Workspace   string              `json:"workspace"`
-	Contact     ContactProfile      `json:"contact"`
-	Attributes  json.RawMessage     `json:"customFields"`
-	Evidence    json.RawMessage     `json:"consentEvidence"`
-	Messages    []exportMessage     `json:"messages"`
+	ExportedAt  time.Time                  `json:"exportedAt"`
+	Workspace   string                     `json:"workspace"`
+	Contact     ContactProfile             `json:"contact"`
+	Attributes  json.RawMessage            `json:"customFields"`
+	Evidence    json.RawMessage            `json:"consentEvidence"`
+	Messages    []exportMessage            `json:"messages"`
 	Events      []ContactActivityItem      `json:"events"`
 	Suppression *ContactProfileSuppression `json:"suppression,omitempty"`
 }

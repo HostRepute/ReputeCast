@@ -18,12 +18,12 @@ import (
 
 // ImportRiskyGroup is one group of risky addresses with the chosen action.
 type ImportRiskyGroup struct {
-	Key      string        `json:"key" enum:"role,disposable,typo,stale,trap"`
-	Label    string        `json:"label"`
-	Rows     int64         `json:"rows"`
-	Why      string        `json:"why"`
-	Examples string        `json:"examples"`
-	Action   string        `json:"action"`
+	Key      string              `json:"key" enum:"role,disposable,typo,stale,trap"`
+	Label    string              `json:"label"`
+	Rows     int64               `json:"rows"`
+	Why      string              `json:"why"`
+	Examples string              `json:"examples"`
+	Action   string              `json:"action"`
 	Actions  []ImportFieldOption `json:"actions"`
 }
 
@@ -55,13 +55,13 @@ type ImportPreview struct {
 	NotImported int64 `json:"notImported" doc:"Statuses mapped to Skip"`
 	Risky       int64 `json:"risky"`
 	// ImportCount and SuppressCount label the import button.
-	ImportCount   int64              `json:"importCount"`
-	SuppressCount int64              `json:"suppressCount"`
+	ImportCount   int64                    `json:"importCount"`
+	SuppressCount int64                    `json:"suppressCount"`
 	RiskyGroups   []ImportRiskyGroup       `json:"riskyGroups"`
 	Duplicates    []ImportDuplicateExample `json:"duplicates"`
 	InvalidGroups []ImportInvalidGroup     `json:"invalidGroups"`
-	OnConflict    string             `json:"onConflict" enum:"fill,overwrite,keep"`
-	ComputedAt    time.Time          `json:"computedAt"`
+	OnConflict    string                   `json:"onConflict" enum:"fill,overwrite,keep"`
+	ComputedAt    time.Time                `json:"computedAt"`
 }
 
 var riskyMeta = []struct {

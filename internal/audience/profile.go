@@ -61,10 +61,10 @@ type ContactConsentEvent struct {
 
 // ContactListConsent is the consent state and history of one list.
 type ContactListConsent struct {
-	ListID      string             `json:"listId"`
-	Name        string             `json:"name"`
-	Status      string             `json:"status" enum:"subscribed,pending,unsubscribed,none"`
-	DoubleOptIn bool               `json:"doubleOptIn"`
+	ListID      string                `json:"listId"`
+	Name        string                `json:"name"`
+	Status      string                `json:"status" enum:"subscribed,pending,unsubscribed,none"`
+	DoubleOptIn bool                  `json:"doubleOptIn"`
 	Events      []ContactConsentEvent `json:"events"`
 }
 
@@ -85,26 +85,26 @@ type ContactProfileSuppression struct {
 
 // ContactProfile is the contact profile screen.
 type ContactProfile struct {
-	ID              string              `json:"id"`
-	Email           string              `json:"email"`
-	FirstName       string              `json:"firstName"`
-	LastName        string              `json:"lastName"`
-	Name            string              `json:"name"`
-	Tier            string              `json:"tier" enum:"active,cooling,at_risk,sunset"`
-	Consent         string              `json:"consent" enum:"double,single,pending"`
-	MailboxProvider string              `json:"mailboxProvider"`
-	MailboxLabel    string              `json:"mailboxLabel"`
-	JoinedAt        time.Time           `json:"joinedAt"`
-	Source          string              `json:"source"`
-	SourceLabel     string              `json:"sourceLabel"`
-	RoleAddress     bool                `json:"roleAddress"`
+	ID              string                     `json:"id"`
+	Email           string                     `json:"email"`
+	FirstName       string                     `json:"firstName"`
+	LastName        string                     `json:"lastName"`
+	Name            string                     `json:"name"`
+	Tier            string                     `json:"tier" enum:"active,cooling,at_risk,sunset"`
+	Consent         string                     `json:"consent" enum:"double,single,pending"`
+	MailboxProvider string                     `json:"mailboxProvider"`
+	MailboxLabel    string                     `json:"mailboxLabel"`
+	JoinedAt        time.Time                  `json:"joinedAt"`
+	Source          string                     `json:"source"`
+	SourceLabel     string                     `json:"sourceLabel"`
+	RoleAddress     bool                       `json:"roleAddress"`
 	Suppression     *ContactProfileSuppression `json:"suppression,omitempty"`
 	Stats           ContactProfileStats        `json:"stats"`
 	Fields          []ContactProfileField      `json:"fields"`
-	Tags            []string            `json:"tags"`
+	Tags            []string                   `json:"tags"`
 	Lists           []ContactListConsent       `json:"lists"`
 	Preferences     ContactProfilePreferences  `json:"preferences"`
-	ActivityTotal   int64               `json:"activityTotal"`
+	ActivityTotal   int64                      `json:"activityTotal"`
 }
 
 // getContact loads a contact visible to the caller.

@@ -66,11 +66,11 @@ type AudienceListSummary struct {
 // AudienceSummary feeds the Audience tabs (Contacts · 48,213, Segments · 7,
 // Suppression list · 1,874) and the filter selects.
 type AudienceSummary struct {
-	Contacts        int64         `json:"contacts"`
-	Segments        int64         `json:"segments"`
-	Suppressions    int64         `json:"suppressions"`
+	Contacts        int64                 `json:"contacts"`
+	Segments        int64                 `json:"segments"`
+	Suppressions    int64                 `json:"suppressions"`
 	Tiers           AudienceTierCounts    `json:"tiers"`
-	TiersComputedAt *time.Time    `json:"tiersComputedAt,omitempty"`
+	TiersComputedAt *time.Time            `json:"tiersComputedAt,omitempty"`
 	Lists           []AudienceListSummary `json:"lists"`
 }
 

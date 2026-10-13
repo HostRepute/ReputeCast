@@ -119,7 +119,7 @@ type ContactSavedView struct {
 
 // ContactSavedViews is the views row: "All contacts" plus the saved views.
 type ContactSavedViews struct {
-	All   int64           `json:"all"`
+	All   int64              `json:"all"`
 	Items []ContactSavedView `json:"items"`
 }
 

@@ -86,22 +86,22 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace) (SegmentList, e
 
 // SegmentDetail is one segment for the builder.
 type SegmentDetail struct {
-	ID          string     `json:"id"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Mode        string     `json:"mode" enum:"builder,sql"`
-	Refresh     string     `json:"refresh" enum:"dynamic,static"`
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Mode        string            `json:"mode" enum:"builder,sql"`
+	Refresh     string            `json:"refresh" enum:"dynamic,static"`
 	Definition  SegmentDefinition `json:"definition"`
 	// SQL is the person's own SQL (SQL mode).
 	SQL string `json:"sql"`
 	// GeneratedSQL is the builder's SQL with values inlined.
-	GeneratedSQL string     `json:"generatedSql"`
-	Count        *int64     `json:"count,omitempty"`
-	CountedAt    *time.Time `json:"countedAt,omitempty"`
-	CountMs      *int32     `json:"countMs,omitempty"`
-	Tiers        SegmentTierMix    `json:"tiers"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
-	UpdatedBy    string     `json:"updatedBy"`
+	GeneratedSQL string         `json:"generatedSql"`
+	Count        *int64         `json:"count,omitempty"`
+	CountedAt    *time.Time     `json:"countedAt,omitempty"`
+	CountMs      *int32         `json:"countMs,omitempty"`
+	Tiers        SegmentTierMix `json:"tiers"`
+	UpdatedAt    time.Time      `json:"updatedAt"`
+	UpdatedBy    string         `json:"updatedBy"`
 }
 
 // Get returns one segment.
@@ -170,12 +170,12 @@ func (s *Service) lists(ctx context.Context, ws uuid.UUID) (map[uuid.UUID]string
 
 // SegmentInput is what the builder saves or counts.
 type SegmentInput struct {
-	Name        string     `json:"name" maxLength:"120"`
-	Description string     `json:"description,omitempty" maxLength:"500"`
-	Mode        string     `json:"mode" enum:"builder,sql"`
-	Refresh     string     `json:"refresh,omitempty" enum:"dynamic,static"`
+	Name        string            `json:"name" maxLength:"120"`
+	Description string            `json:"description,omitempty" maxLength:"500"`
+	Mode        string            `json:"mode" enum:"builder,sql"`
+	Refresh     string            `json:"refresh,omitempty" enum:"dynamic,static"`
 	Definition  SegmentDefinition `json:"definition"`
-	SQL         string     `json:"sql,omitempty" maxLength:"20000"`
+	SQL         string            `json:"sql,omitempty" maxLength:"20000"`
 }
 
 // validate checks the input and returns the compiled builder SQL or the
@@ -216,10 +216,10 @@ func (s *Service) validate(ctx context.Context, ws *store.Workspace, in *Segment
 
 // SegmentCountResult is a live count.
 type SegmentCountResult struct {
-	Count int64   `json:"count"`
-	Total int64   `json:"total" doc:"Contacts in the workspace"`
+	Count int64          `json:"count"`
+	Total int64          `json:"total" doc:"Contacts in the workspace"`
 	Tiers SegmentTierMix `json:"tiers"`
-	Ms    int64   `json:"ms" doc:"How long the count took"`
+	Ms    int64          `json:"ms" doc:"How long the count took"`
 	// GeneratedSQL is the builder's SQL with values inlined (builder mode).
 	GeneratedSQL string `json:"generatedSql"`
 }
