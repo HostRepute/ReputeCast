@@ -28,7 +28,7 @@ func (q *Queries) BumpChallengeAttempts(ctx context.Context, id uuid.UUID) (int3
 const consumePasswordReset = `-- name: ConsumePasswordReset :one
 UPDATE password_resets SET used_at = now()
 WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()
-RETURNING id, user_id, token_hash, created_at, expires_at, used_at
+RETURNING id, user_id, token_hash, created_at, expires_at, used_at, source
 `
 
 func (q *Queries) ConsumePasswordReset(ctx context.Context, tokenHash []byte) (PasswordReset, error) {
@@ -41,6 +41,7 @@ func (q *Queries) ConsumePasswordReset(ctx context.Context, tokenHash []byte) (P
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.UsedAt,
+		&i.Source,
 	)
 	return i, err
 }
@@ -86,7 +87,7 @@ func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams
 const createPasswordReset = `-- name: CreatePasswordReset :one
 INSERT INTO password_resets (id, user_id, token_hash, expires_at)
 VALUES ($1, $2, $3, $4)
-RETURNING id, user_id, token_hash, created_at, expires_at, used_at
+RETURNING id, user_id, token_hash, created_at, expires_at, used_at, source
 `
 
 type CreatePasswordResetParams struct {
@@ -111,6 +112,7 @@ func (q *Queries) CreatePasswordReset(ctx context.Context, arg CreatePasswordRes
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.UsedAt,
+		&i.Source,
 	)
 	return i, err
 }
@@ -118,7 +120,7 @@ func (q *Queries) CreatePasswordReset(ctx context.Context, arg CreatePasswordRes
 const createSession = `-- name: CreateSession :one
 INSERT INTO sessions (id, user_id, token_hash, auth_method, mfa_verified, ip, user_agent, location, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, user_id, token_hash, auth_method, mfa_verified, ip, user_agent, location, created_at, last_seen_at, expires_at, revoked_at
+RETURNING id, user_id, token_hash, auth_method, mfa_verified, ip, user_agent, location, created_at, last_seen_at, expires_at, revoked_at, device, os, browser, passkey_id
 `
 
 type CreateSessionParams struct {
@@ -159,6 +161,10 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		&i.LastSeenAt,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.Device,
+		&i.Os,
+		&i.Browser,
+		&i.PasskeyID,
 	)
 	return i, err
 }
@@ -222,7 +228,7 @@ func (q *Queries) GetChallenge(ctx context.Context, arg GetChallengeParams) (Aut
 }
 
 const getPasswordReset = `-- name: GetPasswordReset :one
-SELECT id, user_id, token_hash, created_at, expires_at, used_at FROM password_resets WHERE token_hash = $1
+SELECT id, user_id, token_hash, created_at, expires_at, used_at, source FROM password_resets WHERE token_hash = $1
 `
 
 func (q *Queries) GetPasswordReset(ctx context.Context, tokenHash []byte) (PasswordReset, error) {
@@ -235,12 +241,13 @@ func (q *Queries) GetPasswordReset(ctx context.Context, tokenHash []byte) (Passw
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.UsedAt,
+		&i.Source,
 	)
 	return i, err
 }
 
 const getSessionByToken = `-- name: GetSessionByToken :one
-SELECT id, user_id, token_hash, auth_method, mfa_verified, ip, user_agent, location, created_at, last_seen_at, expires_at, revoked_at FROM sessions WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()
+SELECT id, user_id, token_hash, auth_method, mfa_verified, ip, user_agent, location, created_at, last_seen_at, expires_at, revoked_at, device, os, browser, passkey_id FROM sessions WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()
 `
 
 func (q *Queries) GetSessionByToken(ctx context.Context, tokenHash []byte) (Session, error) {
@@ -259,12 +266,16 @@ func (q *Queries) GetSessionByToken(ctx context.Context, tokenHash []byte) (Sess
 		&i.LastSeenAt,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.Device,
+		&i.Os,
+		&i.Browser,
+		&i.PasskeyID,
 	)
 	return i, err
 }
 
 const listUserSessions = `-- name: ListUserSessions :many
-SELECT id, user_id, token_hash, auth_method, mfa_verified, ip, user_agent, location, created_at, last_seen_at, expires_at, revoked_at FROM sessions WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
+SELECT id, user_id, token_hash, auth_method, mfa_verified, ip, user_agent, location, created_at, last_seen_at, expires_at, revoked_at, device, os, browser, passkey_id FROM sessions WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
 ORDER BY last_seen_at DESC
 `
 
@@ -290,6 +301,10 @@ func (q *Queries) ListUserSessions(ctx context.Context, userID uuid.UUID) ([]Ses
 			&i.LastSeenAt,
 			&i.ExpiresAt,
 			&i.RevokedAt,
+			&i.Device,
+			&i.Os,
+			&i.Browser,
+			&i.PasskeyID,
 		); err != nil {
 			return nil, err
 		}
