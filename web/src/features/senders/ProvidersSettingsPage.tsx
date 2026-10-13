@@ -14,6 +14,7 @@ import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { cn } from '@/lib/cn'
 import { count, dayMonthYear, money, monthName } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { ReadOnlyNote } from './ReadOnlyNote'
 import './senders.css'
 
 type Settings = Schemas['SettingsProviders']
@@ -136,6 +137,11 @@ function SettingsBody({ data }: { data: Settings }) {
   const month = monthName(data.monthStart)
   return (
     <>
+      {reason ? (
+        <ReadOnlyNote perm="providers:manage" helpers={data.helpers}>
+          You can view the providers and the sending defaults.
+        </ReadOnlyNote>
+      ) : null}
       <section className="card flex flex-wrap" aria-label="Connected providers">
         {data.providers.length === 0 ? (
           <div className="flex-[1_1_100%] px-5 py-4.5 text-ink-2">No sending provider is connected yet.</div>

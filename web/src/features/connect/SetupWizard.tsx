@@ -5,6 +5,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { ReadOnlyNote } from '@/features/senders/ReadOnlyNote'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
 import { stepNumber, useSetup, type Setup, type SetupStep } from './api'
 import { ConnectionAPI } from './ConnectionAPI'
@@ -61,7 +62,9 @@ function StartSetup({ adapter, onStarted }: { adapter: string; onStarted: (s: Se
         {!can ? (
           <>
             <StepHeading title="Connect a sending provider" />
-            <Note tone="info">{`${deniedReason('providers:manage', catalog.data?.helpers)} You can look at the catalog and at setups others started.`}</Note>
+            <ReadOnlyNote action="Connecting a provider" perm="providers:manage" helpers={catalog.data?.helpers}>
+              You can look at the catalog and at setups others started.
+            </ReadOnlyNote>
             <div>
               <ButtonLink to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
                 Back to the catalog
@@ -160,6 +163,11 @@ function SetupScreens({ setupId, step, onStep }: { setupId: string; step?: Setup
     <WizardLayout title={setup.info.title} badge={<StepBadge n={stepNumber[view]} />}>
       <WizardBody current={stepNumber[view]} setup={setup}>
         {setup.status === 'abandoned' ? <Note tone="warn">This setup was cancelled. Start again from the catalog to connect the provider.</Note> : null}
+        {!can && setup.status !== 'abandoned' ? (
+          <ReadOnlyNote action="Connecting or changing a provider" perm="providers:manage" helpers={setup.helpers}>
+            You can follow this setup.
+          </ReadOnlyNote>
+        ) : null}
         <StepScreen view={view} props={props} />
       </WizardBody>
     </WizardLayout>

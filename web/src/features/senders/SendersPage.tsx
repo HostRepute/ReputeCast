@@ -12,6 +12,7 @@ import { failed } from '@/features/connect/parts'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { DomainDialog } from './DomainDialog'
+import { ReadOnlyNote } from './ReadOnlyNote'
 import { SenderDialog } from './SenderDialog'
 import './senders.css'
 
@@ -58,6 +59,11 @@ export function SendersPage() {
         </ErrorPanel>
       ) : (
         <>
+          {data && !data.canManage ? (
+            <ReadOnlyNote perm="domains:manage" helpers={data.helpers}>
+              You can view the senders, domains and their records.
+            </ReadOnlyNote>
+          ) : null}
           <section className="card" aria-labelledby="senders-h">
             <div className="sec">
               <div className="flex flex-col">
@@ -155,7 +161,9 @@ function SendersTable({ data, onEdit }: { data: Overview; onEdit: (s: Sender) =>
                 return <td key={p.id}>{v ? <Badge tone={VERIFICATION_TONE[v.status]}>{v.text}</Badge> : null}</td>
               })}
               <td>
-                {pending ? (
+                {!data.canManage ? (
+                  <span className="k">–</span>
+                ) : pending ? (
                   <ButtonLink size="sm" to="/w/$workspace/settings/senders/$domainId" params={{ workspace: slug, domainId: s.domainId }} search={{ provider: pending.providerId }}>
                     Verify
                   </ButtonLink>

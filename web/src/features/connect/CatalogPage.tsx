@@ -5,6 +5,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { DisabledReason } from '@/components/ui/DisabledReason'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { NoResults } from '@/components/ui/NoResults'
+import { ReadOnlyNote } from '@/features/senders/ReadOnlyNote'
 import { cn } from '@/lib/cn'
 import { deniedReason, useWorkspace } from '@/lib/session'
 import { StepBadge, StepHeading, WizardBody, WizardLayout } from './Wizard'
@@ -42,6 +43,11 @@ export function CatalogPage() {
   return (
     <WizardLayout title="Connect a sending provider" badge={<StepBadge n={1} />}>
       <WizardBody current={1}>
+        {data && !data.canConnect ? (
+          <ReadOnlyNote action="Connecting a provider" perm="providers:manage" helpers={data.helpers}>
+            You can look at the catalog and at setups others started.
+          </ReadOnlyNote>
+        ) : null}
         <StepHeading title="Which provider delivers your mail?">
           Every adapter reports what it can do. Badges come from each adapter&apos;s manifest; terms are reviewed quarterly.
         </StepHeading>
