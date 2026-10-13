@@ -1,0 +1,13 @@
+{
+  "type": "email.delivered",
+  "created_at": "2026-10-12T13:41:02.126Z",
+  "data": {
+    "created_at": "2026-10-12T13:41:01.894Z",
+    "email_id": "56761188-7520-42d8-8898-ff6fc54ce618",
+    "message_id": "<0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40@news.acme.io>",
+    "from": "Acme Newsletter <news@news.acme.io>",
+    "to": ["D.F@outlook.com"],
+    "subject": "The October issue",
+    "tags": {"rc_message": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40", "rc_stream": "broadcast", "campaign": "october"}
+  }
+}

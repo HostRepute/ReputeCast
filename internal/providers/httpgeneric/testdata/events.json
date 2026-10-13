@@ -1,0 +1,41 @@
+{
+  "account": "acme",
+  "events": [
+    {
+      "event": "delivered",
+      "ts": 1760276462,
+      "message_id": "esp-7f3a9c",
+      "recipient": "D.F@outlook.com",
+      "metadata": {"reputecast_id": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40"},
+      "smtp": {"code": "250 2.0.0", "message": "OK id=1vA9xQ-0001aB-3k"}
+    },
+    {
+      "event": "bounce_permanent",
+      "ts": 1760276470,
+      "message_id": "esp-7f3a9d",
+      "recipient": "john@example.com",
+      "metadata": {"reputecast_id": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e41"},
+      "smtp": {"code": "550 5.1.1", "message": "The email account that you tried to reach does not exist."}
+    },
+    {
+      "event": "bounce_temporary",
+      "ts": "1760276475",
+      "message_id": "esp-7f3a9e",
+      "recipient": "b.h@yahoo.com",
+      "smtp": {"code": "452 4.2.2", "message": "Mailbox full"}
+    },
+    {
+      "event": "complaint",
+      "ts": "2026-10-12T13:41:30Z",
+      "message_id": "esp-7f3a9f",
+      "recipient": "m.g@aol.com",
+      "metadata": {"reputecast_id": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e42"}
+    },
+    {
+      "event": "sent",
+      "ts": 1760276400,
+      "message_id": "esp-7f3a9c",
+      "recipient": "d.f@outlook.com"
+    }
+  ]
+}

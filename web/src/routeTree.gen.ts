@@ -60,6 +60,13 @@ import { Route as WWorkspaceAppSettingsProvidersRouteImport } from './routes/w/$
 import { Route as WWorkspaceAppSettingsSendersRouteImport } from './routes/w/$workspace/_app/settings/senders'
 import { Route as WWorkspaceAppSettingsWebhooksRouteImport } from './routes/w/$workspace/_app/settings/webhooks'
 import { Route as WWorkspaceCampaignsCampaignIdEditRouteImport } from './routes/w/$workspace/campaigns/$campaignId/edit'
+import { Route as WWorkspaceImportImportIdIndexRouteImport } from './routes/w/$workspace/import/$importId/index'
+import { Route as WWorkspaceImportImportIdConsentRouteImport } from './routes/w/$workspace/import/$importId/consent'
+import { Route as WWorkspaceImportImportIdFieldsRouteImport } from './routes/w/$workspace/import/$importId/fields'
+import { Route as WWorkspaceImportImportIdPreviewRouteImport } from './routes/w/$workspace/import/$importId/preview'
+import { Route as WWorkspaceImportImportIdProgressRouteImport } from './routes/w/$workspace/import/$importId/progress'
+import { Route as WWorkspaceImportImportIdReportRouteImport } from './routes/w/$workspace/import/$importId/report'
+import { Route as WWorkspaceImportImportIdSourceRouteImport } from './routes/w/$workspace/import/$importId/source'
 import { Route as WWorkspaceProvidersConnectIndexRouteImport } from './routes/w/$workspace/providers/connect/index'
 import { Route as WWorkspaceProvidersConnectAdapterRouteImport } from './routes/w/$workspace/providers/connect/$adapter'
 import { Route as WWorkspaceAppAdminSsoIndexRouteImport } from './routes/w/$workspace/_app/admin/sso/index'
@@ -363,6 +370,48 @@ const WWorkspaceCampaignsCampaignIdEditRoute =
     path: '/campaigns/$campaignId/edit',
     getParentRoute: () => WWorkspaceRouteRoute,
   } as any)
+const WWorkspaceImportImportIdIndexRoute =
+  WWorkspaceImportImportIdIndexRouteImport.update({
+    id: '/import/$importId/',
+    path: '/import/$importId/',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceImportImportIdConsentRoute =
+  WWorkspaceImportImportIdConsentRouteImport.update({
+    id: '/import/$importId/consent',
+    path: '/import/$importId/consent',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceImportImportIdFieldsRoute =
+  WWorkspaceImportImportIdFieldsRouteImport.update({
+    id: '/import/$importId/fields',
+    path: '/import/$importId/fields',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceImportImportIdPreviewRoute =
+  WWorkspaceImportImportIdPreviewRouteImport.update({
+    id: '/import/$importId/preview',
+    path: '/import/$importId/preview',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceImportImportIdProgressRoute =
+  WWorkspaceImportImportIdProgressRouteImport.update({
+    id: '/import/$importId/progress',
+    path: '/import/$importId/progress',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceImportImportIdReportRoute =
+  WWorkspaceImportImportIdReportRouteImport.update({
+    id: '/import/$importId/report',
+    path: '/import/$importId/report',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceImportImportIdSourceRoute =
+  WWorkspaceImportImportIdSourceRouteImport.update({
+    id: '/import/$importId/source',
+    path: '/import/$importId/source',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
 const WWorkspaceProvidersConnectIndexRoute =
   WWorkspaceProvidersConnectIndexRouteImport.update({
     id: '/providers/connect/',
@@ -491,6 +540,12 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/settings/senders': typeof WWorkspaceAppSettingsSendersRoute
   '/w/$workspace/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
+  '/w/$workspace/import/$importId/consent': typeof WWorkspaceImportImportIdConsentRoute
+  '/w/$workspace/import/$importId/fields': typeof WWorkspaceImportImportIdFieldsRoute
+  '/w/$workspace/import/$importId/preview': typeof WWorkspaceImportImportIdPreviewRoute
+  '/w/$workspace/import/$importId/progress': typeof WWorkspaceImportImportIdProgressRoute
+  '/w/$workspace/import/$importId/report': typeof WWorkspaceImportImportIdReportRoute
+  '/w/$workspace/import/$importId/source': typeof WWorkspaceImportImportIdSourceRoute
   '/w/$workspace/providers/connect/$adapter': typeof WWorkspaceProvidersConnectAdapterRoute
   '/w/$workspace/approvals/': typeof WWorkspaceAppApprovalsIndexRoute
   '/w/$workspace/audience/': typeof WWorkspaceAppAudienceIndexRoute
@@ -500,6 +555,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/forms/': typeof WWorkspaceAppFormsIndexRoute
   '/w/$workspace/providers/': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/settings/': typeof WWorkspaceAppSettingsIndexRoute
+  '/w/$workspace/import/$importId/': typeof WWorkspaceImportImportIdIndexRoute
   '/w/$workspace/providers/connect/': typeof WWorkspaceProvidersConnectIndexRoute
   '/w/$workspace/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
   '/w/$workspace/audience/contacts/$contactId': typeof WWorkspaceAppAudienceContactsContactIdRoute
@@ -556,6 +612,12 @@ export interface FileRoutesByTo {
   '/w/$workspace/settings/senders': typeof WWorkspaceAppSettingsSendersRoute
   '/w/$workspace/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
+  '/w/$workspace/import/$importId/consent': typeof WWorkspaceImportImportIdConsentRoute
+  '/w/$workspace/import/$importId/fields': typeof WWorkspaceImportImportIdFieldsRoute
+  '/w/$workspace/import/$importId/preview': typeof WWorkspaceImportImportIdPreviewRoute
+  '/w/$workspace/import/$importId/progress': typeof WWorkspaceImportImportIdProgressRoute
+  '/w/$workspace/import/$importId/report': typeof WWorkspaceImportImportIdReportRoute
+  '/w/$workspace/import/$importId/source': typeof WWorkspaceImportImportIdSourceRoute
   '/w/$workspace/providers/connect/$adapter': typeof WWorkspaceProvidersConnectAdapterRoute
   '/w/$workspace/approvals': typeof WWorkspaceAppApprovalsIndexRoute
   '/w/$workspace/audience': typeof WWorkspaceAppAudienceIndexRoute
@@ -565,6 +627,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/forms': typeof WWorkspaceAppFormsIndexRoute
   '/w/$workspace/providers': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/settings': typeof WWorkspaceAppSettingsIndexRoute
+  '/w/$workspace/import/$importId': typeof WWorkspaceImportImportIdIndexRoute
   '/w/$workspace/providers/connect': typeof WWorkspaceProvidersConnectIndexRoute
   '/w/$workspace/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
   '/w/$workspace/audience/contacts/$contactId': typeof WWorkspaceAppAudienceContactsContactIdRoute
@@ -624,6 +687,12 @@ export interface FileRoutesById {
   '/w/$workspace/_app/settings/senders': typeof WWorkspaceAppSettingsSendersRoute
   '/w/$workspace/_app/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
+  '/w/$workspace/import/$importId/consent': typeof WWorkspaceImportImportIdConsentRoute
+  '/w/$workspace/import/$importId/fields': typeof WWorkspaceImportImportIdFieldsRoute
+  '/w/$workspace/import/$importId/preview': typeof WWorkspaceImportImportIdPreviewRoute
+  '/w/$workspace/import/$importId/progress': typeof WWorkspaceImportImportIdProgressRoute
+  '/w/$workspace/import/$importId/report': typeof WWorkspaceImportImportIdReportRoute
+  '/w/$workspace/import/$importId/source': typeof WWorkspaceImportImportIdSourceRoute
   '/w/$workspace/providers/connect/$adapter': typeof WWorkspaceProvidersConnectAdapterRoute
   '/w/$workspace/_app/approvals/': typeof WWorkspaceAppApprovalsIndexRoute
   '/w/$workspace/_app/audience/': typeof WWorkspaceAppAudienceIndexRoute
@@ -633,6 +702,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/forms/': typeof WWorkspaceAppFormsIndexRoute
   '/w/$workspace/_app/providers/': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/_app/settings/': typeof WWorkspaceAppSettingsIndexRoute
+  '/w/$workspace/import/$importId/': typeof WWorkspaceImportImportIdIndexRoute
   '/w/$workspace/providers/connect/': typeof WWorkspaceProvidersConnectIndexRoute
   '/w/$workspace/_app/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
   '/w/$workspace/_app/audience/contacts/$contactId': typeof WWorkspaceAppAudienceContactsContactIdRoute
@@ -692,6 +762,12 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/senders'
     | '/w/$workspace/settings/webhooks'
     | '/w/$workspace/campaigns/$campaignId/edit'
+    | '/w/$workspace/import/$importId/consent'
+    | '/w/$workspace/import/$importId/fields'
+    | '/w/$workspace/import/$importId/preview'
+    | '/w/$workspace/import/$importId/progress'
+    | '/w/$workspace/import/$importId/report'
+    | '/w/$workspace/import/$importId/source'
     | '/w/$workspace/providers/connect/$adapter'
     | '/w/$workspace/approvals/'
     | '/w/$workspace/audience/'
@@ -701,6 +777,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/forms/'
     | '/w/$workspace/providers/'
     | '/w/$workspace/settings/'
+    | '/w/$workspace/import/$importId/'
     | '/w/$workspace/providers/connect/'
     | '/w/$workspace/admin/sso/$providerId'
     | '/w/$workspace/audience/contacts/$contactId'
@@ -757,6 +834,12 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/senders'
     | '/w/$workspace/settings/webhooks'
     | '/w/$workspace/campaigns/$campaignId/edit'
+    | '/w/$workspace/import/$importId/consent'
+    | '/w/$workspace/import/$importId/fields'
+    | '/w/$workspace/import/$importId/preview'
+    | '/w/$workspace/import/$importId/progress'
+    | '/w/$workspace/import/$importId/report'
+    | '/w/$workspace/import/$importId/source'
     | '/w/$workspace/providers/connect/$adapter'
     | '/w/$workspace/approvals'
     | '/w/$workspace/audience'
@@ -766,6 +849,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/forms'
     | '/w/$workspace/providers'
     | '/w/$workspace/settings'
+    | '/w/$workspace/import/$importId'
     | '/w/$workspace/providers/connect'
     | '/w/$workspace/admin/sso/$providerId'
     | '/w/$workspace/audience/contacts/$contactId'
@@ -824,6 +908,12 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/settings/senders'
     | '/w/$workspace/_app/settings/webhooks'
     | '/w/$workspace/campaigns/$campaignId/edit'
+    | '/w/$workspace/import/$importId/consent'
+    | '/w/$workspace/import/$importId/fields'
+    | '/w/$workspace/import/$importId/preview'
+    | '/w/$workspace/import/$importId/progress'
+    | '/w/$workspace/import/$importId/report'
+    | '/w/$workspace/import/$importId/source'
     | '/w/$workspace/providers/connect/$adapter'
     | '/w/$workspace/_app/approvals/'
     | '/w/$workspace/_app/audience/'
@@ -833,6 +923,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/forms/'
     | '/w/$workspace/_app/providers/'
     | '/w/$workspace/_app/settings/'
+    | '/w/$workspace/import/$importId/'
     | '/w/$workspace/providers/connect/'
     | '/w/$workspace/_app/admin/sso/$providerId'
     | '/w/$workspace/_app/audience/contacts/$contactId'
@@ -1218,6 +1309,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceCampaignsCampaignIdEditRouteImport
       parentRoute: typeof WWorkspaceRouteRoute
     }
+    '/w/$workspace/import/$importId/': {
+      id: '/w/$workspace/import/$importId/'
+      path: '/import/$importId'
+      fullPath: '/w/$workspace/import/$importId/'
+      preLoaderRoute: typeof WWorkspaceImportImportIdIndexRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/import/$importId/consent': {
+      id: '/w/$workspace/import/$importId/consent'
+      path: '/import/$importId/consent'
+      fullPath: '/w/$workspace/import/$importId/consent'
+      preLoaderRoute: typeof WWorkspaceImportImportIdConsentRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/import/$importId/fields': {
+      id: '/w/$workspace/import/$importId/fields'
+      path: '/import/$importId/fields'
+      fullPath: '/w/$workspace/import/$importId/fields'
+      preLoaderRoute: typeof WWorkspaceImportImportIdFieldsRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/import/$importId/preview': {
+      id: '/w/$workspace/import/$importId/preview'
+      path: '/import/$importId/preview'
+      fullPath: '/w/$workspace/import/$importId/preview'
+      preLoaderRoute: typeof WWorkspaceImportImportIdPreviewRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/import/$importId/progress': {
+      id: '/w/$workspace/import/$importId/progress'
+      path: '/import/$importId/progress'
+      fullPath: '/w/$workspace/import/$importId/progress'
+      preLoaderRoute: typeof WWorkspaceImportImportIdProgressRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/import/$importId/report': {
+      id: '/w/$workspace/import/$importId/report'
+      path: '/import/$importId/report'
+      fullPath: '/w/$workspace/import/$importId/report'
+      preLoaderRoute: typeof WWorkspaceImportImportIdReportRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/import/$importId/source': {
+      id: '/w/$workspace/import/$importId/source'
+      path: '/import/$importId/source'
+      fullPath: '/w/$workspace/import/$importId/source'
+      preLoaderRoute: typeof WWorkspaceImportImportIdSourceRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
     '/w/$workspace/providers/connect/': {
       id: '/w/$workspace/providers/connect/'
       path: '/providers/connect'
@@ -1454,7 +1594,14 @@ interface WWorkspaceRouteRouteChildren {
   WWorkspaceCampaignsNewRoute: typeof WWorkspaceCampaignsNewRoute
   WWorkspaceImportIndexRoute: typeof WWorkspaceImportIndexRoute
   WWorkspaceCampaignsCampaignIdEditRoute: typeof WWorkspaceCampaignsCampaignIdEditRoute
+  WWorkspaceImportImportIdConsentRoute: typeof WWorkspaceImportImportIdConsentRoute
+  WWorkspaceImportImportIdFieldsRoute: typeof WWorkspaceImportImportIdFieldsRoute
+  WWorkspaceImportImportIdPreviewRoute: typeof WWorkspaceImportImportIdPreviewRoute
+  WWorkspaceImportImportIdProgressRoute: typeof WWorkspaceImportImportIdProgressRoute
+  WWorkspaceImportImportIdReportRoute: typeof WWorkspaceImportImportIdReportRoute
+  WWorkspaceImportImportIdSourceRoute: typeof WWorkspaceImportImportIdSourceRoute
   WWorkspaceProvidersConnectAdapterRoute: typeof WWorkspaceProvidersConnectAdapterRoute
+  WWorkspaceImportImportIdIndexRoute: typeof WWorkspaceImportImportIdIndexRoute
   WWorkspaceProvidersConnectIndexRoute: typeof WWorkspaceProvidersConnectIndexRoute
 }
 
@@ -1466,8 +1613,15 @@ const WWorkspaceRouteRouteChildren: WWorkspaceRouteRouteChildren = {
   WWorkspaceImportIndexRoute: WWorkspaceImportIndexRoute,
   WWorkspaceCampaignsCampaignIdEditRoute:
     WWorkspaceCampaignsCampaignIdEditRoute,
+  WWorkspaceImportImportIdConsentRoute: WWorkspaceImportImportIdConsentRoute,
+  WWorkspaceImportImportIdFieldsRoute: WWorkspaceImportImportIdFieldsRoute,
+  WWorkspaceImportImportIdPreviewRoute: WWorkspaceImportImportIdPreviewRoute,
+  WWorkspaceImportImportIdProgressRoute: WWorkspaceImportImportIdProgressRoute,
+  WWorkspaceImportImportIdReportRoute: WWorkspaceImportImportIdReportRoute,
+  WWorkspaceImportImportIdSourceRoute: WWorkspaceImportImportIdSourceRoute,
   WWorkspaceProvidersConnectAdapterRoute:
     WWorkspaceProvidersConnectAdapterRoute,
+  WWorkspaceImportImportIdIndexRoute: WWorkspaceImportImportIdIndexRoute,
   WWorkspaceProvidersConnectIndexRoute: WWorkspaceProvidersConnectIndexRoute,
 }
 
