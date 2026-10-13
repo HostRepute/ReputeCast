@@ -119,7 +119,8 @@ export function NotificationsPopover() {
   return (
     <RPopover.Root open={open} onOpenChange={setOpen}>
       <RPopover.Trigger asChild>
-        <button type="button" className="ibtn" aria-label={n ? `Notifications, ${n} unread` : 'Notifications'}>
+        {/* The board's bell is a link, so it renders content-box (38px); a button would be 36px. */}
+        <button type="button" className="ibtn box-content" aria-label={n ? `Notifications, ${n} unread` : 'Notifications'}>
           <Icon name="bell" />
           {n ? (
             <span className="cnt" aria-hidden="true">
