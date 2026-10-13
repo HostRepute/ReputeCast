@@ -299,9 +299,18 @@ func composerEnsureSender(ctx context.Context, s *Seeder, domain, name, email st
 		s.Senders[email] = id
 		return id, nil
 	}
+	// Verified on SES and Postal, as the senders the team seeder adds later
+	// would be (it leaves senders that already exist alone).
+	verification := map[string]string{}
+	for _, k := range []string{"ses", "postal"} {
+		if pid, ok := s.Providers[k]; ok {
+			verification[pid.String()] = "verified"
+		}
+	}
+	ver, _ := json.Marshal(verification)
 	id = ID()
-	if _, err := s.Tx.Exec(ctx, `INSERT INTO senders (id, workspace_id, domain_id, name, email, created_at) VALUES ($1,$2,$3,$4,$5,$6)`,
-		id, ws.ID, domainID, name, email, s.Ago(229*24*time.Hour)); err != nil {
+	if _, err := s.Tx.Exec(ctx, `INSERT INTO senders (id, workspace_id, domain_id, name, email, verification, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+		id, ws.ID, domainID, name, email, ver, s.Ago(229*24*time.Hour)); err != nil {
 		return uuid.Nil, err
 	}
 	s.Senders[email] = id
