@@ -891,6 +891,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/audience": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Counts for the Audience header and filters */
+        get: operations["audience-summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/audience/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tiers, tier trend, sunset policy and health per list */
+        get: operations["list-health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/audience/sunset-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save the sunset policy (applies at the next nightly run) */
+        put: operations["save-sunset-policy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/audit": {
         parameters: {
             query?: never;
@@ -1571,6 +1622,216 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List contacts, most recent activity first */
+        get: operations["list-contacts"];
+        put?: never;
+        /** Add a contact */
+        post: operations["create-contact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add to a list, add a tag, resend opt-in or suppress many contacts */
+        post: operations["bulk-contacts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/erase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Erase contacts' personal data */
+        post: operations["erase-contacts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export contacts as CSV (logged)
+         * @description Needs subscribers:export. Every export is written to the audit log with its size and filter.
+         */
+        post: operations["export-contacts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved views with their counts */
+        get: operations["list-contact-views"];
+        put?: never;
+        /** Save the current filters as a view */
+        post: operations["create-contact-view"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/views/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a saved view */
+        delete: operations["delete-contact-view"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contact profile: fields, consent per list, stats */
+        get: operations["get-contact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change a contact's fields and tags */
+        patch: operations["update-contact"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Activity timeline, including which provider delivered each email */
+        get: operations["contact-activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everything stored about one contact, as JSON (GDPR, logged) */
+        get: operations["export-contact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/preference-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get the contact's preference center link (logged) */
+        post: operations["contact-preference-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/resend-optin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send the opt-in confirmation email again */
+        post: operations["resend-contact-optin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/suppress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put a contact's address on the suppression list */
+        post: operations["suppress-contact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/delete": {
         parameters: {
             query?: never;
@@ -1738,6 +1999,271 @@ export interface paths {
         get: operations["export-workspace"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Custom fields */
+        get: operations["list-fields"];
+        put?: never;
+        /** Create a custom field */
+        post: operations["create-field"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/fields/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a custom field and its values */
+        delete: operations["delete-field"];
+        options?: never;
+        head?: never;
+        /** Change a custom field's label, options or display */
+        patch: operations["update-field"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Import history and the draft the wizard resumes */
+        get: operations["list-imports"];
+        put?: never;
+        /** Start an import from a source */
+        post: operations["create-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An import with its connection, progress, log and summary */
+        get: operations["get-import"];
+        put?: never;
+        post?: never;
+        /** Discard a draft import */
+        delete: operations["discard-import"];
+        options?: never;
+        head?: never;
+        /** Change a draft's source, options or step */
+        patch: operations["update-import"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/imports/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop an import (rows already imported stay) */
+        post: operations["cancel-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/imports/{id}/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check an API key and list the source's audiences
+         * @description The key is stored encrypted and never returned. Nothing is written to the source.
+         */
+        post: operations["connect-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/imports/{id}/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contacts per source status and what each becomes */
+        get: operations["get-import-consent"];
+        /** Save the consent mapping */
+        put: operations["save-import-consent"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/imports/{id}/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Source fields with sample values and their mapping */
+        get: operations["get-import-fields"];
+        /** Save the field mapping */
+        put: operations["save-import-fields"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/imports/{id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a CSV or XLSX file (first row: headers) */
+        post: operations["upload-import-file"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/imports/{id}/files/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the full report, skipped rows, invalid rows or unreadable file rows (logged) */
+        get: operations["download-import-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/imports/{id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dry run: duplicates, invalid and risky addresses */
+        post: operations["preview-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/imports/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume an import paused by the source's rate limit */
+        post: operations["resume-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/imports/{id}/skip-bad-rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave out file rows with the wrong number of columns */
+        post: operations["skip-import-bad-rows"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/imports/{id}/stage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the selected lists' rows from the source */
+        post: operations["stage-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/imports/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import the staged rows */
+        post: operations["start-import"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1958,6 +2484,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Imports running in the background and those that just ended (jobs tray) */
+        get: operations["list-background-jobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/leave": {
         parameters: {
             query?: never;
@@ -1973,6 +2516,42 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists with their sizes */
+        get: operations["list-lists"];
+        put?: never;
+        /** Create a list */
+        post: operations["create-list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lists/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a list (contacts stay) */
+        delete: operations["delete-list"];
+        options?: never;
+        head?: never;
+        /** Rename a list or change its opt-in setting */
+        patch: operations["update-list"];
         trace?: never;
     };
     "/api/v1/workspaces/{workspace}/mcp": {
@@ -2625,6 +3204,97 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List saved segments with their last counts */
+        get: operations["list-segments"];
+        put?: never;
+        /** Save a new segment */
+        post: operations["create-segment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/segments/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fields, operators and values the builder can use */
+        get: operations["segment-catalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/segments/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Count an unsaved segment (live count while editing)
+         * @description Counts contacts matching a builder definition or, with segments:sql, a SQL segment. Nothing is saved.
+         */
+        post: operations["preview-segment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/segments/{segment}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a segment with its definition and generated SQL */
+        get: operations["get-segment"];
+        /** Change a segment */
+        put: operations["update-segment"];
+        post?: never;
+        /** Delete a segment */
+        delete: operations["delete-segment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/segments/{segment}/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Count a saved segment again and store the result */
+        post: operations["count-segment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/settings": {
         parameters: {
             query?: never;
@@ -2671,6 +3341,92 @@ export interface paths {
         put?: never;
         /** Sync the shared suppression list with every provider now */
         post: operations["run-suppression-sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/suppressions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The shared suppression list with reasons, sources and provider sync */
+        get: operations["list-suppressions"];
+        put?: never;
+        /** Add addresses to the suppression list */
+        post: operations["add-suppressions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/suppressions/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export the suppression list as CSV (logged) */
+        get: operations["export-suppressions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/suppressions/pull": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pull existing suppressions from connected sending providers */
+        post: operations["pull-suppressions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/suppressions/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add addresses from a CSV file */
+        post: operations["upload-suppressions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/suppressions/{id}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take an address off the suppression list (needs a reason, logged) */
+        post: operations["remove-suppression"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3316,6 +4072,51 @@ export interface components {
             templateUrl: string;
             upToDate: boolean;
             version: string;
+        };
+        AddSuppressionsInput: {
+            emails: string[];
+            /** @description Why, shown as the original code */
+            note?: string;
+        };
+        AudienceListInput: {
+            description?: string;
+            /** @description New signups confirm by email first (default true) */
+            doubleOptIn?: boolean;
+            name: string;
+        };
+        AudienceListSummary: {
+            /** Format: date-time */
+            createdAt: string;
+            description: string;
+            doubleOptIn: boolean;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            subscribed: number;
+        };
+        AudienceSummary: {
+            /** Format: int64 */
+            contacts: number;
+            lists: components["schemas"]["AudienceListSummary"][];
+            /** Format: int64 */
+            segments: number;
+            /** Format: int64 */
+            suppressions: number;
+            tiers: components["schemas"]["AudienceTierCounts"];
+            /** Format: date-time */
+            tiersComputedAt?: string;
+        };
+        AudienceTierCounts: {
+            /** Format: int64 */
+            active: number;
+            /** Format: int64 */
+            atRisk: number;
+            /** Format: int64 */
+            cooling: number;
+            /** Format: int64 */
+            sunset: number;
         };
         AuditActor: {
             avatarColor?: string;
@@ -4493,6 +5294,268 @@ export interface components {
         "Confirm-email-changeRequest": {
             token: string;
         };
+        ContactActivityItem: {
+            actor?: string;
+            /** Format: int64 */
+            afterDeliveryMin?: number;
+            /** Format: date-time */
+            at: string;
+            /** @enum {string} */
+            category: "delivery" | "engagement" | "consent";
+            client?: string;
+            /** @description Provider code: 250 2.6.0, 452 4.2.2 */
+            code?: string;
+            consentVersion?: string;
+            detail?: string;
+            diagnostic?: string;
+            failover: boolean;
+            id: string;
+            imported?: string;
+            ip?: string;
+            linkLabel?: string;
+            list?: string;
+            machine: boolean;
+            note?: string;
+            provider?: components["schemas"]["ContactActivityProvider"];
+            /** Format: date-time */
+            retriedDeliveredAt?: string;
+            routeNote?: string;
+            source?: string;
+            sourceLabel?: string;
+            subject: string;
+            /** @description delivered, soft_bounce, open, click… or a consent action */
+            type: string;
+            url?: string;
+            variant?: string;
+        };
+        ContactActivityPage: {
+            items: components["schemas"]["ContactActivityItem"][];
+            nextCursor?: string;
+            /**
+             * Format: int64
+             * @description Events matching the filter
+             */
+            total: number;
+        };
+        ContactActivityProvider: {
+            adapter: string;
+            name: string;
+        };
+        ContactBulkFailure: {
+            email: string;
+            reason: string;
+        };
+        ContactBulkInput: {
+            /** @enum {string} */
+            action: "add_to_list" | "add_tag" | "resend_optin" | "suppress";
+            allMatching?: boolean;
+            filter?: components["schemas"]["ContactFilter"];
+            ids?: string[];
+            /** @description For add_to_list */
+            listId?: string;
+            /** @description For suppress */
+            reason?: string;
+            /** @description For add_tag */
+            tag?: string;
+        };
+        ContactBulkResult: {
+            action: string;
+            /** Format: int64 */
+            done: number;
+            /** Format: int64 */
+            failed: number;
+            /** @description Up to 20 examples */
+            failures: components["schemas"]["ContactBulkFailure"][];
+            /** Format: int64 */
+            matched: number;
+            note?: string;
+            target?: string;
+        };
+        ContactConsentEvent: {
+            action: string;
+            actor?: string;
+            /** Format: date-time */
+            at: string;
+            consentVersion?: string;
+            detail: string;
+            ip?: string;
+            note: string;
+            source: string;
+            sourceLabel: string;
+        };
+        ContactEraseInput: {
+            allMatching?: boolean;
+            /**
+             * Format: int64
+             * @description The number of contacts, typed to confirm
+             */
+            confirm: number;
+            filter?: components["schemas"]["ContactFilter"];
+            ids?: string[];
+        };
+        ContactExportInput: {
+            allMatching?: boolean;
+            filter?: components["schemas"]["ContactFilter"];
+            ids?: string[];
+        };
+        ContactFilter: {
+            /** @enum {string} */
+            consent?: "double" | "single" | "pending";
+            joinedAfter?: string;
+            /** @description List id */
+            list?: string;
+            /** @enum {string} */
+            mailbox?: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
+            /** @description Email, name or tag */
+            q?: string;
+            /** @description Segment id */
+            segment?: string;
+            source?: string;
+            tag?: string;
+            /** @enum {string} */
+            tier?: "active" | "cooling" | "at_risk" | "sunset";
+        };
+        ContactList: {
+            items: components["schemas"]["ContactListItem"][];
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pageSize: number;
+            /** Format: int64 */
+            total: number;
+        };
+        ContactListConsent: {
+            doubleOptIn: boolean;
+            events: components["schemas"]["ContactConsentEvent"][];
+            listId: string;
+            name: string;
+            /** @enum {string} */
+            status: "subscribed" | "pending" | "unsubscribed" | "none";
+        };
+        ContactListItem: {
+            /** @enum {string} */
+            consent: "double" | "single" | "pending";
+            email: string;
+            id: string;
+            /** Format: date-time */
+            joinedAt: string;
+            /** Format: date-time */
+            lastOpenAt?: string;
+            /** @description The last open was a machine open (Apple Mail Privacy Protection) */
+            lastOpenMachine: boolean;
+            lists: string[];
+            /** @description Outlook, or Other · Google Workspace */
+            mailboxLabel: string;
+            mailboxProvider: string;
+            name: string;
+            source: string;
+            sourceLabel: string;
+            suppressed: boolean;
+            /** @enum {string} */
+            tier: "active" | "cooling" | "at_risk" | "sunset";
+        };
+        ContactProfile: {
+            /** Format: int64 */
+            activityTotal: number;
+            /** @enum {string} */
+            consent: "double" | "single" | "pending";
+            email: string;
+            fields: components["schemas"]["ContactProfileField"][];
+            firstName: string;
+            id: string;
+            /** Format: date-time */
+            joinedAt: string;
+            lastName: string;
+            lists: components["schemas"]["ContactListConsent"][];
+            mailboxLabel: string;
+            mailboxProvider: string;
+            name: string;
+            preferences: components["schemas"]["ContactProfilePreferences"];
+            roleAddress: boolean;
+            source: string;
+            sourceLabel: string;
+            stats: components["schemas"]["ContactProfileStats"];
+            suppression?: components["schemas"]["ContactProfileSuppression"];
+            tags: string[];
+            /** @enum {string} */
+            tier: "active" | "cooling" | "at_risk" | "sunset";
+        };
+        ContactProfileField: {
+            custom: boolean;
+            /** @enum {string} */
+            display: "" | "currency";
+            key: string;
+            label: string;
+            /** @enum {string} */
+            type: "text" | "number" | "date" | "boolean" | "select" | "builtin";
+            value: string;
+        };
+        ContactProfilePreferences: {
+            fewerEmails: boolean;
+            /** @enum {string} */
+            frequency: "all" | "weekly" | "monthly";
+            /** Format: date-time */
+            pausedUntil?: string;
+        };
+        ContactProfileStats: {
+            /** Format: int64 */
+            clicks: number;
+            /** Format: int64 */
+            emails90d: number;
+            /** Format: double */
+            humanOpenRate?: number;
+            /**
+             * Format: int64
+             * @description Emails opened by a person
+             */
+            humanOpens: number;
+            /** Format: date-time */
+            lastOpenAt?: string;
+            lastOpenMachine: boolean;
+        };
+        ContactProfileSuppression: {
+            /** Format: date-time */
+            at: string;
+            id: string;
+            reason: string;
+            /** @enum {string} */
+            scope: "all" | "marketing";
+        };
+        ContactSavedView: {
+            /** Format: int64 */
+            count: number;
+            filters: components["schemas"]["ContactFilter"];
+            id: string;
+            name: string;
+            shared: boolean;
+        };
+        ContactSavedViews: {
+            /** Format: int64 */
+            all: number;
+            items: components["schemas"]["ContactSavedView"][];
+        };
+        ContactSuppressInput: {
+            /** @description Why, for the audit log and the list */
+            reason: string;
+        };
+        ContactUpdate: {
+            company?: string;
+            country?: string;
+            /** @description Custom field key → value; null clears it */
+            fields?: {
+                [key: string]: unknown;
+            };
+            firstName?: string;
+            language?: string;
+            lastName?: string;
+            tags?: string[];
+            timezone?: string;
+        };
+        ContactViewInput: {
+            filters: components["schemas"]["ContactFilter"];
+            name: string;
+            personal?: boolean;
+        };
         ContentCheckFix: {
             /** @enum {string} */
             kind: "replace_link" | "edit_link" | "insert_footer" | "set_alt" | "minify" | "remove_section" | "use_subject";
@@ -4539,6 +5602,31 @@ export interface components {
             id: string;
             name: string;
             slug: string;
+        };
+        CustomFieldDef: {
+            /** Format: date-time */
+            createdAt: string;
+            /** @enum {string} */
+            display: "" | "currency";
+            id: string;
+            key: string;
+            label: string;
+            options: string[];
+            /** @enum {string} */
+            type: "text" | "number" | "date" | "boolean" | "select";
+        };
+        CustomFieldInput: {
+            /** @enum {string} */
+            display?: "" | "currency";
+            /** @description Lowercase letters, digits and _; fixed after creation */
+            key?: string;
+            label: string;
+            options?: string[];
+            /** @enum {string} */
+            type?: "text" | "number" | "date" | "boolean" | "select";
+        };
+        CustomFieldList: {
+            items: components["schemas"]["CustomFieldDef"][];
         };
         DeliverabilityAssetBlocklists: {
             /** Format: date-time */
@@ -5004,6 +6092,32 @@ export interface components {
             /** @description The value at the given location */
             value?: unknown;
         };
+        HealthTierCard: {
+            /** Format: int64 */
+            count: number;
+            /** Format: double */
+            deltaPts?: number;
+            good: boolean;
+            /**
+             * Format: double
+             * @description Share of all contacts, percent
+             */
+            pct: number;
+            /** @enum {string} */
+            tier: "active" | "cooling" | "at_risk" | "sunset";
+        };
+        HealthTrendWeek: {
+            /** Format: double */
+            active: number;
+            /** Format: double */
+            atRisk: number;
+            /** Format: double */
+            cooling: number;
+            /** Format: date */
+            day: string;
+            /** Format: double */
+            sunset: number;
+        };
         HostReputeAPIKeyInputBody: {
             /** @description A HostRepute API key (hr_live_…) with the monitor:read, alerts:read and assets:write scopes. Write-only: it is stored encrypted and never returned. */
             apiKey: string;
@@ -5130,6 +6244,407 @@ export interface components {
             next: "password" | "sso";
             sso?: components["schemas"]["SSOStart"];
         };
+        ImportBadRow: {
+            /** Format: int64 */
+            columns: number;
+            /** Format: int64 */
+            line: number;
+            raw: string;
+        };
+        ImportConnectInput: {
+            /** @description Write-only: stored encrypted, never returned */
+            apiKey: string;
+            /**
+             * Format: uri
+             * @description listmonk or Keila server address
+             */
+            baseUrl?: string;
+            /** @description listmonk API user */
+            user?: string;
+        };
+        ImportConnection: {
+            account: string;
+            baseUrl?: string;
+            /** Format: date-time */
+            checkedAt: string;
+            dataCenter?: string;
+            lists: components["schemas"]["ImportSourceList"][];
+        };
+        ImportConsentMap: {
+            /** @enum {string} */
+            pending: "pending" | "skip";
+            /** @enum {string} */
+            subscribed: "confirmed" | "pending" | "skip";
+            /** @enum {string} */
+            transactional: "skip" | "pending";
+        };
+        ImportConsentMapping: {
+            doubleOptIn: boolean;
+            /** @enum {string} */
+            evidence: "trust" | "repermission";
+            evidenceSource: string;
+            historyExample: string;
+            /** Format: int64 */
+            inSync: number;
+            providers: string[];
+            pullSuppressions: boolean;
+            recordHistory: boolean;
+            statuses: components["schemas"]["ImportConsentStatus"][];
+            /** Format: int64 */
+            suppressCount: number;
+        };
+        ImportConsentStatus: {
+            /** Format: int64 */
+            contacts: number;
+            effect: string;
+            handling: string;
+            /** @description The source's own word: subscribed, cleaned, archived with "abuse" complaint */
+            label: string;
+            locked: boolean;
+            note?: string;
+            options: components["schemas"]["ImportFieldOption"][];
+            status: string;
+            /** @enum {string} */
+            tone: "ok" | "warn" | "bad" | "neutral";
+        };
+        ImportCreateInput: {
+            /** @enum {string} */
+            source: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "csv" | "xlsx";
+        };
+        ImportDetail: {
+            connection?: components["schemas"]["ImportConnection"];
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            error?: components["schemas"]["ImportError"];
+            /** Format: int64 */
+            fieldCount: number;
+            fileName: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** @description An API key is stored (it is never returned) */
+            hasCredentials: boolean;
+            id: string;
+            log: components["schemas"]["ImportLogEntry"][];
+            options: components["schemas"]["ImportOptions"];
+            previous?: components["schemas"]["ImportSummary"];
+            progress: components["schemas"]["ImportProgress"];
+            providerSync: components["schemas"]["ImportProviderPulled"][];
+            source: string;
+            sourceName: string;
+            /** Format: date-time */
+            stagedAt?: string;
+            /** Format: int64 */
+            stagedRows: number;
+            /** Format: date-time */
+            startedAt?: string;
+            stats?: components["schemas"]["ImportStats"];
+            /** @enum {string} */
+            status: "draft" | "staging" | "mapping" | "previewing" | "running" | "paused" | "done" | "failed" | "cancelled";
+            /** @enum {string} */
+            step: "source" | "fields" | "consent" | "preview" | "import" | "done";
+        };
+        ImportDuplicateExample: {
+            email: string;
+            inReputeCast: string;
+            inSource: string;
+            result: string;
+            /** @enum {string} */
+            resultTone: "ok" | "bad";
+            suppressed: boolean;
+        };
+        ImportError: {
+            badRows?: components["schemas"]["ImportBadRow"][];
+            /** @description source_auth_failed, source_rate_limited, source_unavailable, file_columns, file_unreadable */
+            code: string;
+            /** Format: int64 */
+            header?: number;
+            message: string;
+            /** Format: date-time */
+            retryAt?: string;
+            /** Format: int64 */
+            row?: number;
+            /**
+             * Format: int64
+             * @description HTTP status from the source (401, 429)
+             */
+            status?: number;
+        };
+        ImportFieldChoice: {
+            source: string;
+            target: string;
+            /** @enum {string} */
+            type?: "text" | "number" | "date" | "boolean" | "";
+        };
+        ImportFieldMapping: {
+            fields: components["schemas"]["ImportFieldRow"][];
+            /** Format: int64 */
+            mapped: number;
+            /** Format: int64 */
+            new: number;
+            ready: boolean;
+            /** Format: int64 */
+            skipped: number;
+        };
+        ImportFieldOption: {
+            label: string;
+            value: string;
+        };
+        ImportFieldRow: {
+            label: string;
+            options: components["schemas"]["ImportFieldOption"][];
+            samples: string[];
+            source: string;
+            /** @enum {string} */
+            status: "mapped" | "new" | "skipped";
+            target: string;
+            /** @description What ReputeCast stores: email, text, number, date, timezone, consent, tags, or – when skipped */
+            type: string;
+        };
+        ImportInvalidGroup: {
+            example?: string;
+            problem: string;
+            /** Format: int64 */
+            rows: number;
+        };
+        ImportJob: {
+            detail?: string;
+            eta?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            href: string;
+            id: string;
+            /** @enum {string} */
+            kind: "import";
+            /** Format: int64 */
+            progress?: number;
+            /** Format: date-time */
+            startedAt?: string;
+            /** @enum {string} */
+            status: "queued" | "running" | "done" | "failed" | "canceled";
+            title: string;
+        };
+        ImportJobList: {
+            items: components["schemas"]["ImportJob"][];
+        };
+        ImportList: {
+            active?: string;
+            items: components["schemas"]["ImportSummary"][];
+        };
+        ImportListAfter: {
+            /** Format: int64 */
+            contacts: number;
+            name: string;
+        };
+        ImportListChoice: {
+            sourceId: string;
+            /** @description List id, or new:<name> */
+            target: string;
+        };
+        ImportLogEntry: {
+            /** Format: date-time */
+            at: string;
+            /** @enum {string} */
+            kind: "start" | "running" | "done" | "sync" | "retry" | "error" | "info";
+            message: string;
+        };
+        ImportOptions: {
+            /** @enum {string} */
+            evidence: "trust" | "repermission";
+            importEngagement: boolean;
+            importTags: boolean;
+            lists: components["schemas"]["ImportListChoice"][];
+            /** @enum {string} */
+            onConflict: "fill" | "overwrite" | "keep";
+            /** Format: int64 */
+            pace?: number;
+            pullSuppressions: boolean;
+            recordHistory: boolean;
+            risky: components["schemas"]["ImportRiskyActions"];
+            skipRows: number[];
+        };
+        ImportPreview: {
+            /** Format: date-time */
+            computedAt: string;
+            duplicates: components["schemas"]["ImportDuplicateExample"][];
+            /** Format: int64 */
+            importCount: number;
+            /** Format: int64 */
+            invalid: number;
+            invalidGroups: components["schemas"]["ImportInvalidGroup"][];
+            /**
+             * Format: int64
+             * @description Already in ReputeCast
+             */
+            merged: number;
+            /**
+             * Format: int64
+             * @description Statuses mapped to Skip
+             */
+            notImported: number;
+            /** @enum {string} */
+            onConflict: "fill" | "overwrite" | "keep";
+            /** Format: int64 */
+            risky: number;
+            riskyGroups: components["schemas"]["ImportRiskyGroup"][];
+            /** Format: int64 */
+            rows: number;
+            /** Format: int64 */
+            suppressCount: number;
+            /**
+             * Format: int64
+             * @description Unsubscribed, bounced or complained in the source
+             */
+            suppressed: number;
+            /**
+             * Format: int64
+             * @description New contacts, subscribed
+             */
+            willImport: number;
+        };
+        ImportProgress: {
+            /** Format: int64 */
+            batch: number;
+            /** Format: int64 */
+            batchSize: number;
+            /** Format: int64 */
+            batches: number;
+            /** Format: int64 */
+            imported: number;
+            /** Format: int64 */
+            merged: number;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            processed: number;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: int64 */
+            suppressed: number;
+            /** Format: int64 */
+            total: number;
+        };
+        ImportProviderPulled: {
+            name: string;
+            /** Format: int64 */
+            pulled: number;
+            short: string;
+        };
+        ImportRiskyActions: {
+            /** @enum {string} */
+            disposable: "skip" | "import";
+            /** @enum {string} */
+            role: "exclude_broadcasts" | "skip" | "import";
+            /** @enum {string} */
+            stale: "pending" | "skip" | "import";
+            /** @enum {string} */
+            trap: "skip" | "import";
+            /** @enum {string} */
+            typo: "fix" | "skip" | "import";
+        };
+        ImportRiskyGroup: {
+            action: string;
+            actions: components["schemas"]["ImportFieldOption"][];
+            examples: string;
+            /** @enum {string} */
+            key: "role" | "disposable" | "typo" | "stale" | "trap";
+            label: string;
+            /** Format: int64 */
+            rows: number;
+            why: string;
+        };
+        ImportSaveConsentInput: {
+            /** @enum {string} */
+            evidence: "trust" | "repermission";
+            map: components["schemas"]["ImportConsentMap"];
+            pullSuppressions: boolean;
+            recordHistory: boolean;
+        };
+        ImportSaveFieldsInput: {
+            fields: components["schemas"]["ImportFieldChoice"][];
+        };
+        ImportSourceList: {
+            /**
+             * Format: int64
+             * @description Hard bounced in the source
+             */
+            cleaned: number;
+            /** Format: int64 */
+            complained: number;
+            doubleOptIn: boolean;
+            /** Format: int64 */
+            fields: number;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            pending: number;
+            since?: string;
+            /** Format: int64 */
+            subscribed: number;
+            tagExamples: string[];
+            /** Format: int64 */
+            tags: number;
+            /** Format: int64 */
+            transactional: number;
+            /** Format: int64 */
+            unsubscribed: number;
+        };
+        ImportStats: {
+            /**
+             * Format: int64
+             * @description Re-permission emails sent through the System stream
+             */
+            confirmsSent: number;
+            /** Format: int64 */
+            durationMs: number;
+            /** Format: int64 */
+            imported: number;
+            lists: components["schemas"]["ImportListAfter"][];
+            /** Format: int64 */
+            merged: number;
+            /** Format: int64 */
+            pending: number;
+            /** @description Providers the new suppressions were pushed to */
+            pushedTo: string[];
+            reasons: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            rows: number;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: int64 */
+            suppressed: number;
+            /** @description unsubscribe, hard_bounce, complaint */
+            suppressedBy: {
+                [key: string]: number;
+            };
+        };
+        ImportSummary: {
+            /**
+             * Format: int64
+             * @description Contacts imported, merged or imported as pending
+             */
+            contacts: number;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            fileName: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            source: string;
+            sourceName: string;
+            status: string;
+            step: string;
+        };
+        ImportUpdateInput: {
+            options?: components["schemas"]["ImportOptions"];
+            /** @enum {string} */
+            source?: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "csv" | "xlsx" | "";
+            /** @enum {string} */
+            step?: "source" | "fields" | "consent" | "preview" | "";
+        };
         InstanceBasics: {
             name: string;
             /** Format: uri */
@@ -5215,10 +6730,60 @@ export interface components {
             workspaceName: string;
             workspaceSlug: string;
         };
+        ItemsAudienceListSummary: {
+            items: components["schemas"]["AudienceListSummary"][];
+        };
         LiquidProblem: {
             /** Format: int64 */
             line: number;
             message: string;
+        };
+        ListHealth: {
+            /** Format: date-time */
+            computedAt?: string;
+            insight?: components["schemas"]["ListHealthInsight"];
+            policy: components["schemas"]["SunsetPolicy"];
+            /**
+             * Format: int64
+             * @description Index of the trend column when the policy started, -1 if none
+             */
+            policyWeek: number;
+            reengageFlowId?: string;
+            rows: components["schemas"]["ListHealthRow"][];
+            thisWeek: components["schemas"]["SunsetThisWeek"];
+            tiers: components["schemas"]["HealthTierCard"][];
+            /** Format: int64 */
+            total: number;
+            trend: components["schemas"]["HealthTrendWeek"][];
+            /** Format: double */
+            winBackRate?: number;
+        };
+        ListHealthInsight: {
+            text: string;
+        };
+        ListHealthRow: {
+            /** Format: double */
+            bounceRate?: number;
+            complaintHigh: boolean;
+            /** Format: double */
+            complaintRate?: number;
+            /** Format: int64 */
+            contacts: number;
+            /** @description Excellent, Good, Needs attention, Re-permission needed */
+            health: string;
+            /** @enum {string} */
+            healthTone: "ok" | "warn" | "bad";
+            /** Format: double */
+            humanOpens?: number;
+            id: string;
+            /** @enum {string} */
+            kind: "list" | "view";
+            name: string;
+            /** Format: int64 */
+            netGrowth: number;
+            tiers: components["schemas"]["AudienceTierCounts"];
+            /** Format: double */
+            unsubRate?: number;
         };
         MCPAgentAction: {
             agent: string;
@@ -5379,6 +6944,22 @@ export interface components {
             /** @enum {string} */
             state: "on" | "off" | "idp" | "required";
         };
+        NewContact: {
+            /** @enum {string} */
+            consent: "single" | "double";
+            email: string;
+            firstName?: string;
+            lastName?: string;
+            /** @description List ids */
+            lists: string[];
+            tags?: string[];
+        };
+        NewContactResult: {
+            /** @description Shown when no System provider could send the confirmation */
+            confirmUrl?: string;
+            confirmationSent: boolean;
+            id: string;
+        };
         NewPlanInput: {
             /**
              * Format: int64
@@ -5479,6 +7060,10 @@ export interface components {
             /** Format: int64 */
             marked: number;
         };
+        OptInResendResult: {
+            confirmUrl?: string;
+            sent: boolean;
+        };
         "Passkey-registerRequest": {
             challenge: string;
             /** @description The browser's RegistrationResponseJSON */
@@ -5531,6 +7116,9 @@ export interface components {
             kind: "contact" | "custom" | "system";
             /** @example First name */
             label: string;
+        };
+        PreferenceLinkResult: {
+            url: string;
         };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
@@ -6076,6 +7664,9 @@ export interface components {
         RecoveryCodes: {
             codes: string[];
         };
+        RemoveSuppressionInput: {
+            reason: string;
+        };
         "Rename-passkeyRequest": {
             name: string;
         };
@@ -6418,6 +8009,125 @@ export interface components {
             id: string;
             name: string;
         };
+        SegmentCatalog: {
+            fields: components["schemas"]["SegmentCatalogField"][];
+            sqlEnabled: boolean;
+            views: string[];
+        };
+        SegmentCatalogField: {
+            key: string;
+            /** @enum {string} */
+            kind: "enum" | "list" | "campaign" | "text" | "number" | "date" | "boolean" | "period";
+            label: string;
+            ops: components["schemas"]["SegmentOperator"][];
+            options: components["schemas"]["SegmentOption"][];
+        };
+        SegmentCondition: {
+            /** Format: int64 */
+            amount?: number;
+            field: string;
+            op: string;
+            /** @enum {string} */
+            unit?: "days" | "weeks";
+            value?: string;
+        };
+        SegmentCountResult: {
+            /** Format: int64 */
+            count: number;
+            generatedSql: string;
+            /**
+             * Format: int64
+             * @description How long the count took
+             */
+            ms: number;
+            tiers: components["schemas"]["SegmentTierMix"];
+            /**
+             * Format: int64
+             * @description Contacts in the workspace
+             */
+            total: number;
+        };
+        SegmentDefinition: {
+            groups: components["schemas"]["SegmentGroup"][];
+        };
+        SegmentDetail: {
+            /** Format: int64 */
+            count?: number;
+            /** Format: int32 */
+            countMs?: number;
+            /** Format: date-time */
+            countedAt?: string;
+            definition?: components["schemas"]["SegmentDefinition"];
+            description: string;
+            generatedSql: string;
+            id: string;
+            /** @enum {string} */
+            mode: "builder" | "sql";
+            name: string;
+            /** @enum {string} */
+            refresh: "dynamic" | "static";
+            sql: string;
+            tiers: components["schemas"]["SegmentTierMix"];
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: string;
+        };
+        SegmentGroup: {
+            conditions: components["schemas"]["SegmentCondition"][];
+            /**
+             * @description all = every condition, any = at least one
+             * @enum {string}
+             */
+            match: "all" | "any";
+        };
+        SegmentInput: {
+            definition?: components["schemas"]["SegmentDefinition"];
+            description?: string;
+            /** @enum {string} */
+            mode: "builder" | "sql";
+            name?: string;
+            /** @enum {string} */
+            refresh?: "dynamic" | "static";
+            sql?: string;
+        };
+        SegmentList: {
+            items: components["schemas"]["SegmentListItem"][];
+        };
+        SegmentListItem: {
+            /**
+             * Format: int64
+             * @description Last known count
+             */
+            count?: number;
+            /** Format: date-time */
+            countedAt?: string;
+            id: string;
+            /** @enum {string} */
+            mode: "builder" | "sql";
+            name: string;
+            /** @enum {string} */
+            refresh: "dynamic" | "static";
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        SegmentOperator: {
+            key: string;
+            label: string;
+        };
+        SegmentOption: {
+            label: string;
+            value: string;
+        };
+        SegmentTierMix: {
+            /** Format: int64 */
+            active: number;
+            /** Format: int64 */
+            atRisk: number;
+            /** Format: int64 */
+            cooling: number;
+            /** Format: int64 */
+            sunset: number;
+        };
         SessionTiming: {
             /**
              * Format: date-time
@@ -6542,10 +8252,146 @@ export interface components {
             /** @enum {string} */
             status: "signed_in" | "two_factor";
         };
+        SunsetPolicy: {
+            /** Format: int64 */
+            activeDays: number;
+            /** Format: int64 */
+            atRiskDays: number;
+            countMachineOpens: boolean;
+            deleteAfter: boolean;
+            /** Format: int64 */
+            deleteAfterMonths: number;
+            enabled: boolean;
+            enabledAt?: string;
+            reengage: boolean;
+            /** @description Name of the automation that sends it */
+            reengageAutomation?: string;
+            /** Format: int64 */
+            stopAfterDays: number;
+            stopBroadcasts: boolean;
+            /** Format: int64 */
+            sunsetDays: number;
+        };
+        SunsetThisWeek: {
+            enterDay?: string;
+            /**
+             * Format: int64
+             * @description Contacts entering Sunset
+             */
+            entering: number;
+            stopDay?: string;
+            /**
+             * Format: int64
+             * @description Contacts whose Broadcasts stop
+             */
+            stopping: number;
+        };
+        SuppressionAddResult: {
+            /** Format: int64 */
+            added: number;
+            /**
+             * Format: int64
+             * @description Already on the list
+             */
+            already: number;
+            /** @description Values that aren't addresses */
+            invalid: string[];
+        };
+        SuppressionCountsView: {
+            /** Format: int64 */
+            complaint: number;
+            /** Format: int64 */
+            hardBounce: number;
+            /** Format: int64 */
+            manual: number;
+            /** Format: int64 */
+            other: number;
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            unsubscribe: number;
+        };
+        SuppressionFilterOption: {
+            label: string;
+            value: string;
+        };
+        SuppressionItem: {
+            address: string;
+            /** Format: date-time */
+            at: string;
+            campaignId?: string;
+            context: string;
+            group: boolean;
+            id: string;
+            importId?: string;
+            originalCode: string;
+            reasons: string[];
+            /** Format: int64 */
+            rows: number;
+            /** @enum {string} */
+            scope: "all" | "marketing";
+            source: components["schemas"]["SuppressionSource"];
+        };
+        SuppressionList: {
+            counts: components["schemas"]["SuppressionCountsView"];
+            items: components["schemas"]["SuppressionItem"][];
+            /**
+             * Format: int64
+             * @description Addresses matching the filter
+             */
+            matching: number;
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pageSize: number;
+            sources: components["schemas"]["SuppressionFilterOption"][];
+            sync: components["schemas"]["SuppressionProviderSync"][];
+            /**
+             * Format: int64
+             * @description Rows matching, groups counted once
+             */
+            total: number;
+        };
+        SuppressionProviderSync: {
+            adapter: string;
+            /** Format: date-time */
+            at?: string;
+            detail: string;
+            local: boolean;
+            name: string;
+            providerId: string;
+            /** Format: int64 */
+            pulled: number;
+            pulledNote: string;
+            /** Format: int64 */
+            pushed: number;
+            /** @enum {string} */
+            status: "in_sync" | "syncing" | "error" | "off";
+        };
+        SuppressionPullProvider: {
+            /** Format: int64 */
+            added: number;
+            name: string;
+            /** Format: int64 */
+            pulled: number;
+            /** @description Why nothing was pulled */
+            skipped?: string;
+        };
+        SuppressionPullResult: {
+            /** Format: int64 */
+            added: number;
+            providers: components["schemas"]["SuppressionPullProvider"][];
+        };
         SuppressionReasonCount: {
             /** Format: int64 */
             count: number;
             reason: string;
+        };
+        SuppressionSource: {
+            adapter?: string;
+            kind: string;
+            /** @description Amazon SES, Preference center, Linh Nguyen, Brevo import… */
+            label: string;
         };
         SuppressionSyncRow: {
             detail?: string;
@@ -6574,6 +8420,19 @@ export interface components {
             rows: components["schemas"]["SuppressionSyncRow"][];
             /** Format: int64 */
             total: number;
+        };
+        SuppressionUploadResult: {
+            /** Format: int64 */
+            added: number;
+            /**
+             * Format: int64
+             * @description Already on the list
+             */
+            already: number;
+            /** @description Values that aren't addresses */
+            invalid: string[];
+            /** Format: int64 */
+            rows: number;
         };
         TOTPSetup: {
             account: string;
@@ -9059,6 +10918,106 @@ export interface operations {
             };
         };
     };
+    "audience-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudienceSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListHealth"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-sunset-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SunsetPolicy"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SunsetPolicy"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-audit-events": {
         parameters: {
             query?: {
@@ -10742,6 +12701,543 @@ export interface operations {
             };
         };
     };
+    "list-contacts": {
+        parameters: {
+            query?: {
+                /** @description Email, name or tag */
+                q?: string;
+                /** @description List id */
+                list?: string;
+                tier?: "active" | "cooling" | "at_risk" | "sunset" | "";
+                mailbox?: "gmail" | "outlook" | "yahoo" | "icloud" | "other" | "";
+                consent?: "double" | "single" | "pending" | "";
+                source?: string;
+                tag?: string;
+                /** @description Segment id */
+                segment?: string;
+                joinedAfter?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewContact"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewContactResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "bulk-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactBulkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactBulkResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "erase-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactEraseInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactBulkResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactExportInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-contact-views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactSavedViews"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-contact-view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactViewInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactSavedView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-contact-view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactProfile"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactProfile"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "contact-activity": {
+        parameters: {
+            query?: {
+                filter?: "all" | "deliveries" | "engagement" | "consent";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactActivityPage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "contact-preference-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferenceLinkResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resend-contact-optin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptInResendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "suppress-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactSuppressInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "delete-workspace": {
         parameters: {
             query?: never;
@@ -11067,6 +13563,769 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-field": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomFieldInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldDef"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-field": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-field": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomFieldInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldDef"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportCreateInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "discard-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportConnectInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-import-consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportConsentMapping"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-import-consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportSaveConsentInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportConsentMapping"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-import-fields": {
+        parameters: {
+            query?: {
+                /** @description Guess every target again instead of returning the saved mapping */
+                guesses?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportFieldMapping"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-import-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportSaveFieldsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportFieldMapping"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-import-file": {
+        parameters: {
+            query?: {
+                /** @description The file's name */
+                fileName?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "download-import-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                kind: "report" | "skipped" | "invalid" | "unreadable";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-import": {
+        parameters: {
+            query?: {
+                /** @description Pace requests to the source to 3 a second from now on */
+                slow?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "skip-import-bad-rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "stage-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportDetail"];
+                };
             };
             /** @description Error */
             default: {
@@ -11510,6 +14769,38 @@ export interface operations {
             };
         };
     };
+    "list-background-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJobList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "leave-workspace": {
         parameters: {
             query?: never;
@@ -11528,6 +14819,142 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemsAudienceListSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudienceListInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudienceListSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudienceListInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudienceListSummary"];
+                };
             };
             /** @description Error */
             default: {
@@ -13153,6 +16580,280 @@ export interface operations {
             };
         };
     };
+    "list-segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SegmentList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-segment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SegmentInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SegmentDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "segment-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SegmentCatalog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-segment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SegmentInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SegmentCountResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-segment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Segment id */
+                segment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SegmentDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-segment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Segment id */
+                segment: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SegmentInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SegmentDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-segment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Segment id */
+                segment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "count-segment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Segment id */
+                segment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SegmentCountResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-workspace-settings": {
         parameters: {
             query?: never;
@@ -13271,6 +16972,226 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SuppressionSyncRun"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-suppressions": {
+        parameters: {
+            query?: {
+                /** @description Address or domain */
+                q?: string;
+                reason?: "hard_bounce" | "complaint" | "unsubscribe" | "manual" | "";
+                source?: string;
+                since?: "7d" | "30d" | "";
+                /** @description Show the rows of one import group */
+                import?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuppressionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-suppressions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddSuppressionsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuppressionAddResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-suppressions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pull-suppressions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuppressionPullResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-suppressions": {
+        parameters: {
+            query?: {
+                fileName?: string;
+                reason?: "manual" | "hard_bounce" | "complaint" | "unsubscribe" | "";
+                note?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuppressionUploadResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-suppression": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveSuppressionInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

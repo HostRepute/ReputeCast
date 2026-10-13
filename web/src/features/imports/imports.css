@@ -1,0 +1,236 @@
+/* Import wizard (Migration boards): the full-screen frame, the step rail,
+   source cards, stat tiles, the live log and the boards' phone rules. In
+   the components layer, so Tailwind utilities still override them. */
+
+@layer components {
+  .mig {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--ground);
+  }
+  .mig > header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 14px 28px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+  .mig > header h1 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .wiz {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 28px;
+    max-width: 1300px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: flex-start;
+  }
+  /* position: relative keeps the visually hidden "(done)" labels inside the
+     rail when it scrolls sideways on phones. */
+  .wizsteps {
+    position: relative;
+    flex: 1 1 220px;
+    max-width: 250px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .wiz > main {
+    flex: 999 1 560px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .mig h2.wizh {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .mig .lead {
+    color: var(--ink-2);
+  }
+
+  /* Source cards */
+  .src {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: var(--ink);
+  }
+  .src:hover {
+    border-color: var(--line-strong);
+  }
+  .src.on {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px #ccfbf1;
+  }
+
+  /* Tiles and tables as on the migration boards */
+  .mig .tile {
+    gap: 3px;
+    padding: 14px 16px;
+  }
+  .mig .tbl th {
+    padding: 9px 12px;
+  }
+  .mig .tbl td {
+    padding: 10px 12px;
+  }
+  .mig .tbl.mpre td {
+    padding: 9px 12px;
+    white-space: nowrap;
+  }
+  .mig .tbl.mpre td:nth-child(2),
+  .mig .tbl.mpre td:nth-child(3),
+  .mig .tbl.mpre td:nth-child(4) {
+    white-space: normal;
+  }
+  .mig .opt-on {
+    border-color: var(--accent);
+    background: #f0fdfa;
+  }
+  /* Board-specific control sizes: 34px controls (fields, consent, preview),
+     full-width selects (fields, consent), 8px cells (fields). */
+  .mig .s34 .in {
+    height: 34px;
+  }
+  .mig .sfull .in {
+    width: 100%;
+  }
+  .mig .ftd8 .tbl td {
+    padding: 8px 12px;
+  }
+  /* Read-only values (the detected data center) stay white, as on the board. */
+  .mig .in[readonly] {
+    background: #fff;
+  }
+  .mig .in.fit {
+    width: var(--fitw, auto);
+    max-width: 100%;
+  }
+  .mig tr.newf td {
+    background: #eff6ff;
+  }
+  .mig tr.skipf td {
+    color: #6b7280;
+  }
+  .mig tr.supf td {
+    background: #fff5f5;
+  }
+
+  /* Live log */
+  .log {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 7px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 12.5px;
+  }
+  .log.first {
+    border-top: 0;
+  }
+  .btn.stop {
+    color: var(--bad-fg);
+    border-color: #fca5a5;
+  }
+  /* The step's main action: 40px, as on the boards. */
+  .btn.wnext {
+    min-height: 40px;
+    padding: 0 18px;
+  }
+
+  /* Drop zones: the empty state and the file step */
+  .migdrop {
+    padding: 36px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    border: 2px dashed #c9ced6;
+  }
+  .migdrop.over {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+  }
+
+  @media (max-width: 1100px) {
+    .mig .wiz {
+      padding: 16px;
+      gap: 16px;
+    }
+  }
+  @media (max-width: 767px) {
+    .mig .wiz {
+      padding: 12px;
+    }
+    .wizsteps {
+      max-width: none;
+      flex: 1 1 100%;
+      flex-direction: row;
+      overflow-x: auto;
+      gap: 14px;
+      padding: 10px 12px;
+    }
+    .wizsteps .step {
+      flex: none;
+      padding: 2px 0;
+      align-items: center;
+    }
+    .wizsteps .step .k,
+    .wizsteps > .railfoot {
+      display: none;
+    }
+    .wiz > main,
+    .wiz main > * {
+      min-width: 0;
+      max-width: 100%;
+    }
+    .wiz select.in,
+    .wiz input.in {
+      width: 0;
+      min-width: 100%;
+    }
+    .wiz .mono {
+      overflow-wrap: anywhere;
+    }
+    .wiz .badge {
+      white-space: normal;
+      height: auto;
+      min-height: 22px;
+      line-height: 1.25;
+      padding-top: 2px;
+      padding-bottom: 2px;
+      max-width: 100%;
+    }
+    .wizsteps .badge {
+      white-space: nowrap;
+    }
+    .wiz .btn {
+      white-space: normal;
+      max-width: 100%;
+    }
+    .wiz .mgrid {
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+    }
+  }
+}

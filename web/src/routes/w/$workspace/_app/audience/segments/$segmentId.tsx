@@ -1,11 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { SegmentBuilderPage } from '@/features/audience/SegmentBuilder'
 
 export const Route = createFileRoute('/w/$workspace/_app/audience/segments/$segmentId')({
-  component: () => (
-    <Page title="Audience">
-      <NotBuilt screen="Audience" />
-    </Page>
-  ),
+  component: function SegmentRoute() {
+    const { segmentId } = Route.useParams()
+    return <SegmentBuilderPage segmentId={segmentId} />
+  },
 })
