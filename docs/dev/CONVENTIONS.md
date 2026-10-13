@@ -90,6 +90,12 @@ Rules:
 ### SQL and migrations
 
 - Queries live in `internal/store/queries/<domain>.sql`; run `go tool sqlc generate`.
+- **Names are global.** sqlc query names share one package (`store`), demo
+  helpers share `package demo`, and API schema names share one OpenAPI
+  document. Prefix with your domain: `AutomationProviders` not
+  `WorkspaceProviders`, `ComposerCustomFields`, `deliverabilityDemoKey`,
+  `ImportFieldOption`. (Huma falls back to a package prefix on a schema-name
+  clash, but the web types then change name — pick unique names up front.)
 - Nullability: sqlc can't infer it through `LEFT JOIN LATERAL` or aggregates.
   Wrap with `coalesce(x, 0)::bigint` / `coalesce(x, '')::text` so pgx never
   scans NULL into a non-pointer.

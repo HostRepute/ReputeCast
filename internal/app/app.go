@@ -202,6 +202,7 @@ func NewHumaConfig() huma.Config {
 	cfg.DocsPath = ""
 	cfg.SchemasPath = ""
 	cfg.CreateHooks = nil // no $schema links in bodies
+	cfg.Components.Schemas = huma.NewMapRegistry("#/components/schemas/", api.SchemaNamer())
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 		"session": {Type: "apiKey", In: "cookie", Name: "rc_session", Description: "Browser session cookie"},
 		"bearer":  {Type: "http", Scheme: "bearer", Description: "API key (rc_live_…) or MCP agent token (rc_agent_…)"},
