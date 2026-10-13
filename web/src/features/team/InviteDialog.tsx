@@ -293,7 +293,7 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
               .
             </span>
             <span className="row gap-1.5">
-              <span className="mono max-w-[300px] truncate rounded-md border border-dashed border-muted-line bg-white px-2 py-1.5 text-[12px] text-ink">
+              <span className="mono rounded-[6px] border border-dashed border-muted-line bg-white px-2 py-1.5 text-[12px] text-ink [overflow-wrap:anywhere]">
                 {firstLink ? `${firstLink.slice(0, 40)}…` : `${window.location.origin}/invite/…`}
               </span>
               <Button
