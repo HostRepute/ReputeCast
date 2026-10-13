@@ -50,6 +50,26 @@ type Config struct {
 	// HostRepute and DNS configure Deliverability (internal/hostrepute, internal/dnscheck).
 	HostRepute HostReputeConfig `koanf:"hostrepute"`
 	DNS        DNSConfig        `koanf:"dns"`
+	// Mail and Connect configure system mail and the connect-a-provider
+	// flow (internal/systemmail, internal/connect).
+	Mail    MailConfig    `koanf:"mail"`
+	Connect ConnectConfig `koanf:"connect"`
+}
+
+// MailConfig configures system mail (password resets, invitations,
+// notifications), which goes out through the System stream's provider.
+type MailConfig struct {
+	// DevSMTP is where, in development only, mail for the demo's sample
+	// providers is delivered instead of a real provider (Mailpit).
+	DevSMTP string `koanf:"dev_smtp"`
+}
+
+// ConnectConfig configures "Connect a sending provider".
+type ConnectConfig struct {
+	// SESTemplateURL is the published CloudFormation template the "Launch
+	// stack in AWS" link opens. AWS reads quick-create templates from S3, so
+	// instances that publish their own copy point this at it.
+	SESTemplateURL string `koanf:"ses_template_url"`
 }
 
 // HostReputeConfig configures the optional HostRepute integration. ReputeCast
@@ -188,7 +208,9 @@ func Defaults() Config {
 			RevokeURL: "https://api.hostrepute.com/oauth/revoke",
 			ClientID:  "reputecast",
 		},
-		DNS: DNSConfig{Timeout: 4 * time.Second},
+		DNS:     DNSConfig{Timeout: 4 * time.Second},
+		Mail:    MailConfig{DevSMTP: "localhost:1025"},
+		Connect: ConnectConfig{SESTemplateURL: "https://reputecast.com/cf/reputecast-ses.yaml"},
 	}
 }
 

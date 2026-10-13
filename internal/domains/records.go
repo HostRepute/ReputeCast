@@ -25,8 +25,10 @@ type Record struct {
 	// Status is the live DNS check: pending (not checked yet), verified,
 	// wrong_value, missing or error.
 	Status string `json:"status,omitempty"`
-	// Found is what DNS answered when it differs from Value.
-	Found string `json:"found,omitempty"`
+	// Found is what DNS answered when it differs from Value (for DMARC:
+	// the published policy, at FoundName when inherited).
+	Found     string `json:"found,omitempty"`
+	FoundName string `json:"found_name,omitempty"`
 	// ProviderStatus is the provider's own verdict when its API reports one.
 	ProviderStatus string `json:"provider_status,omitempty"`
 	// Source says who asked for the record: "provider" (its domain API) or
