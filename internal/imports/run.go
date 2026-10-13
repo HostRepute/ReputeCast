@@ -376,13 +376,13 @@ func (s *Service) importBatch(ctx context.Context, st *runState, b batch) error 
 			if v.Class == classTrap {
 				email = "redacted"
 			}
-			_ = st.report.Write([]string{fmt.Sprint(r.RowNo), csvField(email), r.Status, oc, reason})
+			_ = st.report.Write([]string{fmt.Sprint(r.RowNo), formulaSafe(email), r.Status, oc, reason})
 			if oc == "skipped" {
 				raw := r.Raw
 				if v.Class == classTrap {
 					raw = "redacted"
 				}
-				_ = st.skipped.Write([]string{fmt.Sprint(r.RowNo), csvField(raw), r.Status, reason})
+				_ = st.skipped.Write([]string{fmt.Sprint(r.RowNo), formulaSafe(raw), r.Status, reason})
 			}
 		}
 		rows := make([]int32, len(outs))

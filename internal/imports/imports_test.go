@@ -3,6 +3,7 @@ package imports_test
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -87,11 +88,12 @@ func TestCSVImport(t *testing.T) {
 	c.Do(http.MethodPost, base+"/imports", map[string]any{"source": "csv"}).MustStatus(t, 201).JSON(t, &d)
 	id := d.ID
 
-	csv := strings.Join([]string{
+	file := strings.Join([]string{
 		"email,first_name,status,company,tags",
 		"ana@gmail.com,Ana,subscribed,Acme,customer",
 		"ben@gmail.com,Ben,unsubscribed,,",
 		"not-an-address,Bad,subscribed,,",
+		`"bad,comma@",Comma,subscribed,,`,
 		"gone@gmail.com,Gone,subscribed,,",
 		"cara@outlook.com,Cara,subscribed,Cara Co,",
 		"info@gmail.com,Info,subscribed,,",
@@ -101,11 +103,11 @@ func TestCSVImport(t *testing.T) {
 	}, "\n")
 	// The browser posts the file as is; the service gets the same bytes.
 	svc := service(env, nil)
-	if _, err := svc.Upload(ctx, &ws, uuid.MustParse(id), "people.csv", []byte(csv)); err != nil {
+	if _, err := svc.Upload(ctx, &ws, uuid.MustParse(id), "people.csv", []byte(file)); err != nil {
 		t.Fatalf("upload: %v", err)
 	}
 	c.Do(http.MethodGet, base+"/imports/"+id, nil).MustStatus(t, 200).JSON(t, &d)
-	if d.Error == nil || d.Error.Code != "file_columns" || len(d.Error.BadRows) != 1 || d.Error.BadRows[0].Line != 10 {
+	if d.Error == nil || d.Error.Code != "file_columns" || len(d.Error.BadRows) != 1 || d.Error.BadRows[0].Line != 11 {
 		t.Fatalf("broken row not reported: %+v", d.Error)
 	}
 	d = detail{} // decode into a fresh value: an omitted error must read as none
@@ -123,8 +125,8 @@ func TestCSVImport(t *testing.T) {
 		t.Fatalf("stage: %v", err)
 	}
 	c.Do(http.MethodGet, base+"/imports/"+id, nil).MustStatus(t, 200).JSON(t, &d)
-	if d.StagedRows != 8 {
-		t.Fatalf("staged %d rows, want 8 (the broken one is left out)", d.StagedRows)
+	if d.StagedRows != 9 {
+		t.Fatalf("staged %d rows, want 9 (the broken one is left out)", d.StagedRows)
 	}
 
 	var fields struct {
@@ -169,7 +171,7 @@ func TestCSVImport(t *testing.T) {
 		}
 	}
 	c.Do(http.MethodPost, base+"/imports/"+id+"/preview", nil).MustStatus(t, 200).JSON(t, &p)
-	if p.Rows != 8 || p.Invalid != 1 || p.Suppressed != 1 || p.Risky != 2 {
+	if p.Rows != 9 || p.Invalid != 2 || p.Suppressed != 1 || p.Risky != 2 {
 		t.Fatalf("preview: %+v", p)
 	}
 
@@ -182,7 +184,7 @@ func TestCSVImport(t *testing.T) {
 		t.Fatalf("after the run: %s %+v", d.Status, d.Stats)
 	}
 	s := d.Stats
-	if s.Merged != 1 || s.Suppressed != 1 || s.Reasons["invalid"] != 1 || s.Reasons["disposable"] != 1 || s.Reasons["already_suppressed"] != 1 || s.Reasons["role"] != 1 {
+	if s.Merged != 1 || s.Suppressed != 1 || s.Reasons["invalid"] != 2 || s.Reasons["disposable"] != 1 || s.Reasons["already_suppressed"] != 1 || s.Reasons["role"] != 1 {
 		t.Fatalf("stats: %+v", *s)
 	}
 	if s.Imported != 3 { // ana, info (no Broadcasts), dan
@@ -224,6 +226,19 @@ func TestCSVImport(t *testing.T) {
 		t.Errorf("report download: %s, audit %d", rep.Header.Get("Content-Type"), audits(t, env, "import.report_download"))
 	}
 	viewer.Do(http.MethodGet, base+"/imports/"+id+"/files/report", nil).MustStatus(t, 403)
+	// The skipped-rows file reads back with any CSV reader: each value once.
+	skipped := c.Do(http.MethodGet, base+"/imports/"+id+"/files/skipped", nil).MustStatus(t, 200)
+	recs, err := csv.NewReader(bytes.NewReader(skipped.Body)).ReadAll()
+	if err != nil {
+		t.Fatalf("skipped rows CSV: %v", err)
+	}
+	values := map[string]bool{}
+	for _, rec := range recs[1:] {
+		values[rec[1]] = true
+	}
+	if !values["bad,comma@"] || !values["not-an-address"] {
+		t.Errorf("skipped values %v", values)
+	}
 
 	var jobs struct {
 		Items []struct{ ID, Status, Href string }

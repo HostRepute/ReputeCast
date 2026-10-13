@@ -472,11 +472,18 @@ func (s *Service) InvalidCSV(ctx context.Context, ws *store.Workspace, id uuid.U
 }
 
 func csvField(s string) string {
-	if s != "" && strings.ContainsRune("=+-@\t\r", rune(s[0])) {
-		s = "'" + s
-	}
+	s = formulaSafe(s)
 	if strings.ContainsAny(s, ",\"\n") {
 		return `"` + strings.ReplaceAll(s, `"`, `""`) + `"`
+	}
+	return s
+}
+
+// formulaSafe neutralizes a value a spreadsheet would run as a formula; a
+// csv.Writer quotes the rest.
+func formulaSafe(s string) string {
+	if s != "" && strings.ContainsRune("=+-@\t\r", rune(s[0])) {
+		return "'" + s
 	}
 	return s
 }
