@@ -66,6 +66,8 @@ type ContentIssue struct {
 	// Section is the top-level section index, -1 for the whole email.
 	Section int          `json:"section"`
 	Fixes   []ContentFix `json:"fixes"`
+	// URL is the link a link issue is about (to find it inside text).
+	URL string `json:"url,omitempty"`
 }
 
 // ContentSection is what the inspector shows for the selected section.
@@ -719,13 +721,13 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentRe
 				Title:  fmt.Sprintf("%s links to %s, listed on %s", kind, host, joinAnd(lists)),
 				Tag:    "Link domain on " + joinAnd(lists),
 				Detail: "Mail linking to a blocklisted domain gets filtered regardless of your reputation. Use a domain you control.",
-				Path:   l.path, Section: l.section, Fixes: fixes})
+				Path:   l.path, Section: l.section, Fixes: fixes, URL: l.href})
 			continue
 		}
 		if shorteners[host] {
 			add(ContentIssue{ID: "links.shortener", Severity: Warn, Group: "Links", Title: fmt.Sprintf("%s redirects through %s, a URL shortener", kind, host), Tag: "Shortened link",
 				Detail: "Shortened links hide where they go; filters treat them as suspicious and many shortener domains are blocklisted. Link to the page directly.",
-				Path:   l.path, Section: l.section, Fixes: []ContentFix{{Kind: "edit_link", Label: "Edit link", Path: l.path}}})
+				Path:   l.path, Section: l.section, Fixes: []ContentFix{{Kind: "edit_link", Label: "Edit link", Path: l.path}}, URL: l.href})
 			continue
 		}
 		if probe != nil {
@@ -737,7 +739,7 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentRe
 				}
 				add(ContentIssue{ID: "links.broken", Severity: Warn, Group: "Links", Title: fmt.Sprintf("%s to %s %s", kind, truncate(u.String(), 60), what), Tag: "Broken link",
 					Detail: "People who click get an error page. Fix the address or remove the link.", Path: l.path, Section: l.section,
-					Fixes: []ContentFix{{Kind: "edit_link", Label: "Edit link", Path: l.path}}})
+					Fixes: []ContentFix{{Kind: "edit_link", Label: "Edit link", Path: l.path}}, URL: l.href})
 			}
 		}
 	}

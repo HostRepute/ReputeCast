@@ -235,7 +235,25 @@ export interface paths {
         /** List campaigns with status, audience, route and results */
         get: operations["list-campaigns"];
         put?: never;
-        post?: never;
+        /** Start a draft, blank or from a template or another campaign */
+        post: operations["create-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/audience-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Live recipient count of an audience definition */
+        post: operations["count-campaign-audience"];
         delete?: never;
         options?: never;
         head?: never;
@@ -251,6 +269,203 @@ export interface paths {
         };
         /** Totals across campaigns sent in the last N days */
         get: operations["campaigns-summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a campaign with its content, audience, sender and route */
+        get: operations["get-campaign"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename a campaign or change its sender, reply-to, audience or content settings */
+        patch: operations["update-campaign"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the content checks on the composer's current content
+         * @description Size against Gmail's 102 KB clipping limit, alt text, image-to-text ratio, blocklisted and shortened links, unsubscribe link and postal address, personalization, subject heuristics and the plain-text part. Nothing is saved.
+         */
+        post: operations["check-campaign-content"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the content as a new version (autosave)
+         * @description Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top.
+         */
+        put: operations["save-campaign-content"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a campaign into a new draft */
+        post: operations["duplicate-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render the email for one recipient (personalization, links) */
+        post: operations["preview-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contacts of the audience to preview as */
+        get: operations["list-preview-contacts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a test email of the saved content
+         * @description Goes through the System route. Without campaigns:send, test emails can only go to your own address.
+         */
+        post: operations["send-campaign-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Version history, newest first */
+        get: operations["list-campaign-versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One version with its content */
+        get: operations["get-campaign-version"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a version (saved as a new version) */
+        post: operations["restore-campaign-version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/composer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Senders, lists, segments, personalization tokens, team and route for the composer */
+        get: operations["composer-context"];
         put?: never;
         post?: never;
         delete?: never;
@@ -276,10 +491,178 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the images in the library */
+        get: operations["list-media"];
+        put?: never;
+        /**
+         * Upload an image (PNG, JPEG or GIF, up to 5 MB)
+         * @description The file is validated by its content, not its name. Uploading the same file twice returns the stored image.
+         */
+        post: operations["upload-media"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/media/{assetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an image from the library
+         * @description The image disappears from the library but stays reachable, so emails already sent keep showing it.
+         */
+        delete: operations["remove-media"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mjml/compile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compile MJML to HTML on the server (gomjml, MJML 4)
+         * @description The composer compiles in the browser; this endpoint serves API clients and automations, and reports layout warnings.
+         */
+        post: operations["compile-mjml"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Starter templates, saved templates, saved sections and the last sent campaign */
+        get: operations["template-gallery"];
+        put?: never;
+        /** Save a template or a reusable section */
+        post: operations["create-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/templates/{templateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a template with its MJML */
+        get: operations["get-template"];
+        /** Rename a template or replace its content */
+        put: operations["update-template"];
+        post?: never;
+        /** Delete a template or saved section */
+        delete: operations["delete-template"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ABTest: {
+            bestTime?: boolean;
+            /** Format: int64 */
+            durationHours: number;
+            /** @enum {string} */
+            kind: "subject" | "content" | "send_time";
+            /** @enum {string} */
+            metric: "human_opens" | "clicks" | "manual";
+            /**
+             * Format: int64
+             * @description Share of the audience in the test
+             */
+            testPercent: number;
+            variants: components["schemas"]["ABVariant"][];
+            winner?: string;
+        };
+        ABVariant: {
+            html?: string;
+            /**
+             * @description Variant A is the campaign itself
+             * @enum {string}
+             */
+            key: "A" | "B" | "C";
+            mjml?: string;
+            preheader?: string;
+            sendTime?: string;
+            subject?: string;
+        };
+        Asset: {
+            /** @enum {string} */
+            contentType: "image/png" | "image/jpeg" | "image/gif";
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            fileName: string;
+            /** @description Transparent pixels (logos survive dark mode) */
+            hasAlpha: boolean;
+            /** Format: int64 */
+            height: number;
+            id: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** @description Root-relative URL; emails get the absolute public URL */
+            url: string;
+            /** Format: int64 */
+            width: number;
+        };
+        AudienceCount: {
+            approximate: boolean;
+            /** Format: int64 */
+            count: number;
+        };
+        AudienceDef: {
+            excludeLists: string[];
+            excludeSegments: string[];
+            lists: string[];
+            segments: string[];
+        };
+        AudienceInput: {
+            excludeLists?: string[];
+            excludeSegments?: string[];
+            lists?: string[];
+            segments?: string[];
+        };
+        AudienceOption: {
+            /** Format: int64 */
+            count?: number;
+            id: string;
+            name: string;
+        };
         "Auth-identifyRequest": {
             /** Format: email */
             email: string;
@@ -295,6 +678,44 @@ export interface components {
             code: string;
             /** @enum {string} */
             method: "totp" | "recovery";
+        };
+        CampaignDetail: {
+            abTest?: components["schemas"]["ABTest"];
+            access: components["schemas"]["ComposerAccess"];
+            audience: components["schemas"]["AudienceDef"];
+            /** Format: int64 */
+            audienceCount?: number;
+            audienceLabel: string;
+            /** Format: date-time */
+            autosavedAt?: string;
+            contentHash: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** @enum {string} */
+            editorMode: "visual" | "mjml" | "html";
+            html: string;
+            id: string;
+            mjml: string;
+            name: string;
+            plainText: string;
+            preheader: string;
+            readiness?: components["schemas"]["ReadinessSummary"];
+            replyTo: string;
+            route: components["schemas"]["ComposerRoute"];
+            /** Format: date-time */
+            scheduledAt?: string;
+            sender?: components["schemas"]["SenderRef"];
+            settings: components["schemas"]["ContentSettings"];
+            /** @enum {string} */
+            status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
+            subject: string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: string;
+            /** Format: int64 */
+            version: number;
+            /** Format: int64 */
+            versionCount: number;
         };
         CampaignList: {
             counts: components["schemas"]["CampaignStatusCounts"];
@@ -377,18 +798,186 @@ export interface components {
             /** Format: int64 */
             sent: number;
         };
+        CampaignVersion: {
+            current: boolean;
+            label: string;
+            /** Format: date-time */
+            savedAt: string;
+            savedBy: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** @enum {string} */
+            source: "create" | "autosave" | "manual" | "restore" | "template" | "import" | "duplicate" | "api";
+            /** Format: int64 */
+            version: number;
+        };
+        CampaignVersionDetail: {
+            abTest?: components["schemas"]["ABTest"];
+            current: boolean;
+            html: string;
+            label: string;
+            mjml: string;
+            preheader: string;
+            /** Format: date-time */
+            savedAt: string;
+            savedBy: string;
+            sections: string[];
+            /** Format: int64 */
+            sizeBytes: number;
+            /** @enum {string} */
+            source: "create" | "autosave" | "manual" | "restore" | "template" | "import" | "duplicate" | "api";
+            subject: string;
+            /** Format: int64 */
+            version: number;
+        };
+        CampaignVersionList: {
+            items: components["schemas"]["CampaignVersion"][];
+            /** Format: int64 */
+            total: number;
+        };
         "Change-passwordRequest": {
             current?: string;
             password: string;
+        };
+        CheckContent: {
+            html?: string;
+            mjml?: string;
+            preheader?: string;
+            /** @description Also request every link (slower; Send Readiness does it) */
+            probeLinks?: boolean;
+            subject?: string;
         };
         CheckLine: {
             detail: string;
             /** @enum {string} */
             status: "ok" | "warn" | "bad" | "skipped";
         };
+        CompileMJML: {
+            mjml: string;
+        };
+        CompiledMJML: {
+            /** Format: int64 */
+            durationMs: number;
+            errors: components["schemas"]["MJMLProblem"][];
+            html: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            warnings: components["schemas"]["MJMLProblem"][];
+        };
+        ComposerAccess: {
+            canEdit: boolean;
+            canEditTemplates: boolean;
+            canManageRouting: boolean;
+            canSend: boolean;
+            canSendTestToOthers: boolean;
+            canViewContacts: boolean;
+            editable: boolean;
+            readOnlyReason?: string;
+            /** @description Members who hold campaigns:send */
+            sendHelpers: string[];
+        };
+        ComposerChecks: {
+            /** Format: int64 */
+            blocks: number;
+            /** Format: date-time */
+            checkedAt: string;
+            /** Format: int64 */
+            clipBytes: number;
+            /** Format: date-time */
+            footerRemovedAt?: string;
+            /** Format: int64 */
+            images: number;
+            /** Format: int64 */
+            imagesMissingAlt: number;
+            issues: components["schemas"]["ContentIssue"][];
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            linksBlocklisted: number;
+            /** Format: int64 */
+            linksBroken: number;
+            lint: components["schemas"]["MJMLProblem"][];
+            plainText: string;
+            sections: components["schemas"]["ContentSection"][];
+            /** Format: int64 */
+            sizeBytes: number;
+            subjectHeuristics: string[];
+            /** @enum {string} */
+            verdict: "ready" | "warnings" | "blocked";
+            /** Format: int64 */
+            warnings: number;
+        };
+        ComposerContext: {
+            broadcastRoute: components["schemas"]["ComposerRoute"];
+            defaultSenderId?: string;
+            lists: components["schemas"]["AudienceOption"][];
+            members: components["schemas"]["TestRecipient"][];
+            postalAddress: string;
+            publicUrl: string;
+            segments: components["schemas"]["AudienceOption"][];
+            senderDomains: string[];
+            senders: components["schemas"]["SenderOption"][];
+            tokens: components["schemas"]["PersonalizationToken"][];
+        };
+        ComposerRoute: {
+            shares: components["schemas"]["RouteShare"][];
+            /** @enum {string} */
+            source: "campaign" | "rule" | "none";
+        };
+        ContentFix: {
+            /** @enum {string} */
+            kind: "replace_link" | "edit_link" | "insert_footer" | "set_alt" | "minify" | "remove_section" | "use_subject";
+            label: string;
+            path?: number[];
+            value?: string;
+        };
+        ContentIssue: {
+            detail?: string;
+            fixes: components["schemas"]["ContentFix"][];
+            /** @enum {string} */
+            group: "Content" | "Links" | "Compliance" | "Subject" | "Personalization";
+            /** @example links.blocklist */
+            id: string;
+            path: number[];
+            /** Format: int64 */
+            section: number;
+            /** @enum {string} */
+            severity: "block" | "warn" | "info" | "pass";
+            tag?: string;
+            title: string;
+            url?: string;
+        };
+        ContentSection: {
+            /** Format: int64 */
+            images: number;
+            /** Format: int64 */
+            imagesWithAlt: number;
+            /** Format: int64 */
+            index: number;
+            /** Format: int64 */
+            issues: number;
+            label: string;
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            linksOk: number;
+        };
+        ContentSettings: {
+            minify: boolean;
+        };
         "Create-workspaceRequest": {
             name: string;
             timezone?: string;
+        };
+        CreateCampaign: {
+            /**
+             * Format: uuid
+             * @description Start from a copy of another campaign's content
+             */
+            fromCampaignId?: string;
+            name?: string;
+            /** @description Start from a template (starter:<key> or a saved template id) */
+            templateId?: string;
         };
         CreatedWorkspace: {
             id: string;
@@ -431,6 +1020,24 @@ export interface components {
             sso: components["schemas"]["SSOOption"][];
             /** @example v1.4.2 */
             version: string;
+        };
+        LastCampaign: {
+            id: string;
+            name: string;
+            /** Format: date-time */
+            sentAt: string;
+            thumb: components["schemas"]["ThumbItem"][];
+        };
+        LiquidProblem: {
+            /** Format: int64 */
+            line: number;
+            message: string;
+        };
+        MJMLProblem: {
+            /** Format: int64 */
+            line: number;
+            message: string;
+            tag?: string;
         };
         Me: {
             instance: components["schemas"]["MeInstance"];
@@ -476,6 +1083,56 @@ export interface components {
             slug: string;
             /** Format: int64 */
             subscribers: number;
+        };
+        MediaList: {
+            items: components["schemas"]["Asset"][];
+        };
+        PersonalizationToken: {
+            fallback?: string;
+            /** @example first_name */
+            key: string;
+            /** @enum {string} */
+            kind: "contact" | "custom" | "system";
+            /** @example First name */
+            label: string;
+        };
+        Preview: {
+            contact?: components["schemas"]["PreviewContact"];
+            fromEmail: string;
+            fromName: string;
+            html: string;
+            /** Format: int64 */
+            missingFirstName?: number;
+            preheader: string;
+            problems: components["schemas"]["LiquidProblem"][];
+            /** Format: date-time */
+            renderedAt: string;
+            subject: string;
+            text: string;
+            tokens: components["schemas"]["TokenValue"][];
+        };
+        PreviewContact: {
+            email: string;
+            id?: string;
+            label: string;
+            name: string;
+        };
+        PreviewContactList: {
+            items: components["schemas"]["PreviewContact"][];
+        };
+        PreviewRequest: {
+            /** Format: uuid */
+            contactId?: string;
+            html?: string;
+            preheader?: string;
+            /**
+             * @default contact
+             * @enum {string}
+             */
+            sample: "contact" | "no_first_name" | "random";
+            subject?: string;
+            /** @enum {string} */
+            variant?: "A" | "B" | "C";
         };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
@@ -534,6 +1191,10 @@ export interface components {
         RecoveryCodes: {
             codes: string[];
         };
+        RestoreVersion: {
+            /** Format: int64 */
+            baseVersion: number;
+        };
         RouteShare: {
             /** @example ses */
             adapter: string;
@@ -563,9 +1224,61 @@ export interface components {
             /** @description Navigate here to start the OIDC flow */
             startUrl: string;
         };
+        SaveContent: {
+            abTest?: components["schemas"]["ABTest"];
+            /** Format: int64 */
+            baseVersion: number;
+            force?: boolean;
+            html?: string;
+            label?: string;
+            mjml?: string;
+            preheader?: string;
+            /**
+             * @default autosave
+             * @enum {string}
+             */
+            source: "autosave" | "manual" | "import" | "template";
+            subject?: string;
+        };
+        SaveTemplate: {
+            description?: string;
+            html?: string;
+            /**
+             * @default template
+             * @enum {string}
+             */
+            kind: "template" | "section";
+            mjml: string;
+            name: string;
+            /** Format: uuid */
+            sourceCampaignId?: string;
+        };
+        SavedContent: {
+            contentHash: string;
+            html: string;
+            plainText: string;
+            /** Format: date-time */
+            savedAt: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: int64 */
+            version: number;
+        };
         Scope: {
             lists?: string[];
             senderDomains?: string[];
+        };
+        SenderOption: {
+            domain: string;
+            email: string;
+            id: string;
+            name: string;
+            verified: boolean;
+        };
+        SenderRef: {
+            email: string;
+            id: string;
+            name: string;
         };
         "Setup-check-urlRequest": {
             /** Format: uri */
@@ -599,6 +1312,81 @@ export interface components {
             /** @description otpauth:// URL for the QR code */
             url: string;
         };
+        TemplateDetail: {
+            builtin: boolean;
+            description: string;
+            html: string;
+            /** @example starter:weekly-digest */
+            id: string;
+            /** @enum {string} */
+            kind: "template" | "section";
+            mjml: string;
+            name: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            sourceCampaignId?: string;
+            thumb: components["schemas"]["ThumbItem"][];
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy?: string;
+        };
+        TemplateGallery: {
+            lastCampaign?: components["schemas"]["LastCampaign"];
+            sections: components["schemas"]["TemplateSummary"][];
+            starters: components["schemas"]["TemplateSummary"][];
+            templates: components["schemas"]["TemplateSummary"][];
+        };
+        TemplateSummary: {
+            builtin: boolean;
+            description: string;
+            /** @example starter:weekly-digest */
+            id: string;
+            /** @enum {string} */
+            kind: "template" | "section";
+            name: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            sourceCampaignId?: string;
+            thumb: components["schemas"]["ThumbItem"][];
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy?: string;
+        };
+        TestRecipient: {
+            email: string;
+            name: string;
+        };
+        TestSend: {
+            /**
+             * Format: uuid
+             * @description Personalize as this contact
+             */
+            contactId?: string;
+            to: string[];
+            /** @enum {string} */
+            variant?: "A" | "B" | "C";
+        };
+        TestSendResult: {
+            provider: string;
+            sent: string[];
+        };
+        ThumbItem: {
+            accent?: boolean;
+            /** Format: int64 */
+            h?: number;
+            row?: components["schemas"]["ThumbItem"][];
+            /** Format: int64 */
+            w?: number;
+        };
+        TokenValue: {
+            fallbackUsed: boolean;
+            key: string;
+            /** @description A link filled in per recipient at send time */
+            perRecipient: boolean;
+            /** @example {{ first_name | default: "there" }} */
+            token: string;
+            value: string;
+        };
         "Totp-confirmRequest": {
             challenge: string;
             code: string;
@@ -609,6 +1397,14 @@ export interface components {
             dns: components["schemas"]["CheckLine"];
             reachable: components["schemas"]["CheckLine"];
             tls: components["schemas"]["CheckLine"];
+        };
+        UpdateCampaign: {
+            audience?: components["schemas"]["AudienceInput"];
+            name?: string;
+            replyTo?: string;
+            /** @description A sender id, or empty to clear */
+            senderId?: string;
+            settings?: components["schemas"]["ContentSettings"];
         };
         WorkspaceMe: {
             /** @enum {string} */
@@ -1074,6 +1870,78 @@ export interface operations {
             };
         };
     };
+    "create-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCampaign"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "count-campaign-audience": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudienceInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudienceCount"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "campaigns-summary": {
         parameters: {
             query?: {
@@ -1108,6 +1976,431 @@ export interface operations {
             };
         };
     };
+    "get-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCampaign"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-campaign-content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckContent"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerChecks"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-campaign-content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveContent"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedContent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "duplicate-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Preview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-preview-contacts": {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewContactList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-campaign-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestSend"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestSendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-campaign-versions": {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignVersionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-campaign-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignVersionDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-campaign-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestoreVersion"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedContent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "composer-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerContext"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-workspace-me": {
         parameters: {
             query?: never;
@@ -1128,6 +2421,319 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WorkspaceMe"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-media": {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description PNG, JPEG or GIF, up to 5 MB
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Asset"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "compile-mjml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompileMJML"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompiledMJML"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "template-gallery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateGallery"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveTemplate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description A template id, or starter:<key> for a built-in starter */
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveTemplate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

@@ -1,6 +1,7 @@
 import type { Editor } from 'grapesjs'
 import type { ComponentPluginOptions } from 'grapesjs-mjml'
 import { canvasCss } from './canvasCss'
+import { encodeTables, loadTable } from './components'
 import { installMjmlHooks, type MjmlCompile } from './mjmlHooks'
 
 /** Devices of the device switcher: desktop 600 px and mobile 375 px (MJML stacks columns below 480 px). */
@@ -15,6 +16,10 @@ export interface ComposerEditor {
   editor: Editor
   /** Compiles a full MJML document with the bundled mjml-browser (same engine as the canvas). */
   compile: MjmlCompile
+  /** The canvas as MJML: <mjml><mj-body>…</mj-body></mjml>. */
+  getBody(): string
+  /** Replaces the canvas content (undoable). */
+  setBody(body: string): void
 }
 
 export interface CreateOptions {
@@ -23,6 +28,21 @@ export interface CreateOptions {
   /** The head parts that affect rendering (mj-attributes, mj-style, mj-font). */
   head: () => string
   device: DeviceId
+}
+
+/** @font-face rules of the app (IBM Plex), so email text set in Plex renders in the canvas. */
+function fontFaces(): string {
+  const out: string[] = []
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules: CSSRuleList
+    try {
+      rules = sheet.cssRules
+    } catch {
+      continue
+    }
+    for (const r of Array.from(rules)) if (r instanceof CSSFontFaceRule) out.push(r.cssText)
+  }
+  return out.join('\n')
 }
 
 /**
@@ -58,7 +78,7 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
     selectorManager: { custom: true, componentFirst: true },
     assetManager: { custom: true },
     richTextEditor: { custom: true },
-    canvasCss,
+    canvasCss: `${canvasCss}\n${fontFaces()}`,
     deviceManager: { default: opts.device, devices: [DEVICES.desktop, DEVICES.mobile] },
     canvas: { customSpots: { select: true, target: true }, autoscrollLimit: 60 },
     plugins: [
@@ -72,15 +92,23 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
           overwriteExport: false,
           columnsPadding: '0px',
           customComponents: [
+            (e: Editor, o: ComponentPluginOptions) => loadTable(e, o),
             (_e: Editor, o: ComponentPluginOptions) => {
               compile = installMjmlHooks(ed, o, opts.head)
             },
           ],
         }),
     ],
-    components: opts.body,
+    components: encodeTables(opts.body),
   })
   await new Promise<void>((resolve) => editor.onReady(() => resolve()))
   if (!compile) throw new Error('grapesjs-mjml did not load')
-  return { editor, compile }
+  return {
+    editor,
+    compile,
+    getBody: () => editor.getHtml().trim(),
+    setBody: (body: string) => {
+      editor.setComponents(encodeTables(body))
+    },
+  }
 }
