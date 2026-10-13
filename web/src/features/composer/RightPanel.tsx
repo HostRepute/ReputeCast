@@ -124,7 +124,7 @@ function NothingSelected() {
 function IssueRow({ issue }: { issue: Issue }) {
   const c = useComposer()
   const [alt, setAlt] = useState('')
-  const tone = issue.severity === 'block' ? 'block' : issue.group === 'Subject' ? '' : 'warn'
+  const tone = issue.severity === 'block' ? 'is-block' : issue.group === 'Subject' ? '' : 'is-warn'
   const select = () => {
     if (issue.path.length) reveal(c, issue.path)
   }

@@ -54,7 +54,7 @@ function BlockTile({ def, flagged, onSaved }: { def: BlockDef | { id: string; la
   return (
     <button
       type="button"
-      className={`blk${def.group === 'reputecast' ? ' rc' : ''}${flagged ? ' flag' : ''}`}
+      className={`blk${def.group === 'reputecast' ? ' rc' : ''}${flagged ? ' flagged' : ''}`}
       draggable={!disabled && !isSaved}
       aria-disabled={disabled || undefined}
       onDragStart={(e) => {

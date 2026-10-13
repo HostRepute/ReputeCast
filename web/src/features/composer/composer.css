@@ -241,7 +241,7 @@
   border-color: var(--accent-line);
   background: var(--accent-tint);
 }
-.blk.flag {
+.blk.flagged {
   outline: 2px solid var(--bad-strong);
   outline-offset: 1px;
 }
@@ -362,10 +362,10 @@ label.tg {
   align-items: flex-start;
   font-weight: 600;
 }
-.iss.block {
+.iss.is-block {
   background: var(--bad-tint);
 }
-.iss.warn {
+.iss.is-warn {
   background: #fffbeb;
 }
 
