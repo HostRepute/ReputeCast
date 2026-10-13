@@ -306,7 +306,7 @@ function ReviewBody({
         <RunningBanner
           progress={progress}
           action={
-            <Button className="rv-big rv-off" disabledReason="Wait for the checks to finish.">
+            <Button className="rv-off min-h-10" disabledReason="Wait for the checks to finish.">
               {d.schedule.mode === 'now' ? 'Send' : 'Schedule send'}
             </Button>
           }
