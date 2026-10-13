@@ -12,7 +12,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
-	"github.com/hostrepute/reputecast/internal/demo"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/sending"
@@ -26,11 +25,8 @@ import (
 // checks (links are requested; the demo's answer offline in development),
 // deliverability's blocklists and authentication, routing and the audience.
 func readinessService(a *App) *readiness.Service {
-	var prober contentcheck.Prober = contentcheck.NewHTTPProber()
-	if a.Cfg != nil && (a.Cfg.IsDevelopment() || a.Cfg.Env == "test") {
-		// The sample emails' links answer offline (and tests never hit the network).
-		prober = demo.ReadinessProberOverlay(prober)
-	}
+	// The sample emails' links answer offline (and tests never hit the network).
+	prober := linkProber(a)
 	cs := &campaigns.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit,
 		Templates: &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
