@@ -103,8 +103,66 @@ type SSOClaimSample struct {
 	// Value is the sample as shown ("marcus@acme.io", ["3f2a…c91", …]).
 	Value string `json:"value,omitempty"`
 	Count int    `json:"count,omitempty"`
-	// Note explains a missing claim ("treated as verified for allowed domains").
+	// Missing replaces the sample when the claim wasn't sent ("not sent by Entra ID").
+	Missing string `json:"missing,omitempty"`
+	// Note explains what a missing claim means ("treated as verified for allowed domains").
 	Note string `json:"note,omitempty"`
+}
+
+// protocolClaims are left out of the test view: they describe the token,
+// not the person.
+var protocolClaims = map[string]bool{"aud": true, "exp": true, "iat": true, "nbf": true, "nonce": true, "at_hash": true, "c_hash": true, "auth_time": true,
+	"azp": true, "uti": true, "rh": true, "ver": true, "sid": true, "jti": true, "tid": true, "oid": true, "s_hash": true}
+
+// claimOrder puts the claims people read first at the top.
+var claimOrder = []string{"iss", "sub", "email", "email_verified", "name", "given_name", "family_name", "preferred_username", "groups", "roles", "amr", "acr", "hd"}
+
+// formatClaims prints claims like the design: one per line in a familiar
+// order, short arrays inline, protocol claims left out.
+func formatClaims(c map[string]any) string {
+	keys := make([]string, 0, len(c))
+	for k := range c {
+		if !protocolClaims[k] && !strings.HasPrefix(k, "xms_") {
+			keys = append(keys, k)
+		}
+	}
+	rank := func(k string) int {
+		if i := slices.Index(claimOrder, k); i >= 0 {
+			return i
+		}
+		return len(claimOrder)
+	}
+	slices.SortFunc(keys, func(a, b string) int {
+		if ra, rb := rank(a), rank(b); ra != rb {
+			return ra - rb
+		}
+		return strings.Compare(a, b)
+	})
+	var b strings.Builder
+	b.WriteString("{\n")
+	for i, k := range keys {
+		kb, _ := json.Marshal(k)
+		b.WriteString("  " + string(kb) + ": " + claimValue(c[k]))
+		if i < len(keys)-1 {
+			b.WriteString(",")
+		}
+		b.WriteString("\n")
+	}
+	b.WriteString("}")
+	return b.String()
+}
+
+func claimValue(v any) string {
+	if arr, ok := v.([]any); ok {
+		parts := make([]string, len(arr))
+		for i, e := range arr {
+			eb, _ := json.Marshal(e)
+			parts[i] = string(eb)
+		}
+		return "[" + strings.Join(parts, ", ") + "]"
+	}
+	vb, _ := json.Marshal(v)
+	return string(vb)
 }
 
 // SSOTestView is the last test sign-in.
@@ -479,8 +537,7 @@ func (s *Service) testView(ctx context.Context, p store.SsoProvider, t *testRun)
 	if t.Error != "" || t.Claims == nil {
 		return v, nil
 	}
-	b, _ := json.MarshalIndent(t.Claims, "", "  ")
-	v.Claims = string(b)
+	v.Claims = formatClaims(t.Claims)
 	id := extract(p, t.Claims)
 	cm := claimsOf(p)
 	pre := PresetFor(p.Preset)
@@ -489,7 +546,7 @@ func (s *Service) testView(ctx context.Context, p store.SsoProvider, t *testRun)
 		val, ok := t.Claims[claim]
 		smp.Found = ok && claim != ""
 		if !smp.Found {
-			smp.Note = "not sent by " + pre.Name
+			smp.Missing = "not sent by " + pre.ShortName
 			return smp
 		}
 		switch x := val.(type) {
@@ -587,6 +644,8 @@ func (s *Service) Create(ctx context.Context, in SSOCreateInput) (SSOProviderDet
 // SSOProviderInput is PUT /admin/sso/{id}. The client secret is write-only:
 // omit it to keep the saved one.
 type SSOProviderInput struct {
+	// Preset switches a draft to another IdP family (enabled providers keep theirs).
+	Preset    string `json:"preset,omitempty" enum:"google,entra,okta,keycloak,authentik,oidc"`
 	Name      string `json:"name" minLength:"1" maxLength:"80"`
 	IssuerURL string `json:"issuerUrl" maxLength:"300"`
 	ClientID  string `json:"clientId" maxLength:"300"`
@@ -620,9 +679,19 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in SSOProviderInput)
 	if err != nil {
 		return SSOProviderDetail{}, api.MapError(err, "SSO provider")
 	}
+	switchPreset := in.Preset != "" && in.Preset != before.Preset
+	if switchPreset && before.Status == "enabled" {
+		return SSOProviderDetail{}, api.Conflict("Disable " + before.Name + " before switching it to another preset, or add a new provider.")
+	}
+	if switchPreset && strings.TrimSpace(in.Name) == before.Name && before.Name == PresetFor(before.Preset).Name {
+		in.Name = PresetFor(in.Preset).Name
+	}
 	params, changes, err := s.validate(ctx, admin, before, in)
 	if err != nil {
 		return SSOProviderDetail{}, err
+	}
+	if switchPreset {
+		changes = append(changes, "preset "+PresetFor(in.Preset).Name)
 	}
 	var secret []byte
 	var expires *time.Time
@@ -644,6 +713,11 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in SSOProviderInput)
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		var err error
+		if switchPreset {
+			if err := q.SSOSetPreset(ctx, store.SSOSetPresetParams{ID: id, Preset: in.Preset, Name: params.Name}); err != nil {
+				return err
+			}
+		}
 		after, err = q.SSOUpdateProvider(ctx, params)
 		if err != nil {
 			return err

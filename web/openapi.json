@@ -11265,6 +11265,9 @@
           "found": {
             "type": "boolean"
           },
+          "missing": {
+            "type": "string"
+          },
           "note": {
             "type": "string"
           },
@@ -11642,6 +11645,12 @@
             },
             "type": "array"
           },
+          "shortName": {
+            "examples": [
+              "Entra ID"
+            ],
+            "type": "string"
+          },
           "trustedTwoFactor": {
             "description": "How the IdP enforces two-factor when it is trusted",
             "type": "string"
@@ -11657,6 +11666,7 @@
         "required": [
           "key",
           "name",
+          "shortName",
           "issuerPattern",
           "scopes",
           "app",
@@ -11881,6 +11891,17 @@
           "name": {
             "maxLength": 80,
             "minLength": 1,
+            "type": "string"
+          },
+          "preset": {
+            "enum": [
+              "google",
+              "entra",
+              "okta",
+              "keycloak",
+              "authentik",
+              "oidc"
+            ],
             "type": "string"
           },
           "scopes": {

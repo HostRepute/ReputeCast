@@ -585,6 +585,7 @@ type Querier interface {
 	SSOSetEnforcement(ctx context.Context, arg SSOSetEnforcementParams) error
 	SSOSetLastTest(ctx context.Context, arg SSOSetLastTestParams) error
 	SSOSetMemberRole(ctx context.Context, arg SSOSetMemberRoleParams) error
+	SSOSetPreset(ctx context.Context, arg SSOSetPresetParams) error
 	SSOSetStatus(ctx context.Context, arg SSOSetStatusParams) (SsoProvider, error)
 	// Recent sign-in rejections for a provider (setup page "sign-ins rejected").
 	SSOSignInFailures(ctx context.Context, providerID string) ([]SSOSignInFailuresRow, error)

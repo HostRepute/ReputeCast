@@ -363,8 +363,6 @@ func describe(p store.SsoProvider, id identity, pl signInPlan) []SSOTestOutcome 
 	switch {
 	case pl.Create:
 		out = append(out, SSOTestOutcome{Tone: "info", Label: "New account", Detail: "No account for " + id.Email + " yet · a just-in-time account is created at the first sign-in"})
-	case pl.Link:
-		out = append(out, SSOTestOutcome{Tone: "ok", Label: "Existing account", Detail: id.Email + " matches " + displayName(*pl.User) + " · the " + p.Name + " identity is linked, no account created"})
 	default:
 		out = append(out, SSOTestOutcome{Tone: "ok", Label: "Existing account", Detail: id.Email + " matches " + displayName(*pl.User) + " · no account created"})
 	}
@@ -386,10 +384,11 @@ func describe(p store.SsoProvider, id identity, pl signInPlan) []SSOTestOutcome 
 			out = append(out, SSOTestOutcome{Tone: "ok", Label: "Joins", Detail: c.WorkspaceName + ": joins as " + c.To.RoleName + from, Strong: c.To.RoleName})
 		default:
 			change := c.FromName + " → " + c.To.RoleName
-			demotion := roleRank(c.To.RoleKey) > roleRank(c.FromKey)
-			if demotion && c.FromSource != "sso_group" {
+			// A demotion is worth a second look: the mapping wins over the
+			// role someone was given by hand.
+			if roleRank(c.To.RoleKey) > roleRank(c.FromKey) {
 				out = append(out, SSOTestOutcome{Tone: "warn", Label: "Role change", Strong: change,
-					Detail: c.WorkspaceName + ": " + change + from + ". The direct assignment is replaced at the next sign-in; review the mapping if that's not intended."})
+					Detail: c.WorkspaceName + ": " + change + from + ". The direct assignment is replaced at their next sign-in; review the mapping if that's not intended."})
 			} else {
 				out = append(out, SSOTestOutcome{Tone: "ok", Label: "Role", Strong: change, Detail: c.WorkspaceName + ": " + change + from})
 			}

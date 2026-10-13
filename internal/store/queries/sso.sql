@@ -35,6 +35,9 @@ WHERE id = @id;
 -- name: SSOSetDiscovery :exec
 UPDATE sso_providers SET discovery = @discovery, issuer_url = @issuer_url, updated_at = now() WHERE id = @id;
 
+-- name: SSOSetPreset :exec
+UPDATE sso_providers SET preset = @preset, name = @name, twofa_mode = NULL, updated_at = now() WHERE id = @id;
+
 -- name: SSOSetLastTest :exec
 UPDATE sso_providers SET last_test = @last_test WHERE id = @id;
 

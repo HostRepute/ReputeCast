@@ -701,6 +701,21 @@ func (q *Queries) SSOSetMemberRole(ctx context.Context, arg SSOSetMemberRolePara
 	return err
 }
 
+const sSOSetPreset = `-- name: SSOSetPreset :exec
+UPDATE sso_providers SET preset = $1, name = $2, twofa_mode = NULL, updated_at = now() WHERE id = $3
+`
+
+type SSOSetPresetParams struct {
+	Preset string    `json:"preset"`
+	Name   string    `json:"name"`
+	ID     uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SSOSetPreset(ctx context.Context, arg SSOSetPresetParams) error {
+	_, err := q.db.Exec(ctx, sSOSetPreset, arg.Preset, arg.Name, arg.ID)
+	return err
+}
+
 const sSOSetStatus = `-- name: SSOSetStatus :one
 UPDATE sso_providers
 SET status = $1,

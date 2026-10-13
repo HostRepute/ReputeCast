@@ -6386,6 +6386,7 @@ export interface components {
             /** @enum {string} */
             field: "email" | "email_verified" | "name" | "groups";
             found: boolean;
+            missing?: string;
             note?: string;
             value?: string;
         };
@@ -6480,6 +6481,8 @@ export interface components {
             /** @example Microsoft Entra ID */
             name: string;
             scopes: string[];
+            /** @example Entra ID */
+            shortName: string;
             /** @description How the IdP enforces two-factor when it is trusted */
             trustedTwoFactor?: string;
             /** @enum {string} */
@@ -6532,6 +6535,8 @@ export interface components {
             issuerUrl: string;
             jit: components["schemas"]["SSOJITInput"];
             name: string;
+            /** @enum {string} */
+            preset?: "google" | "entra" | "okta" | "keycloak" | "authentik" | "oidc";
             scopes: string[];
             secretExpiresOn?: string;
             /** @enum {string} */

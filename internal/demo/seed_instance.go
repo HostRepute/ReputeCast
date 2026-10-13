@@ -239,4 +239,3 @@ func instanceJSON(v any) json.RawMessage {
 	b, _ := json.Marshal(v)
 	return b
 }
-

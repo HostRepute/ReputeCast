@@ -119,6 +119,8 @@ func (s *Service) publicURL(ctx context.Context) string {
 type SSOPreset struct {
 	Key  string `json:"key" enum:"google,entra,okta,keycloak,authentik,oidc"`
 	Name string `json:"name" example:"Microsoft Entra ID"`
+	// ShortName is used in sentences: "not sent by Entra ID".
+	ShortName string `json:"shortName" example:"Entra ID"`
 	// Issuer is fixed for Google; IssuerPattern shows the shape for the others.
 	Issuer        string   `json:"issuer,omitempty"`
 	IssuerPattern string   `json:"issuerPattern"`
@@ -142,41 +144,41 @@ type SSOPreset struct {
 
 // Presets in the order of the setup screen.
 var Presets = []SSOPreset{
-	{Key: "google", Name: "Google Workspace", Issuer: "https://accounts.google.com", IssuerPattern: "https://accounts.google.com",
+	{Key: "google", Name: "Google Workspace", Issuer: "https://accounts.google.com", ShortName: "Google", IssuerPattern: "https://accounts.google.com",
 		Scopes: []string{"openid", "profile", "email"}, App: "Google Cloud OAuth client", GroupsClaim: false, TwoFA: "trusted",
 		DiscoveryHint: "Google's issuer is always https://accounts.google.com.",
 		GroupsHint:    "Google doesn't send a groups claim over OIDC. Map people by email domain (JIT default role) or assign roles individually in Team.",
 		TrustedTwoFA:  "Trusted from Google (2-Step Verification enforced in Workspace)",
 		DocsURL:       "https://developers.google.com/identity/openid-connect/openid-connect", DocsLabel: "Google OIDC docs"},
-	{Key: "entra", Name: "Microsoft Entra ID", IssuerPattern: "https://login.microsoftonline.com/{tenant-id}/v2.0",
+	{Key: "entra", Name: "Microsoft Entra ID", ShortName: "Entra ID", IssuerPattern: "https://login.microsoftonline.com/{tenant-id}/v2.0",
 		Scopes: []string{"openid", "profile", "email"}, App: "Entra app registration", GroupsClaim: true, GroupIDs: true, TwoFA: "amr",
 		DiscoveryHint:     "Entra ID issuer URLs use the tenant ID (a GUID) or the verified domain, for example https://login.microsoftonline.com/7c1a2b3d-…/v2.0. Find it under Entra ID → Overview → Tenant ID.",
 		GroupsHint:        "Groups arrive as a token claim, not a scope: turn on the groups claim in the app registration's token configuration.",
 		GroupsMissingHint: "In the Entra app registration open Token configuration → Add groups claim and include security groups in the ID token. If a user is in more than 200 groups, Entra sends an overage link instead; use app roles then.",
 		TrustedTwoFA:      "Trusted from Entra ID (MFA enforced by Conditional Access)",
 		DocsURL:           "https://learn.microsoft.com/entra/identity-platform/v2-protocols-oidc", DocsLabel: "Entra OIDC docs"},
-	{Key: "okta", Name: "Okta", IssuerPattern: "https://{your-org}.okta.com/oauth2/default",
+	{Key: "okta", Name: "Okta", ShortName: "Okta", IssuerPattern: "https://{your-org}.okta.com/oauth2/default",
 		Scopes: []string{"openid", "profile", "email", "groups"}, App: "Okta app integration", GroupsClaim: true, TwoFA: "amr",
 		DiscoveryHint:     "Okta issuer URLs are your Okta domain, or an authorization server such as https://acme.okta.com/oauth2/default. Find it under Security → API → Authorization Servers.",
 		GroupsHint:        "Add a groups claim to the authorization server (filter: matches regex .*) and request the groups scope.",
 		GroupsMissingHint: "In Okta open Security → API → your authorization server → Claims and add a groups claim to the ID token, then request the groups scope.",
 		TrustedTwoFA:      "Trusted from Okta (MFA enforced by a sign-on policy)",
 		DocsURL:           "https://developer.okta.com/docs/guides/customize-tokens-groups-claim/main/", DocsLabel: "Okta OIDC docs"},
-	{Key: "keycloak", Name: "Keycloak", IssuerPattern: "https://{host}/realms/{realm}",
+	{Key: "keycloak", Name: "Keycloak", ShortName: "Keycloak", IssuerPattern: "https://{host}/realms/{realm}",
 		Scopes: []string{"openid", "profile", "email"}, App: "Keycloak client", GroupsClaim: true, TwoFA: "amr",
 		DiscoveryHint:     "Keycloak issuer URLs end with the realm, for example https://sso.acme.io/realms/acme.",
 		GroupsHint:        "Add a Group Membership mapper to the client (token claim name groups, full group path off).",
 		GroupsMissingHint: "In Keycloak open Clients → your client → Client scopes → dedicated scope and add a Group Membership mapper with the claim name groups.",
 		TrustedTwoFA:      "Trusted from Keycloak (OTP required by the realm's browser flow)",
 		DocsURL:           "https://www.keycloak.org/docs/latest/server_admin/#_oidc", DocsLabel: "Keycloak OIDC docs"},
-	{Key: "authentik", Name: "Authentik", IssuerPattern: "https://{host}/application/o/{app-slug}/",
+	{Key: "authentik", Name: "Authentik", ShortName: "Authentik", IssuerPattern: "https://{host}/application/o/{app-slug}/",
 		Scopes: []string{"openid", "profile", "email"}, App: "Authentik provider", GroupsClaim: true, TwoFA: "amr",
 		DiscoveryHint:     "Authentik issuer URLs end with the application slug and a slash, for example https://auth.acme.io/application/o/reputecast/.",
 		GroupsHint:        "Authentik sends the user's groups in the groups claim of the profile scope.",
 		GroupsMissingHint: "In Authentik check that the provider's scope mappings include the default profile mapping, which sends groups.",
 		TrustedTwoFA:      "Trusted from Authentik (MFA stage in the authentication flow)",
 		DocsURL:           "https://docs.goauthentik.io/docs/add-secure-apps/providers/oauth2/", DocsLabel: "Authentik OIDC docs"},
-	{Key: "oidc", Name: "Generic OIDC", IssuerPattern: "https://idp.example.com",
+	{Key: "oidc", Name: "Generic OIDC", ShortName: "the IdP", IssuerPattern: "https://idp.example.com",
 		Scopes: []string{"openid", "profile", "email"}, App: "identity provider's client settings", GroupsClaim: true, TwoFA: "amr",
 		DiscoveryHint:     "The issuer is the URL before /.well-known/openid-configuration.",
 		GroupsHint:        "Configure your IdP to send the user's groups as a claim in the ID token.",

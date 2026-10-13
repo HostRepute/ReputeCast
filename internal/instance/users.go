@@ -51,7 +51,7 @@ type InstanceUser struct {
 	// IdP, Required · off with the grace period, Off).
 	TwoFactor    access.MemberTwoFA `json:"twoFactor"`
 	LastSignInAt *time.Time         `json:"lastSignInAt,omitempty"`
-	Status       string     `json:"status" enum:"active,deactivated"`
+	Status       string             `json:"status" enum:"active,deactivated"`
 	// DeactivatedAt is set for deactivated accounts.
 	DeactivatedAt *time.Time `json:"deactivatedAt,omitempty"`
 	LockedUntil   *time.Time `json:"lockedUntil,omitempty"`
