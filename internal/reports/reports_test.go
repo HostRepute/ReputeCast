@@ -16,8 +16,8 @@ type report struct {
 	}
 	Headline struct {
 		Sent, Delivered, HumanOpens, MachineOpens, Clicks, Unsubscribes, Complaints, Bounces, Undelivered int64
-		DeliveredRate, HumanOpenRate, ClickToOpen                                                       float64
-		SentBy                                                                                          []struct {
+		DeliveredRate, HumanOpenRate, ClickToOpen                                                         float64
+		SentBy                                                                                            []struct {
 			Short string
 			Count int64
 		}
