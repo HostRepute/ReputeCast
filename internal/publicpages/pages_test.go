@@ -1,8 +1,8 @@
 package publicpages_test
 
 // The public pages over HTTP, as subscribers' browsers and mail apps reach
-// them: no session cookie, the instance's own origin (App.URLs stays at
-// the config default http://localhost:8080 in tests) or a third-party site.
+// them: no session cookie, the instance's own origin (App.URLs follows the
+// test server's address, env.Server.URL) or a third-party site.
 //
 // Every submission of the demo forms counts against the per-address limit
 // (5 a minute per workspace, all tests come from 127.0.0.1), so each test
@@ -33,7 +33,6 @@ import (
 const (
 	wsSlug    = "acme-newsletter"
 	wsAPI     = "/workspaces/acme-newsletter"
-	ownOrigin = "http://localhost:8080"
 	browserUA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15"
 	// The consent sentence of the demo forms (version 3 on Newsletter signup).
 	consentText = "I agree to receive emails from Acme. Unsubscribe any time with one click. See the privacy policy."
@@ -242,7 +241,7 @@ func TestHostedSubscribePage(t *testing.T) {
 		must(t, page, 200, "The Acme newsletter", "Every Tuesday morning.", "Only when something ships. About twice a month.",
 			"<title>Subscribe to the Acme newsletter</title>", `<meta name="robots" content="index, follow">`,
 			`<link rel="canonical" href="http://news.acme.io/subscribe">`,
-			`<form class="form" method="post" action="http://localhost:8080/p/acme-newsletter/subscribe"`,
+			`<form class="form" method="post" action="`+env.Server.URL+`/p/acme-newsletter/subscribe"`,
 			`See the <a href="https://acme.io/privacy">privacy policy</a>.`,
 			`name="website"`, `value="`+ids.digest.String()+`" checked>`, `value="`+ids.updates.String()+`">`)
 		lacks(t, page, "{subscribers}", "Beta Program")
@@ -277,7 +276,7 @@ func TestHostedSubscribePage(t *testing.T) {
 		time.Sleep(3200 * time.Millisecond) // the form's minimum time to fill it in
 		r := do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", url.Values{
 			"_t": {tok}, "email": {"  Jordan.Lee@Fastmail.com "}, "first_name": {"Jordan"}, "list": {ids.digest.String()}, "consent": {"1"}, "website": {""},
-		}, hdr{"Origin": ownOrigin})
+		}, hdr{"Origin": env.Server.URL})
 		must(t, r, 200, "Check your inbox", "We sent a confirmation link to <strong>"+email+"</strong>", "until then you won't hear from us.")
 		if r.Header.Get("Cache-Control") != "no-store" || !strings.Contains(r.Header.Get("X-Robots-Tag"), "noindex") {
 			t.Errorf("the result page is private: %v", r.Header)
@@ -393,7 +392,7 @@ func TestSubscribeSpamChecks(t *testing.T) {
 	t.Run("a filled honeypot looks like success but saves nothing", func(t *testing.T) {
 		f := valid("bot.one@fastmail.com")
 		f.Set("website", "https://cheap-pills.example")
-		must(t, do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", f, hdr{"Origin": ownOrigin}), 200, "Check your inbox")
+		must(t, do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", f, hdr{"Origin": env.Server.URL}), 200, "Check your inbox")
 		if _, ok := contactID(t, env, ids.ws, "bot.one@fastmail.com"); ok {
 			t.Error("the honeypot submission created a contact")
 		}
@@ -415,13 +414,13 @@ func TestSubscribeSpamChecks(t *testing.T) {
 		must(t, do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", valid("script.one@fastmail.com"), nil), 403)
 	})
 	t.Run("the Referer stands in for a missing Origin", func(t *testing.T) {
-		r := do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", valid("ref.one@fastmail.com"), hdr{"Referer": ownOrigin + "/p/acme-newsletter/subscribe"})
+		r := do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", valid("ref.one@fastmail.com"), hdr{"Referer": env.Server.URL + "/p/acme-newsletter/subscribe"})
 		must(t, r, 200, "Check your inbox")
 	})
 	t.Run("too fast goes to a Turnstile check", func(t *testing.T) {
 		f := valid("quick.one@fastmail.com")
 		f.Set("_t", formToken(env, "frm_8c2e1a", 0))
-		r := do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", f, hdr{"Origin": ownOrigin})
+		r := do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", f, hdr{"Origin": env.Server.URL})
 		must(t, r, 200, "One more step", `name="challenge"`, `data-sitekey="0x4AAAAAAADnPIDROrmt1Wwj"`,
 			`<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>`)
 		csp := r.Header.Get("Content-Security-Policy")
@@ -444,7 +443,7 @@ func TestSubscribeSpamChecks(t *testing.T) {
 			"Finish the check above, then press Continue.")
 	})
 	t.Run("the sixth try in a minute is rate limited", func(t *testing.T) {
-		r := do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", valid("six@fastmail.com"), hdr{"Origin": ownOrigin})
+		r := do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", valid("six@fastmail.com"), hdr{"Origin": env.Server.URL})
 		must(t, r, 429, "Too many tries")
 		if r.Header.Get("Retry-After") != "60" {
 			t.Errorf("Retry-After %q", r.Header.Get("Retry-After"))
@@ -461,7 +460,7 @@ func TestSubscribeValidation(t *testing.T) {
 	env, ids := demo(t)
 	post := func(f url.Values) resp {
 		f.Set("_t", formToken(env, "frm_8c2e1a", time.Minute))
-		return do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", f, hdr{"Origin": ownOrigin})
+		return do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", f, hdr{"Origin": env.Server.URL})
 	}
 	t.Run("missing list and consent keep what was typed", func(t *testing.T) {
 		r := post(url.Values{"email": {"casey.kim@fastmail.com"}, "first_name": {"Casey <b>"}})
@@ -482,7 +481,7 @@ func TestSubscribeValidation(t *testing.T) {
 			"That doesn't look like a complete email address.")
 	})
 	t.Run("the archive's box fills the address in", func(t *testing.T) {
-		r := do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", url.Values{"step": {"prefill"}, "email": {" riley@fastmail.com "}}, hdr{"Origin": ownOrigin})
+		r := do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", url.Values{"step": {"prefill"}, "email": {" riley@fastmail.com "}}, hdr{"Origin": env.Server.URL})
 		must(t, r, 200, `value="riley@fastmail.com"`, `value="`+ids.digest.String()+`" checked>`)
 		if _, ok := contactID(t, env, ids.ws, "riley@fastmail.com"); ok {
 			t.Error("prefilling subscribed the address")
@@ -594,7 +593,7 @@ func TestEmbeddedForm(t *testing.T) {
 		r := do(t, env, http.MethodPost, submit, fields("speedy@fastmail.com", fresh), jsonHdr("https://blog.acme.io"))
 		m := jsonBody(t, r)
 		u, _ := m["challengeUrl"].(string)
-		if r.Status != 200 || m["status"] != "challenge" || !strings.HasPrefix(u, ownOrigin+"/p/acme-newsletter/subscribe/challenge?c=") {
+		if r.Status != 200 || m["status"] != "challenge" || !strings.HasPrefix(u, env.Server.URL+"/p/acme-newsletter/subscribe/challenge?c=") {
 			t.Errorf("challenge: %d %s", r.Status, r.Body)
 		}
 	})
@@ -751,7 +750,7 @@ func TestPreferenceLinkRequest(t *testing.T) {
 		if len(extra) == 2 {
 			f.Set(extra[0], extra[1])
 		}
-		return do(t, env, http.MethodPost, "/p/acme-newsletter/preferences", f, hdr{"Origin": ownOrigin})
+		return do(t, env, http.MethodPost, "/p/acme-newsletter/preferences", f, hdr{"Origin": env.Server.URL})
 	}
 	// No System provider yet: the same answer for every address, so it
 	// says nothing about who subscribes.
@@ -791,7 +790,7 @@ func TestDoubleOptInEmail(t *testing.T) {
 	time.Sleep(3200 * time.Millisecond)
 	r := do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", url.Values{
 		"_t": {tok}, "email": {"mira.okafor@fastmail.com"}, "first_name": {"Mira"}, "list": {ids.digest.String(), ids.updates.String()}, "consent": {"1"},
-	}, hdr{"Origin": ownOrigin})
+	}, hdr{"Origin": env.Server.URL})
 	must(t, r, 200, "Check your inbox", "<strong>mira.okafor@fastmail.com</strong>")
 	sent := mail.to("mira.okafor@fastmail.com")
 	if len(sent) != 1 || sent[0].Kind != "double_opt_in" || !strings.Contains(sent[0].Subject, "Confirm your subscription to Acme") {
@@ -1003,7 +1002,7 @@ func TestArchive(t *testing.T) {
 		r := get(t, env, "/p/acme-newsletter/archive")
 		must(t, r, 200, "Newsletter archive", "Every issue of the Weekly Digest and Product Updates since ", " 44 issues.",
 			">All</a>", ">Weekly Digest</a>", ">Product Updates</a>", "?list=weekly-digest", "?list=product-updates",
-			"1 to 10 of 44", `href="http://localhost:8080/p/acme-newsletter/archive?page=2"`, "Older issues",
+			"1 to 10 of 44", `href="`+env.Server.URL+`/p/acme-newsletter/archive?page=2"`, "Older issues",
 			"What shipped in October, and what we're retiring", `<meta name="robots" content="index, follow">`,
 			`<link rel="canonical" href="http://news.acme.io/archive">`, `type="application/rss+xml"`, "Get the next one in your inbox")
 		lacks(t, r, "Newer issues", "Beta Program")
