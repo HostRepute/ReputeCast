@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -48,7 +48,7 @@ export function AddContactDialog({ onClose, lists }: { onClose: () => void; list
     defaultValues: { email: '', firstName: '', lastName: '', lists: lists[0] ? [lists[0].id] : [], consent: 'double', tags: '' },
   })
   const [err, setErr] = useState<string | null>(null)
-  const consent = form.watch('consent')
+  const consent = useWatch({ control: form.control, name: 'consent' })
   const submit = form.handleSubmit(async (v) => {
     setErr(null)
     try {

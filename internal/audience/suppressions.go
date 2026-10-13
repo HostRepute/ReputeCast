@@ -357,7 +357,7 @@ func (s *Service) syncStates(ctx context.Context, ws *store.Workspace) ([]Suppre
 		ps := SuppressionProviderSync{ProviderID: r.ID.String(), Name: r.Name, Adapter: r.Adapter, Pulled: r.Pulled, Pushed: r.Pushed, Detail: r.StatusDetail}
 		if !state.Caps(store.Provider{Adapter: r.Adapter, Capabilities: r.Capabilities}).SuppressionSync {
 			ps.Local, ps.Status, ps.Pulled, ps.Pushed = true, "in_sync", r.Added, 0
-			ps.PulledNote = "pulled"
+			ps.PulledNote = "from its bounces and complaints"
 			if r.Added > 0 {
 				at := r.AddedAt
 				ps.At = &at
@@ -422,8 +422,9 @@ func (s *Service) suppressionSources(ctx context.Context, ws *store.Workspace) (
 		}
 		out = append(out, SuppressionFilterOption{Value: "import:" + id.String(), Label: importerLabel(src) + " import"})
 	}
-	out = append(out, SuppressionFilterOption{Value: "manual", Label: "Manual"}, SuppressionFilterOption{Value: "preference_center", Label: "Preference center"},
-		SuppressionFilterOption{Value: "one_click", Label: "List-Unsubscribe one-click"})
+	// Unsubscribes (preference center, one-click) are found with the reason
+	// filter; the source filter lists providers, imports and the team.
+	out = append(out, SuppressionFilterOption{Value: "manual", Label: "Manual"})
 	return out, rows.Err()
 }
 

@@ -254,7 +254,49 @@
     display: block;
     border-radius: 2px;
   }
-  .tbl.compact.htbl td:first-child {
+  .tbl.compact.first160 td:first-child {
     min-width: 160px;
+  }
+
+  /* Suppression list: 10px single-line cells except the original code and
+     the campaign or flow, provider sync cells and the CSV drop area. */
+  .tbl.stbl td {
+    padding: 10px 12px;
+    white-space: nowrap;
+  }
+  .tbl.stbl td:nth-child(4),
+  .tbl.stbl td:nth-child(6) {
+    white-space: normal;
+    min-width: 150px;
+  }
+  .syncc {
+    flex: 1 1 260px;
+    padding: 14px 18px;
+    border-right: 1px solid var(--line-2);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dropz {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 18px 16px;
+    border: 1.5px dashed var(--line-strong);
+    border-radius: 10px;
+    background: var(--ground-3);
+    text-align: center;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .dropz:hover,
+  .dropz.over {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+  }
+  .dropz:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 }
