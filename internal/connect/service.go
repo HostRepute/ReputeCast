@@ -74,6 +74,9 @@ type Service struct {
 	// AllowPrivateURL lets the webhook self-test reach a private or
 	// loopback public URL (integration tests only).
 	AllowPrivateURL bool
+	// AllowPrivateNetworks lets SMTP and bounce-mailbox servers be on
+	// loopback and private addresses (providers.allow_private_networks).
+	AllowPrivateNetworks bool
 	// OnRoutingChange is called after the streams step saved routing (the
 	// system mailer forgets its cached availability).
 	OnRoutingChange func()

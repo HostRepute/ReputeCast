@@ -195,6 +195,9 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 		if !ok {
 			break
 		}
+		if err := s.checkHost(ctx, stringOf(b.settings["host"])); err != nil {
+			return s.connectFailed(ctx, ws, st, state, b, hostBlocked("host", err))
+		}
 		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		rep, err := ct.TestConnection(cctx)
 		cancel()
@@ -622,6 +625,45 @@ func keyError(d providers.Descriptor, c adapterCopy, b built, err error) *StepEr
 }
 
 // smtpError explains a failed SMTP connection test.
+// checkHost refuses a mail server host that is, or resolves to, a loopback,
+// private, link-local or cloud metadata address, unless an instance admin
+// allowed private networks: the connection tests show what a server
+// answers, so they must not reach internal services. (A name that doesn't
+// resolve is left to the test, which says so.)
+func (s *Service) checkHost(ctx context.Context, host string) error {
+	policy := netguard.Policy{AllowPrivate: s.AllowPrivateNetworks}
+	host = strings.TrimSuffix(strings.TrimSpace(host), ".")
+	if ip, err := netip.ParseAddr(strings.Trim(host, "[]")); err == nil {
+		return policy.Check(ip.Unmap())
+	}
+	low := strings.ToLower(host)
+	if low == "localhost" || strings.HasSuffix(low, ".localhost") || strings.HasSuffix(low, ".internal") {
+		if !policy.AllowPrivate {
+			return fmt.Errorf("%w: %s is a local host name", netguard.ErrBlocked, host)
+		}
+		return nil
+	}
+	lctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	ips, err := net.DefaultResolver.LookupNetIP(lctx, "ip", host)
+	if err != nil {
+		return nil
+	}
+	for _, ip := range ips {
+		if err := policy.Check(ip.Unmap()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// hostBlocked explains a mail server address the policy refuses.
+func hostBlocked(field string, err error) *StepError {
+	why := strings.ReplaceAll(err.Error(), "`", "'")
+	return &StepError{Field: field, Code: "address_blocked", Detail: why,
+		Message: "ReputeCast won't connect to that address: `" + why + "`. Mail servers can't be on private, loopback or cloud metadata addresses unless an instance admin turns on providers.allow_private_networks."}
+}
+
 func smtpError(err error) *StepError {
 	var ce *providers.CallError
 	field := "host"
@@ -1203,7 +1245,9 @@ func (s *Service) ConnectMailbox(ctx context.Context, ws *store.Workspace, rawID
 	now := s.now()
 	state := decodeState(st.State)
 	probe := &ProbeState{At: now}
-	if mt, ok := adapter.(providers.BounceMailboxTester); ok {
+	if err := s.checkHost(ctx, stringOf(mb["host"])); err != nil {
+		probe.Error = hostBlocked("host", err).Message
+	} else if mt, ok := adapter.(providers.BounceMailboxTester); ok {
 		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		rep, err := mt.TestBounceMailbox(cctx)
 		cancel()

@@ -1,8 +1,11 @@
 package connect
 
 import (
+	"context"
+	"strings"
 	"testing"
 
+	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 )
 
@@ -40,5 +43,33 @@ func TestStreamsText(t *testing.T) {
 	}
 	if got := streamsText(nil); got != "Not routed yet" {
 		t.Errorf("none: %q", got)
+	}
+}
+
+// Mail server tests show what a server answers, so they don't reach
+// internal addresses unless private networks are allowed.
+func TestCheckHost(t *testing.T) {
+	ctx := context.Background()
+	closed := &Service{}
+	for _, host := range []string{"127.0.0.1", "10.0.4.18", "localhost", "smtp.internal", "[::1]", "169.254.169.254"} {
+		if err := closed.checkHost(ctx, host); !netguard.IsBlocked(err) {
+			t.Errorf("%s: err = %v", host, err)
+		}
+	}
+	if err := closed.checkHost(ctx, "203.0.113.25"); err != nil {
+		t.Errorf("public address: %v", err)
+	}
+	open := &Service{AllowPrivateNetworks: true}
+	for _, host := range []string{"127.0.0.1", "10.0.4.18", "localhost"} {
+		if err := open.checkHost(ctx, host); err != nil {
+			t.Errorf("%s with private networks allowed: %v", host, err)
+		}
+	}
+	if err := open.checkHost(ctx, "169.254.169.254"); !netguard.IsBlocked(err) {
+		t.Errorf("metadata address with private networks allowed: %v", err)
+	}
+	e := hostBlocked("host", closed.checkHost(ctx, "localhost"))
+	if e.Field != "host" || e.Code != "address_blocked" || !strings.Contains(e.Message, "providers.allow_private_networks") {
+		t.Errorf("explanation: %+v", e)
 	}
 }
