@@ -127,8 +127,12 @@ func New(cfg providers.Config) (providers.Provider, error) {
 	if p.s.Port == 0 {
 		p.s.Port = map[string]int{"starttls": 587, "tls": 465, "none": 25}[p.s.TLS]
 	}
+	if cfg.Dialer != nil {
+		p.dial = cfg.Dialer.DialContext
+	}
 	if p.s.BounceMailbox != nil {
 		p.s.BounceMailbox.Password = p.c.BouncePassword
+		p.s.BounceMailbox.Dialer = cfg.Dialer
 	}
 	return p, nil
 }

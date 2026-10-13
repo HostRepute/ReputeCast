@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"net"
 	"strconv"
 	"strings"
 
@@ -21,7 +20,7 @@ type imapBox struct {
 func openIMAP(ctx context.Context, cfg Config) (Box, error) {
 	opts := &imapclient.Options{
 		TLSConfig: &tls.Config{ServerName: cfg.Host, MinVersion: tls.VersionTLS12},
-		Dialer:    &net.Dialer{Timeout: cfg.Timeout},
+		Dialer:    cfg.dialer(),
 	}
 	var (
 		c   *imapclient.Client

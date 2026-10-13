@@ -30,6 +30,20 @@ type Config struct {
 	// Password comes from the provider's encrypted credentials.
 	Password string `json:"-"`
 	Timeout  time.Duration
+	// Dialer, when set, dials through the provider address guard.
+	Dialer *net.Dialer `json:"-"`
+}
+
+// dialer is Dialer (with the timeout) or a plain one.
+func (c Config) dialer() *net.Dialer {
+	if c.Dialer == nil {
+		return &net.Dialer{Timeout: c.Timeout}
+	}
+	d := *c.Dialer
+	if c.Timeout > 0 {
+		d.Timeout = c.Timeout
+	}
+	return &d
 }
 
 // Message is one email in the mailbox.
