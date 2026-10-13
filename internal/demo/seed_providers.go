@@ -122,9 +122,11 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 		}
 	}
 
-	// Postal's warm-up: 21 days, day 9 today, one slowdown on day 6.
+	// Postal's warm-up: 21 days, day 9 today (the workspace's calendar day,
+	// which the warm-up job counts in), one slowdown on day 6.
 	plan := postalPlan()
-	start := s.designDay(8, 0, 0)
+	wsNow := s.Now.In(loc)
+	start := time.Date(wsNow.Year(), wsNow.Month(), wsNow.Day(), 0, 0, 0, 0, loc).AddDate(0, 0, -8)
 	if err := seedWarmup(ctx, s, postal, start, plan, loc, linh.ID); err != nil {
 		return err
 	}
