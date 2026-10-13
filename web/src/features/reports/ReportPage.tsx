@@ -282,7 +282,7 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
                 Duplicate campaign
               </Button>
             ) : (
-              <ButtonLink variant="primary" to="/w/$workspace/campaigns/new" params={{ workspace: slug }} search={{ from: campaignId } as never}>
+              <ButtonLink variant="primary" to="/w/$workspace/campaigns/new" params={{ workspace: slug }} search={{ from: campaignId }}>
                 Duplicate campaign
               </ButtonLink>
             )}
