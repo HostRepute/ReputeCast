@@ -100,6 +100,8 @@ type MoveEstimate struct {
 	TargetShort  string  `json:"targetShort"`
 	ExtraCost    float64 `json:"extraCost"`
 	ExtraSeconds int64   `json:"extraSeconds"`
+	// Rate is the target's rate in messages per second ("Extra time at 14 /s").
+	Rate float64 `json:"rate"`
 	QuotaFree    *int64  `json:"quotaFree,omitempty"`
 	QuotaMax     *int64  `json:"quotaMax,omitempty"`
 	Risk         string  `json:"risk"` // low, high
@@ -427,6 +429,7 @@ func (e *Engine) moveEstimate(ctx context.Context, rs *runState, target store.Pr
 	tr := e.rateOf(ctx, e.Q, target, rs.loc, now)
 	if tr.PerSecond > 0 {
 		m.ExtraSeconds = int64(math.Round(float64(n) / tr.PerSecond))
+		m.Rate = tr.PerSecond
 	}
 	if h := state.HealthOf(target); h.Quota != nil && h.Quota.Max > 0 {
 		cid := rs.campaign.ID

@@ -6,6 +6,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/accounts"
 	"github.com/hostrepute/reputecast/internal/authn"
+	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/maintenance"
 	"github.com/hostrepute/reputecast/internal/meta"
 )
@@ -65,7 +66,9 @@ func registerJobs(a *App) {
 }
 
 // RegisterOperations registers every operation on h without a database, for
-// generating the OpenAPI document. Handlers are never called.
+// generating the OpenAPI document. Handlers are never called; the bare app
+// carries the default configuration for registrars that read it.
 func RegisterOperations(h huma.API) {
-	registerAPI(&App{}, h)
+	cfg := config.Defaults()
+	registerAPI(&App{Cfg: &cfg}, h)
 }

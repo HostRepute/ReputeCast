@@ -26,6 +26,9 @@ type liveStreamInput struct {
 	api.WorkspaceInput
 	CampaignID  string `path:"campaignId" format:"uuid" doc:"Campaign id"`
 	LastEventID string `header:"Last-Event-ID" doc:"Resume after this event id (the snapshot version)"`
+	// The browser can't set Last-Event-ID on a new EventSource, so a client
+	// that reconnects by itself passes it in the query.
+	LastEventIDQuery string `query:"lastEventId" doc:"Same as the Last-Event-ID header, for clients that reconnect by themselves"`
 }
 
 // LivePauseRequest pauses a running send.
@@ -117,7 +120,7 @@ func Register(h huma.API, e *Engine) {
 		}
 		updates, cancel := e.Subscribe(ctx, ws.ID, id)
 		defer cancel()
-		resumed := in.LastEventID != ""
+		resumed := in.LastEventID != "" || in.LastEventIDQuery != ""
 		heartbeat := time.NewTicker(15 * time.Second)
 		defer heartbeat.Stop()
 		_ = send(sse.Message{Retry: 3000, Comment: "connected"})

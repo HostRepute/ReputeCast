@@ -12523,6 +12523,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "rate": {
+            "format": "double",
+            "type": "number"
+          },
           "risk": {
             "type": "string"
           },
@@ -12545,6 +12549,7 @@
           "targetShort",
           "extraCost",
           "extraSeconds",
+          "rate",
           "risk",
           "riskText"
         ],
@@ -26418,6 +26423,16 @@
             "name": "Last-Event-ID",
             "schema": {
               "description": "Resume after this event id (the snapshot version)",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Same as the Last-Event-ID header, for clients that reconnect by themselves",
+            "explode": false,
+            "in": "query",
+            "name": "lastEventId",
+            "schema": {
+              "description": "Same as the Last-Event-ID header, for clients that reconnect by themselves",
               "type": "string"
             }
           }

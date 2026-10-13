@@ -7534,6 +7534,8 @@ export interface components {
             quotaFree?: number;
             /** Format: int64 */
             quotaMax?: number;
+            /** Format: double */
+            rate: number;
             risk: string;
             riskText: string;
             target: string;
@@ -13295,7 +13297,10 @@ export interface operations {
     };
     "stream-live-send": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Same as the Last-Event-ID header, for clients that reconnect by themselves */
+                lastEventId?: string;
+            };
             header?: {
                 /** @description Resume after this event id (the snapshot version) */
                 "Last-Event-ID"?: string;
