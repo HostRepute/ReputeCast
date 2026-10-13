@@ -1,0 +1,21 @@
+{{define "content"}}{{with .Body}}<main class="card" id="main">
+  {{template "brand" $}}
+  <div class="headrow">
+    <svg class="tick" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19"></circle><path d="m12 20.5 5.5 5.5L28 15" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg>
+    <h1 class="h26">{{.Heading}}</h1>
+  </div>
+  <p class="lead">Your subscription for <strong>{{.Email}}</strong> is confirmed. Here's what you'll get and when:</p>
+  <div class="col8">
+    {{range .Lists}}<div class="got{{if not .On}} off{{end}}"><span class="dot"></span><span><span class="nm">{{.Name}}</span><br><span class="ds">{{if .On}}{{.Text}}{{else}}Not subscribed. <a href="{{.AddHref}}">Add it</a> if you'd like {{.Offer}} too.{{end}}</span></span></div>
+    {{end}}
+  </div>
+  {{with .Sender}}<div class="notice">Add <strong>{{.}}</strong> to your contacts so the first issue lands in your inbox, not Promotions.</div>{{end}}
+  <div class="btns">
+    {{with .LatestHref}}<a class="btn-sm" href="{{.}}">Read the latest issue</a>{{end}}
+    {{with .PrefsHref}}<a class="btn-ghost" href="{{.}}">Email preferences</a>{{end}}
+  </div>
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Body.Proof}}<span>{{.}}</span>{{end}}
+  {{- if and .Body.Proof .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

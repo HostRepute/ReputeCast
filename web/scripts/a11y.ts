@@ -72,7 +72,8 @@ async function main() {
       }
       let ctx = contexts.get(user)
       if (!ctx) {
-        ctx = await browser.newContext({ deviceScaleFactor: 1, reducedMotion: 'reduce' })
+        // bypassCSP: the public pages allow no inline script, which is how axe is injected.
+        ctx = await browser.newContext({ deviceScaleFactor: 1, reducedMotion: 'reduce', bypassCSP: true })
         try {
           if (user !== 'anon') await signIn(ctx, app, user)
         } catch {

@@ -1,0 +1,18 @@
+{{define "content"}}{{with .Body}}<main class="card g18" id="main">
+  {{template "brand" $}}
+  <div class="col4"><h1 class="h26">Email preferences</h1><span class="sub">Enter your address and we'll email you a link to your preferences. The link signs you in to this page only.</span></div>
+  {{with .Alert}}<div class="alert" role="alert">{{.}}</div>{{end}}
+  <form class="form" method="post" action="{{.Action}}" novalidate>
+    <input type="hidden" name="_t" value="{{.Token}}">
+    <div class="col6">
+      <label class="field">Email<input class="in" type="email" name="email" id="pref-email" value="{{.Email}}" placeholder="you@company.com" autocomplete="email" required{{if .EmailError}} aria-invalid="true" aria-describedby="pref-email-err"{{end}}></label>
+      {{with .EmailError}}<span class="err" id="pref-email-err" role="alert">{{.}}</span>{{end}}
+    </div>
+    <div class="hp" aria-hidden="true"><label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+    <button class="btn-pri" type="submit"{{if $.Preview}} disabled{{end}}>Send me a link</button>
+  </form>
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Privacy}}<a href="{{.}}">Privacy</a>{{end}}
+  {{- if and .Privacy .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

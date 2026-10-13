@@ -1,0 +1,18 @@
+{{define "content"}}{{with .Body}}<main class="card" id="main">
+  {{template "brand" $}}
+  <div class="headrow">
+    <svg class="tick" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19"></circle><path d="m12 20.5 5.5 5.5L28 15" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg>
+    <h1 class="h26">{{.Heading}}</h1>
+  </div>
+  <p class="lead">{{.Before}}<strong>{{.Email}}</strong>{{.After}}</p>
+  {{with .Status}}<div class="notice" role="status">{{.}}</div>{{end}}
+  <div class="btns">
+    {{if .Resubscribe}}<form method="post" action="{{.Action}}"><input type="hidden" name="action" value="resubscribe"><button class="btn-sm" type="submit"{{if $.Preview}} disabled{{end}}>Resubscribe</button></form>{{end}}
+    {{with .PrefsHref}}<a class="btn-ghost" href="{{.}}">Email preferences</a>{{end}}
+    {{with .ArchiveHref}}<a class="btn-ghost" href="{{.}}">Read past issues</a>{{end}}
+  </div>
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Body.Proof}}<span>{{.}}</span>{{end}}
+  {{- if and .Body.Proof .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

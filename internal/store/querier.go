@@ -21,6 +21,27 @@ type Querier interface {
 	// The draft or running import the wizard resumes.
 	ActiveImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
 	AddSegmentMembers(ctx context.Context, arg AddSegmentMembersParams) error
+	ArchiveInsertIssue(ctx context.Context, arg ArchiveInsertIssueParams) error
+	ArchiveIssueBySlug(ctx context.Context, arg ArchiveIssueBySlugParams) (ArchiveIssueBySlugRow, error)
+	ArchiveIssueCount(ctx context.Context, arg ArchiveIssueCountParams) (int64, error)
+	ArchiveIssueGet(ctx context.Context, arg ArchiveIssueGetParams) (ArchiveIssue, error)
+	// One issue of the Archive tab, as ArchiveIssues lists it.
+	ArchiveIssueOne(ctx context.Context, arg ArchiveIssueOneParams) (ArchiveIssueOneRow, error)
+	ArchiveIssues(ctx context.Context, arg ArchiveIssuesParams) ([]ArchiveIssuesRow, error)
+	ArchiveListCounts(ctx context.Context, arg ArchiveListCountsParams) ([]ArchiveListCountsRow, error)
+	// Serializes archive syncs of a workspace, so two requests never hand out
+	// the same slug.
+	ArchiveLock(ctx context.Context, workspaceID uuid.UUID) error
+	// W13 · Public pages (spec 7.12): the archive, view online and what an
+	// unsubscribe records about the email it came from.
+	// Archive ---------------------------------------------------------------------
+	// Sent campaigns of the archived lists without an archive row yet, oldest
+	// first so slugs are handed out in publishing order.
+	ArchiveMissingIssues(ctx context.Context, arg ArchiveMissingIssuesParams) ([]ArchiveMissingIssuesRow, error)
+	ArchiveSlugTaken(ctx context.Context, arg ArchiveSlugTakenParams) (bool, error)
+	// Every published issue: how many and since when.
+	ArchiveSummary(ctx context.Context, arg ArchiveSummaryParams) (ArchiveSummaryRow, error)
+	ArchiveUpdateIssue(ctx context.Context, arg ArchiveUpdateIssueParams) (ArchiveIssue, error)
 	// The automation the sunset policy names (List health links to its flow).
 	AudienceAutomationByName(ctx context.Context, arg AudienceAutomationByNameParams) (uuid.UUID, error)
 	// Audience: lists, custom fields, contacts, consent, saved views,
@@ -235,6 +256,66 @@ type Querier interface {
 	FailStaleDeliverabilityCheckRuns(ctx context.Context, aliveAfter time.Time) (int64, error)
 	FinishDeliverabilityCheckRun(ctx context.Context, arg FinishDeliverabilityCheckRunParams) error
 	FinishImport(ctx context.Context, arg FinishImportParams) error
+	FormAllowOrigin(ctx context.Context, arg FormAllowOriginParams) (Form, error)
+	// Origins rejected today that nobody chose to keep blocked yet.
+	FormBlockedOrigins(ctx context.Context, arg FormBlockedOriginsParams) ([]FormBlockedOriginsRow, error)
+	FormBumpDaily(ctx context.Context, arg FormBumpDailyParams) error
+	FormBumpTotals(ctx context.Context, arg FormBumpTotalsParams) error
+	FormByPublicID(ctx context.Context, arg FormByPublicIDParams) (Form, error)
+	FormBySlug(ctx context.Context, arg FormBySlugParams) (Form, error)
+	// Turnstile challenges --------------------------------------------------------
+	FormChallengeInsert(ctx context.Context, arg FormChallengeInsertParams) error
+	// A held submission still waiting for its Turnstile check.
+	FormChallengeLive(ctx context.Context, arg FormChallengeLiveParams) (bool, error)
+	FormChallengeTake(ctx context.Context, arg FormChallengeTakeParams) (FormChallenge, error)
+	FormChallengesPurge(ctx context.Context, at time.Time) (int64, error)
+	FormDelete(ctx context.Context, arg FormDeleteParams) (int64, error)
+	FormDismissOrigin(ctx context.Context, arg FormDismissOriginParams) (int64, error)
+	FormGet(ctx context.Context, arg FormGetParams) (Form, error)
+	FormInsert(ctx context.Context, arg FormInsertParams) (Form, error)
+	FormLastSubmissionForContact(ctx context.Context, contactID uuid.UUID) (FormLastSubmissionForContactRow, error)
+	FormPublicIDTaken(ctx context.Context, arg FormPublicIDTakenParams) (bool, error)
+	FormRecordRejection(ctx context.Context, arg FormRecordRejectionParams) error
+	FormRename(ctx context.Context, arg FormRenameParams) (Form, error)
+	FormSetStatus(ctx context.Context, arg FormSetStatusParams) (Form, error)
+	FormSlugTaken(ctx context.Context, arg FormSlugTakenParams) (bool, error)
+	// Numbers ---------------------------------------------------------------------
+	// Per form: views, submissions, confirmations of those submissions and spam
+	// blocked since a day (inclusive).
+	FormStatsSince(ctx context.Context, arg FormStatsSinceParams) ([]FormStatsSinceRow, error)
+	FormSubmissionByID(ctx context.Context, arg FormSubmissionByIDParams) (FormSubmission, error)
+	// Submissions -----------------------------------------------------------------
+	FormSubmissionInsert(ctx context.Context, arg FormSubmissionInsertParams) error
+	FormSubmissionMarkAttempt(ctx context.Context, id uuid.UUID) error
+	FormSubmissionMarkReminded(ctx context.Context, arg FormSubmissionMarkRemindedParams) error
+	FormSubmissionMarkSent(ctx context.Context, arg FormSubmissionMarkSentParams) error
+	// A contact confirmed some other way (re-permission, the team): nothing
+	// to send or remind any more.
+	FormSubmissionSettle(ctx context.Context, arg FormSubmissionSettleParams) error
+	// Marks a contact's waiting submissions confirmed; returns the form and the
+	// day each was submitted, so the day's confirmed count moves.
+	FormSubmissionsConfirm(ctx context.Context, arg FormSubmissionsConfirmParams) ([]FormSubmissionsConfirmRow, error)
+	// Confirmations sent more than 24 hours ago without a click: one reminder.
+	FormSubmissionsToRemind(ctx context.Context, arg FormSubmissionsToRemindParams) ([]FormSubmissionsToRemindRow, error)
+	// Double opt-in confirmations that couldn't go out yet (no System provider,
+	// a provider error): retried by the confirmations job for three days.
+	FormSubmissionsToSend(ctx context.Context, arg FormSubmissionsToSendParams) ([]FormSubmissionsToSendRow, error)
+	FormUpdate(ctx context.Context, arg FormUpdateParams) (Form, error)
+	FormWaitingCount(ctx context.Context, arg FormWaitingCountParams) (int64, error)
+	// Double opt-in signups of a form whose confirmation email hasn't gone out
+	// (nothing could send System mail, or the provider refused it), newest
+	// first: the builder offers their links to send by hand.
+	FormWaitingSubmissions(ctx context.Context, arg FormWaitingSubmissionsParams) ([]FormWaitingSubmissionsRow, error)
+	// Lookups for the builder -----------------------------------------------------
+	FormsDefaultSender(ctx context.Context, workspaceID uuid.UUID) (FormsDefaultSenderRow, error)
+	// W13 · Signup forms and public page settings (spec 5.12, 7.12).
+	// Forms -----------------------------------------------------------------------
+	FormsList(ctx context.Context, workspaceID uuid.UUID) ([]Form, error)
+	FormsRemoveBrandingKeys(ctx context.Context, arg FormsRemoveBrandingKeysParams) error
+	// Merges the public-page keys into workspaces.branding; keys other screens
+	// own (the postal address of the email footer) stay as they are.
+	FormsUpdateBranding(ctx context.Context, arg FormsUpdateBrandingParams) (json.RawMessage, error)
+	FormsWorkspaceBranding(ctx context.Context, id uuid.UUID) (json.RawMessage, error)
 	GetAPIKey(ctx context.Context, arg GetAPIKeyParams) (ApiKey, error)
 	GetAPIKeyByToken(ctx context.Context, tokenHash []byte) (GetAPIKeyByTokenRow, error)
 	// List health -----------------------------------------------------------------
@@ -675,6 +756,35 @@ type Querier interface {
 	// Keeps the newest @keep versions; the first version and anything that is
 	// not an autosave (restores, imports, ⌘S) are always kept.
 	PruneComposerVersions(ctx context.Context, arg PruneComposerVersionsParams) (int64, error)
+	// Unsubscribes ----------------------------------------------------------------
+	PublicBumpUnsubscribed(ctx context.Context, arg PublicBumpUnsubscribedParams) error
+	PublicCampaign(ctx context.Context, arg PublicCampaignParams) (PublicCampaignRow, error)
+	PublicInsertFeedback(ctx context.Context, arg PublicInsertFeedbackParams) error
+	PublicInsertUnsubscribeEvent(ctx context.Context, arg PublicInsertUnsubscribeEventParams) error
+	PublicLatestIssueSlug(ctx context.Context, arg PublicLatestIssueSlugParams) (string, error)
+	// Emails ----------------------------------------------------------------------
+	PublicMessage(ctx context.Context, id uuid.UUID) (PublicMessageRow, error)
+	// Upcoming sends, for "Next issue: Tuesday 14 October" on the confirmation page.
+	PublicScheduledCampaigns(ctx context.Context, arg PublicScheduledCampaignsParams) ([]PublicScheduledCampaignsRow, error)
+	PublicSettingsByDomain(ctx context.Context, domain *string) (PublicSettingsByDomainRow, error)
+	PublicSettingsDomainTaken(ctx context.Context, arg PublicSettingsDomainTakenParams) (bool, error)
+	// Domains waiting for DNS (every run) and verified ones (once a day).
+	PublicSettingsDomainsToCheck(ctx context.Context, before *time.Time) ([]PublicSettingsDomainsToCheckRow, error)
+	// Public page settings --------------------------------------------------------
+	PublicSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
+	PublicSettingsGet(ctx context.Context, workspaceID uuid.UUID) (PublicPageSetting, error)
+	PublicSettingsLogo(ctx context.Context, workspaceID uuid.UUID) (PublicSettingsLogoRow, error)
+	PublicSettingsSetDomain(ctx context.Context, arg PublicSettingsSetDomainParams) error
+	PublicSettingsSetHostedForm(ctx context.Context, arg PublicSettingsSetHostedFormParams) error
+	PublicSettingsSetLogo(ctx context.Context, arg PublicSettingsSetLogoParams) error
+	PublicSettingsSetPages(ctx context.Context, arg PublicSettingsSetPagesParams) error
+	PublicSettingsSetTurnstile(ctx context.Context, arg PublicSettingsSetTurnstileParams) error
+	PublicSettingsTouch(ctx context.Context, arg PublicSettingsTouchParams) error
+	// The widget on a challenge page reported an error (wrong site key, domain
+	// not allowed): spam protection falls back until someone fixes the key.
+	PublicSettingsTurnstileError(ctx context.Context, arg PublicSettingsTurnstileErrorParams) error
+	// The unsubscribe page tab: departures and answers in the last 30 days.
+	PublicUnsubscribeStats(ctx context.Context, arg PublicUnsubscribeStatsParams) (PublicUnsubscribeStatsRow, error)
 	PublishAutomationVersion(ctx context.Context, arg PublishAutomationVersionParams) error
 	PurgeAuditEvents(ctx context.Context, arg PurgeAuditEventsParams) (int64, error)
 	PurgeAutomationEvents(ctx context.Context, before *time.Time) (int64, error)
@@ -875,6 +985,47 @@ type Querier interface {
 	// Account & security, passkeys, password resets, email changes, invitations
 	// (accept side) and the first sign-in. Owned by internal/accounts.
 	SetUserWebAuthnID(ctx context.Context, arg SetUserWebAuthnIDParams) error
+	// Unsubscribes block Broadcasts and Automations; System mail (password
+	// resets, receipts) still reaches the contact.
+	SignupAddUnsubscribe(ctx context.Context, arg SignupAddUnsubscribeParams) error
+	SignupConfirmPending(ctx context.Context, arg SignupConfirmPendingParams) ([]uuid.UUID, error)
+	// Audience · public self-service (internal/audience/signup.go): signups from
+	// forms and the hosted page, double opt-in confirmations, the preference
+	// center and unsubscribes. The contact acts on these; there is no team
+	// member behind them, so consent events carry the IP and browser instead.
+	SignupContactByEmail(ctx context.Context, arg SignupContactByEmailParams) (Contact, error)
+	SignupContactByID(ctx context.Context, arg SignupContactByIDParams) (Contact, error)
+	// Addresses and first names of some contacts (erased ones left out), for
+	// lists of signups.
+	SignupContactNames(ctx context.Context, arg SignupContactNamesParams) ([]SignupContactNamesRow, error)
+	// Fills fields the contact left empty; a public form never overwrites what
+	// is already known (anyone can type anyone's address into a form).
+	SignupFillContact(ctx context.Context, arg SignupFillContactParams) error
+	SignupInsertConsent(ctx context.Context, arg SignupInsertConsentParams) error
+	// A concurrent signup for the same address wins the race; the caller then
+	// reads the contact it created.
+	SignupInsertContact(ctx context.Context, arg SignupInsertContactParams) (Contact, error)
+	// The latest consent event of one kind (the confirmation shown under the
+	// confirmation page, the opt-in that recorded the consent text).
+	SignupLastConsent(ctx context.Context, arg SignupLastConsentParams) (SignupLastConsentRow, error)
+	// The lists the latest unsubscribe left, for "Resubscribe".
+	SignupLastUnsubscribedLists(ctx context.Context, contactID uuid.UUID) ([]uuid.UUID, error)
+	SignupLiftUnsubscribe(ctx context.Context, arg SignupLiftUnsubscribeParams) (int64, error)
+	SignupMemberships(ctx context.Context, contactID uuid.UUID) ([]SignupMembershipsRow, error)
+	SignupPreferences(ctx context.Context, contactID uuid.UUID) (SignupPreferencesRow, error)
+	// The subscriber who confirmed most recently: the app previews the public
+	// pages as they see them.
+	SignupPreviewConfirmed(ctx context.Context, workspaceID uuid.UUID) (uuid.UUID, error)
+	SignupPreviewLatest(ctx context.Context, workspaceID uuid.UUID) (uuid.UUID, error)
+	// Lists a public page can show, with their size.
+	SignupPublicLists(ctx context.Context, workspaceID uuid.UUID) ([]SignupPublicListsRow, error)
+	SignupSetContactState(ctx context.Context, arg SignupSetContactStateParams) error
+	SignupSetFirstName(ctx context.Context, arg SignupSetFirstNameParams) error
+	SignupSetMembership(ctx context.Context, arg SignupSetMembershipParams) error
+	SignupSuppression(ctx context.Context, arg SignupSuppressionParams) (Suppression, error)
+	SignupTouchContact(ctx context.Context, arg SignupTouchContactParams) error
+	SignupUnsubscribeAll(ctx context.Context, arg SignupUnsubscribeAllParams) ([]uuid.UUID, error)
+	SignupUpsertPreferences(ctx context.Context, arg SignupUpsertPreferencesParams) error
 	SlugTaken(ctx context.Context, slug string) (bool, error)
 	SoftDeleteAutomation(ctx context.Context, arg SoftDeleteAutomationParams) error
 	SoftDeleteEmailTemplate(ctx context.Context, arg SoftDeleteEmailTemplateParams) (int64, error)
