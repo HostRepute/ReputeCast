@@ -450,7 +450,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 			}
 		}
 	}
-	acts, err := s.Q.TeamMemberActivity(ctx, store.TeamMemberActivityParams{WorkspaceID: &ws.ID, UserID: &r.UserID, Lim: 8})
+	acts, err := s.Q.TeamMemberActivity(ctx, store.TeamMemberActivityParams{WorkspaceID: &ws.ID, UserID: &r.UserID, Lim: 4})
 	if err != nil {
 		return TeamMemberDetail{}, err
 	}

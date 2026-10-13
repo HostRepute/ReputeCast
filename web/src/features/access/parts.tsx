@@ -62,18 +62,26 @@ export function SignInText({ methods }: { methods: Schemas['MemberSignInMethod']
   )
 }
 
-/** The IdP mark drawn inline before a sign-in method (14px on the boards). */
+/**
+ * The IdP mark drawn inline before a sign-in method (14px on the boards).
+ * The inline-block wrapper puts it on the text baseline, as an inline SVG
+ * sits on the boards (the reset makes a bare SVG a block).
+ */
 export function ProviderMark({ preset, size = 14 }: { preset: string; size?: number }) {
+  let mark: ReactNode = null
   switch (preset) {
     case 'google':
-      return <GoogleMark size={size} />
+      mark = <GoogleMark size={size} />
+      break
     case 'entra':
     case 'microsoft':
-      return <MicrosoftMark size={size} />
+      mark = <MicrosoftMark size={size} />
+      break
     case 'github':
-      return <GitHubMark size={size} />
+      mark = <GitHubMark size={size} />
+      break
   }
-  return null
+  return mark ? <span className="inline-block">{mark}</span> : null
 }
 
 /** Two-factor badge: On · TOTP, Via IdP, Required · off with the grace period, Off. */

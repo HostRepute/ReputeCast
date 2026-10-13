@@ -13,10 +13,10 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { EmptyRow, Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { FullPageState } from '@/components/shell/SystemScreens'
-import { ago, logTime, monthDay, usDate } from '@/lib/format'
+import { ago, monthDay, usDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
-import { ProviderMark, RoleBadge, SignInText } from '../access/parts'
+import { RoleBadge, SignInText } from '../access/parts'
 import { ChangeRoleDialog } from './ChangeRoleDialog'
 import { DeactivateDialog } from './DeactivateDialog'
 import { LastOwnerDialog } from './LastOwnerDialog'
@@ -343,7 +343,6 @@ function SessionsCard({ d, manageReason }: { d: Detail; manageReason?: string })
   const qc = useQueryClient()
   const m = d.member
   const signOut = $api.useMutation('post', '/api/v1/workspaces/{workspace}/members/{memberId}/sign-out')
-  const sso = m.signIn.find((s) => s.kind === 'sso')
   const methods = m.signIn.length
     ? m.signIn.map((s) => (s.kind === 'sso' && d.ssoDomain ? `${s.label} (${d.ssoDomain})` : s.label)).join(' · ')
     : 'None (deactivated)'
@@ -354,17 +353,7 @@ function SessionsCard({ d, manageReason }: { d: Detail; manageReason?: string })
       <div className="pad col gap-2">
         <KeyValues
           items={[
-            [
-              'Methods',
-              <>
-                {sso ? (
-                  <>
-                    <ProviderMark preset={sso.preset ?? 'oidc'} />{' '}
-                  </>
-                ) : null}
-                {methods}
-              </>,
-            ],
+            ['Methods', methods],
             ['Two-factor', twoFA],
             [
               'Sessions',
@@ -478,4 +467,3 @@ function MemberSkeleton() {
   )
 }
 
-export { logTime }
