@@ -179,9 +179,9 @@ function SetupForm({ d }: { d: Detail }) {
   const presetInfo = (useList().data?.presets ?? []).find((p) => p.key === f.preset) ?? current.presetInfo
   const path = { params: { path: { providerId: current.id } } }
 
-  const persist = async (): Promise<Detail> => {
+  const persist = async (form: Form = f): Promise<Detail> => {
     setError(undefined)
-    const r = await save.mutateAsync({ ...path, body: toInput(current, f) })
+    const r = await save.mutateAsync({ ...path, body: toInput(current, form) })
     setF(toForm(r))
     setSaved(r)
     await invalidate()
@@ -207,7 +207,19 @@ function SetupForm({ d }: { d: Detail }) {
       <ConnectionCard d={current} f={f} set={set} preset={presetInfo} onDiscovered={(r) => { setSaved(r); set({ issuerUrl: r.issuer }) }} />
       <ClaimsCard d={current} f={f} set={set} preset={presetInfo} />
       <AccessCard d={current} f={f} set={set} preset={presetInfo} onEnforce={() => setEnforcing(true)} onUnenforce={() => setUnenforcing(true)} />
-      <TestCard d={current} preset={presetInfo} running={startTest.isPending} onRun={() => void runTest()} onDropMappings={() => set({ groupMappings: [] })} />
+      <TestCard
+        d={current}
+        preset={presetInfo}
+        running={startTest.isPending}
+        dropping={save.isPending}
+        onRun={() => void runTest()}
+        onDropMappings={() =>
+          void run(async () => {
+            const r = await persist({ ...f, groupMappings: [] })
+            toast({ kind: 'success', title: 'Group mappings removed', detail: `${r.name} saved · JIT default role applies` })
+          })
+        }
+      />
       {error ? (
         <ErrorPanel title="Not saved" actions={<Button onClick={() => setError(undefined)}>Dismiss</Button>}>
           {error}
@@ -324,6 +336,36 @@ function dateOnly(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+/**
+ * A preset hint as on the boards: the IdP's menu path in bold ("open
+ * Token configuration → Add groups claim") and URLs in mono.
+ */
+function richHint(text: string): ReactNode {
+  const parts: ReactNode[] = []
+  let key = 0
+  const pushText = (s: string) => {
+    const m = /open ((?:[^.→]+ → )+[^.→]+?)(?= and | to |,|\.)/.exec(s)
+    if (!m) {
+      parts.push(s)
+      return
+    }
+    const start = m.index + 'open '.length
+    parts.push(s.slice(0, start), <b key={key++}>{m[1]}</b>, s.slice(start + m[1]!.length))
+  }
+  let last = 0
+  for (const m of text.matchAll(/https?:\/\/[^\s,]+[^\s,.]/g)) {
+    pushText(text.slice(last, m.index))
+    parts.push(
+      <span key={key++} className="mono">
+        {m[0]}
+      </span>,
+    )
+    last = m.index + m[0].length
+  }
+  pushText(text.slice(last))
+  return <>{parts}</>
+}
+
 /** "…/acme/v2.0/.well-known/openid-configuration" */
 function shortURL(u?: string) {
   if (!u) return ''
@@ -350,6 +392,56 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
       setError(errorMessage(e))
     }
   }
+  if (failed)
+    // SSOStates "Discovery failed": the issuer, what the URL answered and how
+    // to find the right one. The rest of the step returns once it passes.
+    return (
+      <section className="card" aria-labelledby="conn-h">
+        <CardSection
+          title={<span id="conn-h">Discovery failed</span>}
+          caption={d.status === 'enabled' ? 'Step 2 · the saved issuer keeps working until a new one passes' : 'Step 2 · issuer unreachable or wrong URL'}
+          actions={d.status === 'enabled' ? <Badge tone="warn">Still live</Badge> : <Badge tone="bad">Not configured</Badge>}
+        />
+        <div className="pad col gap-3">
+          <label className="lbl">
+            Issuer URL
+            <input
+              className="in err mono"
+              value={f.issuerUrl}
+              placeholder={preset.issuerPattern}
+              onChange={(e) => set({ issuerUrl: e.target.value })}
+              spellCheck={false}
+              autoComplete="off"
+              aria-invalid
+              aria-describedby={`${id}-disc-err`}
+            />
+          </label>
+          <div className="note b" role="alert" id={`${id}-disc-err`}>
+            <Badge tone="bad">{disc.status ? String(disc.status) : 'Error'}</Badge>
+            <span className="col gap-1">
+              <span>
+                {disc.url ? <span className="mono">{shortURL(disc.url)}</span> : 'The issuer'} {disc.error}
+                {disc.ms && disc.status ? ` in ${disc.ms} ms` : ''}.
+              </span>
+              <span>{richHint(preset.discoveryHint)}</span>
+            </span>
+          </div>
+          {error ? (
+            <span className="err" role="alert">
+              {error}
+            </span>
+          ) : null}
+          <div className="row gap-2">
+            <Button size="sm" variant="primary" loading={discover.isPending} onClick={() => void test()}>
+              Test discovery again
+            </Button>
+            <ButtonAnchor size="sm" href={preset.docsUrl}>
+              {preset.docsLabel}
+            </ButtonAnchor>
+          </div>
+        </div>
+      </section>
+    )
   const secretHint = d.secret.set
     ? [
         d.secret.setAt ? `Saved ${usDate(d.secret.setAt).replace(/, \d{4}$/, '')}${d.secret.setBy ? ` by ${d.secret.setBy}` : ''}` : 'Saved',
@@ -360,7 +452,7 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
     : 'Paste the secret from the ' + preset.app + '. It is encrypted and never shown again.'
   return (
     <section className="card" aria-labelledby="conn-h">
-      <CardSection title={<span id="conn-h">2 · Connection</span>} actions={failed ? <Badge tone="bad">Not configured</Badge> : undefined} />
+      <CardSection title={<span id="conn-h">2 · Connection</span>} />
       <div className="pad col gap-3.5">
         <div className="lbl">
           <span>
@@ -386,13 +478,13 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
           <div className="row flex-nowrap gap-2">
             <input
               id={`${id}-issuer`}
-              className={failed || error ? 'in err mono flex-1' : 'in mono flex-1'}
+              className={error ? 'in err mono flex-1' : 'in mono flex-1'}
               value={f.issuerUrl}
               placeholder={preset.issuerPattern}
               onChange={(e) => set({ issuerUrl: e.target.value })}
               spellCheck={false}
               autoComplete="off"
-              aria-invalid={failed || error ? true : undefined}
+              aria-invalid={error ? true : undefined}
               aria-describedby={`${id}-disc`}
             />
             <Button loading={discover.isPending} onClick={() => void test()}>
@@ -409,28 +501,6 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
             ) : null}
           </span>
         </div>
-        {failed ? (
-          <>
-            <div className="note b" role="alert">
-              <Badge tone="bad">{disc.status ? String(disc.status) : 'Error'}</Badge>
-              <span className="col gap-1">
-                <span>
-                  {disc.url ? <span className="mono">{shortURL(disc.url)}</span> : 'The issuer'} {disc.error}
-                  {disc.ms && disc.status ? ` in ${disc.ms} ms` : ''}.
-                </span>
-                <span>{preset.discoveryHint}</span>
-              </span>
-            </div>
-            <div className="row gap-2">
-              <Button size="sm" variant="primary" loading={discover.isPending} onClick={() => void test()}>
-                Test discovery again
-              </Button>
-              <ButtonAnchor size="sm" href={preset.docsUrl}>
-                {preset.docsLabel}
-              </ButtonAnchor>
-            </div>
-          </>
-        ) : null}
         {error ? (
           <span className="err" role="alert">
             {error}
@@ -935,18 +1005,53 @@ function OutcomeText({ o }: { o: Schemas['SSOTestOutcome'] }) {
   return <span className="wrap">{parts}</span>
 }
 
-function TestCard({ d, preset, running, onRun, onDropMappings }: { d: Detail; preset: Preset; running: boolean; onRun: () => void; onDropMappings: () => void }) {
+function TestCard({
+  d,
+  preset,
+  running,
+  dropping,
+  onRun,
+  onDropMappings,
+}: {
+  d: Detail
+  preset: Preset
+  running: boolean
+  dropping: boolean
+  onRun: () => void
+  onDropMappings: () => void
+}) {
   const t = d.test
   const blocked = d.enableBlockers.length ? `Before a test sign-in: ${d.enableBlockers.join(' ')}` : undefined
-  const missing = t && t.groupsMissing
+  const missing = t && !t.error && t.groupsMissing
   const claims = t?.claims && missing ? t.claims.replace(/\n}$/, '\n  // no "groups" claim\n}') : t?.claims
+  if (missing)
+    // SSOStates "Groups claim missing": the claims, why the mappings don't
+    // apply and how to send the claim.
+    return (
+      <section className="card" aria-labelledby="test-h">
+        <CardSection title={<span id="test-h">Groups claim missing</span>} caption="Step 5 · test sign-in returned no groups" actions={<Badge tone="warn">Check IdP</Badge>} />
+        <div className="pad col gap-3">
+          <pre className="code" aria-label={`Claims returned ${ago(t.at)}`}>
+            {claims}
+          </pre>
+          <Note tone="warn" label="Mappings inactive">
+            Your {d.groupMappings.length} group {d.groupMappings.length === 1 ? 'mapping' : 'mappings'} won&apos;t apply, so JIT users get the default role (
+            {d.jit.roleName || 'Viewer'}) and existing roles stay as they are. {richHint(preset.groupsMissingHint)}
+          </Note>
+          <div className="row gap-2">
+            <Button size="sm" variant="primary" loading={running} disabledReason={blocked} onClick={onRun}>
+              Run test sign-in again
+            </Button>
+            <Button size="sm" loading={dropping} onClick={onDropMappings}>
+              Save without group mapping
+            </Button>
+          </div>
+        </div>
+      </section>
+    )
   return (
     <section className="card" aria-labelledby="test-h">
-      <CardSection
-        title={<span id="test-h">5 · Test sign-in</span>}
-        caption="Debug view of the returned claims and the resulting accounts and roles"
-        actions={missing ? <Badge tone="warn">Check IdP</Badge> : undefined}
-      />
+      <CardSection title={<span id="test-h">5 · Test sign-in</span>} caption="Debug view of the returned claims and the resulting accounts and roles" />
       <div className="pad col gap-3.5">
         <div className="row gap-2">
           <Button variant="primary" loading={running} disabledReason={blocked} onClick={onRun}>
@@ -990,25 +1095,10 @@ function TestCard({ d, preset, running, onRun, onDropMappings }: { d: Detail; pr
             </div>
           </div>
         ) : null}
-        {missing ? (
-          <>
-            <Note tone="warn" label="Mappings inactive">
-              Your {d.groupMappings.length} group {d.groupMappings.length === 1 ? 'mapping' : 'mappings'} won&apos;t apply, so JIT users get the default role (
-              {d.jit.roleName || 'Viewer'}) and existing roles stay as they are. {preset.groupsMissingHint}
-            </Note>
-            <div className="row gap-2">
-              <Button size="sm" variant="primary" loading={running} onClick={onRun}>
-                Run test sign-in again
-              </Button>
-              <Button size="sm" onClick={onDropMappings}>
-                Save without group mapping
-              </Button>
-            </div>
-          </>
-        ) : null}
         {!t ? (
-          <span className="k">
-            <Icon name="info" size={14} /> The test shows what {preset.name} returns for the account you sign in with and what a real sign-in would create or change.
+          <span className="k row flex-nowrap items-start gap-1.5">
+            <Icon name="info" size={14} className="mt-px shrink-0" />
+            <span>The test shows what {preset.name} returns for the account you sign in with and what a real sign-in would create or change.</span>
           </span>
         ) : null}
       </div>
