@@ -576,7 +576,11 @@ Inside ReputeCast an installed adapter, of either kind, is registered in the
 provider registry (`community:<id>`, for example `community:example-esp`)
 at startup and whenever it is installed, updated or removed. Every process
 (`--role=web`, `worker`, `ingest`) re-reads the installed adapters every 15
-seconds, so a change made in one process reaches the others.
+seconds, so a change made in one process reaches the others. Code that lists
+`installed_adapters` rows finds each one's registry entry, with its
+capabilities, terms and connection fields, through
+`providers.Lookup(providers.InstalledKey(kind, name, manifest))`; a row that
+isn't registered can't be connected from this build.
 
 ### Build an adapter
 

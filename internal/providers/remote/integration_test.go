@@ -466,6 +466,24 @@ func TestCommunityKeys(t *testing.T) {
 	if k := providers.CommunityKey("Брево"); !strings.HasPrefix(k, "community:adapter-") || k != providers.CommunityKey("Брево") {
 		t.Errorf("a name without letters a-z gets a stable key: %q", k)
 	}
+	// Installed rows: remote adapters by their manifest id, the other kinds by
+	// their name; the runtime registers each under that key.
+	raw := remotetest.ManifestJSON(remotetest.Manifest())
+	for _, c := range []struct {
+		kind, name string
+		manifest   []byte
+		want       string
+	}{
+		{"remote", "Fake ESP (staging)", raw, remotetest.Manifest().Key()},
+		{"http", "Example ESP", []byte(`{"kind":"http"}`), "community:example-esp"},
+		{"wasm", "Example ESP", nil, "community:example-esp"},
+		{"remote", "No id", []byte(`{"kind":"remote"}`), ""},
+		{"remote", "Not JSON", []byte(`{`), ""},
+	} {
+		if got := providers.InstalledKey(c.kind, c.name, c.manifest); got != c.want {
+			t.Errorf("%s %q → %q, want %q", c.kind, c.name, got, c.want)
+		}
+	}
 }
 
 func TestBrokenManifestRowsAreSkipped(t *testing.T) {

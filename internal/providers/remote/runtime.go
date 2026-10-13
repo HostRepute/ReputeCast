@@ -236,7 +236,7 @@ func (rt *Runtime) Sync(ctx context.Context) error {
 		descs = append(descs, in.Manifest.Descriptor(in.Open))
 	}
 	for _, a := range others {
-		key := providers.CommunityKey(a.Name)
+		key := providers.InstalledKey(a.Kind, a.Name, a.Manifest)
 		if slices.ContainsFunc(descs, func(d providers.Descriptor) bool { return d.Adapter == key }) {
 			err := fmt.Errorf("%s: another installed adapter is registered as %s", a.Name, key)
 			errs = append(errs, err)
@@ -341,18 +341,6 @@ func (rt *Runtime) Changed(ctx context.Context) {
 	}
 }
 
-// communityKeyOf is an installed adapter's registry key: its manifest id for
-// remote adapters, its name for the others ("" when it has none).
-func communityKeyOf(a store.CommunityAdapterListRow) string {
-	if a.Kind != Kind {
-		return providers.CommunityKey(a.Name)
-	}
-	if m, err := ParseManifest(a.Manifest); err == nil {
-		return m.Key()
-	}
-	return ""
-}
-
 // keyTaken returns the name of the installed adapter, other than except,
 // registered under key ("" when there is none).
 func keyTaken(ctx context.Context, q *store.Queries, key string, except uuid.UUID) (string, error) {
@@ -361,7 +349,7 @@ func keyTaken(ctx context.Context, q *store.Queries, key string, except uuid.UUI
 		return "", err
 	}
 	for _, a := range all {
-		if a.ID != except && communityKeyOf(a) == key {
+		if a.ID != except && providers.InstalledKey(a.Kind, a.Name, a.Manifest) == key {
 			return a.Name, nil
 		}
 	}

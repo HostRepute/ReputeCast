@@ -62,16 +62,18 @@ type AdapterHTTPPreviewHeader struct {
 	Value string `json:"value"`
 }
 
-// communityKey is the registry key of an installed community adapter:
-// "community:<id>" for remote adapters, "community:<name>" (lowercased with
-// dashes, providers.CommunityKey) for the others.
+// communityKey is the registry key of an installed community adapter
+// (providers.InstalledKey: "community:<id>" for remote adapters,
+// "community:<name>" lowercased with dashes for the others) and, for a
+// remote adapter whose manifest the runtime accepts, the capabilities it
+// declares.
 func (s *Service) communityKey(kind, name string, manifest []byte) (string, []string, bool) {
 	if kind == CommunityKindRemote && s.Community != nil {
 		if key, caps, err := s.Community.ParseManifest(manifest); err == nil {
 			return key, caps, true
 		}
 	}
-	return providers.CommunityKey(name), nil, false
+	return providers.InstalledKey(kind, name, manifest), nil, false
 }
 
 // communityChanged re-registers the installed adapters after a change.

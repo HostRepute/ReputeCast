@@ -3,6 +3,7 @@ package providers
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"slices"
@@ -84,6 +85,28 @@ func CommunityKey(name string) string {
 		slug = "adapter-" + hex.EncodeToString(sum[:4])
 	}
 	return RuntimePrefix + slug
+}
+
+// InstalledKey is the registry key of an installed community adapter, from
+// its installed_adapters row: RuntimePrefix and the manifest's id for an
+// adapter of kind "remote" (one that runs in its own process), and
+// CommunityKey(name) for the other kinds ("http" mappings). It is "" for a
+// remote adapter whose manifest has no id; such an adapter is never
+// registered. Code that lists installed adapters (the Adapters tab, the
+// provider catalog) finds each one's registry entry with
+// Lookup(InstalledKey(kind, name, manifest)); an adapter that isn't
+// registered can't be connected from this build.
+func InstalledKey(kind, name string, manifest []byte) string {
+	if kind != "remote" {
+		return CommunityKey(name)
+	}
+	var m struct {
+		ID string `json:"id"`
+	}
+	if json.Unmarshal(manifest, &m) != nil || strings.TrimSpace(m.ID) == "" {
+		return ""
+	}
+	return RuntimePrefix + strings.TrimSpace(m.ID)
 }
 
 // RuntimeAdapters returns the keys of the runtime adapters, sorted.
