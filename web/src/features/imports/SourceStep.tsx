@@ -614,7 +614,7 @@ function Choose({ d }: { d: Detail }) {
           {!file ? (
             <>
               <label className="flex items-start gap-2.5 text-[13px]">
-                <input type="checkbox" className="mt-[3px]" checked={opts.importTags} onChange={(e) => setOpts({ ...opts, importTags: e.target.checked })} />
+                <input type="checkbox" className="mt-[3px] flex-initial max-md:min-w-0" checked={opts.importTags} onChange={(e) => setOpts({ ...opts, importTags: e.target.checked })} />
                 <span>
                   Import tags as ReputeCast tags{' '}
                   {tags > 0 ? (
@@ -625,7 +625,7 @@ function Choose({ d }: { d: Detail }) {
                 </span>
               </label>
               <label className="flex items-start gap-2.5 text-[13px]">
-                <input type="checkbox" className="mt-[3px]" checked={opts.importEngagement} onChange={(e) => setOpts({ ...opts, importEngagement: e.target.checked })} />
+                <input type="checkbox" className="mt-[3px] flex-initial max-md:min-w-0" checked={opts.importEngagement} onChange={(e) => setOpts({ ...opts, importEngagement: e.target.checked })} />
                 <span>
                   Import engagement history where {d.sourceName} exposes it{' '}
                   <span className="k">· last open and click dates{d.source === 'mailchimp' ? ', member rating' : ''} → used for tiers</span>
@@ -634,7 +634,7 @@ function Choose({ d }: { d: Detail }) {
             </>
           ) : null}
           <label className="flex items-start gap-2.5 text-[13px]">
-            <input type="checkbox" className="mt-[3px]" checked={opts.pullSuppressions} onChange={(e) => setOpts({ ...opts, pullSuppressions: e.target.checked })} />
+            <input type="checkbox" className="mt-[3px] flex-initial max-md:min-w-0" checked={opts.pullSuppressions} onChange={(e) => setOpts({ ...opts, pullSuppressions: e.target.checked })} />
             <span>
               Also pull existing suppressions from connected sending providers{' '}
               {synced.length > 0 ? <span className="k">· {synced.map((p) => `${p.short} ${count(p.pulled)}`).join(', ')} are already in the shared list</span> : null}
