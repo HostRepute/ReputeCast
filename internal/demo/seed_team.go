@@ -4,9 +4,11 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -212,24 +214,15 @@ func seedDefaultSender(ctx context.Context, s *Seeder) error {
 // have no password) and gives Sofia and Daniel two active sessions each.
 // Rows that another seeder already created are left alone.
 func seedSignIns(ctx context.Context, s *Seeder) error {
-	ws := s.WS()
+	// The Google Workspace provider comes from the account and instance
+	// seeders (internal/sso owns SSO); without one there's nothing to link.
 	var provider uuid.UUID
-	err := s.Tx.QueryRow(ctx, `SELECT id FROM sso_providers WHERE preset = 'google' ORDER BY created_at LIMIT 1`).Scan(&provider)
-	if err != nil {
-		provider = ID()
-		enc, err := s.Box.SealString("demo-client-secret", "sso:"+provider.String()+":client_secret")
-		if err != nil {
-			return err
-		}
-		if _, err := s.Tx.Exec(ctx, `INSERT INTO sso_providers (id, preset, name, issuer_url, client_id, client_secret_enc, allowed_domains, jit_enabled, jit_workspace_id, jit_role_key, enforce_domains, status, claim_map)
-			VALUES ($1, 'google', 'Google Workspace', 'https://accounts.google.com', 'demo-reputecast.apps.googleusercontent.com', $2, ARRAY['acme.io'], true, $3, 'viewer', '{}', 'enabled',
-			        '{"email":"email","email_verified":"email_verified","name":"name"}')`, provider, enc, ws.ID); err != nil {
-			return err
-		}
+	if err := s.Tx.QueryRow(ctx, `SELECT id FROM sso_providers WHERE preset = 'google' ORDER BY created_at LIMIT 1`).Scan(&provider); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
 	}
 	for _, email := range []string{"marcus@acme.io", "sofia@acme.io", "daniel@acme.io", "kenji@acme.io"} {
 		u, ok := s.Users[email]
-		if !ok {
+		if !ok || provider == uuid.Nil {
 			continue
 		}
 		var n int
