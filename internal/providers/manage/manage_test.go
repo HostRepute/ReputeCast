@@ -476,8 +476,13 @@ func TestPostmarkWebhookIngest(t *testing.T) {
 	}
 	// Unknown token: nothing stored.
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, env.Server.URL+"/hooks/postmark/nope", strings.NewReader("{}"))
-	if resp, err := http.DefaultClient.Do(req); err != nil || resp.StatusCode != http.StatusNotFound {
-		t.Fatalf("unknown token: %v %v", resp, err)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("unknown token answered %d", resp.StatusCode)
 	}
 
 	var rawID uuid.UUID
