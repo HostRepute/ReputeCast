@@ -93,7 +93,13 @@ export function TiersCard({ a }: { a: Schemas['OverviewAudience'] }) {
       )}
       <div className="grid gap-x-4 gap-y-2.5 text-[13px] [grid-template-columns:repeat(2,minmax(0,1fr))] max-md:[grid-template-columns:repeat(auto-fit,minmax(140px,1fr))]">
         {a.tiers.map((t) => (
-          <LegendItem key={t.tier} color={tierColor[t.tier]!} title={`${tierName[t.tier]} · ${count(t.count)}`} detail={`${t.pct.toFixed(1)}% · ${t.description}`} />
+          <LegendItem
+            key={t.tier}
+            className="max-md:flex-wrap"
+            color={tierColor[t.tier]!}
+            title={`${tierName[t.tier]} · ${count(t.count)}`}
+            detail={`${t.pct.toFixed(1)}% · ${t.description}`}
+          />
         ))}
       </div>
       <div className="flex items-center gap-2 rounded-lg bg-ground px-3 py-2.5 text-[12.5px] max-md:flex-wrap">

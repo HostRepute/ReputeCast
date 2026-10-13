@@ -30,6 +30,30 @@ function anchorsOf(doc: Document): HTMLAnchorElement[] {
   })
 }
 
+const OUTPUT_TAG = /\{\{-?\s*([^{}]*?)\s*-?\}\}/g
+const DEFAULT_FILTER = /\|\s*default\s*:\s*(?:"([^"]*)"|'([^']*)')/
+
+/**
+ * A Liquid output tag with a fallback reads as its fallback: the map shows
+ * the email to no one in particular ("Hi there"). Tags without one stay.
+ */
+export function withFallbacks(text: string): string {
+  return text.replace(OUTPUT_TAG, (tag, inner: string) => {
+    const m = DEFAULT_FILTER.exec(inner)
+    return m ? (m[1] ?? m[2] ?? '') : tag
+  })
+}
+
+/** Applies withFallbacks to the email's text (never to its links). */
+function showFallbacks(doc: Document) {
+  if (!doc.body) return
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT)
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    const t = n.nodeValue
+    if (t?.includes('{{')) n.nodeValue = withFallbacks(t)
+  }
+}
+
 /** The app's IBM Plex @font-face rules, so the email renders in the same fonts. */
 function fontFaces(): string {
   const out: string[] = []
@@ -68,7 +92,8 @@ export interface AnchorBox {
  * Bubbles as on the Report board: a button's bubble overlaps its bottom-right
  * corner, a text link's sits just after the link (after the whole row for a
  * line of links), and "Other" sits on the top edge of the block holding the
- * last small link (the footer).
+ * last small link (the footer). A text link that ends its line has no room
+ * after it, so its bubble sits just under its end instead of over the words.
  */
 export function placeBubbles(links: Link[], anchors: AnchorBox[], other: Schemas['ReportLinkGroup'] | undefined, scale: number, width: number): Bubble[] {
   const clampX = (x: number) => Math.max(2, Math.min(width - BUBBLE_W - 2, x))
@@ -82,9 +107,12 @@ export function placeBubbles(links: Link[], anchors: AnchorBox[], other: Schemas
       if (!lastGrouped || a.top >= lastGrouped.top) lastGrouped = a
       continue
     }
+    const after = Math.max(a.right, a.rowRight) * scale + 4
     const pos = a.button
       ? { left: a.right * scale - 8, top: a.bottom * scale - 8 }
-      : { left: Math.max(a.right, a.rowRight) * scale + 4, top: ((a.top + a.bottom) / 2) * scale - BUBBLE_H / 2 }
+      : after + BUBBLE_W <= width - 2
+        ? { left: after, top: ((a.top + a.bottom) / 2) * scale - BUBBLE_H / 2 }
+        : { left: a.right * scale - BUBBLE_W, top: a.bottom * scale + 2 }
     out.push({ key: `${l.position}`, label: l.label, share: l.share, hot: l.hot, left: clampX(pos.left), top: clampY(pos.top) })
   }
   if (other && lastGrouped) {
@@ -145,6 +173,7 @@ function MapFrame({ m }: { m: Schemas['ReportClickMap'] }) {
       const style = doc.createElement('style')
       style.textContent = `${fontFaces()}\nhtml,body{margin:0;overflow:hidden}`
       doc.head?.appendChild(style)
+      showFallbacks(doc)
     }
     measure()
     // Web fonts change line breaks; measure again once they are in.

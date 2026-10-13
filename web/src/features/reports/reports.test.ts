@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Schemas } from '@/api/client'
-import { placeBubbles, type AnchorBox } from './ClickMap'
+import { placeBubbles, withFallbacks, type AnchorBox } from './ClickMap'
 import { hourX, seriesPath } from './EngagementChart'
 import { abBadge, abExplanation, bounceLine, clickNote, engagementNote, fewerNote, headerCaption, providerNote, splitCaption, variantLine } from './words'
 
@@ -115,5 +115,19 @@ describe('click map bubbles', () => {
       ['other', 250, 232],
     ])
     expect(out[1]!.hot).toBe(true)
+  })
+
+  it('puts the bubble of a link that ends its line under it, not over its words', () => {
+    const out = placeBubbles([link({ position: 0, share: 73, hot: true })], [box({ top: 400, bottom: 420, right: 590, rowRight: 590 })], undefined, 0.5, 300)
+    expect(out.map((b) => [b.left, b.top])).toEqual([[295 - 42, 212]])
+  })
+})
+
+describe('click map preview', () => {
+  it('shows personalization fallbacks as a reader without the field sees them', () => {
+    expect(withFallbacks('Hi {{ first_name | default: "there" }}, five things shipped.')).toBe('Hi there, five things shipped.')
+    expect(withFallbacks("Hi {{first_name|default:'friend'}}!")).toBe('Hi friend!')
+    expect(withFallbacks('Plan: {{ plan | upcase | default: "free" }}')).toBe('Plan: free')
+    expect(withFallbacks('Hello {{ first_name }}')).toBe('Hello {{ first_name }}')
   })
 })
