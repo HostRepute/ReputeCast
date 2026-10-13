@@ -35,7 +35,7 @@ function inputOf(s: PublicPages): BrandingInput {
 }
 
 /** WCAG relative luminance of "#RRGGBB" (the preview's text on the accent). */
-function luminance(hex: string): number | undefined {
+export function luminance(hex: string): number | undefined {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
   if (!m) return undefined
   const v = parseInt(m[1]!, 16)
@@ -46,7 +46,8 @@ function luminance(hex: string): number | undefined {
   return 0.2126 * ch((v >> 16) & 255) + 0.7152 * ch((v >> 8) & 255) + 0.0722 * ch(v & 255)
 }
 
-function onAccentFor(accent: string, saved: Schemas['PublicBranding']): string {
+/** The text colour on accent buttons: the saved one, else white or ink by contrast. */
+export function onAccentFor(accent: string, saved: Schemas['PublicBranding']): string {
   if (accent.toLowerCase() === saved.accent.toLowerCase()) return saved.onAccent
   const l = luminance(accent)
   if (l === undefined) return saved.onAccent

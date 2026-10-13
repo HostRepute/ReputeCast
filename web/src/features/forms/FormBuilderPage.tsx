@@ -508,7 +508,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
 }
 
 /** What double opt-in does, with the provider that sends the confirmations. */
-function doubleOptInNote(on: boolean, provider: string): string {
+export function doubleOptInNote(on: boolean, provider: string): string {
   if (!on) return 'off: contacts are subscribed as soon as they submit'
   if (!provider) return 'confirmations wait until a provider handles the System stream; contacts stay "pending" until they click'
   return `confirmation sent on the System stream via ${provider}; contacts stay "pending" until they click`
