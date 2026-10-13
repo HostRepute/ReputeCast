@@ -8,6 +8,7 @@ package apikeys
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/netip"
@@ -67,24 +68,24 @@ type APIKeyRejections struct {
 
 // APIKeyView is an API key or MCP agent as listed. The secret is never returned.
 type APIKeyView struct {
-	ID          string           `json:"id"`
-	Kind        string           `json:"kind" enum:"api_key,mcp_agent"`
-	Name        string           `json:"name"`
-	Description string           `json:"description" doc:"Client label for agents (Claude Desktop)"`
-	Masked      string           `json:"masked" example:"rc_live_8f2c…a91d"`
-	Permissions []string         `json:"permissions"`
-	Sensitive   []string         `json:"sensitive" doc:"The ⚑ permissions among them"`
+	ID          string              `json:"id"`
+	Kind        string              `json:"kind" enum:"api_key,mcp_agent"`
+	Name        string              `json:"name"`
+	Description string              `json:"description" doc:"Client label for agents (Claude Desktop)"`
+	Masked      string              `json:"masked" example:"rc_live_8f2c…a91d"`
+	Permissions []string            `json:"permissions"`
+	Sensitive   []string            `json:"sensitive" doc:"The ⚑ permissions among them"`
 	Scope       access.ScopeSummary `json:"scope"`
 	CreatedBy   APIKeyCreator       `json:"createdBy"`
-	CreatedAt   time.Time        `json:"createdAt"`
-	ExpiresAt   *time.Time       `json:"expiresAt,omitempty"`
-	LastUsedAt  *time.Time       `json:"lastUsedAt,omitempty"`
-	LastUsedIP  string           `json:"lastUsedIp,omitempty"`
+	CreatedAt   time.Time           `json:"createdAt"`
+	ExpiresAt   *time.Time          `json:"expiresAt,omitempty"`
+	LastUsedAt  *time.Time          `json:"lastUsedAt,omitempty"`
+	LastUsedIP  string              `json:"lastUsedIp,omitempty"`
 	// LastUsedClient labels the caller ("nightly job", "GitHub Actions runner").
 	LastUsedClient string `json:"lastUsedClient,omitempty"`
 	// LastCall is the MCP tool of an agent's last call.
-	LastCall   string         `json:"lastCall,omitempty"`
-	Status     string         `json:"status" enum:"active,expired"`
+	LastCall   string            `json:"lastCall,omitempty"`
+	Status     string            `json:"status" enum:"active,expired"`
 	Rejections *APIKeyRejections `json:"rejections,omitempty"`
 }
 
@@ -92,10 +93,10 @@ type APIKeyView struct {
 type APIKeyList struct {
 	Items []APIKeyView `json:"items"`
 	// Permissions, Held, Locked and Lists feed the create dialog.
-	Permissions []access.PermissionInfo `json:"permissions"`
-	Groups      []string                `json:"groups"`
-	Held        []string                `json:"held"`
-	Locked      []APIKeyLockedPermission   `json:"locked"`
+	Permissions []access.PermissionInfo  `json:"permissions"`
+	Groups      []string                 `json:"groups"`
+	Held        []string                 `json:"held"`
+	Locked      []APIKeyLockedPermission `json:"locked"`
 	Lists       []access.ScopedList      `json:"lists"`
 	// Endpoint is the API base URL (or the MCP endpoint for agents).
 	Endpoint string `json:"endpoint"`
@@ -296,7 +297,7 @@ type APIKeyCreateInput struct {
 // APIKeyCreated is shown exactly once.
 type APIKeyCreated struct {
 	Key    APIKeyView `json:"key"`
-	Secret string  `json:"secret" doc:"The full key. Shown only in this response."`
+	Secret string     `json:"secret" doc:"The full key. Shown only in this response."`
 	// Usage is "Authorization: Bearer rc_live_… against https://…/api/v1".
 	Endpoint string `json:"endpoint"`
 }
@@ -335,7 +336,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		return s.Audit.LogWith(ctx, store.New(tx), audit.Event{
 			WorkspaceID: &ws.ID, Action: action(kind, "created"), TargetType: kind, TargetID: out.Key.ID, TargetName: out.Key.Name,
-			After: map[string]any{"name": out.Key.Name, "permissions": out.Key.Permissions, "scope": scopeLabel(out.Key.Scope), "expires_at": in.ExpiresAt, "masked": out.Key.Masked},
+			After:    map[string]any{"name": out.Key.Name, "permissions": out.Key.Permissions, "scope": scopeLabel(out.Key.Scope), "expires_at": in.ExpiresAt, "masked": out.Key.Masked},
 			Metadata: map[string]any{"summary": keySummary(out.Key), "permission": string(managePerm(kind))},
 		})
 	})
@@ -378,7 +379,7 @@ func (s *Service) checkGrant(ctx context.Context, ws *store.Workspace, p *authz.
 	}
 	set, err := authz.CheckGrant(p.Permissions, wanted)
 	if err != nil {
-		if esc, ok := err.(*authz.EscalationError); ok && len(esc.Missing) > 0 {
+		if esc := (*authz.EscalationError)(nil); errors.As(err, &esc) && len(esc.Missing) > 0 {
 			// Name a permission the caller asked for before the ones it implies.
 			m := esc.Missing[0]
 			for _, w := range wanted {

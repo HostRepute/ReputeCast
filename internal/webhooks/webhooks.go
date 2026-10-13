@@ -109,11 +109,11 @@ func ValidEvent(name string) bool {
 
 // Service holds the webhooks domain dependencies.
 type Service struct {
-	Pool   *pgxpool.Pool
-	Q      *store.Queries
-	Audit  *audit.Logger
-	Box    *secrets.Box
-	Jobs   *jobs.Client
+	Pool  *pgxpool.Pool
+	Q     *store.Queries
+	Audit *audit.Logger
+	Box   *secrets.Box
+	Jobs  *jobs.Client
 	// AllowPrivate reports whether endpoints may resolve to private
 	// networks (webhooks.allow_private_networks); read at each use.
 	AllowPrivate func() bool
@@ -227,8 +227,8 @@ type WebhookView struct {
 
 // WebhookList is the outgoing webhooks card.
 type WebhookList struct {
-	Items  []WebhookView `json:"items"`
-	Events []WebhookEventInfo   `json:"events"`
+	Items  []WebhookView      `json:"items"`
+	Events []WebhookEventInfo `json:"events"`
 	// Headers name the signature headers for the "Verify a signature" card.
 	SignatureHeader string `json:"signatureHeader"`
 	TimestampHeader string `json:"timestampHeader"`
@@ -529,9 +529,9 @@ func (s *Service) Deliveries(ctx context.Context, ws *store.Workspace, webhookID
 
 // WebhookDeliveryDetail adds the payload and the endpoint's response.
 type WebhookDeliveryDetail struct {
-	Delivery WebhookDeliveryView    `json:"delivery"`
-	Payload  json.RawMessage `json:"payload"`
-	Response string          `json:"response" doc:"First kilobyte of the endpoint's last response"`
+	Delivery WebhookDeliveryView `json:"delivery"`
+	Payload  json.RawMessage     `json:"payload"`
+	Response string              `json:"response" doc:"First kilobyte of the endpoint's last response"`
 }
 
 // Delivery returns one delivery with its payload.
@@ -655,7 +655,7 @@ func (s *Service) Attempt(ctx context.Context, deliveryID uuid.UUID) (*time.Time
 	if err != nil {
 		return s.finish(ctx, d, nil, dur, "", netguard.Describe(ctx, err))
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	b, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
 	code := int32(resp.StatusCode)
 	return s.finish(ctx, d, &code, dur, string(b), "")

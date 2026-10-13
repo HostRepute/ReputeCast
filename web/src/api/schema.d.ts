@@ -1099,6 +1099,11 @@ export interface components {
             name: string;
             type: string;
         };
+        AuditCategory: {
+            groups: string[];
+            key: string;
+            label: string;
+        };
         AuditDiffLine: {
             /** @enum {string} */
             kind: "same" | "del" | "add";
@@ -1140,6 +1145,7 @@ export interface components {
         AuditEventList: {
             actionGroups: string[];
             actors: components["schemas"]["AuditActorRef"][];
+            categories: components["schemas"]["AuditCategory"][];
             items: components["schemas"]["AuditEventItem"][];
             nextCursor?: string;
             /** Format: int32 */
@@ -2817,8 +2823,10 @@ export interface operations {
                 actorType?: "user" | "api_key" | "mcp_agent" | "system";
                 /** @description Actor id */
                 actor?: string;
-                /** @description Action or action group, e.g. routing or routing.updated */
+                /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
+                /** @description A group of actions, as in the action filter */
+                category?: "sending" | "routing" | "audience" | "team" | "settings";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -2897,8 +2905,10 @@ export interface operations {
                 actorType?: "user" | "api_key" | "mcp_agent" | "system";
                 /** @description Actor id */
                 actor?: string;
-                /** @description Action or action group, e.g. routing or routing.updated */
+                /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
+                /** @description A group of actions, as in the action filter */
+                category?: "sending" | "routing" | "audience" | "team" | "settings";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */

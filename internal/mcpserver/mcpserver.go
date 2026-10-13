@@ -153,13 +153,13 @@ func Cells(perms authz.Set) []MCPCapabilityCell {
 
 // MCPAgentRow is one agent in the matrix.
 type MCPAgentRow struct {
-	ID          string           `json:"id"`
-	Name        string           `json:"name"`
-	Masked      string           `json:"masked"`
-	CreatedBy   string           `json:"createdBy"`
-	Permissions []string         `json:"permissions"`
+	ID          string              `json:"id"`
+	Name        string              `json:"name"`
+	Masked      string              `json:"masked"`
+	CreatedBy   string              `json:"createdBy"`
+	Permissions []string            `json:"permissions"`
 	Cells       []MCPCapabilityCell `json:"cells"`
-	Status      string           `json:"status" enum:"active,expired"`
+	Status      string              `json:"status" enum:"active,expired"`
 }
 
 // MCPOverview is the MCP server settings screen.
@@ -171,7 +171,7 @@ type MCPOverview struct {
 	ApprovalExpiryHours int           `json:"approvalExpiryHours"`
 	Capabilities        []string      `json:"capabilities"`
 	Agents              []MCPAgentRow `json:"agents"`
-	Tools               []MCPToolInfo    `json:"tools"`
+	Tools               []MCPToolInfo `json:"tools"`
 	Resources           []string      `json:"resources"`
 	Prompts             []string      `json:"prompts"`
 	CanManage           bool          `json:"canManage"`
@@ -220,7 +220,7 @@ type MCPSettingsInput struct {
 // UpdateSettings saves the MCP options.
 func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, in MCPSettingsInput) (MCPOverview, error) {
 	before := ParseSettings(ws.McpSettings)
-	after := Settings{Enabled: in.Enabled, RateLimitPerMinute: in.RateLimitPerMinute, ApprovalExpiryHours: in.ApprovalExpiryHours}
+	after := Settings(in)
 	raw, _ := json.Marshal(after)
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {

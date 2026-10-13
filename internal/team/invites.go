@@ -33,12 +33,12 @@ const CodeNoSystemProvider = "no_system_provider"
 
 // TeamInvitation is a pending invitation.
 type TeamInvitation struct {
-	ID        string           `json:"id"`
-	Email     string           `json:"email"`
-	Role      TeamRoleRef          `json:"role"`
+	ID        string              `json:"id"`
+	Email     string              `json:"email"`
+	Role      TeamRoleRef         `json:"role"`
 	Scope     access.ScopeSummary `json:"scope"`
-	Message   string           `json:"message"`
-	InvitedBy string           `json:"invitedBy"`
+	Message   string              `json:"message"`
+	InvitedBy string              `json:"invitedBy"`
 	// SentVia is the provider that delivered the email ("Postmark"); empty
 	// when the invite was only shared as a link.
 	SentVia    string     `json:"sentVia"`
@@ -126,7 +126,7 @@ type TeamInviteRole struct {
 	Sensitive bool   `json:"sensitive" doc:"Holders need two-factor"`
 	// Grantable is false when the inviter doesn't hold every permission of
 	// the role (or it is the Owner role, which only a transfer gives).
-	Grantable bool `json:"grantable"`
+	Grantable bool   `json:"grantable"`
 	Reason    string `json:"reason,omitempty"`
 	// Hint is "Editors can send; two-factor becomes required (7-day grace)."
 	Hint string `json:"hint"`
@@ -134,13 +134,13 @@ type TeamInviteRole struct {
 
 // TeamInviteOptions feeds the invite dialog.
 type TeamInviteOptions struct {
-	Workspace string       `json:"workspace"`
+	Workspace string           `json:"workspace"`
 	Roles     []TeamInviteRole `json:"roles"`
 	// DefaultRoleID is Editor when grantable, otherwise the broadest grantable role.
-	DefaultRoleID string             `json:"defaultRoleId"`
+	DefaultRoleID string              `json:"defaultRoleId"`
 	Lists         []access.ScopedList `json:"lists"`
-	SenderDomains []string           `json:"senderDomains"`
-	JIT           []TeamJITHint          `json:"jit"`
+	SenderDomains []string            `json:"senderDomains"`
+	JIT           []TeamJITHint       `json:"jit"`
 	// SystemProvider names the provider of the System stream ("Postmark").
 	// Empty when invitations can't be emailed yet; the dialog then offers links.
 	SystemProvider string `json:"systemProvider"`
@@ -268,11 +268,11 @@ func signInSummary(pol store.InstanceSetting) string {
 
 // TeamInviteInput creates invitations.
 type TeamInviteInput struct {
-	Emails        []string           `json:"emails" minItems:"1" maxItems:"50"`
-	RoleID        string             `json:"roleId" format:"uuid"`
+	Emails        []string             `json:"emails" minItems:"1" maxItems:"50"`
+	RoleID        string               `json:"roleId" format:"uuid"`
 	Scope         *access.ScopeRequest `json:"scope,omitempty"`
-	ExpiresInDays int                `json:"expiresInDays,omitempty" minimum:"1" maximum:"30" doc:"Defaults to 7"`
-	Message       string             `json:"message,omitempty" maxLength:"1000"`
+	ExpiresInDays int                  `json:"expiresInDays,omitempty" minimum:"1" maximum:"30" doc:"Defaults to 7"`
+	Message       string               `json:"message,omitempty" maxLength:"1000"`
 	// SendEmail false only creates the links (the "copy links" fallback).
 	SendEmail *bool `json:"sendEmail,omitempty"`
 }
@@ -290,7 +290,7 @@ type TeamCreatedInvitation struct {
 // TeamInviteResult reports what was created and whether email went out.
 type TeamInviteResult struct {
 	Invitations []TeamCreatedInvitation `json:"invitations"`
-	Emailed     bool                `json:"emailed"`
+	Emailed     bool                    `json:"emailed"`
 	// Fallback is "no_system_provider" when email couldn't be sent.
 	Fallback string `json:"fallback,omitempty"`
 	SentVia  string `json:"sentVia,omitempty"`

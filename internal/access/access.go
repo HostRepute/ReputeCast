@@ -98,7 +98,7 @@ type ScopedList struct {
 // ScopeSummary is a scope as shown in the UI.
 type ScopeSummary struct {
 	Lists         []ScopedList `json:"lists"`
-	SenderDomains []string    `json:"senderDomains"`
+	SenderDomains []string     `json:"senderDomains"`
 	// Label is "" for no restriction, otherwise "Beta Program list only",
 	// "Weekly Digest only" or "2 lists · news.acme.io".
 	Label string `json:"label"`

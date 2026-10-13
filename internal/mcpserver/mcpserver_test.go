@@ -64,7 +64,7 @@ func TestMCPServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("connect: %v", err)
 	}
-	defer cs.Close()
+	defer func() { _ = cs.Close() }()
 	ctx := context.Background()
 	tools, err := cs.ListTools(ctx, nil)
 	if err != nil || len(tools.Tools) != len(mcpserver.Tools) {
@@ -77,7 +77,7 @@ func TestMCPServer(t *testing.T) {
 	}
 	var report struct {
 		Sent              int64
-		DeliveredPct      float64 `json:"delivered_pct"`
+		DeliveredPct      float64          `json:"delivered_pct"`
 		BySendingProvider []map[string]any `json:"by_sending_provider"`
 	}
 	if err := json.Unmarshal([]byte(text(res)), &report); err != nil || report.Sent != 47980 || report.DeliveredPct != 99.1 || len(report.BySendingProvider) != 2 {

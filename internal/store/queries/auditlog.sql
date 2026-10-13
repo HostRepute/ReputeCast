@@ -12,7 +12,8 @@ LEFT JOIN roles r ON r.id = m.role_id
 WHERE e.workspace_id = @workspace_id
   AND (sqlc.narg(actor_type)::text IS NULL OR e.actor_type = sqlc.narg(actor_type))
   AND (sqlc.narg(actor_id)::uuid IS NULL OR e.actor_id = sqlc.narg(actor_id))
-  AND (sqlc.narg(action_prefix)::text IS NULL OR e.action = sqlc.narg(action_prefix) OR e.action LIKE sqlc.narg(action_prefix) || '.%')
+  AND (sqlc.narg(actions)::text[] IS NULL OR e.action = ANY(sqlc.narg(actions)::text[])
+       OR split_part(e.action, '.', 1) = ANY(sqlc.narg(actions)::text[]))
   AND (sqlc.narg(result)::text IS NULL OR e.result = sqlc.narg(result))
   AND (sqlc.narg(since)::timestamptz IS NULL OR e.occurred_at >= sqlc.narg(since))
   AND (sqlc.narg(until)::timestamptz IS NULL OR e.occurred_at < sqlc.narg(until))
@@ -35,7 +36,8 @@ LEFT JOIN roles r ON r.id = m.role_id
 WHERE e.workspace_id = @workspace_id
   AND (sqlc.narg(actor_type)::text IS NULL OR e.actor_type = sqlc.narg(actor_type))
   AND (sqlc.narg(actor_id)::uuid IS NULL OR e.actor_id = sqlc.narg(actor_id))
-  AND (sqlc.narg(action_prefix)::text IS NULL OR e.action = sqlc.narg(action_prefix) OR e.action LIKE sqlc.narg(action_prefix) || '.%')
+  AND (sqlc.narg(actions)::text[] IS NULL OR e.action = ANY(sqlc.narg(actions)::text[])
+       OR split_part(e.action, '.', 1) = ANY(sqlc.narg(actions)::text[]))
   AND (sqlc.narg(result)::text IS NULL OR e.result = sqlc.narg(result))
   AND (sqlc.narg(since)::timestamptz IS NULL OR e.occurred_at >= sqlc.narg(since))
   AND (sqlc.narg(until)::timestamptz IS NULL OR e.occurred_at < sqlc.narg(until))

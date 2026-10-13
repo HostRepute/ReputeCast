@@ -110,7 +110,8 @@ LEFT JOIN roles r ON r.id = m.role_id
 WHERE e.workspace_id = $1
   AND ($2::text IS NULL OR e.actor_type = $2)
   AND ($3::uuid IS NULL OR e.actor_id = $3)
-  AND ($4::text IS NULL OR e.action = $4 OR e.action LIKE $4 || '.%')
+  AND ($4::text[] IS NULL OR e.action = ANY($4::text[])
+       OR split_part(e.action, '.', 1) = ANY($4::text[]))
   AND ($5::text IS NULL OR e.result = $5)
   AND ($6::timestamptz IS NULL OR e.occurred_at >= $6)
   AND ($7::timestamptz IS NULL OR e.occurred_at < $7)
@@ -123,17 +124,17 @@ LIMIT $11
 `
 
 type AuditLogExportParams struct {
-	WorkspaceID  *uuid.UUID `json:"workspaceId"`
-	ActorType    *string    `json:"actorType"`
-	ActorID      *uuid.UUID `json:"actorId"`
-	ActionPrefix *string    `json:"actionPrefix"`
-	Result       *string    `json:"result"`
-	Since        *time.Time `json:"since"`
-	Until        *time.Time `json:"until"`
-	Search       *string    `json:"search"`
-	CursorAt     *time.Time `json:"cursorAt"`
-	CursorID     *uuid.UUID `json:"cursorId"`
-	Lim          int32      `json:"lim"`
+	WorkspaceID *uuid.UUID `json:"workspaceId"`
+	ActorType   *string    `json:"actorType"`
+	ActorID     *uuid.UUID `json:"actorId"`
+	Actions     []string   `json:"actions"`
+	Result      *string    `json:"result"`
+	Since       *time.Time `json:"since"`
+	Until       *time.Time `json:"until"`
+	Search      *string    `json:"search"`
+	CursorAt    *time.Time `json:"cursorAt"`
+	CursorID    *uuid.UUID `json:"cursorId"`
+	Lim         int32      `json:"lim"`
 }
 
 type AuditLogExportRow struct {
@@ -165,7 +166,7 @@ func (q *Queries) AuditLogExport(ctx context.Context, arg AuditLogExportParams) 
 		arg.WorkspaceID,
 		arg.ActorType,
 		arg.ActorID,
-		arg.ActionPrefix,
+		arg.Actions,
 		arg.Result,
 		arg.Since,
 		arg.Until,
@@ -296,7 +297,8 @@ LEFT JOIN roles r ON r.id = m.role_id
 WHERE e.workspace_id = $1
   AND ($2::text IS NULL OR e.actor_type = $2)
   AND ($3::uuid IS NULL OR e.actor_id = $3)
-  AND ($4::text IS NULL OR e.action = $4 OR e.action LIKE $4 || '.%')
+  AND ($4::text[] IS NULL OR e.action = ANY($4::text[])
+       OR split_part(e.action, '.', 1) = ANY($4::text[]))
   AND ($5::text IS NULL OR e.result = $5)
   AND ($6::timestamptz IS NULL OR e.occurred_at >= $6)
   AND ($7::timestamptz IS NULL OR e.occurred_at < $7)
@@ -309,17 +311,17 @@ LIMIT $11
 `
 
 type AuditLogListParams struct {
-	WorkspaceID  *uuid.UUID `json:"workspaceId"`
-	ActorType    *string    `json:"actorType"`
-	ActorID      *uuid.UUID `json:"actorId"`
-	ActionPrefix *string    `json:"actionPrefix"`
-	Result       *string    `json:"result"`
-	Since        *time.Time `json:"since"`
-	Until        *time.Time `json:"until"`
-	Search       *string    `json:"search"`
-	CursorAt     *time.Time `json:"cursorAt"`
-	CursorID     *uuid.UUID `json:"cursorId"`
-	Lim          int32      `json:"lim"`
+	WorkspaceID *uuid.UUID `json:"workspaceId"`
+	ActorType   *string    `json:"actorType"`
+	ActorID     *uuid.UUID `json:"actorId"`
+	Actions     []string   `json:"actions"`
+	Result      *string    `json:"result"`
+	Since       *time.Time `json:"since"`
+	Until       *time.Time `json:"until"`
+	Search      *string    `json:"search"`
+	CursorAt    *time.Time `json:"cursorAt"`
+	CursorID    *uuid.UUID `json:"cursorId"`
+	Lim         int32      `json:"lim"`
 }
 
 type AuditLogListRow struct {
@@ -350,7 +352,7 @@ func (q *Queries) AuditLogList(ctx context.Context, arg AuditLogListParams) ([]A
 		arg.WorkspaceID,
 		arg.ActorType,
 		arg.ActorID,
-		arg.ActionPrefix,
+		arg.Actions,
 		arg.Result,
 		arg.Since,
 		arg.Until,

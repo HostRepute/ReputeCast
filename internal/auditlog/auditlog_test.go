@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -81,6 +82,22 @@ func TestAuditLog(t *testing.T) {
 	if len(l.Items) != 2 {
 		t.Fatalf("action group: %d", len(l.Items))
 	}
+	// A category of the action filter covers several groups (Routing & providers).
+	c.Do("GET", ws+"/audit?category=routing&range=all&limit=200", nil).MustStatus(t, 200).JSON(t, &l)
+	groups := map[string]bool{}
+	for _, it := range l.Items {
+		g, _, _ := strings.Cut(it.Action, ".")
+		groups[g] = true
+	}
+	if !groups["routing"] || len(groups) < 2 {
+		t.Fatalf("routing category: %v", groups)
+	}
+	for g := range groups {
+		if !slices.Contains(auditlog.Categories[1].Groups, g) {
+			t.Fatalf("routing category has %s", g)
+		}
+	}
+	c.Do("GET", ws+"/audit?category=nope", nil).MustStatus(t, 422)
 	// Paging with a cursor over the whole history.
 	c.Do("GET", ws+"/audit?range=all&limit=20", nil).MustStatus(t, 200).JSON(t, &l)
 	if l.NextCursor == "" || len(l.Items) != 20 {
@@ -148,7 +165,7 @@ func TestAuditLog(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got, _ = io.ReadAll(r.Body)
 		sig = r.Header.Get("X-ReputeCast-Signature")
-		w.WriteHeader(204)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 	c.Do("PUT", ws+"/audit/settings", map[string]any{"stream": map[string]any{"enabled": true, "url": srv.URL}}).MustStatus(t, 422) // private address

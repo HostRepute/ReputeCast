@@ -25,7 +25,7 @@ func TestCheck(t *testing.T) {
 		{"0.0.0.0", false, false},
 		{"224.0.0.1", false, false},
 		{"::ffff:127.0.0.1", false, true},  // IPv4-mapped loopback
-		{"64:ff9b::a00:1", false, true},     // NAT64 to 10.0.0.1
+		{"64:ff9b::a00:1", false, true},    // NAT64 to 10.0.0.1
 		{"64:ff9b::5db8:d822", true, true}, // NAT64 to a public address
 	}
 	for _, c := range cases {

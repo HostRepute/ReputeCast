@@ -34,10 +34,10 @@ import (
 
 // Service holds the audit log domain dependencies.
 type Service struct {
-	Pool   *pgxpool.Pool
-	Q      *store.Queries
-	Audit  *audit.Logger
-	Box    *secrets.Box
+	Pool  *pgxpool.Pool
+	Q     *store.Queries
+	Audit *audit.Logger
+	Box   *secrets.Box
 	// AllowPrivate reports whether endpoints may resolve to private
 	// networks (webhooks.allow_private_networks); read at each use.
 	AllowPrivate func() bool
@@ -101,6 +101,8 @@ type AuditEventList struct {
 	Stream        AuditStreamStatus `json:"stream"`
 	Actors        []AuditActorRef   `json:"actors"`
 	ActionGroups  []string          `json:"actionGroups"`
+	// Categories are the choices of the action filter.
+	Categories []AuditCategory `json:"categories"`
 }
 
 // AuditActorRef is an actor seen in the log, for the actor filter.
@@ -110,12 +112,31 @@ type AuditActorRef struct {
 	Name string `json:"name"`
 }
 
+// AuditCategory is one choice of the action filter (SettingsAudit: Sending,
+// Routing & providers, Audience & consent, Team & access, Settings): the
+// action groups (the part before the dot) it covers.
+type AuditCategory struct {
+	Key    string   `json:"key"`
+	Label  string   `json:"label"`
+	Groups []string `json:"groups"`
+}
+
+// Categories are the action filter's choices, in the order of the board.
+var Categories = []AuditCategory{
+	{Key: "sending", Label: "Sending", Groups: []string{"campaign", "approval", "send", "report", "template", "automation"}},
+	{Key: "routing", Label: "Routing & providers", Groups: []string{"routing", "provider", "warmup", "deliverability", "domain", "sender", "integration"}},
+	{Key: "audience", Label: "Audience & consent", Groups: []string{"contact", "contacts", "subscriber", "subscribers", "list", "segment", "form", "consent", "suppression", "import"}},
+	{Key: "team", Label: "Team & access", Groups: []string{"team", "member", "role", "apikey", "agent", "auth", "invitation", "user", "session", "sso"}},
+	{Key: "settings", Label: "Settings", Groups: []string{"workspace", "webhook", "audit", "settings", "mcp", "instance"}},
+}
+
 // Filter narrows the log.
 type Filter struct {
 	Search    string
 	ActorType string
 	ActorID   string
-	Action    string // prefix: "routing" or exact "routing.updated"
+	Action    string // a group ("routing") or an action ("routing.updated")
+	Category  string // one of Categories ("sending"); Action wins when both are set
 	Result    string
 	Range     string // 24h, 7d, 30d, 90d, all
 	Since     *time.Time
@@ -143,7 +164,13 @@ func (f Filter) params(wsID uuid.UUID, now time.Time) (store.AuditLogListParams,
 		p.ActorID = &id
 	}
 	if f.Action != "" {
-		p.ActionPrefix = &f.Action
+		p.Actions = []string{f.Action}
+	} else if f.Category != "" {
+		for _, c := range Categories {
+			if c.Key == f.Category {
+				p.Actions = c.Groups
+			}
+		}
 	}
 	if f.Result != "" {
 		p.Result = &f.Result
@@ -299,7 +326,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, f Filter) (Audi
 	if err != nil {
 		return AuditEventList{}, err
 	}
-	out := AuditEventList{Items: []AuditEventItem{}, RetentionDays: ws.AuditRetentionDays, Actors: []AuditActorRef{}, ActionGroups: []string{}}
+	out := AuditEventList{Items: []AuditEventItem{}, RetentionDays: ws.AuditRetentionDays, Actors: []AuditActorRef{}, ActionGroups: []string{}, Categories: Categories}
 	limit := int(p.Lim) - 1
 	for i, r := range rows {
 		if i == limit {
@@ -361,7 +388,7 @@ type AuditEventDetail struct {
 	Permission string          `json:"permission,omitempty"`
 	Before     json.RawMessage `json:"before,omitempty"`
 	After      json.RawMessage `json:"after,omitempty"`
-	Diff       []AuditDiffLine      `json:"diff"`
+	Diff       []AuditDiffLine `json:"diff"`
 	Related    []string        `json:"related"`
 	// Link is the app path of the target, with its label ("Open routing").
 	Link      string `json:"link,omitempty"`

@@ -20,7 +20,7 @@ import (
 
 // TeamMemberChangeInput changes a member's role and scope.
 type TeamMemberChangeInput struct {
-	RoleID string             `json:"roleId" format:"uuid"`
+	RoleID string               `json:"roleId" format:"uuid"`
 	Scope  *access.ScopeRequest `json:"scope,omitempty"`
 }
 

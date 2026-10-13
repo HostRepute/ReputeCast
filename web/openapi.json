@@ -324,6 +324,29 @@
         ],
         "type": "object"
       },
+      "AuditCategory": {
+        "additionalProperties": false,
+        "properties": {
+          "groups": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "groups"
+        ],
+        "type": "object"
+      },
       "AuditDiffLine": {
         "additionalProperties": false,
         "properties": {
@@ -480,6 +503,12 @@
             },
             "type": "array"
           },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/AuditCategory"
+            },
+            "type": "array"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/AuditEventItem"
@@ -507,7 +536,8 @@
           "retentionDays",
           "stream",
           "actors",
-          "actionGroups"
+          "actionGroups",
+          "categories"
         ],
         "type": "object"
       },
@@ -5243,13 +5273,30 @@
             }
           },
           {
-            "description": "Action or action group, e.g. routing or routing.updated",
+            "description": "Action group (routing) or action (routing.updated)",
             "explode": false,
             "in": "query",
             "name": "action",
             "schema": {
-              "description": "Action or action group, e.g. routing or routing.updated",
+              "description": "Action group (routing) or action (routing.updated)",
               "maxLength": 80,
+              "type": "string"
+            }
+          },
+          {
+            "description": "A group of actions, as in the action filter",
+            "explode": false,
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "description": "A group of actions, as in the action filter",
+              "enum": [
+                "sending",
+                "routing",
+                "audience",
+                "team",
+                "settings"
+              ],
               "type": "string"
             }
           },
@@ -5482,13 +5529,30 @@
             }
           },
           {
-            "description": "Action or action group, e.g. routing or routing.updated",
+            "description": "Action group (routing) or action (routing.updated)",
             "explode": false,
             "in": "query",
             "name": "action",
             "schema": {
-              "description": "Action or action group, e.g. routing or routing.updated",
+              "description": "Action group (routing) or action (routing.updated)",
               "maxLength": 80,
+              "type": "string"
+            }
+          },
+          {
+            "description": "A group of actions, as in the action filter",
+            "explode": false,
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "description": "A group of actions, as in the action filter",
+              "enum": [
+                "sending",
+                "routing",
+                "audience",
+                "team",
+                "settings"
+              ],
               "type": "string"
             }
           },

@@ -92,10 +92,10 @@ type WorkspaceDanger struct {
 
 // WorkspaceTransferCandidate is a member who could become the Owner.
 type WorkspaceTransferCandidate struct {
-	MemberID string       `json:"memberId"`
-	Name     string       `json:"name"`
-	Email    string       `json:"email"`
-	RoleName string       `json:"roleName"`
+	MemberID string             `json:"memberId"`
+	Name     string             `json:"name"`
+	Email    string             `json:"email"`
+	RoleName string             `json:"roleName"`
 	TwoFA    access.MemberTwoFA `json:"twoFA"`
 	// Eligible members are active and have two-factor (their own or the IdP's).
 	Eligible bool   `json:"eligible"`
@@ -106,19 +106,19 @@ type WorkspaceTransferCandidate struct {
 
 // WorkspaceSettings is Settings › General.
 type WorkspaceSettings struct {
-	ID              string                  `json:"id"`
-	Slug            string                  `json:"slug"`
-	Name            string                  `json:"name"`
-	Timezone        string                  `json:"timezone"`
-	DefaultSenderID string                  `json:"defaultSenderId,omitempty"`
-	Senders         []WorkspaceSender       `json:"senders"`
-	Approvals       WorkspaceApprovals      `json:"approvals"`
-	Members         WorkspaceMembersSummary `json:"members"`
-	Danger          WorkspaceDanger         `json:"danger"`
-	Candidates      []WorkspaceTransferCandidate     `json:"candidates"`
-	CanManage       bool                    `json:"canManage"`
-	CanTransfer     bool                    `json:"canTransfer"`
-	CanDelete       bool                    `json:"canDelete"`
+	ID              string                       `json:"id"`
+	Slug            string                       `json:"slug"`
+	Name            string                       `json:"name"`
+	Timezone        string                       `json:"timezone"`
+	DefaultSenderID string                       `json:"defaultSenderId,omitempty"`
+	Senders         []WorkspaceSender            `json:"senders"`
+	Approvals       WorkspaceApprovals           `json:"approvals"`
+	Members         WorkspaceMembersSummary      `json:"members"`
+	Danger          WorkspaceDanger              `json:"danger"`
+	Candidates      []WorkspaceTransferCandidate `json:"candidates"`
+	CanManage       bool                         `json:"canManage"`
+	CanTransfer     bool                         `json:"canTransfer"`
+	CanDelete       bool                         `json:"canDelete"`
 	// HasPassword says whether transferring asks for the caller's password.
 	HasPassword bool `json:"hasPassword"`
 	// Reason explains read-only access.
@@ -149,8 +149,8 @@ type policy struct {
 			Enabled bool `json:"enabled"`
 		} `json:"approval_lists"`
 	} `json:"rules"`
-	ApprovalsRequired int  `json:"approvals_required"`
-	Automation        bool `json:"automation_publish"`
+	ApprovalsRequired int   `json:"approvals_required"`
+	Automation        bool  `json:"automation_publish"`
 	Bypass            *bool `json:"emergency_bypass"`
 }
 

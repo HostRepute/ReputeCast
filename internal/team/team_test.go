@@ -26,7 +26,7 @@ type member struct {
 	} `json:"scope"`
 	Notes  []string                    `json:"notes"`
 	SignIn []access.MemberSignInMethod `json:"signIn"`
-	TwoFA struct {
+	TwoFA  struct {
 		State     string `json:"state"`
 		GraceDays *int   `json:"graceDays"`
 	} `json:"twoFA"`

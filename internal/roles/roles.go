@@ -35,13 +35,6 @@ type Service struct {
 	Now   func() time.Time
 }
 
-func (s *Service) now() time.Time {
-	if s.Now != nil {
-		return s.Now()
-	}
-	return time.Now()
-}
-
 // RoleMemberRef is a member holding a role.
 type RoleMemberRef struct {
 	ID          string `json:"id" doc:"Membership id"`
@@ -298,7 +291,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		out.ID = id.String()
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "role.created", TargetType: "role", TargetID: id.String(), TargetName: n,
-			After: map[string]any{"name": n, "description": strings.TrimSpace(in.Description), "permissions": set.Strings()},
+			After:    map[string]any{"name": n, "description": strings.TrimSpace(in.Description), "permissions": set.Strings()},
 			Metadata: map[string]any{"summary": fmt.Sprintf("%d %s", len(set), access.Plural(len(set), "permission", "permissions")), "permission": string(authz.TeamManage)}})
 	})
 	return out, err
@@ -435,10 +428,10 @@ type RoleImpact struct {
 	// Members holding the role (all of them, with what changes for each).
 	Members []RoleImpactMember `json:"members"`
 	// MembersAffected counts members whose permissions change.
-	MembersAffected int         `json:"membersAffected"`
+	MembersAffected int             `json:"membersAffected"`
 	Keys            []RoleImpactKey `json:"keys"`
-	APIKeys         int         `json:"apiKeys" doc:"API keys that lose permissions"`
-	Agents          int         `json:"agents" doc:"MCP agents that lose permissions"`
+	APIKeys         int             `json:"apiKeys" doc:"API keys that lose permissions"`
+	Agents          int             `json:"agents" doc:"MCP agents that lose permissions"`
 	// Sensitive is "None selected · two-factor not required" or the flagged keys.
 	Sensitive string `json:"sensitive"`
 	// Approvals explains what holders can do with sends.
@@ -446,7 +439,7 @@ type RoleImpact struct {
 	// PendingApprovals counts approval requests by holders that stay pending.
 	PendingApprovals int `json:"pendingApprovals"`
 	// Summary is "4 members and 1 API key will lose campaigns:send." (empty without losses).
-	Summary string             `json:"summary"`
+	Summary string                 `json:"summary"`
 	Locked  []RoleLockedPermission `json:"locked"`
 	// GraceDays is the two-factor grace period for new holders of ⚑ permissions.
 	GraceDays int `json:"graceDays"`

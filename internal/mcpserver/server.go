@@ -2,7 +2,6 @@ package mcpserver
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -198,8 +197,3 @@ func (s *Service) deny(ctx context.Context, c *agentCall, tool string, perm auth
 }
 
 func ref(r string) string { return strings.TrimSpace(r) }
-
-func jsonOf(v any) json.RawMessage {
-	b, _ := json.Marshal(v)
-	return b
-}

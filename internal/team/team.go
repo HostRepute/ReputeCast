@@ -10,7 +10,6 @@ package team
 import (
 	"context"
 	"encoding/json"
-	"slices"
 	"strings"
 	"time"
 
@@ -342,8 +341,8 @@ type TeamMemberDetail struct {
 	// SignInMethods is every way the member signs in, linked SSO and social
 	// identities included (the list shows only the primary ones).
 	SignInMethods []access.MemberSignInMethod `json:"signInMethods"`
-	Activity  []TeamMemberActivity `json:"activity"`
-	CanManage bool                 `json:"canManage"`
+	Activity      []TeamMemberActivity        `json:"activity"`
+	CanManage     bool                        `json:"canManage"`
 	// Helpers are members who hold team:manage.
 	Helpers []string `json:"helpers"`
 }
@@ -492,11 +491,4 @@ func idString(id *uuid.UUID) string {
 		return ""
 	}
 	return id.String()
-}
-
-func nonNil(s []string) []string {
-	if s == nil {
-		return []string{}
-	}
-	return slices.Clone(s)
 }
