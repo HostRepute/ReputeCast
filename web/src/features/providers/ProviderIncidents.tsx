@@ -212,7 +212,7 @@ function HeldCampaign({ s, outage }: { s: OutageStream; outage: Outage }) {
   if (c.decision) {
     return (
       <span className="text-[13px]">
-        &ldquo;{c.name}&rdquo;: {c.decision === 'wait' ? `waiting for ${outage.short}; it resumes on its own after ${s.switchBackMinutes} healthy minutes.` : c.decision === 'move' ? 'the held share was moved.' : 'the send was cancelled.'}{' '}
+        &quot;{c.name}&quot;: {c.decision === 'wait' ? `waiting for ${outage.short}; it resumes on its own after ${s.switchBackMinutes} healthy minutes.` : c.decision === 'move' ? 'the held share was moved.' : 'the send was cancelled.'}{' '}
         <Link to="/w/$workspace/campaigns/$campaignId/live" params={{ workspace: slug, campaignId: c.id }}>
           Open the live monitor
         </Link>
@@ -222,7 +222,7 @@ function HeldCampaign({ s, outage }: { s: OutageStream; outage: Outage }) {
   return (
     <>
       <span className="text-[13px]">
-        &ldquo;{c.name}&rdquo; was {through}% through its {outage.short} share when {outage.short} failed: {count(c.sent)} sent, {count(c.held)} held.
+        &quot;{c.name}&quot; was {through}% through its {outage.short} share when {outage.short} failed: {count(c.sent)} sent, {count(c.held)} held.
         {others.length ? ` ${andList(others)} ${others.length > 1 ? 'keep' : 'keeps'} sending ${others.length > 1 ? 'their shares' : 'its share'}.` : ''} {policy}
       </span>
       <div className="mt-1 flex flex-wrap gap-2">
