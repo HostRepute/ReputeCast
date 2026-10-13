@@ -248,7 +248,7 @@ func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Role, e
 const createWorkspace = `-- name: CreateWorkspace :one
 INSERT INTO workspaces (id, slug, name, timezone, created_by)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status
+RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, audit_stream_demo
 `
 
 type CreateWorkspaceParams struct {
@@ -290,6 +290,7 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.AuditStreamCursorAt,
 		&i.AuditStreamCursorID,
 		&i.AuditStreamStatus,
+		&i.AuditStreamDemo,
 	)
 	return i, err
 }
@@ -654,7 +655,7 @@ func (q *Queries) GetRoleByKey(ctx context.Context, arg GetRoleByKeyParams) (Rol
 }
 
 const getWorkspace = `-- name: GetWorkspace :one
-SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status FROM workspaces WHERE id = $1 AND deleted_at IS NULL
+SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, audit_stream_demo FROM workspaces WHERE id = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error) {
@@ -682,12 +683,13 @@ func (q *Queries) GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, er
 		&i.AuditStreamCursorAt,
 		&i.AuditStreamCursorID,
 		&i.AuditStreamStatus,
+		&i.AuditStreamDemo,
 	)
 	return i, err
 }
 
 const getWorkspaceBySlug = `-- name: GetWorkspaceBySlug :one
-SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status FROM workspaces WHERE slug = $1 AND deleted_at IS NULL
+SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, audit_stream_demo FROM workspaces WHERE slug = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error) {
@@ -715,6 +717,7 @@ func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspac
 		&i.AuditStreamCursorAt,
 		&i.AuditStreamCursorID,
 		&i.AuditStreamStatus,
+		&i.AuditStreamDemo,
 	)
 	return i, err
 }
@@ -1048,7 +1051,7 @@ func (q *Queries) ListRoles(ctx context.Context, workspaceID uuid.UUID) ([]ListR
 }
 
 const listUserWorkspaces = `-- name: ListUserWorkspaces :many
-SELECT w.id, w.slug, w.name, w.timezone, w.default_sender_id, w.approval_policy, w.sunset_policy, w.branding, w.send_thresholds, w.audit_retention_days, w.audit_stream_url, w.created_by, w.created_at, w.updated_at, w.deleted_at, w.mcp_settings, w.audit_stream_enabled, w.audit_stream_secret_enc, w.audit_stream_cursor_at, w.audit_stream_cursor_id, w.audit_stream_status, r.key AS role_key, r.name AS role_name, m.status AS member_status,
+SELECT w.id, w.slug, w.name, w.timezone, w.default_sender_id, w.approval_policy, w.sunset_policy, w.branding, w.send_thresholds, w.audit_retention_days, w.audit_stream_url, w.created_by, w.created_at, w.updated_at, w.deleted_at, w.mcp_settings, w.audit_stream_enabled, w.audit_stream_secret_enc, w.audit_stream_cursor_at, w.audit_stream_cursor_id, w.audit_stream_status, w.audit_stream_demo, r.key AS role_key, r.name AS role_name, m.status AS member_status,
        (SELECT count(*) FROM workspace_members m2 WHERE m2.workspace_id = w.id AND m2.status = 'active') AS member_count
 FROM workspace_members m
 JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
@@ -1079,6 +1082,7 @@ type ListUserWorkspacesRow struct {
 	AuditStreamCursorAt  *time.Time      `json:"auditStreamCursorAt"`
 	AuditStreamCursorID  *uuid.UUID      `json:"auditStreamCursorId"`
 	AuditStreamStatus    json.RawMessage `json:"auditStreamStatus"`
+	AuditStreamDemo      bool            `json:"auditStreamDemo"`
 	RoleKey              string          `json:"roleKey"`
 	RoleName             string          `json:"roleName"`
 	MemberStatus         string          `json:"memberStatus"`
@@ -1116,6 +1120,7 @@ func (q *Queries) ListUserWorkspaces(ctx context.Context, userID uuid.UUID) ([]L
 			&i.AuditStreamCursorAt,
 			&i.AuditStreamCursorID,
 			&i.AuditStreamStatus,
+			&i.AuditStreamDemo,
 			&i.RoleKey,
 			&i.RoleName,
 			&i.MemberStatus,
@@ -1132,7 +1137,7 @@ func (q *Queries) ListUserWorkspaces(ctx context.Context, userID uuid.UUID) ([]L
 }
 
 const listWorkspaces = `-- name: ListWorkspaces :many
-SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status FROM workspaces WHERE deleted_at IS NULL ORDER BY created_at
+SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, audit_stream_demo FROM workspaces WHERE deleted_at IS NULL ORDER BY created_at
 `
 
 func (q *Queries) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
@@ -1166,6 +1171,7 @@ func (q *Queries) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
 			&i.AuditStreamCursorAt,
 			&i.AuditStreamCursorID,
 			&i.AuditStreamStatus,
+			&i.AuditStreamDemo,
 		); err != nil {
 			return nil, err
 		}
@@ -1413,7 +1419,7 @@ func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, e
 }
 
 const updateWorkspaceApprovalPolicy = `-- name: UpdateWorkspaceApprovalPolicy :one
-UPDATE workspaces SET approval_policy = $1, updated_at = now() WHERE id = $2 RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status
+UPDATE workspaces SET approval_policy = $1, updated_at = now() WHERE id = $2 RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, audit_stream_demo
 `
 
 type UpdateWorkspaceApprovalPolicyParams struct {
@@ -1446,6 +1452,7 @@ func (q *Queries) UpdateWorkspaceApprovalPolicy(ctx context.Context, arg UpdateW
 		&i.AuditStreamCursorAt,
 		&i.AuditStreamCursorID,
 		&i.AuditStreamStatus,
+		&i.AuditStreamDemo,
 	)
 	return i, err
 }
@@ -1453,7 +1460,7 @@ func (q *Queries) UpdateWorkspaceApprovalPolicy(ctx context.Context, arg UpdateW
 const updateWorkspaceGeneral = `-- name: UpdateWorkspaceGeneral :one
 UPDATE workspaces SET name = $1, timezone = $2, default_sender_id = $3, updated_at = now()
 WHERE id = $4
-RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status
+RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, audit_stream_demo
 `
 
 type UpdateWorkspaceGeneralParams struct {
@@ -1493,6 +1500,7 @@ func (q *Queries) UpdateWorkspaceGeneral(ctx context.Context, arg UpdateWorkspac
 		&i.AuditStreamCursorAt,
 		&i.AuditStreamCursorID,
 		&i.AuditStreamStatus,
+		&i.AuditStreamDemo,
 	)
 	return i, err
 }
@@ -1504,7 +1512,7 @@ SET sunset_policy = coalesce($1, sunset_policy),
     send_thresholds = coalesce($3, send_thresholds),
     updated_at = now()
 WHERE id = $4
-RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status
+RETURNING id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, audit_stream_demo
 `
 
 type UpdateWorkspaceJSONParams struct {
@@ -1544,6 +1552,7 @@ func (q *Queries) UpdateWorkspaceJSON(ctx context.Context, arg UpdateWorkspaceJS
 		&i.AuditStreamCursorAt,
 		&i.AuditStreamCursorID,
 		&i.AuditStreamStatus,
+		&i.AuditStreamDemo,
 	)
 	return i, err
 }

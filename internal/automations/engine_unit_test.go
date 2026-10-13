@@ -117,3 +117,21 @@ func TestLayoutKeepsBranchesApart(t *testing.T) {
 		t.Fatalf("layout %+v", pos)
 	}
 }
+
+// A step stays demo data only while its address is unchanged, whatever the
+// client sends.
+func TestKeepDemo(t *testing.T) {
+	before := AutomationGraph{Nodes: []AutomationNode{
+		{ID: "a", Type: NodeWebhook, Data: AutomationNodeData{Webhook: &AutomationWebhook{URL: "https://api.hubapi.com/x", Demo: true}}},
+		{ID: "b", Type: NodeWebhook, Data: AutomationNodeData{Webhook: &AutomationWebhook{URL: "https://api.hubapi.com/y", Demo: true}}},
+		{ID: "c", Type: NodeWebhook, Data: AutomationNodeData{Webhook: &AutomationWebhook{URL: "https://mine.example/z"}}},
+	}}
+	g := keepDemo(AutomationGraph{Nodes: []AutomationNode{
+		{ID: "a", Type: NodeWebhook, Data: AutomationNodeData{Webhook: &AutomationWebhook{URL: "https://api.hubapi.com/x"}}},
+		{ID: "b", Type: NodeWebhook, Data: AutomationNodeData{Webhook: &AutomationWebhook{URL: "https://mine.example/y"}}},
+		{ID: "c", Type: NodeWebhook, Data: AutomationNodeData{Webhook: &AutomationWebhook{URL: "https://mine.example/z", Demo: true}}},
+	}}, before)
+	if !g.Nodes[0].Data.Webhook.Demo || g.Nodes[1].Data.Webhook.Demo || g.Nodes[2].Data.Webhook.Demo {
+		t.Fatalf("demo marks: %v %v %v", g.Nodes[0].Data.Webhook.Demo, g.Nodes[1].Data.Webhook.Demo, g.Nodes[2].Data.Webhook.Demo)
+	}
+}

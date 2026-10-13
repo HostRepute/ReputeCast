@@ -44,3 +44,15 @@ func TestSourceFollowsChanges(t *testing.T) {
 		t.Fatal("a zero Builder has no base")
 	}
 }
+
+func TestEffective(t *testing.T) {
+	for _, c := range []struct{ saved, configured, want string }{
+		{"https://news.acme.io/", "http://localhost:8080", "https://news.acme.io"},
+		{"  ", "http://localhost:8080/", "http://localhost:8080"},
+		{"", "", ""},
+	} {
+		if got := Effective(c.saved, c.configured); got != c.want {
+			t.Errorf("Effective(%q, %q) = %q, want %q", c.saved, c.configured, got, c.want)
+		}
+	}
+}

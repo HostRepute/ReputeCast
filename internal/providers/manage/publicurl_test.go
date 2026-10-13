@@ -90,3 +90,18 @@ func TestPublicURLMovesWebhooks(t *testing.T) {
 		t.Fatalf("audit: %d", n)
 	}
 }
+
+// When the re-registration can't be queued, nothing claims to move the
+// webhooks: every provider is listed for a manual update.
+func TestPublicURLMovedWithoutJobs(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	w := demoWorkspace(t, env)
+	auto := addProvider(t, env, w, "fakehooks", "Hooking ESP")
+	svc := service(env, time.Now)
+	svc.Jobs = nil
+	mv, err := svc.PublicURLMoved(context.Background(), "https://mail.acme.io")
+	if err == nil || mv.Reregistering != 0 || len(mv.Manual) != 1 || mv.Manual[0].URL != "https://mail.acme.io/hooks/fakehooks/"+auto.WebhookToken {
+		t.Fatalf("move without jobs: %+v %v", mv, err)
+	}
+}

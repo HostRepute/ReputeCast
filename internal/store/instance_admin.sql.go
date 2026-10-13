@@ -963,7 +963,7 @@ func (q *Queries) InstanceAdminUsersInGrace(ctx context.Context) ([]InstanceAdmi
 }
 
 const instanceAdminWorkspace = `-- name: InstanceAdminWorkspace :one
-SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status FROM workspaces WHERE id = $1
+SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, audit_stream_demo FROM workspaces WHERE id = $1
 `
 
 func (q *Queries) InstanceAdminWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error) {
@@ -991,6 +991,7 @@ func (q *Queries) InstanceAdminWorkspace(ctx context.Context, id uuid.UUID) (Wor
 		&i.AuditStreamCursorAt,
 		&i.AuditStreamCursorID,
 		&i.AuditStreamStatus,
+		&i.AuditStreamDemo,
 	)
 	return i, err
 }

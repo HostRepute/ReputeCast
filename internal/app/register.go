@@ -1,6 +1,8 @@
 package app
 
 import (
+	"context"
+
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
 
@@ -35,6 +37,7 @@ func registerAPI(a *App, h huma.API) {
 	accounts.Register(h, &accounts.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Cfg: a.Cfg, Mail: a.Mail, Log: a.Log,
 		Breach: authn.NewBreachChecker(), OnPolicyChange: a.InvalidatePolicy,
+		OnPublicURL: func(ctx context.Context, before, after string) { _, _ = a.publicURLSaved(ctx, before, after) },
 	})
 	for _, r := range apiRegistrars {
 		r(a, h)

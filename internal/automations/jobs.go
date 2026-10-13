@@ -221,7 +221,11 @@ func (s *Service) RunWebhook(ctx context.Context, args WebhookArgs, attempt, max
 	// The default client re-checks every address it dials; the URL check
 	// here gives a clearer error for literal private hosts. A client set on
 	// the service (tests) is trusted as-is.
-	if err := checkWebhookURL(cfg.URL); err != nil && s.HTTP == nil {
+	if cfg.Demo {
+		// Demo data never leaves the instance: the step is recorded as
+		// answered and nothing is sent to its fictional address.
+		status, dur = http.StatusAccepted, 320*time.Millisecond
+	} else if err := checkWebhookURL(cfg.URL); err != nil && s.HTTP == nil {
 		callErr = "blocked: " + err.Error()
 	} else {
 		req, err := http.NewRequestWithContext(ctx, method, cfg.URL, bytes.NewReader(body))

@@ -11,7 +11,6 @@ import (
 	"net/netip"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -66,8 +65,6 @@ type App struct {
 	PublicURL *publicurl.Source
 
 	httpMetrics *server.HTTPMetrics
-	// cop is the cross-origin check; it learns a new public URL's origin.
-	cop atomic.Pointer[http.CrossOriginProtection]
 
 	policyMu    sync.Mutex
 	policy      api.Policy
@@ -254,12 +251,9 @@ func (a *App) Handler() http.Handler {
 	cop := http.NewCrossOriginProtection()
 	cop.AddInsecureBypassPattern("POST /hooks/")
 	cop.AddInsecureBypassPattern("POST /p/")
-	trustOrigin(cop, a.Cfg.HTTP.PublicURL)
-	trustOrigin(cop, a.URLs.Base())
-	a.cop.Store(cop)
 
 	r.Group(func(r chi.Router) {
-		r.Use(cop.Handler)
+		r.Use(a.crossOrigin(cop))
 		if a.Cfg.HTTP.RateLimitAPI > 0 {
 			r.Use(server.RateLimits{AuthPerMinute: a.Cfg.HTTP.RateLimitAuth, APIPerMinute: a.Cfg.HTTP.RateLimitAPI}.Middleware())
 		}

@@ -25,6 +25,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -41,6 +42,9 @@ type Service struct {
 	Breach         *authn.BreachChecker
 	Now            func() time.Time
 	OnPolicyChange func()
+	// OnPublicURL applies a public URL saved at the first sign-in (before and
+	// after; empty means http.public_url), as Instance admin's save does.
+	OnPublicURL func(ctx context.Context, before, after string)
 }
 
 func (s *Service) now() time.Time {
@@ -65,10 +69,11 @@ func (s *Service) policy(ctx context.Context) (store.InstanceSetting, error) {
 // publicURL is the address people open (instance settings, then config),
 // without a trailing slash.
 func (s *Service) publicURL(ctx context.Context) string {
-	if st, err := s.policy(ctx); err == nil && st.PublicUrl != "" {
-		return strings.TrimRight(st.PublicUrl, "/")
+	saved := ""
+	if st, err := s.policy(ctx); err == nil {
+		saved = st.PublicUrl
 	}
-	return strings.TrimRight(s.Cfg.HTTP.PublicURL, "/")
+	return publicurl.Effective(saved, s.Cfg.HTTP.PublicURL)
 }
 
 // methodAllowed reports whether the instance allows a sign-in method

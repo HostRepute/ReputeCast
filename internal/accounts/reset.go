@@ -133,8 +133,13 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string) (Passw
 }
 
 // ssoReminder tells someone who asked to reset a password they don't have
-// how they sign in.
+// how they sign in: at most once per resetResendGap, like reset emails, and
+// recorded in the audit log (which is also what throttles it).
 func (s *Service) ssoReminder(ctx context.Context, u store.User, p *store.SsoProvider) {
+	const action = "account.sso_reminder"
+	if last, err := s.Q.LastAuditAt(ctx, store.LastAuditAtParams{Action: action, TargetID: u.ID.String()}); err == nil && s.now().Sub(last) < resetResendGap {
+		return
+	}
 	st, _ := s.policy(ctx)
 	link := s.publicURL(ctx) + "/sign-in"
 	msg := mailer.Message{
@@ -145,9 +150,13 @@ func (s *Service) ssoReminder(ctx context.Context, u store.User, p *store.SsoPro
 		HTML: fmt.Sprintf(`<p style="font:14px/1.5 sans-serif">Someone asked to reset the password of <b>%s</b> on %s. This account has no password: it signs in with %s.</p><p style="font:14px sans-serif"><a href="%s">Sign in</a></p><p style="font:13px/1.5 sans-serif;color:#5B6472">If it wasn't you, ignore this email.</p>`,
 			html.EscapeString(u.Email), html.EscapeString(st.Name), html.EscapeString(p.Name), html.EscapeString(link)),
 	}
-	if _, err := s.mail().SendSystem(ctx, msg); err != nil {
+	provider, err := s.mail().SendSystem(ctx, msg)
+	if err != nil {
 		s.Log.WarnContext(ctx, "sign-in reminder not sent", "user", u.ID, "err", err)
+		return
 	}
+	_ = s.Audit.Log(ctx, audit.Event{Action: action, TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u),
+		Metadata: map[string]any{"via": provider, "signs_in_with": p.Name}})
 }
 
 // ssoIdentityProvider returns the SSO provider of one of the user's

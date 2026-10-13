@@ -18,7 +18,7 @@ UPDATE webhook_deliveries d SET state = 'delivering', last_attempt_at = now()
 FROM webhooks h
 WHERE d.id = $1 AND h.id = d.webhook_id AND h.enabled
   AND d.state IN ('pending','retrying') AND (d.next_attempt_at IS NULL OR d.next_attempt_at <= now() + interval '5 seconds')
-RETURNING d.id, d.webhook_id, d.event, d.event_id, d.payload, d.attempt, d.max_attempts, h.url, h.secret_enc, h.workspace_id
+RETURNING d.id, d.webhook_id, d.event, d.event_id, d.payload, d.attempt, d.max_attempts, h.url, h.secret_enc, h.workspace_id, h.demo
 `
 
 type HooksClaimDeliveryRow struct {
@@ -32,6 +32,7 @@ type HooksClaimDeliveryRow struct {
 	Url         string          `json:"url"`
 	SecretEnc   []byte          `json:"secretEnc"`
 	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Demo        bool            `json:"demo"`
 }
 
 // Takes a due delivery for one attempt. Returns no row when someone else has it.
@@ -49,6 +50,7 @@ func (q *Queries) HooksClaimDelivery(ctx context.Context, id uuid.UUID) (HooksCl
 		&i.Url,
 		&i.SecretEnc,
 		&i.WorkspaceID,
+		&i.Demo,
 	)
 	return i, err
 }
@@ -56,7 +58,7 @@ func (q *Queries) HooksClaimDelivery(ctx context.Context, id uuid.UUID) (HooksCl
 const hooksCreate = `-- name: HooksCreate :one
 INSERT INTO webhooks (id, workspace_id, name, description, url, events, secret_enc, enabled, created_by, secret_rotated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, now())
-RETURNING id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at
+RETURNING id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo
 `
 
 type HooksCreateParams struct {
@@ -99,6 +101,7 @@ func (q *Queries) HooksCreate(ctx context.Context, arg HooksCreateParams) (Webho
 		&i.SecretRotatedAt,
 		&i.PausedAt,
 		&i.UpdatedAt,
+		&i.Demo,
 	)
 	return i, err
 }
@@ -206,13 +209,13 @@ func (q *Queries) HooksDeliveries(ctx context.Context, arg HooksDeliveriesParams
 const hooksDue = `-- name: HooksDue :many
 WITH probe AS (
     SELECT DISTINCT ON (d3.webhook_id) d3.webhook_id, d3.id
-    FROM webhook_deliveries d3 JOIN webhooks h3 ON h3.id = d3.webhook_id AND h3.enabled AND h3.failing_since IS NOT NULL
+    FROM webhook_deliveries d3 JOIN webhooks h3 ON h3.id = d3.webhook_id AND h3.enabled AND NOT h3.demo AND h3.failing_since IS NOT NULL
     WHERE d3.state IN ('pending','retrying','delivering')
     ORDER BY d3.webhook_id, d3.created_at, d3.id
 )
 UPDATE webhook_deliveries d SET enqueued_at = now()
 WHERE d.id IN (
-    SELECT d2.id FROM webhook_deliveries d2 JOIN webhooks h ON h.id = d2.webhook_id AND h.enabled
+    SELECT d2.id FROM webhook_deliveries d2 JOIN webhooks h ON h.id = d2.webhook_id AND h.enabled AND NOT h.demo
     LEFT JOIN probe p ON p.webhook_id = h.id
     WHERE d2.state IN ('pending','retrying') AND coalesce(d2.next_attempt_at, d2.created_at) <= now()
       AND (d2.enqueued_at IS NULL OR d2.enqueued_at < now() - interval '10 minutes')
@@ -281,7 +284,7 @@ func (q *Queries) HooksFinishDelivery(ctx context.Context, arg HooksFinishDelive
 }
 
 const hooksGet = `-- name: HooksGet :one
-SELECT id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at FROM webhooks WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo FROM webhooks WHERE id = $1 AND workspace_id = $2
 `
 
 type HooksGetParams struct {
@@ -309,6 +312,7 @@ func (q *Queries) HooksGet(ctx context.Context, arg HooksGetParams) (Webhook, er
 		&i.SecretRotatedAt,
 		&i.PausedAt,
 		&i.UpdatedAt,
+		&i.Demo,
 	)
 	return i, err
 }
@@ -659,9 +663,10 @@ func (q *Queries) HooksStaleDelivering(ctx context.Context) error {
 }
 
 const hooksUpdate = `-- name: HooksUpdate :one
-UPDATE webhooks SET name = $1, description = $2, url = $3, events = $4, updated_at = now()
+UPDATE webhooks SET name = $1, description = $2, url = $3, events = $4,
+    demo = demo AND url = $3, updated_at = now()
 WHERE id = $5 AND workspace_id = $6
-RETURNING id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at
+RETURNING id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo
 `
 
 type HooksUpdateParams struct {
@@ -673,6 +678,7 @@ type HooksUpdateParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 }
 
+// A demo endpoint stays one only while its address is unchanged.
 func (q *Queries) HooksUpdate(ctx context.Context, arg HooksUpdateParams) (Webhook, error) {
 	row := q.db.QueryRow(ctx, hooksUpdate,
 		arg.Name,
@@ -700,6 +706,7 @@ func (q *Queries) HooksUpdate(ctx context.Context, arg HooksUpdateParams) (Webho
 		&i.SecretRotatedAt,
 		&i.PausedAt,
 		&i.UpdatedAt,
+		&i.Demo,
 	)
 	return i, err
 }
