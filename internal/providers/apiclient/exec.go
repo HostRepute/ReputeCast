@@ -27,6 +27,10 @@ type Request struct {
 	Body        []byte
 	// Header is added to the client's headers for this call only.
 	Header http.Header
+	// Accept, when set, returns a non-2xx response it accepts as a Response
+	// instead of an error: Mailjet answers a batch where some messages
+	// failed with 400 and the result of every message.
+	Accept func(status int, body []byte) bool
 }
 
 // Response is a successful (2xx) response.
@@ -84,7 +88,7 @@ func (c *Client) Exec(ctx context.Context, r Request) (*Response, error) {
 	if err != nil {
 		return nil, NetworkError(r.Op, err)
 	}
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+	if (resp.StatusCode < 200 || resp.StatusCode > 299) && (r.Accept == nil || !r.Accept(resp.StatusCode, raw)) {
 		return nil, c.statusError(r.Op, resp, raw)
 	}
 	return &Response{Status: resp.StatusCode, Header: resp.Header, Body: raw}, nil

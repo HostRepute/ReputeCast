@@ -6,6 +6,7 @@ package app
 import (
 	_ "github.com/hostrepute/reputecast/internal/providers/httpgeneric"
 	_ "github.com/hostrepute/reputecast/internal/providers/mailgun"
+	_ "github.com/hostrepute/reputecast/internal/providers/mailjet"
 	_ "github.com/hostrepute/reputecast/internal/providers/resend"
 	_ "github.com/hostrepute/reputecast/internal/providers/sendgrid"
 	_ "github.com/hostrepute/reputecast/internal/providers/sparkpost"
