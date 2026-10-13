@@ -16,13 +16,62 @@ export interface DialogProps {
   /** Destructive and protective dialogs can't be dismissed by clicking outside. */
   dismissible?: boolean
   className?: string
+  /**
+   * "standard" (header, body, footer with a divider and a close button) is
+   * the team and access boards' dialog. "confirm" is the Dialogs board's one
+   * padded column: badge, title, the consequences, rows, actions on the
+   * right. "session" is the session-ended dialog. The last two have no close
+   * button: their actions say what closing means.
+   */
+  layout?: 'standard' | 'confirm' | 'session'
+  /** Element to focus when the dialog opens (Radix focuses the first one otherwise). */
+  onOpenAutoFocus?: (e: Event) => void
 }
 
 /**
  * Modal dialog: focus is trapped inside and returned to the trigger on close
  * (Radix). Escape closes unless `dismissible` is false.
  */
-export function Dialog({ open, onOpenChange, title, description, eyebrow, children, footer, size = 'md', dismissible = true, className }: DialogProps) {
+export function Dialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  eyebrow,
+  children,
+  footer,
+  size = 'md',
+  dismissible = true,
+  className,
+  layout = 'standard',
+  onOpenAutoFocus,
+}: DialogProps) {
+  if (layout !== 'standard') {
+    return (
+      <RDialog.Root open={open} onOpenChange={onOpenChange}>
+        <RDialog.Portal>
+          <RDialog.Overlay className="ovl">
+            <RDialog.Content
+              className={cn('dlg', layout === 'confirm' ? 'cdlg' : 'sdlg', className)}
+              onPointerDownOutside={(e) => !dismissible && e.preventDefault()}
+              onEscapeKeyDown={(e) => !dismissible && e.preventDefault()}
+              onOpenAutoFocus={onOpenAutoFocus}
+            >
+              {eyebrow ? <div className="flex flex-wrap items-center gap-2">{eyebrow}</div> : null}
+              <RDialog.Title className="ct">{title}</RDialog.Title>
+              {description ? (
+                <RDialog.Description className="cd">{description}</RDialog.Description>
+              ) : (
+                <RDialog.Description className="vh">{typeof title === 'string' ? title : 'Dialog'}</RDialog.Description>
+              )}
+              {children}
+              {footer ? <div className="dacts">{footer}</div> : null}
+            </RDialog.Content>
+          </RDialog.Overlay>
+        </RDialog.Portal>
+      </RDialog.Root>
+    )
+  }
   return (
     <RDialog.Root open={open} onOpenChange={onOpenChange}>
       <RDialog.Portal>
@@ -31,6 +80,7 @@ export function Dialog({ open, onOpenChange, title, description, eyebrow, childr
             className={cn('dlg', size === 'sm' && 'sm', size === 'lg' && 'lg', className)}
             onPointerDownOutside={(e) => !dismissible && e.preventDefault()}
             onEscapeKeyDown={(e) => !dismissible && e.preventDefault()}
+            onOpenAutoFocus={onOpenAutoFocus}
             aria-describedby={description ? undefined : undefined}
           >
             <div className="dh">

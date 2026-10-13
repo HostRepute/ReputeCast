@@ -161,6 +161,71 @@ export function andList(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
 }
 
+/** "09:18:51" (clock with seconds, for live streams). */
+export function clockSeconds(d: string | number | Date): string {
+  return fmt('time-s', 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(toDate(d))
+}
+
+/** "12 hours", "1 hour", "45 minutes", "1 minute": a span in words, rounded down. */
+export function spanWords(ms: number): string {
+  const minutes = Math.max(0, Math.floor(ms / 60_000))
+  if (minutes >= 60) {
+    const h = Math.floor(minutes / 60)
+    return `${h} hour${h === 1 ? '' : 's'}`
+  }
+  const m = Math.max(1, minutes)
+  return `${m} minute${m === 1 ? '' : 's'}`
+}
+
+/** "in 2 minutes", "in 1 minute", "in 45 seconds": a short countdown. */
+export function countdown(ms: number): string {
+  const s = Math.max(0, Math.ceil(ms / 1000))
+  if (s >= 120) return `in ${Math.floor(s / 60)} minutes`
+  if (s >= 60) return 'in 1 minute'
+  return `in ${s} second${s === 1 ? '' : 's'}`
+}
+
+/* -- Notification center (W04) ------------------------------------------- */
+
+function dayKey(d: Date) {
+  const p = parts('daykey', d, { year: 'numeric', month: '2-digit', day: '2-digit' })
+  return `${p.year}-${p.month}-${p.day}`
+}
+
+function daysBetween(d: Date, now: Date) {
+  const a = Date.parse(`${dayKey(d)}T00:00:00Z`)
+  const b = Date.parse(`${dayKey(now)}T00:00:00Z`)
+  return Math.round((b - a) / 86_400_000)
+}
+
+function notificationDateParts(d: Date) {
+  return parts('mdy-parts', d, { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+/**
+ * When a notification happened, in the notification center: "Today 07:40",
+ * "Thu 9 Oct 09:21" within the week, "Oct 3 11:30" before, with the year
+ * when it isn't this year.
+ */
+export function notificationTime(d: string | number | Date, now: Date = new Date()): string {
+  const t = toDate(d)
+  const days = daysBetween(t, now)
+  if (days <= 0) return `Today ${clock(t)}`
+  if (days < 7) return `${shortDate(t)} ${clock(t)}`
+  const p = notificationDateParts(t)
+  return p.year === notificationDateParts(now).year ? `${p.month} ${p.day} ${clock(t)}` : `${p.month} ${p.day}, ${p.year} ${clock(t)}`
+}
+
+/** The bell popover's shorter form: "2 h ago", "Thu 9 Oct", "Oct 1". */
+export function notificationAgo(d: string | number | Date, now: Date = new Date()): string {
+  const t = toDate(d)
+  const days = daysBetween(t, now)
+  if (days <= 0) return ago(t, now)
+  if (days < 7) return shortDate(t)
+  const p = notificationDateParts(t)
+  return p.year === notificationDateParts(now).year ? `${p.month} ${p.day}` : `${p.month} ${p.day}, ${p.year}`
+}
+
 /** A percentage with up to two decimals and no trailing zeros: 0.6%, 0.04%, 99.6%, 100%. */
 export function trimPct(v: number | null | undefined): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '—'

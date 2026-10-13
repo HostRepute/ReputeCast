@@ -1,10 +1,9 @@
-import { Link } from '@tanstack/react-router'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 import { useDocumentTitle } from '@/lib/hooks'
 import { useOptionalWorkspace } from '@/lib/session'
-import { Icon } from '../icons/Icon'
 import { NavTabs, type NavTab } from '../ui/Tabs'
+import { NotificationsPopover } from './NotificationsPopover'
 import { UserMenu } from './UserMenu'
 
 /**
@@ -71,19 +70,7 @@ export function Page({
   )
 }
 
-/** Bell with the unread count; opens the notification center. */
+/** Bell with the unread count; opens the notifications popover. */
 export function NotificationBell() {
-  const ws = useOptionalWorkspace()
-  if (!ws) return null
-  const n = ws.me.unread
-  return (
-    <Link to="/w/$workspace/notifications" params={{ workspace: ws.slug }} className="ibtn" aria-label={n ? `Notifications, ${n} unread` : 'Notifications'}>
-      <Icon name="bell" />
-      {n ? (
-        <span className="cnt" aria-hidden="true">
-          {n > 99 ? '99+' : n}
-        </span>
-      ) : null}
-    </Link>
-  )
+  return <NotificationsPopover />
 }

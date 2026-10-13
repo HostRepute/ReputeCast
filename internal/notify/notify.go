@@ -1,7 +1,8 @@
 // Package notify creates in-app notifications (A5 §3.12) and fans them out to
 // the members who should see them. Delivery preferences (in-app and/or email
 // per event type) are applied here; email delivery goes through the System
-// stream when one is connected.
+// stream when one is connected (see EmailWorker) and is skipped silently
+// when none is.
 package notify
 
 import (
@@ -14,15 +15,19 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// Kinds of notifications. Preferences are stored per kind.
+// Kinds of notifications. Preferences are stored per event type (see
+// Events); several kinds can share one event type.
 const (
 	KindApprovalRequested   = "approval_requested"
 	KindApprovalDecided     = "approval_decided" // approved, rejected, changes requested
 	KindApprovalInvalidated = "approval_invalidated"
 	KindSendPaused          = "send_paused"
+	KindSendBlocked         = "send_blocked" // the send-time recheck turned Blocked
 	KindProviderDown        = "provider_down"
+	KindProviderDegraded    = "provider_degraded"
 	KindWebhooksSilent      = "webhooks_silent"
 	KindInviteAccepted      = "invite_accepted"
+	KindInviteRequested     = "invite_requested" // an invitee asked for a new invitation
 	KindHostReputeAlert     = "hostrepute_alert"
 	KindSendFinished        = "send_finished"
 	KindJobFinished         = "job_finished" // imports, exports
@@ -34,64 +39,89 @@ type Notification struct {
 	Kind        string
 	Severity    string // info, ok, warn, bad
 	Title       string
-	Body        string
+	// Summary is the short line shown in the bell popover; Body is used when
+	// it is empty. Body is the full sentence in the notification center and
+	// in the email.
+	Summary string
+	Body    string
 	// Link is an app path such as "/w/acme-newsletter/campaigns/<id>/live".
 	Link string
 	Data map[string]any
 }
 
-// ToUser stores a notification for one person.
+// ToUser stores a notification for one person, honouring their preferences:
+// nothing is stored when both in-app and email are off for the event type.
 func ToUser(ctx context.Context, q store.DBTX, userID uuid.UUID, n Notification) error {
 	if n.Severity == "" {
 		n.Severity = "info"
 	}
-	data, _ := json.Marshal(n.Data)
-	if n.Data == nil {
-		data = []byte(`{}`)
+	data := []byte(`{}`)
+	if n.Data != nil {
+		b, err := json.Marshal(n.Data)
+		if err != nil {
+			return err
+		}
+		data = b
 	}
-	_, err := q.Exec(ctx, `INSERT INTO notifications (id, user_id, workspace_id, kind, severity, title, body, link, data)
-		SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9
-		WHERE coalesce((SELECT in_app FROM notification_preferences WHERE user_id = $2 AND event_type = $4), true)`,
-		uuid.Must(uuid.NewV7()), userID, n.WorkspaceID, n.Kind, n.Severity, n.Title, n.Body, n.Link, data)
+	ev := EventFor(n.Kind)
+	_, err := store.New(q).InsertNotification(ctx, store.InsertNotificationParams{
+		ID:           uuid.Must(uuid.NewV7()),
+		WorkspaceID:  n.WorkspaceID,
+		Kind:         n.Kind,
+		Severity:     n.Severity,
+		Title:        n.Title,
+		Summary:      n.Summary,
+		Body:         n.Body,
+		Link:         n.Link,
+		Data:         data,
+		DefaultEmail: ev.DefaultEmail,
+		EventType:    ev.Key,
+		UserID:       userID,
+	})
 	return err
 }
 
-// ToMembersWith notifies every active member of the workspace who holds perm.
+// ToMembersWith notifies every active member of the workspace who holds perm
+// (everyone when perm is empty).
 func ToMembersWith(ctx context.Context, q store.DBTX, workspaceID uuid.UUID, perm authz.Permission, n Notification) error {
-	rows, err := q.Query(ctx, `SELECT m.user_id, r.key, r.builtin, r.permissions
-		FROM workspace_members m JOIN roles r ON r.id = m.role_id JOIN users u ON u.id = m.user_id AND u.status = 'active'
-		WHERE m.workspace_id = $1 AND m.status = 'active'`, workspaceID)
+	ids, err := MembersWith(ctx, q, workspaceID, perm)
 	if err != nil {
-		return err
-	}
-	type member struct {
-		id      uuid.UUID
-		key     string
-		builtin bool
-		perms   []string
-	}
-	var ms []member
-	for rows.Next() {
-		var m member
-		if err := rows.Scan(&m.id, &m.key, &m.builtin, &m.perms); err != nil {
-			rows.Close()
-			return err
-		}
-		ms = append(ms, m)
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
 		return err
 	}
 	if n.WorkspaceID == nil {
 		n.WorkspaceID = &workspaceID
 	}
-	for _, m := range ms {
-		if perm == "" || authz.Effective(m.key, m.builtin, m.perms).Has(perm) {
-			if err := ToUser(ctx, q, m.id, n); err != nil {
-				return err
-			}
+	for _, id := range ids {
+		if err := ToUser(ctx, q, id, n); err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+// MembersWith returns the active members of a workspace who hold perm.
+func MembersWith(ctx context.Context, q store.DBTX, workspaceID uuid.UUID, perm authz.Permission) ([]uuid.UUID, error) {
+	rows, err := q.Query(ctx, `SELECT m.user_id, r.key, r.builtin, r.permissions
+		FROM workspace_members m JOIN roles r ON r.id = m.role_id JOIN users u ON u.id = m.user_id AND u.status = 'active'
+		WHERE m.workspace_id = $1 AND m.status = 'active'`, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []uuid.UUID
+	for rows.Next() {
+		var (
+			id      uuid.UUID
+			key     string
+			builtin bool
+			perms   []string
+		)
+		if err := rows.Scan(&id, &key, &builtin, &perms); err != nil {
+			return nil, err
+		}
+		if perm == "" || authz.Effective(key, builtin, perms).Has(perm) {
+			ids = append(ids, id)
+		}
+	}
+	return ids, rows.Err()
 }

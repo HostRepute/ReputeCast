@@ -76,7 +76,7 @@ func ensureTemplate(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("connect to test postgres: %w", err)
 	}
-	defer admin.Close(ctx)
+	defer func() { _ = admin.Close(ctx) }()
 	if _, err := admin.Exec(ctx, `SELECT pg_advisory_lock(727272)`); err != nil {
 		return err
 	}

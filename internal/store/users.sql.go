@@ -37,7 +37,7 @@ func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
 const createIdentity = `-- name: CreateIdentity :one
 INSERT INTO user_identities (id, user_id, kind, sso_provider_id, subject, email)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, user_id, kind, sso_provider_id, subject, email, created_at, last_used_at
+RETURNING id, user_id, kind, sso_provider_id, subject, email, created_at, last_used_at, username, details
 `
 
 type CreateIdentityParams struct {
@@ -68,6 +68,8 @@ func (q *Queries) CreateIdentity(ctx context.Context, arg CreateIdentityParams) 
 		&i.Email,
 		&i.CreatedAt,
 		&i.LastUsedAt,
+		&i.Username,
+		&i.Details,
 	)
 	return i, err
 }
@@ -77,7 +79,7 @@ INSERT INTO user_passkeys (id, user_id, name, credential_id, public_key, attesta
                            sign_count, transports, backup_eligible, backup_state)
 VALUES ($1, $2, $3, $4, $5, $6, $7,
         $8, $9, $10, $11)
-RETURNING id, user_id, name, credential_id, public_key, attestation_type, aaguid, sign_count, transports, backup_eligible, backup_state, created_at, last_used_at
+RETURNING id, user_id, name, credential_id, public_key, attestation_type, aaguid, sign_count, transports, backup_eligible, backup_state, created_at, last_used_at, credential, attachment, provider
 `
 
 type CreatePasskeyParams struct {
@@ -123,6 +125,9 @@ func (q *Queries) CreatePasskey(ctx context.Context, arg CreatePasskeyParams) (U
 		&i.BackupState,
 		&i.CreatedAt,
 		&i.LastUsedAt,
+		&i.Credential,
+		&i.Attachment,
+		&i.Provider,
 	)
 	return i, err
 }
@@ -147,7 +152,7 @@ INSERT INTO users (id, email, name, timezone, password_hash, password_set_at, mu
                    is_instance_admin, break_glass, avatar_color, twofa_grace_until)
 VALUES ($1, $2, $3, $4, $5, $6, $7,
         $8, $9, $10, $11)
-RETURNING id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at
+RETURNING id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at
 `
 
 type CreateUserParams struct {
@@ -201,6 +206,10 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.LastActiveAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WebauthnID,
+		&i.TotpLabel,
+		&i.RecoveryCodesSavedAt,
+		&i.AvatarUpdatedAt,
 	)
 	return i, err
 }
@@ -249,7 +258,7 @@ func (q *Queries) DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) err
 }
 
 const getIdentity = `-- name: GetIdentity :one
-SELECT id, user_id, kind, sso_provider_id, subject, email, created_at, last_used_at FROM user_identities
+SELECT id, user_id, kind, sso_provider_id, subject, email, created_at, last_used_at, username, details FROM user_identities
 WHERE kind = $1 AND coalesce(sso_provider_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce($2::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
   AND subject = $3
 `
@@ -272,12 +281,14 @@ func (q *Queries) GetIdentity(ctx context.Context, arg GetIdentityParams) (UserI
 		&i.Email,
 		&i.CreatedAt,
 		&i.LastUsedAt,
+		&i.Username,
+		&i.Details,
 	)
 	return i, err
 }
 
 const getPasskeyByCredential = `-- name: GetPasskeyByCredential :one
-SELECT id, user_id, name, credential_id, public_key, attestation_type, aaguid, sign_count, transports, backup_eligible, backup_state, created_at, last_used_at FROM user_passkeys WHERE credential_id = $1
+SELECT id, user_id, name, credential_id, public_key, attestation_type, aaguid, sign_count, transports, backup_eligible, backup_state, created_at, last_used_at, credential, attachment, provider FROM user_passkeys WHERE credential_id = $1
 `
 
 func (q *Queries) GetPasskeyByCredential(ctx context.Context, credentialID []byte) (UserPasskey, error) {
@@ -297,12 +308,15 @@ func (q *Queries) GetPasskeyByCredential(ctx context.Context, credentialID []byt
 		&i.BackupState,
 		&i.CreatedAt,
 		&i.LastUsedAt,
+		&i.Credential,
+		&i.Attachment,
+		&i.Provider,
 	)
 	return i, err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at FROM users WHERE id = $1
+SELECT id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
@@ -330,12 +344,16 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.LastActiveAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WebauthnID,
+		&i.TotpLabel,
+		&i.RecoveryCodesSavedAt,
+		&i.AvatarUpdatedAt,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at FROM users WHERE email = lower($1::text)
+SELECT id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at FROM users WHERE email = lower($1::text)
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -363,12 +381,16 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.LastActiveAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WebauthnID,
+		&i.TotpLabel,
+		&i.RecoveryCodesSavedAt,
+		&i.AvatarUpdatedAt,
 	)
 	return i, err
 }
 
 const listIdentities = `-- name: ListIdentities :many
-SELECT id, user_id, kind, sso_provider_id, subject, email, created_at, last_used_at FROM user_identities WHERE user_id = $1 ORDER BY created_at
+SELECT id, user_id, kind, sso_provider_id, subject, email, created_at, last_used_at, username, details FROM user_identities WHERE user_id = $1 ORDER BY created_at
 `
 
 func (q *Queries) ListIdentities(ctx context.Context, userID uuid.UUID) ([]UserIdentity, error) {
@@ -389,6 +411,8 @@ func (q *Queries) ListIdentities(ctx context.Context, userID uuid.UUID) ([]UserI
 			&i.Email,
 			&i.CreatedAt,
 			&i.LastUsedAt,
+			&i.Username,
+			&i.Details,
 		); err != nil {
 			return nil, err
 		}
@@ -401,7 +425,7 @@ func (q *Queries) ListIdentities(ctx context.Context, userID uuid.UUID) ([]UserI
 }
 
 const listPasskeys = `-- name: ListPasskeys :many
-SELECT id, user_id, name, credential_id, public_key, attestation_type, aaguid, sign_count, transports, backup_eligible, backup_state, created_at, last_used_at FROM user_passkeys WHERE user_id = $1 ORDER BY created_at
+SELECT id, user_id, name, credential_id, public_key, attestation_type, aaguid, sign_count, transports, backup_eligible, backup_state, created_at, last_used_at, credential, attachment, provider FROM user_passkeys WHERE user_id = $1 ORDER BY created_at
 `
 
 func (q *Queries) ListPasskeys(ctx context.Context, userID uuid.UUID) ([]UserPasskey, error) {
@@ -427,6 +451,9 @@ func (q *Queries) ListPasskeys(ctx context.Context, userID uuid.UUID) ([]UserPas
 			&i.BackupState,
 			&i.CreatedAt,
 			&i.LastUsedAt,
+			&i.Credential,
+			&i.Attachment,
+			&i.Provider,
 		); err != nil {
 			return nil, err
 		}
@@ -439,7 +466,7 @@ func (q *Queries) ListPasskeys(ctx context.Context, userID uuid.UUID) ([]UserPas
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at FROM users ORDER BY created_at
+SELECT id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at FROM users ORDER BY created_at
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -473,6 +500,10 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.LastActiveAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.WebauthnID,
+			&i.TotpLabel,
+			&i.RecoveryCodesSavedAt,
+			&i.AvatarUpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -689,7 +720,7 @@ func (q *Queries) TouchUserActive(ctx context.Context, id uuid.UUID) error {
 const updateUserProfile = `-- name: UpdateUserProfile :one
 UPDATE users SET name = $1, timezone = $2, avatar_color = $3, updated_at = now()
 WHERE id = $4
-RETURNING id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at
+RETURNING id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at
 `
 
 type UpdateUserProfileParams struct {
@@ -729,6 +760,10 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		&i.LastActiveAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WebauthnID,
+		&i.TotpLabel,
+		&i.RecoveryCodesSavedAt,
+		&i.AvatarUpdatedAt,
 	)
 	return i, err
 }
