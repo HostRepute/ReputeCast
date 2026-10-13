@@ -290,25 +290,28 @@ export function ClickMap({ m, clicks, imported }: { m: Schemas['ReportClickMap']
       ) : m.available ? (
         <>
           <MapFrame m={m} />
-          <table className="vh">
-            <caption>Share of clicks per link</caption>
-            <thead>
-              <tr>
-                <th scope="col">Link</th>
-                <th scope="col">Clicks</th>
-                <th scope="col">Share</th>
-              </tr>
-            </thead>
-            <tbody>
-              {m.links.map((l) => (
-                <tr key={`${l.position}-${l.url}`}>
-                  <td>{l.label}</td>
-                  <td>{count(l.clicks)}</td>
-                  <td>{Math.round(l.share)}%</td>
+          {/* A table ignores width: 1px, so the wrapper hides it without widening the page. */}
+          <div className="vh">
+            <table>
+              <caption>Share of clicks per link</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Link</th>
+                  <th scope="col">Clicks</th>
+                  <th scope="col">Share</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {m.links.map((l) => (
+                  <tr key={`${l.position}-${l.url}`}>
+                    <td>{l.label}</td>
+                    <td>{count(l.clicks)}</td>
+                    <td>{Math.round(l.share)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       ) : (
         // The card stretches to the chart beside it; the notice sits in its middle.

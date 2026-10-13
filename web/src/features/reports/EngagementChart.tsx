@@ -89,27 +89,30 @@ export function EngagementChart({ e, startedAt, final }: { e: Schemas['ReportEng
               />
             ))}
           </svg>
-          <table className="vh">
-            <caption>Cumulative engagement, share of delivered</caption>
-            <thead>
-              <tr>
-                <th scope="col">Hours after send</th>
-                <th scope="col">Human opens</th>
-                <th scope="col">Machine opens</th>
-                <th scope="col">Clicks</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sample.map((p) => (
-                <tr key={p.hour}>
-                  <td>{p.hour}</td>
-                  <td>{pct1((p.humanOpens / e.delivered) * 100)}</td>
-                  <td>{pct1((p.machineOpens / e.delivered) * 100)}</td>
-                  <td>{pct1((p.clicks / e.delivered) * 100)}</td>
+          {/* A table ignores width: 1px, so the wrapper hides it without widening the page. */}
+          <div className="vh">
+            <table>
+              <caption>Cumulative engagement, share of delivered</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Hours after send</th>
+                  <th scope="col">Human opens</th>
+                  <th scope="col">Machine opens</th>
+                  <th scope="col">Clicks</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sample.map((p) => (
+                  <tr key={p.hour}>
+                    <td>{p.hour}</td>
+                    <td>{pct1((p.humanOpens / e.delivered) * 100)}</td>
+                    <td>{pct1((p.machineOpens / e.delivered) * 100)}</td>
+                    <td>{pct1((p.clicks / e.delivered) * 100)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <div className="flex items-start justify-between">
             <div className="k flex flex-1 justify-between" aria-hidden="true">
               <span>{startedAt ? `${clock(startedAt)} send` : 'Send'}</span>
