@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -214,6 +215,18 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 			provs = append(provs, p)
 		}
 	}
+	// Without recipients, shares are the split's weights.
+	weights, totalWeight := map[uuid.UUID]int{}, 0
+	splits := []routing.Split{}
+	if override != nil {
+		splits = override.Splits
+	} else if def, ok := set.Default(providers.StreamBroadcast); ok {
+		splits = def.Splits
+	}
+	for _, sp := range splits {
+		weights[sp.ProviderID] += max(sp.Weight, 0)
+		totalWeight += max(sp.Weight, 0)
+	}
 	usage, err := manage.UsageOf(ctx, s.Q, g.ws, provs, f.Now)
 	if err != nil {
 		return out, err
@@ -233,6 +246,8 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 		}
 		if f.Audience.Final > 0 {
 			sh.Percent = float64(sh.Recipients) / float64(f.Audience.Final) * 100
+		} else if totalWeight > 0 {
+			sh.Percent = float64(weights[p.ID]) * 100 / float64(totalWeight)
 		}
 		if h.Down != nil {
 			since := h.Down.Since
@@ -356,10 +371,7 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 		}
 	}
 	// Each provider carrying the send: its SPF, DKIM and MAIL FROM records.
-	for _, sh := range f.Route.Shares {
-		if sh.Recipients == 0 && len(f.Route.Shares) > 1 {
-			continue
-		}
+	for _, sh := range carrying(f.Route.Shares) {
 		var spfRecs, dkimRecs, rpRecs []dnscheck.RecordCheck
 		for _, rc := range auth.Records {
 			if rc.ProviderID != sh.ProviderID {
@@ -494,8 +506,8 @@ func net4(s string) string {
 
 // compliance gathers the one-click unsubscribe link and the complaint rate.
 func (s *Service) compliance(ws *store.Workspace, f Facts) ComplianceFacts {
-	out := ComplianceFacts{UnsubscribeURL: s.URLs.Unsubscribe(ws.Slug, "{token}")}
-	out.HTTPS = strings.HasPrefix(out.UnsubscribeURL, "https://")
+	out := ComplianceFacts{UnsubscribeURL: strings.ReplaceAll(s.URLs.Unsubscribe(ws.Slug, "TOKEN"), "TOKEN", "{token}")}
+	out.HTTPS = strings.HasPrefix(out.UnsubscribeURL, "https://") || localURL(out.UnsubscribeURL)
 	var weighted, total float64
 	for _, sh := range f.Route.Shares {
 		if sh.Complaint == nil || sh.Recipients == 0 {
@@ -509,4 +521,36 @@ func (s *Service) compliance(ws *store.Workspace, f Facts) ComplianceFacts {
 		out.ComplaintRate = &v
 	}
 	return out
+}
+
+// localURL reports a development instance (localhost): mailbox providers
+// can't reach it, so its plain-HTTP links aren't worth a warning.
+func localURL(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	h := u.Hostname()
+	return h == "localhost" || h == "127.0.0.1" || h == "::1" || strings.HasSuffix(h, ".localhost")
+}
+
+// RoutingKey is the Broadcasts routing as it stands, part of a run's fingerprint.
+func RoutingKey(ctx context.Context, q *store.Queries, wsID uuid.UUID) json.RawMessage {
+	rows, err := q.RoutingListRules(ctx, wsID)
+	if err != nil {
+		return nil
+	}
+	type rule struct {
+		Conditions json.RawMessage `json:"c"`
+		Splits     json.RawMessage `json:"s"`
+		Enabled    bool            `json:"e"`
+	}
+	var rules []rule
+	for _, r := range rows {
+		if r.Stream == "broadcast" {
+			rules = append(rules, rule{r.Conditions, r.Splits, r.Enabled})
+		}
+	}
+	b, _ := json.Marshal(rules)
+	return b
 }

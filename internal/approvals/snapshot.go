@@ -229,7 +229,8 @@ func Diff(s Snapshot, c Current, loc *time.Location) []ApprovalChange {
 	}
 	if !sameAudience(s.Audience, c.Audience) {
 		out = append(out, ApprovalChange{Field: "audience", Label: "Audience", Before: strings.Join(s.AudienceLabels, ", "), After: strings.Join(c.AudienceNames, ", ")})
-	} else if s.AudienceCount > 0 && c.AudienceCount >= 0 {
+	} else if s.AudienceCount > 0 && c.AudienceCount > 0 {
+		// (An empty audience can't be sent anyway: Send Readiness blocks it.)
 		moved := float64(c.AudienceCount-s.AudienceCount) / float64(s.AudienceCount) * 100
 		if math.Abs(moved) > InvalidationShare {
 			out = append(out, ApprovalChange{Field: "audience_count", Label: "Audience",

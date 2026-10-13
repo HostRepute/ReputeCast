@@ -80,27 +80,6 @@ func Fingerprint(c store.ReadinessCampaignRow, routing json.RawMessage) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// routingKey is the Broadcasts routing as it stands, for fingerprints.
-func (s *Service) routingKey(ctx context.Context, q *store.Queries, wsID uuid.UUID) json.RawMessage {
-	rows, err := q.RoutingListRules(ctx, wsID)
-	if err != nil {
-		return nil
-	}
-	type rule struct {
-		Conditions json.RawMessage `json:"c"`
-		Splits     json.RawMessage `json:"s"`
-		Enabled    bool            `json:"e"`
-	}
-	var rules []rule
-	for _, r := range rows {
-		if r.Stream == "broadcast" {
-			rules = append(rules, rule{r.Conditions, r.Splits, r.Enabled})
-		}
-	}
-	b, _ := json.Marshal(rules)
-	return b
-}
-
 // Campaign loads a campaign as a run sees it.
 func (s *Service) Campaign(ctx context.Context, ws *store.Workspace, id uuid.UUID) (store.ReadinessCampaignRow, error) {
 	c, err := s.Q.ReadinessCampaign(ctx, store.ReadinessCampaignParams{WorkspaceID: ws.ID, ID: id})
@@ -112,7 +91,7 @@ func (s *Service) Campaign(ctx context.Context, ws *store.Workspace, id uuid.UUI
 
 // CurrentFingerprint is the fingerprint of the campaign as it stands.
 func (s *Service) CurrentFingerprint(ctx context.Context, ws *store.Workspace, c store.ReadinessCampaignRow) string {
-	return Fingerprint(c, s.routingKey(ctx, s.Q, ws.ID))
+	return Fingerprint(c, RoutingKey(ctx, s.Q, ws.ID))
 }
 
 // Run runs every check on a campaign and stores the result. It returns
@@ -213,18 +192,7 @@ func (s *Service) progress(ctx context.Context, id, runID uuid.UUID, groups []Re
 // store saves a finished run, refreshes the campaign's planned route and
 // audience count, and keeps the history short.
 func (s *Service) store(ctx context.Context, ws *store.Workspace, c store.ReadinessCampaignRow, run ReadinessRun, by *uuid.UUID) error {
-	checks, err := json.Marshal(struct {
-		Verdict    string           `json:"verdict"`
-		Counts     ReadinessCounts  `json:"counts"`
-		Groups     []ReadinessGroup `json:"groups"`
-		Checks     []ReadinessCheck `json:"checks"`
-		Incomplete bool             `json:"incomplete"`
-		Problem    string           `json:"problem,omitempty"`
-	}{run.Verdict, run.Counts, run.Groups, run.Checks, run.Incomplete, run.Problem})
-	if err != nil {
-		return err
-	}
-	est, err := json.Marshal(run.Estimates)
+	checks, est, err := EncodeResult(run.ReadinessResult)
 	if err != nil {
 		return err
 	}
@@ -274,6 +242,24 @@ func (s *Service) store(ctx context.Context, ws *store.Workspace, c store.Readin
 			After:    map[string]any{"verdict": run.Verdict, "passed": run.Counts.Passed, "warnings": run.Counts.Warnings, "blocks": run.Counts.Blocks, "unknown": run.Counts.Unknown},
 			Metadata: map[string]any{"run_id": run.ID, "trigger": run.Trigger, "version": c.Version}})
 	})
+}
+
+// EncodeResult is the stored form of a result: readiness_runs.checks
+// (verdict, counts, groups and checks) and readiness_runs.estimates.
+func EncodeResult(res ReadinessResult) (checks, estimates json.RawMessage, err error) {
+	checks, err = json.Marshal(struct {
+		Verdict    string           `json:"verdict"`
+		Counts     ReadinessCounts  `json:"counts"`
+		Groups     []ReadinessGroup `json:"groups"`
+		Checks     []ReadinessCheck `json:"checks"`
+		Incomplete bool             `json:"incomplete"`
+		Problem    string           `json:"problem,omitempty"`
+	}{res.Verdict, res.Counts, res.Groups, res.Checks, res.Incomplete, res.Problem})
+	if err != nil {
+		return nil, nil, err
+	}
+	estimates, err = json.Marshal(res.Estimates)
+	return checks, estimates, err
 }
 
 // editable statuses are those before the send starts.

@@ -178,11 +178,20 @@ func apply(action, label, tone string, params map[string]string) ReadinessFix {
 
 // shares returns the route's providers that carry part of this send.
 func (b *builder) shares() []ShareFacts {
+	return carrying(b.f.Route.Shares)
+}
+
+// carrying keeps the providers that carry part of the send; all of them
+// when nobody is routed yet (an empty audience).
+func carrying(shares []ShareFacts) []ShareFacts {
 	out := []ShareFacts{}
-	for _, s := range b.f.Route.Shares {
-		if s.Recipients > 0 || len(b.f.Route.Shares) == 1 {
+	for _, s := range shares {
+		if s.Recipients > 0 {
 			out = append(out, s)
 		}
+	}
+	if len(out) == 0 {
+		return shares
 	}
 	return out
 }
@@ -351,12 +360,17 @@ func (b *builder) sourcesLine(kind string) string {
 	return line
 }
 
-var asnRe = regexp.MustCompile(`\((AS\d+)\)`)
+var (
+	asnRe  = regexp.MustCompile(`\((AS\d+)\)`)
+	cidrRe = regexp.MustCompile(`(/\d{1,2})\b`)
+)
 
 func listingSentence(l ListingFacts) string {
 	d := strings.TrimSpace(l.Detail)
 	switch {
-	case strings.Contains(strings.ToLower(d), "network-range") || strings.Contains(d, "/16") || strings.Contains(d, "/24"):
+	case cidrRe.MatchString(d):
+		return l.Source + " lists the whole " + cidrRe.FindStringSubmatch(d)[1] + " of the hosting network."
+	case strings.Contains(strings.ToLower(d), "network-range"):
 		s := l.Source + " lists the whole hosting network"
 		if m := asnRe.FindStringSubmatch(d); m != nil {
 			s += " (" + m[1] + ")"
