@@ -203,21 +203,36 @@ function SuppressionCell({ row, actions }: { row: BounceRow; actions?: ReportAct
       return <Badge tone="ok">Suppressed</Badge>
     case 'add':
       return actions ? (
-        <Button size="sm" disabledReason={actions.suppressReason} onClick={() => actions.onSuppress(row)}>
-          Add {count(row.unsuppressed)} to suppression
-        </Button>
+        <>
+          <Button size="sm" className="rep-noprint" disabledReason={actions.suppressReason} onClick={() => actions.onSuppress(row)}>
+            Add {count(row.unsuppressed)} to suppression
+          </Button>
+          <NotSuppressed print />
+        </>
       ) : (
-        <Badge tone="neutral">Not suppressed</Badge>
+        <NotSuppressed />
       )
     default:
       return actions ? (
-        <Button size="sm" onClick={() => actions.onReview(row)}>
-          Review
-        </Button>
+        <>
+          <Button size="sm" className="rep-noprint" onClick={() => actions.onReview(row)}>
+            Review
+          </Button>
+          <NotSuppressed print />
+        </>
       ) : (
-        <Badge tone="neutral">Not suppressed</Badge>
+        <NotSuppressed />
       )
   }
+}
+
+/** What a printed report (or a read-only link) says where the screen offers an action. */
+function NotSuppressed({ print }: { print?: boolean }) {
+  return (
+    <Badge tone="neutral" className={print ? 'rep-printonly' : undefined}>
+      Not suppressed
+    </Badge>
+  )
 }
 
 function BounceTable({ b, headlineBounces, actions }: { b: Schemas['ReportBounceTable']; headlineBounces: number; actions?: ReportActions }) {
@@ -266,7 +281,7 @@ function BounceTable({ b, headlineBounces, actions }: { b: Schemas['ReportBounce
 
 const reasonColor: Record<string, string> = { ink: '#0B1220', muted: '#8b94a3', bad: '#B91C1C' }
 
-function Unsubscribes({ u }: { u: Schemas['ReportUnsubscribes'] }) {
+function Unsubscribes({ u, imported }: { u: Schemas['ReportUnsubscribes']; imported: boolean }) {
   const note = fewerNote(u.choseFewer)
   return (
     <section className="card flex min-w-0 flex-[1_1_320px] flex-col gap-2.5 px-5 py-4.5" aria-labelledby="rep-un-h">
@@ -274,7 +289,7 @@ function Unsubscribes({ u }: { u: Schemas['ReportUnsubscribes'] }) {
         <h2 className="h2" id="rep-un-h">
           Unsubscribe reasons · {count(u.total)}
         </h2>
-        <span className="k">asked on the unsubscribe page</span>
+        {imported && !u.reasons.length ? null : <span className="k">asked on the unsubscribe page</span>}
       </div>
       {u.reasons.length ? (
         <div className="flex flex-col gap-2 text-[13px]">
@@ -291,7 +306,13 @@ function Unsubscribes({ u }: { u: Schemas['ReportUnsubscribes'] }) {
           ))}
         </div>
       ) : (
-        <span className="k">Nobody unsubscribed from this campaign.</span>
+        <span className="k">
+          {u.total === 0
+            ? 'Nobody unsubscribed from this campaign.'
+            : imported
+              ? 'Unsubscribe reasons weren’t part of this campaign’s import; the count above is the imported total.'
+              : 'Nobody has said why yet.'}
+        </span>
       )}
       {note ? <span className="k">{note}</span> : null}
     </section>
@@ -355,7 +376,7 @@ export function ReportBody({ r, actions }: { r: CampaignReport; actions?: Report
       <HeadlineTiles r={r} />
       <div className="flex flex-wrap items-stretch gap-5">
         <EngagementChart e={r.engagement} startedAt={r.campaign.startedAt} final={r.campaign.final} />
-        <ClickMap m={r.clickMap} />
+        <ClickMap m={r.clickMap} clicks={r.headline.clicks} imported={Boolean(r.campaign.origin)} />
       </div>
       <div className="flex flex-wrap items-start gap-5">
         <MailboxTable rows={r.mailboxes} />
@@ -363,7 +384,7 @@ export function ReportBody({ r, actions }: { r: CampaignReport; actions?: Report
       </div>
       <div className="flex flex-wrap items-start gap-5">
         <BounceTable b={r.bounces} headlineBounces={r.headline.bounces} actions={actions} />
-        <Unsubscribes u={r.unsubscribes} />
+        <Unsubscribes u={r.unsubscribes} imported={Boolean(r.campaign.origin)} />
       </div>
       {r.abTest ? <ABTestCard t={r.abTest} /> : null}
     </>

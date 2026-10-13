@@ -180,8 +180,10 @@ type ReportProviderColumn struct {
 	Percent float64 `json:"percent"`
 	// MedianDeliveryMs is the median time from handing a message over to its
 	// delivery event.
-	MedianDeliveryMs *int    `json:"medianDeliveryMs,omitempty"`
-	Cost             float64 `json:"cost" doc:"Dollars"`
+	MedianDeliveryMs *int `json:"medianDeliveryMs,omitempty"`
+	// Cost in dollars; absent when unknown (history imported from another
+	// platform, which ReputeCast didn't pay for).
+	Cost *float64 `json:"cost,omitempty" doc:"Dollars"`
 	// WarmupDay is the warm-up day the provider was on at the send.
 	WarmupDay *int `json:"warmupDay,omitempty"`
 	// EngagedFirst is true when the warm-up sent to the most engaged contacts only.

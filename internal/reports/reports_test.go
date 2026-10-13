@@ -66,7 +66,7 @@ type report struct {
 			Short            string
 			Sent             int64
 			Percent          float64
-			Cost             float64
+			Cost             *float64
 			MedianDeliveryMs *int
 		}
 	}
@@ -151,7 +151,7 @@ func TestCampaignReport(t *testing.T) {
 		t.Fatalf("mailboxes: %+v", r.Mailboxes)
 	}
 	p := r.Providers
-	if !p.Split || len(p.Columns) != 2 || p.Columns[0].Short != "SES" || p.Columns[0].Percent != 90 || p.Columns[0].Cost != 4.32 ||
+	if !p.Split || len(p.Columns) != 2 || p.Columns[0].Short != "SES" || p.Columns[0].Percent != 90 || p.Columns[0].Cost == nil || *p.Columns[0].Cost != 4.32 ||
 		p.Columns[0].MedianDeliveryMs == nil || *p.Columns[0].MedianDeliveryMs != 1800 || p.Columns[1].Sent != 4798 {
 		t.Fatalf("providers: %+v", p)
 	}
@@ -202,6 +202,21 @@ func TestCampaignReport(t *testing.T) {
 	}
 	if top.Label != "Read the docs" || sum < 99.5 || sum > 100.5 || cm.Other == nil || cm.Other.Links != grouped {
 		t.Fatalf("click map: top %+v, shares add to %v, other %+v, %d grouped", top, sum, cm.Other, grouped)
+	}
+
+	// History imported from Brevo: its totals, and nothing ReputeCast can't
+	// know (no hourly curve, no clicks per link, no unsubscribe reasons, no
+	// cost of a provider it didn't pay).
+	var imp report
+	c.Do("GET", "/workspaces/acme-newsletter/campaigns/"+campaignID(t, c, "Weekly Digest #138")+"/report", nil).MustStatus(t, 200).JSON(t, &imp)
+	if !imp.Campaign.Final || imp.Engagement.Available || len(imp.ClickMap.Links) != 0 || imp.Headline.Clicks == 0 {
+		t.Fatalf("imported: %+v %+v", imp.Campaign, imp.Engagement)
+	}
+	if imp.Unsubscribes.Total == 0 || len(imp.Unsubscribes.Reasons) != 0 {
+		t.Fatalf("imported unsubscribes: %+v", imp.Unsubscribes)
+	}
+	if len(imp.Providers.Columns) != 1 || imp.Providers.Columns[0].Short != "Brevo" || imp.Providers.Columns[0].Cost != nil {
+		t.Fatalf("imported providers: %+v", imp.Providers)
 	}
 
 	// A campaign that hasn't been sent: the empty state.

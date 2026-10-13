@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Schemas } from '@/api/client'
-import { placeBubbles, withFallbacks, type AnchorBox } from './ClickMap'
+import { placeBubbles, screenRulesForPrint, withFallbacks, type AnchorBox } from './ClickMap'
 import { hourX, seriesPath } from './EngagementChart'
 import { abBadge, abExplanation, bounceLine, clickNote, engagementNote, fewerNote, headerCaption, providerNote, splitCaption, variantLine } from './words'
 
@@ -129,5 +129,12 @@ describe('click map preview', () => {
     expect(withFallbacks("Hi {{first_name|default:'friend'}}!")).toBe('Hi friend!')
     expect(withFallbacks('Plan: {{ plan | upcase | default: "free" }}')).toBe('Plan: free')
     expect(withFallbacks('Hello {{ first_name }}')).toBe('Hello {{ first_name }}')
+  })
+
+  it('keeps the email’s desktop layout when the report is printed', () => {
+    expect(screenRulesForPrint('@media only screen and (min-width:480px) { .mj-column-per-50 { width:50% } }')).toBe('@media (min-width:480px) { .mj-column-per-50 { width:50% } }')
+    expect(screenRulesForPrint('@media screen and (max-width: 479px){a{b:c}}')).toBe('@media (max-width: 479px){a{b:c}}')
+    expect(screenRulesForPrint('@media only screen { p { margin:0 } }')).toBe('@media all { p { margin:0 } }')
+    expect(screenRulesForPrint('@media print { .x { display:none } }')).toBe('@media print { .x { display:none } }')
   })
 })

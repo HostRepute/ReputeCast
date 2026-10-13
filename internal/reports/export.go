@@ -138,12 +138,15 @@ func reportCSV(r CampaignReport, loc *time.Location) []byte {
 	if len(r.Providers.Columns) > 0 {
 		row("Sending provider", "Sent", "Delivered", "Human opens", "Clicks", "Bounces", "Complaints", "Median time to delivery (s)", "Cost (USD)")
 		for _, p := range r.Providers.Columns {
-			median := ""
+			median, cost := "", ""
 			if p.MedianDeliveryMs != nil {
 				median = strconv.FormatFloat(float64(*p.MedianDeliveryMs)/1000, 'f', 1, 64)
 			}
+			if p.Cost != nil {
+				cost = strconv.FormatFloat(*p.Cost, 'f', 2, 64)
+			}
 			row(p.Name, num(p.Sent), pctText(p.DeliveredRate, 2), pctText(p.HumanOpenRate, 2), pctText(p.ClickRate, 2), pctText(p.BounceRate, 2),
-				pctText(p.ComplaintRate, 2), median, strconv.FormatFloat(p.Cost, 'f', 2, 64))
+				pctText(p.ComplaintRate, 2), median, cost)
 		}
 		row()
 	}

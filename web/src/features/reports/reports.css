@@ -78,8 +78,16 @@
   display: inline-block;
 }
 
+/* What the printed report shows where the screen has an action. */
+.rep-printonly {
+  display: none !important;
+}
+
 /* Printing (Export PDF): the report only, one column of cards. */
 @media print {
+  .rep-printonly {
+    display: inline-flex !important;
+  }
   .side,
   .skip,
   .top .acts,

@@ -8357,7 +8357,7 @@ export interface components {
              * Format: double
              * @description Dollars
              */
-            cost: number;
+            cost?: number;
             /** Format: int64 */
             delivered: number;
             /** Format: double */

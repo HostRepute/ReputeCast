@@ -54,6 +54,16 @@ function showFallbacks(doc: Document) {
   }
 }
 
+/**
+ * Email CSS puts its desktop layout behind "@media only screen and
+ * (min-width:480px)" (MJML does). The map's frame is always 600px wide, so the
+ * rules hold without the screen guard; dropping it keeps the same layout when
+ * the report is printed to PDF, where the bubbles were measured on screen.
+ */
+export function screenRulesForPrint(css: string): string {
+  return css.replace(/@media\s+(?:only\s+)?screen\s+and\s+/gi, '@media ').replace(/@media\s+(?:only\s+)?screen\s*\{/gi, '@media all {')
+}
+
 /** The app's IBM Plex @font-face rules, so the email renders in the same fonts. */
 function fontFaces(): string {
   const out: string[] = []
@@ -170,6 +180,11 @@ function MapFrame({ m }: { m: Schemas['ReportClickMap'] }) {
   const onLoad = () => {
     const doc = frame.current?.contentDocument
     if (doc) {
+      for (const st of Array.from(doc.querySelectorAll('style'))) {
+        const css = st.textContent ?? ''
+        const kept = screenRulesForPrint(css)
+        if (kept !== css) st.textContent = kept
+      }
       const style = doc.createElement('style')
       style.textContent = `${fontFaces()}\nhtml,body{margin:0;overflow:hidden}`
       doc.head?.appendChild(style)
@@ -245,8 +260,11 @@ function LinkTable({ m }: { m: Schemas['ReportClickMap'] }) {
   )
 }
 
-/** "Click map": the email as sent with the share of clicks on each link. */
-export function ClickMap({ m }: { m: Schemas['ReportClickMap'] }) {
+/**
+ * "Click map": the email as sent with the share of clicks on each link.
+ * clicks is the headline count; imported history may have clicks but no links.
+ */
+export function ClickMap({ m, clicks, imported }: { m: Schemas['ReportClickMap']; clicks: number; imported: boolean }) {
   const [table, setTable] = useState(false)
   const note = clickNote(m)
   const noLinks = m.links.length === 0
@@ -256,12 +274,16 @@ export function ClickMap({ m }: { m: Schemas['ReportClickMap'] }) {
         <h2 className="h2" id="rep-map-h">
           Click map
         </h2>
-        <span className="k">share of {count(m.total)} clicks</span>
+        {noLinks ? null : <span className="k">share of {count(m.total)} clicks</span>}
       </div>
       {noLinks ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center">
-          <span className="font-semibold">No tracked links</span>
-          <span className="k max-w-[320px]">Clicks are counted on links in the email. This campaign had none, or link tracking was off.</span>
+          <span className="font-semibold">{imported && clicks > 0 ? 'No clicks per link' : 'No tracked links'}</span>
+          <span className="k max-w-[320px]">
+            {imported && clicks > 0
+              ? `Clicks per link weren’t part of this campaign’s import; its ${count(clicks)} clicks are in the tiles above.`
+              : 'Clicks are counted on links in the email. This campaign had none, or link tracking was off.'}
+          </span>
         </div>
       ) : table ? (
         <LinkTable m={m} />
@@ -293,7 +315,7 @@ export function ClickMap({ m }: { m: Schemas['ReportClickMap'] }) {
         <div className="flex flex-1 flex-col items-center justify-center gap-2 py-4 text-center">
           <span className="font-semibold">Click map couldn't render</span>
           <span className="k">The stored content of this campaign is missing, so there's no email to draw the clicks on. Link-level clicks are still counted.</span>
-          <Button size="sm" onClick={() => setTable(true)}>
+          <Button size="sm" className="rep-noprint" onClick={() => setTable(true)}>
             Show clicks as a table
           </Button>
         </div>

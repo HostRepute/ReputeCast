@@ -175,7 +175,13 @@ func (s *Service) build(ctx context.Context, ws *store.Workspace, c store.Report
 	if err != nil {
 		return out, err
 	}
-	out.Unsubscribes = unsubscribes(out.Headline.Unsubscribes, reasons)
+	if c.Origin != "" && len(reasons) == 0 {
+		// History imported from another platform has its unsubscribe total
+		// but nobody was asked why: no reasons, not "No reason given".
+		out.Unsubscribes = ReportUnsubscribes{Total: out.Headline.Unsubscribes, Reasons: []ReportUnsubscribeReason{}}
+	} else {
+		out.Unsubscribes = unsubscribes(out.Headline.Unsubscribes, reasons)
+	}
 	if ab != nil && len(ab.Variants) >= 2 {
 		t := abResult(ab, cells, c, now)
 		out.ABTest = &t
@@ -385,7 +391,8 @@ func (s *Service) providerTable(ctx context.Context, c store.ReportCampaignRow, 
 			col.Name = col.Short
 		}
 		if r, ok := route[id]; ok {
-			col.Cost = round(float64(r.CostMicros)/1e6, 2)
+			cost := round(float64(r.CostMicros)/1e6, 2)
+			col.Cost = &cost
 			if r.DeliveryP50Ms > 0 {
 				v := int(r.DeliveryP50Ms)
 				col.MedianDeliveryMs = &v
