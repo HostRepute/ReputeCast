@@ -4481,6 +4481,8 @@ export interface components {
             schedule?: components["schemas"]["ReadinessSchedule"];
         };
         ApprovalCampaignView: {
+            /** Format: int64 */
+            currentVersion: number;
             /** Format: date-time */
             editedAt?: string;
             editedBy?: string;

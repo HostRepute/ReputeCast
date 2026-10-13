@@ -188,6 +188,8 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 					}
 					if n, ok := parseCount(after); ok {
 						it.AudienceNow = &n
+						// The route the moved audience would take ("SES 17,110").
+						it.Route = routeText(scaleRoute(route, n))
 					}
 				}
 			}
@@ -226,14 +228,17 @@ func parseCount(s string) (int64, bool) {
 
 // ApprovalCampaignView is the campaign part of a request.
 type ApprovalCampaignView struct {
-	ID        string     `json:"id"`
-	Status    string     `json:"status"`
-	Subject   string     `json:"subject"`
-	Preheader string     `json:"preheader"`
-	From      string     `json:"from"`
-	Version   int        `json:"version"`
-	EditedBy  string     `json:"editedBy,omitempty"`
-	EditedAt  *time.Time `json:"editedAt,omitempty"`
+	ID        string `json:"id"`
+	Status    string `json:"status"`
+	Subject   string `json:"subject"`
+	Preheader string `json:"preheader"`
+	From      string `json:"from"`
+	Version   int    `json:"version"`
+	// CurrentVersion is the campaign's version now: after edits it is past
+	// the snapshot's ("What changed · v9 → v10").
+	CurrentVersion int        `json:"currentVersion"`
+	EditedBy       string     `json:"editedBy,omitempty"`
+	EditedAt       *time.Time `json:"editedAt,omitempty"`
 	// ScheduledAt is set while the campaign is scheduled.
 	ScheduledAt *time.Time `json:"scheduledAt,omitempty"`
 }
@@ -371,7 +376,8 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		out.Approvers = append(out.Approvers, s.person(a))
 	}
 	if r.CampaignID != nil {
-		out.Campaign = &ApprovalCampaignView{ID: r.CampaignID.String(), Status: r.CampaignStatus, Subject: snap.Subject, Preheader: snap.Preheader, From: snap.From, Version: snap.Version}
+		out.Campaign = &ApprovalCampaignView{ID: r.CampaignID.String(), Status: r.CampaignStatus, Subject: snap.Subject, Preheader: snap.Preheader, From: snap.From, Version: snap.Version,
+			CurrentVersion: int(r.CampaignCurrentVersion)}
 		if r.CampaignStatus == "scheduled" {
 			out.Campaign.ScheduledAt = r.CampaignScheduledAt
 		}
@@ -533,4 +539,29 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		html = out
 	}
 	return ApprovalPreview{Subject: subject, Preheader: pre, HTML: html, Version: snap.Version}, nil
+}
+
+// scaleRoute spreads a moved audience over a snapshot's route by its split;
+// the rounding remainder goes to the largest share.
+func scaleRoute(shares []SnapshotShare, total int64) []SnapshotShare {
+	out := make([]SnapshotShare, len(shares))
+	copy(out, shares)
+	var sum int64
+	largest := -1
+	for i, sh := range shares {
+		sum += sh.Recipients
+		if largest < 0 || sh.Recipients > shares[largest].Recipients {
+			largest = i
+		}
+	}
+	if sum <= 0 || largest < 0 {
+		return out
+	}
+	var assigned int64
+	for i := range out {
+		out[i].Recipients = shares[i].Recipients * total / sum
+		assigned += out[i].Recipients
+	}
+	out[largest].Recipients += total - assigned
+	return out
 }

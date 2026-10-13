@@ -271,7 +271,8 @@ SELECT r.id, r.workspace_id, r.subject_type, r.campaign_id, r.automation_id, r.r
        coalesce(c.name, a.name, '')::text AS subject_name,
        coalesce(c.status, '')::text AS campaign_status,
        c.scheduled_at AS campaign_scheduled_at,
-       c.started_at AS campaign_started_at
+       c.started_at AS campaign_started_at,
+       coalesce(c.version, 0)::integer AS campaign_current_version
 FROM approval_requests r
 LEFT JOIN users u ON u.id = r.requested_by
 LEFT JOIN users d ON d.id = r.decided_by
@@ -287,39 +288,40 @@ type ApprovalGetParams struct {
 }
 
 type ApprovalGetRow struct {
-	ID                  uuid.UUID       `json:"id"`
-	WorkspaceID         uuid.UUID       `json:"workspaceId"`
-	SubjectType         string          `json:"subjectType"`
-	CampaignID          *uuid.UUID      `json:"campaignId"`
-	AutomationID        *uuid.UUID      `json:"automationId"`
-	RequestedBy         *uuid.UUID      `json:"requestedBy"`
-	RequestedAt         time.Time       `json:"requestedAt"`
-	Note                string          `json:"note"`
-	Status              string          `json:"status"`
-	MatchedRules        []string        `json:"matchedRules"`
-	ApprovalsRequired   int32           `json:"approvalsRequired"`
-	Snapshot            json.RawMessage `json:"snapshot"`
-	InvalidatedAt       *time.Time      `json:"invalidatedAt"`
-	InvalidatedReason   string          `json:"invalidatedReason"`
-	Changes             json.RawMessage `json:"changes"`
-	BypassReason        string          `json:"bypassReason"`
-	DecidedAt           *time.Time      `json:"decidedAt"`
-	CampaignVersion     *int32          `json:"campaignVersion"`
-	ReadinessRunID      *uuid.UUID      `json:"readinessRunId"`
-	DecidedBy           *uuid.UUID      `json:"decidedBy"`
-	InvalidatedBy       *uuid.UUID      `json:"invalidatedBy"`
-	RemindedAt          *time.Time      `json:"remindedAt"`
-	PreviousID          *uuid.UUID      `json:"previousId"`
-	InvalidatedFrom     string          `json:"invalidatedFrom"`
-	RequestedByName     string          `json:"requestedByName"`
-	RequestedByEmail    string          `json:"requestedByEmail"`
-	RequestedByColor    string          `json:"requestedByColor"`
-	DecidedByName       string          `json:"decidedByName"`
-	InvalidatedByName   string          `json:"invalidatedByName"`
-	SubjectName         string          `json:"subjectName"`
-	CampaignStatus      string          `json:"campaignStatus"`
-	CampaignScheduledAt *time.Time      `json:"campaignScheduledAt"`
-	CampaignStartedAt   *time.Time      `json:"campaignStartedAt"`
+	ID                     uuid.UUID       `json:"id"`
+	WorkspaceID            uuid.UUID       `json:"workspaceId"`
+	SubjectType            string          `json:"subjectType"`
+	CampaignID             *uuid.UUID      `json:"campaignId"`
+	AutomationID           *uuid.UUID      `json:"automationId"`
+	RequestedBy            *uuid.UUID      `json:"requestedBy"`
+	RequestedAt            time.Time       `json:"requestedAt"`
+	Note                   string          `json:"note"`
+	Status                 string          `json:"status"`
+	MatchedRules           []string        `json:"matchedRules"`
+	ApprovalsRequired      int32           `json:"approvalsRequired"`
+	Snapshot               json.RawMessage `json:"snapshot"`
+	InvalidatedAt          *time.Time      `json:"invalidatedAt"`
+	InvalidatedReason      string          `json:"invalidatedReason"`
+	Changes                json.RawMessage `json:"changes"`
+	BypassReason           string          `json:"bypassReason"`
+	DecidedAt              *time.Time      `json:"decidedAt"`
+	CampaignVersion        *int32          `json:"campaignVersion"`
+	ReadinessRunID         *uuid.UUID      `json:"readinessRunId"`
+	DecidedBy              *uuid.UUID      `json:"decidedBy"`
+	InvalidatedBy          *uuid.UUID      `json:"invalidatedBy"`
+	RemindedAt             *time.Time      `json:"remindedAt"`
+	PreviousID             *uuid.UUID      `json:"previousId"`
+	InvalidatedFrom        string          `json:"invalidatedFrom"`
+	RequestedByName        string          `json:"requestedByName"`
+	RequestedByEmail       string          `json:"requestedByEmail"`
+	RequestedByColor       string          `json:"requestedByColor"`
+	DecidedByName          string          `json:"decidedByName"`
+	InvalidatedByName      string          `json:"invalidatedByName"`
+	SubjectName            string          `json:"subjectName"`
+	CampaignStatus         string          `json:"campaignStatus"`
+	CampaignScheduledAt    *time.Time      `json:"campaignScheduledAt"`
+	CampaignStartedAt      *time.Time      `json:"campaignStartedAt"`
+	CampaignCurrentVersion int32           `json:"campaignCurrentVersion"`
 }
 
 func (q *Queries) ApprovalGet(ctx context.Context, arg ApprovalGetParams) (ApprovalGetRow, error) {
@@ -359,6 +361,7 @@ func (q *Queries) ApprovalGet(ctx context.Context, arg ApprovalGetParams) (Appro
 		&i.CampaignStatus,
 		&i.CampaignScheduledAt,
 		&i.CampaignStartedAt,
+		&i.CampaignCurrentVersion,
 	)
 	return i, err
 }

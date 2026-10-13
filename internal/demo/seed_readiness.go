@@ -184,7 +184,9 @@ func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 	linh := s.Users["linh@acme.io"]
 	checked := s.designDay(0, 9, 40)
 	compiled := s.designDay(0, 9, 39)
-	if _, err := s.Tx.Exec(ctx, `UPDATE campaigns SET thresholds = $2 WHERE id = $1`, id, json.RawMessage(readinessThresholds)); err != nil {
+	// The confirmation lists hello@acme.io as the reply-to address.
+	if _, err := s.Tx.Exec(ctx, `UPDATE campaigns SET thresholds = $2, reply_to = coalesce(nullif(reply_to, ''), 'hello@acme.io') WHERE id = $1`, id,
+		json.RawMessage(readinessThresholds)); err != nil {
 		return err
 	}
 	var subject string
@@ -215,8 +217,9 @@ func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 	if _, _, err := r.storeRun(ctx, id, f, checked, &linh.ID, readiness.TriggerManual); err != nil {
 		return err
 	}
-	// Two test sends at 09:12 and the schedule confirmed at 09:42.
-	tests := []struct{ to, provider, mailbox string }{{"linh@acme.io", "SES", "Gmail"}, {"team-qa@acme.io", "Postal", "Outlook"}}
+	// Two test sends at 09:12 and the schedule confirmed at 09:42. The list
+	// is newest first, and the board lists Linh's own test first.
+	tests := []struct{ to, provider, mailbox string }{{"team-qa@acme.io", "Postal", "Outlook"}, {"linh@acme.io", "SES", "Gmail"}}
 	for i, t := range tests {
 		if err := readinessAudit(ctx, s, s.designDay(0, 9, 12).Add(time.Duration(i)*time.Second), linh, "campaign.test_send", "campaign", id.String(), "Weekly Digest #142",
 			map[string]any{"to": []string{t.to}, "variant": "", "provider": t.provider}, map[string]any{"delivered": map[string]string{t.to: t.mailbox}}, "203.0.113.9"); err != nil {

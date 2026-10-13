@@ -353,7 +353,8 @@ export function SchedulingCard({
       {options.map((o) => (
         <label key={o.mode} className="rv-rad">
           <input type="radio" name={name} checked={draft.mode === o.mode} disabled={off} onChange={() => pick(o.mode)} />
-          <span className={o.mode === 'now' ? undefined : 'flex-1'}>
+          {/* As on the board, a long caption may take a few pixels from the radio. */}
+          <span className={o.mode === 'at' || draft.mode === o.mode ? 'flex-1' : undefined}>
             <span className="font-semibold">{o.title}</span>
             <br />
             <span className="k">{o.caption}</span>

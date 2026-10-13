@@ -14,7 +14,8 @@ SELECT r.*,
        coalesce(c.name, a.name, '')::text AS subject_name,
        coalesce(c.status, '')::text AS campaign_status,
        c.scheduled_at AS campaign_scheduled_at,
-       c.started_at AS campaign_started_at
+       c.started_at AS campaign_started_at,
+       coalesce(c.version, 0)::integer AS campaign_current_version
 FROM approval_requests r
 LEFT JOIN users u ON u.id = r.requested_by
 LEFT JOIN users d ON d.id = r.decided_by

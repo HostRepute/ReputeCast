@@ -1296,6 +1296,10 @@
       "ApprovalCampaignView": {
         "additionalProperties": false,
         "properties": {
+          "currentVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
           "editedAt": {
             "format": "date-time",
             "type": "string"
@@ -1333,7 +1337,8 @@
           "subject",
           "preheader",
           "from",
-          "version"
+          "version",
+          "currentVersion"
         ],
         "type": "object"
       },

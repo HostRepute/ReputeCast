@@ -263,11 +263,15 @@ export function checksByGroup(run: Run): { group: Group; checks: Check[] }[] {
   return run.groups.map((g) => ({ group: g, checks: run.checks.filter((c) => c.group === g.key) }))
 }
 
-/** Warnings people confirm before sending (keys and sentences). */
+/**
+ * Warnings people confirm before sending (keys and sentences); the ones
+ * with a one-click alternative ("Exclude them instead") come first.
+ */
 export function acknowledgements(run: Run): { key: string; text: string; fix?: Fix }[] {
   return run.checks
     .filter((c) => c.status === 'warn')
     .map((c) => ({ key: c.key, text: c.ack || `I understand: ${c.title}.`, fix: c.fixes.find((f) => f.kind === 'apply' && f.action === 'exclude_sunset') }))
+    .sort((a, b) => Number(Boolean(b.fix)) - Number(Boolean(a.fix)))
 }
 
 /** "Nov 4, 2026" in a zone. */

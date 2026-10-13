@@ -254,7 +254,7 @@ function InvalidatedCard({ detail: d, busy, onApprove, onChanges }: { detail: De
   const now = useNow()
   const approved = d.decisions.filter((x) => x.decision === 'approve')
   const last = approved[approved.length - 1]
-  const next = d.campaign?.version ?? d.version
+  const next = d.campaign?.currentVersion || d.version
   const notified = d.approvers.map((p) => p.name.split(' ')[0]).join(' and ')
   const scheduled = d.campaign?.scheduledAt ? 'the send stays scheduled but won’t start without a new approval' : 'the send won’t start without a new approval'
   return (
@@ -773,7 +773,7 @@ function DecisionCard({ detail: d, busy, onApprove, onChanges, onReject }: { det
         ) : d.status === 'invalidated' ? (
           <div className="note n text-[12.5px]">
             <span>
-              This request covered v{d.version}. {d.can.decide ? `Deciding on v${d.campaign?.version ?? d.version} opens a new request with the diff attached.` : 'A new request carries the diff to the approvers.'}
+              This request covered v{d.version}. {d.can.decide ? `Deciding on v${d.campaign?.currentVersion || d.version} opens a new request with the diff attached.` : 'A new request carries the diff to the approvers.'}
             </span>
           </div>
         ) : (

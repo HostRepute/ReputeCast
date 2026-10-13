@@ -177,7 +177,7 @@ export function WaitingCard({
         <div className="row gap-2.5!">
           <Badge tone="warn">Pending</Badge>
           <span className="font-semibold">
-            Requested {ago(req.requestedAt, now)} · {req.given} of {req.needed} {plural(req.needed, 'approval', 'approvals')}
+            Requested {ago(req.requestedAt, now)} · {req.given} of {req.needed} approvals
             {mine ? '' : ` · by ${req.requestedBy.name}`}
           </span>
         </div>

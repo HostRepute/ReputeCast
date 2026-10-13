@@ -3,7 +3,7 @@ import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
-import { bySeverity, checksByGroup, flatTitle, type Check, type Fix, type Run } from './logic'
+import { bySeverity, checksByGroup, flatTitle, groupTitles, type Check, type Fix, type Run } from './logic'
 import { CheckBadge, CheckRow, FixButtons } from './parts'
 
 type Actions = {
@@ -172,12 +172,23 @@ export function UnknownList({ run }: { run: Run }) {
   const rows = run.checks
     .filter((c) => groups.has(c.group))
     .sort((a, b) => (a.status === 'unknown' ? 0 : 1) - (b.status === 'unknown' ? 0 : 1))
+  const shares = run.estimates.route.shares
+  // Provider rates come from the providers themselves: they still answer.
+  const text = (c: Check) => {
+    const id = c.key.startsWith('reputation.provider.') ? c.key.slice('reputation.provider.'.length) : ''
+    const share = id ? shares.find((s) => s.providerId === id) : undefined
+    if (c.status === 'pass' && share && c.short) {
+      const from = share.priceLabel === 'self-hosted' ? share.short : `the ${share.short} API`
+      return `${groupTitles[c.group]} · ${c.short.replace(', complaints ', ' and complaint ')} (from ${from}, unaffected)`
+    }
+    return (c.flatTitle || c.title).replace(/^([^:]+): /, '$1 · ')
+  }
   return (
     <div className="card flex flex-col">
       {rows.map((c) => (
         <div key={c.key} className="rv-line">
           <CheckBadge status={c.status} />
-          <span>{(c.flatTitle || c.title).replace(/^([^:]+): /, '$1 · ')}</span>
+          <span>{text(c)}</span>
           {c.status === 'unknown' && c.note ? <span className="k ml-auto">{c.note}</span> : null}
         </div>
       ))}

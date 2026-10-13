@@ -299,4 +299,17 @@
     font-size: 16px;
     letter-spacing: 0.08em;
   }
+
+  /* Phones, as on the boards: fields never widen their card, and the date
+     and time drop under each other. */
+  @media (max-width: 767px) {
+    .rv-aside .lbl > .in,
+    .rv-when > .in {
+      width: 0;
+      min-width: 100%;
+    }
+    .rv-when {
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+  }
 }

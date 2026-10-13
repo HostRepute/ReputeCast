@@ -106,7 +106,7 @@ function RequestsCard({
         </div>
         <div className="row gap-2!">
           {data.allRequests ? (
-            <select className="in w-[150px]" aria-label="Filter by author" value={search.author ?? ''} onChange={(e) => onFilter({ author: e.target.value || undefined })}>
+            <select className="in w-[150px] max-md:w-0 max-md:min-w-full" aria-label="Filter by author" value={search.author ?? ''} onChange={(e) => onFilter({ author: e.target.value || undefined })}>
               <option value="">Any author</option>
               {data.authors.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -115,7 +115,7 @@ function RequestsCard({
               ))}
             </select>
           ) : null}
-          <select className="in w-[150px]" aria-label="Filter by approver" value={search.approver ?? ''} onChange={(e) => onFilter({ approver: e.target.value || undefined })}>
+          <select className="in w-[150px] max-md:w-0 max-md:min-w-full" aria-label="Filter by approver" value={search.approver ?? ''} onChange={(e) => onFilter({ approver: e.target.value || undefined })}>
             <option value="">Any approver</option>
             {data.approvers.map((a) => (
               <option key={a.id} value={a.id}>
@@ -123,7 +123,7 @@ function RequestsCard({
               </option>
             ))}
           </select>
-          <select className="in w-[140px]" aria-label="Date range" value={days} onChange={(e) => onFilter({ days: Number(e.target.value) === 30 ? undefined : Number(e.target.value) })}>
+          <select className="in w-[140px] max-md:w-0 max-md:min-w-full" aria-label="Date range" value={days} onChange={(e) => onFilter({ days: Number(e.target.value) === 30 ? undefined : Number(e.target.value) })}>
             <option value={30}>Last 30 days</option>
             <option value={7}>Last 7 days</option>
             <option value={90}>Last 90 days</option>

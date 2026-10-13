@@ -180,3 +180,17 @@ func TestScheduleText(t *testing.T) {
 		t.Fatalf("best time: %s", got)
 	}
 }
+
+func TestScaleRoute(t *testing.T) {
+	got := scaleRoute([]SnapshotShare{{Short: "SES", Recipients: 15002}}, 17110)
+	if got[0].Recipients != 17110 {
+		t.Fatalf("one share: %+v", got)
+	}
+	got = scaleRoute([]SnapshotShare{{Short: "SES", Recipients: 43121}, {Short: "Postal", Recipients: 4791}}, 50000)
+	if got[0].Recipients+got[1].Recipients != 50000 || got[1].Recipients != 4999 {
+		t.Fatalf("two shares: %+v", got)
+	}
+	if out := scaleRoute(nil, 10); len(out) != 0 {
+		t.Fatalf("no shares: %+v", out)
+	}
+}

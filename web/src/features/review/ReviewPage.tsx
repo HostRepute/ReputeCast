@@ -302,17 +302,25 @@ function ReviewBody({
   const progress = d.running
   if (running || progress) {
     return (
-      <>
+      <div className="flex flex-col gap-3.5">
         <RunningBanner
           progress={progress}
           action={
-            <Button variant="primary" className="rv-big rv-off" disabledReason="Wait for the checks to finish.">
+            <Button className="rv-big rv-off" disabledReason="Wait for the checks to finish.">
               {d.schedule.mode === 'now' ? 'Send' : 'Schedule send'}
             </Button>
           }
         />
-        {progress ? <RunningList progress={progress} /> : <Loading label="Starting the checks" className="card flex flex-col gap-3 p-4"><Skeleton w="60%" /><Skeleton w="45%" /><Skeleton w="52%" /></Loading>}
-      </>
+        {progress ? (
+          <RunningList progress={progress} />
+        ) : (
+          <Loading label="Starting the checks" className="card flex flex-col gap-3 p-4">
+            <Skeleton w="60%" />
+            <Skeleton w="45%" />
+            <Skeleton w="52%" />
+          </Loading>
+        )}
+      </div>
     )
   }
 
@@ -388,7 +396,7 @@ function ReviewBody({
     )
   } else if (scheduled) {
     top = (
-      <>
+      <div className="flex flex-col gap-3.5">
         <ScheduledBanner
           review={d}
           actions={
@@ -403,7 +411,7 @@ function ReviewBody({
           }
         />
         <ScheduledTiles review={d} />
-      </>
+      </div>
     )
   } else if (!c.editable) {
     const sending = c.status === 'sending' || c.status === 'paused'
@@ -428,7 +436,7 @@ function ReviewBody({
     )
   } else if (incomplete) {
     top = (
-      <>
+      <div className="flex flex-col gap-3.5">
         <IncompleteBanner
           run={run}
           actions={
@@ -443,8 +451,8 @@ function ReviewBody({
           }
         />
         <UnknownList run={run} />
-        <span className="k">“Continue with provider data only” records the skipped checks in the campaign's audit trail and re-tries them during the send.</span>
-      </>
+        <span className="k">"Continue with provider data only" records the skipped checks in the campaign's audit trail and re-tries them during the send.</span>
+      </div>
     )
   } else if (d.stale) {
     top = (
