@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -23,10 +24,8 @@ type member struct {
 		Label string `json:"label"`
 		All   bool   `json:"all"`
 	} `json:"scope"`
-	Notes  []string `json:"notes"`
-	SignIn []struct {
-		Kind, Label string
-	} `json:"signIn"`
+	Notes  []string                    `json:"notes"`
+	SignIn []access.MemberSignInMethod `json:"signIn"`
 	TwoFA struct {
 		State     string `json:"state"`
 		GraceDays *int   `json:"graceDays"`
@@ -54,6 +53,14 @@ func byEmail(t *testing.T, l memberList, email string) member {
 	}
 	t.Fatalf("no member %s in %+v", email, l.Items)
 	return member{}
+}
+
+func signInLabels(ms []access.MemberSignInMethod) string {
+	out := make([]string, len(ms))
+	for i, m := range ms {
+		out[i] = m.Label
+	}
+	return strings.Join(out, " · ")
 }
 
 func roleID(t *testing.T, l memberList, key string) string {
@@ -90,12 +97,26 @@ func TestMembersList(t *testing.T) {
 	if linh.Role.Key != "owner" || !linh.LastOwner || strings.Join(linh.Notes, ",") != "instance admin,break-glass" || linh.TwoFA.State != "on" {
 		t.Fatalf("linh: %+v", linh)
 	}
-	if len(linh.SignIn) != 2 || linh.SignIn[0].Label != "Password" || linh.SignIn[1].Label != "passkey" {
-		t.Fatalf("linh sign-in: %+v", linh.SignIn)
-	}
 	marcus := byEmail(t, l, "marcus@acme.io")
-	if marcus.TwoFA.State != "idp" || len(marcus.SignIn) != 1 || marcus.SignIn[0].Label != "Google Workspace SSO" {
+	if marcus.TwoFA.State != "idp" {
 		t.Fatalf("marcus: %+v", marcus)
+	}
+	// The Sign-in column shows the member's own credentials when they have
+	// any, otherwise their SSO or social sign-in; the member page lists all.
+	if got := signInLabels(linh.SignIn); got != "Password · passkey" {
+		t.Fatalf("linh sign-in: %s", got)
+	}
+	if got := signInLabels(marcus.SignIn); got != "Google Workspace SSO" {
+		t.Fatalf("marcus sign-in: %s", got)
+	}
+	for _, m := range l.Items {
+		var d struct {
+			SignInMethods []access.MemberSignInMethod `json:"signInMethods"`
+		}
+		c.Do("GET", ws+"/members/"+m.ID, nil).MustStatus(t, 200).JSON(t, &d)
+		if got, want := signInLabels(m.SignIn), signInLabels(access.PrimarySignIn(d.SignInMethods)); got != want {
+			t.Fatalf("%s: the list shows %q, the rule on %+v gives %q", m.Email, got, d.SignInMethods, want)
+		}
 	}
 	aisha := byEmail(t, l, "aisha@acme.io")
 	if aisha.TwoFA.State != "required" || aisha.TwoFA.GraceDays == nil || *aisha.TwoFA.GraceDays != 3 {

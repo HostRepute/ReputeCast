@@ -3307,6 +3307,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "signInMethods": {
+            "items": {
+              "$ref": "#/components/schemas/MemberSignInMethod"
+            },
+            "type": "array"
+          },
           "ssoDomain": {
             "type": "string"
           }
@@ -3321,6 +3327,7 @@
           "canApprove",
           "sessions",
           "scheduledCampaigns",
+          "signInMethods",
           "activity",
           "canManage",
           "helpers"

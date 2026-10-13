@@ -158,7 +158,7 @@ func (s *Service) toMember(r memberRow, ids []access.Identity, lists map[uuid.UU
 		Role:   TeamRoleRef{ID: r.RoleID.String(), Key: r.RoleKey, Name: r.RoleName, Builtin: r.RoleBuiltin},
 		Scope:  access.View(access.ParseScope(r.Scope), lists, true),
 		Notes:  []string{},
-		SignIn: access.SignInMethods(r.HasPassword, r.PasskeyCount, ids),
+		SignIn: access.PrimarySignIn(access.SignInMethods(r.HasPassword, r.PasskeyCount, ids)),
 		TwoFA: access.TwoFAStatus(access.TwoFAInput{
 			TOTP: r.TotpEnabledAt != nil, Passkeys: r.PasskeyCount, SSOOnly: ssoOnly,
 			GraceUntil: r.TwofaGraceUntil, Required: required && r.TwofaGraceUntil != nil, Now: s.now(),
@@ -338,7 +338,10 @@ type TeamMemberDetail struct {
 	// ScheduledCampaigns counts scheduled sends the member created (they keep their schedule).
 	ScheduledCampaigns int64 `json:"scheduledCampaigns"`
 	// SSODomain is the email domain used with SSO ("acme.io").
-	SSODomain string               `json:"ssoDomain,omitempty"`
+	SSODomain string `json:"ssoDomain,omitempty"`
+	// SignInMethods is every way the member signs in, linked SSO and social
+	// identities included (the list shows only the primary ones).
+	SignInMethods []access.MemberSignInMethod `json:"signInMethods"`
 	Activity  []TeamMemberActivity `json:"activity"`
 	CanManage bool                 `json:"canManage"`
 	// Helpers are members who hold team:manage.
@@ -449,6 +452,10 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 				out.SSODomain = r.Email[i+1:]
 			}
 		}
+	}
+	out.SignInMethods = []access.MemberSignInMethod{}
+	if m.Status == "active" {
+		out.SignInMethods = access.SignInMethods(r.HasPassword, r.PasskeyCount, idents[r.UserID])
 	}
 	acts, err := s.Q.TeamMemberActivity(ctx, store.TeamMemberActivityParams{WorkspaceID: &ws.ID, UserID: &r.UserID, Lim: 4})
 	if err != nil {

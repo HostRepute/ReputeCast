@@ -343,8 +343,9 @@ function SessionsCard({ d, manageReason }: { d: Detail; manageReason?: string })
   const qc = useQueryClient()
   const m = d.member
   const signOut = $api.useMutation('post', '/api/v1/workspaces/{workspace}/members/{memberId}/sign-out')
-  const methods = m.signIn.length
-    ? m.signIn.map((s) => (s.kind === 'sso' && d.ssoDomain ? `${s.label} (${d.ssoDomain})` : s.label)).join(' · ')
+  // Every method, linked identities included (the team list shows the primary ones).
+  const methods = d.signInMethods.length
+    ? d.signInMethods.map((s) => (s.kind === 'sso' && d.ssoDomain ? `${s.label} (${d.ssoDomain})` : s.label)).join(' · ')
     : 'None (deactivated)'
   const twoFA = { on: m.twoFA.method === 'passkey' ? 'Passkey' : 'Authenticator app (TOTP)', idp: 'Enforced by the IdP', required: 'Required, not set up yet', off: 'Off' }[m.twoFA.state]
   return (

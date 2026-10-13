@@ -39,6 +39,17 @@ type settings struct {
 	Reason                            string
 }
 
+func senderID(t *testing.T, s settings, email string) string {
+	t.Helper()
+	for _, sn := range s.Senders {
+		if sn.Email == email {
+			return sn.ID
+		}
+	}
+	t.Fatalf("no sender %s in %+v", email, s.Senders)
+	return ""
+}
+
 func TestGeneralSettings(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -46,8 +57,15 @@ func TestGeneralSettings(t *testing.T) {
 	c.SignInDemo("linh@acme.io")
 	var s settings
 	c.Do("GET", ws+"/settings", nil).MustStatus(t, 200).JSON(t, &s)
-	if s.Name != "Acme Newsletter" || s.DefaultSenderID == "" || len(s.Senders) != 3 || strings.Join(s.Senders[0].VerifiedOn, ",") != "SES,Postal" {
+	// Other seeders add senders too, so they are found by address, not counted.
+	digest, product := senderID(t, s, "digest@news.acme.io"), senderID(t, s, "product@news.acme.io")
+	if s.Name != "Acme Newsletter" || s.DefaultSenderID != digest {
 		t.Fatalf("general: %+v", s)
+	}
+	for _, sn := range s.Senders {
+		if sn.ID == digest && strings.Join(sn.VerifiedOn, ",") != "SES,Postal" {
+			t.Fatalf("digest@ verified on %v", sn.VerifiedOn)
+		}
 	}
 	if strings.Join(s.Approvals.Rules, " · ") != "audience ≥ 10,000 · route includes a Warming-up provider · author lacks campaigns:send" ||
 		strings.Join(s.Approvals.Approvers, ", ") != "Linh Nguyen, Marcus Chen" {
@@ -60,10 +78,10 @@ func TestGeneralSettings(t *testing.T) {
 	if !s.CanManage || !s.CanTransfer || !s.CanDelete {
 		t.Fatal("owner can do everything")
 	}
-	c.Do("PUT", ws+"/settings", map[string]any{"name": "Acme Weekly", "timezone": "Europe/Berlin", "defaultSenderId": s.Senders[1].ID}).MustStatus(t, 204)
+	c.Do("PUT", ws+"/settings", map[string]any{"name": "Acme Weekly", "timezone": "Europe/Berlin", "defaultSenderId": product}).MustStatus(t, 204)
 	c.Do("PUT", ws+"/settings", map[string]any{"name": "Acme Weekly", "timezone": "Mars/Olympus"}).MustStatus(t, 422)
 	c.Do("GET", ws+"/settings", nil).MustStatus(t, 200).JSON(t, &s)
-	if s.Name != "Acme Weekly" || s.Timezone != "Europe/Berlin" || s.DefaultSenderID != s.Senders[1].ID {
+	if s.Name != "Acme Weekly" || s.Timezone != "Europe/Berlin" || s.DefaultSenderID != product {
 		t.Fatalf("saved: %+v", s)
 	}
 	v := env.Client()

@@ -1925,6 +1925,7 @@ export interface components {
             scheduledCampaigns: number;
             /** Format: int64 */
             sessions: number;
+            signInMethods: components["schemas"]["MemberSignInMethod"][];
             ssoDomain?: string;
         };
         TeamMemberList: {

@@ -245,6 +245,23 @@ func SignInMethods(hasPassword bool, passkeys int64, ids []Identity) []MemberSig
 	return append(head, out...)
 }
 
+// PrimarySignIn is the sign-in shown in the team list: the member's own
+// credentials (password, passkey) when they have any, otherwise their SSO or
+// social sign-ins. Linked identities next to a password are listed on the
+// member page only.
+func PrimarySignIn(all []MemberSignInMethod) []MemberSignInMethod {
+	own := []MemberSignInMethod{}
+	for _, m := range all {
+		if m.Kind == "password" || m.Kind == "passkey" {
+			own = append(own, m)
+		}
+	}
+	if len(own) > 0 {
+		return own
+	}
+	return append([]MemberSignInMethod{}, all...)
+}
+
 // MemberTwoFA is a member's two-factor status (A5 §5.8): On, Off, Via IdP or
 // "Required, grace ends in N days".
 type MemberTwoFA struct {
