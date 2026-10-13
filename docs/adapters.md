@@ -27,7 +27,7 @@ This guide covers three things:
 | SparkPost | `sparkpost` | 1 | Basic auth (SparkPost doesn't sign) | API | Two-way |
 | Mailjet | `mailjet` | 50 | Basic auth in the callback URL (Mailjet doesn't sign) | API | Two-way (campaign exclusions) |
 | Brevo | `brevo` | 1 | Bearer token (Brevo doesn't sign) | API | Pull only |
-| Azure Communication Services | `azureacs` | 1 | Shared secret delivery header; Event Grid validation handshake | Manual DNS | Local only |
+| Azure Communication Services | `azureacs` | 1 | Entra ID token (protected webhook) or shared secret delivery header; Event Grid validation handshake | Manual DNS | Local only |
 | Generic SMTP | `smtp` | 25 per connection | Bounce mailbox (IMAP/POP3) | Manual DNS | Local only |
 | Generic HTTP adapter | `httpgeneric` | 1 | Configurable: HMAC, Standard Webhooks, basic auth, header secret | Manual DNS | Local only |
 

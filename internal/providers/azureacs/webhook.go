@@ -19,6 +19,9 @@ import (
 
 func asCallError(err error, target **providers.CallError) bool { return errors.As(err, target) }
 
+// now is the clock, replaced in tests.
+var now = time.Now
+
 // gridEvent is an Event Grid event in the Event Grid schema or as a
 // CloudEvent.
 type gridEvent struct {
@@ -86,10 +89,17 @@ func (p *Provider) Handshake(_ context.Context, r *http.Request, body []byte) (b
 }
 
 // VerifyWebhook implements providers.WebhookVerifier. Event Grid doesn't
-// sign deliveries; the subscription sends the provider's webhook secret as
-// a delivery header (X-ReputeCast-Secret, or Authorization: Bearer) or in
-// the endpoint URL's query (secret=).
-func (p *Provider) VerifyWebhook(_ context.Context, r *http.Request, _ []byte) error {
+// sign deliveries. A subscription protected with Microsoft Entra ID sends a
+// bearer token, checked against the webhook application (when
+// event_grid_audience is set); otherwise the subscription sends the
+// provider's webhook secret as a delivery header (X-ReputeCast-Secret, or
+// Authorization: Bearer) or in the endpoint URL's query (secret=).
+func (p *Provider) VerifyWebhook(ctx context.Context, r *http.Request, _ []byte) error {
+	if p.s.EventGridAudience != "" {
+		if token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer "); ok && strings.Count(token, ".") == 2 {
+			return p.verifyEntraToken(ctx, strings.TrimSpace(token))
+		}
+	}
 	got := strings.TrimSpace(r.Header.Get(SecretHeader))
 	if got == "" {
 		got, _ = strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")

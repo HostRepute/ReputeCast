@@ -4,8 +4,9 @@
 // key (HMAC-SHA256 request signing) or a Microsoft Entra ID application
 // (client credentials), and receives delivery reports from an Event Grid
 // subscription: the validation handshake is answered, and deliveries are
-// authenticated with a shared secret Event Grid sends as a delivery header
-// (or in the URL's query).
+// authenticated with the Microsoft Entra ID token of a protected webhook,
+// or with a shared secret Event Grid sends as a delivery header (or in the
+// URL's query).
 //
 // What the data-plane API can't do stays manual and is not claimed:
 // domains, sender usernames, Event Grid subscriptions and suppression lists
@@ -79,6 +80,12 @@ type Settings struct {
 	// 100 for a custom domain until raised), shown as the account's rate.
 	PerMinute int64 `json:"per_minute,omitempty"`
 	PerHour   int64 `json:"per_hour,omitempty"`
+	// EventGridAudience is the Application ID (or ID URI) of the Entra ID
+	// application protecting the webhook, when the Event Grid subscription
+	// uses Microsoft Entra authentication; EventGridTenantID is its tenant
+	// (default TenantID).
+	EventGridAudience string `json:"event_grid_audience,omitempty"`
+	EventGridTenantID string `json:"event_grid_tenant_id,omitempty"`
 	// AuthorityURL overrides Entra ID's token host (tests, sovereign clouds).
 	AuthorityURL string `json:"authority_url,omitempty"`
 }
@@ -123,6 +130,9 @@ func Descriptor() providers.Descriptor {
 			{Key: "client_secret", Label: "Client secret", Secret: true},
 			{Key: "per_minute", Label: "Sending limit · per minute", Help: "30 for a custom domain until Azure raises it."},
 			{Key: "per_hour", Label: "Sending limit · per hour", Help: "100 for a custom domain until Azure raises it."},
+			{Key: "event_grid_audience", Label: "Event Grid · Entra application ID",
+				Help: "Only when the Event Grid subscription uses Microsoft Entra authentication: the webhook application's ID or ID URI. Otherwise the subscription sends the webhook secret as the X-ReputeCast-Secret delivery header."},
+			{Key: "event_grid_tenant_id", Label: "Event Grid · Entra tenant ID", Help: "The tenant of that application, when it isn't the one above."},
 		},
 		New: New,
 	}
