@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/passwordreuse"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -201,6 +202,11 @@ func (s *Service) ResetPassword(ctx context.Context, token, password string) (Pa
 	u, err := s.Q.GetUser(ctx, r.UserID)
 	if err != nil {
 		return PasswordResetDone{}, err
+	}
+	if used, err := passwordreuse.Used(ctx, s.Q, u.ID, u.PasswordHash, password, st.PasswordReuse); err != nil {
+		return PasswordResetDone{}, err
+	} else if used {
+		return PasswordResetDone{}, api.Invalid("body.password", passwordreuse.Message(st.PasswordReuse))
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)

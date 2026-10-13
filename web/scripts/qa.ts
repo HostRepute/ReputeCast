@@ -84,6 +84,13 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
     if (!hit) throw new Error(`no campaign named ${name}`)
     return hit.id
   },
+  async sso(ctx, name) {
+    const r = await ctx.request.get(`${app}/api/v1/admin/sso`)
+    const body = (await r.json()) as { items?: { id: string; name: string }[] }
+    const hit = body.items?.find((p) => p.name === name)
+    if (!hit) throw new Error(`no SSO provider named ${name}`)
+    return hit.id
+  },
 }
 
 async function resolvePath(ctx: BrowserContext, path: string) {

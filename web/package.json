@@ -19,7 +19,8 @@
     "e2e": "playwright test",
     "api:types": "openapi-typescript openapi.json -o src/api/schema.d.ts",
     "tokens": "node scripts/tokens.ts",
-    "shot": "node scripts/shot.ts"
+    "shot": "node scripts/shot.ts",
+    "qa": "node scripts/qa.ts"
   },
   "dependencies": {
     "@codemirror/lang-html": "6.4.12",

@@ -14,7 +14,7 @@ func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		apikeys.Register(h, &apikeys.Service{
 			Pool: a.Pool, Q: a.Q, Audit: a.Audit,
-			PublicURL: func(context.Context) string { return a.Cfg.HTTP.PublicURL },
+			PublicURL: func(context.Context) string { return a.URLs.Base() },
 		})
 	})
 	// Calls with a revoked or expired key are counted, so the keys screen can

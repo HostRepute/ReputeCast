@@ -193,6 +193,6 @@ func SignatureVerified(ctx context.Context) bool {
 // Registered reports whether an adapter is in the registry (and therefore
 // connectable from this build).
 func Registered(adapter string) bool {
-	_, ok := registry[adapter]
+	_, ok := Lookup(adapter)
 	return ok
 }

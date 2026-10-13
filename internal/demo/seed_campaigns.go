@@ -20,6 +20,15 @@ var MailboxShare = []struct {
 
 // sentCampaign describes a sent campaign's headline numbers. Rates are
 // percentages of sent (delivered) or of delivered (opens, clicks).
+// The October Product Update's subject test, as on the Report board: A is
+// the campaign's subject (and the email's headline), B won.
+const (
+	OctoberSubjectA = "October Product Update: three launches"
+	OctoberSubjectB = "What shipped in October, and what we're retiring"
+)
+
+var octoberVariants = []map[string]string{{"key": "A", "subject": OctoberSubjectA}, {"key": "B", "subject": OctoberSubjectB}}
+
 type sentCampaign struct {
 	name, audience, note string
 	at                   time.Duration // before "design today" 10:00
@@ -166,7 +175,11 @@ func seedSent(ctx context.Context, s *Seeder, c sentCampaign, audience map[strin
 	id := ID()
 	var ab any
 	if c.ab != "" {
-		ab = json.RawMessage(`{"kind":"subject","variants":[{"key":"A","subject":"October at Acme: what shipped"},{"key":"B","subject":"Feature flags are here (and 4 more things)"}],"test_percent":20,"metric":"clicks","duration_hours":4,"winner":"B"}`)
+		raw, err := json.Marshal(map[string]any{"kind": "subject", "variants": octoberVariants, "test_percent": 20, "metric": "clicks", "duration_hours": 4, "winner": "B"})
+		if err != nil {
+			return err
+		}
+		ab = json.RawMessage(raw)
 	}
 	origin, note := "", c.note
 	if _, imported := c.perProvider["brevo"]; imported {

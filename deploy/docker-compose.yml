@@ -21,7 +21,9 @@ services:
       retries: 20
 
   app:
-    image: ghcr.io/hostrepute/reputecast:${REPUTECAST_VERSION:-latest}
+    # REPUTECAST_IMAGE=reputecast with REPUTECAST_VERSION=local runs an image
+    # built from a checkout (make docker VERSION=local).
+    image: ${REPUTECAST_IMAGE:-ghcr.io/hostrepute/reputecast}:${REPUTECAST_VERSION:-latest}
     restart: unless-stopped
     depends_on:
       postgres:

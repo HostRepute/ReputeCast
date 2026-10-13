@@ -9,15 +9,20 @@ export function Menu({
   align = 'end',
   className,
   label,
+  open,
+  onOpenChange,
 }: {
   trigger: ReactNode
   children: ReactNode
   align?: 'start' | 'end' | 'center'
   className?: string
   label?: string
+  /** Optional control, e.g. to highlight the row whose menu is open. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
   return (
-    <DropdownMenu.Root modal={false}>
+    <DropdownMenu.Root modal={false} open={open} onOpenChange={onOpenChange}>
       <DropdownMenu.Trigger asChild>{trigger}</DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content className={cn('menu', className)} align={align} sideOffset={6} collisionPadding={12} aria-label={label}>

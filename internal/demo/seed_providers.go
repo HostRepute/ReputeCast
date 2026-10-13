@@ -97,6 +97,9 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 		s.Providers[p.key] = id
 	}
 	ses, postmark, postal := s.Providers["ses"], s.Providers["postmark"], s.Providers["postal"]
+	if err := seedEngineeringBlogProvider(ctx, s, sesCaps, linh.ID, checked); err != nil {
+		return err
+	}
 
 	// Routing: Broadcasts SES 90 / Postal 10 with two conditions, Automations
 	// SES → Postmark, System Postmark → SES.
@@ -168,6 +171,40 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 	// seeder owns sending domains, so only fill in what's missing once
 	// every seeder ran.
 	s.After(seedProviderDKIM)
+	return nil
+}
+
+// seedEngineeringBlogProvider gives Acme Engineering Blog its own SES
+// account (Instance admin lists it under the workspace), routed for every
+// stream.
+func seedEngineeringBlogProvider(ctx context.Context, s *Seeder, caps state.Snapshot, by uuid.UUID, checked time.Time) error {
+	eng, ok := s.Workspaces["acme-engineering-blog"]
+	if !ok {
+		return nil
+	}
+	p := demoProvider{
+		key: "eng-ses", adapter: "ses", name: "Amazon SES", label: "us-west-2", status: state.Healthy, detail: "Production · no enforcement", ipMode: "shared",
+		config: map[string]any{"demo": true, "region": "us-west-2", "configuration_set": "rc-blog", "access": "role",
+			"role_arn": "arn:aws:iam::123456789012:role/reputecast-ses-blog"},
+		caps:   caps,
+		limits: state.Limits{Bounce: state.Limit{Limit: 5, Review: 5, Pause: 10, Label: "SES"}, Complaint: state.Limit{Limit: 0.1, Review: 0.1, Pause: 0.5, Label: "SES"}},
+		health: state.Health{Quota: &state.Quota{Kind: "rolling_24h", Max: 50000, Used: 0}, Rate: &state.Rate{Max: 14},
+			Account: "Production · no enforcement", LastSuccessAt: &checked, LastSuccessOp: "GetAccount"},
+		pricing:   state.Pricing{Model: "metered", Per1000: 0.10, Source: "AWS pricing"},
+		tracking:  state.Tracking{Detail: "Configuration set rc-blog: open and click tracking off.", Scope: "Configuration set rc-blog", Mode: "reputecast", CheckedAt: &checked},
+		connected: 120 * 24 * time.Hour, lastEvent: 26 * time.Hour,
+	}
+	id := ID()
+	if err := insertProvider(ctx, s, id, eng.ID, p, by, checked); err != nil {
+		return err
+	}
+	splits := `[{"provider_id":"` + id.String() + `","weight":100}]`
+	for _, stream := range []string{"broadcast", "automation", "system"} {
+		if _, err := s.Tx.Exec(ctx, `INSERT INTO routing_rules (id, workspace_id, stream, priority, name, conditions, splits, updated_by, updated_at)
+			VALUES ($1,$2,$3,100,'','{}',$4,$5,$6)`, ID(), eng.ID, stream, json.RawMessage(splits), by, s.Ago(120*24*time.Hour)); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

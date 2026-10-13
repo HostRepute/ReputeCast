@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/passwordreuse"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/workspaces"
 )
@@ -41,6 +42,11 @@ func (s *Service) ChangePassword(ctx context.Context, current, next string) erro
 	}
 	if current == next {
 		return api.Invalid("body.password", "Choose a password different from the current one.")
+	}
+	if used, err := passwordreuse.Used(ctx, s.Q, u.ID, u.PasswordHash, next, pol.PasswordReuse); err != nil {
+		return err
+	} else if used {
+		return api.Invalid("body.password", passwordreuse.Message(pol.PasswordReuse))
 	}
 	if pol.BreachedCheck {
 		if hit, err := s.Breach.Breached(ctx, next); err == nil && hit {
