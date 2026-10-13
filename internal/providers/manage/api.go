@@ -19,23 +19,29 @@ type providerInput struct {
 	ProviderID string `path:"providerId" format:"uuid"`
 }
 
+// Huma only reads parameters from exported embedded structs, so every input
+// spells out its path parameters.
 type credentialsInput struct {
-	providerInput
-	Body ProviderCredentialsInput
+	api.WorkspaceInput
+	ProviderID string `path:"providerId" format:"uuid"`
+	Body       ProviderCredentialsInput
 }
 
 type settingsInput struct {
-	providerInput
-	Body ProviderSettingsInput
+	api.WorkspaceInput
+	ProviderID string `path:"providerId" format:"uuid"`
+	Body       ProviderSettingsInput
 }
 
 type trackingInput struct {
-	providerInput
-	Body ProviderTrackingActionInput
+	api.WorkspaceInput
+	ProviderID string `path:"providerId" format:"uuid"`
+	Body       ProviderTrackingActionInput
 }
 
 type heldInput struct {
-	providerInput
+	api.WorkspaceInput
+	ProviderID string `path:"providerId" format:"uuid"`
 	CampaignID string `path:"campaignId" format:"uuid"`
 	Body       ProviderHeldDecisionInput
 }

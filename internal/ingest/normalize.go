@@ -286,7 +286,7 @@ func (n *Normalizer) Apply(ctx context.Context, tx pgx.Tx, p store.Provider, raw
 // dedupeKey identifies an event so provider redeliveries are dropped.
 func dedupeKey(provider uuid.UUID, ev providers.Event, recipient string, occurred time.Time) string {
 	h := sha256.New()
-	fmt.Fprintf(h, "%s|%s|%s|%s|%d|%s|%s", provider, ev.Type, ev.ProviderMessageID, recipient, occurred.UnixMilli(), ev.OriginalCode, ev.OriginalType)
+	_, _ = fmt.Fprintf(h, "%s|%s|%s|%s|%d|%s|%s", provider, ev.Type, ev.ProviderMessageID, recipient, occurred.UnixMilli(), ev.OriginalCode, ev.OriginalType)
 	return hex.EncodeToString(h.Sum(nil))[:40]
 }
 

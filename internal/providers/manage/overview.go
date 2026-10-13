@@ -38,6 +38,8 @@ type snapshot struct {
 	plans     []store.WarmupListPlansRow
 	failovers []store.StreamFailover
 	sync      map[uuid.UUID]store.ProviderSuppressionSync
+	// fromFailover is mail a provider sent for streams failed over to it.
+	fromFailover map[uuid.UUID]int64
 }
 
 func dayStart(t time.Time, loc *time.Location) time.Time {
@@ -92,8 +94,19 @@ func (s *Service) load(ctx context.Context, ws *store.Workspace) (*snapshot, err
 	if sn.win3, err = windows(sn.now.Add(-3 * time.Minute)); err != nil {
 		return nil, err
 	}
-	if sn.winNow, err = windows(sn.now.Truncate(time.Minute).Add(-time.Minute)); err != nil {
+	// The send rate "now" is the last complete minute: everything since its
+	// start minus the minute in progress.
+	cur := sn.now.Truncate(time.Minute)
+	if sn.winNow, err = windows(cur.Add(-time.Minute)); err != nil {
 		return nil, err
+	}
+	inProgress, err := windows(cur)
+	if err != nil {
+		return nil, err
+	}
+	for id, w := range sn.winNow {
+		w.Messages -= inProgress[id].Messages
+		sn.winNow[id] = w
 	}
 	if sn.winToday, err = windows(dayStart(sn.now, sn.loc)); err != nil {
 		return nil, err
@@ -106,6 +119,18 @@ func (s *Service) load(ctx context.Context, ws *store.Workspace) (*snapshot, err
 	}
 	if sn.failovers, err = s.Q.ProvActiveFailovers(ctx, ws.ID); err != nil {
 		return nil, err
+	}
+	sn.fromFailover = map[uuid.UUID]int64{}
+	for _, f := range sn.failovers {
+		if f.Mode != "automatic" || f.FallbackProviderID == nil {
+			continue
+		}
+		started := f.StartedAt
+		n, err := s.Q.ProvSentThroughSince(ctx, store.ProvSentThroughSinceParams{WorkspaceID: ws.ID, Stream: f.Stream, ProviderID: f.FallbackProviderID, Since: &started})
+		if err != nil {
+			return nil, err
+		}
+		sn.fromFailover[*f.FallbackProviderID] += n
 	}
 	syncRows, err := s.Q.SuppSyncList(ctx, ids)
 	if err != nil {
@@ -268,11 +293,17 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 		v := round2(float64(week.Complained) / float64(week.Delivered) * 100)
 		c.Complaint.Value = &v
 	}
+	// What the provider itself measures wins while it is fresh: its review
+	// and pause levels apply to its own numbers.
+	if r := state.ReputationOf(h, sn.now); r != nil {
+		b, cp := r.Bounce, r.Complaint
+		c.Bounce.Value, c.Complaint.Value = &b, &cp
+	}
 	// Quota and rate from the provider's API, the warm-up plan overriding
 	// both while the provider warms up.
 	c.Quota = ProviderQuotaUse{Kind: "none"}
 	if h.Quota != nil {
-		c.Quota = ProviderQuotaUse{Kind: h.Quota.Kind, Max: h.Quota.Max, Used: h.Quota.Used}
+		c.Quota = ProviderQuotaUse{Kind: h.Quota.Kind, Max: h.Quota.Max, Used: h.Quota.Used, FromFailover: sn.fromFailover[p.ID]}
 	}
 	if h.Rate != nil {
 		c.Rate = ProviderSendRate{Max: h.Rate.Max, Now: h.Rate.Now, PeakToday: h.Rate.PeakToday, Label: h.Rate.Label}

@@ -38,7 +38,7 @@ func (p *Provider) ServiceStatus(ctx context.Context) (providers.ServiceStatus, 
 	if err != nil {
 		return st, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return st, fmt.Errorf("AWS status feed: HTTP %d", resp.StatusCode)
 	}

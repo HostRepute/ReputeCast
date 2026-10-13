@@ -57,8 +57,11 @@ func (h *Handler) Routes(r chi.Router) {
 func reply(w http.ResponseWriter, status int, body string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(status)
-	_, _ = io.WriteString(w, body)
+	// The body is one of the fixed JSON answers above or an adapter's
+	// handshake answer, sent as JSON that browsers won't sniff as HTML.
+	_, _ = io.WriteString(w, body) //nolint:gosec // see above: never request data rendered as HTML
 }
 
 // ServeHTTP verifies, stores and acknowledges one webhook request.

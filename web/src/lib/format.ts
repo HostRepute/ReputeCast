@@ -237,3 +237,15 @@ export function monthDay(d: string | number | Date): string {
   const p = parts('monthDay', toDate(d), { month: 'short', day: 'numeric' })
   return `${p.month} ${p.day}`
 }
+
+/* ---- W01 · Sending providers (appended) ---- */
+
+/** "Oct" or "October". */
+export function monthName(d: string | number | Date, style: 'short' | 'long' = 'short'): string {
+  return fmt(`month-${style}`, 'en-US', { month: style }).format(toDate(d))
+}
+
+/** "Sunday" */
+export function weekdayName(d: string | number | Date): string {
+  return fmt('weekday-long', 'en-US', { weekday: 'long' }).format(toDate(d))
+}

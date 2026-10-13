@@ -259,12 +259,27 @@ func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id str
 		return AdapterCommunity{}, api.NotFound("Adapter")
 	}
 	var name, ver, src string
-	if err := s.Pool.QueryRow(ctx, `SELECT name, version, source_url FROM installed_adapters WHERE id = $1`, aid).Scan(&name, &ver, &src); err != nil {
+	var current json.RawMessage
+	var latest *string
+	if err := s.Pool.QueryRow(ctx, `SELECT name, version, source_url, manifest, latest_version FROM installed_adapters WHERE id = $1`, aid).Scan(&name, &ver, &src, &current, &latest); err != nil {
 		return AdapterCommunity{}, api.MapError(err, "Adapter")
 	}
-	m, raw, err := fetchManifest(ctx, src)
-	if err != nil {
-		return AdapterCommunity{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, "Couldn't read the manifest at "+src+": "+err.Error())
+	var m AdapterManifest
+	var raw json.RawMessage
+	if isDemoManifest(current) {
+		// The demo's sample adapters have no manifest to download: move to
+		// the advertised version.
+		if latest == nil || *latest == "" {
+			return AdapterCommunity{}, api.Conflict(name + " is up to date.")
+		}
+		_ = json.Unmarshal(current, &m)
+		m.Name, m.Version = name, *latest
+		raw = current
+	} else {
+		m, raw, err = fetchManifest(ctx, src)
+		if err != nil {
+			return AdapterCommunity{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, "Couldn't read the manifest at "+src+": "+err.Error())
+		}
 	}
 	if m.Name != name {
 		return AdapterCommunity{}, api.Conflict("The manifest at " + src + " now describes " + m.Name + ", not " + name + ". Nothing was changed.")
@@ -397,6 +412,20 @@ func placeholderSafe(t string) string {
 	return b.String()
 }
 
+// isDemoManifest reports a sample adapter of the demo data ("demo": true).
+func isDemoManifest(raw json.RawMessage) bool {
+	var m struct {
+		Demo bool `json:"demo"`
+	}
+	_ = json.Unmarshal(raw, &m)
+	return m.Demo
+}
+
+// problem is an error whose text is shown to the person as it is.
+type problem string
+
+func (p problem) Error() string { return string(p) }
+
 func parseEndpoint(s string) (string, string, error) {
 	method, rest, ok := strings.Cut(strings.TrimSpace(s), " ")
 	if !ok {
@@ -404,11 +433,11 @@ func parseEndpoint(s string) (string, string, error) {
 	}
 	method = strings.ToUpper(method)
 	if !slices.Contains([]string{"POST", "PUT", "PATCH"}, method) {
-		return "", "", errors.New("Use POST, PUT or PATCH followed by the URL.")
+		return "", "", problem("Use POST, PUT or PATCH followed by the URL.")
 	}
 	u, err := url.Parse(strings.TrimSpace(rest))
 	if err != nil || u.Scheme != "https" || u.Host == "" {
-		return "", "", errors.New("Enter an https:// URL, for example POST https://api.example-esp.com/v1/messages.")
+		return "", "", problem("Enter an https:// URL, for example POST https://api.example-esp.com/v1/messages.")
 	}
 	return method, u.String(), nil
 }
@@ -417,7 +446,7 @@ func parseEndpoint(s string) (string, string, error) {
 func fetchManifest(ctx context.Context, raw string) (AdapterManifest, json.RawMessage, error) {
 	u, err := url.Parse(raw)
 	if err != nil || u.Scheme != "https" || u.Host == "" {
-		return AdapterManifest{}, nil, errors.New("Enter the https:// URL of the adapter's manifest.json.")
+		return AdapterManifest{}, nil, problem("Enter the https:// URL of the adapter's manifest.json.")
 	}
 	client := &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{DialContext: publicDialer(), TLSHandshakeTimeout: 5 * time.Second},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -432,11 +461,11 @@ func fetchManifest(ctx context.Context, raw string) (AdapterManifest, json.RawMe
 	req.Header.Set("Accept", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
-		return AdapterManifest{}, nil, fmt.Errorf("Couldn't download the manifest: %v", err)
+		return AdapterManifest{}, nil, problem("Couldn't download the manifest: " + err.Error())
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return AdapterManifest{}, nil, fmt.Errorf("The manifest URL answered %d.", resp.StatusCode)
+		return AdapterManifest{}, nil, problem(fmt.Sprintf("The manifest URL answered %d.", resp.StatusCode))
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 256<<10))
 	if err != nil {
@@ -444,10 +473,10 @@ func fetchManifest(ctx context.Context, raw string) (AdapterManifest, json.RawMe
 	}
 	var m AdapterManifest
 	if err := json.Unmarshal(body, &m); err != nil {
-		return AdapterManifest{}, nil, errors.New("The file is not a valid adapter manifest (JSON expected).")
+		return AdapterManifest{}, nil, problem("The file is not a valid adapter manifest (JSON expected).")
 	}
 	if m.Name == "" || m.Version == "" || (m.Kind != "http" && m.Kind != "wasm") {
-		return AdapterManifest{}, nil, errors.New("The manifest needs a name, a version and a kind (http or wasm).")
+		return AdapterManifest{}, nil, problem("The manifest needs a name, a version and a kind (http or wasm).")
 	}
 	if m.Maintainer == "" {
 		m.Maintainer = "community"
