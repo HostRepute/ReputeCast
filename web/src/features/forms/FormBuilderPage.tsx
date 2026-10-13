@@ -6,11 +6,11 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog, UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
-import { ErrorPanel } from '@/components/ui/Feedback'
+import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input } from '@/components/ui/Field'
 import { Menu, MenuItem, MenuSeparator, Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
-import { count, trimPct } from '@/lib/format'
+import { ago, andList, count, trimPct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { Icon } from '@/components/icons/Icon'
 import {
@@ -331,7 +331,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
             <label className="fb-check start">
               <input type="checkbox" checked={draft.doubleOptIn} disabled={readOnly} onChange={(e) => set('doubleOptIn', e.target.checked)} />
               <span>
-                Double opt-in <span className="k">· {doubleOptInNote(draft.doubleOptIn, overview.systemProvider)}</span>
+                Double opt-in <span className="k">· {doubleOptInNote(draft.doubleOptIn, overview.systemMail ? overview.systemProvider : '')}</span>
               </span>
             </label>
             <label className="lbl">
@@ -463,7 +463,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
               </span>
             ) : null}
           </div>
-          <NumbersSection form={form} />
+          <NumbersSection form={form} systemMail={overview.systemMail} />
         </aside>
       </div>
       <UnsavedChangesGuard
@@ -506,9 +506,10 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
   )
 }
 
+/** What double opt-in does, with the provider that sends the confirmations. */
 function doubleOptInNote(on: boolean, provider: string): string {
   if (!on) return 'off: contacts are subscribed as soon as they submit'
-  if (!provider) return 'confirmations wait until a sending provider handles the System stream; contacts stay "pending" until they click'
+  if (!provider) return 'nothing sends System mail yet, so confirmations wait and you can send their links by hand; contacts stay "pending" until they click'
   return `confirmation sent on the System stream via ${provider}; contacts stay "pending" until they click`
 }
 
@@ -665,8 +666,9 @@ function EmbedSection({ form }: { form: SignupForm }) {
 }
 
 /** "Last 30 days": views, submissions, confirmations and spam blocked. */
-function NumbersSection({ form }: { form: SignupForm }) {
+function NumbersSection({ form, systemMail }: { form: SignupForm; systemMail: boolean }) {
   const s = form.stats
+  const [links, setLinks] = useState(false)
   return (
     <div className="fb-sec last">
       <span className="fb-title">Last {s.days} days</span>
@@ -694,10 +696,100 @@ function NumbersSection({ form }: { form: SignupForm }) {
       </div>
       {form.doubleOptIn && s.pending > 0 ? (
         <span className="k">
-          {count(s.pending)} {s.pending === 1 ? 'confirmation is' : 'confirmations are'} pending; reminders go out after 24 h.
+          {count(s.pending)} {s.pending === 1 ? 'confirmation is' : 'confirmations are'} pending;{' '}
+          {systemMail ? 'reminders go out after 24 h.' : 'emails and reminders wait until a provider sends System mail.'}
         </span>
       ) : null}
+      {form.doubleOptIn && form.waiting > 0 ? (
+        <>
+          <span className="k">
+            {count(form.waiting)} {form.waiting === 1 ? 'signup is' : 'signups are'} still waiting for the confirmation email. Send them their link yourself.
+          </span>
+          <Button size="sm" className="self-start" onClick={() => setLinks(true)}>
+            Copy confirmation links
+          </Button>
+        </>
+      ) : null}
+      {links ? <WaitingDialog form={form} onClose={() => setLinks(false)} /> : null}
     </div>
+  )
+}
+
+/**
+ * The copy-link fallback: signups whose confirmation email couldn't go out,
+ * each with its link to send by hand. Every copied link is logged.
+ */
+function WaitingDialog({ form, onClose }: { form: SignupForm; onClose: () => void }) {
+  const { slug } = useWorkspace()
+  const reason = usePermissionReason('subscribers:edit')
+  const params = { path: { workspace: slug, form: form.id } }
+  const waiting = $api.useQuery('get', '/api/v1/workspaces/{workspace}/forms/{form}/waiting', { params })
+  const link = $api.useMutation('post', '/api/v1/workspaces/{workspace}/forms/{form}/waiting/{submission}/link')
+  const [copied, setCopied] = useState<string>()
+  const copy = async (id: string) => {
+    try {
+      const out = await link.mutateAsync({ params: { path: { workspace: slug, form: form.id, submission: id } } })
+      if (await copyText(out.url)) {
+        setCopied(id)
+        toast({ kind: 'success', title: 'Confirmation link copied', detail: `Send it to ${out.email}. It subscribes them when they open it.` })
+      } else {
+        toast({ kind: 'error', title: "Couldn't copy the link", detail: 'Your browser blocked the clipboard. Try again, or use another browser.' })
+      }
+    } catch (e) {
+      toast({ kind: 'error', title: "Couldn't get the link", detail: errorMessage(e), retry: () => void copy(id) })
+    }
+  }
+  const d = waiting.data
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title="Confirmation links"
+      description={
+        d && !d.systemMail
+          ? 'Nothing can send System mail yet, so these people never got their confirmation email. Send each one their link yourself; it subscribes them when they open it. Every link you copy is logged.'
+          : "These confirmation emails couldn't be sent; ReputeCast tries again for 3 days. You can send a link yourself; it subscribes them when they open it. Every link you copy is logged."
+      }
+      footer={<Button onClick={onClose}>Close</Button>}
+    >
+      {waiting.isError ? (
+        <ErrorPanel title="Couldn't load the signups" actions={<Button onClick={() => waiting.refetch()}>Retry</Button>}>
+          {errorMessage(waiting.error)}
+        </ErrorPanel>
+      ) : !d ? (
+        <div className="flex flex-col gap-2" aria-busy="true">
+          <span className="vh" role="status">
+            Loading the signups
+          </span>
+          <Skeleton h={44} />
+          <Skeleton h={44} />
+          <Skeleton h={44} />
+        </div>
+      ) : d.items.length === 0 ? (
+        <p className="text-ink-2">Every confirmation email has gone out. Nothing is waiting.</p>
+      ) : (
+        <ul className="m-0 flex list-none flex-col p-0">
+          {d.items.map((it) => (
+            <li key={it.id} className="fb-wait">
+              <div className="flex min-w-0 flex-col">
+                <span className="font-semibold [overflow-wrap:anywhere]">{it.email}</span>
+                <span className="k">
+                  {[andList(it.lists), `signed up ${ago(it.createdAt)}`].filter(Boolean).join(' · ')}
+                </span>
+              </div>
+              <Button size="sm" onClick={() => void copy(it.id)} disabledReason={reason} aria-label={`Copy the confirmation link for ${it.email}`}>
+                {copied === it.id ? 'Copied' : 'Copy link'}
+              </Button>
+            </li>
+          ))}
+          {d.total > d.items.length ? (
+            <li className="k pt-2">
+              Showing the {count(d.items.length)} newest of {count(d.total)}.
+            </li>
+          ) : null}
+        </ul>
+      )}
+    </Dialog>
   )
 }
 

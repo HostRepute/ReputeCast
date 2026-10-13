@@ -22,6 +22,11 @@ type FormPath struct {
 	Form string `path:"form" format:"uuid" doc:"Form id"`
 }
 
+type waitingPath struct {
+	FormPath
+	Submission string `path:"submission" format:"uuid" doc:"The signup (form submission) id"`
+}
+
 type formBody[T any] struct {
 	FormPath
 	Body T
@@ -109,6 +114,21 @@ func Register(h huma.API, s *Service) {
 		Tags: tags, Access: api.Workspace(authz.FormsEdit)},
 		func(ctx context.Context, in *formBody[SignupFormOriginInput]) (*api.Body[SignupForm], error) {
 			out, err := s.KeepBlocked(ctx, api.WorkspaceFrom(ctx), in.Form, in.Body)
+			return api.OK(out), err
+		})
+
+	api.Get(h, api.Op{ID: "list-signup-form-waiting", Path: "/workspaces/{workspace}/forms/{form}/waiting", Summary: "List signups whose confirmation email hasn't gone out",
+		Description: "Double opt-in signups of the last 30 days that nothing could email yet (no provider sends System mail, or it refused the message), newest first.",
+		Tags:        tags, Access: api.Workspace(viewPerm)},
+		func(ctx context.Context, in *FormPath) (*api.Body[SignupFormWaiting], error) {
+			out, err := s.Waiting(ctx, api.WorkspaceFrom(ctx), in.Form)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "signup-form-confirm-link", Path: "/workspaces/{workspace}/forms/{form}/waiting/{submission}/link", Summary: "Get a waiting signup's confirmation link to send by hand (logged)",
+		Description: "The copy-link fallback while nothing can send System mail. Every link handed out is written to the audit log.",
+		Tags:        tags, Access: api.Workspace(authz.SubscribersEdit)},
+		func(ctx context.Context, in *waitingPath) (*api.Body[SignupFormConfirmLink], error) {
+			out, err := s.WaitingLink(ctx, api.WorkspaceFrom(ctx), in.Form, in.Submission)
 			return api.OK(out), err
 		})
 

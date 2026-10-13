@@ -283,6 +283,7 @@ type Querier interface {
 	// Per form: views, submissions, confirmations of those submissions and spam
 	// blocked since a day (inclusive).
 	FormStatsSince(ctx context.Context, arg FormStatsSinceParams) ([]FormStatsSinceRow, error)
+	FormSubmissionByID(ctx context.Context, arg FormSubmissionByIDParams) (FormSubmission, error)
 	// Submissions -----------------------------------------------------------------
 	FormSubmissionInsert(ctx context.Context, arg FormSubmissionInsertParams) error
 	FormSubmissionMarkAttempt(ctx context.Context, id uuid.UUID) error
@@ -300,6 +301,11 @@ type Querier interface {
 	// a provider error): retried by the confirmations job for three days.
 	FormSubmissionsToSend(ctx context.Context, arg FormSubmissionsToSendParams) ([]FormSubmissionsToSendRow, error)
 	FormUpdate(ctx context.Context, arg FormUpdateParams) (Form, error)
+	FormWaitingCount(ctx context.Context, arg FormWaitingCountParams) (int64, error)
+	// Double opt-in signups of a form whose confirmation email hasn't gone out
+	// (nothing could send System mail, or the provider refused it), newest
+	// first: the builder offers their links to send by hand.
+	FormWaitingSubmissions(ctx context.Context, arg FormWaitingSubmissionsParams) ([]FormWaitingSubmissionsRow, error)
 	// Lookups for the builder -----------------------------------------------------
 	FormsDefaultSender(ctx context.Context, workspaceID uuid.UUID) (FormsDefaultSenderRow, error)
 	// W13 · Signup forms and public page settings (spec 5.12, 7.12).
@@ -986,6 +992,9 @@ type Querier interface {
 	// member behind them, so consent events carry the IP and browser instead.
 	SignupContactByEmail(ctx context.Context, arg SignupContactByEmailParams) (Contact, error)
 	SignupContactByID(ctx context.Context, arg SignupContactByIDParams) (Contact, error)
+	// Addresses and first names of some contacts (erased ones left out), for
+	// lists of signups.
+	SignupContactNames(ctx context.Context, arg SignupContactNamesParams) ([]SignupContactNamesRow, error)
 	// Fills fields the contact left empty; a public form never overwrites what
 	// is already known (anyone can type anyone's address into a form).
 	SignupFillContact(ctx context.Context, arg SignupFillContactParams) error

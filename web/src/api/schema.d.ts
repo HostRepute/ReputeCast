@@ -2957,6 +2957,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/forms/{form}/waiting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List signups whose confirmation email hasn't gone out
+         * @description Double opt-in signups of the last 30 days that nothing could email yet (no provider sends System mail, or it refused the message), newest first.
+         */
+        get: operations["list-signup-form-waiting"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/waiting/{submission}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get a waiting signup's confirmation link to send by hand (logged)
+         * @description The copy-link fallback while nothing can send System mail. Every link handed out is written to the audit log.
+         */
+        post: operations["signup-form-confirm-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/imports": {
         parameters: {
             query?: never;
@@ -10983,6 +11023,8 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             urls: components["schemas"]["SignupFormURLs"];
+            /** Format: int64 */
+            waiting: number;
         };
         SignupFormBlockedOrigin: {
             /** Format: int64 */
@@ -10991,6 +11033,10 @@ export interface components {
             lastAt: string;
             /** @example staging.acme.io */
             origin: string;
+        };
+        SignupFormConfirmLink: {
+            email: string;
+            url: string;
         };
         SignupFormContent: {
             button: string;
@@ -11131,6 +11177,27 @@ export interface components {
             scriptKb: number;
             submit: string;
         };
+        SignupFormWaiting: {
+            items: components["schemas"]["SignupFormWaitingItem"][];
+            systemMail: boolean;
+            /** Format: int64 */
+            total: number;
+        };
+        SignupFormWaitingItem: {
+            /**
+             * Format: int64
+             * @description How many times sending the email was tried
+             */
+            attempts: number;
+            /** Format: date-time */
+            createdAt: string;
+            email: string;
+            firstName: string;
+            /** @description The submission */
+            id: string;
+            /** @description The lists the signup waits to join */
+            lists: string[];
+        };
         SignupFormsOverview: {
             branding: components["schemas"]["PublicBranding"];
             customFields: components["schemas"]["SignupFormCustomField"][];
@@ -11140,6 +11207,7 @@ export interface components {
             hostedUrl: string;
             lists: components["schemas"]["SignupFormList"][];
             ownOrigins: string[];
+            systemMail: boolean;
             systemProvider: string;
             turnstile: components["schemas"]["PublicTurnstile"];
         };
@@ -18875,6 +18943,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-signup-form-waiting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormWaiting"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "signup-form-confirm-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+                /** @description The signup (form submission) id */
+                submission: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormConfirmLink"];
                 };
             };
             /** @description Error */

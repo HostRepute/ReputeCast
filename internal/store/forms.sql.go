@@ -761,6 +761,35 @@ func (q *Queries) FormStatsSince(ctx context.Context, arg FormStatsSinceParams) 
 	return items, nil
 }
 
+const formSubmissionByID = `-- name: FormSubmissionByID :one
+SELECT id, workspace_id, form_id, contact_id, list_ids, double_opt_in, created_at, confirm_sent_at, send_attempts, reminded_at, confirmed_at FROM form_submissions WHERE id = $1 AND workspace_id = $2 AND form_id = $3
+`
+
+type FormSubmissionByIDParams struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	FormID      *uuid.UUID `json:"formId"`
+}
+
+func (q *Queries) FormSubmissionByID(ctx context.Context, arg FormSubmissionByIDParams) (FormSubmission, error) {
+	row := q.db.QueryRow(ctx, formSubmissionByID, arg.ID, arg.WorkspaceID, arg.FormID)
+	var i FormSubmission
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.FormID,
+		&i.ContactID,
+		&i.ListIds,
+		&i.DoubleOptIn,
+		&i.CreatedAt,
+		&i.ConfirmSentAt,
+		&i.SendAttempts,
+		&i.RemindedAt,
+		&i.ConfirmedAt,
+	)
+	return i, err
+}
+
 const formSubmissionInsert = `-- name: FormSubmissionInsert :exec
 
 INSERT INTO form_submissions (id, workspace_id, form_id, contact_id, list_ids, double_opt_in, created_at, confirmed_at)
@@ -1072,6 +1101,73 @@ func (q *Queries) FormUpdate(ctx context.Context, arg FormUpdateParams) (Form, e
 		&i.UpdatedBy,
 	)
 	return i, err
+}
+
+const formWaitingCount = `-- name: FormWaitingCount :one
+SELECT count(*)::bigint FROM form_submissions
+WHERE form_id = $1 AND double_opt_in AND confirmed_at IS NULL AND confirm_sent_at IS NULL AND created_at > $2
+`
+
+type FormWaitingCountParams struct {
+	FormID *uuid.UUID `json:"formId"`
+	Since  time.Time  `json:"since"`
+}
+
+func (q *Queries) FormWaitingCount(ctx context.Context, arg FormWaitingCountParams) (int64, error) {
+	row := q.db.QueryRow(ctx, formWaitingCount, arg.FormID, arg.Since)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const formWaitingSubmissions = `-- name: FormWaitingSubmissions :many
+SELECT id, contact_id, list_ids, created_at, send_attempts FROM form_submissions
+WHERE form_id = $1 AND double_opt_in AND confirmed_at IS NULL AND confirm_sent_at IS NULL AND created_at > $2
+ORDER BY created_at DESC, id DESC
+LIMIT $3
+`
+
+type FormWaitingSubmissionsParams struct {
+	FormID *uuid.UUID `json:"formId"`
+	Since  time.Time  `json:"since"`
+	Lim    int32      `json:"lim"`
+}
+
+type FormWaitingSubmissionsRow struct {
+	ID           uuid.UUID   `json:"id"`
+	ContactID    uuid.UUID   `json:"contactId"`
+	ListIds      []uuid.UUID `json:"listIds"`
+	CreatedAt    time.Time   `json:"createdAt"`
+	SendAttempts int32       `json:"sendAttempts"`
+}
+
+// Double opt-in signups of a form whose confirmation email hasn't gone out
+// (nothing could send System mail, or the provider refused it), newest
+// first: the builder offers their links to send by hand.
+func (q *Queries) FormWaitingSubmissions(ctx context.Context, arg FormWaitingSubmissionsParams) ([]FormWaitingSubmissionsRow, error) {
+	rows, err := q.db.Query(ctx, formWaitingSubmissions, arg.FormID, arg.Since, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FormWaitingSubmissionsRow{}
+	for rows.Next() {
+		var i FormWaitingSubmissionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ContactID,
+			&i.ListIds,
+			&i.CreatedAt,
+			&i.SendAttempts,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const formsDefaultSender = `-- name: FormsDefaultSender :one

@@ -807,3 +807,27 @@ func SamplePublicContact(lists []PublicList) PublicContact {
 	}
 	return pc
 }
+
+// PublicContactName is a contact's address and first name.
+type PublicContactName struct {
+	Email     string
+	FirstName string
+}
+
+// PublicContactNames returns the addresses and first names of some contacts
+// of ws (erased contacts and other workspaces' are left out), for lists of
+// signups such as the confirmations waiting to be sent.
+func (s *Service) PublicContactNames(ctx context.Context, q *store.Queries, ws *store.Workspace, ids []uuid.UUID) (map[uuid.UUID]PublicContactName, error) {
+	out := map[uuid.UUID]PublicContactName{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	rows, err := q.SignupContactNames(ctx, store.SignupContactNamesParams{WorkspaceID: ws.ID, Ids: ids})
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		out[r.ID] = PublicContactName{Email: r.Email, FirstName: r.FirstName}
+	}
+	return out, nil
+}

@@ -957,9 +957,9 @@ func TestUnsubscribe(t *testing.T) {
 	t.Run("an email's link counts on its campaign", func(t *testing.T) {
 		var msg, campaign uuid.UUID
 		err := env.App.Pool.QueryRow(context.Background(), `SELECT id, campaign_id FROM messages WHERE contact_id = $1 AND campaign_id IS NOT NULL AND provider_id IS NOT NULL
-			ORDER BY created_at DESC LIMIT 1`, ids.sam).Scan(&msg, &campaign)
+			ORDER BY queued_at DESC LIMIT 1`, ids.sam).Scan(&msg, &campaign)
 		if err != nil {
-			t.Skip("Sam has no campaign message in the demo")
+			t.Fatalf("Sam's latest campaign message: %v", err)
 		}
 		if r := do(t, env, http.MethodPost, path, url.Values{"action": {"resubscribe"}}, nil); r.Status != 200 {
 			t.Fatalf("resubscribe: %d", r.Status)

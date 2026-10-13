@@ -138,3 +138,9 @@ SELECT id FROM contacts
 WHERE workspace_id = @workspace_id AND erased_at IS NULL AND status = 'active'
 ORDER BY created_at DESC, id DESC
 LIMIT 1;
+
+-- name: SignupContactNames :many
+-- Addresses and first names of some contacts (erased ones left out), for
+-- lists of signups.
+SELECT id, email, first_name FROM contacts
+WHERE workspace_id = @workspace_id AND id = ANY (@ids::uuid[]) AND erased_at IS NULL;

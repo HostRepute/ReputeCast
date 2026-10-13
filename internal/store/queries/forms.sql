@@ -150,6 +150,22 @@ UPDATE form_submissions SET reminded_at = @at WHERE id = @id;
 -- to send or remind any more.
 UPDATE form_submissions SET confirmed_at = @at WHERE id = @id AND confirmed_at IS NULL;
 
+-- name: FormWaitingSubmissions :many
+-- Double opt-in signups of a form whose confirmation email hasn't gone out
+-- (nothing could send System mail, or the provider refused it), newest
+-- first: the builder offers their links to send by hand.
+SELECT id, contact_id, list_ids, created_at, send_attempts FROM form_submissions
+WHERE form_id = @form_id AND double_opt_in AND confirmed_at IS NULL AND confirm_sent_at IS NULL AND created_at > @since
+ORDER BY created_at DESC, id DESC
+LIMIT @lim;
+
+-- name: FormWaitingCount :one
+SELECT count(*)::bigint FROM form_submissions
+WHERE form_id = @form_id AND double_opt_in AND confirmed_at IS NULL AND confirm_sent_at IS NULL AND created_at > @since;
+
+-- name: FormSubmissionByID :one
+SELECT * FROM form_submissions WHERE id = @id AND workspace_id = @workspace_id AND form_id = @form_id;
+
 -- name: FormLastSubmissionForContact :one
 SELECT fs.form_id, fs.list_ids FROM form_submissions fs
 WHERE fs.contact_id = @contact_id

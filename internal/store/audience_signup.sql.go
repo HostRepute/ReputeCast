@@ -186,6 +186,44 @@ func (q *Queries) SignupContactByID(ctx context.Context, arg SignupContactByIDPa
 	return i, err
 }
 
+const signupContactNames = `-- name: SignupContactNames :many
+SELECT id, email, first_name FROM contacts
+WHERE workspace_id = $1 AND id = ANY ($2::uuid[]) AND erased_at IS NULL
+`
+
+type SignupContactNamesParams struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	Ids         []uuid.UUID `json:"ids"`
+}
+
+type SignupContactNamesRow struct {
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	FirstName string    `json:"firstName"`
+}
+
+// Addresses and first names of some contacts (erased ones left out), for
+// lists of signups.
+func (q *Queries) SignupContactNames(ctx context.Context, arg SignupContactNamesParams) ([]SignupContactNamesRow, error) {
+	rows, err := q.db.Query(ctx, signupContactNames, arg.WorkspaceID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SignupContactNamesRow{}
+	for rows.Next() {
+		var i SignupContactNamesRow
+		if err := rows.Scan(&i.ID, &i.Email, &i.FirstName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const signupFillContact = `-- name: SignupFillContact :exec
 UPDATE contacts
 SET first_name = CASE WHEN first_name = '' THEN $1 ELSE first_name END,

@@ -394,6 +394,19 @@
     border: 0;
   }
 
+  /* Confirmation links dialog: one signup per row. */
+  .fb-wait {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .fb-wait:first-child {
+    border-top: 0;
+  }
+
   /* Archive tab: issue rows. */
   .fb-issue {
     display: flex;

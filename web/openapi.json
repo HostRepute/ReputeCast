@@ -21060,6 +21060,10 @@
           },
           "urls": {
             "$ref": "#/components/schemas/SignupFormURLs"
+          },
+          "waiting": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -21079,6 +21083,7 @@
           "plainHtml",
           "stats",
           "blockedOrigins",
+          "waiting",
           "updatedAt",
           "id",
           "name",
@@ -21113,6 +21118,22 @@
           "origin",
           "count",
           "lastAt"
+        ],
+        "type": "object"
+      },
+      "SignupFormConfirmLink": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "email"
         ],
         "type": "object"
       },
@@ -21597,6 +21618,70 @@
         ],
         "type": "object"
       },
+      "SignupFormWaiting": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SignupFormWaitingItem"
+            },
+            "type": "array"
+          },
+          "systemMail": {
+            "type": "boolean"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "systemMail"
+        ],
+        "type": "object"
+      },
+      "SignupFormWaitingItem": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "description": "How many times sending the email was tried",
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "id": {
+            "description": "The submission",
+            "type": "string"
+          },
+          "lists": {
+            "description": "The lists the signup waits to join",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "lists",
+          "createdAt",
+          "attempts"
+        ],
+        "type": "object"
+      },
       "SignupFormsOverview": {
         "additionalProperties": false,
         "properties": {
@@ -21636,6 +21721,9 @@
             },
             "type": "array"
           },
+          "systemMail": {
+            "type": "boolean"
+          },
           "systemProvider": {
             "type": "string"
           },
@@ -21650,6 +21738,7 @@
           "hostedUrl",
           "hostedFormId",
           "systemProvider",
+          "systemMail",
           "turnstile",
           "branding",
           "domain",
@@ -37151,6 +37240,155 @@
         ],
         "x-access": "workspace",
         "x-permission": "forms:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/forms/{form}/waiting": {
+      "get": {
+        "description": "Double opt-in signups of the last 30 days that nothing could email yet (no provider sends System mail, or it refused the message), newest first.",
+        "operationId": "list-signup-form-waiting",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Form id",
+            "in": "path",
+            "name": "form",
+            "required": true,
+            "schema": {
+              "description": "Form id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignupFormWaiting"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List signups whose confirmation email hasn't gone out",
+        "tags": [
+          "Forms"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/forms/{form}/waiting/{submission}/link": {
+      "post": {
+        "description": "The copy-link fallback while nothing can send System mail. Every link handed out is written to the audit log.",
+        "operationId": "signup-form-confirm-link",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Form id",
+            "in": "path",
+            "name": "form",
+            "required": true,
+            "schema": {
+              "description": "Form id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The signup (form submission) id",
+            "in": "path",
+            "name": "submission",
+            "required": true,
+            "schema": {
+              "description": "The signup (form submission) id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignupFormConfirmLink"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a waiting signup's confirmation link to send by hand (logged)",
+        "tags": [
+          "Forms"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/imports": {

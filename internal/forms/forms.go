@@ -393,8 +393,11 @@ type SignupForm struct {
 	PlainHTML      string                    `json:"plainHtml"`
 	Stats          SignupFormStats           `json:"stats"`
 	BlockedOrigins []SignupFormBlockedOrigin `json:"blockedOrigins"`
-	PublishedAt    *time.Time                `json:"publishedAt,omitempty"`
-	UpdatedAt      time.Time                 `json:"updatedAt"`
+	// Waiting counts the signups of the last 30 days whose confirmation
+	// email hasn't gone out (nothing could send System mail).
+	Waiting     int64      `json:"waiting"`
+	PublishedAt *time.Time `json:"publishedAt,omitempty"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
 }
 
 // SignupFormInput saves a form ("Save & publish").
@@ -449,8 +452,10 @@ type SignupFormsOverview struct {
 	HostedURL    string `json:"hostedUrl"`
 	HostedFormID string `json:"hostedFormId"`
 	// SystemProvider names the System stream's provider ("Postmark"); empty
-	// when none is routed, so confirmations can't be emailed.
+	// when none is routed. SystemMail says whether System mail can go out
+	// now: without it confirmations wait and their links are sent by hand.
 	SystemProvider string             `json:"systemProvider"`
+	SystemMail     bool               `json:"systemMail"`
 	Turnstile      PublicTurnstile    `json:"turnstile"`
 	Branding       PublicBranding     `json:"branding"`
 	Domain         PublicCustomDomain `json:"domain"`
@@ -512,6 +517,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (SignupForm
 		out.CustomFields = append(out.CustomFields, SignupFormCustomField{Key: f.Key, Label: f.Label, Type: f.Type, Options: opts})
 	}
 	out.SystemProvider = s.systemProvider(ctx, ws)
+	out.SystemMail = s.SystemMailAvailable(ctx, ws)
 	out.Turnstile = set.turnstile()
 	out.Branding = s.brandingOut(ws, set)
 	out.Domain = set.domain(s.URLs)
@@ -590,6 +596,11 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, f store.Form)
 	}
 	for _, b := range blocked {
 		out.BlockedOrigins = append(out.BlockedOrigins, SignupFormBlockedOrigin{Origin: b.Origin, Count: b.Count, LastAt: b.LastAt})
+	}
+	if f.DoubleOptIn {
+		if out.Waiting, err = s.Q.FormWaitingCount(ctx, store.FormWaitingCountParams{FormID: &f.ID, Since: s.now().Add(-waitingWindow)}); err != nil {
+			return out, err
+		}
 	}
 	return out, nil
 }
