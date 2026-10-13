@@ -179,6 +179,20 @@ WHERE campaign_id = @campaign_id AND provider_id = @provider_id;
 -- name: SendingFinishRoutes :exec
 UPDATE campaign_routes SET status = @status WHERE campaign_id = @campaign_id AND status IN ('pending', 'sending', 'held', 'paused');
 
+-- name: SendingSetDeliveryP50 :exec
+-- The median time from handing a message to the provider to its delivery
+-- event, per route, stored when a send ends ("Median time to delivery" in
+-- the report's per-provider comparison).
+UPDATE campaign_routes cr SET delivery_p50_ms = d.p50
+FROM (
+    SELECT m.provider_id,
+           (percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - m.sent_at)) * 1000)::integer AS p50
+    FROM messages m
+    WHERE m.campaign_id = @campaign_id AND m.sent_at IS NOT NULL AND m.delivered_at IS NOT NULL AND m.delivered_at >= m.sent_at
+    GROUP BY m.provider_id
+) d
+WHERE cr.campaign_id = @campaign_id AND cr.provider_id = d.provider_id;
+
 -- Send loop -------------------------------------------------------------
 
 -- name: SendingClaim :many
@@ -311,15 +325,24 @@ SELECT count(*)::bigint FROM messages WHERE campaign_id = @campaign_id AND provi
 -- name: SendingRetryNow :exec
 UPDATE messages SET next_attempt_at = NULL WHERE campaign_id = @campaign_id AND provider_id = @provider_id AND status = 'queued';
 
--- name: SendingGroupCount :one
--- Recipients still to send in a group: never engaged, or imported and
--- never engaged, optionally for one mailbox provider.
-SELECT count(*)::bigint
+-- Groups an auto-pause can take out of the rest of a send (grp):
+-- 'imported' (joined from an import, from @source when given, and never
+-- opened), 'lapsed' (at risk or sunset: no open in more than 90 days) and
+-- 'never' (never opened).
+
+-- name: SendingGroupSize :one
+-- A group's recipients in this send (optionally of one mailbox provider),
+-- and how many of them are still to send.
+SELECT count(*)::bigint AS total,
+       count(*) FILTER (WHERE m.status IN ('queued', 'held'))::bigint AS remaining
 FROM messages m JOIN contacts c ON c.id = m.contact_id
-WHERE m.campaign_id = @campaign_id AND m.status IN ('queued', 'held')
+WHERE m.campaign_id = @campaign_id
   AND (@mailbox_provider::text = '' OR m.mailbox_provider = @mailbox_provider::text)
-  AND c.last_human_open_at IS NULL
-  AND (NOT @imported_only::boolean OR c.source LIKE 'import:%');
+  AND CASE @grp::text
+        WHEN 'imported' THEN c.last_human_open_at IS NULL AND c.source LIKE 'import:%' AND (@source::text = '' OR c.source = @source::text)
+        WHEN 'lapsed' THEN c.tier IN ('at_risk', 'sunset')
+        ELSE c.last_human_open_at IS NULL
+      END;
 
 -- name: SendingExcludeGroup :many
 -- Takes a group out of the rest of the send; returns their contact ids so
@@ -328,8 +351,11 @@ UPDATE messages m SET status = 'cancelled', claimed_at = NULL, error = @reason
 FROM contacts c
 WHERE c.id = m.contact_id AND m.campaign_id = @campaign_id AND m.status IN ('queued', 'held')
   AND (@mailbox_provider::text = '' OR m.mailbox_provider = @mailbox_provider::text)
-  AND c.last_human_open_at IS NULL
-  AND (NOT @imported_only::boolean OR c.source LIKE 'import:%')
+  AND CASE @grp::text
+        WHEN 'imported' THEN c.last_human_open_at IS NULL AND c.source LIKE 'import:%' AND (@source::text = '' OR c.source = @source::text)
+        WHEN 'lapsed' THEN c.tier IN ('at_risk', 'sunset')
+        ELSE c.last_human_open_at IS NULL
+      END
 RETURNING m.contact_id;
 
 -- name: SendingABTotals :many
@@ -359,28 +385,18 @@ UPDATE campaign_incidents SET detail = @detail, held = @held WHERE id = @id;
 
 -- name: SendingComplaintCohorts :many
 -- Complaints of a campaign (optionally one mailbox provider) by how the
--- complaining contacts joined and whether they ever engaged: the evidence
--- behind "likely causes".
+-- complaining contacts joined, whether they ever engaged and their tier:
+-- the evidence behind "likely causes".
 SELECT coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NULL)::boolean AS never_engaged,
-       coalesce(c.consent, '')::text AS consent,
+       coalesce(c.consent, '')::text AS consent, coalesce(c.tier, '')::text AS tier,
        count(*)::bigint AS n
 FROM delivery_events e
 JOIN messages m ON m.id = e.message_id
 LEFT JOIN contacts c ON c.id = m.contact_id
 WHERE e.campaign_id = @campaign_id AND e.type = 'complaint'
   AND (@mailbox_provider::text = '' OR e.mailbox_provider = @mailbox_provider::text)
-GROUP BY 1, 2, 3
+GROUP BY 1, 2, 3, 4
 ORDER BY n DESC;
-
--- name: SendingCohortSize :one
--- Recipients of a mailbox provider in this send who joined from a source
--- and never engaged, and how many of them are still to send.
-SELECT count(*)::bigint AS total,
-       count(*) FILTER (WHERE m.status IN ('queued', 'held'))::bigint AS remaining
-FROM messages m JOIN contacts c ON c.id = m.contact_id
-WHERE m.campaign_id = @campaign_id
-  AND (@mailbox_provider::text = '' OR m.mailbox_provider = @mailbox_provider::text)
-  AND c.source = @source AND c.last_human_open_at IS NULL;
 
 -- name: SendingImportOf :one
 -- The most recent import from a source ("the Mailchimp import on 18 Sep").
@@ -397,11 +413,13 @@ WHERE m.workspace_id = @workspace_id AND m.contact_id = ANY(@contact_ids::uuid[]
   AND (m.campaign_id IS NULL OR m.campaign_id <> @campaign_id);
 
 -- name: SendingCohortContacts :many
+-- Contacts of an import cohort in this send (never opened), to tell whether
+-- this is the first mail they get from the workspace.
 SELECT m.contact_id
 FROM messages m JOIN contacts c ON c.id = m.contact_id
 WHERE m.campaign_id = @campaign_id
   AND (@mailbox_provider::text = '' OR m.mailbox_provider = @mailbox_provider::text)
-  AND c.source = @source AND c.last_open_at IS NULL
+  AND c.source = @source AND c.last_human_open_at IS NULL
 LIMIT 2000;
 
 -- name: SendingDeferralsSince :one

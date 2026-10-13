@@ -420,6 +420,9 @@ func (e *Engine) Cancel(ctx context.Context, campaignID, by uuid.UUID) error {
 		if err := q.SendingFinishRoutes(ctx, store.SendingFinishRoutesParams{CampaignID: c.ID, Status: "cancelled"}); err != nil {
 			return err
 		}
+		if err := q.SendingSetDeliveryP50(ctx, c.ID); err != nil {
+			return err
+		}
 		if err := q.SendingSetPhase(ctx, store.SendingSetPhaseParams{CampaignID: c.ID, Phase: "cancelled", FinishedAt: &now, At: now}); err != nil {
 			return err
 		}

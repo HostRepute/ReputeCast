@@ -651,6 +651,11 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		if ab.Phase != "" && len(ab.Variants) > 0 {
 			la := &LiveAB{Kind: ab.Kind, Metric: ab.Metric, Phase: ab.Phase, Sample: ab.TestPercent, DecideAt: ab.DecideAt, Winner: ab.Winner, Variants: []LiveABVariant{}}
 			_, rates := abWinner(ab, ts)
+			if ab.Phase == "decided" && len(ab.Rates) > 0 {
+				// The rates the decision was based on: the sample's opens keep
+				// coming in, but the line reports what decided it.
+				rates = ab.Rates
+			}
 			best := -1.0
 			for _, v := range ab.Variants {
 				vt := ts.variant[v]
@@ -662,6 +667,9 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 				if rates[v] > best {
 					best, la.Leader = rates[v], v
 				}
+			}
+			if ab.Phase == "decided" && ab.Winner != "" {
+				la.Leader = ab.Winner
 			}
 			s.AB = la
 		}

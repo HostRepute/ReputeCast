@@ -61,7 +61,7 @@ func newDemoCmd(o *rootOpts) *cobra.Command {
 			if res.Sent > 0 {
 				fmt.Fprintf(out, "  Fast-forwarded %s: %s already sent.\n", elapsed, count(res.Sent))
 			}
-			fmt.Fprintf(out, "  Watch it at %s%s (the server's worker keeps sending).\n\n", strings.TrimRight(cfg.HTTP.PublicURL, "/"), res.Path)
+			fmt.Fprintf(out, "  Watch it at %s%s (the server's worker keeps sending).\n\n", a.URLs.Base(), res.Path)
 			return nil
 		},
 	}

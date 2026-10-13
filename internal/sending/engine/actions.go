@@ -161,8 +161,16 @@ func (e *Engine) applyChanges(ctx context.Context, q *store.Queries, tx pgx.Tx, 
 	cid := c.ID
 	var contacts []uuid.UUID
 	if ch.Exclude > 0 {
-		reason := "Excluded when the " + mailboxName(mailbox) + " share resumed: never engaged"
-		ids, err := q.SendingExcludeGroup(ctx, store.SendingExcludeGroupParams{Reason: reason, CampaignID: &cid, MailboxProvider: mailbox, ImportedOnly: ch.ImportedOnly})
+		why := map[string]string{groupImported: "never-engaged import", groupLapsed: "no open in more than 90 days"}[ch.group()]
+		if why == "" {
+			why = "never engaged"
+		}
+		share := "the campaign"
+		if mailbox != "" {
+			share = "the " + mailboxName(mailbox) + " share"
+		}
+		reason := "Excluded when " + share + " resumed: " + why
+		ids, err := q.SendingExcludeGroup(ctx, store.SendingExcludeGroupParams{Reason: reason, CampaignID: &cid, MailboxProvider: mailbox, Grp: ch.group(), Source: ch.Source})
 		if err != nil {
 			return err
 		}
@@ -464,4 +472,3 @@ func (e *Engine) PickWinner(ctx context.Context, campaignID, by uuid.UUID, varia
 	_, rates := abWinner(ab, ts)
 	return e.decideAB(ctx, cc, variant, rates, ref, name, e.now())
 }
-

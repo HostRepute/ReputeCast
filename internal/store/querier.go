@@ -872,13 +872,12 @@ type Querier interface {
 	// Frees providers' windows over a past interval (the demo command's
 	// fast-forward replays seconds the real-time worker may have used).
 	SendingClearWindows(ctx context.Context, arg SendingClearWindowsParams) error
+	// Contacts of an import cohort in this send (never opened), to tell whether
+	// this is the first mail they get from the workspace.
 	SendingCohortContacts(ctx context.Context, arg SendingCohortContactsParams) ([]*uuid.UUID, error)
-	// Recipients of a mailbox provider in this send who joined from a source
-	// and never engaged, and how many of them are still to send.
-	SendingCohortSize(ctx context.Context, arg SendingCohortSizeParams) (SendingCohortSizeRow, error)
 	// Complaints of a campaign (optionally one mailbox provider) by how the
-	// complaining contacts joined and whether they ever engaged: the evidence
-	// behind "likely causes".
+	// complaining contacts joined, whether they ever engaged and their tier:
+	// the evidence behind "likely causes".
 	SendingComplaintCohorts(ctx context.Context, arg SendingComplaintCohortsParams) ([]SendingComplaintCohortsRow, error)
 	SendingContactForAutomation(ctx context.Context, id uuid.UUID) (SendingContactForAutomationRow, error)
 	SendingCounters(ctx context.Context, campaignID uuid.UUID) ([]SendingCountersRow, error)
@@ -899,9 +898,13 @@ type Querier interface {
 	SendingFinishRoutes(ctx context.Context, arg SendingFinishRoutesParams) error
 	SendingGetSend(ctx context.Context, campaignID uuid.UUID) (CampaignSend, error)
 	SendingGetSendForUpdate(ctx context.Context, campaignID uuid.UUID) (CampaignSend, error)
-	// Recipients still to send in a group: never engaged, or imported and
-	// never engaged, optionally for one mailbox provider.
-	SendingGroupCount(ctx context.Context, arg SendingGroupCountParams) (int64, error)
+	// Groups an auto-pause can take out of the rest of a send (grp):
+	// 'imported' (joined from an import, from @source when given, and never
+	// opened), 'lapsed' (at risk or sunset: no open in more than 90 days) and
+	// 'never' (never opened).
+	// A group's recipients in this send (optionally of one mailbox provider),
+	// and how many of them are still to send.
+	SendingGroupSize(ctx context.Context, arg SendingGroupSizeParams) (SendingGroupSizeRow, error)
 	// The most recent import from a source ("the Mailchimp import on 18 Sep").
 	SendingImportOf(ctx context.Context, arg SendingImportOfParams) (SendingImportOfRow, error)
 	SendingIncidents(ctx context.Context, campaignID uuid.UUID) ([]CampaignIncident, error)
@@ -955,6 +958,10 @@ type Querier interface {
 	SendingSetCampaignStatus(ctx context.Context, arg SendingSetCampaignStatusParams) error
 	SendingSetChanges(ctx context.Context, arg SendingSetChangesParams) error
 	SendingSetContent(ctx context.Context, arg SendingSetContentParams) error
+	// The median time from handing a message to the provider to its delivery
+	// event, per route, stored when a send ends ("Median time to delivery" in
+	// the report's per-provider comparison).
+	SendingSetDeliveryP50(ctx context.Context, campaignID uuid.UUID) error
 	SendingSetHolds(ctx context.Context, arg SendingSetHoldsParams) error
 	SendingSetPaused(ctx context.Context, arg SendingSetPausedParams) error
 	SendingSetPhase(ctx context.Context, arg SendingSetPhaseParams) error
@@ -1099,7 +1106,7 @@ type Querier interface {
 	TrackingMarkClick(ctx context.Context, arg TrackingMarkClickParams) (TrackingMarkClickRow, error)
 	// Records an open on a message and says what changed, so counters move
 	// once per message: the first open, or the first human open after a
-	// machine prefetch.
+	// machine prefetch (prev_opened_at is when that prefetch was).
 	TrackingMarkOpen(ctx context.Context, arg TrackingMarkOpenParams) (TrackingMarkOpenRow, error)
 	// W12 · Open and click tracking (spec 5.5, 7.6).
 	TrackingMessage(ctx context.Context, id uuid.UUID) (TrackingMessageRow, error)

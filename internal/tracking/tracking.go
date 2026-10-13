@@ -398,6 +398,7 @@ func (s *Service) apply(ctx context.Context, q *store.Queries, ev sending.Engage
 		return nil // bot clicks are logged, never counted
 	}
 	var human, machine, clicked int64
+	var prevOpen *time.Time // when a machine prefetch opened it, if a person now does
 	firstOpen, firstClick := false, false
 	if ev.Click {
 		r, err := q.TrackingMarkClick(ctx, store.TrackingMarkClickParams{ID: m.ID, At: ev.At})
@@ -411,7 +412,7 @@ func (s *Service) apply(ctx context.Context, q *store.Queries, ev sending.Engage
 		if r.FirstHuman {
 			human = 1
 			if !r.FirstOpen {
-				machine = -1 // a machine prefetch came first; now a person
+				machine, prevOpen = -1, r.PrevOpenedAt // a machine prefetch came first; now a person
 			}
 		}
 		if m.CampaignID != nil {
@@ -446,7 +447,7 @@ func (s *Service) apply(ctx context.Context, q *store.Queries, ev sending.Engage
 		case r.FirstOpen && v.Machine:
 			machine = 1
 		case r.FirstHuman:
-			human, machine = 1, -1
+			human, machine, prevOpen = 1, -1, r.PrevOpenedAt
 		}
 		if m.ContactID != nil {
 			if err := q.TrackingTouchContactOpen(ctx, store.TrackingTouchContactOpenParams{ID: *m.ContactID, At: ev.At, Human: !v.Machine}); err != nil {
@@ -461,13 +462,23 @@ func (s *Service) apply(ctx context.Context, q *store.Queries, ev sending.Engage
 			Variant: m.Variant, OpenedHuman: human, OpenedMachine: machine, Clicked: clicked}); err != nil {
 			return err
 		}
-		hour := int32(0)
-		if m.CampaignStartedAt != nil {
-			hour = int32(min(max(ev.At.Sub(*m.CampaignStartedAt).Hours(), 0), 720))
+		hourOf := func(at time.Time) int32 {
+			if m.CampaignStartedAt == nil {
+				return 0
+			}
+			return int32(min(max(at.Sub(*m.CampaignStartedAt).Hours(), 0), 720))
 		}
 		hh, hm := max(human, 0), max(machine, 0)
 		if hh+hm+clicked > 0 {
-			if err := q.TrackingBumpHourly(ctx, store.TrackingBumpHourlyParams{CampaignID: *m.CampaignID, Hour: hour, OpenedHuman: hh, OpenedMachine: hm, Clicked: clicked}); err != nil {
+			if err := q.TrackingBumpHourly(ctx, store.TrackingBumpHourlyParams{CampaignID: *m.CampaignID, Hour: hourOf(ev.At), OpenedHuman: hh, OpenedMachine: hm, Clicked: clicked}); err != nil {
+				return err
+			}
+		}
+		// The open moved from machine to human: take the prefetch out of the
+		// hour it was counted in, so the engagement chart adds up to the
+		// counters.
+		if machine < 0 && prevOpen != nil {
+			if err := q.TrackingBumpHourly(ctx, store.TrackingBumpHourlyParams{CampaignID: *m.CampaignID, Hour: hourOf(*prevOpen), OpenedMachine: -1}); err != nil {
 				return err
 			}
 		}

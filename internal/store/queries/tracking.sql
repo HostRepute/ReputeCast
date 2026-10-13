@@ -21,7 +21,7 @@ SELECT email, first_name, last_name, attributes FROM contacts WHERE id = @id;
 -- name: TrackingMarkOpen :one
 -- Records an open on a message and says what changed, so counters move
 -- once per message: the first open, or the first human open after a
--- machine prefetch.
+-- machine prefetch (prev_opened_at is when that prefetch was).
 WITH old AS (SELECT opened_at, human_opened_at FROM messages WHERE id = @id FOR UPDATE)
 UPDATE messages m
 SET opened_at = coalesce(m.opened_at, @at::timestamptz),
@@ -29,7 +29,8 @@ SET opened_at = coalesce(m.opened_at, @at::timestamptz),
 FROM old
 WHERE m.id = @id
 RETURNING (old.opened_at IS NULL)::boolean AS first_open,
-          (old.human_opened_at IS NULL AND @human::boolean)::boolean AS first_human;
+          (old.human_opened_at IS NULL AND @human::boolean)::boolean AS first_human,
+          old.opened_at AS prev_opened_at;
 
 -- name: TrackingMarkClick :one
 -- A click counts as a human open too.
@@ -42,7 +43,8 @@ FROM old
 WHERE m.id = @id
 RETURNING (old.clicked_at IS NULL)::boolean AS first_click,
           (old.opened_at IS NULL)::boolean AS first_open,
-          (old.human_opened_at IS NULL)::boolean AS first_human;
+          (old.human_opened_at IS NULL)::boolean AS first_human,
+          old.opened_at AS prev_opened_at;
 
 -- name: TrackingFirstLinkClick :one
 INSERT INTO tracking_link_clicks (message_id, link, clicked_at) VALUES (@message_id, @link, @at)

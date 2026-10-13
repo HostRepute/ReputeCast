@@ -717,7 +717,7 @@ func (e *Engine) decideAB(ctx context.Context, c store.SendingCampaignContextRow
 		if err != nil {
 			return err
 		}
-		ab.Phase, ab.Winner, ab.DecidedAt, ab.DecidedBy = "decided", winner, &now, byName
+		ab.Phase, ab.Winner, ab.DecidedAt, ab.DecidedBy, ab.Rates = "decided", winner, &now, byName, rates
 		b, _ := json.Marshal(ab)
 		if err := q.SendingSetAB(ctx, store.SendingSetABParams{CampaignID: c.ID, Ab: b, At: now}); err != nil {
 			return err
@@ -772,6 +772,9 @@ func (e *Engine) finish(ctx context.Context, rs *runState, ts tallies, now time.
 		if err := q.SendingFinishRoutes(ctx, store.SendingFinishRoutesParams{CampaignID: c.ID, Status: "done"}); err != nil {
 			return err
 		}
+		if err := q.SendingSetDeliveryP50(ctx, c.ID); err != nil {
+			return err
+		}
 		if err := q.SendingSetPhase(ctx, store.SendingSetPhaseParams{CampaignID: c.ID, Phase: "finished", FinishedAt: &now, At: now}); err != nil {
 			return err
 		}
@@ -805,4 +808,3 @@ func (e *Engine) finish(ctx context.Context, rs *runState, ts tallies, now time.
 
 func round2(v float64) float64 { return math.Round(v*100) / 100 }
 func round4(v float64) float64 { return math.Round(v*10000) / 10000 }
-

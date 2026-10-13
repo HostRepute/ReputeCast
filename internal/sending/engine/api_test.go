@@ -157,6 +157,11 @@ func testTracking(t *testing.T, f *fixture) {
 		return f.count(`SELECT coalesce(sum(opened_human), 0) FROM campaign_counters WHERE campaign_id = $1`, f.campaign) == 1 &&
 			f.count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_counters WHERE campaign_id = $1`, f.campaign) == 0
 	})
+	// The engagement chart moves it too: it adds up to the counters.
+	if h, m := f.count(`SELECT coalesce(sum(opened_human), 0) FROM campaign_hourly WHERE campaign_id = $1`, f.campaign),
+		f.count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_hourly WHERE campaign_id = $1`, f.campaign); h != 1 || m != 0 {
+		t.Fatalf("hourly opens: %d human, %d machine; want 1 and 0", h, m)
+	}
 	var want string
 	_ = f.env.App.Pool.QueryRow(f.ctx, `SELECT url FROM campaign_links WHERE campaign_id = $1 AND position = 0`, f.campaign).Scan(&want)
 	r := get("/t/c/"+click, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")

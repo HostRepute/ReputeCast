@@ -276,18 +276,28 @@ type Event struct {
 	Link float64
 }
 
-// mailboxRates are the per-mailbox-provider outcomes of the LiveMonitor
-// board, in percent: delivered share is what remains.
+// mailboxRates are the per-mailbox-provider outcomes, in percent of
+// accepted messages, tuned to the LiveMonitor board 21 minutes into a send:
+// bounces, complaints and deferrals as in its table, opens split into
+// people (human) and privacy proxies fetching images on delivery (machine),
+// and click, the share of people who open and then click.
+//
+// Machine opens arrive within a minute of delivery. People open over the
+// following hours (most within half an hour), so 21 minutes into a send
+// about 60% of the eventual human opens have come in: human is the board's
+// human open rate divided by 0.6. A person who opens after a proxy fetch
+// turns the open from machine into human, so machine is a little above the
+// board's machine share.
 type mailboxRates struct {
-	bounce, complaint, deferral, opens, machine, clicks float64
+	bounce, complaint, deferral, human, machine, click float64
 }
 
 var rates = map[string]mailboxRates{
-	"gmail":   {bounce: 0.4, complaint: 0.02, deferral: 0.2, opens: 15.0, machine: 1.0, clicks: 2.4},
-	"outlook": {bounce: 1.1, complaint: 0.04, deferral: 0.4, opens: 10.6, machine: 0.6, clicks: 1.6},
-	"yahoo":   {bounce: 0.7, complaint: 0.03, deferral: 2.0, opens: 13.0, machine: 0.8, clicks: 1.9},
-	"icloud":  {bounce: 0.4, complaint: 0.0, deferral: 0.2, opens: 4.0, machine: 52.0, clicks: 1.2},
-	"other":   {bounce: 0.8, complaint: 0.03, deferral: 0.4, opens: 11.0, machine: 1.0, clicks: 2.0},
+	"gmail":   {bounce: 0.4, complaint: 0.02, deferral: 0.2, human: 18.0, machine: 5.7, click: 23},
+	"outlook": {bounce: 1.1, complaint: 0.05, deferral: 0.4, human: 13.4, machine: 3.3, click: 20},
+	"yahoo":   {bounce: 0.7, complaint: 0.03, deferral: 2.0, human: 15.7, machine: 4.7, click: 21},
+	"icloud":  {bounce: 0.4, complaint: 0.0, deferral: 0.2, human: 7.5, machine: 5.6, click: 18},
+	"other":   {bounce: 0.8, complaint: 0.03, deferral: 0.4, human: 13.8, machine: 4.0, click: 21},
 }
 
 // rng is a deterministic generator per message, so a re-run of the same
@@ -342,22 +352,20 @@ func (p *Provider) Plan(m providers.Message) []Event {
 	if pct() < complaint {
 		out = append(out, Event{Kind: "complaint", After: deliveredAt + sec(60, 360), OriginalType: p.complaintType(), Code: "abuse", Diagnostic: "Feedback loop report"})
 	}
-	machine := rt.machine
-	if mbp == "icloud" && !engaged {
-		machine *= 0.8
-	}
-	if pct() < machine {
+	if pct() < rt.machine {
+		// Apple Mail Privacy Protection fetches the images of every message
+		// an Apple Mail user receives, whoever hosts the mailbox.
 		out = append(out, Event{Kind: "open", After: deliveredAt + sec(2, 50), UserAgent: "Mozilla/5.0", IP: fmt.Sprintf("17.58.%d.%d", r.IntN(250)+1, r.IntN(250)+1)})
 	}
-	opens := rt.opens
+	human := rt.human
 	if !engaged {
-		opens *= 0.25
+		human *= 0.25
 	}
-	if pct() < opens {
+	if pct() < human {
 		openAt := deliveredAt + humanDelay(r)
 		ua := humanAgent(mbp, r)
 		out = append(out, Event{Kind: "open", After: openAt, UserAgent: ua, IP: fmt.Sprintf("%d.%d.%d.%d", 24+r.IntN(170), r.IntN(250), r.IntN(250), r.IntN(250)+1)})
-		if pct() < rt.clicks/rt.opens*100 {
+		if pct() < rt.click {
 			out = append(out, Event{Kind: "click", After: openAt + sec(12, 240), UserAgent: ua, IP: fmt.Sprintf("%d.%d.%d.%d", 24+r.IntN(170), r.IntN(250), r.IntN(250), r.IntN(250)+1), Link: r.Float64()})
 		}
 	}

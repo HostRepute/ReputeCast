@@ -84,7 +84,13 @@ type IncidentOption struct {
 
 // ResumeChanges is what "Resume with changes" does.
 type ResumeChanges struct {
-	Mailbox      string  `json:"mailbox,omitempty"`
+	Mailbox string `json:"mailbox,omitempty"`
+	// Group is who Exclude takes out of the rest of the send: "imported"
+	// (never-engaged imports, from Source when set), "lapsed" (at risk or
+	// sunset) or "never" (never opened). ImportedOnly is the older spelling
+	// of "imported".
+	Group        string  `json:"group,omitempty"`
+	Source       string  `json:"source,omitempty"`
 	ImportedOnly bool    `json:"importedOnly"`
 	Exclude      int64   `json:"exclude"`
 	Rate         float64 `json:"rate,omitempty"`
@@ -158,20 +164,12 @@ func (e *Engine) analyzeThreshold(ctx context.Context, rs *runState, ts tallies,
 	}
 	cid := rs.campaign.ID
 	mbpFilter := tr.mailbox
-	cohorts, _ := e.Q.SendingComplaintCohorts(ctx, store.SendingComplaintCohortsParams{CampaignID: &cid, MailboxProvider: mbpFilter})
-	if tr.metric != "complaint" {
-		cohorts = nil
-	}
-	var cohort *store.SendingComplaintCohortsRow
-	var cohortEvents int64
-	for i := range cohorts {
-		c := cohorts[i]
-		if strings.HasPrefix(c.Source, "import:") && c.NeverEngaged {
-			cohortEvents += c.N
-			if cohort == nil {
-				cohort = &cohorts[i]
-			}
-		}
+	// who names the scope's recipients in sentences: "Outlook" for a
+	// mailbox provider, nothing for a route or the whole campaign (whose
+	// cohorts are counted campaign-wide).
+	who := ""
+	if tr.scope == "mailbox_provider" {
+		who = scopeName
 	}
 	changes := &ResumeChanges{Mailbox: tr.mailbox}
 	throttle := d.Throttle
@@ -183,60 +181,8 @@ func (e *Engine) analyzeThreshold(ctx context.Context, rs *runState, ts tallies,
 		lower = 2
 	}
 	changes.Rate = lower
-	if cohort != nil && cohortEvents >= 2 && float64(cohortEvents) >= 0.5*float64(tr.events) {
-		size, _ := e.Q.SendingCohortSize(ctx, store.SendingCohortSizeParams{CampaignID: &cid, MailboxProvider: mbpFilter, Source: cohort.Source})
-		src := strings.TrimPrefix(cohort.Source, "import:")
-		when := ""
-		if imp, err := e.Q.SendingImportOf(ctx, store.SendingImportOfParams{WorkspaceID: rs.campaign.WorkspaceID, Source: src}); err == nil {
-			when = " on " + imp.CreatedAt.In(rs.loc).Format("2 Jan")
-		}
-		lead := fmt.Sprintf("Imported %s contacts that never engaged.", scopeName)
-		body := fmt.Sprintf("%s %s recipients came from the %s import%s and have never opened. %s of the %s complaints are from this group.",
-			countText(size.Total), scopeName, sourceName(src), when, countText(cohortEvents), countText(tr.events))
-		if cohort.Consent == "pending" {
-			lead = fmt.Sprintf("Imported %s contacts with unclear consent.", scopeName)
-			body = fmt.Sprintf("%s %s recipients came from the %s import%s with \"pending\" consent and have never opened. %s of the %s complaints are from this group.",
-				countText(size.Total), scopeName, sourceName(src), when, countText(cohortEvents), countText(tr.events))
-		}
-		d.Causes = append(d.Causes, IncidentCause{Lead: lead, Body: body})
-		ids, _ := e.Q.SendingCohortContacts(ctx, store.SendingCohortContactsParams{CampaignID: &cid, MailboxProvider: mbpFilter, Source: cohort.Source})
-		if len(ids) > 0 {
-			prior, err := e.Q.SendingPriorSends(ctx, store.SendingPriorSendsParams{WorkspaceID: rs.campaign.WorkspaceID, ContactIds: derefIDs(ids), CampaignID: &cid})
-			if err == nil && prior == 0 {
-				domain := domainOf(rs.content.FromEmail)
-				d.Causes = append(d.Causes, IncidentCause{Lead: "First send to these contacts from " + domain + ".",
-					Body: fmt.Sprintf("They last heard from you through %s; the new sender domain looks unfamiliar.", sourceName(src))})
-			}
-		}
-		changes.ImportedOnly = true
-		changes.Exclude = size.Remaining
-		if size.Remaining > 0 {
-			cohortSent := size.Total - size.Remaining
-			cohortDelivered := int64(float64(cohortSent) * float64(scope.delivered) / math.Max(float64(scope.sent), 1))
-			expected := rate(tr.events-cohortEvents, max(scope.delivered-cohortDelivered, 1))
-			changes.Expected = round2(math.Max(expected, 0.01))
-			d.Recommendations = append(d.Recommendations, fmt.Sprintf("Exclude the %s never-engaged %s imports from the remaining %s. Expected complaint rate after the change: about %s.",
-				countText(size.Remaining), scopeName, countText(held), fmtRate(changes.Expected)))
-		}
-	} else if tr.metric == "complaint" {
-		n, _ := e.Q.SendingGroupCount(ctx, store.SendingGroupCountParams{CampaignID: &cid, MailboxProvider: mbpFilter, ImportedOnly: false})
-		var never int64
-		for _, c := range cohorts {
-			if c.NeverEngaged {
-				never += c.N
-			}
-		}
-		if never >= 2 && float64(never) >= 0.5*float64(tr.events) {
-			d.Causes = append(d.Causes, IncidentCause{Lead: fmt.Sprintf("%s contacts who never engaged.", scopeName),
-				Body: fmt.Sprintf("%s of the %s complaints came from recipients who have never opened an email from you.", countText(never), countText(tr.events))})
-			changes.Exclude = n
-			if n > 0 {
-				d.Recommendations = append(d.Recommendations, fmt.Sprintf("Exclude the %s never-engaged %s recipients from the remaining %s.", countText(n), scopeName, countText(held)))
-			}
-		} else {
-			d.Causes = append(d.Causes, IncidentCause{Lead: "No single group stands out.",
-				Body: fmt.Sprintf("The %s complaints come from across the %s audience, not from one import or signup source.", countText(tr.events), scopeName)})
-		}
+	if tr.metric == "complaint" {
+		e.complaintCohort(ctx, rs, tr, scope, held, who, &d, changes)
 	}
 	if tr.metric == "bounce" {
 		d.Causes = append(d.Causes, IncidentCause{Lead: "Stale or mistyped addresses.",
@@ -265,9 +211,16 @@ func (e *Engine) analyzeThreshold(ctx context.Context, rs *runState, ts tallies,
 		d.Recommendations = append(d.Recommendations, fmt.Sprintf("Lower the %s rate to %s /s for the rest of this send.", scopeName, rateText(lower)))
 	}
 	if changes.Exclude > 0 {
-		if a, err := e.Q.SendingAutomationByName(ctx, store.SendingAutomationByNameParams{WorkspaceID: rs.campaign.WorkspaceID, Pattern: "%permission%"}); err == nil {
-			changes.Automation, changes.AutomationID = a.Name, a.ID.String()
-			d.Recommendations = append(d.Recommendations, fmt.Sprintf("Move those %s contacts into the \"%s\" automation instead of this broadcast.", countText(changes.Exclude), a.Name))
+		// Lapsed readers go to the re-engagement flow; imports and people
+		// who never opened are asked for permission again.
+		pattern := "%permission%"
+		if changes.Group == groupLapsed {
+			pattern = "%engagement%"
+		}
+		// Only a live flow enrolls the contacts it gets; a draft would keep them waiting.
+		if a, err := e.Q.SendingAutomationByName(ctx, store.SendingAutomationByNameParams{WorkspaceID: rs.campaign.WorkspaceID, Pattern: pattern}); err == nil && a.Status == "live" {
+			changes.Automation, changes.AutomationID = flowName(a.Name), a.ID.String()
+			d.Recommendations = append(d.Recommendations, fmt.Sprintf("Move those %s contacts into the \"%s\" automation instead of this broadcast.", countText(changes.Exclude), changes.Automation))
 		}
 	}
 	d.Changes = changes
@@ -297,11 +250,7 @@ func thresholdOptions(tr trip, scopeName string, held int64, ch *ResumeChanges) 
 	if ch != nil && (ch.Exclude > 0 || ch.Rate > 0) {
 		parts := []string{}
 		if ch.Exclude > 0 {
-			what := "never-engaged contacts"
-			if ch.ImportedOnly {
-				what = "never-engaged imports"
-			}
-			parts = append(parts, fmt.Sprintf("Exclude %s %s", countText(ch.Exclude), what))
+			parts = append(parts, fmt.Sprintf("Exclude %s %s", countText(ch.Exclude), groupWords(ch.group())))
 		}
 		rest := held - ch.Exclude
 		if ch.Rate > 0 {
@@ -339,6 +288,140 @@ func thresholdNote(tr trip) string {
 		return "Mailbox providers defer mail they want to slow down; sending slower usually clears it within the hour."
 	}
 	return ""
+}
+
+// Cohorts an auto-pause can exclude (ResumeChanges.Group).
+const (
+	groupImported = "imported"
+	groupLapsed   = "lapsed"
+	groupNever    = "never"
+)
+
+// group is the cohort Exclude takes out ("never" by default).
+func (c *ResumeChanges) group() string {
+	switch {
+	case c.Group != "":
+		return c.Group
+	case c.ImportedOnly:
+		return groupImported
+	}
+	return groupNever
+}
+
+// groupWords names a cohort in an option: "Exclude 1,420 never-engaged imports".
+func groupWords(g string) string {
+	switch g {
+	case groupImported:
+		return "never-engaged imports"
+	case groupLapsed:
+		return "lapsed contacts"
+	}
+	return "never-engaged contacts"
+}
+
+// flowName drops a flow name's qualifier: "Re-permission · Mailchimp
+// import" is "Re-permission" in a sentence.
+func flowName(name string) string {
+	if i := strings.Index(name, " · "); i > 0 {
+		return name[:i]
+	}
+	return name
+}
+
+// complaintCohort looks for the group of recipients most complaints come
+// from and recommends taking it out of the rest of the send: never-engaged
+// contacts of one import (with unclear consent, or new to the sending
+// domain), contacts who stopped opening (at risk or sunset), or anyone who
+// never opened. When no group stands out it says so.
+func (e *Engine) complaintCohort(ctx context.Context, rs *runState, tr trip, scope tally, held int64, who string, d *IncidentDetail, changes *ResumeChanges) {
+	cid := rs.campaign.ID
+	cohorts, _ := e.Q.SendingComplaintCohorts(ctx, store.SendingComplaintCohortsParams{CampaignID: &cid, MailboxProvider: tr.mailbox})
+	var imported *store.SendingComplaintCohortsRow
+	var importEvents, never, lapsed int64
+	for i := range cohorts {
+		c := cohorts[i]
+		if c.NeverEngaged {
+			never += c.N
+		}
+		if c.Tier == "at_risk" || c.Tier == "sunset" {
+			lapsed += c.N
+		}
+		if strings.HasPrefix(c.Source, "import:") && c.NeverEngaged && (imported == nil || c.Source == imported.Source) {
+			importEvents += c.N
+			if imported == nil {
+				imported = &cohorts[i]
+			}
+		}
+	}
+	stands := func(n int64) bool { return n >= 2 && float64(n) >= 0.5*float64(tr.events) }
+	contacts := strings.TrimSpace(who + " contacts")
+	recipients := strings.TrimSpace(who + " recipients")
+	// expected is the rate on what is left once the group is out.
+	expected := func(size store.SendingGroupSizeRow, events int64) float64 {
+		groupSent := size.Total - size.Remaining
+		groupDelivered := int64(float64(groupSent) * float64(scope.delivered) / math.Max(float64(scope.sent), 1))
+		return round2(math.Max(rate(tr.events-events, max(scope.delivered-groupDelivered, 1)), 0.01))
+	}
+	size := func(group, source string) store.SendingGroupSizeRow {
+		s, _ := e.Q.SendingGroupSize(ctx, store.SendingGroupSizeParams{CampaignID: &cid, MailboxProvider: tr.mailbox, Grp: group, Source: source})
+		return s
+	}
+	switch {
+	case imported != nil && stands(importEvents):
+		src := strings.TrimPrefix(imported.Source, "import:")
+		sz := size(groupImported, imported.Source)
+		when := ""
+		if imp, err := e.Q.SendingImportOf(ctx, store.SendingImportOfParams{WorkspaceID: rs.campaign.WorkspaceID, Source: src}); err == nil {
+			when = " on " + imp.CreatedAt.In(rs.loc).Format("2 Jan")
+		}
+		lead := capitalize(fmt.Sprintf("imported %s that never engaged.", contacts))
+		body := fmt.Sprintf("%s %s came from the %s import%s and have never opened. %s of the %s complaints are from this group.",
+			countText(sz.Total), recipients, sourceName(src), when, countText(importEvents), countText(tr.events))
+		if imported.Consent == "pending" {
+			lead = capitalize(fmt.Sprintf("imported %s with unclear consent.", contacts))
+			body = fmt.Sprintf("%s %s came from the %s import%s with \"pending\" consent and have never opened. %s of the %s complaints are from this group.",
+				countText(sz.Total), recipients, sourceName(src), when, countText(importEvents), countText(tr.events))
+		}
+		d.Causes = append(d.Causes, IncidentCause{Lead: lead, Body: body})
+		ids, _ := e.Q.SendingCohortContacts(ctx, store.SendingCohortContactsParams{CampaignID: &cid, MailboxProvider: tr.mailbox, Source: imported.Source})
+		if len(ids) > 0 {
+			prior, err := e.Q.SendingPriorSends(ctx, store.SendingPriorSendsParams{WorkspaceID: rs.campaign.WorkspaceID, ContactIds: derefIDs(ids), CampaignID: &cid})
+			if err == nil && prior == 0 {
+				d.Causes = append(d.Causes, IncidentCause{Lead: "First send to these contacts from " + domainOf(rs.content.FromEmail) + ".",
+					Body: fmt.Sprintf("They last heard from you through %s; the new sender domain looks unfamiliar.", sourceName(src))})
+			}
+		}
+		changes.Group, changes.Source, changes.ImportedOnly, changes.Exclude = groupImported, imported.Source, true, sz.Remaining
+		if sz.Remaining > 0 {
+			changes.Expected = expected(sz, importEvents)
+			d.Recommendations = append(d.Recommendations, fmt.Sprintf("Exclude the %s never-engaged %s imports from the remaining %s. Expected complaint rate after the change: about %s.",
+				countText(sz.Remaining), who, countText(held), fmtRate(changes.Expected)))
+		}
+	case stands(never):
+		sz := size(groupNever, "")
+		d.Causes = append(d.Causes, IncidentCause{Lead: capitalize(contacts + " who never engaged."),
+			Body: fmt.Sprintf("%s of the %s complaints came from recipients who have never opened an email from you.", countText(never), countText(tr.events))})
+		changes.Group, changes.Exclude = groupNever, sz.Remaining
+		if sz.Remaining > 0 {
+			changes.Expected = expected(sz, never)
+			d.Recommendations = append(d.Recommendations, fmt.Sprintf("Exclude the %s never-engaged %s from the remaining %s. Expected complaint rate after the change: about %s.",
+				countText(sz.Remaining), recipients, countText(held), fmtRate(changes.Expected)))
+		}
+	case stands(lapsed):
+		sz := size(groupLapsed, "")
+		d.Causes = append(d.Causes, IncidentCause{Lead: capitalize(contacts + " who stopped opening."),
+			Body: fmt.Sprintf("%s %s haven't opened in more than 90 days (at risk or sunset). %s of the %s complaints are from this group.",
+				countText(sz.Total), recipients, countText(lapsed), countText(tr.events))})
+		changes.Group, changes.Exclude = groupLapsed, sz.Remaining
+		if sz.Remaining > 0 {
+			changes.Expected = expected(sz, lapsed)
+			d.Recommendations = append(d.Recommendations, fmt.Sprintf("Exclude the %s at-risk and sunset %s from the remaining %s. Expected complaint rate after the change: about %s.",
+				countText(sz.Remaining), contacts, countText(held), fmtRate(changes.Expected)))
+		}
+	default:
+		d.Causes = append(d.Causes, IncidentCause{Lead: "No single group stands out.",
+			Body: fmt.Sprintf("The %s complaints come from across the %s, not from one import, signup source or engagement tier.", countText(tr.events), strings.TrimSpace(who+" audience"))})
+	}
 }
 
 // analyzeOutage explains a held route.

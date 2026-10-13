@@ -122,6 +122,9 @@ type abState struct {
 	Winner      string     `json:"winner,omitempty"`
 	DecidedAt   *time.Time `json:"decided_at,omitempty"`
 	DecidedBy   string     `json:"decided_by,omitempty"`
+	// Rates are the variants' rates when the test was decided: the monitor
+	// keeps showing what the decision was based on.
+	Rates map[string]float64 `json:"rates,omitempty"`
 	// Window overrides the test duration, in seconds (demo sends).
 	Window int64 `json:"window,omitempty"`
 }

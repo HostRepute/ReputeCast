@@ -272,7 +272,8 @@ FROM old
 WHERE m.id = $2
 RETURNING (old.clicked_at IS NULL)::boolean AS first_click,
           (old.opened_at IS NULL)::boolean AS first_open,
-          (old.human_opened_at IS NULL)::boolean AS first_human
+          (old.human_opened_at IS NULL)::boolean AS first_human,
+          old.opened_at AS prev_opened_at
 `
 
 type TrackingMarkClickParams struct {
@@ -281,16 +282,22 @@ type TrackingMarkClickParams struct {
 }
 
 type TrackingMarkClickRow struct {
-	FirstClick bool `json:"firstClick"`
-	FirstOpen  bool `json:"firstOpen"`
-	FirstHuman bool `json:"firstHuman"`
+	FirstClick   bool       `json:"firstClick"`
+	FirstOpen    bool       `json:"firstOpen"`
+	FirstHuman   bool       `json:"firstHuman"`
+	PrevOpenedAt *time.Time `json:"prevOpenedAt"`
 }
 
 // A click counts as a human open too.
 func (q *Queries) TrackingMarkClick(ctx context.Context, arg TrackingMarkClickParams) (TrackingMarkClickRow, error) {
 	row := q.db.QueryRow(ctx, trackingMarkClick, arg.At, arg.ID)
 	var i TrackingMarkClickRow
-	err := row.Scan(&i.FirstClick, &i.FirstOpen, &i.FirstHuman)
+	err := row.Scan(
+		&i.FirstClick,
+		&i.FirstOpen,
+		&i.FirstHuman,
+		&i.PrevOpenedAt,
+	)
 	return i, err
 }
 
@@ -302,7 +309,8 @@ SET opened_at = coalesce(m.opened_at, $1::timestamptz),
 FROM old
 WHERE m.id = $3
 RETURNING (old.opened_at IS NULL)::boolean AS first_open,
-          (old.human_opened_at IS NULL AND $2::boolean)::boolean AS first_human
+          (old.human_opened_at IS NULL AND $2::boolean)::boolean AS first_human,
+          old.opened_at AS prev_opened_at
 `
 
 type TrackingMarkOpenParams struct {
@@ -312,17 +320,18 @@ type TrackingMarkOpenParams struct {
 }
 
 type TrackingMarkOpenRow struct {
-	FirstOpen  bool `json:"firstOpen"`
-	FirstHuman bool `json:"firstHuman"`
+	FirstOpen    bool       `json:"firstOpen"`
+	FirstHuman   bool       `json:"firstHuman"`
+	PrevOpenedAt *time.Time `json:"prevOpenedAt"`
 }
 
 // Records an open on a message and says what changed, so counters move
 // once per message: the first open, or the first human open after a
-// machine prefetch.
+// machine prefetch (prev_opened_at is when that prefetch was).
 func (q *Queries) TrackingMarkOpen(ctx context.Context, arg TrackingMarkOpenParams) (TrackingMarkOpenRow, error) {
 	row := q.db.QueryRow(ctx, trackingMarkOpen, arg.At, arg.Human, arg.ID)
 	var i TrackingMarkOpenRow
-	err := row.Scan(&i.FirstOpen, &i.FirstHuman)
+	err := row.Scan(&i.FirstOpen, &i.FirstHuman, &i.PrevOpenedAt)
 	return i, err
 }
 

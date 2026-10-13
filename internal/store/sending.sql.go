@@ -836,7 +836,7 @@ SELECT m.contact_id
 FROM messages m JOIN contacts c ON c.id = m.contact_id
 WHERE m.campaign_id = $1
   AND ($2::text = '' OR m.mailbox_provider = $2::text)
-  AND c.source = $3 AND c.last_open_at IS NULL
+  AND c.source = $3 AND c.last_human_open_at IS NULL
 LIMIT 2000
 `
 
@@ -846,6 +846,8 @@ type SendingCohortContactsParams struct {
 	Source          string     `json:"source"`
 }
 
+// Contacts of an import cohort in this send (never opened), to tell whether
+// this is the first mail they get from the workspace.
 func (q *Queries) SendingCohortContacts(ctx context.Context, arg SendingCohortContactsParams) ([]*uuid.UUID, error) {
 	rows, err := q.db.Query(ctx, sendingCohortContacts, arg.CampaignID, arg.MailboxProvider, arg.Source)
 	if err != nil {
@@ -866,45 +868,16 @@ func (q *Queries) SendingCohortContacts(ctx context.Context, arg SendingCohortCo
 	return items, nil
 }
 
-const sendingCohortSize = `-- name: SendingCohortSize :one
-SELECT count(*)::bigint AS total,
-       count(*) FILTER (WHERE m.status IN ('queued', 'held'))::bigint AS remaining
-FROM messages m JOIN contacts c ON c.id = m.contact_id
-WHERE m.campaign_id = $1
-  AND ($2::text = '' OR m.mailbox_provider = $2::text)
-  AND c.source = $3 AND c.last_human_open_at IS NULL
-`
-
-type SendingCohortSizeParams struct {
-	CampaignID      *uuid.UUID `json:"campaignId"`
-	MailboxProvider string     `json:"mailboxProvider"`
-	Source          string     `json:"source"`
-}
-
-type SendingCohortSizeRow struct {
-	Total     int64 `json:"total"`
-	Remaining int64 `json:"remaining"`
-}
-
-// Recipients of a mailbox provider in this send who joined from a source
-// and never engaged, and how many of them are still to send.
-func (q *Queries) SendingCohortSize(ctx context.Context, arg SendingCohortSizeParams) (SendingCohortSizeRow, error) {
-	row := q.db.QueryRow(ctx, sendingCohortSize, arg.CampaignID, arg.MailboxProvider, arg.Source)
-	var i SendingCohortSizeRow
-	err := row.Scan(&i.Total, &i.Remaining)
-	return i, err
-}
-
 const sendingComplaintCohorts = `-- name: SendingComplaintCohorts :many
 SELECT coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NULL)::boolean AS never_engaged,
-       coalesce(c.consent, '')::text AS consent,
+       coalesce(c.consent, '')::text AS consent, coalesce(c.tier, '')::text AS tier,
        count(*)::bigint AS n
 FROM delivery_events e
 JOIN messages m ON m.id = e.message_id
 LEFT JOIN contacts c ON c.id = m.contact_id
 WHERE e.campaign_id = $1 AND e.type = 'complaint'
   AND ($2::text = '' OR e.mailbox_provider = $2::text)
-GROUP BY 1, 2, 3
+GROUP BY 1, 2, 3, 4
 ORDER BY n DESC
 `
 
@@ -917,12 +890,13 @@ type SendingComplaintCohortsRow struct {
 	Source       string `json:"source"`
 	NeverEngaged bool   `json:"neverEngaged"`
 	Consent      string `json:"consent"`
+	Tier         string `json:"tier"`
 	N            int64  `json:"n"`
 }
 
 // Complaints of a campaign (optionally one mailbox provider) by how the
-// complaining contacts joined and whether they ever engaged: the evidence
-// behind "likely causes".
+// complaining contacts joined, whether they ever engaged and their tier:
+// the evidence behind "likely causes".
 func (q *Queries) SendingComplaintCohorts(ctx context.Context, arg SendingComplaintCohortsParams) ([]SendingComplaintCohortsRow, error) {
 	rows, err := q.db.Query(ctx, sendingComplaintCohorts, arg.CampaignID, arg.MailboxProvider)
 	if err != nil {
@@ -936,6 +910,7 @@ func (q *Queries) SendingComplaintCohorts(ctx context.Context, arg SendingCompla
 			&i.Source,
 			&i.NeverEngaged,
 			&i.Consent,
+			&i.Tier,
 			&i.N,
 		); err != nil {
 			return nil, err
@@ -1131,8 +1106,11 @@ UPDATE messages m SET status = 'cancelled', claimed_at = NULL, error = $1
 FROM contacts c
 WHERE c.id = m.contact_id AND m.campaign_id = $2 AND m.status IN ('queued', 'held')
   AND ($3::text = '' OR m.mailbox_provider = $3::text)
-  AND c.last_human_open_at IS NULL
-  AND (NOT $4::boolean OR c.source LIKE 'import:%')
+  AND CASE $4::text
+        WHEN 'imported' THEN c.last_human_open_at IS NULL AND c.source LIKE 'import:%' AND ($5::text = '' OR c.source = $5::text)
+        WHEN 'lapsed' THEN c.tier IN ('at_risk', 'sunset')
+        ELSE c.last_human_open_at IS NULL
+      END
 RETURNING m.contact_id
 `
 
@@ -1140,7 +1118,8 @@ type SendingExcludeGroupParams struct {
 	Reason          string     `json:"reason"`
 	CampaignID      *uuid.UUID `json:"campaignId"`
 	MailboxProvider string     `json:"mailboxProvider"`
-	ImportedOnly    bool       `json:"importedOnly"`
+	Grp             string     `json:"grp"`
+	Source          string     `json:"source"`
 }
 
 // Takes a group out of the rest of the send; returns their contact ids so
@@ -1150,7 +1129,8 @@ func (q *Queries) SendingExcludeGroup(ctx context.Context, arg SendingExcludeGro
 		arg.Reason,
 		arg.CampaignID,
 		arg.MailboxProvider,
-		arg.ImportedOnly,
+		arg.Grp,
+		arg.Source,
 	)
 	if err != nil {
 		return nil, err
@@ -1348,28 +1328,48 @@ func (q *Queries) SendingGetSendForUpdate(ctx context.Context, campaignID uuid.U
 	return i, err
 }
 
-const sendingGroupCount = `-- name: SendingGroupCount :one
-SELECT count(*)::bigint
+const sendingGroupSize = `-- name: SendingGroupSize :one
+
+SELECT count(*)::bigint AS total,
+       count(*) FILTER (WHERE m.status IN ('queued', 'held'))::bigint AS remaining
 FROM messages m JOIN contacts c ON c.id = m.contact_id
-WHERE m.campaign_id = $1 AND m.status IN ('queued', 'held')
+WHERE m.campaign_id = $1
   AND ($2::text = '' OR m.mailbox_provider = $2::text)
-  AND c.last_human_open_at IS NULL
-  AND (NOT $3::boolean OR c.source LIKE 'import:%')
+  AND CASE $3::text
+        WHEN 'imported' THEN c.last_human_open_at IS NULL AND c.source LIKE 'import:%' AND ($4::text = '' OR c.source = $4::text)
+        WHEN 'lapsed' THEN c.tier IN ('at_risk', 'sunset')
+        ELSE c.last_human_open_at IS NULL
+      END
 `
 
-type SendingGroupCountParams struct {
+type SendingGroupSizeParams struct {
 	CampaignID      *uuid.UUID `json:"campaignId"`
 	MailboxProvider string     `json:"mailboxProvider"`
-	ImportedOnly    bool       `json:"importedOnly"`
+	Grp             string     `json:"grp"`
+	Source          string     `json:"source"`
 }
 
-// Recipients still to send in a group: never engaged, or imported and
-// never engaged, optionally for one mailbox provider.
-func (q *Queries) SendingGroupCount(ctx context.Context, arg SendingGroupCountParams) (int64, error) {
-	row := q.db.QueryRow(ctx, sendingGroupCount, arg.CampaignID, arg.MailboxProvider, arg.ImportedOnly)
-	var column_1 int64
-	err := row.Scan(&column_1)
-	return column_1, err
+type SendingGroupSizeRow struct {
+	Total     int64 `json:"total"`
+	Remaining int64 `json:"remaining"`
+}
+
+// Groups an auto-pause can take out of the rest of a send (grp):
+// 'imported' (joined from an import, from @source when given, and never
+// opened), 'lapsed' (at risk or sunset: no open in more than 90 days) and
+// 'never' (never opened).
+// A group's recipients in this send (optionally of one mailbox provider),
+// and how many of them are still to send.
+func (q *Queries) SendingGroupSize(ctx context.Context, arg SendingGroupSizeParams) (SendingGroupSizeRow, error) {
+	row := q.db.QueryRow(ctx, sendingGroupSize,
+		arg.CampaignID,
+		arg.MailboxProvider,
+		arg.Grp,
+		arg.Source,
+	)
+	var i SendingGroupSizeRow
+	err := row.Scan(&i.Total, &i.Remaining)
+	return i, err
 }
 
 const sendingImportOf = `-- name: SendingImportOf :one
@@ -2342,6 +2342,26 @@ type SendingSetContentParams struct {
 
 func (q *Queries) SendingSetContent(ctx context.Context, arg SendingSetContentParams) error {
 	_, err := q.db.Exec(ctx, sendingSetContent, arg.Content, arg.At, arg.CampaignID)
+	return err
+}
+
+const sendingSetDeliveryP50 = `-- name: SendingSetDeliveryP50 :exec
+UPDATE campaign_routes cr SET delivery_p50_ms = d.p50
+FROM (
+    SELECT m.provider_id,
+           (percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - m.sent_at)) * 1000)::integer AS p50
+    FROM messages m
+    WHERE m.campaign_id = $1 AND m.sent_at IS NOT NULL AND m.delivered_at IS NOT NULL AND m.delivered_at >= m.sent_at
+    GROUP BY m.provider_id
+) d
+WHERE cr.campaign_id = $1 AND cr.provider_id = d.provider_id
+`
+
+// The median time from handing a message to the provider to its delivery
+// event, per route, stored when a send ends ("Median time to delivery" in
+// the report's per-provider comparison).
+func (q *Queries) SendingSetDeliveryP50(ctx context.Context, campaignID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, sendingSetDeliveryP50, campaignID)
 	return err
 }
 
