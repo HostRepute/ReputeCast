@@ -159,8 +159,8 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 	quota := providers.Quota{}
 	accountID := ""
 	var probe *ProbeState
-	switch {
-	case flow == "smtp":
+	switch flow {
+	case "smtp":
 		ct, ok := adapter.(providers.ConnectionTester)
 		if !ok {
 			break

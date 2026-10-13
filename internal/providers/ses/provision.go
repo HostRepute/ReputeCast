@@ -294,7 +294,10 @@ func (p *Provider) RequestProductionAccess(ctx context.Context, r providers.Prod
 		useCase += fmt.Sprintf("\n\nExpected daily volume: %d emails.", r.DailyVolume)
 	}
 	_, err := sesv2.NewFromConfig(cfg).PutAccountDetails(ctx, &sesv2.PutAccountDetailsInput{
-		MailType: mailType, WebsiteURL: aws.String(r.WebsiteURL), ContactLanguage: lang, UseCaseDescription: aws.String(useCase),
+		MailType: mailType, WebsiteURL: aws.String(r.WebsiteURL), ContactLanguage: lang,
+		// Optional for AWS now, but the request form asks for it and the
+		// review reads it when present.
+		UseCaseDescription:              aws.String(useCase), //nolint:staticcheck // see above
 		AdditionalContactEmailAddresses: r.ContactEmails, ProductionAccessEnabled: aws.Bool(true),
 	})
 	if err != nil {

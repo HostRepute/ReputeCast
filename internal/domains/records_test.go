@@ -3,6 +3,7 @@ package domains
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -183,7 +184,7 @@ func TestCloudflareApply(t *testing.T) {
 	if !strings.Contains(joined, `PATCH /zones/z1/dns_records/r9`) || !strings.Contains(joined, `"priority":10`) || !strings.Contains(joined, `"proxied":false`) {
 		t.Errorf("calls: %s", joined)
 	}
-	if _, err := cf.Apply(context.Background(), "wrong-token-0123456789", "news.acme.io", recs); err != ErrCloudflareToken {
+	if _, err := cf.Apply(context.Background(), "wrong-token-0123456789", "news.acme.io", recs); !errors.Is(err, ErrCloudflareToken) {
 		t.Errorf("bad token: %v", err)
 	}
 }

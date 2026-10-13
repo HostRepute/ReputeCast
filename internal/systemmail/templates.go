@@ -70,9 +70,14 @@ func Render(kind string, brand Brand, subject, text, body string) (Rendered, err
 	if r, _ := utf8.DecodeRuneInString(brand.Name); r != utf8.RuneError {
 		initial = strings.ToUpper(string(r))
 	}
+	accent := brand.Accent
+	if !hexColor.MatchString(accent) {
+		accent = "#0F766E"
+	}
 	data := map[string]any{
-		"Subject": subject, "BrandName": brand.Name, "Accent": template.CSS(brand.Accent), "Initial": initial,
-		"Body":   template.HTML(body), //nolint:gosec // the caller's own HTML fragment, its values already escaped
+		"Subject": subject, "BrandName": brand.Name, "Initial": initial,
+		"Accent": template.CSS(accent), //nolint:gosec // a validated hex colour
+		"Body":   template.HTML(body),  //nolint:gosec // the caller's own HTML fragment, its values already escaped
 		"Reason": reason, "Footer": brand.Footer, "Preheader": firstLine(text),
 	}
 	var hb bytes.Buffer

@@ -294,12 +294,9 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 	}
 	t := state.Test
 	out.MessageID, out.SenderID, out.To, out.Subject, out.Seeds = t.MessageID, t.SenderID, t.To, t.Subject, append([]string{}, t.Seeds...)
-	mid, err := uuid.Parse(t.MessageID)
-	if err != nil {
-		return out, nil
-	}
-	m, err := s.Q.ConnectMessage(ctx, store.ConnectMessageParams{WorkspaceID: ws.ID, ID: mid})
-	if err != nil {
+	// The form alone when the test message is gone.
+	m, ok := s.testMessage(ctx, ws.ID, t.MessageID)
+	if !ok {
 		return out, nil
 	}
 	loc := state2Location(ws.Timezone)
@@ -331,7 +328,7 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 	}
 	out.Timeline = append(out.Timeline, accepted)
 	mailbox, mx := s.mailboxOf(ctx, t.To)
-	events, _ := s.Q.ConnectMessageEvents(ctx, &mid)
+	events, _ := s.Q.ConnectMessageEvents(ctx, &m.ID)
 	var delivered, failed, opened *store.DeliveryEvent
 	for i := range events {
 		e := &events[i]
@@ -548,4 +545,14 @@ func openURL(base, token string) string { return publicurl.New(base).Open(token)
 // linkClaims signs the test message's open pixel.
 func linkClaims(ws, msg uuid.UUID) linktoken.Claims {
 	return linktoken.Claims{Kind: linktoken.Open, WorkspaceID: ws, MessageID: msg}
+}
+
+// testMessage loads the setup's test message.
+func (s *Service) testMessage(ctx context.Context, wsID uuid.UUID, rawID string) (store.Message, bool) {
+	mid, err := uuid.Parse(rawID)
+	if err != nil {
+		return store.Message{}, false
+	}
+	m, err := s.Q.ConnectMessage(ctx, store.ConnectMessageParams{WorkspaceID: wsID, ID: mid})
+	return m, err == nil
 }

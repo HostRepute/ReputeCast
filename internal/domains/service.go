@@ -575,7 +575,7 @@ func (s *Service) UpdateSender(ctx context.Context, ws *store.Workspace, rawID s
 	if err != nil {
 		return SenderIdentity{}, err
 	}
-	before := map[string]any{"name": sn.Name, "reply_to": sn.ReplyTo, "note": sn.Note, "verification": json.RawMessage(sn.Verification), "default_for": defaultStreams(defs, id)}
+	before := map[string]any{"name": sn.Name, "reply_to": sn.ReplyTo, "note": sn.Note, "verification": sn.Verification, "default_for": defaultStreams(defs, id)}
 	after := map[string]any{"name": strings.TrimSpace(in.Name), "reply_to": replyTo, "note": strings.TrimSpace(in.Note), "verification": json.RawMessage(verb), "default_for": in.DefaultFor}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)

@@ -101,9 +101,6 @@ func (s *Service) jobs() *jobs.Client {
 
 func newID() uuid.UUID { return uuid.Must(uuid.NewV7()) }
 
-// Steps of the setup, in order.
-var steps = []string{"connection", "domain", "test", "streams", "contacts", "done"}
-
 // randomToken returns a URL-safe random token of n bytes.
 func randomToken(n int) string {
 	b := make([]byte, n)
@@ -326,11 +323,6 @@ func (s *Service) providerName(ctx context.Context, wsID uuid.UUID, d providers.
 func itoa(n int) string {
 	b, _ := json.Marshal(n)
 	return string(b)
-}
-
-// stepIndex is the position of a step (connection = 2 in "Step 2 of 6").
-func stepIndex(step string) int {
-	return slices.Index(steps, step) + 2
 }
 
 // clean trims every value of a form map.

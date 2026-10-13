@@ -2,6 +2,7 @@ package apptest
 
 import (
 	"bufio"
+	"context"
 	"net"
 	"strings"
 	"sync"
@@ -31,7 +32,7 @@ type SinkMessage struct {
 // NewSMTPSink starts a sink on a free local port; it stops with the test.
 func NewSMTPSink(t testing.TB) *SMTPSink {
 	t.Helper()
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +60,7 @@ func (s *SMTPSink) serve() {
 }
 
 func (s *SMTPSink) handle(c net.Conn) {
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 	r := bufio.NewReader(c)
 	w := func(line string) { _, _ = c.Write([]byte(line + "\r\n")) }
 	w("220 sink.test ESMTP Sink")

@@ -94,10 +94,10 @@ func (p *Provider) TestConnection(ctx context.Context) (providers.ConnectionRepo
 	if err != nil {
 		return out, &providers.CallError{Op: "SMTP connect", Message: dialMessage(err), Temporary: true, Cause: err}
 	}
-	defer raw.Close()
+	defer func() { _ = raw.Close() }()
 	_ = raw.SetDeadline(deadline)
 	tlsCfg := &tls.Config{ServerName: p.s.Host, MinVersion: tls.VersionTLS12}
-	var conn net.Conn = raw
+	conn := raw
 	var tlsState *tls.ConnectionState
 	if p.s.TLS == "tls" {
 		tc := tls.Client(raw, tlsCfg)
@@ -113,7 +113,7 @@ func (p *Provider) TestConnection(ctx context.Context) (providers.ConnectionRepo
 	if err != nil {
 		return out, &providers.CallError{Op: "SMTP greeting", Message: err.Error(), Temporary: true, Cause: err}
 	}
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 	helo := p.s.HELO
 	if helo == "" {
 		helo = "localhost"
@@ -283,7 +283,7 @@ func (p *Provider) TestBounceMailbox(ctx context.Context) (providers.MailboxRepo
 		}
 		return rep, &providers.CallError{Op: cfg.Label() + " connect", Message: dialMessage(err), Temporary: true, Cause: err}
 	}
-	defer box.Close()
+	defer func() { _ = box.Close() }()
 	msgs, err := box.Fetch(ctx, 200)
 	if err != nil {
 		return rep, &providers.CallError{Op: cfg.Label() + " fetch", Message: err.Error(), Temporary: true, Cause: err}
