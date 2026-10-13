@@ -99,6 +99,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
           cache-dependency-path: sdk/pnpm-lock.yaml
+      # Installing also builds the SDK (its prepare script): the template
+      # imports it from dist/.
       - run: pnpm install --frozen-lockfile
         working-directory: sdk
       - run: pnpm typecheck
