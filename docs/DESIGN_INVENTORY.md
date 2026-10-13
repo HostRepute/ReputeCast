@@ -282,3 +282,8 @@ When they disagree we follow the design for UI and the spec for behaviour.
 | 11 | Table page size | Campaigns shows 9 rows ("Showing 9 of 48") | — | Lists page by 25; the count line reads "Showing 1–25 of 48". |
 | 12 | Built-in blocklists | Settings › Integrations lists SORBS-SPAM | SORBS shut down in 2024 | The built-in checks use Mailspike instead; the Postal IP's sample listing is UCEPROTECT Level 3 everywhere. |
 | 13 | Provider rates in the demo | Providers and Deliverability show Postmark 0.2% / 0.01% and Postal 0.9% / 0.05% | Rates are computed from 7 days of provider stats | Both screens use the same computation; the demo's daily stats are tuned to the boards' values. |
+| 14 | Sign-in form | AuthScreens draws email and password together; SignInStates goes email first | Spec 5.1 | Email first, then password or SSO (SignInStates). Auth cards are 412 px wide as on the add-on boards. |
+| 15 | Two-factor extras | "Trust this device for 30 days" and "Send a code by email" | Spec 5.2: authenticator, passkey, recovery code | Not offered. |
+| 16 | acme.io password sign-in | SSO sample data turns password sign-in off for @acme.io (break-glass Linh only) | The members table has Aisha signing in with a password | Demo keeps domain enforcement off so Aisha can sign in; turning it on shows the enforcement states. |
+| 17 | Workspace switching on phones and tablets | The switcher is hidden below 1101 px | People must be able to switch | The user menu lists workspaces below 1101 px. |
+| 18 | Authenticator key | One short line | RFC 6238 recommends 160-bit secrets | 160-bit key shown as two lines of four groups. |
