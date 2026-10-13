@@ -583,7 +583,7 @@ func (s *Service) testView(ctx context.Context, p store.SsoProvider, t *testRun)
 		case []any:
 			parts := []string{}
 			for _, e := range x {
-				parts = append(parts, fmt.Sprintf("%q", shortID(fmt.Sprint(e))))
+				parts = append(parts, fmt.Sprintf("%q", sampleID(fmt.Sprint(e))))
 			}
 			smp.Value = "[" + strings.Join(parts, ", ") + "]"
 			smp.Count = len(x)
@@ -625,6 +625,14 @@ func (s *Service) testView(ctx context.Context, p store.SsoProvider, t *testRun)
 func shortID(s string) string {
 	if len(s) == 36 && strings.Count(s, "-") == 4 {
 		return s[:8] + "-…-" + s[33:]
+	}
+	return s
+}
+
+// sampleID is the tighter form of the claim mapping's samples: 3f2a…c91.
+func sampleID(s string) string {
+	if len(s) == 36 && strings.Count(s, "-") == 4 {
+		return s[:4] + "…" + s[33:]
 	}
 	return s
 }

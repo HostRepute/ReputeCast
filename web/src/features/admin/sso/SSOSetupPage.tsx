@@ -1055,9 +1055,9 @@ function TestCard({
       <div className="pad col gap-3.5">
         <div className="row gap-2">
           <Button variant="primary" loading={running} disabledReason={blocked} onClick={onRun}>
-            {t ? 'Run test sign-in again' : 'Run test sign-in'}
+            Run test sign-in
           </Button>
-          <span className="k">Opens {preset.name} in a popup, shows the claims, signs nobody in and changes nothing.</span>
+          <span className="k">Opens {preset.shortName} in a popup, shows the claims, signs nobody in and changes nothing.</span>
         </div>
         {t?.error ? (
           <Note tone="bad" label="Test failed">
