@@ -405,9 +405,10 @@ export function edgeGeometry(sx: number, sy: number, tx: number, ty: number, kin
   // (split) under the step, or 18px above the merge target: its centre line
   // is 1px lower.
   let busY: number
-  if (kind === 'branch') busY = sy - 5 + 25
-  else if (kind === 'split') busY = sy - 5 + 23
-  else if (kind === 'merge') busY = ty + 5 - 17
+  // Steps have fractional heights; the bars sit on whole pixels like the board's.
+  if (kind === 'branch') busY = Math.round(sy - 5) + 25
+  else if (kind === 'split') busY = Math.round(sy - 5) + 23
+  else if (kind === 'merge') busY = Math.round(ty + 5) - 17
   else busY = (sy + ty) / 2
   busY = Math.min(Math.max(busY, Math.min(sy, ty)), Math.max(sy, ty))
   const length = Math.abs(busY - sy) + Math.abs(tx - sx) + Math.abs(ty - busY)
