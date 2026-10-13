@@ -458,7 +458,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	heldProviders := map[uuid.UUID]bool{}
 	var maxAPI *float64
 	via := []string{}
-	var lastEvent *time.Time
 	routeLabel := []string{}
 	for _, r := range routes {
 		p, err := e.Q.ProvGetAny(ctx, r.ProviderID)
@@ -520,10 +519,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			maxAPI = &v
 		}
 		via = append(via, webhooksVia(p))
-		if p.LastEventAt != nil && (lastEvent == nil || p.LastEventAt.After(*lastEvent)) {
-			t := *p.LastEventAt
-			lastEvent = &t
-		}
 		s.Providers = append(s.Providers, lp)
 		s.Details.CostPlanned += lp.PlannedCost
 		s.Details.Cost += lp.Cost
@@ -538,7 +533,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	s.Details.CostPlanned = math.Round(s.Details.CostPlanned*100) / 100
 	s.Cost = LiveCostByRoute{Total: s.Details.Cost, Planned: s.Details.CostPlanned}
 	s.EventsVia = joinAnd(uniqStrings(via))
-	s.LastEventAt = lastEvent
 	// Mailbox providers.
 	var bestMailbox string
 	var bestRate float64 = -1
@@ -772,6 +766,12 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		for _, f := range feed {
 			s.Events = append(s.Events, e.liveEvent(f, provNames))
 		}
+	}
+	// "last 1 s ago": this send's newest event (a provider's own last event
+	// may belong to another send).
+	if len(s.Events) > 0 {
+		t := s.Events[0].At
+		s.LastEventAt = &t
 	}
 	s.Options = LiveOptions{
 		CanPause:  cc.Status == "sending",

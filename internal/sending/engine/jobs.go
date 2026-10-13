@@ -26,6 +26,27 @@ func uniqueOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: jobs.QueueSending, UniqueOpts: river.UniqueOpts{ByArgs: true, ByState: activeStates}}
 }
 
+// Every sending job is safe to run again (sends are claimed per message,
+// the audience build continues from its cursor), and each kind is unique
+// while it waits: a job left to River's growing back-off would hold its
+// campaign, or every demo event, for minutes to hours. So a job cut short
+// by shutdown snoozes to run as soon as a worker starts, and a failed one
+// runs again within seconds.
+
+// interrupted turns a job cancelled by shutdown into an immediate snooze.
+func interrupted(ctx context.Context, err error) error {
+	if err != nil && ctx.Err() != nil && errors.Is(err, context.Canceled) {
+		return river.JobSnooze(0)
+	}
+	return err
+}
+
+// quickRetry is when a failed sending job runs again: 2 s more per attempt,
+// at most 30 s.
+func quickRetry(attempt int) time.Time {
+	return time.Now().Add(min(time.Duration(max(attempt, 1))*2*time.Second, 30*time.Second))
+}
+
 // StartArgs starts a scheduled campaign at its time (with the send-time
 // readiness recheck).
 type StartArgs struct {
@@ -61,8 +82,11 @@ func (w *StartWorker) Work(ctx context.Context, job *river.Job[StartArgs]) error
 	if errors.Is(err, sending.ErrNotReady) || errors.Is(err, ErrState) || errors.Is(err, ErrNotFound) {
 		return nil
 	}
-	return err
+	return interrupted(ctx, err)
 }
+
+// NextRetry implements river.Worker.
+func (w *StartWorker) NextRetry(job *river.Job[StartArgs]) time.Time { return quickRetry(job.Attempt) }
 
 // PrepareArgs builds a campaign's recipient list.
 type PrepareArgs struct {
@@ -91,7 +115,12 @@ func (w *PrepareWorker) Work(ctx context.Context, job *river.Job[PrepareArgs]) e
 	if errors.Is(err, errBusy) {
 		return river.JobSnooze(5 * time.Second)
 	}
-	return err
+	return interrupted(ctx, err)
+}
+
+// NextRetry implements river.Worker.
+func (w *PrepareWorker) NextRetry(job *river.Job[PrepareArgs]) time.Time {
+	return quickRetry(job.Attempt)
 }
 
 // RunArgs runs a campaign's send loop for a while, then snoozes.
@@ -121,10 +150,13 @@ func (w *RunWorker) Timeout(*river.Job[RunArgs]) time.Duration { return 2 * time
 func (w *RunWorker) Work(ctx context.Context, job *river.Job[RunArgs]) error {
 	again, done, err := w.E.Run(ctx, job.Args.CampaignID, runBudget)
 	if err != nil || done {
-		return err
+		return interrupted(ctx, err)
 	}
 	return river.JobSnooze(max(again, 10*time.Millisecond))
 }
+
+// NextRetry implements river.Worker.
+func (w *RunWorker) NextRetry(job *river.Job[RunArgs]) time.Time { return quickRetry(job.Attempt) }
 
 // SimArgs applies the demo transport's events as they come due.
 type SimArgs struct{}
@@ -152,7 +184,7 @@ func (w *SimWorker) Work(ctx context.Context, _ *river.Job[SimArgs]) error {
 	for time.Since(start) < runBudget {
 		n, next, err := w.E.PumpSim(ctx, w.E.now())
 		if err != nil {
-			return err
+			return interrupted(ctx, err)
 		}
 		if n > 0 {
 			continue
@@ -160,18 +192,23 @@ func (w *SimWorker) Work(ctx context.Context, _ *river.Job[SimArgs]) error {
 		if next == nil {
 			return nil
 		}
+		// Never sleep long: a new send's events, due in seconds, would wait
+		// behind this job (it is unique) until a late open of an earlier one.
 		wait := time.Until(*next)
 		if wait > 5*time.Second {
-			return river.JobSnooze(wait)
+			return river.JobSnooze(min(wait, 10*time.Second))
 		}
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return interrupted(ctx, ctx.Err())
 		case <-time.After(max(wait, 200*time.Millisecond)):
 		}
 	}
 	return river.JobSnooze(10 * time.Millisecond)
 }
+
+// NextRetry implements river.Worker.
+func (w *SimWorker) NextRetry(job *river.Job[SimArgs]) time.Time { return quickRetry(job.Attempt) }
 
 // OutboxArgs sends queued automation emails.
 type OutboxArgs struct{}
@@ -197,9 +234,14 @@ func (w *OutboxWorker) Timeout(*river.Job[OutboxArgs]) time.Duration { return 2 
 func (w *OutboxWorker) Work(ctx context.Context, _ *river.Job[OutboxArgs]) error {
 	again, done, err := w.E.RunOutbox(ctx, runBudget)
 	if err != nil || done {
-		return err
+		return interrupted(ctx, err)
 	}
 	return river.JobSnooze(max(again, 10*time.Millisecond))
+}
+
+// NextRetry implements river.Worker.
+func (w *OutboxWorker) NextRetry(job *river.Job[OutboxArgs]) time.Time {
+	return quickRetry(job.Attempt)
 }
 
 // WatchArgs is the periodic safety net: it restarts send loops whose job
@@ -265,7 +307,38 @@ func (e *Engine) Watch(ctx context.Context) error {
 	if ids, err := e.Q.SendingOutboxProviders(ctx); err == nil && len(ids) > 0 {
 		e.insert(ctx, OutboxArgs{}, nil)
 	}
+	e.wakeStuck(ctx)
 	return e.Q.SendingPurgeWindows(ctx, now.Add(-time.Minute).Unix())
+}
+
+// wakeStuck runs now any sending job (other than a scheduled start) that
+// waits more than a minute: none of them snoozes that long, so it is a
+// retry back-off, and while it waits the job's uniqueness keeps the work
+// from being picked up again.
+func (e *Engine) wakeStuck(ctx context.Context) {
+	c := e.jobs()
+	if c == nil {
+		return
+	}
+	rows, err := e.Pool.Query(ctx, `SELECT id FROM river_job
+		WHERE kind IN ('sending.prepare', 'sending.run', 'sending.sim', 'sending.outbox')
+		  AND state IN ('scheduled', 'retryable') AND scheduled_at > now() + interval '1 minute'`)
+	if err != nil {
+		return
+	}
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if rows.Scan(&id) == nil {
+			ids = append(ids, id)
+		}
+	}
+	rows.Close()
+	for _, id := range ids {
+		if _, err := c.JobRetry(ctx, id); err != nil {
+			e.log().WarnContext(ctx, "wake a waiting send job", "job", id, "err", err)
+		}
+	}
 }
 
 // resumeDecided sends a campaign again once nothing holds it any more.
