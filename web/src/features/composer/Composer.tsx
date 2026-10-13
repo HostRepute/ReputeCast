@@ -3,8 +3,12 @@ import { useNavigate } from '@tanstack/react-router'
 import type { Component } from 'grapesjs'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { $api, ApiError, errorMessage, http } from '@/api/client'
+import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
+import { clock } from '@/lib/format'
 import { useDocumentTitle } from '@/lib/hooks'
+import { useUnsavedWork } from '@/lib/sessionClock'
+import { runShortcutHandler, useShortcutHandler } from '@/lib/shortcuts'
 import { useCan, useWorkspace } from '@/lib/session'
 import { CanvasArea } from './CanvasArea'
 import { CodeView } from './CodeView'
@@ -322,15 +326,6 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
     const h = window.setInterval(() => void saveRef.current(), 10_000)
     return () => window.clearInterval(h)
   }, [status.kind])
-  // Leaving with unsaved changes.
-  useEffect(() => {
-    const onUnload = (e: BeforeUnloadEvent) => {
-      if (revision.current !== savedRevision.current) e.preventDefault()
-    }
-    window.addEventListener('beforeunload', onUnload)
-    return () => window.removeEventListener('beforeunload', onUnload)
-  }, [])
-
   const reloadFromServer = useCallback(async () => {
     const { data } = await http.GET('/api/v1/workspaces/{workspace}/campaigns/{campaignId}', { params: { path: { workspace: slug, campaignId: campaign.id } } })
     if (!data) return
@@ -434,25 +429,34 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
   }, [qc])
 
   // ---------------------------------------------------------------- keys
+  // ⌘S and ⌘Enter go through the app's shortcut layer (see the handlers
+  // below); the canvas is an iframe, so its keys are forwarded here. ⌘/ opens
+  // the composer's own shortcut list.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey
-      if (mod && e.key.toLowerCase() === 's') {
-        e.preventDefault()
-        void save({ manual: true })
-      } else if (mod && e.key === '/') {
+    const onFrameKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey) return
+      const key = e.key.toLowerCase()
+      if (key === 's' && !e.shiftKey && runShortcutHandler('save')) e.preventDefault()
+      else if (e.key === 'Enter' && runShortcutHandler('readiness')) e.preventDefault()
+      else if (e.key === '/') {
         e.preventDefault()
         setDialog('shortcuts')
       }
     }
-    window.addEventListener('keydown', onKey)
-    const frameDoc = ge?.editor.Canvas.getDocument()
-    frameDoc?.addEventListener('keydown', onKey)
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      frameDoc?.removeEventListener('keydown', onKey)
+    const onPageKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+        e.preventDefault()
+        setDialog('shortcuts')
+      }
     }
-  }, [save, ge])
+    window.addEventListener('keydown', onPageKey)
+    const frameDoc = ge?.editor.Canvas.getDocument()
+    frameDoc?.addEventListener('keydown', onFrameKey)
+    return () => {
+      window.removeEventListener('keydown', onPageKey)
+      frameDoc?.removeEventListener('keydown', onFrameKey)
+    }
+  }, [ge])
 
   // ---------------------------------------------------------------- view
   const registerLeaveCheck = useCallback((fn: () => boolean) => {
@@ -558,9 +562,34 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
   }
 
   const goReview = useCallback(async () => {
-    if (revision.current !== savedRevision.current) await save()
-    void navigate({ to: '/w/$workspace/campaigns/$campaignId/review', params: { workspace: slug, campaignId: campaign.id } })
+    if (revision.current !== savedRevision.current && !(await save())) return
+    // Just saved: the unsaved-changes guard has nothing to ask.
+    void navigate({ to: '/w/$workspace/campaigns/$campaignId/review', params: { workspace: slug, campaignId: campaign.id }, ignoreBlocker: true })
   }, [save, navigate, slug, campaign.id])
+
+  useShortcutHandler(
+    'save',
+    canEdit
+      ? () => {
+          void save({ manual: true })
+        }
+      : undefined,
+  )
+  useShortcutHandler('readiness', () => {
+    void goReview()
+  })
+
+  const unsaved = status.kind === 'dirty' || status.kind === 'offline' || status.kind === 'error' || status.kind === 'conflict'
+  const savedVersion = status.kind === 'new' ? 0 : status.version
+  useUnsavedWork(
+    canEdit
+      ? {
+          whileEnding: 'the draft autosaves',
+          afterEnded: savedVersion ? `The campaign you were editing is saved as draft v${savedVersion} and will reopen where you left off.` : undefined,
+        }
+      : undefined,
+  )
+  const lastSave = status.kind === 'saved' || status.kind === 'dirty' ? status.at : undefined
 
   return (
     <ComposerCtx.Provider value={state}>
@@ -586,6 +615,14 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
           {view !== 'preview' ? <Footer /> : null}
         </div>
         <Dialogs dialog={dialog} onClose={() => setDialog(null)} onSavedTemplate={(t) => setSavedCard({ version: version.current, at: new Date().toISOString(), template: t })} />
+        <UnsavedChangesGuard
+          dirty={canEdit && unsaved}
+          title="Leave the composer?"
+          description={`Your latest edits to ${name || 'this campaign'} aren't saved yet${lastSave ? `; the last autosave was at ${clock(lastSave)}` : ''}.`}
+          onSave={async () => {
+            if (!(await save({ manual: true, quiet: true }))) throw new Error("The draft couldn't be saved. Check your connection, or download the MJML as a backup.")
+          }}
+        />
       </div>
     </ComposerCtx.Provider>
   )

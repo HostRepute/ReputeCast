@@ -1,7 +1,8 @@
-import { Link, useNavigate } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
-import { $api, ApiError, errorMessage, http } from '@/api/client'
-import { ErrorPanel } from '@/components/ui/Feedback'
+import { $api, ApiError, http } from '@/api/client'
+import { ForbiddenState, NotFoundState, problemReference, ServerErrorState } from '@/components/shell/SystemScreens'
+import { ButtonLink } from '@/components/ui/Button'
 import { useDocumentTitle } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { Composer, type ComposerSearch } from './Composer'
@@ -42,29 +43,36 @@ export function ComposerSkeleton({ title, detail }: { title: string; detail: str
   )
 }
 
-function ComposerError({ title, children, retry }: { title: string; children: string; retry?: () => void }) {
+/**
+ * The composer is full screen, so its 403/404/500 states use the shared
+ * system states in a centred frame instead of the app shell.
+ */
+function ComposerError({ error, path, retry }: { error: unknown; path: string; retry?: () => void }) {
   const { slug } = useWorkspace()
-  useDocumentTitle(`${title} · ReputeCast`)
+  const back = (
+    <ButtonLink to="/w/$workspace/campaigns" params={{ workspace: slug }}>
+      Back to campaigns
+    </ButtonLink>
+  )
+  const status = error instanceof ApiError ? error.status : 0
+  useDocumentTitle(`${status === 404 ? 'Not found' : status === 403 ? 'No access' : 'Something broke'} · ReputeCast`)
+  let body
+  if (error instanceof ApiError && status === 403 && error.problem.permission) {
+    body = <ForbiddenState permission={error.problem.permission} title={path.endsWith('/new') ? "Your role can't create campaigns" : "Your role can't open this campaign"} readOnly={back} />
+  } else if (status === 404) {
+    body = (
+      <NotFoundState path={path} reference={problemReference(error)} primary={back}>
+        The campaign may have been deleted, or the link is from another workspace.
+      </NotFoundState>
+    )
+  } else {
+    body = <ServerErrorState reference={problemReference(error)} savedNote={retry ? undefined : 'Nothing was created.'} onRetry={retry ?? (() => window.location.reload())} back={back} />
+  }
   return (
-    <div className="cmp items-center justify-center" style={{ padding: 24 }}>
-      <ErrorPanel
-        title={title}
-        className="w-full max-w-[560px]"
-        actions={
-          <>
-            {retry ? (
-              <button type="button" className="btn pri" onClick={retry}>
-                Try again
-              </button>
-            ) : null}
-            <Link to="/w/$workspace/campaigns" params={{ workspace: slug }} className="btn">
-              Back to campaigns
-            </Link>
-          </>
-        }
-      >
-        {children}
-      </ErrorPanel>
+    <div className="cmp items-center" style={{ padding: '56px 16px' }}>
+      <main id="main" className="w-full max-w-[640px]">
+        {body}
+      </main>
     </div>
   )
 }
@@ -75,21 +83,9 @@ export function ComposerPage({ campaignId, search, onSearch }: { campaignId: str
   const campaign = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}', { params: { path: { workspace: slug, campaignId } } }, { refetchOnWindowFocus: false, retry: (n, e) => !(e as unknown as ApiError)?.status && n < 2 })
   const context = $api.useQuery('get', '/api/v1/workspaces/{workspace}/composer', { params: { path: { workspace: slug } } }, { staleTime: 60_000 })
   useDocumentTitle(campaign.data ? `${campaign.data.name} · Composer · ReputeCast` : 'Composer · ReputeCast')
-  if (campaign.isError) {
-    const e = campaign.error as unknown
-    if (e instanceof ApiError && e.status === 404) return <ComposerError title="This campaign doesn't exist">It may have been deleted, or the link is from another workspace.</ComposerError>
-    return (
-      <ComposerError title="The campaign couldn't open" retry={() => void campaign.refetch()}>
-        {errorMessage(e)}
-      </ComposerError>
-    )
-  }
-  if (context.isError)
-    return (
-      <ComposerError title="The composer couldn't load" retry={() => void context.refetch()}>
-        {errorMessage(context.error)}
-      </ComposerError>
-    )
+  const path = `/campaigns/${campaignId}/edit`
+  if (campaign.isError) return <ComposerError error={campaign.error} path={path} retry={() => void campaign.refetch()} />
+  if (context.isError) return <ComposerError error={context.error} path={path} retry={() => void context.refetch()} />
   if (!campaign.data || !context.data) return <ComposerSkeleton title="Opening the campaign" detail="Content, audience and sender · usually under a second" />
   return <Composer key={campaign.data.id} campaign={campaign.data} context={context.data} search={search} onSearch={onSearch} />
 }
@@ -112,21 +108,17 @@ export function NewCampaignPage({ template, from }: { template?: string; from?: 
       })
       .catch((e: unknown) => setError(e))
   }, [slug, template, from, navigate, attempt])
-  if (error) {
-    if (error instanceof ApiError && error.status === 403)
-      return <ComposerError title="You can't create campaigns here">Creating a campaign needs the campaigns:edit permission. Ask an owner or admin of the workspace.</ComposerError>
+  if (error)
     return (
       <ComposerError
-        title="The draft couldn't be created"
+        error={error}
+        path="/campaigns/new"
         retry={() => {
           started.current = false
           setError(null)
           setAttempt((n) => n + 1)
         }}
-      >
-        {errorMessage(error)}
-      </ComposerError>
+      />
     )
-  }
   return <ComposerSkeleton title="Creating a draft" detail="New draft · not saved yet" />
 }

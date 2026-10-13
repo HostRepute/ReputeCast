@@ -19,7 +19,7 @@ export const Route = createFileRoute('/w/$workspace/campaigns/$campaignId/edit')
       <ComposerPage
         campaignId={campaignId}
         search={s}
-        onSearch={(next) => void navigate({ search: { view: next.view === 'visual' ? undefined : next.view, device: next.device, variant: next.variant as 'B' | 'C' | undefined }, replace: true })}
+        onSearch={(next) => void navigate({ search: { view: next.view === 'visual' ? undefined : next.view, device: next.device, variant: next.variant as 'B' | 'C' | undefined }, replace: true, ignoreBlocker: true })}
       />
     )
   },
