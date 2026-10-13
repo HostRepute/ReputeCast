@@ -77,7 +77,7 @@ function throttleText(v: number | undefined): string {
 }
 
 /** The first number in a field ("2.0 %" → 2, "5,000 recipients…" → 5000); "no limit" is 0. */
-function numberIn(s: string): number | undefined {
+export function numberIn(s: string): number | undefined {
   if (/^\s*(no limit|none|unlimited)?\s*$/i.test(s)) return 0
   const m = s.replace(/,/g, '').match(/\d+(\.\d+)?/)
   return m ? Number(m[0]) : undefined

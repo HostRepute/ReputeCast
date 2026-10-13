@@ -85,55 +85,58 @@ const STEP_DEFS: StepDef[] = [
 ]
 
 /**
- * The six steps. Each line under a step says what it is about: the
- * catalog describes them all; later the current step says what it asks
- * for, the steps behind it what they set up (the last one in full) and the
- * next one, from the connection step, what it will check.
+ * The line under step n of the stepper. The catalog describes every step;
+ * later the current step says what it asks for, the steps behind it what
+ * they set up (the last one in full) and, from the connection step, the
+ * next one what it will check (SES and SMTP: SetupError has none for API
+ * providers).
  */
-export function Stepper({ current, setup }: { current: number; setup?: Setup }) {
+export function stepLine(n: number, current: number, setup?: Pick<Setup, 'summaries' | 'info' | 'domain'>): string {
   const s = setup?.summaries
   const info = setup?.info
-  const line = (n: number): string => {
-    if (current === 1) return STEP_DEFS[n - 1]!.catalog
-    if (n === current) {
-      switch (n) {
-        case 2:
-          return info?.connectionHint ?? ''
-        case 3:
-          return setup?.domain.name || s?.domainShort || ''
-        case 4:
-          return 'Watch the event arrive'
-        case 5:
-          return `What ${info?.short ?? 'it'} will carry`
-        case 6:
-          return 'Import or start empty'
-      }
-      return ''
-    }
-    if (n > current) return current === 2 && n === 3 ? (info?.domainHint ?? '') : ''
-    // Steps behind: the provider by name, then what each one set up.
-    if (n === 1) return info?.step1 ?? ''
-    const latest = n === current - 1
-    if (!latest && current >= 6) return ''
+  if (current === 1) return STEP_DEFS[n - 1]!.catalog
+  if (n === current) {
     switch (n) {
       case 2:
-        return s?.connection ?? ''
+        return info?.connectionHint ?? ''
       case 3:
-        return (latest ? s?.domain : s?.domainShort) ?? ''
+        return setup?.domain.name || s?.domainShort || ''
       case 4:
-        return s?.test ?? ''
+        return 'Watch the event arrive'
       case 5:
-        return s?.streams ?? ''
+        return `What ${info?.short ?? 'it'} will carry`
+      case 6:
+        return 'Import or start empty'
     }
     return ''
   }
+  if (n > current) return current === 2 && n === 3 ? (info?.domainHint ?? '') : ''
+  // Steps behind: the provider by name, then what each one set up.
+  if (n === 1) return info?.step1 ?? ''
+  const latest = n === current - 1
+  if (!latest && current >= 6) return ''
+  switch (n) {
+    case 2:
+      return s?.connection ?? ''
+    case 3:
+      return (latest ? s?.domain : s?.domainShort) ?? ''
+    case 4:
+      return s?.test ?? ''
+    case 5:
+      return s?.streams ?? ''
+  }
+  return ''
+}
+
+/** The six steps, each with its line (stepLine). */
+export function Stepper({ current, setup }: { current: number; setup?: Setup }) {
   return (
     <nav className="card cn-steps" aria-label="Setup steps">
       {STEP_DEFS.map((d, i) => {
         const n = i + 1
         const done = n < current
         const cur = n === current
-        const sub = line(n)
+        const sub = stepLine(n, current, setup)
         return (
           <div key={d.title} className={cn('step cn-step', cur && 'cur', done && 'done')} aria-current={cur ? 'step' : undefined}>
             <span className="num" aria-hidden="true">
