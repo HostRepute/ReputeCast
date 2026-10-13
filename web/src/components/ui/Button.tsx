@@ -58,13 +58,19 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, Bu
    * and keyboard users can reach the explanation.
    */
   disabledReason?: string
+  /**
+   * The label while `loading` ("Saving…"). The button keeps the width of
+   * the wider of its two states, so nothing moves when it changes.
+   */
+  busyLabel?: ReactNode
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant, size = 'md', icon, iconRight, iconOnly, block, loading, disabledReason, className, children, type = 'button', onClick, title, ...rest },
+  { variant, size = 'md', icon, iconRight, iconOnly, block, loading, disabledReason, busyLabel, className, children, type = 'button', onClick, title, ...rest },
   ref,
 ) {
   const blocked = Boolean(disabledReason)
+  const onDark = variant === 'primary' || variant === 'danger-primary'
   return (
     <button
       ref={ref}
@@ -76,7 +82,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       onClick={blocked || loading ? (e) => e.preventDefault() : onClick}
       {...rest}
     >
-      {content(icon, iconRight, loading, children, size, variant === 'primary' || variant === 'danger-primary')}
+      {busyLabel === undefined ? (
+        content(icon, iconRight, loading, children, size, onDark)
+      ) : (
+        <span className="bl">
+          <span className={cn('inline-flex items-center justify-center gap-2', loading && 'reserve')} aria-hidden={loading || undefined}>
+            {content(icon, iconRight, false, children, size, onDark)}
+          </span>
+          <span className={cn('inline-flex items-center justify-center gap-2', !loading && 'reserve')} aria-hidden={!loading || undefined}>
+            {content(undefined, undefined, true, busyLabel, size, onDark)}
+          </span>
+        </span>
+      )}
     </button>
   )
 })
