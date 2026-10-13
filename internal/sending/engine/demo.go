@@ -209,6 +209,44 @@ func (e *Engine) resetDemo(ctx context.Context, id uuid.UUID) error {
 	e.mu.Unlock()
 	return db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		for _, q := range []string{
+			// Take back what the earlier send added outside the campaign, so
+			// running a scenario again starts from the same demo: the
+			// providers' daily sent and outcome counts (Postal's warm-up cap
+			// counts them) and the suppressions, with the contacts' bounced or
+			// complained status, that its own bounces and complaints created.
+			// Opens it recorded on contacts stay; call counts and costs too.
+			`UPDATE provider_daily_stats d SET sent = greatest(d.sent - x.n, 0)
+			 FROM (SELECT provider_id, sent_at::date AS day, count(*) AS n FROM messages
+			       WHERE campaign_id = $1 AND sent_at IS NOT NULL AND provider_id IS NOT NULL GROUP BY 1, 2) x
+			 WHERE d.provider_id = x.provider_id AND d.day = x.day`,
+			`UPDATE provider_daily_stats d SET delivered = greatest(d.delivered - x.delivered, 0),
+			     bounced = greatest(d.bounced - x.bounced, 0), complained = greatest(d.complained - x.complained, 0)
+			 FROM (SELECT provider_id, occurred_at::date AS day, count(*) FILTER (WHERE type = 'delivered') AS delivered,
+			              count(*) FILTER (WHERE type = 'hard_bounce') AS bounced, count(*) FILTER (WHERE type = 'complaint') AS complained
+			       FROM delivery_events WHERE campaign_id = $1 AND provider_id IS NOT NULL GROUP BY 1, 2) x
+			 WHERE d.provider_id = x.provider_id AND d.day = x.day`,
+			`WITH ev AS (
+			     SELECT workspace_id, recipient, provider_id, occurred_at, type FROM delivery_events
+			     WHERE campaign_id = $1 AND type IN ('hard_bounce', 'complaint') AND recipient <> ''
+			 ), gone AS (
+			     DELETE FROM suppressions s USING ev
+			     WHERE s.workspace_id = ev.workspace_id AND s.email = ev.recipient AND s.source = 'webhook'
+			       AND s.source_provider_id = ev.provider_id AND s.created_at = ev.occurred_at
+			       AND s.reason = CASE ev.type WHEN 'hard_bounce' THEN 'hard_bounce' ELSE 'complaint' END
+			     RETURNING s.workspace_id, s.email, s.reason
+			 )
+			 UPDATE contacts c SET status = 'active', updated_at = now()
+			 FROM gone WHERE c.workspace_id = gone.workspace_id AND c.email = gone.email
+			   AND c.status = CASE gone.reason WHEN 'hard_bounce' THEN 'bounced' ELSE 'complained' END`,
+			// Moving a held share shifted the warming provider's plan by a day.
+			`WITH shifted AS (
+			     DELETE FROM warmup_events ev USING warmup_plans p, campaigns c
+			     WHERE c.id = $1 AND c.started_at IS NOT NULL AND ev.plan_id = p.id
+			       AND p.provider_id IN (SELECT provider_id FROM campaign_routes WHERE campaign_id = $1)
+			       AND ev.kind = 'settings' AND ev.title = 'Schedule shifted by a day.' AND ev.occurred_at >= c.started_at
+			     RETURNING ev.plan_id
+			 )
+			 UPDATE warmup_plans p SET start_date = p.start_date - 1 FROM (SELECT DISTINCT plan_id FROM shifted) s WHERE p.id = s.plan_id`,
 			`DELETE FROM sending_sim_events WHERE campaign_id = $1`,
 			`DELETE FROM delivery_events WHERE campaign_id = $1`,
 			`DELETE FROM tracking_link_clicks WHERE message_id IN (SELECT id FROM messages WHERE campaign_id = $1)`,

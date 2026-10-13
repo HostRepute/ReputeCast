@@ -229,6 +229,57 @@ func TestSending(t *testing.T) {
 	t.Run("ScheduledStart", func(t *testing.T) { testScheduled(t, s.fixture(t, "Scheduled")) })
 	t.Run("API", func(t *testing.T) { testAPI(t, s.fixture(t, "API")) })
 	t.Run("Tracking", func(t *testing.T) { testTracking(t, s.fixture(t, "Tracking")) })
+	t.Run("DemoSendReset", func(t *testing.T) { testDemoReset(t, s.fixture(t, "Demo reset")) })
+}
+
+// testDemoReset runs the demo command's send, then starts it again with
+// --reset: what the first send added outside the campaign (provider daily
+// stats, suppressions from its bounces, the bounced contacts' status) is
+// taken back, so each run starts from the same demo.
+func testDemoReset(t *testing.T, f *fixture) {
+	f.exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.campaign)
+	f.addContacts(contactSpec{n: 2000, mailbox: "gmail", domain: "gmail.com", engaged: true})
+	stats := func() int64 {
+		return f.count(`SELECT coalesce(sum(d.sent + d.delivered + d.bounced + d.complained), 0) FROM provider_daily_stats d
+			JOIN providers p ON p.id = d.provider_id WHERE p.workspace_id = $1`, f.ws)
+	}
+	suppressed := func() int64 { return f.count(`SELECT count(*) FROM suppressions WHERE workspace_id = $1`, f.ws) }
+	inactive := func() int64 {
+		return f.count(`SELECT count(*) FROM contacts c JOIN list_memberships m ON m.contact_id = c.id WHERE m.list_id = $1 AND c.status <> 'active'`, f.list)
+	}
+	baseStats, baseSuppressed := stats(), suppressed()
+	res, err := f.e.DemoSend(f.ctx, engine.DemoSendOptions{Campaign: "Demo reset", Elapsed: 3 * time.Minute})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Recipients != 2000 || res.Sent == 0 {
+		t.Fatalf("demo send: %d recipients, %d sent", res.Recipients, res.Sent)
+	}
+	if stats() <= baseStats {
+		t.Fatal("the demo send didn't count in its providers' daily stats")
+	}
+	bounced := inactive()
+	if bounced == 0 || suppressed() != baseSuppressed+bounced {
+		t.Fatalf("%d contacts bounced or complained, suppressions went from %d to %d", bounced, baseSuppressed, suppressed())
+	}
+	if _, err := f.e.DemoSend(f.ctx, engine.DemoSendOptions{Campaign: "Demo reset", Reset: true}); err != nil {
+		t.Fatal(err)
+	}
+	if got := stats(); got != baseStats {
+		t.Fatalf("provider daily stats %d after the reset, want %d", got, baseStats)
+	}
+	if got := suppressed(); got != baseSuppressed {
+		t.Fatalf("%d suppressions after the reset, want %d", got, baseSuppressed)
+	}
+	if n := inactive(); n != 0 {
+		t.Fatalf("%d contacts still bounced or complained after the reset", n)
+	}
+	if n := f.count(`SELECT recipients FROM campaign_sends WHERE campaign_id = $1`, f.campaign); n != 2000 {
+		t.Fatalf("the send started again for %d recipients, want all 2,000", n)
+	}
+	if err := f.e.Cancel(f.ctx, f.campaign, f.sofia); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func testEndToEnd(t *testing.T, f *fixture) {
