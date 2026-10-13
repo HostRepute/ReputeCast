@@ -51,6 +51,8 @@ func New(t testing.TB) *Env {
 	cfg.HTTP.RateLimitAPI = 100000
 	// Fake provider APIs run on loopback in tests.
 	cfg.Providers.AllowPrivateNetworks = true
+	// Packages test in parallel against one server: keep each app's pool small.
+	cfg.Database.MaxConns = 6
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	if testing.Verbose() {
 		log = slog.New(slog.NewTextHandler(&testWriter{t}, &slog.HandlerOptions{Level: slog.LevelWarn}))

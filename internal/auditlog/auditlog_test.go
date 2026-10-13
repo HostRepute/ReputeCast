@@ -62,7 +62,8 @@ func TestAuditLog(t *testing.T) {
 		t.Fatal("routing change in the last 7 days")
 	}
 
-	c.Do("GET", ws+"/audit?result=denied", nil).MustStatus(t, 200).JSON(t, &l)
+	// 30 days: some seeded events sit near the 7-day edge, depending on the hour.
+	c.Do("GET", ws+"/audit?result=denied&range=30d", nil).MustStatus(t, 200).JSON(t, &l)
 	for _, it := range l.Items {
 		if it.Result != "denied" {
 			t.Fatalf("denied filter: %+v", it)
@@ -71,7 +72,7 @@ func TestAuditLog(t *testing.T) {
 	if len(l.Items) != 3 {
 		t.Fatalf("denied events: %d", len(l.Items))
 	}
-	c.Do("GET", ws+"/audit?actorType=mcp_agent", nil).MustStatus(t, 200).JSON(t, &l)
+	c.Do("GET", ws+"/audit?actorType=mcp_agent&range=30d", nil).MustStatus(t, 200).JSON(t, &l)
 	if len(l.Items) != 5 {
 		t.Fatalf("agent events: %d", len(l.Items))
 	}
