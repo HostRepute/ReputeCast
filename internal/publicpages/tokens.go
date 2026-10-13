@@ -596,6 +596,9 @@ func (h *Handler) unsubscribePost(w http.ResponseWriter, r *http.Request) {
 		if len(back) == 0 {
 			b.After = " is subscribed to " + publisher + " again. Pick your lists in your preferences."
 		}
+		if s.set.Pages.Archive.Enabled {
+			b.ArchiveHref = s.links.Archive()
+		}
 		h.render(w, r, s, "done", http.StatusOK, h.view(s, "Welcome back · "+publisher, b), csp{}, true)
 	default:
 		reason, comment := "", ""
