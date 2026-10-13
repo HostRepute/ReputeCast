@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui/Button'
+import { cn } from '@/lib/cn'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { ShieldMark, type Connection } from './shared'
 
@@ -18,13 +19,16 @@ export function ConnectCard({
   onConnect,
   onUseKey,
   connecting,
+  compact,
 }: {
   conn?: Connection
   onConnect: () => void
   onUseKey: () => void
   connecting?: boolean
+  /** Notes sized to their content (Settings), not the board's tall notes. */
+  compact?: boolean
 }) {
-  const { me } = useWorkspace()
+  const { me, slug } = useWorkspace()
   const can = useCan('integrations:hostrepute')
   const reason = usePermissionReason('integrations:hostrepute')
   const status = conn?.status ?? 'not_connected'
@@ -59,7 +63,7 @@ export function ConnectCard({
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+        <div className={cn('grid grid-cols-2 gap-3 max-md:grid-cols-1', compact && '[&_.note>:last-child]:basis-auto')}>
           <div className="note g flex-col items-stretch gap-1.5">
             <span className="font-bold">Shared with HostRepute</span>
             <ul className="m-0 flex list-disc flex-col gap-[3px] pl-[18px]">
@@ -78,20 +82,29 @@ export function ConnectCard({
             </ul>
           </div>
         </div>
-        <div className="row gap-2.5">
-          <Button variant="primary" onClick={onConnect} disabledReason={reason} loading={connecting}>
-            <ShieldMark />
-            {reconnect ? 'Reconnect with HostRepute' : 'Connect with HostRepute'}
-          </Button>
-          <Button onClick={onUseKey} disabledReason={reason}>
-            Use an API key instead
-          </Button>
-          <span className="k">
-            {can
-              ? `Needs the integrations:hostrepute permission · you have it as ${me.workspace.roleName}`
-              : 'Needs the integrations:hostrepute permission · ask an Owner or Admin of this workspace'}
-          </span>
-        </div>
+        {status === 'connected' ? (
+          <div className="row gap-2.5">
+            <ButtonLink variant="primary" to="/w/$workspace/settings/integrations" params={{ workspace: slug }}>
+              Open Settings › Integrations
+            </ButtonLink>
+            <span className="k">Connected to team “{conn?.teamName}”</span>
+          </div>
+        ) : (
+          <div className="row gap-2.5">
+            <Button variant="primary" onClick={onConnect} disabledReason={reason} loading={connecting}>
+              <ShieldMark />
+              {reconnect ? 'Reconnect with HostRepute' : 'Connect with HostRepute'}
+            </Button>
+            <Button onClick={onUseKey} disabledReason={reason}>
+              Use an API key instead
+            </Button>
+            <span className="k">
+              {can
+                ? `Needs the integrations:hostrepute permission · you have it as ${me.workspace.roleName}`
+                : 'Needs the integrations:hostrepute permission · ask an Owner or Admin of this workspace'}
+            </span>
+          </div>
+        )}
       </div>
     </section>
   )

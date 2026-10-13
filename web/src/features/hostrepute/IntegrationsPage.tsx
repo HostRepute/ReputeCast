@@ -62,7 +62,7 @@ function HostReputeSection({ conn, onLimit }: { conn: Connection; onLimit: (l: L
   const navigate = useNavigate()
   const oauth = useStartOAuth()
   const useKey = () => void navigate({ to: '/w/$workspace/deliverability/connect', params: { workspace: slug }, search: { key: true } })
-  if (conn.status === 'not_connected') return <ConnectCard conn={conn} onConnect={oauth.start} onUseKey={useKey} connecting={oauth.pending} />
+  if (conn.status === 'not_connected') return <ConnectCard conn={conn} onConnect={oauth.start} onUseKey={useKey} connecting={oauth.pending} compact />
   if (conn.status === 'revoked' || conn.status === 'expired') return <RevokedCard conn={conn} onReconnect={oauth.start} onUseKey={useKey} reconnecting={oauth.pending} />
   return <HostReputeCard conn={conn} onLimit={onLimit} />
 }
