@@ -90,6 +90,12 @@ Rules:
 ### SQL and migrations
 
 - Queries live in `internal/store/queries/<domain>.sql`; run `go tool sqlc generate`.
+- **Names are global.** sqlc query names share one package (`store`), demo
+  helpers share `package demo`, and API schema names share one OpenAPI
+  document. Prefix with your domain: `AutomationProviders` not
+  `WorkspaceProviders`, `ComposerCustomFields`, `deliverabilityDemoKey`,
+  `ImportFieldOption`. (Huma falls back to a package prefix on a schema-name
+  clash, but the web types then change name — pick unique names up front.)
 - Nullability: sqlc can't infer it through `LEFT JOIN LATERAL` or aggregates.
   Wrap with `coalesce(x, 0)::bigint` / `coalesce(x, '')::text` so pgx never
   scans NULL into a non-pointer.
@@ -178,6 +184,11 @@ handlers. Never hand-write API types; derive them: `type Item = Schemas['Campaig
    board sets `box-sizing:border-box` itself (inline or in a class), add
    `box-border`. Don't compensate sizes by hand; measure both pages when in
    doubt.
+   **Links:** as on the boards, links in running text, spans and table cells
+   are underlined and standalone links get a 24px target (rules in
+   `app.css`). A board link with an inline `color` is a name, not running
+   text, and has no underline (and no hover colour): add `no-underline` and
+   the colour class (`text-ink`).
 3. Replace sample data with API data. Copy that is not data stays literal.
 4. Reproduce the responsive behaviour. The boards get it from global rules in
    their CSS; in the app use the primitives:
