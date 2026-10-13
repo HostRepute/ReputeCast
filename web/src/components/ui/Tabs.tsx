@@ -3,7 +3,16 @@ import { Tabs as RTabs } from 'radix-ui'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
-export type NavTab = { label: ReactNode; to: LinkProps['to']; params?: LinkProps['params']; search?: LinkProps['search']; exact?: boolean; badge?: ReactNode }
+export type NavTab = {
+  label: ReactNode
+  to: LinkProps['to']
+  params?: LinkProps['params']
+  search?: LinkProps['search']
+  exact?: boolean
+  badge?: ReactNode
+  /** Marks the tab current on a sub-page with its own URL (Settings › Keys & MCP › MCP server). */
+  current?: boolean
+}
 
 /**
  * Section tabs under the screen title. They are links (each tab is its own
@@ -14,7 +23,15 @@ export function NavTabs({ tabs, label, className }: { tabs: NavTab[]; label: str
   return (
     <nav className={cn('tabs scroll-sm', className)} aria-label={label}>
       {tabs.map((t, i) => (
-        <Link key={i} to={t.to} params={t.params as never} search={t.search as never} activeOptions={{ exact: Boolean(t.exact), includeSearch: false }}>
+        <Link
+          key={i}
+          to={t.to}
+          params={t.params as never}
+          search={t.search as never}
+          activeOptions={{ exact: Boolean(t.exact), includeSearch: false }}
+          className={t.current ? 'on' : undefined}
+          aria-current={t.current ? 'page' : undefined}
+        >
           {t.label}
           {t.badge}
         </Link>
