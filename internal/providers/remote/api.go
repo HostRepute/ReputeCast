@@ -70,7 +70,8 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			if r, err = s.Check(ctx, r); err != nil {
+			ws := api.WorkspaceFrom(ctx).ID
+			if r, err = s.Check(ctx, &ws, r, nil); err != nil {
 				return nil, err
 			}
 			out, err := s.View(ctx, r)

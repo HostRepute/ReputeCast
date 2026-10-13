@@ -229,8 +229,9 @@ func (s *Service) IssueSecret(ctx context.Context, wsID *uuid.UUID, r store.Remo
 	return AdapterRuntimeSecret{Secret: secret, PreviousSecretValidUntil: &until}, nil
 }
 
-// Check calls the adapter's health operation now and records the result.
-func (s *Service) Check(ctx context.Context, r store.RemoteAdapterGetRow) (store.RemoteAdapterGetRow, error) {
+// Check calls the adapter's health operation now and records the result
+// (audited like a provider check).
+func (s *Service) Check(ctx context.Context, wsID *uuid.UUID, r store.RemoteAdapterGetRow, actor *audit.Actor) (store.RemoteAdapterGetRow, error) {
 	var in *Installation
 	if s.Runtime != nil {
 		s.Runtime.Changed(ctx)
@@ -268,7 +269,15 @@ func (s *Service) Check(ctx context.Context, r store.RemoteAdapterGetRow) (store
 		detail += "."
 	}
 	now := s.now()
-	if err := s.Q.RemoteRuntimeRecordCheck(ctx, store.RemoteRuntimeRecordCheckParams{AdapterID: r.ID, CheckedAt: &now, CheckOk: &ok, CheckDetail: cut(detail), RunningVersion: cut(h.Version)}); err != nil {
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := q.RemoteRuntimeRecordCheck(ctx, store.RemoteRuntimeRecordCheckParams{AdapterID: r.ID, CheckedAt: &now, CheckOk: &ok, CheckDetail: cut(detail), RunningVersion: cut(h.Version)}); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: wsID, Actor: actor, Action: "adapter.check", TargetType: "adapter", TargetID: r.ID.String(), TargetName: r.Name,
+			Metadata: map[string]any{"ok": ok, "detail": cut(detail)}})
+	})
+	if err != nil {
 		return r, err
 	}
 	return s.row(ctx, r.ID)

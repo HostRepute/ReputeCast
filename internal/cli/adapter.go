@@ -178,7 +178,7 @@ func newAdapterCmd(o *rootOpts) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				r, err = s.Check(ctx, r)
+				r, err = s.Check(ctx, nil, r, remote.CLIActor)
 				if err != nil {
 					return err
 				}

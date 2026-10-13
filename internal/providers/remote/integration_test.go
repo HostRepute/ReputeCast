@@ -176,7 +176,7 @@ func TestRuntimeEndToEnd(t *testing.T) {
 	}
 	fa.Secrets = []string{issued.Secret}
 
-	for _, action := range []string{"adapter.install", "adapter.update", "adapter.runtime_update", "adapter.secret_issue"} {
+	for _, action := range []string{"adapter.install", "adapter.update", "adapter.runtime_update", "adapter.secret_issue", "adapter.check"} {
 		if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = $1 AND target_id = $2`, action, res.Row.ID.String()); n == 0 {
 			t.Errorf("%s not audited", action)
 		}
@@ -328,7 +328,7 @@ func TestBrokenManifestRowsAreSkipped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	row, err := cli.Check(ctx, broken)
+	row, err := cli.Check(ctx, nil, broken, remote.CLIActor)
 	if err != nil || row.CheckOk == nil || *row.CheckOk || !strings.Contains(row.CheckDetail, "no longer validates") {
 		t.Fatalf("check of a broken row: %+v %v", row, err)
 	}

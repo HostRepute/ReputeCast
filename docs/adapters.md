@@ -136,7 +136,7 @@ image and the manifest. The [SDK section](#the-sdk) lists every hook.
 The same actions are in the API for instance admins:
 `GET|PUT /api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime`,
 `POST …/runtime/secret` and `POST …/runtime/check`. Every change writes an
-audit entry (`adapter.runtime_update`, `adapter.secret_issue`).
+audit entry (`adapter.runtime_update`, `adapter.secret_issue`, `adapter.check`).
 
 **Addresses.** The adapter's address is checked like other user-supplied
 URLs (`internal/netguard`): link-local and cloud metadata addresses are always
@@ -357,7 +357,8 @@ cut at 2,000 characters.
 #### `health`
 
 Is the process up, and is it the adapter ReputeCast expects? Called by
-`reputecast adapter check`, the runtime API and the circuit breaker's probe.
+`reputecast adapter check` and the runtime API's check, which go through
+even while the circuit breaker is open (a success closes it).
 
 - input: `{}`
 - result: `{ "adapter": "example-esp", "version": "0.1.0", "protocol": 1, "sdk": "@reputecast/adapter-sdk 0.1.0", "capabilities": { … } }`
