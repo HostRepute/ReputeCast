@@ -529,3 +529,52 @@ func TestScheduledSendLosesItsApproval(t *testing.T) {
 	}
 	blocking("")
 }
+
+// Publishing an automation can need approval too (A5 §3.8): the publish
+// waits for an approver, and their approval puts the version live.
+func TestAutomationPublishApproval(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	n := counter{t, env}
+	linh, marcus := env.Client(), env.Client()
+	linh.SignInDemo("linh@acme.io")
+	marcus.SignInDemo("marcus@acme.io")
+
+	var policy struct{ Policy map[string]any }
+	linh.Do("GET", ws+"/approval-policy", nil).MustStatus(t, 200).JSON(t, &policy)
+	policy.Policy["automationPublish"] = true
+	linh.Do("PUT", ws+"/approval-policy", policy.Policy).MustStatus(t, 200)
+
+	var autos struct {
+		Items []struct{ ID, Name string }
+	}
+	linh.Do("GET", ws+"/automations", nil).MustStatus(t, 200).JSON(t, &autos)
+	welcome := ""
+	for _, a := range autos.Items {
+		if a.Name == "Welcome series" {
+			welcome = a.ID
+		}
+	}
+	if welcome == "" {
+		t.Fatal("no Welcome series")
+	}
+	requested := n.notes("marcus@acme.io", "approval_requested")
+	var res struct{ Status, ApprovalID string }
+	linh.Do("POST", ws+"/automations/"+welcome+"/publish", map[string]any{"version": 4, "migration": "finish"}).MustStatus(t, 200).JSON(t, &res)
+	if res.Status != "approval_required" || res.ApprovalID == "" || n.notes("marcus@acme.io", "approval_requested") != requested+1 {
+		t.Fatalf("publish waits for approval: %+v", res)
+	}
+	var live struct{ LiveVersion *int }
+	linh.Do("GET", ws+"/automations/"+welcome, nil).MustStatus(t, 200).JSON(t, &live)
+	if live.LiveVersion == nil || *live.LiveVersion != 3 {
+		t.Fatalf("still v3 live: %v", live.LiveVersion)
+	}
+	// The publisher can't approve their own version; Marcus can.
+	linh.Do("POST", ws+"/approvals/"+res.ApprovalID+"/decision", map[string]any{"decision": "approve"}).MustStatus(t, 403)
+	approved := n.audit("automation.publish_approved", welcome)
+	marcus.Do("POST", ws+"/approvals/"+res.ApprovalID+"/decision", map[string]any{"decision": "approve"}).MustStatus(t, 200)
+	linh.Do("GET", ws+"/automations/"+welcome, nil).MustStatus(t, 200).JSON(t, &live)
+	if live.LiveVersion == nil || *live.LiveVersion != 4 || n.audit("automation.publish_approved", welcome) != approved+1 {
+		t.Fatalf("approved and live: %v", live.LiveVersion)
+	}
+}
