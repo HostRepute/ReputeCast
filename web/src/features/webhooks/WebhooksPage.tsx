@@ -5,7 +5,6 @@ import { Page } from '@/components/shell/Page'
 import { ForbiddenState } from '@/components/shell/SystemScreens'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
-import { CardSection } from '@/components/ui/Card'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { EmptyRow, Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
@@ -121,10 +120,14 @@ function MovedCard() {
     keys.data ? `${keys.data.items.length} API ${keys.data.items.length === 1 ? 'key' : 'keys'}` : '',
     agents.data ? `${agents.data.items.length} MCP ${agents.data.items.length === 1 ? 'agent' : 'agents'}` : '',
   ].filter(Boolean)
+  // One compact block, as the board draws it (with the card padding the board's CSS lacks).
   return (
-    <section className="card" aria-labelledby="moved-h">
-      <CardSection title={<span id="moved-h">API keys and MCP agents moved</span>} caption="Now under the Keys & MCP tab" />
-      <div className="pad row justify-between">
+    <section className="card flex flex-col gap-0.5 px-4.5 py-3" aria-labelledby="moved-h">
+      <h2 className="h2" id="moved-h">
+        API keys and MCP agents moved
+      </h2>
+      <span className="k">Now under the Keys &amp; MCP tab</span>
+      <div className="row justify-between">
         <span className="k">
           {counts.length ? `${counts.join(' · ')} · ` : ''}permissions use the same keys as roles and never exceed their creator&apos;s. Secrets are shown once.
         </span>
