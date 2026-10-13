@@ -367,14 +367,18 @@ export function SchedulingCard({
   )
 }
 
-/** Scheduling once it's settled: no choice to make here. */
+/**
+ * Scheduling once it's settled: no choice to make here. The card is faded
+ * as on the boards; its sentence is set in ink so it still reads at 4.5:1
+ * through the fade (in ink-3 it would drop to 2.6:1).
+ */
 export function ScheduleNote({ text }: { text: string }) {
   return (
     <section className="card rv-card c-tight opacity-60" aria-labelledby="rv-schedule">
       <h2 className="h2" id="rv-schedule">
         Scheduling
       </h2>
-      <span className="k">{text}</span>
+      <span className="k text-ink">{text}</span>
     </section>
   )
 }
