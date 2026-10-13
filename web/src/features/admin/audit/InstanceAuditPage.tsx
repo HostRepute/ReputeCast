@@ -247,19 +247,19 @@ function Filters({ search, list }: { search: InstanceAuditSearch; list?: List })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `set` changes every render; the search value is what matters
   }, [q])
   return (
-    <div className="row gap-2">
+    <div className="row gap-2 max-md:basis-full">
       <label className="vh" htmlFor="iq">
         Search
       </label>
       <input
         id="iq"
-        className="in w-[240px] max-md:w-0 max-md:min-w-full"
+        className="in w-[240px] max-md:w-full"
         placeholder="Search account, target or reference"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         type="search"
       />
-      <select className="in w-[160px] max-md:w-0 max-md:min-w-full" aria-label="Filter by workspace" value={search.workspace ?? ''} onChange={(e) => set({ workspace: e.target.value || undefined })}>
+      <select className="in w-[160px] max-md:w-full" aria-label="Filter by workspace" value={search.workspace ?? ''} onChange={(e) => set({ workspace: e.target.value || undefined })}>
         <option value="">All workspaces</option>
         {(list?.workspaces ?? []).map((w) => (
           <option key={w.slug} value={w.slug}>
@@ -269,7 +269,7 @@ function Filters({ search, list }: { search: InstanceAuditSearch; list?: List })
         <option value="instance">Instance only</option>
       </select>
       <select
-        className="in w-[150px] max-md:w-0 max-md:min-w-full"
+        className="in w-[150px] max-md:w-full"
         aria-label="Filter by actor type"
         value={search.actorType ?? ''}
         onChange={(e) => set({ actorType: (e.target.value || undefined) as InstanceAuditSearch['actorType'] })}
@@ -281,7 +281,7 @@ function Filters({ search, list }: { search: InstanceAuditSearch; list?: List })
         <option value="system">System</option>
       </select>
       <select
-        className="in w-[120px] max-md:w-0 max-md:min-w-full"
+        className="in w-[120px] max-md:w-full"
         aria-label="Filter by result"
         value={search.result ?? ''}
         onChange={(e) => set({ result: (e.target.value || undefined) as InstanceAuditSearch['result'] })}
@@ -291,7 +291,7 @@ function Filters({ search, list }: { search: InstanceAuditSearch; list?: List })
         <option value="denied">Denied</option>
       </select>
       <select
-        className="in w-[130px] max-md:w-0 max-md:min-w-full"
+        className="in w-[130px] max-md:w-full"
         aria-label="Date range"
         value={search.range ?? ''}
         onChange={(e) => set({ range: (e.target.value || undefined) as InstanceAuditSearch['range'] })}

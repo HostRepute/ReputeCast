@@ -49,11 +49,15 @@ function UsersCard({ search }: { search: UsersSearch }) {
   const total = q.data?.total
   return (
     <section className="card" aria-labelledby="users-h">
-      <CardSection
-        title={<span id="users-h">Users{total !== undefined ? ` · ${total} ${total === 1 ? 'account' : 'accounts'}` : ''}</span>}
-        caption="Every account on this instance. Deactivating here signs the user out of every workspace."
-        actions={<Filters search={search} workspaces={q.data?.workspaces ?? []} />}
-      />
+      <div className="sec">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h2 className="h2" id="users-h">
+            Users{total !== undefined ? ` · ${total} ${total === 1 ? 'account' : 'accounts'}` : ''}
+          </h2>
+          <span className="k">Every account on this instance. Deactivating here signs the user out of every workspace.</span>
+        </div>
+        <Filters search={search} workspaces={q.data?.workspaces ?? []} />
+      </div>
       {q.isError ? (
         <div className="pad">
           <ErrorPanel title="Couldn't load the users" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
@@ -88,12 +92,12 @@ function Filters({ search, workspaces }: { search: UsersSearch; workspaces: Sche
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text])
   return (
-    <div className="row gap-2">
+    <div className="row gap-2 max-md:basis-full">
       <label className="vh" htmlFor="uq">
         Search users
       </label>
-      <input id="uq" className="in w-[220px] max-md:w-0 max-md:min-w-full" type="search" placeholder="Search name or email" value={text} onChange={(e) => setText(e.target.value)} />
-      <select className="in w-[170px] max-md:w-0 max-md:min-w-full" aria-label="Filter by workspace" value={search.workspace ?? ''} onChange={(e) => set({ workspace: e.target.value || undefined })}>
+      <input id="uq" className="in w-[220px] max-md:w-full" type="search" placeholder="Search name or email" value={text} onChange={(e) => setText(e.target.value)} />
+      <select className="in w-[170px] max-md:w-full" aria-label="Filter by workspace" value={search.workspace ?? ''} onChange={(e) => set({ workspace: e.target.value || undefined })}>
         <option value="">Any workspace</option>
         {workspaces.map((w) => (
           <option key={w.slug} value={w.slug}>
@@ -102,7 +106,7 @@ function Filters({ search, workspaces }: { search: UsersSearch; workspaces: Sche
         ))}
       </select>
       <select
-        className="in w-[130px] max-md:w-0 max-md:min-w-full"
+        className="in w-[130px] max-md:w-full"
         aria-label="Filter by status"
         value={search.status ?? ''}
         onChange={(e) => set({ status: (e.target.value || undefined) as UsersSearch['status'] })}
@@ -112,7 +116,7 @@ function Filters({ search, workspaces }: { search: UsersSearch; workspaces: Sche
         <option value="deactivated">Deactivated</option>
       </select>
       <select
-        className="in w-[110px] max-md:w-0 max-md:min-w-full"
+        className="in w-[110px] max-md:w-full"
         aria-label="Filter by two-factor status"
         value={search.twofa ?? ''}
         onChange={(e) => set({ twofa: (e.target.value || undefined) as UsersSearch['twofa'] })}
