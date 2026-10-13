@@ -2,6 +2,7 @@ package approvals_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/app"
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/sending"
 )
 
 // fakeStarter stands in for the sending engine.
@@ -576,5 +578,94 @@ func TestAutomationPublishApproval(t *testing.T) {
 	linh.Do("GET", ws+"/automations/"+welcome, nil).MustStatus(t, 200).JSON(t, &live)
 	if live.LiveVersion == nil || *live.LiveVersion != 4 || n.audit("automation.publish_approved", welcome) != approved+1 {
 		t.Fatalf("approved and live: %v", live.LiveVersion)
+	}
+}
+
+// Review & send and approvals queue their webhook events (approval.requested,
+// approval.decided, campaign.scheduled, and campaign.paused when the
+// send-time checks hold a send) for the endpoints that subscribe.
+func TestApprovalWebhookEvents(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	env.App.Sending = &fakeStarter{}
+	ctx := context.Background()
+	marcus, daniel, linh := env.Client(), env.Client(), env.Client()
+	marcus.SignInDemo("marcus@acme.io")
+	daniel.SignInDemo("daniel@acme.io")
+	linh.SignInDemo("linh@acme.io")
+	nov := campaignID(t, daniel, "November Product Update")
+
+	// An endpoint for every approval and campaign event, marked as demo data
+	// so nothing is ever sent to it.
+	hook := uuid.Must(uuid.NewV7())
+	var wsID uuid.UUID
+	if err := env.App.Pool.QueryRow(ctx, `SELECT id FROM workspaces WHERE slug = 'acme-newsletter'`).Scan(&wsID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO webhooks (id, workspace_id, name, url, events, secret_enc, demo) VALUES ($1, $2, 'Approvals', 'https://hooks.example.com/approvals', ARRAY['approval.*', 'campaign.*'], '\x00', true)`,
+		hook, wsID); err != nil {
+		t.Fatal(err)
+	}
+	queued := func(event string) int {
+		t.Helper()
+		var c int
+		if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM webhook_deliveries WHERE webhook_id = $1 AND event = $2`, hook, event).Scan(&c); err != nil {
+			t.Fatal(err)
+		}
+		return c
+	}
+
+	r := getReview(t, daniel, nov)
+	marcus.Do("POST", ws+"/approvals/"+r.Approval.Request.ID+"/decision", map[string]any{"decision": "approve"}).MustStatus(t, 200)
+	if queued("approval.decided") != 1 {
+		t.Fatal("approval.decided is queued")
+	}
+	r = getReview(t, daniel, nov)
+	daniel.Do("POST", ws+"/approvals/"+r.Approval.Request.ID+"/schedule", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r),
+		"confirm": fmt.Sprint(r.Run.Estimates.Audience.Final)}).MustStatus(t, 200)
+	if queued("campaign.scheduled") != 1 {
+		t.Fatal("campaign.scheduled is queued")
+	}
+
+	// The post's domain appears on a URI blocklist before the send: the
+	// send-time check holds the send, tells people and queues campaign.paused.
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO link_domain_listings (domain, lists, source, checked_at) VALUES ('acme.io', ARRAY['SURBL'], 'test', now())
+		ON CONFLICT (domain) DO UPDATE SET lists = EXCLUDED.lists`); err != nil {
+		t.Fatal(err)
+	}
+	err := app.HeldSendCheck(env.App)(ctx, wsID, uuid.MustParse(nov))
+	if !errors.Is(err, sending.ErrNotReady) {
+		t.Fatalf("held: %v", err)
+	}
+	var rv struct {
+		Held *struct {
+			Reason string
+			Blocks []struct{ Key string }
+		}
+	}
+	linh.Do("GET", ws+"/campaigns/"+nov+"/review", nil).MustStatus(t, 200).JSON(t, &rv)
+	if rv.Held == nil || len(rv.Held.Blocks) == 0 || queued("campaign.paused") != 1 {
+		t.Fatalf("held send: %+v, %d campaign.paused", rv.Held, queued("campaign.paused"))
+	}
+
+	// Asking again queues approval.requested.
+	var full map[string]any
+	daniel.Do("GET", ws+"/campaigns/"+nov, nil).MustStatus(t, 200).JSON(t, &full)
+	daniel.Do("PUT", ws+"/campaigns/"+nov+"/content", map[string]any{"baseVersion": full["version"], "subject": "November Product Update: faster exports and a new API",
+		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual"}).MustStatus(t, 200)
+	if _, err := env.App.Pool.Exec(ctx, `DELETE FROM link_domain_listings WHERE domain = 'acme.io'`); err != nil {
+		t.Fatal(err)
+	}
+	daniel.Do("POST", ws+"/campaigns/"+nov+"/readiness", nil).MustStatus(t, 200)
+	daniel.Do("POST", ws+"/campaigns/"+nov+"/approval", map[string]any{}).MustStatus(t, 201)
+	if queued("approval.requested") != 1 {
+		t.Fatal("approval.requested is queued")
+	}
+	var attempted int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM webhook_deliveries WHERE webhook_id = $1 AND status_code IS NOT NULL`, hook).Scan(&attempted); err != nil {
+		t.Fatal(err)
+	}
+	if attempted != 0 {
+		t.Fatalf("a demo endpoint is never called: %d attempts", attempted)
 	}
 }

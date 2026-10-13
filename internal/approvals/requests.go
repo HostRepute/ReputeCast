@@ -245,6 +245,9 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 			Metadata: map[string]any{"summary": summary, "detail": readiness.Count(snap.AudienceCount) + " recipients", "request_id": id.String(), "permission": "campaigns:edit"}}); err != nil {
 			return err
 		}
+		if err := emitRequested(ctx, tx, ws, id, "campaign", campaignID, c.Name, author.Name, ruleKeys(rules), snap.AudienceCount); err != nil {
+			return err
+		}
 		n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalRequested, Severity: "warn", Title: "Approval requested",
 			Summary: fmt.Sprintf("%s asked you to approve “%s” · %s recipients", author.Name, c.Name, readiness.Count(snap.AudienceCount)),
 			Body: fmt.Sprintf("%s asked for approval: “%s” · %s recipients · rules: %s", author.Name, c.Name, readiness.Count(snap.AudienceCount),
@@ -366,6 +369,11 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			Metadata: map[string]any{"request_id": requestID.String(), "approvals": fmt.Sprintf("%d of %d", min(given+1, int(locked.ApprovalsRequired)), locked.ApprovalsRequired), "permission": "campaigns:approve"}}); err != nil {
 			return err
 		}
+		if status != "pending" {
+			if err := emitDecided(ctx, tx, ws, locked, name, status, p.Name, comment); err != nil {
+				return err
+			}
+		}
 		if status == "pending" || locked.RequestedBy == nil {
 			return nil
 		}
@@ -482,9 +490,12 @@ func (s *Service) rerequest(ctx context.Context, ws *store.Workspace, prev store
 		if err := q.ApprovalSetCampaignStatus(ctx, store.ApprovalSetCampaignStatusParams{Status: "approval", Now: now, ID: c.ID, FromStatuses: []string{"draft", "approved"}}); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "approval.requested", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "approval.requested", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
 			After:    map[string]any{"status": "pending", "version": c.Version, "follows": prevID.String()},
-			Metadata: map[string]any{"summary": fmt.Sprintf("v%d after the approval of v%d was invalidated", c.Version, ParseSnapshot(prev.Snapshot).Version), "request_id": id.String()}})
+			Metadata: map[string]any{"summary": fmt.Sprintf("v%d after the approval of v%d was invalidated", c.Version, ParseSnapshot(prev.Snapshot).Version), "request_id": id.String()}}); err != nil {
+			return err
+		}
+		return emitRequested(ctx, tx, ws, id, "campaign", c.ID, c.Name, author.Name, ruleKeys(rules), snap.AudienceCount)
 	})
 	return id, err
 }

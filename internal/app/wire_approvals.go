@@ -90,6 +90,13 @@ func SendRecheck(a *App) func(ctx context.Context, campaignID uuid.UUID) (approv
 	return newApprovals(a).SendRecheck
 }
 
+// HeldSendCheck is the send-time check the minute job runs for scheduled
+// and held sends: it holds a send that turns Blocked or lost its approval
+// (and tells people), and returns an error wrapping sending.ErrNotReady.
+func HeldSendCheck(a *App) func(ctx context.Context, workspaceID, campaignID uuid.UUID) error {
+	return newApprovals(a).CheckSendTime
+}
+
 func init() {
 	automationGate = func(a *App) automations.PublishGate { return approvals.AutomationGate{S: newApprovals(a)} }
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {

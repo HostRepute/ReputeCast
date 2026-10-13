@@ -294,6 +294,13 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			if err := q.ApprovalMarkScheduled(ctx, store.ApprovalMarkScheduledParams{ScheduledAt: at, Now: now, ID: c.ID}); err != nil {
 				return err
 			}
+			ref := ""
+			if approval != nil {
+				ref = approval.ID.String()
+			}
+			if err := emitScheduled(ctx, tx, ws, c.ID, c.Name, *at, recipients, ref); err != nil {
+				return err
+			}
 		} else if err := q.ApprovalMarkSending(ctx, store.ApprovalMarkSendingParams{StartedBy: &p.UserID, Now: now, ID: c.ID}); err != nil {
 			return err
 		}
@@ -656,6 +663,9 @@ func (s *Service) hold(ctx context.Context, ws *store.Workspace, c store.Readine
 		}
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.send_held", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
 			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: reason, Metadata: map[string]any{"held": held, "run_id": detail.RunID}}); err != nil {
+			return err
+		}
+		if err := emitHeld(ctx, tx, ws, c.ID, c.Name, reason, held); err != nil {
 			return err
 		}
 		targets := []uuid.UUID{}

@@ -76,6 +76,9 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	if m := memberByID(ms, &req.By); m != nil {
 		author = m.Name
 	}
+	if err := emitRequested(ctx, tx, &ws, id, "automation", auto, req.Name, author, []string{RuleAutomationPublish}, 0); err != nil {
+		return automations.GateDecision{}, err
+	}
 	n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalRequested, Severity: "warn", Title: "Approval requested",
 		Summary: fmt.Sprintf("%s asked you to approve publishing “%s” v%d", author, req.Name, req.Version),
 		Body:    fmt.Sprintf("%s asked to publish “%s” v%d · %d %s", author, req.Name, req.Version, len(changes), pluralWord(len(changes), "change", "changes")),
