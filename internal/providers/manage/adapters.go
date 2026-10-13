@@ -36,8 +36,8 @@ const (
 // adapterOrder is the catalogue order of built-in adapters.
 var adapterOrder = []string{"ses", "postmark", "postal", "mailgun", "sendgrid", "resend", "sparkpost", "mailjet", "brevo", "azureacs", "smtp"}
 
-// BuiltinAdapter is one row of "Built-in adapters".
-type BuiltinAdapter struct {
+// AdapterBuiltin is one row of "Built-in adapters".
+type AdapterBuiltin struct {
 	Adapter         string `json:"adapter"`
 	Name            string `json:"name"`
 	Version         string `json:"version"`
@@ -48,8 +48,8 @@ type BuiltinAdapter struct {
 	Connected       int    `json:"connected"`
 }
 
-// CommunityAdapter is one installed community adapter.
-type CommunityAdapter struct {
+// AdapterCommunity is one installed community adapter.
+type AdapterCommunity struct {
 	ID           string     `json:"id"`
 	Name         string     `json:"name"`
 	Kind         string     `json:"kind" enum:"http,wasm"`
@@ -70,8 +70,8 @@ type AdaptersOverview struct {
 	Version   string             `json:"version"`
 	Latest    string             `json:"latest,omitempty"`
 	UpToDate  bool               `json:"upToDate"`
-	Builtin   []BuiltinAdapter   `json:"builtin"`
-	Community []CommunityAdapter `json:"community"`
+	Builtin   []AdapterBuiltin   `json:"builtin"`
+	Community []AdapterCommunity `json:"community"`
 	// HTTPAdapter is true when this build includes the generic HTTP adapter.
 	HTTPAdapter bool   `json:"httpAdapter"`
 	SDKURL      string `json:"sdkUrl"`
@@ -84,7 +84,7 @@ type AdaptersOverview struct {
 // Adapters returns the Adapters tab.
 func (s *Service) Adapters(ctx context.Context, ws *store.Workspace) (AdaptersOverview, error) {
 	cur := strings.TrimPrefix(version.Get().Version, "v")
-	out := AdaptersOverview{Version: cur, Builtin: []BuiltinAdapter{}, Community: []CommunityAdapter{}, SDKURL: SDKURL, TemplateURL: TemplateURL, RegistryURL: RegistryURL}
+	out := AdaptersOverview{Version: cur, Builtin: []AdapterBuiltin{}, Community: []AdapterCommunity{}, SDKURL: SDKURL, TemplateURL: TemplateURL, RegistryURL: RegistryURL}
 	if st, err := s.Q.GetInstanceSettings(ctx); err == nil && len(st.LatestRelease) > 0 {
 		var rel struct {
 			Tag string `json:"tag"`
@@ -124,7 +124,7 @@ func (s *Service) Adapters(ctx context.Context, ws *store.Workspace) (AdaptersOv
 			continue
 		}
 		v := strings.TrimPrefix(d.Version, "v")
-		out.Builtin = append(out.Builtin, BuiltinAdapter{Adapter: d.Adapter, Name: d.Name, Version: v, Maintainer: d.Maintainer,
+		out.Builtin = append(out.Builtin, AdapterBuiltin{Adapter: d.Adapter, Name: d.Name, Version: v, Maintainer: d.Maintainer,
 			Events: d.Events, DomainSetup: d.DomainSetup, SuppressionSync: d.SuppressionMode, Connected: connected[d.Adapter]})
 	}
 	rows, err := s.Pool.Query(ctx, `SELECT id, name, kind, version, maintainer, source_url, manifest, latest_version, installed_at FROM installed_adapters ORDER BY installed_at, name`)
@@ -133,7 +133,7 @@ func (s *Service) Adapters(ctx context.Context, ws *store.Workspace) (AdaptersOv
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var c CommunityAdapter
+		var c AdapterCommunity
 		var id uuid.UUID
 		var manifest json.RawMessage
 		var latest *string
@@ -193,19 +193,19 @@ type AdapterManifest struct {
 	HTTP         json.RawMessage `json:"http"`
 }
 
-// InstallAdapterInput installs a community adapter from its manifest URL.
-type InstallAdapterInput struct {
+// AdapterInstallInput installs a community adapter from its manifest URL.
+type AdapterInstallInput struct {
 	ManifestURL string `json:"manifestUrl" format:"uri" maxLength:"2048" doc:"HTTPS URL of the adapter's manifest.json"`
 }
 
 // InstallAdapter fetches a manifest and installs the adapter.
-func (s *Service) InstallAdapter(ctx context.Context, ws *store.Workspace, in InstallAdapterInput) (CommunityAdapter, error) {
+func (s *Service) InstallAdapter(ctx context.Context, ws *store.Workspace, in AdapterInstallInput) (AdapterCommunity, error) {
 	if err := instanceAdmin(ctx); err != nil {
-		return CommunityAdapter{}, err
+		return AdapterCommunity{}, err
 	}
 	m, raw, err := fetchManifest(ctx, in.ManifestURL)
 	if err != nil {
-		return CommunityAdapter{}, api.Invalid("body.manifestUrl", err.Error())
+		return AdapterCommunity{}, api.Invalid("body.manifestUrl", err.Error())
 	}
 	if m.SourceURL == "" {
 		m.SourceURL = in.ManifestURL
@@ -224,7 +224,7 @@ func (s *Service) InstallAdapter(ctx context.Context, ws *store.Workspace, in In
 			After: map[string]any{"version": m.Version, "maintainer": m.Maintainer, "source": in.ManifestURL}})
 	})
 	if err != nil {
-		return CommunityAdapter{}, err
+		return AdapterCommunity{}, err
 	}
 	return s.community(ctx, ws, id)
 }
@@ -236,38 +236,38 @@ func nullable(s string) *string {
 	return &s
 }
 
-func (s *Service) community(ctx context.Context, ws *store.Workspace, id uuid.UUID) (CommunityAdapter, error) {
+func (s *Service) community(ctx context.Context, ws *store.Workspace, id uuid.UUID) (AdapterCommunity, error) {
 	ov, err := s.Adapters(ctx, ws)
 	if err != nil {
-		return CommunityAdapter{}, err
+		return AdapterCommunity{}, err
 	}
 	for _, c := range ov.Community {
 		if c.ID == id.String() {
 			return c, nil
 		}
 	}
-	return CommunityAdapter{}, api.NotFound("Adapter")
+	return AdapterCommunity{}, api.NotFound("Adapter")
 }
 
 // UpdateAdapter re-reads an adapter's manifest and installs its new version.
-func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id string) (CommunityAdapter, error) {
+func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id string) (AdapterCommunity, error) {
 	if err := instanceAdmin(ctx); err != nil {
-		return CommunityAdapter{}, err
+		return AdapterCommunity{}, err
 	}
 	aid, err := uuid.Parse(id)
 	if err != nil {
-		return CommunityAdapter{}, api.NotFound("Adapter")
+		return AdapterCommunity{}, api.NotFound("Adapter")
 	}
 	var name, ver, src string
 	if err := s.Pool.QueryRow(ctx, `SELECT name, version, source_url FROM installed_adapters WHERE id = $1`, aid).Scan(&name, &ver, &src); err != nil {
-		return CommunityAdapter{}, api.MapError(err, "Adapter")
+		return AdapterCommunity{}, api.MapError(err, "Adapter")
 	}
 	m, raw, err := fetchManifest(ctx, src)
 	if err != nil {
-		return CommunityAdapter{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, "Couldn't read the manifest at "+src+": "+err.Error())
+		return AdapterCommunity{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, "Couldn't read the manifest at "+src+": "+err.Error())
 	}
 	if m.Name != name {
-		return CommunityAdapter{}, api.Conflict("The manifest at " + src + " now describes " + m.Name + ", not " + name + ". Nothing was changed.")
+		return AdapterCommunity{}, api.Conflict("The manifest at " + src + " now describes " + m.Name + ", not " + name + ". Nothing was changed.")
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `UPDATE installed_adapters SET version = $2, maintainer = $3, manifest = $4, latest_version = NULL WHERE id = $1`, aid, m.Version, m.Maintainer, raw); err != nil {
@@ -278,7 +278,7 @@ func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id str
 			Before: map[string]any{"version": ver}, After: map[string]any{"version": m.Version}})
 	})
 	if err != nil {
-		return CommunityAdapter{}, err
+		return AdapterCommunity{}, err
 	}
 	return s.community(ctx, ws, aid)
 }
@@ -312,8 +312,8 @@ func (s *Service) RemoveAdapter(ctx context.Context, ws *store.Workspace, id str
 	})
 }
 
-// HTTPAdapterInput is a generic HTTP adapter mapping.
-type HTTPAdapterInput struct {
+// AdapterHTTPInput is a generic HTTP adapter mapping.
+type AdapterHTTPInput struct {
 	Name           string `json:"name" minLength:"2" maxLength:"60"`
 	Endpoint       string `json:"endpoint" minLength:"10" maxLength:"2048" doc:"Method and URL, e.g. POST https://api.example-esp.com/v1/messages"`
 	BodyTemplate   string `json:"bodyTemplate" maxLength:"20000"`
@@ -323,16 +323,16 @@ type HTTPAdapterInput struct {
 
 // SaveHTTPAdapter stores a generic HTTP adapter mapping as an installed
 // adapter. It can send once this build includes the generic HTTP adapter.
-func (s *Service) SaveHTTPAdapter(ctx context.Context, ws *store.Workspace, in HTTPAdapterInput) (CommunityAdapter, error) {
+func (s *Service) SaveHTTPAdapter(ctx context.Context, ws *store.Workspace, in AdapterHTTPInput) (AdapterCommunity, error) {
 	if err := instanceAdmin(ctx); err != nil {
-		return CommunityAdapter{}, err
+		return AdapterCommunity{}, err
 	}
 	method, target, err := parseEndpoint(in.Endpoint)
 	if err != nil {
-		return CommunityAdapter{}, api.Invalid("body.endpoint", err.Error())
+		return AdapterCommunity{}, api.Invalid("body.endpoint", err.Error())
 	}
 	if in.BodyTemplate != "" && !json.Valid([]byte(placeholderSafe(in.BodyTemplate))) {
-		return CommunityAdapter{}, api.Invalid("body.bodyTemplate", "The body template isn't valid JSON once the {{ }} placeholders are filled in.")
+		return AdapterCommunity{}, api.Invalid("body.bodyTemplate", "The body template isn't valid JSON once the {{ }} placeholders are filled in.")
 	}
 	manifest, _ := json.Marshal(map[string]any{
 		"name": in.Name, "kind": "http", "capabilities": []string{"webhooks"},
@@ -352,7 +352,7 @@ func (s *Service) SaveHTTPAdapter(ctx context.Context, ws *store.Workspace, in H
 			After: map[string]any{"method": method, "url": target}})
 	})
 	if err != nil {
-		return CommunityAdapter{}, err
+		return AdapterCommunity{}, err
 	}
 	return s.community(ctx, ws, id)
 }

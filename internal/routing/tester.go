@@ -26,14 +26,14 @@ type RouteTestInput struct {
 	Draft *RoutingSaveInput `json:"draft,omitempty"`
 }
 
-// RouteSplitPart is one provider of a weighted split, for the step text.
-type RouteSplitPart struct {
+// RouteTestSplit is one provider of a weighted split, for the step text.
+type RouteTestSplit struct {
 	Short  string `json:"short"`
 	Weight int    `json:"weight"`
 }
 
-// RouteStep is one step of the decision, in order.
-type RouteStep struct {
+// RouteTestStep is one step of the decision, in order.
+type RouteTestStep struct {
 	// Kind: stream, condition, split, primary, suppression, held.
 	Kind     string           `json:"kind" enum:"stream,condition,split,primary,suppression,held"`
 	Stream   string           `json:"stream,omitempty"`
@@ -41,7 +41,7 @@ type RouteStep struct {
 	Value    string           `json:"value,omitempty"`
 	Provider string           `json:"provider,omitempty"`
 	Bucket   int              `json:"bucket"`
-	Splits   []RouteSplitPart `json:"splits,omitempty"`
+	Splits   []RouteTestSplit `json:"splits,omitempty"`
 	// Conditions is how many conditions the stream has (stream step).
 	Conditions int `json:"conditions"`
 	// Warming names a provider of the default split that is warming up
@@ -52,15 +52,15 @@ type RouteStep struct {
 	Reason     string `json:"reason,omitempty"`
 }
 
-// RouteCost is what one message costs on the chosen provider.
-type RouteCost struct {
+// RouteTestCost is what one message costs on the chosen provider.
+type RouteTestCost struct {
 	Basis      string   `json:"basis" enum:"metered,plan,self_hosted"`
 	PerMessage *float64 `json:"perMessage,omitempty"`
 	Per1000    *float64 `json:"per1000,omitempty"`
 }
 
-// RouteFallback says what happens if the provider fails.
-type RouteFallback struct {
+// RouteTestFallback says what happens if the provider fails.
+type RouteTestFallback struct {
 	Policy   string `json:"policy" enum:"automatic,pause_and_ask,warm_only"`
 	Provider string `json:"provider,omitempty"`
 	Short    string `json:"short,omitempty"`
@@ -74,9 +74,9 @@ type RouteTestResult struct {
 	Color           string        `json:"color" enum:"ses,postal,postmark,other"`
 	MailboxProvider string        `json:"mailboxProvider"`
 	DKIMSelector    string        `json:"dkimSelector"`
-	Cost            RouteCost     `json:"cost"`
-	Steps           []RouteStep   `json:"steps"`
-	Fallback        RouteFallback `json:"fallback"`
+	Cost            RouteTestCost     `json:"cost"`
+	Steps           []RouteTestStep   `json:"steps"`
+	Fallback        RouteTestFallback `json:"fallback"`
 	Suppressed      bool          `json:"suppressed"`
 	// Held is true when the provider can't take mail right now.
 	Held bool `json:"held"`
@@ -139,7 +139,7 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 		return RouteTestResult{}, err
 	}
 	out := RouteTestResult{ProviderID: p.ID.String(), Provider: p.Name, Short: state.Short(p.Name, p.Adapter), Color: state.Color(p.Adapter),
-		MailboxProvider: rcpt.MailboxProvider, Steps: []RouteStep{}}
+		MailboxProvider: rcpt.MailboxProvider, Steps: []RouteTestStep{}}
 	conditions := 0
 	for _, r := range set.StreamRules(stream) {
 		if !r.Conditions.Empty() {
@@ -153,10 +153,10 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 			primary = pp.Name
 		}
 	}
-	out.Steps = append(out.Steps, RouteStep{Kind: "stream", Stream: string(stream), Conditions: conditions, Provider: primary})
+	out.Steps = append(out.Steps, RouteTestStep{Kind: "stream", Stream: string(stream), Conditions: conditions, Provider: primary})
 	switch {
 	case d.Matched != "":
-		step := RouteStep{Kind: "condition", Field: d.Matched, Value: d.MatchedValue, Provider: p.Name}
+		step := RouteTestStep{Kind: "condition", Field: d.Matched, Value: d.MatchedValue, Provider: p.Name}
 		switch d.Matched {
 		case "mailbox_provider":
 			step.Value = MailboxName(d.MatchedValue)
@@ -176,10 +176,10 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 		}
 		out.Steps = append(out.Steps, step)
 	case d.Split:
-		step := RouteStep{Kind: "split", Bucket: d.Bucket, Provider: p.Name}
+		step := RouteTestStep{Kind: "split", Bucket: d.Bucket, Provider: p.Name}
 		for _, sp := range d.Rule.Splits {
 			if pp, ok := byID[sp.ProviderID]; ok {
-				step.Splits = append(step.Splits, RouteSplitPart{Short: state.Short(pp.Name, pp.Adapter), Weight: sp.Weight})
+				step.Splits = append(step.Splits, RouteTestSplit{Short: state.Short(pp.Name, pp.Adapter), Weight: sp.Weight})
 			}
 		}
 		out.Steps = append(out.Steps, step)
@@ -189,16 +189,16 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 		return RouteTestResult{}, err
 	}
 	out.Suppressed = suppressed
-	out.Steps = append(out.Steps, RouteStep{Kind: "suppression", Suppressed: suppressed, Email: email})
+	out.Steps = append(out.Steps, RouteTestStep{Kind: "suppression", Suppressed: suppressed, Email: email})
 	if !state.Available(p) {
 		out.Held = true
 		reason := "down"
 		if p.Status == state.Degraded {
 			reason = "webhooks_silent"
 		}
-		out.Steps = append(out.Steps, RouteStep{Kind: "held", Provider: p.Name, Reason: reason})
+		out.Steps = append(out.Steps, RouteTestStep{Kind: "held", Provider: p.Name, Reason: reason})
 	}
-	out.Fallback = RouteFallback{Policy: string(d.Policy)}
+	out.Fallback = RouteTestFallback{Policy: string(d.Policy)}
 	if d.Fallback != nil {
 		if fp, ok := byID[*d.Fallback]; ok {
 			out.Fallback.Provider, out.Fallback.Short = fp.Name, state.Short(fp.Name, fp.Adapter)
@@ -239,11 +239,11 @@ func (s *Service) dkim(ctx context.Context, wsID, providerID uuid.UUID, domain s
 
 // cost is the price of one message: metered price, or a plan or server
 // price spread over this month's volume.
-func (s *Service) cost(ctx context.Context, p store.Provider) RouteCost {
+func (s *Service) cost(ctx context.Context, p store.Provider) RouteTestCost {
 	pr := state.PricingOf(p)
 	switch pr.Model {
 	case "plan", "self_hosted":
-		c := RouteCost{Basis: pr.Model}
+		c := RouteTestCost{Basis: pr.Model}
 		if pr.Model == "self_hosted" {
 			zero := 0.0
 			c.PerMessage = &zero
@@ -263,5 +263,5 @@ func (s *Service) cost(ctx context.Context, p store.Provider) RouteCost {
 	}
 	per1000 := pr.Per1000
 	per := per1000 / 1000
-	return RouteCost{Basis: "metered", PerMessage: &per, Per1000: &per1000}
+	return RouteTestCost{Basis: "metered", PerMessage: &per, Per1000: &per1000}
 }

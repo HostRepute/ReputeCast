@@ -21,7 +21,7 @@ type providerInput struct {
 
 type credentialsInput struct {
 	providerInput
-	Body CredentialsInput
+	Body ProviderCredentialsInput
 }
 
 type settingsInput struct {
@@ -31,13 +31,13 @@ type settingsInput struct {
 
 type trackingInput struct {
 	providerInput
-	Body TrackingActionInput
+	Body ProviderTrackingActionInput
 }
 
 type heldInput struct {
 	providerInput
 	CampaignID string `path:"campaignId" format:"uuid"`
-	Body       HeldDecisionInput
+	Body       ProviderHeldDecisionInput
 }
 
 type adapterInput struct {
@@ -47,17 +47,17 @@ type adapterInput struct {
 
 type installInput struct {
 	api.WorkspaceInput
-	Body InstallAdapterInput
+	Body AdapterInstallInput
 }
 
 type httpAdapterInput struct {
 	api.WorkspaceInput
-	Body HTTPAdapterInput
+	Body AdapterHTTPInput
 }
 
-// TrackingChecks is the tracking-check list.
-type TrackingChecks struct {
-	Items []TrackingCheck `json:"items"`
+// ProviderTrackingChecks is the tracking-check list.
+type ProviderTrackingChecks struct {
+	Items []ProviderTrackingCheck `json:"items"`
 }
 
 // Register adds the sending-providers operations.
@@ -91,18 +91,18 @@ func Register(h huma.API, s *Service) {
 			return api.NoContent, s.Disconnect(ctx, api.WorkspaceFrom(ctx), in.ProviderID)
 		})
 	api.Get(h, api.Op{ID: "list-tracking-checks", Path: "/workspaces/{workspace}/tracking-checks", Summary: "Provider-side open and click tracking per provider", Tags: tags, Access: view},
-		func(ctx context.Context, _ *wsInput) (*api.Body[TrackingChecks], error) {
-			out, err := s.TrackingChecks(ctx, api.WorkspaceFrom(ctx))
-			return api.OK(TrackingChecks{Items: out}), err
+		func(ctx context.Context, _ *wsInput) (*api.Body[ProviderTrackingChecks], error) {
+			out, err := s.ProviderTrackingChecks(ctx, api.WorkspaceFrom(ctx))
+			return api.OK(ProviderTrackingChecks{Items: out}), err
 		})
 	api.Post(h, api.Op{ID: "provider-tracking-action", Path: "/workspaces/{workspace}/providers/{providerId}/tracking", Summary: "Turn off provider-side tracking or keep it", Tags: tags, Access: manage},
-		func(ctx context.Context, in *trackingInput) (*api.Body[TrackingCheck], error) {
+		func(ctx context.Context, in *trackingInput) (*api.Body[ProviderTrackingCheck], error) {
 			out, err := s.TrackingAction(ctx, api.WorkspaceFrom(ctx), in.ProviderID, in.Body)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "test-provider-webhook", Path: "/workspaces/{workspace}/providers/{providerId}/webhook/test", Summary: "Self-test the webhook endpoint and ask the provider for a test event",
 		Tags: tags, Access: manage},
-		func(ctx context.Context, in *providerInput) (*api.Body[WebhookTestResult], error) {
+		func(ctx context.Context, in *providerInput) (*api.Body[ProviderWebhookTestResult], error) {
 			out, err := s.TestWebhook(ctx, api.WorkspaceFrom(ctx), in.ProviderID)
 			return api.OK(out), err
 		})
@@ -113,20 +113,20 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "backfill-provider-events", Path: "/workspaces/{workspace}/providers/{providerId}/backfill", Summary: "Pull message status from the provider's API",
 		Tags: tags, Access: manage, Status: http.StatusAccepted},
-		func(ctx context.Context, in *providerInput) (*api.Body[BackfillResult], error) {
+		func(ctx context.Context, in *providerInput) (*api.Body[ProviderBackfillResult], error) {
 			out, err := s.Backfill(ctx, api.WorkspaceFrom(ctx), in.ProviderID)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "create-broadcast-stream", Path: "/workspaces/{workspace}/providers/{providerId}/broadcast-stream", Summary: "Create the stream a provider's terms require for bulk mail",
 		Tags: tags, Access: manage, Status: http.StatusCreated},
-		func(ctx context.Context, in *providerInput) (*api.Body[BroadcastStreamResult], error) {
+		func(ctx context.Context, in *providerInput) (*api.Body[ProviderBroadcastStreamResult], error) {
 			out, err := s.CreateBroadcastStream(ctx, api.WorkspaceFrom(ctx), in.ProviderID)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "decide-held-broadcast", Path: "/workspaces/{workspace}/providers/{providerId}/held/{campaignId}", Summary: "Wait, move or cancel a broadcast share held on a provider that is down",
 		Description: "Cancelling needs campaigns:pause; waiting for the provider and moving the held recipients resume the send and need campaigns:send.",
 		Tags:        tags, Access: api.Workspace(authz.CampaignsPause)},
-		func(ctx context.Context, in *heldInput) (*api.Body[HeldDecisionResult], error) {
+		func(ctx context.Context, in *heldInput) (*api.Body[ProviderHeldDecisionResult], error) {
 			out, err := s.DecideHeld(ctx, api.WorkspaceFrom(ctx), in.ProviderID, in.CampaignID, in.Body)
 			return api.OK(out), err
 		})
@@ -140,13 +140,13 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "install-adapter", Path: "/workspaces/{workspace}/adapters", Summary: "Install a community adapter from its manifest (instance admins)",
 		Tags: atags, Access: admin, Status: http.StatusCreated},
-		func(ctx context.Context, in *installInput) (*api.Body[CommunityAdapter], error) {
+		func(ctx context.Context, in *installInput) (*api.Body[AdapterCommunity], error) {
 			out, err := s.InstallAdapter(ctx, api.WorkspaceFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "update-adapter", Path: "/workspaces/{workspace}/adapters/{adapterId}/update", Summary: "Update a community adapter to its latest version (instance admins)",
 		Tags: atags, Access: admin},
-		func(ctx context.Context, in *adapterInput) (*api.Body[CommunityAdapter], error) {
+		func(ctx context.Context, in *adapterInput) (*api.Body[AdapterCommunity], error) {
 			out, err := s.UpdateAdapter(ctx, api.WorkspaceFrom(ctx), in.AdapterID)
 			return api.OK(out), err
 		})
@@ -156,7 +156,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "save-http-adapter", Path: "/workspaces/{workspace}/adapters/http", Summary: "Save a generic HTTP adapter mapping (instance admins)",
 		Tags: atags, Access: admin, Status: http.StatusCreated},
-		func(ctx context.Context, in *httpAdapterInput) (*api.Body[CommunityAdapter], error) {
+		func(ctx context.Context, in *httpAdapterInput) (*api.Body[AdapterCommunity], error) {
 			out, err := s.SaveHTTPAdapter(ctx, api.WorkspaceFrom(ctx), in.Body)
 			return api.OK(out), err
 		})

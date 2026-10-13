@@ -23,11 +23,11 @@ func (s *Service) outage(ctx context.Context, sn *snapshot, p store.Provider, ca
 		since = h.Down.Since
 	}
 	o := &ProviderOutage{ProviderID: p.ID.String(), Provider: p.Name, Short: state.Short(p.Name, p.Adapter), Since: since,
-		Codes: []string{}, Streams: []OutageStream{}, Forecasts: []QuotaForecast{}, WhyNot: []WhyNotMove{}, Incidents: []ProviderIncident{}}
+		Codes: []string{}, Streams: []ProviderOutageStream{}, Forecasts: []ProviderQuotaForecast{}, WhyNot: []ProviderWhyNotMove{}, Incidents: []ProviderIncidentEntry{}}
 	if card.Down != nil {
 		o.Down = *card.Down
 	} else {
-		o.Down = ProviderDown{Since: since, Reason: "outage", Errors: []ProviderError{}}
+		o.Down = ProviderDownState{Since: since, Reason: "outage", Errors: []ProviderCallError{}}
 	}
 	o.ErrorRate = card.ErrorRate3m
 	seen := map[string]bool{}
@@ -94,7 +94,7 @@ func (s *Service) outage(ctx context.Context, sn *snapshot, p store.Provider, ca
 			if hh := state.HealthOf(p); hh.Rate != nil {
 				rate = hh.Rate.Max
 			}
-			o.WhyNot = append(o.WhyNot, WhyNotMove{ProviderID: alt.ProviderID, Held: st.Campaign.Held, TodayCap: wu.TodayCap,
+			o.WhyNot = append(o.WhyNot, ProviderWhyNotMove{ProviderID: alt.ProviderID, Held: st.Campaign.Held, TodayCap: wu.TodayCap,
 				Multiple: math.Round(float64(st.Campaign.Held)/float64(wu.TodayCap)*10) / 10, AgeDays: wu.Day, Rate: rate})
 		}
 	}
@@ -103,7 +103,7 @@ func (s *Service) outage(ctx context.Context, sn *snapshot, p store.Provider, ca
 		return nil, err
 	}
 	for _, r := range rows {
-		inc := ProviderIncident{ID: r.ID.String(), At: r.OccurredAt, Kind: r.Kind, Severity: r.Severity, Title: r.Title, Detail: r.Detail}
+		inc := ProviderIncidentEntry{ID: r.ID.String(), At: r.OccurredAt, Kind: r.Kind, Severity: r.Severity, Title: r.Title, Detail: r.Detail}
 		if r.CampaignID != nil {
 			inc.CampaignID = r.CampaignID.String()
 		}
@@ -113,10 +113,10 @@ func (s *Service) outage(ctx context.Context, sn *snapshot, p store.Provider, ca
 }
 
 // outageStream is one stream's column of the outage banner.
-func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provider, stream providers.Stream, role string, since time.Time) (OutageStream, error) {
+func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provider, stream providers.Stream, role string, since time.Time) (ProviderOutageStream, error) {
 	def, _ := sn.set.Default(stream)
 	policy := sn.set.Policy(stream)
-	st := OutageStream{Stream: string(stream), Role: role, Policy: string(policy), Since: since, ReroutedBy: []NamedCount{}, Alternatives: []FailoverAlternative{}, SwitchBackMinutes: SwitchBackMinutes}
+	st := ProviderOutageStream{Stream: string(stream), Role: role, Policy: string(policy), Since: since, ReroutedBy: []ProviderNamedCount{}, Alternatives: []ProviderFailoverAlternative{}, SwitchBackMinutes: SwitchBackMinutes}
 	var fo *store.StreamFailover
 	for i, f := range sn.failovers {
 		if f.Stream == string(stream) && f.ProviderID == p.ID {
@@ -142,7 +142,7 @@ func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provid
 				}
 				for _, c := range counts {
 					st.Rerouted += c.N
-					st.ReroutedBy = append(st.ReroutedBy, NamedCount{Name: kindLabel(c.Kind, c.N), Count: c.N})
+					st.ReroutedBy = append(st.ReroutedBy, ProviderNamedCount{Name: kindLabel(c.Kind, c.N), Count: c.N})
 				}
 			}
 		}
@@ -184,7 +184,7 @@ func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provid
 			}
 			for _, r := range rows {
 				st.Rerouted += r.N
-				st.ReroutedBy = append(st.ReroutedBy, NamedCount{Name: strings.ToLower(r.Name), Count: r.N})
+				st.ReroutedBy = append(st.ReroutedBy, ProviderNamedCount{Name: strings.ToLower(r.Name), Count: r.N})
 			}
 		} else {
 			rows, err := s.Q.ProvSentByKind(ctx, store.ProvSentByKindParams{WorkspaceID: sn.ws.ID, Stream: string(stream), ProviderID: &fallback.ID, Since: &st.Since})
@@ -193,7 +193,7 @@ func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provid
 			}
 			for _, r := range rows {
 				st.Rerouted += r.N
-				st.ReroutedBy = append(st.ReroutedBy, NamedCount{Name: kindLabel(r.Kind, r.N), Count: r.N})
+				st.ReroutedBy = append(st.ReroutedBy, ProviderNamedCount{Name: kindLabel(r.Kind, r.N), Count: r.N})
 			}
 		}
 		return st, nil
@@ -209,7 +209,7 @@ func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provid
 	if len(held) > 0 {
 		h := held[0]
 		st.State = "waiting"
-		hc := &HeldCampaign{ID: h.CampaignID.String(), Name: h.CampaignName, Planned: h.Planned, Sent: h.Sent, Held: max(h.Planned-h.Sent, 0), OtherShares: []RouteSplitPct{}}
+		hc := &ProviderHeldCampaign{ID: h.CampaignID.String(), Name: h.CampaignName, Planned: h.Planned, Sent: h.Sent, Held: max(h.Planned-h.Sent, 0), OtherShares: []ProviderRouteShare{}}
 		var detail struct {
 			Decision string `json:"decision"`
 		}
@@ -227,7 +227,7 @@ func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provid
 			if r.ProviderID == p.ID || total == 0 {
 				continue
 			}
-			hc.OtherShares = append(hc.OtherShares, RouteSplitPct{ProviderID: r.ProviderID.String(), Short: state.Short(r.ProviderName, r.Adapter), Color: state.Color(r.Adapter),
+			hc.OtherShares = append(hc.OtherShares, ProviderRouteShare{ProviderID: r.ProviderID.String(), Short: state.Short(r.ProviderName, r.Adapter), Color: state.Color(r.Adapter),
 				Percent: int(math.Round(float64(r.Planned) / float64(total) * 100))})
 		}
 		st.Campaign = hc
@@ -236,7 +236,7 @@ func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provid
 			if other.ID == p.ID || !state.Available(other) || !state.Caps(other).BulkAllowed() {
 				continue
 			}
-			alt := FailoverAlternative{ProviderID: other.ID.String(), Name: other.Name, Short: state.Short(other.Name, other.Adapter)}
+			alt := ProviderFailoverAlternative{ProviderID: other.ID.String(), Name: other.Name, Short: state.Short(other.Name, other.Adapter)}
 			if wu := warmupBrief(sn, other); wu != nil {
 				alt.WarmingUp = true
 				alt.ExceedsCap = hc.Held > wu.TodayCap-wu.SentToday
@@ -262,7 +262,7 @@ func inRoute(def routing.Rule, id uuid.UUID) bool {
 
 // forecast says when a provider on a monthly plan runs out while it carries
 // a stream for a provider that is down.
-func (s *Service) forecast(ctx context.Context, sn *snapshot, p store.Provider, stream string) *QuotaForecast {
+func (s *Service) forecast(ctx context.Context, sn *snapshot, p store.Provider, stream string) *ProviderQuotaForecast {
 	h := state.HealthOf(p)
 	if h.Quota == nil || h.Quota.Kind != "monthly_plan" || h.Quota.Max <= 0 {
 		return nil
@@ -281,7 +281,7 @@ func (s *Service) forecast(ctx context.Context, sn *snapshot, p store.Provider, 
 	if perDay <= 0 {
 		return nil
 	}
-	f := &QuotaForecast{ProviderID: p.ID.String(), PerDay: roundCount(perDay), Stream: stream}
+	f := &ProviderQuotaForecast{ProviderID: p.ID.String(), PerDay: roundCount(perDay), Stream: stream}
 	remaining := h.Quota.Max - h.Quota.Used
 	if remaining > 0 {
 		days := int(math.Ceil(float64(remaining) / float64(perDay)))
@@ -305,11 +305,11 @@ func roundCount(n int64) int64 {
 }
 
 // silent describes a provider whose webhooks went quiet.
-func (s *Service) silent(ctx context.Context, sn *snapshot, p store.Provider) (*WebhooksSilent, error) {
+func (s *Service) silent(ctx context.Context, sn *snapshot, p store.Provider) (*ProviderWebhooksSilent, error) {
 	h := state.HealthOf(p)
 	since := *h.Webhooks.SilentSince
-	out := &WebhooksSilent{ProviderID: p.ID.String(), Provider: p.Name, Short: state.Short(p.Name, p.Adapter), Since: since,
-		Campaigns: []NamedCount{}, Checks: []WebhookCheckView{}, Causes: []string{}, Awaiting: []AwaitingMessage{}, Hourly: make([]int64, 24),
+	out := &ProviderWebhooksSilent{ProviderID: p.ID.String(), Provider: p.Name, Short: state.Short(p.Name, p.Adapter), Since: since,
+		Campaigns: []ProviderNamedCount{}, Checks: []ProviderWebhookCheck{}, Causes: []string{}, Awaiting: []ProviderAwaitingMessage{}, Hourly: make([]int64, 24),
 		WebhookURL: WebhookURL(s.URLs, p), BroadcastPolicy: string(sn.set.Policy(providers.StreamBroadcast))}
 	cnt, err := s.Q.ProvAwaitingCount(ctx, store.ProvAwaitingCountParams{ProviderID: &p.ID, Since: &since})
 	if err != nil {
@@ -321,7 +321,7 @@ func (s *Service) silent(ctx context.Context, sn *snapshot, p store.Provider) (*
 		return nil, err
 	}
 	for _, c := range camps {
-		out.Campaigns = append(out.Campaigns, NamedCount{Name: c.Name})
+		out.Campaigns = append(out.Campaigns, ProviderNamedCount{Name: c.Name})
 	}
 	if def, ok := sn.set.Default(providers.StreamBroadcast); ok {
 		for _, sp := range def.Splits {
@@ -331,7 +331,7 @@ func (s *Service) silent(ctx context.Context, sn *snapshot, p store.Provider) (*
 		}
 	}
 	for _, c := range h.Webhooks.Checks {
-		out.Checks = append(out.Checks, WebhookCheckView{Key: c.Key, OK: c.OK, At: c.At, Detail: c.Detail, ID: c.ID, URL: c.URL, Count: c.Count, Queued: c.Queued})
+		out.Checks = append(out.Checks, ProviderWebhookCheck{Key: c.Key, OK: c.OK, At: c.At, Detail: c.Detail, ID: c.ID, URL: c.URL, Count: c.Count, Queued: c.Queued})
 	}
 	out.Causes = append(out.Causes, h.Webhooks.Causes...)
 	from := sn.now.Truncate(time.Hour).Add(-23 * time.Hour)
@@ -351,7 +351,7 @@ func (s *Service) silent(ctx context.Context, sn *snapshot, p store.Provider) (*
 		return nil, err
 	}
 	for _, r := range rows {
-		m := AwaitingMessage{Recipient: MaskEmail(r.Email), Source: sourceLabel(r.CampaignName, r.AutomationName, r.AutomationNode, r.Kind), Status: "accepted", DeliveredAt: r.DeliveredAt}
+		m := ProviderAwaitingMessage{Recipient: MaskEmail(r.Email), Source: sourceLabel(r.CampaignName, r.AutomationName, r.AutomationNode, r.Kind), Status: "accepted", DeliveredAt: r.DeliveredAt}
 		if r.SentAt != nil {
 			m.At = *r.SentAt
 		}
@@ -375,8 +375,8 @@ func (s *Service) silent(ctx context.Context, sn *snapshot, p store.Provider) (*
 }
 
 // authFailure describes a provider that rejects its credentials.
-func (s *Service) authFailure(ctx context.Context, sn *snapshot, p store.Provider, card ProviderCard) (*AuthFailure, error) {
-	af := &AuthFailure{ProviderID: p.ID.String(), Provider: p.Name, Short: state.Short(p.Name, p.Adapter), Streams: []OutageStream{}}
+func (s *Service) authFailure(ctx context.Context, sn *snapshot, p store.Provider, card ProviderCard) (*ProviderAuthFailure, error) {
+	af := &ProviderAuthFailure{ProviderID: p.ID.String(), Provider: p.Name, Short: state.Short(p.Name, p.Adapter), Streams: []ProviderOutageStream{}}
 	if card.Down != nil {
 		af.Down = *card.Down
 	}

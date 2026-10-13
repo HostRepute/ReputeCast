@@ -11,9 +11,9 @@ import (
 // Badges turns a capability snapshot into the chips of spec 5.2, in the
 // order the design shows them: bulk terms, webhooks, domain API, suppression
 // sync, batching, dedicated IPs, sandbox, quota discovery, pricing.
-func Badges(c state.Snapshot, dedicatedIP bool) []CapabilityBadge {
-	out := []CapabilityBadge{}
-	add := func(kind, label string) { out = append(out, CapabilityBadge{Label: label, Kind: kind}) }
+func Badges(c state.Snapshot, dedicatedIP bool) []ProviderCapabilityBadge {
+	out := []ProviderCapabilityBadge{}
+	add := func(kind, label string) { out = append(out, ProviderCapabilityBadge{Label: label, Kind: kind}) }
 	switch c.Bulk {
 	case providers.BulkAllowed:
 		add("yes", "Bulk marketing allowed")
@@ -87,6 +87,6 @@ func Badges(c state.Snapshot, dedicatedIP bool) []CapabilityBadge {
 }
 
 // providerBadges is Badges for a connected provider.
-func providerBadges(p store.Provider) []CapabilityBadge {
+func providerBadges(p store.Provider) []ProviderCapabilityBadge {
 	return Badges(state.Caps(p), p.IpMode == "dedicated")
 }

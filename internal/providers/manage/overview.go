@@ -120,7 +120,7 @@ func (s *Service) load(ctx context.Context, ws *store.Workspace) (*snapshot, err
 
 // Overview returns the providers screen.
 func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (ProvidersOverview, error) {
-	out := ProvidersOverview{Providers: []ProviderCard{}, Routing: []StreamRoute{}}
+	out := ProvidersOverview{Providers: []ProviderCard{}, Routing: []ProviderStreamRoute{}}
 	sn, err := s.load(ctx, ws)
 	if err != nil {
 		return out, err
@@ -136,12 +136,12 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (ProvidersO
 	for i, p := range sn.provs {
 		h := state.HealthOf(p)
 		switch {
-		case p.Status == state.Down && h.Down != nil && h.Down.Reason == "auth" && out.AuthFailure == nil:
+		case p.Status == state.Down && h.Down != nil && h.Down.Reason == "auth" && out.ProviderAuthFailure == nil:
 			af, err := s.authFailure(ctx, sn, p, out.Providers[i])
 			if err != nil {
 				return out, err
 			}
-			out.AuthFailure = af
+			out.ProviderAuthFailure = af
 		case p.Status == state.Down && out.Outage == nil:
 			o, err := s.outage(ctx, sn, p, out.Providers[i])
 			if err != nil {
@@ -161,7 +161,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (ProvidersO
 
 func (s *Service) summary(ctx context.Context, sn *snapshot) ProvidersSummary {
 	today := dateOf(sn.now, sn.loc)
-	sum := ProvidersSummary{Connected: len(sn.provs), ByStatus: []ProviderStatusCount{}, SentBy: []ProviderAmount{},
+	sum := ProvidersSummary{Connected: len(sn.provs), ByStatus: []ProviderStatusCount{}, SentBy: []ProviderMonthAmount{},
 		MonthStart: time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, sn.loc)}
 	counts := map[string]int{}
 	var oldest *time.Time
@@ -173,11 +173,11 @@ func (s *Service) summary(ctx context.Context, sn *snapshot) ProvidersSummary {
 		}
 		m := sn.month[p.ID]
 		sum.SentThisMonth += m.Sent
-		sum.SentBy = append(sum.SentBy, ProviderAmount{ProviderID: p.ID.String(), Short: state.Short(p.Name, p.Adapter), Value: float64(m.Sent)})
+		sum.SentBy = append(sum.SentBy, ProviderMonthAmount{ProviderID: p.ID.String(), Short: state.Short(p.Name, p.Adapter), Value: float64(m.Sent)})
 		sum.CostToDate += costToDate(p, m)
 	}
 	sum.CheckedAt = oldest
-	slices.SortStableFunc(sum.SentBy, func(a, b ProviderAmount) int { return int(b.Value - a.Value) })
+	slices.SortStableFunc(sum.SentBy, func(a, b ProviderMonthAmount) int { return int(b.Value - a.Value) })
 	for _, st := range []string{state.Healthy, state.WarmingUp, state.Degraded, state.Down, state.Sandbox, state.Paused} {
 		if counts[st] > 0 {
 			sum.ByStatus = append(sum.ByStatus, ProviderStatusCount{Status: st, Count: counts[st]})
@@ -227,7 +227,7 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 	c := ProviderCard{
 		ID: p.ID.String(), Adapter: p.Adapter, Name: p.Name, Short: state.Short(p.Name, p.Adapter), Label: p.Label, Color: state.Color(p.Adapter),
 		Status: p.Status, Roles: roles(sn, p.ID), IPMode: p.IpMode, IPs: p.Ips, Account: h.Account, AccountKind: "account",
-		Capabilities: providerBadges(p), TakingFailover: []string{}, CheckedAt: p.LastCheckedAt, ConnectedAt: p.ConnectedAt, Credentials: []CredentialField{},
+		Capabilities: providerBadges(p), TakingFailover: []string{}, CheckedAt: p.LastCheckedAt, ConnectedAt: p.ConnectedAt, Credentials: []ProviderCredentialField{},
 	}
 	if c.IPs == nil {
 		c.IPs = []string{}
@@ -238,7 +238,7 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 	if c.Account == "" && h.Version != "" {
 		c.Account = h.Version
 	}
-	c.Webhook = ProviderWebhook{Kind: caps.Webhooks, LastEventAt: p.LastEventAt}
+	c.Webhook = ProviderWebhookFeed{Kind: caps.Webhooks, LastEventAt: p.LastEventAt}
 	if h.Webhooks != nil {
 		c.Webhook.SilentSince = h.Webhooks.SilentSince
 	}
@@ -258,8 +258,8 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 	}
 	lim := state.LimitsOf(p)
 	stale := h.Webhooks != nil && h.Webhooks.SilentSince != nil
-	c.Bounce = ProviderRate{Limit: lim.Bounce.Limit, Review: lim.Bounce.Review, Pause: lim.Bounce.Pause, Label: lim.Bounce.Label, Stale: stale}
-	c.Complaint = ProviderRate{Limit: lim.Complaint.Limit, Review: lim.Complaint.Review, Pause: lim.Complaint.Pause, Label: lim.Complaint.Label, Stale: stale}
+	c.Bounce = ProviderLimitRate{Limit: lim.Bounce.Limit, Review: lim.Bounce.Review, Pause: lim.Bounce.Pause, Label: lim.Bounce.Label, Stale: stale}
+	c.Complaint = ProviderLimitRate{Limit: lim.Complaint.Limit, Review: lim.Complaint.Review, Pause: lim.Complaint.Pause, Label: lim.Complaint.Label, Stale: stale}
 	if week.Sent > 0 {
 		v := round2(float64(week.Bounced) / float64(week.Sent) * 100)
 		c.Bounce.Value = &v
@@ -270,9 +270,9 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 	}
 	// Quota and rate from the provider's API, the warm-up plan overriding
 	// both while the provider warms up.
-	c.Quota = ProviderQuota{Kind: "none"}
+	c.Quota = ProviderQuotaUse{Kind: "none"}
 	if h.Quota != nil {
-		c.Quota = ProviderQuota{Kind: h.Quota.Kind, Max: h.Quota.Max, Used: h.Quota.Used}
+		c.Quota = ProviderQuotaUse{Kind: h.Quota.Kind, Max: h.Quota.Max, Used: h.Quota.Used}
 	}
 	if h.Rate != nil {
 		c.Rate = ProviderSendRate{Max: h.Rate.Max, Now: h.Rate.Now, PeakToday: h.Rate.PeakToday, Label: h.Rate.Label}
@@ -285,7 +285,7 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 	}
 	if wu := warmupBrief(sn, p); wu != nil {
 		c.Warmup = wu
-		c.Quota = ProviderQuota{Kind: "warmup_daily", Max: wu.TodayCap, Used: wu.SentToday}
+		c.Quota = ProviderQuotaUse{Kind: "warmup_daily", Max: wu.TodayCap, Used: wu.SentToday}
 		c.Rate.Max, c.Rate.Label = wu.Rate, "ramp limit"
 	}
 	if p.Status == state.Down {
@@ -294,7 +294,7 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 	// Cost
 	pr := state.PricingOf(p)
 	m := sn.month[p.ID]
-	c.Cost = ProviderCost{Basis: pr.Model, ToDate: round2(costToDate(p, m)), Monthly: pr.Monthly, Source: pr.Source}
+	c.Cost = ProviderCostToDate{Basis: pr.Model, ToDate: round2(costToDate(p, m)), Monthly: pr.Monthly, Source: pr.Source}
 	switch pr.Model {
 	case "metered":
 		if pr.Per1000 > 0 {
@@ -322,7 +322,7 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 		for _, f := range d.Fields {
 			if f.Secret {
 				v, _ := have[f.Key].(string)
-				c.Credentials = append(c.Credentials, CredentialField{Key: f.Key, Label: f.Label, Set: v != ""})
+				c.Credentials = append(c.Credentials, ProviderCredentialField{Key: f.Key, Label: f.Label, Set: v != ""})
 			}
 		}
 	}
@@ -341,14 +341,14 @@ func errorRate7dFromHealth(p store.Provider) (float64, bool) {
 	return 0, false
 }
 
-func downOf(p store.Provider, h state.Health) *ProviderDown {
-	d := &ProviderDown{Since: h.Down.Since, Reason: h.Down.Reason, LastSuccessAt: h.LastSuccessAt, LastSuccessOp: h.LastSuccessOp, Errors: []ProviderError{}}
+func downOf(p store.Provider, h state.Health) *ProviderDownState {
+	d := &ProviderDownState{Since: h.Down.Since, Reason: h.Down.Reason, LastSuccessAt: h.LastSuccessAt, LastSuccessOp: h.LastSuccessOp, Errors: []ProviderCallError{}}
 	for _, e := range h.RecentErrors {
-		d.Errors = append(d.Errors, ProviderError{At: e.At, Op: e.Op, Status: e.Status, Code: e.Code, Message: e.Message})
+		d.Errors = append(d.Errors, ProviderCallError{At: e.At, Op: e.Op, Status: e.Status, Code: e.Code, Message: e.Message})
 	}
 	if len(d.Errors) == 0 && h.LastError != nil {
 		e := h.LastError
-		d.Errors = append(d.Errors, ProviderError{At: e.At, Op: e.Op, Status: e.Status, Code: e.Code, Message: e.Message})
+		d.Errors = append(d.Errors, ProviderCallError{At: e.At, Op: e.Op, Status: e.Status, Code: e.Code, Message: e.Message})
 	}
 	if h.Down.ProviderStatus != nil && h.Down.ProviderStatus.Incident {
 		d.StatusSummary = h.Down.ProviderStatus.Summary
@@ -379,7 +379,7 @@ func statusPage(d providers.Descriptor) ([2]string, bool) {
 	return [2]string{}, false
 }
 
-func warmupBrief(sn *snapshot, p store.Provider) *ProviderWarmup {
+func warmupBrief(sn *snapshot, p store.Provider) *ProviderWarmupBrief {
 	for _, w := range sn.plans {
 		if w.ProviderID != p.ID || w.Status == "done" {
 			continue
@@ -387,14 +387,14 @@ func warmupBrief(sn *snapshot, p store.Provider) *ProviderWarmup {
 		day := min(max(state.WarmupDay(w.StartDate, sn.now, sn.loc), 1), int(w.Days))
 		plan := warmup.ParsePlan(w.Schedule, w.Progress)
 		cap, rate, share := plan.Cap(day), plan.Rate(day), plan.Share(day)
-		return &ProviderWarmup{PlanID: w.ID.String(), Day: day, Days: int(w.Days), Status: w.Status, TodayCap: cap, SentToday: sn.today[p.ID].Sent, Rate: rate, Share: share}
+		return &ProviderWarmupBrief{PlanID: w.ID.String(), Day: day, Days: int(w.Days), Status: w.Status, TodayCap: cap, SentToday: sn.today[p.ID].Sent, Rate: rate, Share: share}
 	}
 	return nil
 }
 
 // roles lists what a provider does in each stream's routing.
-func roles(sn *snapshot, id uuid.UUID) []ProviderRole {
-	out := []ProviderRole{}
+func roles(sn *snapshot, id uuid.UUID) []ProviderStreamRole {
+	out := []ProviderStreamRole{}
 	for _, stream := range routing.Streams {
 		def, ok := sn.set.Default(stream)
 		if !ok {
@@ -406,7 +406,7 @@ func roles(sn *snapshot, id uuid.UUID) []ProviderRole {
 				continue
 			}
 			inSplit = true
-			r := ProviderRole{Stream: string(stream), Role: "primary", Percent: sp.Weight}
+			r := ProviderStreamRole{Stream: string(stream), Role: "primary", Percent: sp.Weight}
 			if len(def.Splits) > 1 {
 				r.Role = "split"
 			}
@@ -420,13 +420,13 @@ func roles(sn *snapshot, id uuid.UUID) []ProviderRole {
 		if !inSplit {
 			for _, r := range sn.set.StreamRules(stream) {
 				if !r.Conditions.Empty() && len(r.Splits) == 1 && r.Splits[0].ProviderID == id {
-					out = append(out, ProviderRole{Stream: string(stream), Role: "condition"})
+					out = append(out, ProviderStreamRole{Stream: string(stream), Role: "condition"})
 					break
 				}
 			}
 		}
 		if def.Fallback != nil && *def.Fallback == id {
-			r := ProviderRole{Stream: string(stream), Role: "fallback"}
+			r := ProviderStreamRole{Stream: string(stream), Role: "fallback"}
 			for _, f := range sn.failovers {
 				if f.Stream == string(stream) && f.FallbackProviderID != nil && *f.FallbackProviderID == id && f.Mode == "automatic" {
 					r.Active = true
@@ -438,10 +438,10 @@ func roles(sn *snapshot, id uuid.UUID) []ProviderRole {
 	return out
 }
 
-func streamRoutes(sn *snapshot) []StreamRoute {
-	out := []StreamRoute{}
+func streamRoutes(sn *snapshot) []ProviderStreamRoute {
+	out := []ProviderStreamRoute{}
 	for _, stream := range routing.Streams {
-		r := StreamRoute{Stream: string(stream), Splits: []RouteSplitPct{}, Failover: string(sn.set.Policy(stream))}
+		r := ProviderStreamRoute{Stream: string(stream), Splits: []ProviderRouteShare{}, Failover: string(sn.set.Policy(stream))}
 		def, ok := sn.set.Default(stream)
 		if !ok {
 			out = append(out, r)
@@ -452,12 +452,12 @@ func streamRoutes(sn *snapshot) []StreamRoute {
 			if !ok || sp.Weight == 0 {
 				continue
 			}
-			r.Splits = append(r.Splits, RouteSplitPct{ProviderID: p.ID.String(), Short: state.Short(p.Name, p.Adapter), Color: state.Color(p.Adapter), Percent: sp.Weight})
+			r.Splits = append(r.Splits, ProviderRouteShare{ProviderID: p.ID.String(), Short: state.Short(p.Name, p.Adapter), Color: state.Color(p.Adapter), Percent: sp.Weight})
 		}
-		slices.SortStableFunc(r.Splits, func(a, b RouteSplitPct) int { return b.Percent - a.Percent })
+		slices.SortStableFunc(r.Splits, func(a, b ProviderRouteShare) int { return b.Percent - a.Percent })
 		if def.Fallback != nil {
 			if p, ok := sn.byID[*def.Fallback]; ok {
-				r.Fallback = &RouteSplitPct{ProviderID: p.ID.String(), Short: state.Short(p.Name, p.Adapter), Color: state.Color(p.Adapter)}
+				r.Fallback = &ProviderRouteShare{ProviderID: p.ID.String(), Short: state.Short(p.Name, p.Adapter), Color: state.Color(p.Adapter)}
 			}
 		}
 		for _, rule := range sn.set.StreamRules(stream) {

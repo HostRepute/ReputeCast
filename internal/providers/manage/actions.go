@@ -69,14 +69,14 @@ func (s *Service) Card(ctx context.Context, ws *store.Workspace, id uuid.UUID) (
 	return s.card(sn, p), nil
 }
 
-// CredentialsInput replaces some or all write-only credentials.
-type CredentialsInput struct {
+// ProviderCredentialsInput replaces some or all write-only credentials.
+type ProviderCredentialsInput struct {
 	Values map[string]string `json:"values" doc:"Credential keys and their new values. Keys not listed keep their current value."`
 }
 
 // ReplaceCredentials checks new credentials with the provider and stores
 // them encrypted. Values are never returned.
-func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, id string, in CredentialsInput) (ProviderCard, error) {
+func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, id string, in ProviderCredentialsInput) (ProviderCard, error) {
 	p, err := s.provider(ctx, ws, id)
 	if err != nil {
 		return ProviderCard{}, err
@@ -156,12 +156,12 @@ func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, i
 // ProviderSettingsInput changes a provider's label, pricing and limits.
 type ProviderSettingsInput struct {
 	Label   *string            `json:"label,omitempty" maxLength:"120"`
-	Pricing *ProviderPricingIn `json:"pricing,omitempty"`
-	Limits  *ProviderLimitsIn  `json:"limits,omitempty"`
+	Pricing *ProviderPricingInput `json:"pricing,omitempty"`
+	Limits  *ProviderLimitsInput  `json:"limits,omitempty"`
 }
 
-// ProviderPricingIn is how the provider is paid for.
-type ProviderPricingIn struct {
+// ProviderPricingInput is how the provider is paid for.
+type ProviderPricingInput struct {
 	Model   string  `json:"model" enum:"metered,plan,self_hosted"`
 	Per1000 float64 `json:"per1000,omitempty" minimum:"0" maximum:"1000"`
 	Monthly float64 `json:"monthly,omitempty" minimum:"0" maximum:"1000000"`
@@ -170,8 +170,8 @@ type ProviderPricingIn struct {
 	NextTierPrice float64 `json:"nextTierPrice,omitempty" minimum:"0"`
 }
 
-// ProviderLimitsIn are the bounce and complaint lines drawn on the meters.
-type ProviderLimitsIn struct {
+// ProviderLimitsInput are the bounce and complaint lines drawn on the meters.
+type ProviderLimitsInput struct {
 	Bounce    float64 `json:"bounce" minimum:"0.1" maximum:"50"`
 	Complaint float64 `json:"complaint" minimum:"0.01" maximum:"5"`
 }
@@ -259,8 +259,8 @@ func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace, id string
 	})
 }
 
-// TrackingCheck is one row of "Provider-side tracking check".
-type TrackingCheck struct {
+// ProviderTrackingCheck is one row of "Provider-side tracking check".
+type ProviderTrackingCheck struct {
 	ProviderID  string     `json:"providerId"`
 	Provider    string     `json:"provider"`
 	Status      string     `json:"status" enum:"ok,warn,unknown"`
@@ -273,16 +273,16 @@ type TrackingCheck struct {
 	CanDisable  bool       `json:"canDisable"`
 }
 
-// TrackingChecks lists provider-side tracking for every provider.
-func (s *Service) TrackingChecks(ctx context.Context, ws *store.Workspace) ([]TrackingCheck, error) {
+// ProviderTrackingChecks lists provider-side tracking for every provider.
+func (s *Service) ProviderTrackingChecks(ctx context.Context, ws *store.Workspace) ([]ProviderTrackingCheck, error) {
 	provs, err := s.Q.ProvListActive(ctx, ws.ID)
 	if err != nil {
 		return nil, err
 	}
-	out := []TrackingCheck{}
+	out := []ProviderTrackingCheck{}
 	for _, p := range provs {
 		t := state.TrackingOf(p)
-		tc := TrackingCheck{ProviderID: p.ID.String(), Provider: p.Name, Status: "ok", OpenPixel: t.OpenPixel, LinkRewrite: t.LinkRewrite,
+		tc := ProviderTrackingCheck{ProviderID: p.ID.String(), Provider: p.Name, Status: "ok", OpenPixel: t.OpenPixel, LinkRewrite: t.LinkRewrite,
 			Detail: t.Detail, Scope: t.Scope, Mode: t.Mode, CheckedAt: t.CheckedAt}
 		if (t.OpenPixel || t.LinkRewrite) && t.Mode != "provider" {
 			tc.Status = "warn"
@@ -298,8 +298,8 @@ func (s *Service) TrackingChecks(ctx context.Context, ws *store.Workspace) ([]Tr
 	return out, nil
 }
 
-// TrackingActionInput acts on provider-side tracking.
-type TrackingActionInput struct {
+// ProviderTrackingActionInput acts on provider-side tracking.
+type ProviderTrackingActionInput struct {
 	// Action: disable (turn it off at the provider), keep_provider (keep the
 	// provider's tracking and ignore ReputeCast's), use_reputecast (back to
 	// ReputeCast's own tracking), recheck.
@@ -307,10 +307,10 @@ type TrackingActionInput struct {
 }
 
 // TrackingAction applies a tracking decision.
-func (s *Service) TrackingAction(ctx context.Context, ws *store.Workspace, id string, in TrackingActionInput) (TrackingCheck, error) {
+func (s *Service) TrackingAction(ctx context.Context, ws *store.Workspace, id string, in ProviderTrackingActionInput) (ProviderTrackingCheck, error) {
 	p, err := s.provider(ctx, ws, id)
 	if err != nil {
-		return TrackingCheck{}, err
+		return ProviderTrackingCheck{}, err
 	}
 	before := state.TrackingOf(p)
 	switch in.Action {
@@ -321,65 +321,65 @@ func (s *Service) TrackingAction(ctx context.Context, ws *store.Workspace, id st
 			t.Detail = strings.NewReplacer("is on", "is off", "HtmlAndText", "None", "HtmlOnly", "None", "TextOnly", "None").Replace(t.Detail)
 			b, _ := json.Marshal(t)
 			if err := s.Q.ProvUpdateTracking(ctx, store.ProvUpdateTrackingParams{ID: p.ID, Tracking: b}); err != nil {
-				return TrackingCheck{}, err
+				return ProviderTrackingCheck{}, err
 			}
 			break
 		}
 		adapter, err := s.Factory.Open(ctx, p)
 		if err != nil {
-			return TrackingCheck{}, err
+			return ProviderTrackingCheck{}, err
 		}
 		tm, ok := adapter.(providers.TrackingManager)
 		if !ok {
-			return TrackingCheck{}, api.Conflict(p.Name + " can't change tracking over its API. Turn it off in " + p.Name + "'s settings.")
+			return ProviderTrackingCheck{}, api.Conflict(p.Name + " can't change tracking over its API. Turn it off in " + p.Name + "'s settings.")
 		}
 		cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 		err = tm.DisableTracking(cctx)
 		cancel()
 		if err != nil {
-			return TrackingCheck{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, p.Name+" didn't accept the change: "+err.Error())
+			return ProviderTrackingCheck{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, p.Name+" didn't accept the change: "+err.Error())
 		}
 		if _, err := s.refreshTracking(ctx, p); err != nil {
-			return TrackingCheck{}, err
+			return ProviderTrackingCheck{}, err
 		}
 	case "keep_provider", "use_reputecast":
 		t := before
 		t.Mode = map[string]string{"keep_provider": "provider", "use_reputecast": "reputecast"}[in.Action]
 		b, _ := json.Marshal(t)
 		if err := s.Q.ProvUpdateTracking(ctx, store.ProvUpdateTrackingParams{ID: p.ID, Tracking: b}); err != nil {
-			return TrackingCheck{}, err
+			return ProviderTrackingCheck{}, err
 		}
 	case "recheck":
 		if !IsDemo(p) {
 			if _, err := s.refreshTracking(ctx, p); err != nil {
-				return TrackingCheck{}, err
+				return ProviderTrackingCheck{}, err
 			}
 		}
 	}
 	p, err = s.Q.ProvGetAny(ctx, p.ID)
 	if err != nil {
-		return TrackingCheck{}, err
+		return ProviderTrackingCheck{}, err
 	}
 	after := state.TrackingOf(p)
 	if in.Action != "recheck" {
 		if err := s.audit(ctx, s.Q, ws, p, "provider.tracking_"+in.Action, before, after, nil); err != nil {
-			return TrackingCheck{}, err
+			return ProviderTrackingCheck{}, err
 		}
 	}
-	list, err := s.TrackingChecks(ctx, ws)
+	list, err := s.ProviderTrackingChecks(ctx, ws)
 	if err != nil {
-		return TrackingCheck{}, err
+		return ProviderTrackingCheck{}, err
 	}
 	for _, tc := range list {
 		if tc.ProviderID == p.ID.String() {
 			return tc, nil
 		}
 	}
-	return TrackingCheck{}, api.NotFound("Provider")
+	return ProviderTrackingCheck{}, api.NotFound("Provider")
 }
 
-// WebhookTestResult is the outcome of "Send test event".
-type WebhookTestResult struct {
+// ProviderWebhookTestResult is the outcome of "Send test event".
+type ProviderWebhookTestResult struct {
 	EndpointOK     bool   `json:"endpointOk"`
 	EndpointStatus int    `json:"endpointStatus"`
 	EndpointDetail string `json:"endpointDetail"`
@@ -390,12 +390,12 @@ type WebhookTestResult struct {
 
 // TestWebhook checks that the webhook endpoint is reachable from outside
 // and, when the provider can, asks it to send a test event.
-func (s *Service) TestWebhook(ctx context.Context, ws *store.Workspace, id string) (WebhookTestResult, error) {
+func (s *Service) TestWebhook(ctx context.Context, ws *store.Workspace, id string) (ProviderWebhookTestResult, error) {
 	p, err := s.provider(ctx, ws, id)
 	if err != nil {
-		return WebhookTestResult{}, err
+		return ProviderWebhookTestResult{}, err
 	}
-	out := WebhookTestResult{}
+	out := ProviderWebhookTestResult{}
 	code, err := s.selfTest(ctx, p)
 	out.EndpointStatus = code
 	switch {
@@ -460,16 +460,16 @@ func (BackfillArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: jobs.QueueEvents, UniqueOpts: river.UniqueOpts{ByArgs: true, ByPeriod: 5 * time.Minute}}
 }
 
-// BackfillResult says how many messages will be looked up.
-type BackfillResult struct {
+// ProviderBackfillResult says how many messages will be looked up.
+type ProviderBackfillResult struct {
 	Queued int64 `json:"queued"`
 }
 
 // Backfill queues a job that pulls the status of messages with no event.
-func (s *Service) Backfill(ctx context.Context, ws *store.Workspace, id string) (BackfillResult, error) {
+func (s *Service) Backfill(ctx context.Context, ws *store.Workspace, id string) (ProviderBackfillResult, error) {
 	p, err := s.provider(ctx, ws, id)
 	if err != nil {
-		return BackfillResult{}, err
+		return ProviderBackfillResult{}, err
 	}
 	since := s.now().Add(-7 * 24 * time.Hour)
 	if h := state.HealthOf(p); h.Webhooks != nil && h.Webhooks.SilentSince != nil {
@@ -477,15 +477,15 @@ func (s *Service) Backfill(ctx context.Context, ws *store.Workspace, id string) 
 	}
 	cnt, err := s.Q.ProvAwaitingCount(ctx, store.ProvAwaitingCountParams{ProviderID: &p.ID, Since: &since})
 	if err != nil {
-		return BackfillResult{}, err
+		return ProviderBackfillResult{}, err
 	}
 	if !IsDemo(p) {
 		adapter, err := s.Factory.Open(ctx, p)
 		if err != nil {
-			return BackfillResult{}, err
+			return ProviderBackfillResult{}, err
 		}
 		if _, ok := adapter.(providers.EventBackfiller); !ok {
-			return BackfillResult{}, api.Conflict(p.Name + "'s API can't report message status, so there is nothing to backfill from.")
+			return ProviderBackfillResult{}, api.Conflict(p.Name + "'s API can't report message status, so there is nothing to backfill from.")
 		}
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -496,7 +496,7 @@ func (s *Service) Backfill(ctx context.Context, ws *store.Workspace, id string) 
 		}
 		return s.audit(ctx, store.New(tx), ws, p, "provider.backfill", nil, nil, map[string]any{"messages": cnt.Total})
 	})
-	return BackfillResult{Queued: cnt.Total}, err
+	return ProviderBackfillResult{Queued: cnt.Total}, err
 }
 
 func (s *Service) jobs() *jobs.Client {
@@ -506,33 +506,33 @@ func (s *Service) jobs() *jobs.Client {
 	return s.Jobs()
 }
 
-// BroadcastStreamResult names the stream created.
-type BroadcastStreamResult struct {
+// ProviderBroadcastStreamResult names the stream created.
+type ProviderBroadcastStreamResult struct {
 	StreamID string `json:"streamId"`
 }
 
 // CreateBroadcastStream creates the stream a provider's terms require for
 // bulk mail (Postmark) and registers its webhook.
-func (s *Service) CreateBroadcastStream(ctx context.Context, ws *store.Workspace, id string) (BroadcastStreamResult, error) {
+func (s *Service) CreateBroadcastStream(ctx context.Context, ws *store.Workspace, id string) (ProviderBroadcastStreamResult, error) {
 	p, err := s.provider(ctx, ws, id)
 	if err != nil {
-		return BroadcastStreamResult{}, err
+		return ProviderBroadcastStreamResult{}, err
 	}
 	streamID := "broadcast"
 	if !IsDemo(p) {
 		adapter, err := s.Factory.Open(ctx, p)
 		if err != nil {
-			return BroadcastStreamResult{}, err
+			return ProviderBroadcastStreamResult{}, err
 		}
 		bc, ok := adapter.(providers.BroadcastStreamCreator)
 		if !ok {
-			return BroadcastStreamResult{}, api.Conflict(p.Name + " has no separate stream for bulk mail.")
+			return ProviderBroadcastStreamResult{}, api.Conflict(p.Name + " has no separate stream for bulk mail.")
 		}
 		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		streamID, err = bc.CreateBroadcastStream(cctx, "ReputeCast Broadcasts")
 		cancel()
 		if err != nil {
-			return BroadcastStreamResult{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, p.Name+" didn't create the stream: "+err.Error())
+			return ProviderBroadcastStreamResult{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, p.Name+" didn't create the stream: "+err.Error())
 		}
 	}
 	cfg := map[string]any{}
@@ -553,7 +553,7 @@ func (s *Service) CreateBroadcastStream(ctx context.Context, ws *store.Workspace
 		return s.audit(ctx, q, ws, p, "provider.broadcast_stream_create", nil, map[string]any{"stream": streamID}, nil)
 	})
 	if err != nil {
-		return BroadcastStreamResult{}, err
+		return ProviderBroadcastStreamResult{}, err
 	}
 	if !IsDemo(p) {
 		p.Config = cb
@@ -567,11 +567,11 @@ func (s *Service) CreateBroadcastStream(ctx context.Context, ws *store.Workspace
 			}
 		}
 	}
-	return BroadcastStreamResult{StreamID: streamID}, nil
+	return ProviderBroadcastStreamResult{StreamID: streamID}, nil
 }
 
-// HeldDecisionInput decides what happens to a broadcast's held share.
-type HeldDecisionInput struct {
+// ProviderHeldDecisionInput decides what happens to a broadcast's held share.
+type ProviderHeldDecisionInput struct {
 	// Action: wait (resume automatically when the provider recovers),
 	// move (send the held recipients through another provider), cancel
 	// (cancel the send).
@@ -579,25 +579,25 @@ type HeldDecisionInput struct {
 	TargetID string `json:"targetProviderId,omitempty" doc:"Provider to move the held share to (move)"`
 }
 
-// HeldDecisionResult is what changed.
-type HeldDecisionResult struct {
+// ProviderHeldDecisionResult is what changed.
+type ProviderHeldDecisionResult struct {
 	Action string `json:"action"`
 	Moved  int64  `json:"moved"`
 }
 
 // DecideHeld resolves a broadcast share held on a provider that is down.
-func (s *Service) DecideHeld(ctx context.Context, ws *store.Workspace, providerID, campaignID string, in HeldDecisionInput) (HeldDecisionResult, error) {
+func (s *Service) DecideHeld(ctx context.Context, ws *store.Workspace, providerID, campaignID string, in ProviderHeldDecisionInput) (ProviderHeldDecisionResult, error) {
 	p, err := s.provider(ctx, ws, providerID)
 	if err != nil {
-		return HeldDecisionResult{}, err
+		return ProviderHeldDecisionResult{}, err
 	}
 	cid, err := uuid.Parse(campaignID)
 	if err != nil {
-		return HeldDecisionResult{}, api.NotFound("Campaign")
+		return ProviderHeldDecisionResult{}, api.NotFound("Campaign")
 	}
 	held, err := s.Q.ProvHeldRoutes(ctx, store.ProvHeldRoutesParams{WorkspaceID: ws.ID, ProviderID: p.ID})
 	if err != nil {
-		return HeldDecisionResult{}, err
+		return ProviderHeldDecisionResult{}, err
 	}
 	var route *store.ProvHeldRoutesRow
 	for i := range held {
@@ -606,7 +606,7 @@ func (s *Service) DecideHeld(ctx context.Context, ws *store.Workspace, providerI
 		}
 	}
 	if route == nil {
-		return HeldDecisionResult{}, api.Conflict("Nothing of this campaign is held on " + p.Name + " any more.")
+		return ProviderHeldDecisionResult{}, api.Conflict("Nothing of this campaign is held on " + p.Name + " any more.")
 	}
 	pr := api.PrincipalFrom(ctx)
 	// Waiting and moving resume sending (campaigns:send); cancelling stops
@@ -616,10 +616,10 @@ func (s *Service) DecideHeld(ctx context.Context, ws *store.Workspace, providerI
 		need = authz.CampaignsPause
 	}
 	if pr == nil || !pr.Can(need) {
-		return HeldDecisionResult{}, api.Forbidden(need, nil)
+		return ProviderHeldDecisionResult{}, api.Forbidden(need, nil)
 	}
 	now := s.now()
-	out := HeldDecisionResult{Action: in.Action}
+	out := ProviderHeldDecisionResult{Action: in.Action}
 	if in.Action == "cancel" {
 		var by uuid.UUID
 		if pr != nil {

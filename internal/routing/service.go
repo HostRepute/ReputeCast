@@ -159,12 +159,12 @@ type RoutingProvider struct {
 	WarmingUp                bool           `json:"warmingUp"`
 	WarmupDay                int            `json:"warmupDay,omitempty"`
 	WarmupDays               int            `json:"warmupDays,omitempty"`
-	ShareSteps               []ShareStep    `json:"shareSteps"`
+	ShareSteps               []RoutingShareStep    `json:"shareSteps"`
 	Terms                    []RoutingTerms `json:"terms"`
 }
 
-// ShareStep is a planned increase of a warming provider's Broadcast share.
-type ShareStep struct {
+// RoutingShareStep is a planned increase of a warming provider's Broadcast share.
+type RoutingShareStep struct {
 	Day   int `json:"day"`
 	Share int `json:"share"`
 }
@@ -189,7 +189,7 @@ type RoutingConfig struct {
 	SenderDomains []string            `json:"senderDomains"`
 	SavedAt       *time.Time          `json:"savedAt,omitempty"`
 	SavedBy       string              `json:"savedBy"`
-	Issues        []Issue             `json:"issues"`
+	Issues        []RoutingIssue             `json:"issues"`
 	Shared        RoutingShared       `json:"shared"`
 }
 
@@ -302,7 +302,7 @@ func (s *Service) facts(ctx context.Context, ws *store.Workspace) (map[uuid.UUID
 		caps := state.Caps(p)
 		f := Facts{ID: p.ID, Name: p.Name, Short: state.Short(p.Name, p.Adapter), Adapter: p.Adapter, Status: p.Status, Bulk: caps.Bulk, BulkAllowed: caps.BulkAllowed()}
 		rp := RoutingProvider{ID: p.ID.String(), Name: p.Name, Short: f.Short, Label: p.Label, Adapter: p.Adapter, Color: state.Color(p.Adapter), Status: p.Status,
-			Bulk: string(caps.Bulk), BulkAllowed: f.BulkAllowed, ShareSteps: []ShareStep{}, Terms: []RoutingTerms{}}
+			Bulk: string(caps.Bulk), BulkAllowed: f.BulkAllowed, ShareSteps: []RoutingShareStep{}, Terms: []RoutingTerms{}}
 		if d, ok := providers.Lookup(p.Adapter); ok {
 			for _, t := range d.Terms {
 				rt := RoutingTerms{Variant: t.Variant, Bulk: string(t.Bulk), Note: t.Note, Streams: []string{}, Available: true}
@@ -342,7 +342,7 @@ func (s *Service) facts(ctx context.Context, ws *store.Workspace) (map[uuid.UUID
 			for _, d := range sched {
 				if d.Share > 0 && d.Share != last {
 					if last != 0 && d.Day > f.WarmupDay {
-						rp.ShareSteps = append(rp.ShareSteps, ShareStep{Day: d.Day, Share: d.Share})
+						rp.ShareSteps = append(rp.ShareSteps, RoutingShareStep{Day: d.Day, Share: d.Share})
 					}
 					last = d.Share
 				}
@@ -535,7 +535,7 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 			}
 		}
 	}
-	bulk := []Issue{}
+	bulk := []RoutingIssue{}
 	for _, i := range issues {
 		if i.Code == IssueBulkTerms {
 			bulk = append(bulk, i)
