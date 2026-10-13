@@ -222,7 +222,7 @@ func seedSignIns(ctx context.Context, s *Seeder) error {
 			return err
 		}
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO sso_providers (id, preset, name, issuer_url, client_id, client_secret_enc, allowed_domains, jit_enabled, jit_workspace_id, jit_role_key, enforce_domains, status, claim_map)
-			VALUES ($1, 'google', 'Google Workspace', 'https://accounts.google.com', 'demo-reputecast.apps.googleusercontent.com', $2, ARRAY['acme.io'], true, $3, 'viewer', ARRAY['acme.io'], 'enabled',
+			VALUES ($1, 'google', 'Google Workspace', 'https://accounts.google.com', 'demo-reputecast.apps.googleusercontent.com', $2, ARRAY['acme.io'], true, $3, 'viewer', '{}', 'enabled',
 			        '{"email":"email","email_verified":"email_verified","name":"name"}')`, provider, enc, ws.ID); err != nil {
 			return err
 		}

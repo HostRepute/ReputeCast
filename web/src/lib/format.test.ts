@@ -1,4 +1,4 @@
-import { ago, auditTime, clock, count, inDays, lastUsed, logTime, longDate, monthDay, monthDayTime, pct, rate, setDisplayTimeZone, shortDate, until, orList, money } from './format'
+import { ago, auditTime, clock, count, inDays, lastUsed, logTime, longDate, monthDay, monthDayTime, pct, rate, setDisplayTimeZone, shortDate, until, orList, money, notificationAgo, notificationTime } from './format'
 
 describe('format (team and audit)', () => {
   beforeAll(() => setDisplayTimeZone('UTC'))
@@ -48,4 +48,14 @@ describe('format', () => {
     expect(shortDate('2026-09-30T12:00:00Z')).toBe('Wed 30 Sep')
   })
   it('orList', () => expect(orList(['Marcus Chen', 'Linh Nguyen'])).toBe('Marcus Chen or Linh Nguyen'))
+  it('notification times: today, this week, older', () => {
+    const now = new Date('2026-10-12T09:40:00Z')
+    expect(notificationTime('2026-10-12T07:40:00Z', now)).toBe('Today 07:40')
+    expect(notificationTime('2026-10-09T09:21:00Z', now)).toBe('Fri 9 Oct 09:21')
+    expect(notificationTime('2026-10-03T11:30:00Z', now)).toBe('Oct 3 11:30')
+    expect(notificationTime('2025-12-30T22:14:00Z', now)).toBe('Dec 30, 2025 22:14')
+    expect(notificationAgo('2026-10-12T07:40:00Z', now)).toBe('2 h ago')
+    expect(notificationAgo('2026-10-08T14:05:00Z', now)).toBe('Thu 8 Oct')
+    expect(notificationAgo('2026-10-01T09:02:00Z', now)).toBe('Oct 1')
+  })
 })

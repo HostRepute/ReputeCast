@@ -24,7 +24,10 @@ export function initials(name: string): string {
   return (first + last).toUpperCase()
 }
 
-/** Round initials avatar; square when `shape="square"` (workspace switcher). */
+/**
+ * Round initials avatar; square when `shape="square"` (workspace switcher).
+ * With `src` (a profile photo) the photo replaces the initials.
+ */
 export function Avatar({
   name,
   color = 'info',
@@ -32,6 +35,8 @@ export function Avatar({
   shape = 'round',
   className,
   text,
+  src,
+  fontSize,
 }: {
   name: string
   color?: AvatarColor | string
@@ -40,15 +45,18 @@ export function Avatar({
   className?: string
   /** Shown instead of the initials ("AI" for an agent, "?" for an invitee). */
   text?: string
+  src?: string
+  fontSize?: number
 }) {
   const p = palettes[(color in palettes ? color : 'info') as AvatarColor]
+  const radius = shape === 'square' ? 6 : '50%'
   return (
     <span
       className={cn('av', className)}
-      style={{ width: size, height: size, fontSize: size <= 24 ? 10 : 11, background: p.bg, color: p.fg, borderRadius: shape === 'square' ? 6 : '50%' }}
+      style={{ width: size, height: size, fontSize: fontSize ?? (size <= 24 ? 10 : 11), background: p.bg, color: p.fg, borderRadius: radius, overflow: src ? 'hidden' : undefined }}
       aria-hidden="true"
     >
-      {text ?? initials(name)}
+      {src ? <img src={src} alt="" width={size} height={size} style={{ width: size, height: size, objectFit: 'cover', borderRadius: radius }} /> : (text ?? initials(name))}
     </span>
   )
 }

@@ -316,6 +316,14 @@ func (s *Service) signIn(ctx context.Context, ws *store.Workspace) string {
 		}
 		return strings.Join(parts, " · ")
 	}
+	// SSO that people of a domain can use without it being enforced (the
+	// demo keeps enforcement off so password members can still sign in).
+	if jit, err := s.Q.TeamJITProviders(ctx, &ws.ID); err == nil && len(jit) > 0 {
+		for _, p := range jit {
+			parts = append(parts, fmt.Sprintf("%s SSO for %s", p.Name, strings.Join(p.AllowedDomains, ", ")))
+		}
+		return strings.Join(parts, " · ") + " · passwords and passkeys also allowed"
+	}
 	st, err := s.Q.GetInstanceSettings(ctx)
 	if err != nil {
 		return "Password and passkeys"

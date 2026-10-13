@@ -71,8 +71,10 @@ func TestGeneralSettings(t *testing.T) {
 		strings.Join(s.Approvals.Approvers, ", ") != "Linh Nguyen, Marcus Chen" {
 		t.Fatalf("approvals: %+v", s.Approvals)
 	}
+	// The demo keeps SSO enforcement off (Aisha signs in with a password); the
+	// summary names the provider and the domain either way.
 	if s.Members.Active != 5 || s.Members.Invited != 1 || s.Members.Deactivated != 1 ||
-		s.Members.SignIn != "Google Workspace SSO enforced for acme.io · password kept for the Owner" || len(s.Members.Custom) != 1 {
+		!strings.HasPrefix(s.Members.SignIn, "Google Workspace SSO ") || !strings.Contains(s.Members.SignIn, "acme.io") || len(s.Members.Custom) != 1 {
 		t.Fatalf("members: %+v", s.Members)
 	}
 	if !s.CanManage || !s.CanTransfer || !s.CanDelete {

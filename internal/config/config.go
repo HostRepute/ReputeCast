@@ -169,7 +169,8 @@ func Defaults() Config {
 			WriteTimeout:    60 * time.Second,
 			ShutdownTimeout: 20 * time.Second,
 		},
-		Database: DatabaseConfig{
+		// The docker-compose development database; production sets database.url.
+		Database: DatabaseConfig{ //nolint:gosec // development default, not a secret
 			URL:         "postgres://reputecast:reputecast@localhost:5432/reputecast?sslmode=disable",
 			MaxConns:    20,
 			SegmentRole: "reputecast_segments",

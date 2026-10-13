@@ -1,6 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { ResetTokenPage } from '@/features/auth/ResetPages'
 
 export const Route = createFileRoute('/reset-password/$token')({
-  component: () => <NotBuilt screen="Reset password" />,
+  component: function ResetTokenRoute() {
+    const { token } = Route.useParams()
+    return <ResetTokenPage token={token} />
+  },
 })

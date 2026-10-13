@@ -85,3 +85,40 @@ jobs:
       - uses: golangci/golangci-lint-action@v8
         with:
           version: v2.14.0
+
+  site:
+    name: Site · lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: site/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: site/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: site
+      - run: pnpm lint
+        working-directory: site
+      - run: pnpm typecheck
+        working-directory: site
+      - run: pnpm test
+        working-directory: site
+      # Prerendered build; no network (the GitHub star count is optional).
+      - run: pnpm build
+        working-directory: site
+        env:
+          SITE_OFFLINE: "1"
+      - name: The prerendered page is complete HTML
+        working-directory: site
+        run: |
+          grep -q 'The newsletter platform that protects your inbox placement.</h1>' dist/index.html
+          grep -q '"@type": "SoftwareApplication"' dist/index.html
+          test -f dist/sitemap.xml && test -f dist/robots.txt && test -f dist/og.png
+      - uses: actions/upload-artifact@v5
+        with:
+          name: site-dist
+          path: site/dist

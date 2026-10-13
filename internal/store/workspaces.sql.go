@@ -103,7 +103,7 @@ func (q *Queries) CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (Api
 const createInvitation = `-- name: CreateInvitation :one
 INSERT INTO invitations (id, workspace_id, email, role_id, scope, message, token_hash, invited_by, sent_via, last_sent_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-RETURNING id, workspace_id, email, role_id, scope, message, token_hash, invited_by, sent_via, last_sent_at, created_at, expires_at, accepted_at, accepted_by, revoked_at, token_enc, expires_days
+RETURNING id, workspace_id, email, role_id, scope, message, token_hash, invited_by, sent_via, last_sent_at, created_at, expires_at, accepted_at, accepted_by, revoked_at, token_enc, expires_days, reinvite_requested_at
 `
 
 type CreateInvitationParams struct {
@@ -153,6 +153,7 @@ func (q *Queries) CreateInvitation(ctx context.Context, arg CreateInvitationPara
 		&i.RevokedAt,
 		&i.TokenEnc,
 		&i.ExpiresDays,
+		&i.ReinviteRequestedAt,
 	)
 	return i, err
 }
@@ -415,7 +416,7 @@ func (q *Queries) GetAPIKeyByToken(ctx context.Context, tokenHash []byte) (GetAP
 }
 
 const getInvitationByToken = `-- name: GetInvitationByToken :one
-SELECT i.id, i.workspace_id, i.email, i.role_id, i.scope, i.message, i.token_hash, i.invited_by, i.sent_via, i.last_sent_at, i.created_at, i.expires_at, i.accepted_at, i.accepted_by, i.revoked_at, i.token_enc, i.expires_days, r.name AS role_name, r.key AS role_key, w.name AS workspace_name, w.slug AS workspace_slug,
+SELECT i.id, i.workspace_id, i.email, i.role_id, i.scope, i.message, i.token_hash, i.invited_by, i.sent_via, i.last_sent_at, i.created_at, i.expires_at, i.accepted_at, i.accepted_by, i.revoked_at, i.token_enc, i.expires_days, i.reinvite_requested_at, r.name AS role_name, r.key AS role_key, w.name AS workspace_name, w.slug AS workspace_slug,
        u.name AS invited_by_name
 FROM invitations i
 JOIN roles r ON r.id = i.role_id
@@ -425,28 +426,29 @@ WHERE i.token_hash = $1
 `
 
 type GetInvitationByTokenRow struct {
-	ID            uuid.UUID       `json:"id"`
-	WorkspaceID   uuid.UUID       `json:"workspaceId"`
-	Email         string          `json:"email"`
-	RoleID        uuid.UUID       `json:"roleId"`
-	Scope         json.RawMessage `json:"scope"`
-	Message       string          `json:"message"`
-	TokenHash     []byte          `json:"tokenHash"`
-	InvitedBy     *uuid.UUID      `json:"invitedBy"`
-	SentVia       *string         `json:"sentVia"`
-	LastSentAt    *time.Time      `json:"lastSentAt"`
-	CreatedAt     time.Time       `json:"createdAt"`
-	ExpiresAt     time.Time       `json:"expiresAt"`
-	AcceptedAt    *time.Time      `json:"acceptedAt"`
-	AcceptedBy    *uuid.UUID      `json:"acceptedBy"`
-	RevokedAt     *time.Time      `json:"revokedAt"`
-	TokenEnc      []byte          `json:"tokenEnc"`
-	ExpiresDays   int32           `json:"expiresDays"`
-	RoleName      string          `json:"roleName"`
-	RoleKey       string          `json:"roleKey"`
-	WorkspaceName string          `json:"workspaceName"`
-	WorkspaceSlug string          `json:"workspaceSlug"`
-	InvitedByName *string         `json:"invitedByName"`
+	ID                  uuid.UUID       `json:"id"`
+	WorkspaceID         uuid.UUID       `json:"workspaceId"`
+	Email               string          `json:"email"`
+	RoleID              uuid.UUID       `json:"roleId"`
+	Scope               json.RawMessage `json:"scope"`
+	Message             string          `json:"message"`
+	TokenHash           []byte          `json:"tokenHash"`
+	InvitedBy           *uuid.UUID      `json:"invitedBy"`
+	SentVia             *string         `json:"sentVia"`
+	LastSentAt          *time.Time      `json:"lastSentAt"`
+	CreatedAt           time.Time       `json:"createdAt"`
+	ExpiresAt           time.Time       `json:"expiresAt"`
+	AcceptedAt          *time.Time      `json:"acceptedAt"`
+	AcceptedBy          *uuid.UUID      `json:"acceptedBy"`
+	RevokedAt           *time.Time      `json:"revokedAt"`
+	TokenEnc            []byte          `json:"tokenEnc"`
+	ExpiresDays         int32           `json:"expiresDays"`
+	ReinviteRequestedAt *time.Time      `json:"reinviteRequestedAt"`
+	RoleName            string          `json:"roleName"`
+	RoleKey             string          `json:"roleKey"`
+	WorkspaceName       string          `json:"workspaceName"`
+	WorkspaceSlug       string          `json:"workspaceSlug"`
+	InvitedByName       *string         `json:"invitedByName"`
 }
 
 func (q *Queries) GetInvitationByToken(ctx context.Context, tokenHash []byte) (GetInvitationByTokenRow, error) {
@@ -470,6 +472,7 @@ func (q *Queries) GetInvitationByToken(ctx context.Context, tokenHash []byte) (G
 		&i.RevokedAt,
 		&i.TokenEnc,
 		&i.ExpiresDays,
+		&i.ReinviteRequestedAt,
 		&i.RoleName,
 		&i.RoleKey,
 		&i.WorkspaceName,
@@ -918,7 +921,7 @@ func (q *Queries) ListMembersWithRoles(ctx context.Context, workspaceID uuid.UUI
 }
 
 const listPendingInvitations = `-- name: ListPendingInvitations :many
-SELECT i.id, i.workspace_id, i.email, i.role_id, i.scope, i.message, i.token_hash, i.invited_by, i.sent_via, i.last_sent_at, i.created_at, i.expires_at, i.accepted_at, i.accepted_by, i.revoked_at, i.token_enc, i.expires_days, r.name AS role_name, r.key AS role_key, u.name AS invited_by_name
+SELECT i.id, i.workspace_id, i.email, i.role_id, i.scope, i.message, i.token_hash, i.invited_by, i.sent_via, i.last_sent_at, i.created_at, i.expires_at, i.accepted_at, i.accepted_by, i.revoked_at, i.token_enc, i.expires_days, i.reinvite_requested_at, r.name AS role_name, r.key AS role_key, u.name AS invited_by_name
 FROM invitations i
 JOIN roles r ON r.id = i.role_id
 LEFT JOIN users u ON u.id = i.invited_by
@@ -927,26 +930,27 @@ ORDER BY i.created_at DESC
 `
 
 type ListPendingInvitationsRow struct {
-	ID            uuid.UUID       `json:"id"`
-	WorkspaceID   uuid.UUID       `json:"workspaceId"`
-	Email         string          `json:"email"`
-	RoleID        uuid.UUID       `json:"roleId"`
-	Scope         json.RawMessage `json:"scope"`
-	Message       string          `json:"message"`
-	TokenHash     []byte          `json:"tokenHash"`
-	InvitedBy     *uuid.UUID      `json:"invitedBy"`
-	SentVia       *string         `json:"sentVia"`
-	LastSentAt    *time.Time      `json:"lastSentAt"`
-	CreatedAt     time.Time       `json:"createdAt"`
-	ExpiresAt     time.Time       `json:"expiresAt"`
-	AcceptedAt    *time.Time      `json:"acceptedAt"`
-	AcceptedBy    *uuid.UUID      `json:"acceptedBy"`
-	RevokedAt     *time.Time      `json:"revokedAt"`
-	TokenEnc      []byte          `json:"tokenEnc"`
-	ExpiresDays   int32           `json:"expiresDays"`
-	RoleName      string          `json:"roleName"`
-	RoleKey       string          `json:"roleKey"`
-	InvitedByName *string         `json:"invitedByName"`
+	ID                  uuid.UUID       `json:"id"`
+	WorkspaceID         uuid.UUID       `json:"workspaceId"`
+	Email               string          `json:"email"`
+	RoleID              uuid.UUID       `json:"roleId"`
+	Scope               json.RawMessage `json:"scope"`
+	Message             string          `json:"message"`
+	TokenHash           []byte          `json:"tokenHash"`
+	InvitedBy           *uuid.UUID      `json:"invitedBy"`
+	SentVia             *string         `json:"sentVia"`
+	LastSentAt          *time.Time      `json:"lastSentAt"`
+	CreatedAt           time.Time       `json:"createdAt"`
+	ExpiresAt           time.Time       `json:"expiresAt"`
+	AcceptedAt          *time.Time      `json:"acceptedAt"`
+	AcceptedBy          *uuid.UUID      `json:"acceptedBy"`
+	RevokedAt           *time.Time      `json:"revokedAt"`
+	TokenEnc            []byte          `json:"tokenEnc"`
+	ExpiresDays         int32           `json:"expiresDays"`
+	ReinviteRequestedAt *time.Time      `json:"reinviteRequestedAt"`
+	RoleName            string          `json:"roleName"`
+	RoleKey             string          `json:"roleKey"`
+	InvitedByName       *string         `json:"invitedByName"`
 }
 
 func (q *Queries) ListPendingInvitations(ctx context.Context, workspaceID uuid.UUID) ([]ListPendingInvitationsRow, error) {
@@ -976,6 +980,7 @@ func (q *Queries) ListPendingInvitations(ctx context.Context, workspaceID uuid.U
 			&i.RevokedAt,
 			&i.TokenEnc,
 			&i.ExpiresDays,
+			&i.ReinviteRequestedAt,
 			&i.RoleName,
 			&i.RoleKey,
 			&i.InvitedByName,
@@ -1175,7 +1180,7 @@ func (q *Queries) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
 const refreshInvitation = `-- name: RefreshInvitation :one
 UPDATE invitations SET token_hash = $1, last_sent_at = now(), expires_at = $2, sent_via = $3
 WHERE id = $4 AND workspace_id = $5 AND accepted_at IS NULL AND revoked_at IS NULL
-RETURNING id, workspace_id, email, role_id, scope, message, token_hash, invited_by, sent_via, last_sent_at, created_at, expires_at, accepted_at, accepted_by, revoked_at, token_enc, expires_days
+RETURNING id, workspace_id, email, role_id, scope, message, token_hash, invited_by, sent_via, last_sent_at, created_at, expires_at, accepted_at, accepted_by, revoked_at, token_enc, expires_days, reinvite_requested_at
 `
 
 type RefreshInvitationParams struct {
@@ -1213,6 +1218,7 @@ func (q *Queries) RefreshInvitation(ctx context.Context, arg RefreshInvitationPa
 		&i.RevokedAt,
 		&i.TokenEnc,
 		&i.ExpiresDays,
+		&i.ReinviteRequestedAt,
 	)
 	return i, err
 }

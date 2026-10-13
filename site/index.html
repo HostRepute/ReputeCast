@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ReputeCast · The newsletter platform that protects your inbox placement</title>
+    <meta
+      name="description"
+      content="Open-source, self-hosted newsletters that check deliverability before you send and guard your sender reputation while you send, through your own Amazon SES, Postmark, Mailgun, SendGrid, Resend, Postal or SMTP."
+    />
+    <link rel="canonical" href="%SITE_URL%/" />
+    <meta name="theme-color" content="#0F766E" />
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ReputeCast" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="%SITE_URL%/" />
+    <meta property="og:title" content="ReputeCast · The newsletter platform that protects your inbox placement" />
+    <meta
+      property="og:description"
+      content="Open source and self-hosted. Checks deliverability before you send, guards your reputation while you send, and delivers through your own SES, Postmark, Mailgun, SendGrid, Resend, Postal or any SMTP server."
+    />
+    <meta property="og:image" content="%SITE_URL%/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ReputeCast: a Send Readiness check that passes with two warnings, and an auto-pause on Outlook complaints." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ReputeCast · The newsletter platform that protects your inbox placement" />
+    <meta
+      name="twitter:description"
+      content="Open source and self-hosted. Checks deliverability before you send and guards your reputation while you send, through your own sending providers."
+    />
+    <meta name="twitter:image" content="%SITE_URL%/og.png" />
+    <meta name="twitter:image:alt" content="ReputeCast: a Send Readiness check that passes with two warnings, and an auto-pause on Outlook complaints." />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "ReputeCast",
+        "url": "%SITE_URL%/",
+        "image": "%SITE_URL%/og.png",
+        "description": "Open-source, self-hosted newsletter platform that checks deliverability before you send and guards your sender reputation while you send, through your own Amazon SES, Postmark, Mailgun, SendGrid, Resend, Postal or any SMTP server.",
+        "applicationCategory": "BusinessApplication",
+        "applicationSubCategory": "Email newsletter and marketing",
+        "operatingSystem": "Linux, macOS, Windows (Docker)",
+        "softwareRequirements": "Docker 24+, PostgreSQL 16 to 18",
+        "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "downloadUrl": "https://github.com/hostrepute/reputecast/releases",
+        "sameAs": ["https://github.com/hostrepute/reputecast"],
+        "featureList": [
+          "Send Readiness: blocklists, authentication, content, links, audience and routing checked before every send",
+          "Guarded sending: automatic pause when bounces or complaints pass your thresholds",
+          "Several sending providers at once with weighted splits and failover",
+          "Visual automations with live numbers on every step",
+          "Segments without SQL, forms and public pages, teams with roles, SSO, audit log and an MCP server"
+        ],
+        "publisher": { "@type": "Organization", "name": "HostRepute", "url": "https://hostrepute.com" }
+      }
+    </script>
+    <script>
+      // Before first paint: mark that scripts run (the flow canvas waits to
+      // animate) and restore the visitor's "Pause motion" choice.
+      ;(function (el) {
+        el.classList.add('js')
+        try {
+          if (localStorage.getItem('rc-motion') === 'paused') {
+            el.setAttribute('data-motion', 'paused')
+            el.setAttribute('data-settled', '')
+          }
+        } catch (e) {}
+      })(document.documentElement)
+    </script>
+  </head>
+  <body>
+    <div id="root"><!--app-html--></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
