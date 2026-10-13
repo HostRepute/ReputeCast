@@ -71,7 +71,7 @@ func MigrateUp(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger) err
 	if err != nil {
 		return err
 	}
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 	results, err := p.Up(ctx)
 	if err != nil {
 		return fmt.Errorf("migrate: %w", err)
@@ -99,7 +99,7 @@ func MigrateDown(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger) e
 	if err != nil {
 		return err
 	}
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 	if _, err := p.Down(ctx); err != nil && !errors.Is(err, goose.ErrNoNextVersion) {
 		return err
 	}
@@ -112,7 +112,7 @@ func Status(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger) ([]Mig
 	if err != nil {
 		return nil, err
 	}
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 	st, err := p.Status(ctx)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func HasPending(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger) (b
 	if err != nil {
 		return false, err
 	}
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 	return p.HasPending(ctx)
 }
 

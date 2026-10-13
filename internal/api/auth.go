@@ -287,7 +287,12 @@ func (a *Authenticator) pendingRestriction(ctx context.Context, u *store.User, s
 		return nil
 	}
 	pol, err := a.Policy(ctx)
-	if err != nil || pol.TwoFAEnforcement == "off" {
+	if err != nil {
+		// Fail closed: without the policy we can't tell whether two-factor
+		// setup is required before this user may continue.
+		return Err(http.StatusServiceUnavailable, CodeUnavailable, "Couldn't check the sign-in policy. Try again in a moment.")
+	}
+	if pol.TwoFAEnforcement == "off" {
 		return nil
 	}
 	if s != nil && s.MfaVerified {
