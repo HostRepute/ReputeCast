@@ -17,6 +17,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -130,6 +131,13 @@ func migrationsHash() string {
 // template. The database is dropped when the test ends.
 func New(t testing.TB) *pgxpool.Pool {
 	t.Helper()
+	return NewFrom(t, "")
+}
+
+// NewFrom is New cloning template, a database made by Template ("" for the
+// migrated template).
+func NewFrom(t testing.TB, template string) *pgxpool.Pool {
+	t.Helper()
 	if testing.Short() {
 		t.Skip("integration test: needs Postgres (run without -short)")
 	}
@@ -137,13 +145,16 @@ func New(t testing.TB) *pgxpool.Pool {
 	if initErr != nil {
 		t.Fatalf("testdb: %v", initErr)
 	}
+	if template == "" {
+		template = templateName
+	}
 	ctx := context.Background()
 	name := "rc_test_" + randHex(6)
 	admin, err := pgx.Connect(ctx, withDB(baseURL, "postgres"))
 	if err != nil {
 		t.Fatalf("testdb connect: %v", err)
 	}
-	if _, err := admin.Exec(ctx, `CREATE DATABASE `+name+` TEMPLATE `+templateName); err != nil {
+	if _, err := admin.Exec(ctx, `CREATE DATABASE `+name+` TEMPLATE `+template); err != nil {
 		_ = admin.Close(ctx)
 		t.Fatalf("testdb create: %v", err)
 	}
@@ -161,6 +172,57 @@ func New(t testing.TB) *pgxpool.Pool {
 		}
 	})
 	return pool
+}
+
+// Template builds a database on top of the migrated template with fill
+// (the demo data, say) and returns its name for NewFrom. Call it once per
+// test binary: cloning is a few milliseconds where filling may take seconds.
+// Templates older than two hours, left by earlier runs, are dropped.
+func Template(ctx context.Context, key string, fill func(*pgxpool.Pool) error) (string, error) {
+	once.Do(setup)
+	if initErr != nil {
+		return "", initErr
+	}
+	admin, err := pgx.Connect(ctx, withDB(baseURL, "postgres"))
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = admin.Close(ctx) }()
+	dropStaleTemplates(ctx, admin)
+	name := "rc_fill_" + key + "_" + strconv.FormatInt(time.Now().Unix(), 10) + "_" + randHex(3)
+	if _, err := admin.Exec(ctx, `CREATE DATABASE `+name+` TEMPLATE `+templateName); err != nil {
+		return "", err
+	}
+	pool, err := pgxpool.New(ctx, withDB(baseURL, name))
+	if err != nil {
+		return "", err
+	}
+	err = fill(pool)
+	pool.Close()
+	if err != nil {
+		_, _ = admin.Exec(ctx, `DROP DATABASE IF EXISTS `+name+` WITH (FORCE)`)
+		return "", err
+	}
+	return name, nil
+}
+
+// dropStaleTemplates removes Template databases more than two hours old.
+func dropStaleTemplates(ctx context.Context, admin *pgx.Conn) {
+	rows, err := admin.Query(ctx, `SELECT datname FROM pg_database WHERE datname LIKE 'rc\_fill\_%'`)
+	if err != nil {
+		return
+	}
+	names, _ := pgx.CollectRows(rows, pgx.RowTo[string])
+	cutoff := time.Now().Add(-2 * time.Hour).Unix()
+	for _, n := range names {
+		parts := strings.Split(n, "_")
+		if len(parts) < 2 {
+			continue
+		}
+		if ts, err := strconv.ParseInt(parts[len(parts)-2], 10, 64); err == nil && ts < cutoff {
+			_, _ = admin.Exec(ctx, `DROP DATABASE IF EXISTS `+n+` WITH (FORCE)`)
+		}
+	}
 }
 
 // URL returns the connection URL of the database behind pool's config.
