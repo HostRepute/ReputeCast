@@ -24,11 +24,11 @@ import (
 )
 
 // Password is shared by every demo account that signs in with a password.
-const Password = "reputecast-demo"
+const Password = "reputecast-demo" //nolint:gosec // public demo password, documented in the README
 
 // TOTPSecret is Linh Nguyen's authenticator secret in the demo, so the
 // two-factor screens can be tried. Generate codes with any TOTP app.
-const TOTPSecret = "JBSWY3DPEHPK3PXP"
+const TOTPSecret = "JBSWY3DPEHPK3PXP" //nolint:gosec // public demo secret, documented in the README
 
 // Result describes what was seeded.
 type Result struct {
@@ -112,11 +112,13 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 		fn   func(context.Context, *Seeder) error
 	}{
 		{"core", seedCore},
+		// Sending domains and senders come first: team settings (default
+		// sender), the composer and deliverability all point at them.
+		{"senders", seedSenders},
 		{"team", seedTeam},
 		{"account", seedAccount},
 		{"instance", seedInstance},
 		{"audience", seedAudience},
-		{"senders", seedSenders},
 		{"providers", seedProviders},
 		{"deliverability", seedDeliverability},
 		{"campaigns", seedCampaigns},

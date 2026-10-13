@@ -17,6 +17,7 @@ type MeUser struct {
 	Email           string     `json:"email"`
 	Name            string     `json:"name"`
 	AvatarColor     string     `json:"avatarColor"`
+	AvatarURL       string     `json:"avatarUrl,omitempty"`
 	Timezone        string     `json:"timezone"`
 	IsInstanceAdmin bool       `json:"isInstanceAdmin"`
 	BreakGlass      bool       `json:"breakGlass"`
@@ -67,7 +68,7 @@ func (s *Service) Me(ctx context.Context) (Me, error) {
 	codes, _ := s.Q.CountUnusedRecoveryCodes(ctx, u.ID)
 	me := Me{
 		User: MeUser{
-			ID: u.ID.String(), Email: u.Email, Name: u.Name, AvatarColor: u.AvatarColor, Timezone: u.Timezone,
+			ID: u.ID.String(), Email: u.Email, Name: u.Name, AvatarColor: u.AvatarColor, AvatarURL: avatarURL(*u), Timezone: u.Timezone,
 			IsInstanceAdmin: u.IsInstanceAdmin, BreakGlass: u.BreakGlass, HasPassword: u.PasswordHash != nil,
 			TOTP: u.TotpEnabledAt != nil, Passkeys: len(passkeys), RecoveryCodes: int(codes), TwoFAGraceUntil: u.TwofaGraceUntil,
 		},
@@ -167,7 +168,8 @@ func (s *Service) WorkspaceMe(ctx context.Context) (WorkspaceMe, error) {
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM workspace_members WHERE workspace_id = $1 AND status = 'active'`, ws.ID).Scan(&out.Workspace.MemberCount)
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM contacts WHERE workspace_id = $1 AND erased_at IS NULL`, ws.ID).Scan(&out.Workspace.Subscribers)
 	if p.Type == "user" {
-		_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM notifications WHERE user_id = $1 AND (workspace_id = $2 OR workspace_id IS NULL) AND read_at IS NULL`, p.UserID, ws.ID).Scan(&out.Unread)
+		wsID := ws.ID
+		out.Unread, _ = s.Q.CountUnreadNotifications(ctx, store.CountUnreadNotificationsParams{UserID: p.UserID, WorkspaceID: &wsID})
 	}
 	var hr ShellHostRepute
 	if err := s.Pool.QueryRow(ctx, `SELECT status, team_name, last_sync_at FROM hostrepute_connections WHERE workspace_id = $1`, ws.ID).Scan(&hr.Status, &hr.TeamName, &hr.LastSyncAt); err == nil {

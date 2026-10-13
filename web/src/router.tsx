@@ -1,5 +1,6 @@
 import { createRouter } from '@tanstack/react-router'
 import { onAuthProblem } from './api/client'
+import { handleAuthProblem } from './lib/sessionClock'
 import { queryClient } from './lib/query'
 import { routeTree } from './routeTree.gen'
 
@@ -22,6 +23,9 @@ declare module '@tanstack/react-router' {
 // Any API call that finds the session gone sends the person to sign in,
 // keeping the page they were on so they come back to it.
 onAuthProblem((e) => {
+  // On signed-in screens an ended session asks for the password in a dialog
+  // over the page (SessionGuard), so unsaved work isn't lost.
+  if (handleAuthProblem(e)) return
   const here = router.state.location.href
   if (e.code === 'password_change_required' || e.code === 'two_factor_setup_required') {
     if (!here.startsWith('/setup')) void router.navigate({ to: '/setup' })

@@ -1,0 +1,192 @@
+package notify_test
+
+import (
+	"context"
+	"io"
+	"log/slog"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/notify"
+)
+
+func TestDemoNotificationCenter(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+
+	var list map[string]any
+	c.Do("GET", "/workspaces/acme-newsletter/notifications", nil).MustStatus(t, 200).JSON(t, &list)
+	items := list["items"].([]any)
+	if len(items) != 8 || list["unread"].(float64) != 3 || list["retentionDays"].(float64) != 90 {
+		t.Fatalf("center: %d items, %v unread", len(items), list["unread"])
+	}
+	want := []string{"Approval requested", "Send auto-paused", "Provider down", "Approval given", "Webhooks silent", "Approval invalidated", "Invite accepted", "HostRepute alert"}
+	for i, w := range want {
+		it := items[i].(map[string]any)
+		if it["title"] != w {
+			t.Fatalf("item %d: %v, want %s", i, it["title"], w)
+		}
+		if (i < 3) == it["read"].(bool) {
+			t.Fatalf("item %d read state: %v", i, it)
+		}
+	}
+	first := items[0].(map[string]any)
+	if first["category"] != "approvals" || first["categoryLabel"] != "Approvals" || first["severity"] != "warn" ||
+		first["summary"] == first["body"] {
+		t.Fatalf("approval item: %v", first)
+	}
+
+	// Tabs filter by category; Unread only shows unread.
+	c.Do("GET", "/workspaces/acme-newsletter/notifications?filter=providers", nil).MustStatus(t, 200).JSON(t, &list)
+	if n := len(list["items"].([]any)); n != 2 || list["total"].(float64) != 2 || list["unread"].(float64) != 3 {
+		t.Fatalf("providers tab: %d %v", n, list)
+	}
+	c.Do("GET", "/workspaces/acme-newsletter/notifications?filter=unread&limit=2", nil).MustStatus(t, 200).JSON(t, &list)
+	if n := len(list["items"].([]any)); n != 2 || list["nextCursor"] != "2" {
+		t.Fatalf("unread page: %d %v", n, list["nextCursor"])
+	}
+
+	// Opening one marks it read; Mark all as read clears the rest.
+	c.Do("POST", "/workspaces/acme-newsletter/notifications/"+first["id"].(string)+"/read", nil).MustStatus(t, 204)
+	var wme map[string]any
+	c.Do("GET", "/workspaces/acme-newsletter/me", nil).MustStatus(t, 200).JSON(t, &wme)
+	if wme["unread"].(float64) != 2 {
+		t.Fatalf("bell count after reading one: %v", wme["unread"])
+	}
+	var marked map[string]any
+	c.Do("POST", "/workspaces/acme-newsletter/notifications/read-all", nil).MustStatus(t, 200).JSON(t, &marked)
+	if marked["marked"].(float64) != 2 {
+		t.Fatalf("marked: %v", marked)
+	}
+	// Someone else's notification can't be touched.
+	a := env.Client()
+	a.SignInDemo("aisha@acme.io")
+	a.Do("GET", "/workspaces/acme-newsletter/notifications", nil).MustStatus(t, 200).JSON(t, &list)
+	if len(list["items"].([]any)) != 0 {
+		t.Fatalf("Aisha sees Linh's notifications: %v", list)
+	}
+}
+
+func TestPreferencesAndDelivery(t *testing.T) {
+	env := apptest.New(t)
+	ctx := context.Background()
+	u := env.CreateUser(apptest.UserOpts{Email: "linh@acme.io", Name: "Linh Nguyen"})
+	ws := env.CreateWorkspace("Acme Newsletter", u.ID)
+	c := env.Client()
+	c.SignIn("linh@acme.io", "")
+
+	var prefs map[string]any
+	c.Do("GET", "/me/notification-preferences?workspace="+ws.Slug, nil).MustStatus(t, 200).JSON(t, &prefs)
+	events := prefs["events"].([]any)
+	if len(events) != 8 || prefs["digest"] != "immediate" || prefs["quietHours"] != nil {
+		t.Fatalf("defaults: %v", prefs)
+	}
+	if e := events[0].(map[string]any); e["type"] != "approval_requested" || e["inApp"] != true || e["email"] != true || e["audience"] != "Only for approvers" {
+		t.Fatalf("first event: %v", e)
+	}
+	c.Do("PUT", "/me/notification-preferences", map[string]any{"events": []any{map[string]any{"type": "nope", "inApp": true, "email": true}}, "digest": "immediate"}).MustStatus(t, 422)
+	c.Do("PUT", "/me/notification-preferences", map[string]any{
+		"events": []any{
+			map[string]any{"type": "webhooks_silent", "inApp": false, "email": false},
+			map[string]any{"type": "invite_accepted", "inApp": false, "email": true},
+			map[string]any{"type": "send_paused", "inApp": true, "email": true},
+			map[string]any{"type": "approval_requested", "inApp": true, "email": true},
+		},
+		"quietHours": map[string]any{"start": "00:00", "end": "23:59"},
+		"digest":     "immediate",
+	}).MustStatus(t, 204)
+	c.Do("GET", "/me/notification-preferences", nil).MustStatus(t, 200).JSON(t, &prefs)
+	if q := prefs["quietHours"].(map[string]any); q["start"] != "00:00" || q["end"] != "23:59" {
+		t.Fatalf("quiet hours: %v", prefs)
+	}
+
+	wsID := ws.ID
+	send := func(kind, title string) {
+		if err := notify.ToUser(ctx, env.App.Pool, u.ID, notify.Notification{WorkspaceID: &wsID, Kind: kind, Title: title, Body: title + "."}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	send(notify.KindWebhooksSilent, "Webhooks silent")       // both off: not stored
+	send(notify.KindInviteAccepted, "Invite accepted")       // email only: hidden in the center
+	send(notify.KindSendPaused, "Send auto-paused")          // urgent: emailed even in quiet hours
+	send(notify.KindApprovalRequested, "Approval requested") // held by quiet hours
+	var stored, visible int
+	_ = env.App.Pool.QueryRow(ctx, `SELECT count(*), count(*) FILTER (WHERE in_app) FROM notifications WHERE user_id = $1`, u.ID).Scan(&stored, &visible)
+	if stored != 3 || visible != 2 {
+		t.Fatalf("stored %d, visible %d", stored, visible)
+	}
+
+	mail := &fakeMail{available: true}
+	w := &notify.EmailWorker{Pool: env.App.Pool, Mail: func() mailer.Sender { return mail }, PublicURL: func(context.Context) string { return "https://reputecast.acme.io" },
+		Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	if err := w.Work(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	if len(mail.sent) != 1 || mail.sent[0].Subject != "[Acme Newsletter] Send auto-paused" {
+		t.Fatalf("quiet hours let only the urgent email through: %+v", mail.sent)
+	}
+	// After quiet hours (none now), the held emails go out; nothing twice.
+	c.Do("PUT", "/me/notification-preferences", map[string]any{"events": []any{}, "digest": "immediate"}).MustStatus(t, 204)
+	if err := w.Work(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	if len(mail.sent) != 3 {
+		t.Fatalf("emails after quiet hours: %d", len(mail.sent))
+	}
+	if err := w.Work(ctx, nil); err != nil || len(mail.sent) != 3 {
+		t.Fatalf("emails must not repeat: %d %v", len(mail.sent), err)
+	}
+
+	// Without a System provider, email is skipped silently.
+	send(notify.KindSendPaused, "Paused again")
+	none := &notify.EmailWorker{Pool: env.App.Pool, Mail: func() mailer.Sender { return mailer.Unavailable{} }, Log: slog.New(slog.NewTextHandler(io.Discard, nil)), Now: time.Now}
+	if err := none.Work(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	var skipped int
+	_ = env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM notifications WHERE user_id = $1 AND email_status = 'skipped'`, u.ID).Scan(&skipped)
+	if skipped != 1 {
+		t.Fatalf("skipped: %d", skipped)
+	}
+	var audited int
+	_ = env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action = 'account.notification_preferences_update'`).Scan(&audited)
+	if audited != 2 {
+		t.Fatalf("audit entries: %d", audited)
+	}
+}
+
+func TestSummarize(t *testing.T) {
+	p := notify.NotificationPreferences{Timezone: "America/New_York", QuietHours: &notify.NotificationQuietHours{Start: "22:00", End: "07:00"}}
+	for _, e := range notify.Events {
+		p.Events = append(p.Events, notify.NotificationEventPreference{Type: e.Key, InApp: true, Email: e.DefaultEmail})
+	}
+	s := notify.Summarize(p)
+	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down" || s.QuietHours != "22:00–07:00 America/New_York, email only" {
+		t.Fatalf("summary: %+v", s)
+	}
+}
+
+type fakeMail struct {
+	mu        sync.Mutex
+	available bool
+	sent      []mailer.Message
+}
+
+func (f *fakeMail) SendSystem(_ context.Context, m mailer.Message) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if !f.available {
+		return "", mailer.ErrNoSystemProvider
+	}
+	f.sent = append(f.sent, m)
+	return "Postmark", nil
+}
+
+func (f *fakeMail) SystemAvailable(context.Context, *uuid.UUID) bool { return f.available }

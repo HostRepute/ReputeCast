@@ -15,6 +15,12 @@ linters:
     - unconvert
     - usestdlibvars
   settings:
+    errcheck:
+      # Writes to a command's output: nothing useful to do on failure.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
     gosec:
       excludes:
         - G104 # unhandled errors are covered by errcheck
@@ -30,6 +36,7 @@ linters:
     generated: strict
     paths:
       - internal/store
+      - tmp
     rules:
       - path: _test\.go
         linters: [gosec, noctx]
