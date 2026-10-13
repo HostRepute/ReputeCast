@@ -212,7 +212,8 @@ func email(m providers.Message) outEmail {
 		Headers: map[string]string{mimemsg.HeaderMessage: m.ID.String()},
 		Tags:    []tag{{Name: TagMessage, Value: m.ID.String()}, {Name: TagStream, Value: string(m.Stream)}}}
 	if m.ReplyTo != nil {
-		e.ReplyTo = []string{mimemsg.Address(*m.ReplyTo)}
+		// Resend documents display names for from only.
+		e.ReplyTo = []string{m.ReplyTo.Address}
 	}
 	for k, v := range m.Headers {
 		e.Headers[k] = v
@@ -268,7 +269,10 @@ func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]provid
 		err = classify(err)
 		var ce *providers.CallError
 		if errors.As(err, &ce) && messageLevel(ce) {
-			if ce.Status == http.StatusForbidden && sameSender(msgs) {
+			// The resend.dev testing sender only reaches the account
+			// owner: that refusal is per recipient, so it falls through to
+			// sending one by one.
+			if ce.Status == http.StatusForbidden && sameSender(msgs) && !strings.Contains(ce.Message, "testing emails") {
 				// The sender itself is refused (unverified domain): every
 				// message of the batch fails the same way.
 				out := make([]providers.SendResult, len(msgs))

@@ -204,7 +204,7 @@ var standard = map[string]bool{"list-unsubscribe": true, "list-unsubscribe-post"
 	"content-transfer-encoding": true, "return-path": true, "sender": true}
 
 func message(m providers.Message) email {
-	e := email{Sender: address{Email: m.From.Address, Name: m.From.Name}, To: []address{{Email: m.To.Address, Name: m.To.Name}},
+	e := email{Sender: address{Email: m.From.Address, Name: name(m.From.Name)}, To: []address{{Email: m.To.Address, Name: name(m.To.Name)}},
 		Subject: m.Subject, HTMLContent: m.HTML, TextContent: m.Text,
 		Headers: map[string]string{
 			CustomHeader:          "rc_message:" + m.ID.String() + "|rc_stream:" + string(m.Stream),
@@ -215,7 +215,7 @@ func message(m providers.Message) email {
 		},
 		Tags: []string{"reputecast", string(m.Stream)}}
 	if m.ReplyTo != nil {
-		e.ReplyTo = &address{Email: m.ReplyTo.Address, Name: m.ReplyTo.Name}
+		e.ReplyTo = &address{Email: m.ReplyTo.Address, Name: name(m.ReplyTo.Name)}
 	}
 	for k, v := range m.Headers {
 		if !standard[strings.ToLower(k)] {
@@ -223,6 +223,14 @@ func message(m providers.Message) email {
 		}
 	}
 	return e
+}
+
+// name keeps a display name within Brevo's 70 characters.
+func name(s string) string {
+	if r := []rune(s); len(r) > 70 {
+		return strings.TrimSpace(string(r[:70]))
+	}
+	return s
 }
 
 // Send implements providers.Provider: one POST /v3/smtp/email per message
