@@ -53,6 +53,53 @@ func (h *Handler) now() time.Time {
 // Routes mounts the endpoint.
 func (h *Handler) Routes(r chi.Router) {
 	r.Post("/hooks/{adapter}/{token}", h.ServeHTTP)
+	r.Options("/hooks/{adapter}/{token}", h.Validate)
+}
+
+// Validate answers the CloudEvents webhook validation handshake (an OPTIONS
+// request with WebHook-Request-Origin, as Azure Event Grid sends before it
+// delivers CloudEvents): only a known webhook URL is confirmed.
+func (h *Handler) Validate(w http.ResponseWriter, r *http.Request) {
+	origin := r.Header.Get("WebHook-Request-Origin")
+	adapter, token := chi.URLParam(r, "adapter"), chi.URLParam(r, "token")
+	if !validOrigin(origin) || len(token) < 16 || adapter == "" {
+		reply(w, http.StatusNotFound, `{"error":"unknown webhook"}`)
+		return
+	}
+	if _, err := h.Q.ProvGetByWebhookToken(r.Context(), store.ProvGetByWebhookTokenParams{WebhookToken: token, Adapter: adapter}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			reply(w, http.StatusNotFound, `{"error":"unknown webhook"}`)
+			return
+		}
+		retryLater(w)
+		return
+	}
+	w.Header().Set("WebHook-Allowed-Origin", origin)
+	w.Header().Set("WebHook-Allowed-Rate", "*")
+	w.Header().Set("Allow", "POST, OPTIONS")
+	reply(w, http.StatusOK, `{"ok":true}`)
+}
+
+// validOrigin accepts a host name as WebHook-Request-Origin.
+func validOrigin(o string) bool {
+	if o == "" || len(o) > 253 {
+		return false
+	}
+	for _, c := range o {
+		letter := c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
+		digit := c >= '0' && c <= '9'
+		if !letter && !digit && c != '.' && c != '-' {
+			return false
+		}
+	}
+	return true
+}
+
+// retryLater answers a transient failure with 429 and Retry-After rather
+// than 503: providers retry 429, and some (Brevo) drop events on a 5xx.
+func retryLater(w http.ResponseWriter) {
+	w.Header().Set("Retry-After", "30")
+	reply(w, http.StatusTooManyRequests, `{"error":"try again"}`)
 }
 
 func reply(w http.ResponseWriter, status int, body string) {
@@ -80,7 +127,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.Log.ErrorContext(ctx, "webhook lookup", "err", err)
-		reply(w, http.StatusServiceUnavailable, `{"error":"try again"}`)
+		retryLater(w)
 		return
 	}
 	body, err := io.ReadAll(io.LimitReader(r.Body, MaxBody+1))
@@ -104,7 +151,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	prov, err := h.Factory.Open(ctx, p)
 	if err != nil {
 		h.Log.ErrorContext(ctx, "webhook adapter", "provider", p.ID, "err", err)
-		reply(w, http.StatusServiceUnavailable, `{"error":"provider not available"}`)
+		retryLater(w)
 		return
 	}
 	if hs, ok := prov.(providers.WebhookHandshaker); ok {
@@ -159,7 +206,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		h.Log.ErrorContext(ctx, "store webhook", "provider", p.ID, "err", err)
-		reply(w, http.StatusServiceUnavailable, `{"error":"try again"}`)
+		retryLater(w)
 		return
 	}
 	if !sigOK {

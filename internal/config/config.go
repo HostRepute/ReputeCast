@@ -47,6 +47,8 @@ type Config struct {
 	Updates  UpdatesConfig  `koanf:"updates"`
 	Metrics  MetricsConfig  `koanf:"metrics"`
 	Webhooks WebhooksConfig `koanf:"webhooks"`
+	// Providers configures outbound calls to sending-provider APIs.
+	Providers ProvidersConfig `koanf:"providers"`
 	// HostRepute and DNS configure Deliverability (internal/hostrepute, internal/dnscheck).
 	HostRepute HostReputeConfig `koanf:"hostrepute"`
 	DNS        DNSConfig        `koanf:"dns"`
@@ -144,6 +146,16 @@ type UpdatesConfig struct {
 type MetricsConfig struct {
 	Enabled bool   `koanf:"enabled"`
 	Addr    string `koanf:"addr"` // empty serves /metrics on the main listener
+}
+
+// ProvidersConfig configures calls to sending-provider APIs.
+type ProvidersConfig struct {
+	// AllowPrivateNetworks lets provider URLs a workspace enters (a Postal
+	// server, a generic HTTP adapter, an Azure endpoint) resolve to loopback
+	// and private (RFC 1918) addresses, for providers on the same network.
+	// Off by default so workspace admins can't reach internal services
+	// (SSRF); link-local and cloud metadata addresses are always blocked.
+	AllowPrivateNetworks bool `koanf:"allow_private_networks"`
 }
 
 // WebhooksConfig configures outgoing webhooks and the audit stream.
