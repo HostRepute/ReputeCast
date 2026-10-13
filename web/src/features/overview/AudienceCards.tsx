@@ -14,10 +14,14 @@ function dayLabel(d: string): string {
   return `${dd} ${MONTHS[(m ?? 1) - 1]}`
 }
 
-/** "Subscriber growth": the count, its net change, the 30-day line and each list (Main board). */
+/**
+ * "Subscriber growth" (Main board): the lists' subscribers, their net change
+ * (joins minus departures, as on List health), the line over the period and
+ * each list; the unique contacts beside them.
+ */
 export function GrowthCard({ a }: { a: Schemas['OverviewAudience'] }) {
   const badge = netBadge(a)
-  const values = a.series.map((p) => p.contacts)
+  const values = a.series.map((p) => p.subscribers)
   const first = a.series[0]
   const mid = a.series[Math.floor(a.series.length / 2)]
   const last = a.series[a.series.length - 1]
@@ -31,10 +35,10 @@ export function GrowthCard({ a }: { a: Schemas['OverviewAudience'] }) {
         <span className="k">Last {a.days} days</span>
       </div>
       <div className="flex flex-wrap items-baseline gap-3">
-        <span className="n text-[30px] tracking-[-0.02em]">{count(a.total)}</span>
+        <span className="n text-[30px] tracking-[-0.02em]">{count(a.subscribers)}</span>
         <Badge tone={badge.tone}>{badge.text}</Badge>
         <span className="k">
-          {lists} {lists === 1 ? 'list' : 'lists'} · {count(a.total)} unique contacts
+          {lists ? `${lists} ${lists === 1 ? 'list' : 'lists'}` : 'No lists yet'} · {count(a.total)} unique {a.total === 1 ? 'contact' : 'contacts'}
         </span>
       </div>
       {values.length > 1 ? (

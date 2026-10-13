@@ -513,16 +513,13 @@ type Querier interface {
 	McpUpdateDraft(ctx context.Context, arg McpUpdateDraftParams) (McpUpdateDraftRow, error)
 	// Records a failure: opens the alert or adds to the open one.
 	OpenAutomationAlert(ctx context.Context, arg OpenAutomationAlertParams) error
-	// Contacts (not erased) by engagement tier.
-	OverviewAudienceTotals(ctx context.Context, workspaceID uuid.UUID) (OverviewAudienceTotalsRow, error)
 	OverviewCampaignRoutes(ctx context.Context, campaignID uuid.UUID) ([]OverviewCampaignRoutesRow, error)
-	// Contacts that existed at the end of each day of the period (created by
-	// then and not erased before then).
-	OverviewContactsByDay(ctx context.Context, arg OverviewContactsByDayParams) ([]OverviewContactsByDayRow, error)
 	OverviewDraftCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	OverviewLatestReadiness(ctx context.Context, campaignID uuid.UUID) (OverviewLatestReadinessRow, error)
-	// Each list's subscribers and its joins and departures since a date.
-	OverviewListGrowth(ctx context.Context, arg OverviewListGrowthParams) ([]OverviewListGrowthRow, error)
+	// Joins and departures across the workspace's lists in each 24-hour step
+	// since a time, counted the way List health counts a list's net growth
+	// (ListGrowthSince): joins of members still subscribed, and departures.
+	OverviewListChanges(ctx context.Context, arg OverviewListChangesParams) ([]OverviewListChangesRow, error)
 	// W09 · Overview (spec 7.1).
 	// The next campaign due to go out.
 	OverviewNextScheduled(ctx context.Context, arg OverviewNextScheduledParams) (OverviewNextScheduledRow, error)

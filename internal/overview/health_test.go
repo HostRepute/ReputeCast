@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/deliverability"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -155,21 +156,29 @@ func TestRefreshFailure(t *testing.T) {
 }
 
 func TestSunsetPolicy(t *testing.T) {
-	p := parsePolicy(json.RawMessage(`{"after_days":180}`))
-	if got := p.sentence(); got != "Sunset contacts get one re-engagement email, then stop receiving broadcasts after 30 days." {
+	p := audience.ParsePolicy(json.RawMessage(`{"after_days":180}`))
+	if got := policySentence(p); got != "Sunset contacts get one re-engagement email, then stop receiving broadcasts after 30 days." {
 		t.Fatal(got)
 	}
 	for tier, want := range map[string]string{"active": "opened in the last 30 days", "cooling": "last open 31 to 90 days ago", "at_risk": "last open 91 to 180 days ago", "sunset": "no open in 180 days"} {
-		if got := p.describe(tier); got != want {
+		if got := describeTier(p, tier); got != want {
 			t.Errorf("%s: %q, want %q", tier, got, want)
 		}
 	}
-	off := parsePolicy(json.RawMessage(`{"enabled":false}`))
-	if off.sentence() != "No sunset policy: Sunset contacts keep receiving broadcasts." {
-		t.Fatal(off.sentence())
+	// The descriptions follow the thresholds the nightly tier job applies.
+	now := time.Date(2026, 10, 12, 12, 0, 0, 0, time.UTC)
+	for days, want := range map[int]string{30: "active", 31: "cooling", 90: "cooling", 91: "at_risk", 180: "at_risk", 181: "sunset"} {
+		open := now.AddDate(0, 0, -days)
+		if got := audience.TierFor(p, &open, &open, nil, open, now); got != want {
+			t.Errorf("last open %d days ago: %s, want %s", days, got, want)
+		}
 	}
-	erase := parsePolicy(json.RawMessage(`{"reengage":false,"stop_after_days":14,"delete_after":true,"delete_after_months":6}`))
-	if got := erase.sentence(); got != "Sunset contacts stop receiving broadcasts after 14 days; they're erased after 6 months in Sunset." {
+	off := audience.ParsePolicy(json.RawMessage(`{"enabled":false}`))
+	if got := policySentence(off); got != "No sunset policy: Sunset contacts keep receiving broadcasts." {
+		t.Fatal(got)
+	}
+	erase := audience.ParsePolicy(json.RawMessage(`{"reengage":false,"stop_after_days":14,"delete_after":true,"delete_after_months":6}`))
+	if got := policySentence(erase); got != "Sunset contacts stop receiving broadcasts after 14 days; they're erased after 6 months in Sunset." {
 		t.Fatal(got)
 	}
 }

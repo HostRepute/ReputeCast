@@ -3,6 +3,7 @@ package overview_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -85,18 +86,46 @@ func TestOverviewCards(t *testing.T) {
 		t.Fatalf("Postal card: %+v", postal)
 	}
 
+	// Subscriber growth and tiers, from the audience domain (Main board).
 	var a struct {
-		Total  int64
-		Days   int
-		Series []struct{ Day string }
-		Lists  []struct{ Name string }
-		Tiers  []struct{ Tier, Description string }
+		Total, Subscribers, Net int64
+		NetPercent              float64
+		Days                    int
+		Series                  []struct {
+			Day         string
+			Subscribers int64
+		}
+		Lists []struct {
+			Name          string
+			Contacts, Net int64
+		}
+		Tiers []struct {
+			Tier, Description string
+			Count             int64
+			Pct               float64
+		}
 		Policy string
 	}
 	c.Do("GET", base+"/audience", nil).MustStatus(t, 200).JSON(t, &a)
-	if a.Days != 30 || len(a.Series) != 31 || len(a.Lists) != 3 || len(a.Tiers) != 4 || a.Tiers[0].Description != "opened in the last 30 days" ||
+	if a.Days != 30 || a.Total != 48213 || a.Subscribers != 48213 || a.Net != 1284 || a.NetPercent != 2.7 ||
 		a.Policy != "Sunset contacts get one re-engagement email, then stop receiving broadcasts after 30 days." {
 		t.Fatalf("audience: %+v", a)
+	}
+	if len(a.Series) != 31 || a.Series[0].Subscribers != 46929 || a.Series[30].Subscribers != 48213 {
+		t.Fatalf("growth line: %+v", a.Series)
+	}
+	wantLists := []string{"Weekly Digest 31988 812", "Product Updates 14110 391", "Beta Program 2115 81"}
+	for i, l := range a.Lists {
+		if i >= len(wantLists) || fmt.Sprintf("%s %d %d", l.Name, l.Contacts, l.Net) != wantLists[i] {
+			t.Fatalf("lists: %+v", a.Lists)
+		}
+	}
+	wantTiers := []string{"active 29412 61.0 opened in the last 30 days", "cooling 9884 20.5 last open 31 to 90 days ago",
+		"at_risk 5302 11.0 last open 91 to 180 days ago", "sunset 3615 7.5 no open in 180 days"}
+	for i, tr := range a.Tiers {
+		if i >= len(wantTiers) || fmt.Sprintf("%s %d %.1f %s", tr.Tier, tr.Count, tr.Pct, tr.Description) != wantTiers[i] {
+			t.Fatalf("tiers: %+v", a.Tiers)
+		}
 	}
 
 	var r struct {

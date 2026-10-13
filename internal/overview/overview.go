@@ -163,13 +163,15 @@ type OverviewProviders struct {
 	Providers  []OverviewProviderCard `json:"providers"`
 }
 
-// OverviewAudiencePoint is the subscriber count at the end of a day.
+// OverviewAudiencePoint is the subscribers on a day of the period (at the
+// time of day the period started; the last point is now).
 type OverviewAudiencePoint struct {
-	Day      string `json:"day" format:"date"`
-	Contacts int64  `json:"contacts"`
+	Day         string `json:"day" format:"date"`
+	Subscribers int64  `json:"subscribers"`
 }
 
-// OverviewListGrowth is one list's size and its change over the period.
+// OverviewListGrowth is one list's subscribers and their net change over
+// the period (joins minus departures, as on List health).
 type OverviewListGrowth struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
@@ -188,9 +190,13 @@ type OverviewTier struct {
 
 // OverviewAudience is "Subscriber growth" and "Engagement tiers".
 type OverviewAudience struct {
+	// Total is the unique contacts (the Audience header's count).
 	Total int64 `json:"total"`
-	Days  int   `json:"days"`
-	// Net is the change over Days; NetPercent relative to the start.
+	// Subscribers is the lists' subscribed members added up.
+	Subscribers int64 `json:"subscribers"`
+	Days        int   `json:"days"`
+	// Net is the subscribers' change over Days (the lists' joins minus
+	// departures); NetPercent is relative to the start.
 	Net        int64                   `json:"net"`
 	NetPercent *float64                `json:"netPercent,omitempty"`
 	Series     []OverviewAudiencePoint `json:"series"`

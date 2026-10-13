@@ -11630,6 +11630,10 @@
             },
             "type": "array"
           },
+          "subscribers": {
+            "format": "int64",
+            "type": "integer"
+          },
           "tiers": {
             "items": {
               "$ref": "#/components/schemas/OverviewTier"
@@ -11643,6 +11647,7 @@
         },
         "required": [
           "total",
+          "subscribers",
           "days",
           "net",
           "series",
@@ -11656,18 +11661,18 @@
       "OverviewAudiencePoint": {
         "additionalProperties": false,
         "properties": {
-          "contacts": {
-            "format": "int64",
-            "type": "integer"
-          },
           "day": {
             "format": "date",
             "type": "string"
+          },
+          "subscribers": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
           "day",
-          "contacts"
+          "subscribers"
         ],
         "type": "object"
       },

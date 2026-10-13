@@ -2,140 +2,101 @@ package overview
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// AudienceStats reads subscriber growth and tiers from the contacts and
-// list memberships (the audience domain's tables).
-type AudienceStats struct {
-	Q   *store.Queries
-	Now func() time.Time
+// AudienceCards builds "Subscriber growth" and "Engagement tiers" on the
+// audience domain: the counts of the Audience header (contacts, tiers,
+// lists), each list's joins and departures as List health counts them, and
+// the sunset policy.
+type AudienceCards struct {
+	Service *audience.Service
+	Q       *store.Queries
+	Now     func() time.Time
 }
 
-func (a AudienceStats) now() time.Time {
+func (a AudienceCards) now() time.Time {
 	if a.Now != nil {
 		return a.Now()
 	}
 	return time.Now()
 }
 
-// Audience returns the subscriber count, its daily series and net change
-// over the period, each list's size and change, the engagement tiers and
-// the sunset policy.
-func (a AudienceStats) Audience(ctx context.Context, ws *store.Workspace, days int) (OverviewAudience, error) {
+// Audience returns the subscribers (list memberships) with their net change
+// over the period and a point a day, the unique contacts, each list's size
+// and change, the engagement tiers and the sunset policy.
+func (a AudienceCards) Audience(ctx context.Context, ws *store.Workspace, days int) (OverviewAudience, error) {
 	out := OverviewAudience{Days: days, Series: []OverviewAudiencePoint{}, Lists: []OverviewListGrowth{}, Tiers: []OverviewTier{}}
-	totals, err := a.Q.OverviewAudienceTotals(ctx, ws.ID)
+	sum, err := a.Service.Summary(ctx, ws)
 	if err != nil {
 		return out, err
 	}
-	out.Total = totals.Contacts
+	out.Total = sum.Contacts
+	now := a.now()
+	since := now.AddDate(0, 0, -days)
+
+	// Each list's size and its joins minus departures, as on List health.
+	growth, err := a.Q.ListGrowthSince(ctx, store.ListGrowthSinceParams{WorkspaceID: ws.ID, Since: &since})
+	if err != nil {
+		return out, err
+	}
+	net := map[string]int64{}
+	for _, g := range growth {
+		net[g.ListID.String()] = g.Joined - g.Departed
+	}
+	for _, l := range sum.Lists {
+		out.Lists = append(out.Lists, OverviewListGrowth{ID: l.ID, Name: l.Name, Contacts: l.Subscribed, Net: net[l.ID]})
+		out.Subscribers += l.Subscribed
+		out.Net += net[l.ID]
+	}
+
+	// The line: today's subscribers, walked back a day at a time by the
+	// joins and departures of each 24 hours, so it starts at today minus
+	// the net change.
+	steps, err := a.Q.OverviewListChanges(ctx, store.OverviewListChangesParams{WorkspaceID: ws.ID, Since: since})
+	if err != nil {
+		return out, err
+	}
+	change := make([]int64, days)
+	for _, s := range steps {
+		k := min(max(int(s.Step), 0), days-1)
+		change[k] += s.Joined - s.Departed
+	}
 	loc := state.Location(ws.Timezone)
-	n := a.now().In(loc)
-	today := time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, time.UTC)
-	start := today.AddDate(0, 0, -days)
-	series, err := a.Q.OverviewContactsByDay(ctx, store.OverviewContactsByDayParams{WorkspaceID: ws.ID, Since: start, Until: today})
-	if err != nil {
-		return out, err
+	points := make([]OverviewAudiencePoint, days+1)
+	v := out.Subscribers
+	points[days] = OverviewAudiencePoint{Day: now.In(loc).Format(time.DateOnly), Subscribers: v}
+	for k := days - 1; k >= 0; k-- {
+		v -= change[k]
+		points[k] = OverviewAudiencePoint{Day: since.AddDate(0, 0, k).In(loc).Format(time.DateOnly), Subscribers: v}
 	}
-	for _, p := range series {
-		out.Series = append(out.Series, OverviewAudiencePoint{Day: p.Day.Format("2006-01-02"), Contacts: p.Contacts})
+	out.Series = points
+	if start := out.Subscribers - out.Net; start > 0 {
+		pct := round(float64(out.Net)/float64(start)*100, 1)
+		out.NetPercent = &pct
 	}
-	if len(out.Series) > 0 {
-		first := out.Series[0].Contacts
-		out.Net = out.Total - first
-		if first > 0 {
-			v := round(float64(out.Net)/float64(first)*100, 1)
-			out.NetPercent = &v
-		}
-	}
-	since := start.Add(24 * time.Hour)
-	lists, err := a.Q.OverviewListGrowth(ctx, store.OverviewListGrowthParams{Since: &since, WorkspaceID: ws.ID})
-	if err != nil {
-		return out, err
-	}
-	for _, l := range lists {
-		out.Lists = append(out.Lists, OverviewListGrowth{ID: l.ID.String(), Name: l.Name, Contacts: l.Subscribed, Net: l.Joined - l.Departed})
-	}
-	p := parsePolicy(ws.SunsetPolicy)
-	counts := []int64{totals.Active, totals.Cooling, totals.AtRisk, totals.Sunset}
+
+	p := audience.ParsePolicy(ws.SunsetPolicy)
+	counts := []int64{sum.Tiers.Active, sum.Tiers.Cooling, sum.Tiers.AtRisk, sum.Tiers.Sunset}
 	for i, t := range []string{"active", "cooling", "at_risk", "sunset"} {
-		tier := OverviewTier{Tier: t, Count: counts[i], Description: p.describe(t)}
-		if totals.Contacts > 0 {
-			tier.Pct = round(float64(counts[i])/float64(totals.Contacts)*100, 1)
+		tier := OverviewTier{Tier: t, Count: counts[i], Description: describeTier(p, t)}
+		if sum.Contacts > 0 {
+			tier.Pct = round(float64(counts[i])/float64(sum.Contacts)*100, 1)
 		}
 		out.Tiers = append(out.Tiers, tier)
 	}
-	out.Policy, out.PolicyEnabled = p.sentence(), p.Enabled
+	out.Policy, out.PolicyEnabled = policySentence(p), p.Enabled
 	return out, nil
 }
 
-// sunsetPolicy is the workspace's sunset policy, stored as JSON on the
-// workspace (the audience domain edits it), with its defaults.
-type sunsetPolicy struct {
-	Enabled           bool
-	ActiveDays        int
-	AtRiskDays        int
-	SunsetDays        int
-	Reengage          bool
-	StopBroadcasts    bool
-	StopAfterDays     int
-	DeleteAfter       bool
-	DeleteAfterMonths int
-}
-
-func parsePolicy(raw json.RawMessage) sunsetPolicy {
-	var d struct {
-		Enabled           *bool `json:"enabled"`
-		ActiveDays        int   `json:"active_days"`
-		AtRiskDays        int   `json:"at_risk_days"`
-		SunsetDays        int   `json:"sunset_days"`
-		AfterDays         int   `json:"after_days"`
-		Reengage          *bool `json:"reengage"`
-		StopBroadcasts    *bool `json:"stop_broadcasts"`
-		StopAfterDays     int   `json:"stop_after_days"`
-		DeleteAfter       bool  `json:"delete_after"`
-		DeleteAfterMonths int   `json:"delete_after_months"`
-	}
-	_ = json.Unmarshal(raw, &d)
-	p := sunsetPolicy{Enabled: true, ActiveDays: 30, AtRiskDays: 91, SunsetDays: 181, Reengage: true, StopBroadcasts: true, StopAfterDays: 30, DeleteAfterMonths: 12}
-	if d.Enabled != nil {
-		p.Enabled = *d.Enabled
-	}
-	if d.ActiveDays > 0 {
-		p.ActiveDays = d.ActiveDays
-	}
-	if d.AtRiskDays > 0 {
-		p.AtRiskDays = d.AtRiskDays
-	}
-	switch {
-	case d.SunsetDays > 0:
-		p.SunsetDays = d.SunsetDays
-	case d.AfterDays > 0:
-		p.SunsetDays = d.AfterDays + 1
-	}
-	if d.Reengage != nil {
-		p.Reengage = *d.Reengage
-	}
-	if d.StopBroadcasts != nil {
-		p.StopBroadcasts = *d.StopBroadcasts
-	}
-	if d.StopAfterDays > 0 {
-		p.StopAfterDays = d.StopAfterDays
-	}
-	p.DeleteAfter = d.DeleteAfter
-	if d.DeleteAfterMonths > 0 {
-		p.DeleteAfterMonths = d.DeleteAfterMonths
-	}
-	return p
-}
-
-// describe says what a tier means: "opened in the last 30 days".
-func (p sunsetPolicy) describe(tier string) string {
+// describeTier says what a tier means under the policy: "opened in the
+// last 30 days" (the thresholds audience.TierFor applies).
+func describeTier(p audience.SunsetPolicy, tier string) string {
 	switch tier {
 	case "active":
 		return fmt.Sprintf("opened in the last %d days", p.ActiveDays)
@@ -147,8 +108,8 @@ func (p sunsetPolicy) describe(tier string) string {
 	return fmt.Sprintf("no open in %d days", p.SunsetDays-1)
 }
 
-// sentence is the sunset policy in one line.
-func (p sunsetPolicy) sentence() string {
+// policySentence is the sunset policy in one line.
+func policySentence(p audience.SunsetPolicy) string {
 	if !p.Enabled {
 		return "No sunset policy: Sunset contacts keep receiving broadcasts."
 	}

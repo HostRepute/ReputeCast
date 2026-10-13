@@ -81,7 +81,7 @@ export function FirstRun({ audience }: { audience?: Schemas['OverviewAudience'] 
           <h3 className="h2 text-ink-3" id="ov-subs-p">
             Subscribers
           </h3>
-          <span className="n text-[28px] text-[#6B7280]">{count(audience?.total ?? 0)}</span>
+          <span className="n text-[28px] text-[#6B7280]">{count(audience?.subscribers ?? 0)}</span>
           <span className="k">
             {lists.length
               ? `${lists.length} ${lists.length === 1 ? 'list is' : 'lists are'} ready to receive contacts: ${lists.join(', ')}.`

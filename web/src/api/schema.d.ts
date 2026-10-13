@@ -7325,15 +7325,17 @@ export interface components {
             policy: string;
             policyEnabled: boolean;
             series: components["schemas"]["OverviewAudiencePoint"][];
+            /** Format: int64 */
+            subscribers: number;
             tiers: components["schemas"]["OverviewTier"][];
             /** Format: int64 */
             total: number;
         };
         OverviewAudiencePoint: {
-            /** Format: int64 */
-            contacts: number;
             /** Format: date */
             day: string;
+            /** Format: int64 */
+            subscribers: number;
         };
         OverviewHealthAction: {
             asset?: string;

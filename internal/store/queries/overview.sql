@@ -23,34 +23,23 @@ JOIN providers p ON p.id = cr.provider_id
 WHERE cr.campaign_id = @campaign_id
 ORDER BY cr.planned DESC, p.name;
 
--- name: OverviewAudienceTotals :one
--- Contacts (not erased) by engagement tier.
-SELECT count(*)::bigint AS contacts,
-       count(*) FILTER (WHERE tier = 'active')::bigint AS active,
-       count(*) FILTER (WHERE tier = 'cooling')::bigint AS cooling,
-       count(*) FILTER (WHERE tier = 'at_risk')::bigint AS at_risk,
-       count(*) FILTER (WHERE tier = 'sunset')::bigint AS sunset
-FROM contacts
-WHERE workspace_id = @workspace_id AND erased_at IS NULL;
-
--- name: OverviewContactsByDay :many
--- Contacts that existed at the end of each day of the period (created by
--- then and not erased before then).
-SELECT d::date AS day,
-       (SELECT count(*) FROM contacts c
-        WHERE c.workspace_id = @workspace_id AND c.created_at < d + interval '1 day'
-          AND (c.erased_at IS NULL OR c.erased_at >= d + interval '1 day'))::bigint AS contacts
-FROM generate_series(@since::date, @until::date, interval '1 day') AS d
-ORDER BY d;
-
--- name: OverviewListGrowth :many
--- Each list's subscribers and its joins and departures since a date.
-SELECT l.id, l.name,
-       count(lm.contact_id) FILTER (WHERE lm.status = 'subscribed')::bigint AS subscribed,
-       count(lm.contact_id) FILTER (WHERE lm.status = 'subscribed' AND lm.subscribed_at >= @since)::bigint AS joined,
-       count(lm.contact_id) FILTER (WHERE lm.unsubscribed_at >= @since)::bigint AS departed
-FROM lists l
-LEFT JOIN list_memberships lm ON lm.list_id = l.id
-WHERE l.workspace_id = @workspace_id AND l.deleted_at IS NULL
-GROUP BY l.id, l.name, l.created_at
-ORDER BY l.created_at, l.id;
+-- name: OverviewListChanges :many
+-- Joins and departures across the workspace's lists in each 24-hour step
+-- since a time, counted the way List health counts a list's net growth
+-- (ListGrowthSince): joins of members still subscribed, and departures.
+SELECT floor(extract(epoch FROM (x.at - @since::timestamptz)) / 86400)::int AS step,
+       count(*) FILTER (WHERE x.joined)::bigint AS joined,
+       count(*) FILTER (WHERE NOT x.joined)::bigint AS departed
+FROM (
+    SELECT lm.subscribed_at AS at, true AS joined
+    FROM list_memberships lm
+    JOIN lists l ON l.id = lm.list_id AND l.workspace_id = @workspace_id AND l.deleted_at IS NULL
+    WHERE lm.status = 'subscribed' AND lm.subscribed_at >= @since::timestamptz
+    UNION ALL
+    SELECT lm.unsubscribed_at, false
+    FROM list_memberships lm
+    JOIN lists l ON l.id = lm.list_id AND l.workspace_id = @workspace_id AND l.deleted_at IS NULL
+    WHERE lm.unsubscribed_at >= @since::timestamptz
+) x
+GROUP BY 1
+ORDER BY 1;

@@ -14,7 +14,7 @@ func init() {
 		overview.Register(h, &overview.Service{
 			Pool: a.Pool, Q: a.Q, Deliverability: dl, Providers: a.providersService(),
 			Campaigns: &campaigns.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
-			Audience:  overview.AudienceStats{Q: a.Q},
+			Audience:  overview.AudienceCards{Service: a.audience(), Q: a.Q},
 		})
 	})
 }

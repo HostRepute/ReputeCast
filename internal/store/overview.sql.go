@@ -13,38 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const overviewAudienceTotals = `-- name: OverviewAudienceTotals :one
-SELECT count(*)::bigint AS contacts,
-       count(*) FILTER (WHERE tier = 'active')::bigint AS active,
-       count(*) FILTER (WHERE tier = 'cooling')::bigint AS cooling,
-       count(*) FILTER (WHERE tier = 'at_risk')::bigint AS at_risk,
-       count(*) FILTER (WHERE tier = 'sunset')::bigint AS sunset
-FROM contacts
-WHERE workspace_id = $1 AND erased_at IS NULL
-`
-
-type OverviewAudienceTotalsRow struct {
-	Contacts int64 `json:"contacts"`
-	Active   int64 `json:"active"`
-	Cooling  int64 `json:"cooling"`
-	AtRisk   int64 `json:"atRisk"`
-	Sunset   int64 `json:"sunset"`
-}
-
-// Contacts (not erased) by engagement tier.
-func (q *Queries) OverviewAudienceTotals(ctx context.Context, workspaceID uuid.UUID) (OverviewAudienceTotalsRow, error) {
-	row := q.db.QueryRow(ctx, overviewAudienceTotals, workspaceID)
-	var i OverviewAudienceTotalsRow
-	err := row.Scan(
-		&i.Contacts,
-		&i.Active,
-		&i.Cooling,
-		&i.AtRisk,
-		&i.Sunset,
-	)
-	return i, err
-}
-
 const overviewCampaignRoutes = `-- name: OverviewCampaignRoutes :many
 SELECT cr.provider_id, p.name AS provider_name, p.adapter, cr.planned, cr.cost_micros
 FROM campaign_routes cr
@@ -87,48 +55,6 @@ func (q *Queries) OverviewCampaignRoutes(ctx context.Context, campaignID uuid.UU
 	return items, nil
 }
 
-const overviewContactsByDay = `-- name: OverviewContactsByDay :many
-SELECT d::date AS day,
-       (SELECT count(*) FROM contacts c
-        WHERE c.workspace_id = $1 AND c.created_at < d + interval '1 day'
-          AND (c.erased_at IS NULL OR c.erased_at >= d + interval '1 day'))::bigint AS contacts
-FROM generate_series($2::date, $3::date, interval '1 day') AS d
-ORDER BY d
-`
-
-type OverviewContactsByDayParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	Since       time.Time `json:"since"`
-	Until       time.Time `json:"until"`
-}
-
-type OverviewContactsByDayRow struct {
-	Day      time.Time `json:"day"`
-	Contacts int64     `json:"contacts"`
-}
-
-// Contacts that existed at the end of each day of the period (created by
-// then and not erased before then).
-func (q *Queries) OverviewContactsByDay(ctx context.Context, arg OverviewContactsByDayParams) ([]OverviewContactsByDayRow, error) {
-	rows, err := q.db.Query(ctx, overviewContactsByDay, arg.WorkspaceID, arg.Since, arg.Until)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []OverviewContactsByDayRow{}
-	for rows.Next() {
-		var i OverviewContactsByDayRow
-		if err := rows.Scan(&i.Day, &i.Contacts); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const overviewDraftCount = `-- name: OverviewDraftCount :one
 SELECT count(*)::bigint FROM campaigns
 WHERE workspace_id = $1 AND deleted_at IS NULL AND status IN ('draft', 'approval', 'approved')
@@ -158,48 +84,49 @@ func (q *Queries) OverviewLatestReadiness(ctx context.Context, campaignID uuid.U
 	return i, err
 }
 
-const overviewListGrowth = `-- name: OverviewListGrowth :many
-SELECT l.id, l.name,
-       count(lm.contact_id) FILTER (WHERE lm.status = 'subscribed')::bigint AS subscribed,
-       count(lm.contact_id) FILTER (WHERE lm.status = 'subscribed' AND lm.subscribed_at >= $1)::bigint AS joined,
-       count(lm.contact_id) FILTER (WHERE lm.unsubscribed_at >= $1)::bigint AS departed
-FROM lists l
-LEFT JOIN list_memberships lm ON lm.list_id = l.id
-WHERE l.workspace_id = $2 AND l.deleted_at IS NULL
-GROUP BY l.id, l.name, l.created_at
-ORDER BY l.created_at, l.id
+const overviewListChanges = `-- name: OverviewListChanges :many
+SELECT floor(extract(epoch FROM (x.at - $1::timestamptz)) / 86400)::int AS step,
+       count(*) FILTER (WHERE x.joined)::bigint AS joined,
+       count(*) FILTER (WHERE NOT x.joined)::bigint AS departed
+FROM (
+    SELECT lm.subscribed_at AS at, true AS joined
+    FROM list_memberships lm
+    JOIN lists l ON l.id = lm.list_id AND l.workspace_id = $2 AND l.deleted_at IS NULL
+    WHERE lm.status = 'subscribed' AND lm.subscribed_at >= $1::timestamptz
+    UNION ALL
+    SELECT lm.unsubscribed_at, false
+    FROM list_memberships lm
+    JOIN lists l ON l.id = lm.list_id AND l.workspace_id = $2 AND l.deleted_at IS NULL
+    WHERE lm.unsubscribed_at >= $1::timestamptz
+) x
+GROUP BY 1
+ORDER BY 1
 `
 
-type OverviewListGrowthParams struct {
-	Since       *time.Time `json:"since"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
+type OverviewListChangesParams struct {
+	Since       time.Time `json:"since"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
 }
 
-type OverviewListGrowthRow struct {
-	ID         uuid.UUID `json:"id"`
-	Name       string    `json:"name"`
-	Subscribed int64     `json:"subscribed"`
-	Joined     int64     `json:"joined"`
-	Departed   int64     `json:"departed"`
+type OverviewListChangesRow struct {
+	Step     int32 `json:"step"`
+	Joined   int64 `json:"joined"`
+	Departed int64 `json:"departed"`
 }
 
-// Each list's subscribers and its joins and departures since a date.
-func (q *Queries) OverviewListGrowth(ctx context.Context, arg OverviewListGrowthParams) ([]OverviewListGrowthRow, error) {
-	rows, err := q.db.Query(ctx, overviewListGrowth, arg.Since, arg.WorkspaceID)
+// Joins and departures across the workspace's lists in each 24-hour step
+// since a time, counted the way List health counts a list's net growth
+// (ListGrowthSince): joins of members still subscribed, and departures.
+func (q *Queries) OverviewListChanges(ctx context.Context, arg OverviewListChangesParams) ([]OverviewListChangesRow, error) {
+	rows, err := q.db.Query(ctx, overviewListChanges, arg.Since, arg.WorkspaceID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []OverviewListGrowthRow{}
+	items := []OverviewListChangesRow{}
 	for rows.Next() {
-		var i OverviewListGrowthRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Subscribed,
-			&i.Joined,
-			&i.Departed,
-		); err != nil {
+		var i OverviewListChangesRow
+		if err := rows.Scan(&i.Step, &i.Joined, &i.Departed); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

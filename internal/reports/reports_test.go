@@ -169,9 +169,28 @@ func TestCampaignReport(t *testing.T) {
 		len(ab.Variants) != 2 || ab.Variants[0].Recipients != 4798 || !ab.Variants[1].Winner {
 		t.Fatalf("A/B: %+v", ab)
 	}
+	// The click map is drawn over the email as sent (the composer's
+	// content): every click is on one of its links, "Read the docs" draws
+	// the most, and the links under 5% are grouped.
 	cm := r.ClickMap
-	if !cm.Available || cm.Total != 2996 || cm.Other == nil || cm.Other.Share != 13 || cm.Other.Links != 9 {
-		t.Fatalf("click map: %+v", cm.Other)
+	if !cm.Available || cm.Total != 2996 || len(cm.Links) == 0 {
+		t.Fatalf("click map: %+v", cm.Links)
+	}
+	sum, grouped, top := 0.0, 0, cm.Links[0]
+	for _, l := range cm.Links {
+		sum += l.Share
+		if l.Share > top.Share {
+			top = l
+		}
+		if l.Grouped {
+			grouped++
+		}
+		if l.Grouped != (l.Share < 5) || l.Hot != (l.Share >= 20) {
+			t.Errorf("%s at %v%%: grouped %v, hot %v", l.Label, l.Share, l.Grouped, l.Hot)
+		}
+	}
+	if top.Label != "Read the docs" || sum < 99.5 || sum > 100.5 || cm.Other == nil || cm.Other.Links != grouped {
+		t.Fatalf("click map: top %+v, shares add to %v, other %+v, %d grouped", top, sum, cm.Other, grouped)
 	}
 
 	// A campaign that hasn't been sent: the empty state.

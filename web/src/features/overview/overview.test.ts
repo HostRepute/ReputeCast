@@ -40,7 +40,7 @@ describe('overview words', () => {
   })
 
   it('writes growth', () => {
-    const a = { total: 48213, days: 30, net: 1284, netPercent: 2.7, series: [], lists: [], tiers: [], policy: '', policyEnabled: true }
+    const a = { total: 48213, subscribers: 48213, days: 30, net: 1284, netPercent: 2.7, series: [], lists: [], tiers: [], policy: '', policyEnabled: true }
     expect(netBadge(a)).toEqual({ tone: 'ok', text: '+1,284 net · +2.7%' })
     expect(netBadge({ ...a, net: -312, netPercent: -0.6 })).toEqual({ tone: 'bad', text: '−312 net · −0.6%' })
     expect(delta(812)).toBe('+812')
