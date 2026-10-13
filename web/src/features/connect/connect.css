@@ -240,6 +240,19 @@
   .cn-main .mono {
     overflow-wrap: anywhere;
   }
+  /* Status rows wrap: a time or the row's buttons keep their size and move
+     under the sentence when they don't fit beside it (the boards squeeze
+     them until "Retry" stacks letter by letter). */
+  .cn-row {
+    flex-wrap: wrap;
+  }
+  .cn-row-text {
+    flex: 1 1 160px;
+  }
+  .cn-row-aside {
+    flex: none;
+    max-width: 100%;
+  }
   .cn-main .in {
     max-width: 100%;
     min-width: 0;

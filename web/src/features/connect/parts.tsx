@@ -60,8 +60,8 @@ export function StatusRow({
   return (
     <div className={cn('cn-row', lg && 'lg', className)}>
       {badge}
-      <span className="min-w-0">{children}</span>
-      {aside ? <span className="ml-auto flex items-center gap-1.5">{aside}</span> : null}
+      <span className="cn-row-text min-w-0">{children}</span>
+      {aside ? <span className="cn-row-aside ml-auto flex items-center gap-1.5">{aside}</span> : null}
     </div>
   )
 }

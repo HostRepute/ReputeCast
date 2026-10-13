@@ -112,9 +112,9 @@ function StreamCard({ view: v, choice: c, onChange, disabled, short }: { view: V
       {on ? (
         <div className="flex flex-col gap-1 text-[13px]">
           {v.hasRoute ? (
-            <label className="flex items-center justify-between gap-3">
+            <label className="mb-1 flex flex-col gap-1">
               <span className="k">{`Next to ${v.current.join(', ')}`}</span>
-              <select className="in h-[30px] w-auto" value={c.role} onChange={(e) => onChange({ role: e.target.value as View['role'] })} disabled={disabled}>
+              <select className="in h-[30px] w-full" value={c.role} onChange={(e) => onChange({ role: e.target.value as View['role'] })} disabled={disabled}>
                 {v.stream === 'broadcast' ? <option value="split">Weighted split</option> : null}
                 <option value="primary">{`Primary, replacing ${v.current.join(', ')}`}</option>
                 <option value="fallback">Fallback</option>

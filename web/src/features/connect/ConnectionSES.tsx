@@ -292,10 +292,10 @@ function ProvisionRow({ row: r, setup, onRetry, retrying, reason }: { row: Schem
   return (
     <div className="cn-row">
       <span className="spin" aria-hidden="true" />
-      <span className="min-w-0">
+      <span className="cn-row-text min-w-0">
         <Ticks text={r.text} />
       </span>
-      <span className="k ml-auto">{r.status === 'running' ? 'running' : 'waiting'}</span>
+      <span className="cn-row-aside k ml-auto">{r.status === 'running' ? 'running' : 'waiting'}</span>
     </div>
   )
 }

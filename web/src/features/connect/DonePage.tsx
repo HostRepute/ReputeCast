@@ -48,7 +48,7 @@ export function DonePage({ setup }: { setup: Schemas['ConnectSetup'] }) {
           {done.rows.map((r) => (
             <div key={r.lead} className="cn-row lg">
               <Badge tone={ROW_BADGE[r.status].tone}>{ROW_BADGE[r.status].label}</Badge>
-              <span className="min-w-0">
+              <span className="cn-row-text min-w-0">
                 <strong>{r.lead}</strong>
                 <Ticks text={r.text} />
                 {r.importLink ? (
