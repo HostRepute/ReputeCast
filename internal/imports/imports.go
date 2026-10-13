@@ -301,7 +301,7 @@ type ImportSummary struct {
 	Status     string     `json:"status"`
 	Step       string     `json:"step"`
 	FileName   string     `json:"fileName"`
-	Contacts   int64      `json:"contacts" doc:"Imported plus merged"`
+	Contacts   int64      `json:"contacts" doc:"Contacts imported, merged or imported as pending"`
 	CreatedAt  time.Time  `json:"createdAt"`
 	FinishedAt *time.Time `json:"finishedAt,omitempty"`
 	CreatedBy  string     `json:"createdBy"`
@@ -325,7 +325,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace) (ImportList, er
 		var st ImportStats
 		_ = json.Unmarshal(r.Stats, &st)
 		out.Items = append(out.Items, ImportSummary{ID: r.ID.String(), Source: r.Source, SourceName: SourceName(r.Source), Status: r.Status, Step: r.Step,
-			FileName: r.FileName, Contacts: st.Imported + st.Merged, CreatedAt: r.CreatedAt, FinishedAt: r.FinishedAt, CreatedBy: r.CreatedByName})
+			FileName: r.FileName, Contacts: st.Imported + st.Merged + st.Pending, CreatedAt: r.CreatedAt, FinishedAt: r.FinishedAt, CreatedBy: r.CreatedByName})
 		if out.Active == "" && (r.Status == "draft" || r.Status == "staging" || r.Status == "running" || r.Status == "paused") {
 			out.Active = r.ID.String()
 		}
@@ -391,7 +391,7 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, imp store.Imp
 		var st ImportStats
 		_ = json.Unmarshal(prev.Stats, &st)
 		out.Previous = &ImportSummary{ID: prev.ID.String(), Source: prev.Source, SourceName: SourceName(prev.Source), Status: prev.Status,
-			Step: prev.Step, FileName: prev.FileName, Contacts: st.Imported + st.Merged, CreatedAt: prev.CreatedAt, FinishedAt: prev.FinishedAt}
+			Step: prev.Step, FileName: prev.FileName, Contacts: st.Imported + st.Merged + st.Pending, CreatedAt: prev.CreatedAt, FinishedAt: prev.FinishedAt}
 	}
 	syncs, err := s.Q.SuppressionSyncStates(ctx, ws.ID)
 	if err != nil {

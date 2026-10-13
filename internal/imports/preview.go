@@ -107,7 +107,9 @@ func analyzeMerge(r mappedRow, c *existingContact, fm FieldMap, opts ImportOptio
 			label, cur = "timezone", c.Timezone
 		case f.Target == "language":
 			label, cur = "language", c.Language
-		case strings.HasPrefix(f.Target, "custom:") || strings.HasPrefix(f.Target, "new:"):
+		case strings.HasPrefix(f.Target, "custom:"):
+			// Fields this import creates (new:) are empty on every existing
+			// contact; filling them is expected and not worth calling out.
 			label = f.Target[strings.Index(f.Target, ":")+1:]
 			cur = strings.TrimSpace(fmt.Sprint(valueOr(c.Attributes[label], "")))
 		default:
