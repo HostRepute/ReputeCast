@@ -41,7 +41,10 @@ ALTER TABLE approval_requests
     ADD COLUMN decided_by       uuid REFERENCES users(id) ON DELETE SET NULL,
     ADD COLUMN invalidated_by   uuid REFERENCES users(id) ON DELETE SET NULL,
     ADD COLUMN reminded_at      timestamptz,
-    ADD COLUMN previous_id      uuid REFERENCES approval_requests(id) ON DELETE SET NULL;
+    ADD COLUMN previous_id      uuid REFERENCES approval_requests(id) ON DELETE SET NULL,
+    -- The status before an invalidation (pending or approved), restored when
+    -- the campaign is put back as approved ("keeps approval").
+    ADD COLUMN invalidated_from text NOT NULL DEFAULT '';
 -- One open (pending or approved) request per campaign and per automation.
 CREATE UNIQUE INDEX approval_requests_open_campaign ON approval_requests (campaign_id)
     WHERE status IN ('pending','approved') AND campaign_id IS NOT NULL;
@@ -55,6 +58,7 @@ DROP INDEX approval_requests_open_idx;
 DROP INDEX approval_requests_open_automation;
 DROP INDEX approval_requests_open_campaign;
 ALTER TABLE approval_requests
+    DROP COLUMN invalidated_from,
     DROP COLUMN previous_id,
     DROP COLUMN reminded_at,
     DROP COLUMN invalidated_by,

@@ -85,6 +85,7 @@ type ApprovalRequest struct {
 	InvalidatedBy     *uuid.UUID      `json:"invalidatedBy"`
 	RemindedAt        *time.Time      `json:"remindedAt"`
 	PreviousID        *uuid.UUID      `json:"previousId"`
+	InvalidatedFrom   string          `json:"invalidatedFrom"`
 }
 
 type AuditEvent struct {

@@ -29,7 +29,6 @@ func (q *Queries) ReadinessAcceptUnknown(ctx context.Context, arg ReadinessAccep
 }
 
 const readinessCampaign = `-- name: ReadinessCampaign :one
-
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.audience, c.audience_count, c.mjml, c.html, c.version,
        c.ab_test, c.schedule, c.thresholds, c.route_override, c.content_hash, c.content_settings, c.reply_to,
        c.created_by, c.updated_by, c.created_at, c.updated_at, c.autosaved_at, c.scheduled_at, c.started_at, c.sender_id,
@@ -82,8 +81,6 @@ type ReadinessCampaignRow struct {
 	UpdatedByName   string          `json:"updatedByName"`
 }
 
-// Send Readiness (spec 5.1, 7.5): runs, the run in progress, the facts a
-// run reads about the campaign and its audience, and the one-click fixes.
 // A campaign with its sender and sending domain.
 func (q *Queries) ReadinessCampaign(ctx context.Context, arg ReadinessCampaignParams) (ReadinessCampaignRow, error) {
 	row := q.db.QueryRow(ctx, readinessCampaign, arg.WorkspaceID, arg.ID)

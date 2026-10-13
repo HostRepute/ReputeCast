@@ -18,6 +18,50 @@ type Querier interface {
 	// Access requests from the "403 · no permission" screen (internal/accessrequests).
 	// The member's latest request for this role in the last day (one a day).
 	AccessRequestsLatest(ctx context.Context, arg AccessRequestsLatestParams) (time.Time, error)
+	ApprovalAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalAudienceListsRow, error)
+	ApprovalBypassCount(ctx context.Context, arg ApprovalBypassCountParams) (int64, error)
+	ApprovalCampaignVersion(ctx context.Context, arg ApprovalCampaignVersionParams) (ApprovalCampaignVersionRow, error)
+	// A request and the requests it follows, newest first.
+	ApprovalChain(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
+	// The discussion of a request and of the requests it follows.
+	ApprovalComments(ctx context.Context, requestIds []uuid.UUID) ([]ApprovalCommentsRow, error)
+	// How long requests waited for their first decision (the median wait).
+	ApprovalDecisionWaits(ctx context.Context, arg ApprovalDecisionWaitsParams) ([]int64, error)
+	ApprovalDecisions(ctx context.Context, requestIds []uuid.UUID) ([]ApprovalDecisionsRow, error)
+	ApprovalGet(ctx context.Context, arg ApprovalGetParams) (ApprovalGetRow, error)
+	// Scheduled campaigns held by a Blocked recheck (retried until a recheck passes).
+	ApprovalHeldCampaigns(ctx context.Context) ([]ApprovalHeldCampaignsRow, error)
+	ApprovalInsertComment(ctx context.Context, arg ApprovalInsertCommentParams) error
+	ApprovalInsertDecision(ctx context.Context, arg ApprovalInsertDecisionParams) error
+	ApprovalInsertHold(ctx context.Context, arg ApprovalInsertHoldParams) error
+	ApprovalInsertRequest(ctx context.Context, arg ApprovalInsertRequestParams) error
+	ApprovalInvalidate(ctx context.Context, arg ApprovalInvalidateParams) error
+	// The latest audit entry of an action on a target (who scheduled, who approved, from where).
+	ApprovalLastAudit(ctx context.Context, arg ApprovalLastAuditParams) (ApprovalLastAuditRow, error)
+	// The most recent request of a campaign (bypass records aside).
+	ApprovalLatestForCampaign(ctx context.Context, campaignID *uuid.UUID) (ApprovalLatestForCampaignRow, error)
+	// The approval inbox. Approvers see every request; others only their own.
+	ApprovalList(ctx context.Context, arg ApprovalListParams) ([]ApprovalListRow, error)
+	ApprovalLock(ctx context.Context, arg ApprovalLockParams) (ApprovalRequest, error)
+	ApprovalMarkScheduled(ctx context.Context, arg ApprovalMarkScheduledParams) error
+	ApprovalMarkSending(ctx context.Context, arg ApprovalMarkSendingParams) error
+	ApprovalMember(ctx context.Context, arg ApprovalMemberParams) (ApprovalMemberRow, error)
+	// Active members with their role and user details (approvers, presence).
+	ApprovalMembers(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalMembersRow, error)
+	// The pending or approved request of a campaign.
+	ApprovalOpenForCampaign(ctx context.Context, campaignID *uuid.UUID) (ApprovalRequest, error)
+	ApprovalOpenHold(ctx context.Context, campaignID uuid.UUID) (CampaignIncident, error)
+	// Open campaign requests of every workspace (the revalidation job).
+	ApprovalOpenRequests(ctx context.Context) ([]ApprovalOpenRequestsRow, error)
+	ApprovalPendingForWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalPendingForWorkspaceRow, error)
+	// "Restore … (keeps approval)": the campaign matches the snapshot again.
+	ApprovalReopen(ctx context.Context, arg ApprovalReopenParams) error
+	ApprovalResolveHold(ctx context.Context, arg ApprovalResolveHoldParams) error
+	ApprovalScheduleCampaign(ctx context.Context, arg ApprovalScheduleCampaignParams) error
+	ApprovalSetCampaignStatus(ctx context.Context, arg ApprovalSetCampaignStatusParams) error
+	ApprovalSetReminded(ctx context.Context, arg ApprovalSetRemindedParams) error
+	ApprovalSetStatus(ctx context.Context, arg ApprovalSetStatusParams) error
+	ApprovalUnschedule(ctx context.Context, arg ApprovalUnscheduleParams) error
 	AuditLogActionGroups(ctx context.Context, workspaceID *uuid.UUID) ([]AuditLogActionGroupsRow, error)
 	// Actors seen in the workspace log, for the actor filter.
 	AuditLogActors(ctx context.Context, workspaceID *uuid.UUID) ([]AuditLogActorsRow, error)
@@ -510,8 +554,6 @@ type Querier interface {
 	PurgeAutomationEvents(ctx context.Context, before *time.Time) (int64, error)
 	PurgeAutomationWebhookCalls(ctx context.Context, before time.Time) (int64, error)
 	ReadinessAcceptUnknown(ctx context.Context, arg ReadinessAcceptUnknownParams) error
-	// Send Readiness (spec 5.1, 7.5): runs, the run in progress, the facts a
-	// run reads about the campaign and its audience, and the one-click fixes.
 	// A campaign with its sender and sending domain.
 	ReadinessCampaign(ctx context.Context, arg ReadinessCampaignParams) (ReadinessCampaignRow, error)
 	ReadinessEndProgress(ctx context.Context, arg ReadinessEndProgressParams) error
