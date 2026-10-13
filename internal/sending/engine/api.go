@@ -88,8 +88,13 @@ func Register(h huma.API, e *Engine) {
 			if err != nil {
 				return nil, api.NotFound("Campaign")
 			}
-			s, err := e.Snapshot(ctx, api.WorkspaceFrom(ctx).ID, id)
-			return api.OK(s), mapErr(err)
+			ws := api.WorkspaceFrom(ctx)
+			s, err := e.Snapshot(ctx, ws.ID, id)
+			if err != nil {
+				return nil, mapErr(err)
+			}
+			s.Helpers = &LiveHelpers{Pause: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsPause), Send: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsSend)}
+			return api.OK(s), nil
 		})
 	sse.Register(h, huma.Operation{
 		OperationID: "stream-live-send", Method: http.MethodGet, Path: api.Version + base + "/stream",
@@ -135,7 +140,7 @@ func Register(h huma.API, e *Engine) {
 	})
 	api.Post(h, api.Op{ID: "pause-live-send", Path: base + "/pause", Summary: "Pause a running send", Tags: tags, Access: api.Workspace(authz.CampaignsPause)},
 		func(ctx context.Context, in *body[LivePauseRequest]) (*api.Body[LiveActionResult], error) {
-			id, by, err := actionIDs(ctx, in.CampaignID)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
 			if err != nil {
 				return nil, err
 			}
@@ -146,7 +151,7 @@ func Register(h huma.API, e *Engine) {
 		})
 	api.Post(h, api.Op{ID: "resume-live-send", Path: base + "/resume", Summary: "Resume a paused send, or a mailbox provider or sending provider on hold", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
 		func(ctx context.Context, in *body[LiveResumeRequest]) (*api.Body[LiveActionResult], error) {
-			id, by, err := actionIDs(ctx, in.CampaignID)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
 			if err != nil {
 				return nil, err
 			}
@@ -166,7 +171,7 @@ func Register(h huma.API, e *Engine) {
 		})
 	api.Post(h, api.Op{ID: "cancel-live-send", Path: base + "/cancel", Summary: "Cancel a send, or one mailbox provider's or sending provider's share", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
 		func(ctx context.Context, in *body[LiveCancelRequest]) (*api.Body[LiveActionResult], error) {
-			id, by, err := actionIDs(ctx, in.CampaignID)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
 			if err != nil {
 				return nil, err
 			}
@@ -186,7 +191,7 @@ func Register(h huma.API, e *Engine) {
 		})
 	api.Post(h, api.Op{ID: "move-live-share", Path: base + "/move", Summary: "Move what is left of a sending provider's share to another provider", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
 		func(ctx context.Context, in *body[LiveMoveRequest]) (*api.Body[LiveActionResult], error) {
-			id, by, err := actionIDs(ctx, in.CampaignID)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
 			if err != nil {
 				return nil, err
 			}
@@ -203,7 +208,7 @@ func Register(h huma.API, e *Engine) {
 		})
 	api.Post(h, api.Op{ID: "retry-live-share", Path: base + "/retry", Summary: "Keep a held share on its provider and retry every minute", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
 		func(ctx context.Context, in *body[LiveRetryRequest]) (*api.Body[LiveActionResult], error) {
-			id, by, err := actionIDs(ctx, in.CampaignID)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
 			if err != nil {
 				return nil, err
 			}
@@ -218,7 +223,7 @@ func Register(h huma.API, e *Engine) {
 		})
 	api.Post(h, api.Op{ID: "pick-live-ab-winner", Path: base + "/ab-winner", Summary: "End the A/B test with a chosen winner", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
 		func(ctx context.Context, in *body[LiveWinnerRequest]) (*api.Body[LiveActionResult], error) {
-			id, by, err := actionIDs(ctx, in.CampaignID)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
 			if err != nil {
 				return nil, err
 			}
@@ -238,10 +243,16 @@ func (e *Engine) result(ctx context.Context, id uuid.UUID, r LiveActionResult) (
 	return api.OK(r), nil
 }
 
-// actionIDs checks the campaign belongs to the workspace and returns who acts.
-func actionIDs(ctx context.Context, raw string) (uuid.UUID, uuid.UUID, error) {
+// actionIDs checks the campaign belongs to the workspace and returns who
+// acts; another workspace's campaign is a 404, as if it didn't exist.
+func (e *Engine) actionIDs(ctx context.Context, raw string) (uuid.UUID, uuid.UUID, error) {
 	id, err := uuid.Parse(raw)
 	if err != nil {
+		return uuid.Nil, uuid.Nil, api.NotFound("Campaign")
+	}
+	ws := api.WorkspaceFrom(ctx)
+	owner, err := e.Q.SendingCampaignWorkspace(ctx, id)
+	if err != nil || ws == nil || owner != ws.ID {
 		return uuid.Nil, uuid.Nil, api.NotFound("Campaign")
 	}
 	p := api.PrincipalFrom(ctx)
@@ -267,4 +278,3 @@ func mapErr(err error) error {
 	return err
 }
 
-var _ = access.Catalog

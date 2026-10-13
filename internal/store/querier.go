@@ -663,6 +663,7 @@ type Querier interface {
 	// Campaigns -------------------------------------------------------------
 	SendingCampaignForUpdate(ctx context.Context, id uuid.UUID) (Campaign, error)
 	SendingCampaignInWorkspace(ctx context.Context, arg SendingCampaignInWorkspaceParams) (Campaign, error)
+	SendingCampaignWorkspace(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	// Cancels what is left of a campaign, or of one sending or mailbox provider.
 	SendingCancelRemaining(ctx context.Context, arg SendingCancelRemainingParams) (int64, error)
 	// Send loop -------------------------------------------------------------

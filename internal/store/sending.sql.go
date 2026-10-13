@@ -636,6 +636,17 @@ func (q *Queries) SendingCampaignInWorkspace(ctx context.Context, arg SendingCam
 	return i, err
 }
 
+const sendingCampaignWorkspace = `-- name: SendingCampaignWorkspace :one
+SELECT workspace_id FROM campaigns WHERE id = $1
+`
+
+func (q *Queries) SendingCampaignWorkspace(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, sendingCampaignWorkspace, id)
+	var workspace_id uuid.UUID
+	err := row.Scan(&workspace_id)
+	return workspace_id, err
+}
+
 const sendingCancelRemaining = `-- name: SendingCancelRemaining :execrows
 UPDATE messages SET status = 'cancelled', claimed_at = NULL, error = $1
 WHERE campaign_id = $2 AND status IN ('queued', 'held')

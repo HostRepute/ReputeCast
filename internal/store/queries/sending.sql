@@ -516,3 +516,6 @@ WHERE w.id = @workspace_id;
 
 -- name: SendingContactForAutomation :one
 SELECT id, email, mailbox_provider, status, erased_at FROM contacts WHERE id = @id;
+
+-- name: SendingCampaignWorkspace :one
+SELECT workspace_id FROM campaigns WHERE id = $1;

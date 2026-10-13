@@ -87,6 +87,15 @@ type LiveSnapshot struct {
 	Throttles      []LiveThrottle   `json:"throttles"`
 	Options        LiveOptions      `json:"options"`
 	Routes         []LiveRouteShare `json:"routes"`
+	// Helpers names who can pause and who can resume, for the reason on a
+	// disabled button. Only the GET fills it; the stream leaves it out.
+	Helpers *LiveHelpers `json:"helpers,omitempty"`
+}
+
+// LiveHelpers are up to two members who hold each action's permission.
+type LiveHelpers struct {
+	Pause []string `json:"pause"`
+	Send  []string `json:"send"`
 }
 
 // LiveTotals are the campaign's counts.
