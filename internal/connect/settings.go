@@ -129,11 +129,13 @@ type SettingsProviders struct {
 	// MonthStart is the first day of this month (the cost period).
 	MonthStart time.Time `json:"monthStart"`
 	CanManage  bool      `json:"canManage"`
+	// Helpers names who can manage providers when the caller can't.
+	Helpers []string `json:"helpers"`
 }
 
 // SettingsPage returns Settings › Providers.
 func (s *Service) SettingsPage(ctx context.Context, ws *store.Workspace) (SettingsProviders, error) {
-	out := SettingsProviders{Providers: []SettingsProviderCard{}, CanManage: canManage(ctx)}
+	out := SettingsProviders{Providers: []SettingsProviderCard{}, CanManage: canManage(ctx), Helpers: s.helpers(ctx, ws.ID)}
 	def, err := s.sendingDefaults(ctx, ws)
 	if err != nil {
 		return out, err

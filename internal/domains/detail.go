@@ -76,6 +76,8 @@ type SendingDomainDetail struct {
 	// fetch its records.
 	Notes     []ProviderSetupNote `json:"notes"`
 	CanManage bool                `json:"canManage"`
+	// Helpers names who can manage domains when the caller can't.
+	Helpers []string `json:"helpers"`
 }
 
 func statusText(r Record) string {
@@ -217,6 +219,7 @@ func (s *Service) detailOf(ctx context.Context, ws *store.Workspace, d store.Sen
 	if pr := api.PrincipalFrom(ctx); pr != nil {
 		out.CanManage = pr.Can(authz.DomainsManage)
 	}
+	out.Helpers = s.helpers(ctx, ws.ID, out.CanManage)
 	return out, nil
 }
 

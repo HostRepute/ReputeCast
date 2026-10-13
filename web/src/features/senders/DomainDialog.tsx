@@ -32,7 +32,9 @@ export function DomainDialog({ open, onOpenChange }: { open: boolean; onOpenChan
       const created = data!
       toast({
         title: `${created.domain.domain} added`,
-        detail: created.notes.length ? created.notes.map((n) => `${n.provider}: ${n.text}`).join(' ') : 'Add its records at your DNS host; ReputeCast checks them as they appear.',
+        detail: created.notes.length
+          ? created.notes.map((n) => (n.text.startsWith(n.provider) ? n.text : `${n.provider}: ${n.text}`)).join(' ')
+          : 'Add its records at your DNS host; ReputeCast checks them as they appear.',
       })
       onOpenChange(false)
       setDomain('')

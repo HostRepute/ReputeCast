@@ -86,7 +86,7 @@ function numberIn(s: string): number | undefined {
 function SettingsBody({ data }: { data: Settings }) {
   const { slug } = useWorkspace()
   const qc = useQueryClient()
-  const reason = usePermissionReason('providers:manage')
+  const reason = usePermissionReason('providers:manage', data.helpers)
   const initial = formFrom(data.defaults)
   const [f, setF] = useState(initial)
   const [error, setError] = useState<string>()

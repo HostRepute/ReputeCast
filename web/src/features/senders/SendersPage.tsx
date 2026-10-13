@@ -36,10 +36,10 @@ const CELL_TONE: Record<Schemas['SenderDomainCell']['tone'], Tone> = { ok: 'ok',
 export function SendersPage() {
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', sendersPath, { params: { path: { workspace: slug } } })
-  const reason = usePermissionReason('domains:manage')
   const [editing, setEditing] = useState<Sender | 'new'>()
   const [addingDomain, setAddingDomain] = useState(false)
   const data = q.data
+  const reason = usePermissionReason('domains:manage', data?.helpers)
   return (
     <Page
       title="Settings"

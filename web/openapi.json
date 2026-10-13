@@ -5582,6 +5582,12 @@
             },
             "type": "array"
           },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "open": {
             "items": {
               "$ref": "#/components/schemas/ConnectOpenSetup"
@@ -5593,7 +5599,8 @@
           "builtin",
           "community",
           "open",
-          "canConnect"
+          "canConnect",
+          "helpers"
         ],
         "type": "object"
       },
@@ -6749,6 +6756,12 @@
             "format": "date-time",
             "type": "string"
           },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "id": {
             "type": "string"
           },
@@ -6805,7 +6818,8 @@
           "streams",
           "createdAt",
           "updatedAt",
-          "canManage"
+          "canManage",
+          "helpers"
         ],
         "type": "object"
       },
@@ -17724,6 +17738,12 @@
             },
             "type": "array"
           },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "providers": {
             "items": {
               "$ref": "#/components/schemas/SenderProviderColumn"
@@ -17742,7 +17762,8 @@
           "domains",
           "providers",
           "defaults",
-          "canManage"
+          "canManage",
+          "helpers"
         ],
         "type": "object"
       },
@@ -17904,6 +17925,12 @@
           "domain": {
             "type": "string"
           },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "id": {
             "type": "string"
           },
@@ -17967,7 +17994,8 @@
           "bimi",
           "senders",
           "notes",
-          "canManage"
+          "canManage",
+          "helpers"
         ],
         "type": "object"
       },
@@ -18322,6 +18350,12 @@
           "defaults": {
             "$ref": "#/components/schemas/SendingDefaults"
           },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "monthStart": {
             "format": "date-time",
             "type": "string"
@@ -18337,7 +18371,8 @@
           "providers",
           "defaults",
           "monthStart",
-          "canManage"
+          "canManage",
+          "helpers"
         ],
         "type": "object"
       },

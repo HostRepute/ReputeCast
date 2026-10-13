@@ -32,7 +32,7 @@ export function CatalogPage() {
         (!dedicated || e.dedicatedIps),
     )
   }, [data, search, bulk, webhooks, dedicated])
-  const reason = data && !data.canConnect ? deniedReason('providers:manage') : undefined
+  const reason = data && !data.canConnect ? deniedReason('providers:manage', data.helpers) : undefined
   const clear = () => {
     setSearch('')
     setBulk(false)

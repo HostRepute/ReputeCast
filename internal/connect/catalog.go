@@ -72,8 +72,10 @@ type ConnectCatalog struct {
 	Community []ConnectCommunityEntry `json:"community"`
 	// Open setups can be resumed.
 	Open []ConnectOpenSetup `json:"open"`
-	// CanConnect is false without providers:manage.
-	CanConnect bool `json:"canConnect"`
+	// CanConnect is false without providers:manage; Helpers then names who
+	// can connect providers.
+	CanConnect bool     `json:"canConnect"`
+	Helpers    []string `json:"helpers"`
 }
 
 // Catalog lists every registered adapter (built-in and community) with its
@@ -81,7 +83,7 @@ type ConnectCatalog struct {
 // in this build don't appear; installed community adapters do, with the
 // reason when this build can't run them.
 func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (ConnectCatalog, error) {
-	out := ConnectCatalog{Builtin: []ConnectCatalogEntry{}, Community: []ConnectCommunityEntry{}, Open: []ConnectOpenSetup{}}
+	out := ConnectCatalog{Builtin: []ConnectCatalogEntry{}, Community: []ConnectCommunityEntry{}, Open: []ConnectOpenSetup{}, Helpers: s.helpers(ctx, ws.ID)}
 	provs, err := s.Q.ProvListActive(ctx, ws.ID)
 	if err != nil {
 		return out, err

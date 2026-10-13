@@ -31,6 +31,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -121,6 +122,18 @@ func principalUser(ctx context.Context) *uuid.UUID {
 func canManage(ctx context.Context) bool {
 	p := api.PrincipalFrom(ctx)
 	return p != nil && p.Can(authz.ProvidersManage)
+}
+
+// helpers names who can manage providers when the caller can't ("Ask Linh
+// Nguyen or Marcus Chen"); empty for those who can.
+func (s *Service) helpers(ctx context.Context, wsID uuid.UUID) []string {
+	if canManage(ctx) {
+		return []string{}
+	}
+	if h := access.Helpers(ctx, s.Q, wsID, authz.ProvidersManage); h != nil {
+		return h
+	}
+	return []string{}
 }
 
 // descriptor returns a registered adapter or a 404 problem.

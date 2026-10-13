@@ -34,6 +34,7 @@ type overviewT struct {
 		}
 	}
 	CanManage bool
+	Helpers   []string
 }
 
 func auditCount(t *testing.T, env *apptest.Env, action string) int {
@@ -103,8 +104,8 @@ func TestSendersOverview(t *testing.T) {
 	v.SignInDemo("aisha@acme.io")
 	var vov overviewT
 	v.Do("GET", ws+"/senders", nil).MustStatus(t, 200).JSON(t, &vov)
-	if vov.CanManage {
-		t.Fatal("viewer canManage")
+	if vov.CanManage || len(vov.Helpers) == 0 || vov.Helpers[0] != "Linh Nguyen" {
+		t.Fatalf("viewer: canManage %v, helpers %v", vov.CanManage, vov.Helpers)
 	}
 	v.Do("POST", ws+"/senders", map[string]any{"name": "X", "email": "x@news.acme.io"}).MustStatus(t, 403)
 	v.Do("POST", ws+"/domains", map[string]any{"domain": "example.test"}).MustStatus(t, 403)

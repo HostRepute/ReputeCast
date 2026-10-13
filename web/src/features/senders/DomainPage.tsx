@@ -23,8 +23,8 @@ import './senders.css'
 export function DomainPage({ domainId, provider, onProvider }: { domainId: string; provider?: string; onProvider: (p?: string) => void }) {
   const { slug } = useWorkspace()
   const q = useDomainDetail(slug, domainId, provider)
-  const reason = usePermissionReason('domains:manage')
   const d = q.data
+  const reason = usePermissionReason('domains:manage', d?.helpers)
   const crumbs = [
     { label: 'Settings', to: '/w/$workspace/settings' as const, params: { workspace: slug } },
     { label: 'Senders', to: '/w/$workspace/settings/senders' as const, params: { workspace: slug } },

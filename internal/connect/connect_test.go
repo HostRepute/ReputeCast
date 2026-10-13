@@ -192,9 +192,10 @@ func TestCatalog(t *testing.T) {
 			Configure                               bool
 		}
 		CanConnect bool
+		Helpers    []string
 	}
 	c.Do("GET", ws+"/connect/catalog", nil).MustStatus(t, 200).JSON(t, &cat)
-	if !cat.CanConnect || len(cat.Builtin) < 5 {
+	if !cat.CanConnect || len(cat.Builtin) < 5 || len(cat.Helpers) != 0 {
 		t.Fatalf("catalog: %+v", cat)
 	}
 	first := cat.Builtin[0]
@@ -228,8 +229,9 @@ func TestCatalog(t *testing.T) {
 	v := env.Client()
 	v.SignInDemo("aisha@acme.io")
 	v.Do("GET", ws+"/connect/catalog", nil).MustStatus(t, 200).JSON(t, &cat)
-	if cat.CanConnect {
-		t.Fatal("viewers can't connect")
+	// Viewers can't connect; the catalog names who can ("Ask Linh Nguyen…").
+	if cat.CanConnect || len(cat.Helpers) == 0 || cat.Helpers[0] != "Linh Nguyen" {
+		t.Fatalf("viewers can't connect: %v %v", cat.CanConnect, cat.Helpers)
 	}
 	v.Do("POST", ws+"/connect/setups", map[string]any{"adapter": "fakeesp"}).MustStatus(t, 403)
 }

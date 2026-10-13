@@ -23,6 +23,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/net/idna"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -175,6 +176,8 @@ type SendersOverview struct {
 	Providers []SenderProviderColumn `json:"providers"`
 	Defaults  SenderDefaults         `json:"defaults"`
 	CanManage bool                   `json:"canManage"`
+	// Helpers names who can manage domains and senders when the caller can't.
+	Helpers []string `json:"helpers"`
 }
 
 // sendingDefaults is workspaces.sending_defaults (see migration 00550).
@@ -286,7 +289,20 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (SendersOve
 	if p := api.PrincipalFrom(ctx); p != nil {
 		out.CanManage = p.Can(authz.DomainsManage)
 	}
+	out.Helpers = s.helpers(ctx, ws.ID, out.CanManage)
 	return out, nil
+}
+
+// helpers names who can manage domains and senders when the caller can't
+// ("Ask Linh Nguyen or Marcus Chen").
+func (s *Service) helpers(ctx context.Context, wsID uuid.UUID, can bool) []string {
+	if can {
+		return []string{}
+	}
+	if h := access.Helpers(ctx, s.Q, wsID, authz.DomainsManage); h != nil {
+		return h
+	}
+	return []string{}
 }
 
 func defaultsView(defs workspaceDefaults, senders []store.SenderListRow, doms []store.SendingDomain) SenderDefaults {

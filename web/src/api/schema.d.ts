@@ -5823,6 +5823,7 @@ export interface components {
             builtin: components["schemas"]["ConnectCatalogEntry"][];
             canConnect: boolean;
             community: components["schemas"]["ConnectCommunityEntry"][];
+            helpers: string[];
             open: components["schemas"]["ConnectOpenSetup"][];
         };
         ConnectCatalogEntry: {
@@ -6126,6 +6127,7 @@ export interface components {
             done?: components["schemas"]["ConnectDone"];
             /** Format: date-time */
             finishedAt?: string;
+            helpers: string[];
             id: string;
             info: components["schemas"]["ConnectAdapterInfo"];
             provider: string;
@@ -9187,6 +9189,7 @@ export interface components {
             canManage: boolean;
             defaults: components["schemas"]["SenderDefaults"];
             domains: components["schemas"]["SendingDomainRow"][];
+            helpers: string[];
             providers: components["schemas"]["SenderProviderColumn"][];
             senders: components["schemas"]["SenderIdentity"][];
         };
@@ -9255,6 +9258,7 @@ export interface components {
             dmarcTip: string;
             dnsHost: string;
             domain: string;
+            helpers: string[];
             id: string;
             nameservers: string[];
             note: string;
@@ -9387,6 +9391,7 @@ export interface components {
         SettingsProviders: {
             canManage: boolean;
             defaults: components["schemas"]["SendingDefaults"];
+            helpers: string[];
             /** Format: date-time */
             monthStart: string;
             providers: components["schemas"]["SettingsProviderCard"][];

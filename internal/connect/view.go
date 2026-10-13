@@ -252,6 +252,8 @@ type ConnectSetup struct {
 	UpdatedAt  time.Time           `json:"updatedAt"`
 	FinishedAt *time.Time          `json:"finishedAt,omitempty"`
 	CanManage  bool                `json:"canManage"`
+	// Helpers names who can manage providers when the caller can't.
+	Helpers []string `json:"helpers"`
 }
 
 // View builds the setup for its screens.
@@ -263,7 +265,7 @@ func (s *Service) View(ctx context.Context, ws *store.Workspace, st store.Provid
 	state := decodeState(st.State)
 	c := copyFor(d)
 	out := ConnectSetup{ID: st.ID.String(), Adapter: st.Adapter, Step: st.Step, Status: st.Status, CreatedAt: st.CreatedAt, UpdatedAt: st.UpdatedAt,
-		FinishedAt: st.FinishedAt, CanManage: canManage(ctx)}
+		FinishedAt: st.FinishedAt, CanManage: canManage(ctx), Helpers: s.helpers(ctx, ws.ID)}
 	var prov *store.Provider
 	if st.ProviderID != nil {
 		out.ProviderID = st.ProviderID.String()

@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
-import { ApiError, errorMessage, http } from '@/api/client'
+import { $api, ApiError, errorMessage, http } from '@/api/client'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
@@ -37,6 +37,8 @@ export function SetupWizard({ adapter, search, onSearch }: { adapter: string; se
 function StartSetup({ adapter, onStarted }: { adapter: string; onStarted: (s: Setup) => void }) {
   const { slug } = useWorkspace()
   const can = useCan('providers:manage')
+  // Who can connect providers, for people who can't.
+  const catalog = $api.useQuery('get', '/api/v1/workspaces/{workspace}/connect/catalog', { params: { path: { workspace: slug } } }, { enabled: !can })
   const [error, setError] = useState<unknown>()
   const started = useRef(false)
   const start = () => {
@@ -59,7 +61,7 @@ function StartSetup({ adapter, onStarted }: { adapter: string; onStarted: (s: Se
         {!can ? (
           <>
             <StepHeading title="Connect a sending provider" />
-            <Note tone="info">{`${deniedReason('providers:manage')} You can look at the catalog and at setups others started.`}</Note>
+            <Note tone="info">{`${deniedReason('providers:manage', catalog.data?.helpers)} You can look at the catalog and at setups others started.`}</Note>
             <div>
               <ButtonLink to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
                 Back to the catalog
@@ -136,7 +138,7 @@ function SetupScreens({ setupId, step, onStep }: { setupId: string; step?: Setup
   }
   const view = viewStep(setup, step)
   if (view === 'done' && setup.done) return <DonePage setup={setup} />
-  const reason = can && setup.status !== 'abandoned' ? undefined : setup.status === 'abandoned' ? 'This setup was cancelled. Start again from the catalog.' : deniedReason('providers:manage')
+  const reason = can && setup.status !== 'abandoned' ? undefined : setup.status === 'abandoned' ? 'This setup was cancelled. Start again from the catalog.' : deniedReason('providers:manage', setup.helpers)
   const go = (next: SetupStep) => {
     onStep(next)
     // The setup remembers where it was, so it resumes there.
