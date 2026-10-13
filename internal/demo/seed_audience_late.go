@@ -80,19 +80,19 @@ func audGenerateSuppressions(s *Seeder, a *audSeed) []audSupp {
 	}
 	older := func() time.Time { return g.daysAgo(25, 210) }
 	bounceCodes := []string{"550 5.1.1 user unknown", "550 5.1.1 mailbox does not exist", "550 5.2.1 mailbox disabled", "554 5.7.1 recipient rejected"}
-	// Pulled from SES and Postmark before the migration, and the bounces
-	// Postal reported since it joined nine days ago: with k.nakamura's on the
-	// first page, the 41 the Postal sync row shows (Suppressions, Events &
-	// sync boards).
+	// Pulled from SES, Postmark and Postal: with k.nakamura's on the first
+	// page, Postal's are the 41 its sync row shows (Suppressions, Events &
+	// sync boards). All older than the Brevo group, which closes the first
+	// page of the Suppressions board.
 	for i := 0; i < 587; i++ {
-		p, since := "ses", older
+		p := "ses"
 		switch {
 		case i >= 547:
-			p, since = "postal", func() time.Time { return g.daysAgo(1, 8) }
+			p = "postal"
 		case i >= 517:
 			p = "postmark"
 		}
-		out = append(out, audSupp{email: addr(), reason: "hard_bounce", provider: p, source: "provider_sync", code: bounceCodes[g.rng.IntN(len(bounceCodes))], at: since()})
+		out = append(out, audSupp{email: addr(), reason: "hard_bounce", provider: p, source: "provider_sync", code: bounceCodes[g.rng.IntN(len(bounceCodes))], at: older()})
 	}
 	for i := 0; i < 53; i++ {
 		p, code := "ses", "ComplaintFeedbackType abuse"
