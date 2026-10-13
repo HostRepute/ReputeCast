@@ -68,16 +68,16 @@ type RouteTestFallback struct {
 
 // RouteTestResult answers "Which provider would send this email?".
 type RouteTestResult struct {
-	ProviderID      string        `json:"providerId"`
-	Provider        string        `json:"provider"`
-	Short           string        `json:"short"`
-	Color           string        `json:"color" enum:"ses,postal,postmark,other"`
-	MailboxProvider string        `json:"mailboxProvider"`
-	DKIMSelector    string        `json:"dkimSelector"`
+	ProviderID      string            `json:"providerId"`
+	Provider        string            `json:"provider"`
+	Short           string            `json:"short"`
+	Color           string            `json:"color" enum:"ses,postal,postmark,other"`
+	MailboxProvider string            `json:"mailboxProvider"`
+	DKIMSelector    string            `json:"dkimSelector"`
 	Cost            RouteTestCost     `json:"cost"`
 	Steps           []RouteTestStep   `json:"steps"`
 	Fallback        RouteTestFallback `json:"fallback"`
-	Suppressed      bool          `json:"suppressed"`
+	Suppressed      bool              `json:"suppressed"`
 	// Held is true when the provider can't take mail right now.
 	Held bool `json:"held"`
 }

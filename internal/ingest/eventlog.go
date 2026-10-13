@@ -57,10 +57,10 @@ type ProviderLogEvent struct {
 // ProviderEventLog is one page of the event log.
 type ProviderEventLog struct {
 	Items         []ProviderLogEvent `json:"items"`
-	Total         int64           `json:"total"`
-	Page          int             `json:"page"`
-	PageSize      int             `json:"pageSize"`
-	RetentionDays int             `json:"retentionDays"`
+	Total         int64              `json:"total"`
+	Page          int                `json:"page"`
+	PageSize      int                `json:"pageSize"`
+	RetentionDays int                `json:"retentionDays"`
 }
 
 // LogFilter filters the event log.

@@ -261,7 +261,7 @@ type SuppressionReasonCount struct {
 
 // SuppressionSyncStatus is the sync card of the Events & sync tab.
 type SuppressionSyncStatus struct {
-	Total   int64         `json:"total"`
+	Total   int64                    `json:"total"`
 	Reasons []SuppressionReasonCount `json:"reasons"`
 	Rows    []SuppressionSyncRow     `json:"rows"`
 }

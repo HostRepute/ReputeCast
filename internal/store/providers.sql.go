@@ -1211,13 +1211,14 @@ func (q *Queries) ProvStartFailover(ctx context.Context, arg ProvStartFailoverPa
 const provStreamVolume = `-- name: ProvStreamVolume :many
 SELECT stream, count(*)::bigint AS n
 FROM messages
-WHERE workspace_id = $1 AND sent_at >= $2
+WHERE workspace_id = $1 AND sent_at >= $2 AND sent_at < $3
 GROUP BY stream
 `
 
 type ProvStreamVolumeParams struct {
 	WorkspaceID uuid.UUID  `json:"workspaceId"`
 	Since       *time.Time `json:"since"`
+	Until       *time.Time `json:"until"`
 }
 
 type ProvStreamVolumeRow struct {
@@ -1227,7 +1228,7 @@ type ProvStreamVolumeRow struct {
 
 // Messages per stream over a window (volume estimates on the routing screen).
 func (q *Queries) ProvStreamVolume(ctx context.Context, arg ProvStreamVolumeParams) ([]ProvStreamVolumeRow, error) {
-	rows, err := q.db.Query(ctx, provStreamVolume, arg.WorkspaceID, arg.Since)
+	rows, err := q.db.Query(ctx, provStreamVolume, arg.WorkspaceID, arg.Since, arg.Until)
 	if err != nil {
 		return nil, err
 	}

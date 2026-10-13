@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -155,12 +156,12 @@ type RoutingProvider struct {
 	BulkAllowed bool   `json:"bulkAllowed"`
 	// BroadcastStreamCreatable: ReputeCast can create the stream that makes
 	// bulk mail allowed ("Postmark · Broadcast stream (create)").
-	BroadcastStreamCreatable bool           `json:"broadcastStreamCreatable"`
-	WarmingUp                bool           `json:"warmingUp"`
-	WarmupDay                int            `json:"warmupDay,omitempty"`
-	WarmupDays               int            `json:"warmupDays,omitempty"`
-	ShareSteps               []RoutingShareStep    `json:"shareSteps"`
-	Terms                    []RoutingTerms `json:"terms"`
+	BroadcastStreamCreatable bool               `json:"broadcastStreamCreatable"`
+	WarmingUp                bool               `json:"warmingUp"`
+	WarmupDay                int                `json:"warmupDay,omitempty"`
+	WarmupDays               int                `json:"warmupDays,omitempty"`
+	ShareSteps               []RoutingShareStep `json:"shareSteps"`
+	Terms                    []RoutingTerms     `json:"terms"`
 }
 
 // RoutingShareStep is a planned increase of a warming provider's Broadcast share.
@@ -189,7 +190,7 @@ type RoutingConfig struct {
 	SenderDomains []string            `json:"senderDomains"`
 	SavedAt       *time.Time          `json:"savedAt,omitempty"`
 	SavedBy       string              `json:"savedBy"`
-	Issues        []RoutingIssue             `json:"issues"`
+	Issues        []RoutingIssue      `json:"issues"`
 	Shared        RoutingShared       `json:"shared"`
 }
 
@@ -228,7 +229,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 	for _, p := range pols {
 		acks[p.Stream] = p.BulkTermsAckAt
 	}
-	volumes := s.volumes(ctx, ws.ID)
+	volumes := s.volumes(ctx, ws)
 	for _, stream := range Streams {
 		v := RoutingStreamView{Stream: string(stream), Splits: []RoutingSplit{}, Failover: string(set.Policy(stream)), Conditions: []RoutingConditionView{}, BulkTermsAcknowledgedAt: acks[string(stream)], Volume: volumes[stream]}
 		for _, r := range set.StreamRules(stream) {
@@ -357,36 +358,39 @@ func (s *Service) facts(ctx context.Context, ws *store.Workspace) (map[uuid.UUID
 }
 
 // volumes estimates how much each stream carries: Broadcasts per week over
-// the last four weeks, Automations and System per day over the last week.
-func (s *Service) volumes(ctx context.Context, wsID uuid.UUID) map[providers.Stream]*RoutingVolume {
+// the last four weeks, Automations and System per day over the last seven
+// whole days (in the workspace time zone, so the estimate holds all day).
+func (s *Service) volumes(ctx context.Context, ws *store.Workspace) map[providers.Stream]*RoutingVolume {
 	out := map[providers.Stream]*RoutingVolume{}
+	wsID := ws.ID
 	since := s.now().AddDate(0, 0, -28)
 	if b, err := s.Q.ProvBroadcastWeekly(ctx, store.ProvBroadcastWeeklyParams{WorkspaceID: wsID, Since: &since}); err == nil && b > 0 {
-		out[providers.StreamBroadcast] = &RoutingVolume{Count: roundTo(b/4, 1000), Per: "week"}
+		out[providers.StreamBroadcast] = &RoutingVolume{Count: about(b / 4), Per: "week"}
 	}
-	week := s.now().AddDate(0, 0, -7)
-	rows, err := s.Q.ProvStreamVolume(ctx, store.ProvStreamVolumeParams{WorkspaceID: wsID, Since: &week})
+	now := s.now().In(state.Location(ws.Timezone))
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	week := today.AddDate(0, 0, -7)
+	rows, err := s.Q.ProvStreamVolume(ctx, store.ProvStreamVolumeParams{WorkspaceID: wsID, Since: &week, Until: &today})
 	if err == nil {
 		for _, r := range rows {
 			st := providers.Stream(r.Stream)
 			if st == providers.StreamBroadcast || r.N == 0 {
 				continue
 			}
-			unit := int64(100)
-			if r.N/7 < 1000 {
-				unit = 10
-			}
-			out[st] = &RoutingVolume{Count: roundTo(r.N/7, unit), Per: "day"}
+			out[st] = &RoutingVolume{Count: about(r.N / 7), Per: "day"}
 		}
 	}
 	return out
 }
 
-func roundTo(n, unit int64) int64 {
-	if n < unit {
+// about keeps the first two significant digits: 47,980 is "about 47,000",
+// 1,912 "about 1,900".
+func about(n int64) int64 {
+	if n < 100 {
 		return n
 	}
-	return int64(math.Round(float64(n)/float64(unit))) * unit
+	unit := int64(math.Pow10(len(strconv.FormatInt(n, 10)) - 2))
+	return n / unit * unit
 }
 
 func (s *Service) syncedAt(ctx context.Context, provs []RoutingProvider) *time.Time {

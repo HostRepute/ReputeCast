@@ -20,7 +20,7 @@ type ProvidersSummary struct {
 	Connected     int                   `json:"connected"`
 	ByStatus      []ProviderStatusCount `json:"byStatus"`
 	SentThisMonth int64                 `json:"sentThisMonth"`
-	SentBy        []ProviderMonthAmount      `json:"sentBy"`
+	SentBy        []ProviderMonthAmount `json:"sentBy"`
 	// MonthStart is the first day of the month in the workspace timezone.
 	MonthStart time.Time `json:"monthStart"`
 	CostToDate float64   `json:"costToDate" doc:"Dollars"`
@@ -123,10 +123,10 @@ type ProviderCallError struct {
 
 // ProviderDownState describes an outage or rejected credentials.
 type ProviderDownState struct {
-	Since         time.Time       `json:"since"`
-	Reason        string          `json:"reason" enum:"outage,auth"`
-	LastSuccessAt *time.Time      `json:"lastSuccessAt,omitempty"`
-	LastSuccessOp string          `json:"lastSuccessOp,omitempty"`
+	Since         time.Time           `json:"since"`
+	Reason        string              `json:"reason" enum:"outage,auth"`
+	LastSuccessAt *time.Time          `json:"lastSuccessAt,omitempty"`
+	LastSuccessOp string              `json:"lastSuccessOp,omitempty"`
 	Errors        []ProviderCallError `json:"errors"`
 	// StatusSummary is the provider's public status page ("AWS reports an
 	// SES incident in us-east-1.").
@@ -139,31 +139,31 @@ type ProviderDownState struct {
 
 // ProviderCard is one provider on the providers screen.
 type ProviderCard struct {
-	ID          string          `json:"id"`
-	Adapter     string          `json:"adapter"`
-	Name        string          `json:"name"`
-	Short       string          `json:"short"`
-	Label       string          `json:"label"`
-	Color       string          `json:"color" enum:"ses,postal,postmark,other"`
-	Status      string          `json:"status" enum:"healthy,degraded,down,sandbox,warming_up,paused"`
-	Roles       []ProviderStreamRole  `json:"roles"`
-	IPMode      string          `json:"ipMode" enum:"shared,dedicated"`
-	IPs         []string        `json:"ips"`
-	Webhook     ProviderWebhookFeed `json:"webhook"`
-	ErrorRate7d *float64        `json:"errorRate7d,omitempty" doc:"Percent of API calls that failed"`
-	ErrorRate3m *float64        `json:"errorRate3m,omitempty"`
+	ID          string               `json:"id"`
+	Adapter     string               `json:"adapter"`
+	Name        string               `json:"name"`
+	Short       string               `json:"short"`
+	Label       string               `json:"label"`
+	Color       string               `json:"color" enum:"ses,postal,postmark,other"`
+	Status      string               `json:"status" enum:"healthy,degraded,down,sandbox,warming_up,paused"`
+	Roles       []ProviderStreamRole `json:"roles"`
+	IPMode      string               `json:"ipMode" enum:"shared,dedicated"`
+	IPs         []string             `json:"ips"`
+	Webhook     ProviderWebhookFeed  `json:"webhook"`
+	ErrorRate7d *float64             `json:"errorRate7d,omitempty" doc:"Percent of API calls that failed"`
+	ErrorRate3m *float64             `json:"errorRate3m,omitempty"`
 	// AccountKind says how to label Account: "account" ("Account status")
 	// or "server" ("Server", self-hosted).
-	AccountKind  string            `json:"accountKind" enum:"account,server"`
-	Account      string            `json:"account"`
-	Bounce       ProviderLimitRate      `json:"bounce"`
-	Complaint    ProviderLimitRate      `json:"complaint"`
-	Quota        ProviderQuotaUse     `json:"quota"`
-	Rate         ProviderSendRate  `json:"rate"`
-	Cost         ProviderCostToDate      `json:"cost"`
+	AccountKind  string                    `json:"accountKind" enum:"account,server"`
+	Account      string                    `json:"account"`
+	Bounce       ProviderLimitRate         `json:"bounce"`
+	Complaint    ProviderLimitRate         `json:"complaint"`
+	Quota        ProviderQuotaUse          `json:"quota"`
+	Rate         ProviderSendRate          `json:"rate"`
+	Cost         ProviderCostToDate        `json:"cost"`
 	Capabilities []ProviderCapabilityBadge `json:"capabilities"`
-	Warmup       *ProviderWarmupBrief   `json:"warmup,omitempty"`
-	Down         *ProviderDownState     `json:"down,omitempty"`
+	Warmup       *ProviderWarmupBrief      `json:"warmup,omitempty"`
+	Down         *ProviderDownState        `json:"down,omitempty"`
 	// TakingFailover lists the streams this provider carries for a provider
 	// that is down.
 	TakingFailover []string   `json:"takingFailover"`
@@ -183,11 +183,11 @@ type ProviderCredentialField struct {
 
 // ProviderStreamRoute is one stream in the "Routing per stream" card.
 type ProviderStreamRoute struct {
-	Stream     string          `json:"stream" enum:"broadcast,automation,system"`
+	Stream     string               `json:"stream" enum:"broadcast,automation,system"`
 	Splits     []ProviderRouteShare `json:"splits"`
 	Fallback   *ProviderRouteShare  `json:"fallback,omitempty"`
-	Conditions int             `json:"conditions"`
-	Failover   string          `json:"failover" enum:"automatic,pause_and_ask,warm_only"`
+	Conditions int                  `json:"conditions"`
+	Failover   string               `json:"failover" enum:"automatic,pause_and_ask,warm_only"`
 }
 
 // ProviderRouteShare is a provider's share of a stream.
@@ -206,12 +206,12 @@ type ProviderNamedCount struct {
 
 // ProviderHeldCampaign is a broadcast whose share on a down provider is held.
 type ProviderHeldCampaign struct {
-	ID          string          `json:"id"`
-	Name        string          `json:"name"`
-	Planned     int64           `json:"planned"`
-	Sent        int64           `json:"sent"`
-	Held        int64           `json:"held"`
-	Decision    string          `json:"decision,omitempty" doc:"wait, move or cancel once someone decided"`
+	ID          string               `json:"id"`
+	Name        string               `json:"name"`
+	Planned     int64                `json:"planned"`
+	Sent        int64                `json:"sent"`
+	Held        int64                `json:"held"`
+	Decision    string               `json:"decision,omitempty" doc:"wait, move or cancel once someone decided"`
 	OtherShares []ProviderRouteShare `json:"otherShares"`
 }
 
@@ -233,19 +233,19 @@ type ProviderOutageStream struct {
 	Role string `json:"role" enum:"primary,split,fallback,condition"`
 	// State: failover_active, waiting (a decision is needed), held (no
 	// send in progress, mail waits), fallback_unavailable.
-	State         string       `json:"state" enum:"failover_active,waiting,held,fallback_unavailable"`
-	Policy        string       `json:"policy" enum:"automatic,pause_and_ask,warm_only"`
-	Since         time.Time    `json:"since"`
-	Fallback      string       `json:"fallback,omitempty"`
-	FallbackShort string       `json:"fallbackShort,omitempty"`
-	Primary       string       `json:"primary,omitempty"`
-	Rerouted      int64        `json:"rerouted"`
+	State         string               `json:"state" enum:"failover_active,waiting,held,fallback_unavailable"`
+	Policy        string               `json:"policy" enum:"automatic,pause_and_ask,warm_only"`
+	Since         time.Time            `json:"since"`
+	Fallback      string               `json:"fallback,omitempty"`
+	FallbackShort string               `json:"fallbackShort,omitempty"`
+	Primary       string               `json:"primary,omitempty"`
+	Rerouted      int64                `json:"rerouted"`
 	ReroutedBy    []ProviderNamedCount `json:"reroutedBy"`
 	// Suggestion names a connected provider that could be a second fallback.
-	Suggestion        string                `json:"suggestion,omitempty"`
+	Suggestion        string                        `json:"suggestion,omitempty"`
 	Campaign          *ProviderHeldCampaign         `json:"campaign,omitempty"`
 	Alternatives      []ProviderFailoverAlternative `json:"alternatives"`
-	SwitchBackMinutes int                   `json:"switchBackMinutes"`
+	SwitchBackMinutes int                           `json:"switchBackMinutes"`
 }
 
 // ProviderQuotaForecast says when a provider taking failover runs out of quota.
@@ -270,17 +270,17 @@ type ProviderWhyNotMove struct {
 
 // ProviderOutage is the outage banner and stream columns.
 type ProviderOutage struct {
-	ProviderID string             `json:"providerId"`
-	Provider   string             `json:"provider"`
-	Short      string             `json:"short"`
-	Since      time.Time          `json:"since"`
+	ProviderID string                  `json:"providerId"`
+	Provider   string                  `json:"provider"`
+	Short      string                  `json:"short"`
+	Since      time.Time               `json:"since"`
 	Down       ProviderDownState       `json:"down"`
-	ErrorRate  *float64           `json:"errorRate,omitempty"`
-	Codes      []string           `json:"codes"`
-	Operation  string             `json:"operation"`
-	Streams    []ProviderOutageStream     `json:"streams"`
-	Forecasts  []ProviderQuotaForecast    `json:"forecasts"`
-	WhyNot     []ProviderWhyNotMove       `json:"whyNot"`
+	ErrorRate  *float64                `json:"errorRate,omitempty"`
+	Codes      []string                `json:"codes"`
+	Operation  string                  `json:"operation"`
+	Streams    []ProviderOutageStream  `json:"streams"`
+	Forecasts  []ProviderQuotaForecast `json:"forecasts"`
+	WhyNot     []ProviderWhyNotMove    `json:"whyNot"`
 	Incidents  []ProviderIncidentEntry `json:"incidents"`
 }
 
@@ -319,44 +319,44 @@ type ProviderAwaitingMessage struct {
 
 // ProviderWebhooksSilent is the webhooks-silent banner and diagnosis.
 type ProviderWebhooksSilent struct {
-	ProviderID         string             `json:"providerId"`
-	Provider           string             `json:"provider"`
-	Short              string             `json:"short"`
-	Since              time.Time          `json:"since"`
-	Accepted           int64              `json:"accepted"`
-	Campaigns          []ProviderNamedCount       `json:"campaigns"`
-	BroadcastShareHeld bool               `json:"broadcastShareHeld"`
+	ProviderID         string                 `json:"providerId"`
+	Provider           string                 `json:"provider"`
+	Short              string                 `json:"short"`
+	Since              time.Time              `json:"since"`
+	Accepted           int64                  `json:"accepted"`
+	Campaigns          []ProviderNamedCount   `json:"campaigns"`
+	BroadcastShareHeld bool                   `json:"broadcastShareHeld"`
 	Checks             []ProviderWebhookCheck `json:"checks"`
-	Causes             []string           `json:"causes"`
+	Causes             []string               `json:"causes"`
 	// Hourly is events received per hour over the last 24 hours, oldest first.
-	Hourly      []int64           `json:"hourly"`
-	HourlyFrom  time.Time         `json:"hourlyFrom"`
+	Hourly      []int64                   `json:"hourly"`
+	HourlyFrom  time.Time                 `json:"hourlyFrom"`
 	Awaiting    []ProviderAwaitingMessage `json:"awaiting"`
-	CanBackfill bool              `json:"canBackfill"`
-	CanRegister bool              `json:"canRegister"`
-	CanSendTest bool              `json:"canSendTest"`
-	WebhookURL  string            `json:"webhookUrl"`
+	CanBackfill bool                      `json:"canBackfill"`
+	CanRegister bool                      `json:"canRegister"`
+	CanSendTest bool                      `json:"canSendTest"`
+	WebhookURL  string                    `json:"webhookUrl"`
 	// BroadcastPolicy explains why other providers don't take the held share.
 	BroadcastPolicy string `json:"broadcastPolicy" enum:"automatic,pause_and_ask,warm_only"`
 }
 
 // ProvidersOverview is the providers screen.
 type ProvidersOverview struct {
-	Summary   ProvidersSummary `json:"summary"`
-	Providers []ProviderCard   `json:"providers"`
-	Routing   []ProviderStreamRoute    `json:"routing"`
-	Outage    *ProviderOutage  `json:"outage,omitempty"`
-	Silent    *ProviderWebhooksSilent  `json:"silent,omitempty"`
+	Summary   ProvidersSummary        `json:"summary"`
+	Providers []ProviderCard          `json:"providers"`
+	Routing   []ProviderStreamRoute   `json:"routing"`
+	Outage    *ProviderOutage         `json:"outage,omitempty"`
+	Silent    *ProviderWebhooksSilent `json:"silent,omitempty"`
 	// ProviderAuthFailure is set when a provider rejects its credentials.
 	ProviderAuthFailure *ProviderAuthFailure `json:"authFailure,omitempty"`
 }
 
 // ProviderAuthFailure is the "a provider rejected our credentials" state.
 type ProviderAuthFailure struct {
-	ProviderID string         `json:"providerId"`
-	Provider   string         `json:"provider"`
-	Short      string         `json:"short"`
-	Down       ProviderDownState   `json:"down"`
-	Rerouted   int64          `json:"rerouted"`
+	ProviderID string                 `json:"providerId"`
+	Provider   string                 `json:"provider"`
+	Short      string                 `json:"short"`
+	Down       ProviderDownState      `json:"down"`
+	Rerouted   int64                  `json:"rerouted"`
 	Streams    []ProviderOutageStream `json:"streams"`
 }

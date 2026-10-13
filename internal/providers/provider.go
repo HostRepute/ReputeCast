@@ -47,9 +47,13 @@ type Capabilities struct {
 	DomainAPI       string     `json:"domainApi"` // "full", "dkim_only", ""
 	SuppressionSync bool       `json:"suppressionSync"`
 	BatchSize       int        `json:"batchSize"` // messages per API call; 1 = no batching
-	DedicatedIPs    string     `json:"dedicatedIps"`
-	Sandbox         string     `json:"sandbox"` // "detection", "test token", "mode", ""
-	QuotaDiscovery  bool       `json:"quotaDiscovery"`
+	// DedicatedIPs is the dedicated-IP option as capability badges and
+	// Deliverability show it ("optional, $24.95 per IP per month", "from
+	// 300k per month"); "" when the provider offers none. A connection on a
+	// dedicated IP (providers.ip_mode) shows as "Dedicated IP" instead.
+	DedicatedIPs   string `json:"dedicatedIps"`
+	Sandbox        string `json:"sandbox"` // "detection", "test token", "mode", ""
+	QuotaDiscovery bool   `json:"quotaDiscovery"`
 	// RateDiscovery is true when the API also reports the maximum send rate
 	// (SES: "Quota & rate discovery"; Postmark only reports quota).
 	RateDiscovery bool   `json:"rateDiscovery"`

@@ -175,7 +175,7 @@ GROUP BY kind ORDER BY 2 DESC, 1;
 -- Messages per stream over a window (volume estimates on the routing screen).
 SELECT stream, count(*)::bigint AS n
 FROM messages
-WHERE workspace_id = @workspace_id AND sent_at >= @since
+WHERE workspace_id = @workspace_id AND sent_at >= @since AND sent_at < @until
 GROUP BY stream;
 
 -- name: ProvBroadcastWeekly :one

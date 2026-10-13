@@ -3,6 +3,14 @@
 // pricing, limits, provider-side tracking) and the display helpers every
 // screen shares (short names, chart colours). It has no database access, so
 // routing, warm-up, ingest and the providers service can all use it.
+//
+// These types are a contract other workstreams read (Deliverability,
+// Overview, send readiness, the sending engine): fields keep their JSON
+// names and meanings and are only ever added. Percentages are plain
+// percent values (0.1 means 0.1%), money is US dollars, times are UTC.
+//
+// A provider whose providers.config holds "demo": true is sample data:
+// background jobs never call its API and the sending engine simulates it.
 package state
 
 import (
@@ -75,12 +83,16 @@ type CallRecord struct {
 
 // Quota is the provider's sending allowance.
 type Quota struct {
-	Kind string `json:"kind"` // rolling_24h, monthly_plan, warmup_daily
-	Max  int64  `json:"max"`
-	Used int64  `json:"used"`
+	// Kind is rolling_24h (SES), monthly_plan (Postmark) or warmup_daily
+	// (today's cap of a warm-up plan).
+	Kind string `json:"kind"`
+	// Max is the allowance in messages; Used is what was sent against it.
+	Max  int64 `json:"max"`
+	Used int64 `json:"used"`
 }
 
-// Rate is the send rate: the limit and what was used.
+// Rate is the send rate in messages per second: the limit (0 when the
+// provider publishes none) and what was used.
 type Rate struct {
 	Max       float64 `json:"max,omitempty"`
 	Now       float64 `json:"now"`
@@ -135,17 +147,24 @@ type WebhookState struct {
 
 // Health is the snapshot the health job writes into providers.health.
 type Health struct {
-	Quota               *Quota        `json:"quota,omitempty"`
-	Rate                *Rate         `json:"rate,omitempty"`
-	Account             string        `json:"account,omitempty"`
-	Sandbox             bool          `json:"sandbox,omitempty"`
-	ConsecutiveFailures int           `json:"consecutiveFailures,omitempty"`
-	LastSuccessAt       *time.Time    `json:"lastSuccessAt,omitempty"`
-	LastSuccessOp       string        `json:"lastSuccessOp,omitempty"`
-	LastError           *CallRecord   `json:"lastError,omitempty"`
-	RecentErrors        []CallRecord  `json:"recentErrors,omitempty"`
-	Down                *DownState    `json:"down,omitempty"`
-	Webhooks            *WebhookState `json:"webhooks,omitempty"`
+	Quota *Quota `json:"quota,omitempty"`
+	Rate  *Rate  `json:"rate,omitempty"`
+	// Account is the account standing as the provider reports it
+	// ("Production · no enforcement", "Approved · 10,000 per month plan").
+	Account string `json:"account,omitempty"`
+	// Sandbox is true while the account can only send to verified addresses.
+	Sandbox bool `json:"sandbox,omitempty"`
+	// ConsecutiveFailures counts failed health checks in a row.
+	ConsecutiveFailures int         `json:"consecutiveFailures,omitempty"`
+	LastSuccessAt       *time.Time  `json:"lastSuccessAt,omitempty"`
+	LastSuccessOp       string      `json:"lastSuccessOp,omitempty"`
+	LastError           *CallRecord `json:"lastError,omitempty"`
+	// RecentErrors are the last API failures, newest first (at most 10).
+	RecentErrors []CallRecord `json:"recentErrors,omitempty"`
+	// Down is set while the provider is down (outage or rejected credentials).
+	Down *DownState `json:"down,omitempty"`
+	// Webhooks is set once the health job has checked webhook freshness.
+	Webhooks *WebhookState `json:"webhooks,omitempty"`
 	// Version is the provider software version when it reports one
 	// (Postal's webhook User-Agent).
 	Version string `json:"version,omitempty"`
@@ -225,10 +244,14 @@ func LimitsOf(p store.Provider) Limits {
 
 // Tracking is the provider-side tracking found by the tracking check.
 type Tracking struct {
-	OpenPixel   bool   `json:"openPixel"`
-	LinkRewrite bool   `json:"linkRewrite"`
-	Detail      string `json:"detail,omitempty"`
-	Scope       string `json:"scope,omitempty"`
+	// OpenPixel and LinkRewrite are true when the provider adds its own open
+	// pixel or rewrites links (double tracking with ReputeCast's).
+	OpenPixel   bool `json:"openPixel"`
+	LinkRewrite bool `json:"linkRewrite"`
+	// Detail is what was found ("Open tracking on the default configuration
+	// set"); Scope is where (a configuration set, a message stream).
+	Detail string `json:"detail,omitempty"`
+	Scope  string `json:"scope,omitempty"`
 	// Mode is "reputecast" (ours, the default) or "provider" when a person
 	// chose to keep the provider's tracking and ignore ReputeCast's.
 	Mode      string     `json:"mode,omitempty"`

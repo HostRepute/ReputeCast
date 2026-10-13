@@ -150,7 +150,7 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 	if err := seedSuppressionsIfEmpty(ctx, s); err != nil {
 		return err
 	}
-	if err := seedStreamMessages(ctx, s); err != nil {
+	if err := seedStreamMessages(ctx, s, loc); err != nil {
 		return err
 	}
 	if err := seedEventLog(ctx, s, linh.ID); err != nil {
@@ -174,7 +174,7 @@ func insertProvider(ctx context.Context, s *Seeder, id, wsID uuid.UUID, p demoPr
 	if ips == nil {
 		ips = []string{}
 	}
-	creds, err := s.Box.Seal([]byte(`{"demo":"sample credentials, never sent"}`), "provider:"+id.String()+":credentials")
+	creds, err := s.Box.Seal(demoCredentials(p.adapter), "provider:"+id.String()+":credentials")
 	if err != nil {
 		return err
 	}
@@ -301,47 +301,38 @@ func seedDailyStats(ctx context.Context, s *Seeder, loc *time.Location, sched []
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	monthStart := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, time.UTC)
 	days := int(today.Sub(monthStart).Hours()/24) + 1
+	weekStart := today.AddDate(0, 0, -6)
 	type spec struct {
 		id                uuid.UUID
 		month             int64
-		bounce, complaint float64 // percent
+		bounce, complaint float64 // percent over the last seven days
 		errRate           float64 // percent of API calls
 		perCall           int64   // messages per API call
 		costMicros        int64
-		weekly            bool // spread evenly; Postal comes from the warm-up
 	}
 	specs := []spec{
-		{s.Providers["ses"], 131604, 0.6, 0.04, 0.1, 1, 14620000, true},
-		{s.Providers["postmark"], 3412, 0.2, 0.01, 0, 50, 0, true},
+		{s.Providers["ses"], 131604, 0.6, 0.04, 0.1, 1, 14620000},
+		{s.Providers["postmark"], 3412, 0.2, 0.01, 0, 50, 0},
 	}
 	for _, sp := range specs {
 		weights := make([]float64, days)
 		for i := range weights {
 			weights[i] = 1
 		}
-		// Last week gets the rate-bearing volume even early in the month.
 		sent := Split(sp.month, weights)
 		cost := Split(sp.costMicros, weights)
-		// Rates over the last seven days need volume on those days too.
-		for back := 0; back < 7; back++ {
-			day := today.AddDate(0, 0, -back)
-			var n, c int64
-			if !day.Before(monthStart) {
-				idx := int(day.Sub(monthStart).Hours() / 24)
-				n, c = sent[idx], cost[idx]
-			} else {
-				n = sp.month / int64(max(days, 7))
-			}
-			if err := insertDaily(ctx, s, sp.id, day, n, sp.bounce, sp.complaint, sp.errRate, sp.perCall, c); err != nil {
-				return err
-			}
-		}
+		rows := make([]dailyRow, 0, days+7)
 		for i := 0; i < days; i++ {
-			day := monthStart.AddDate(0, 0, i)
-			if today.Sub(day) < 7*24*time.Hour {
-				continue
-			}
-			if err := insertDaily(ctx, s, sp.id, day, sent[i], sp.bounce, sp.complaint, sp.errRate, sp.perCall, cost[i]); err != nil {
+			rows = append(rows, dailyRow{day: monthStart.AddDate(0, 0, i), sent: sent[i], cost: cost[i]})
+		}
+		// Early in a month the last week reaches into the previous one,
+		// which needs volume too for the 7-day rates.
+		for d := weekStart; d.Before(monthStart); d = d.AddDate(0, 0, 1) {
+			rows = append(rows, dailyRow{day: d, sent: sp.month / int64(max(days, 7))})
+		}
+		spreadOutcomes(rows, weekStart, sp.bounce, sp.complaint)
+		for _, r := range rows {
+			if err := insertDaily(ctx, s, sp.id, r, sp.errRate, sp.perCall); err != nil {
 				return err
 			}
 		}
@@ -350,7 +341,10 @@ func seedDailyStats(ctx context.Context, s *Seeder, loc *time.Location, sched []
 	postal := s.Providers["postal"]
 	startDay := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC)
 	for i, d := range postalDays {
-		if err := insertDaily(ctx, s, postal, startDay.AddDate(0, 0, i), d.sent, d.bounce, d.complaint, 0.4, 1, 0); err != nil {
+		r := dailyRow{day: startDay.AddDate(0, 0, i), sent: d.sent}
+		r.bounced = int64(math.Round(float64(d.sent) * d.bounce / 100))
+		r.complained = int64(math.Round(float64(d.sent-r.bounced) * d.complaint / 100))
+		if err := insertDaily(ctx, s, postal, r, 0.4, 1); err != nil {
 			return err
 		}
 	}
@@ -358,12 +352,45 @@ func seedDailyStats(ctx context.Context, s *Seeder, loc *time.Location, sched []
 	return nil
 }
 
-func insertDaily(ctx context.Context, s *Seeder, provider uuid.UUID, day time.Time, sent int64, bounce, complaint, errRate float64, perCall, cost int64) error {
-	bounced := int64(math.Round(float64(sent) * bounce / 100))
-	delivered := sent - bounced
-	complained := int64(math.Round(float64(delivered) * complaint / 100))
-	calls := max(sent/max(perCall, 1), 0)
-	if calls == 0 && sent > 0 {
+// dailyRow is one provider_daily_stats row of the demo.
+type dailyRow struct {
+	day                       time.Time
+	sent, bounced, complained int64
+	cost                      int64
+}
+
+// spreadOutcomes sets bounces and complaints so the rows from weekStart on
+// add up to exactly the given rates (percent); older rows get the same
+// rates rounded per day.
+func spreadOutcomes(rows []dailyRow, weekStart time.Time, bounce, complaint float64) {
+	var weekSent int64
+	var idx []int
+	var weights []float64
+	for i, r := range rows {
+		if r.day.Before(weekStart) {
+			rows[i].bounced = int64(math.Round(float64(r.sent) * bounce / 100))
+			rows[i].complained = int64(math.Round(float64(r.sent-rows[i].bounced) * complaint / 100))
+			continue
+		}
+		idx = append(idx, i)
+		weights = append(weights, float64(r.sent))
+		weekSent += r.sent
+	}
+	bounced := Split(int64(math.Round(float64(weekSent)*bounce/100)), weights)
+	var weekBounced int64
+	for _, b := range bounced {
+		weekBounced += b
+	}
+	complained := Split(int64(math.Round(float64(weekSent-weekBounced)*complaint/100)), weights)
+	for j, i := range idx {
+		rows[i].bounced, rows[i].complained = bounced[j], complained[j]
+	}
+}
+
+func insertDaily(ctx context.Context, s *Seeder, provider uuid.UUID, r dailyRow, errRate float64, perCall int64) error {
+	delivered := r.sent - r.bounced
+	calls := max(r.sent/max(perCall, 1), 0)
+	if calls == 0 && r.sent > 0 {
 		calls = 1
 	}
 	errs := int64(math.Round(float64(calls) * errRate / 100))
@@ -371,7 +398,7 @@ func insertDaily(ctx context.Context, s *Seeder, provider uuid.UUID, day time.Ti
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 		ON CONFLICT (provider_id, day) DO UPDATE SET sent = EXCLUDED.sent, delivered = EXCLUDED.delivered, bounced = EXCLUDED.bounced,
 		complained = EXCLUDED.complained, api_calls = EXCLUDED.api_calls, api_errors = EXCLUDED.api_errors, cost_micros = EXCLUDED.cost_micros`,
-		provider, day, sent, delivered, bounced, complained, calls, errs, cost)
+		provider, r.day, r.sent, delivered, r.bounced, r.complained, calls, errs, r.cost)
 	return err
 }
 
@@ -424,20 +451,31 @@ func seedSuppressionsIfEmpty(ctx context.Context, s *Seeder) error {
 	return nil
 }
 
-// seedStreamMessages adds a week of Automations and System mail, so the
-// routing screen shows each stream's volume ("about 1,900 per day").
-func seedStreamMessages(ctx context.Context, s *Seeder) error {
+// seedStreamMessages adds Automations and System mail for each of the last
+// seven whole days and today so far, so the routing screen shows each
+// stream's volume ("about 1,900 per day") all day long.
+func seedStreamMessages(ctx context.Context, s *Seeder, loc *time.Location) error {
 	ws := s.WS()
 	ses, postmark := s.Providers["ses"], s.Providers["postmark"]
 	kinds := []string{"double_opt_in", "double_opt_in", "double_opt_in", "preference_link", "invite"}
-	rows := make([][]any, 0, 7*2020)
-	for d := 0; d < 7; d++ {
+	now := s.Now.In(loc)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+	rows := make([][]any, 0, 8*2020)
+	for d := 0; d <= 7; d++ {
+		day, next := today.AddDate(0, 0, -d), today.AddDate(0, 0, 1-d)
+		in := func(at time.Time) bool { return at.Before(next) && !at.After(s.Now) }
 		for i := 0; i < 1900; i++ {
-			at := s.Ago(time.Duration(d)*24*time.Hour + time.Duration(i)*45*time.Second + time.Hour)
+			at := day.Add(5*time.Minute + time.Duration(i)*45*time.Second)
+			if !in(at) {
+				break
+			}
 			rows = append(rows, []any{ID(), ws.ID, "automation", fmt.Sprintf("subscriber%05d@example.com", (d*1900+i)%9973), &ses, "delivered", at, at, at, "", routingMailbox(i)})
 		}
 		for i := 0; i < 120; i++ {
-			at := s.Ago(time.Duration(d)*24*time.Hour + time.Duration(i)*11*time.Minute + 2*time.Hour)
+			at := day.Add(2*time.Hour + time.Duration(i)*11*time.Minute)
+			if !in(at) {
+				break
+			}
 			rows = append(rows, []any{ID(), ws.ID, "system", fmt.Sprintf("new.reader%04d@example.com", d*120+i), &postmark, "delivered", at, at, at, kinds[i%len(kinds)], routingMailbox(i)})
 		}
 	}
@@ -585,4 +623,20 @@ func seedProviderDKIM(ctx context.Context, s *Seeder) error {
 	b, _ := json.Marshal(recs)
 	_, err = s.Tx.Exec(ctx, `UPDATE sending_domains SET dns_records = $2 WHERE id = $1`, domainID, b)
 	return err
+}
+
+// demoCredentials fills every secret field of the adapter with a sample
+// value, so the Settings dialog shows them as set. Demo providers never
+// call the provider, so the values are never sent anywhere.
+func demoCredentials(adapter string) []byte {
+	m := map[string]any{"demo": "sample credentials, never sent"}
+	if d, ok := providers.Lookup(adapter); ok {
+		for _, f := range d.Fields {
+			if f.Secret {
+				m[f.Key] = "demo-" + f.Key
+			}
+		}
+	}
+	b, _ := json.Marshal(m)
+	return b
 }

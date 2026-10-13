@@ -155,7 +155,7 @@ func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, i
 
 // ProviderSettingsInput changes a provider's label, pricing and limits.
 type ProviderSettingsInput struct {
-	Label   *string            `json:"label,omitempty" maxLength:"120"`
+	Label   *string               `json:"label,omitempty" maxLength:"120"`
 	Pricing *ProviderPricingInput `json:"pricing,omitempty"`
 	Limits  *ProviderLimitsInput  `json:"limits,omitempty"`
 }
