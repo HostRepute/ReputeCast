@@ -1797,6 +1797,11 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  /* Without the sweep the highlight would sit still at each block's left
+     edge; the boards' skeletons are flat. */
+  .sk.shimmer {
+    background-image: none;
+  }
 }
 
 /* Toasts (Feedback board): bottom-left, one at a time, 6 s, undo where safe. */
