@@ -16,6 +16,7 @@ import { ComposerCtx, type ABTest, type Campaign, type Checks, type ComposerCtxD
 import { Dialogs } from './Dialogs'
 import { trackChanges, type ChangeTracker } from './editor/changes'
 import { createComposerEditor, type ComposerEditor, type DeviceId } from './editor/grapes'
+import { atPath } from './editor/labels'
 import { canvasHead, isEmptyBody, joinMjml, splitMjml, withHeadMeta } from './editor/mjmlDoc'
 import { Footer } from './Footer'
 import { Header, PermissionBanner } from './Header'
@@ -29,6 +30,10 @@ export interface ComposerSearch {
   view?: View
   device?: DeviceId
   variant?: string
+  /** Component to select once the canvas is ready (element path from mj-body, "1-0-0"). */
+  select?: string
+  panel?: 'style' | 'settings' | 'deliverability'
+  left?: 'blocks' | 'layers' | 'templates'
 }
 
 const BACKUP_KEY = (id: string) => `rc-composer-backup:${id}`
@@ -79,8 +84,10 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
   const [checks, setChecks] = useState<Checks>()
   const [checksPending, setChecksPending] = useState(false)
   const [checksNonce, setChecksNonce] = useState(0)
-  const [rightTab, setRightTab] = useState<'style' | 'settings' | 'deliverability'>('style')
-  const [leftTab, setLeftTab] = useState<'blocks' | 'layers' | 'templates'>('blocks')
+  const [rightTab, setRightTab] = useState<'style' | 'settings' | 'deliverability'>(search.panel ?? 'style')
+  const [leftTab, setLeftTab] = useState<'blocks' | 'layers' | 'templates'>(search.left ?? 'blocks')
+  // A deep link selects its component once the canvas is ready.
+  const deepLink = useRef(search.select)
   const [dialog, setDialog] = useState<ComposerDialog>(null)
   const [savedCard, setSavedCard] = useState<{ version: number; at: string; template?: string } | null>(null)
   const [darkCanvas, setDarkCanvas] = useState(false)
@@ -143,6 +150,15 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
           ed.getWrapper()?.onAll((c: Component) => c.set({ draggable: false, droppable: false, editable: false, removable: false, copyable: false }))
         }
         setGe(inst)
+        const link = deepLink.current
+        if (link) {
+          deepLink.current = undefined
+          const target = atPath(ed.getWrapper()?.findType('mj-body')[0], link.split('-').map(Number))
+          if (target) {
+            ed.select(target)
+            window.setTimeout(() => target.getEl()?.scrollIntoView({ block: 'center' }), 200)
+          }
+        }
         if (pendingSource.current) markDirty()
       })
       .catch((e: unknown) => {

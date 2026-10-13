@@ -122,7 +122,8 @@ interface CompileState {
 
 function Pane({ title, aside, dark, children }: { title: string; aside: string; dark?: boolean; children: ReactNode }) {
   return (
-    <div className={dark ? 'cmp-code' : 'cmp-html'} style={{ flex: dark ? '1 1 420px' : '1 1 380px' }}>
+    // Flex bases include the 18 px side padding, as the board's content-box panes: they stack below about 870 px.
+    <div className={dark ? 'cmp-code' : 'cmp-html'} style={{ flex: dark ? '1 1 456px' : '1 1 416px' }}>
       <div className="flex items-center justify-between gap-3" style={{ marginBottom: 10 }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: dark ? '#9CA3AF' : 'var(--ink-3)' }}>{title}</span>
         <span className={dark ? undefined : 'k'} style={dark ? { fontSize: 11, color: '#9CA3AF' } : undefined}>
