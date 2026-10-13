@@ -234,7 +234,7 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 		}
 		summary := fmt.Sprintf("%s recipients · %s", readiness.Count(snap.AudienceCount), strings.ReplaceAll(rulesLine(rules), " · ", ", "))
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "approval.requested", TargetType: "campaign", TargetID: campaignID.String(), TargetName: c.Name,
-			After: map[string]any{"status": "pending", "rules": ruleKeys(rules), "version": c.Version, "audience": snap.AudienceCount},
+			After:    map[string]any{"status": "pending", "rules": ruleKeys(rules), "version": c.Version, "audience": snap.AudienceCount},
 			Metadata: map[string]any{"summary": summary, "detail": readiness.Count(snap.AudienceCount) + " recipients", "request_id": id.String(), "permission": "campaigns:edit"}}); err != nil {
 			return err
 		}

@@ -168,7 +168,9 @@ func (b *builder) editor(path []int, panel string) string {
 	return u
 }
 
-func link(label, href string) ReadinessFix { return ReadinessFix{Kind: "link", Label: label, Href: href} }
+func link(label, href string) ReadinessFix {
+	return ReadinessFix{Kind: "link", Label: label, Href: href}
+}
 
 func apply(action, label, tone string, params map[string]string) ReadinessFix {
 	return ReadinessFix{Kind: "apply", Action: action, Label: label, Tone: tone, Params: params}
@@ -267,8 +269,8 @@ func (b *builder) reputation() {
 			b.add(ReadinessCheck{Key: key, Group: GroupReputation, Status: status,
 				Title:  fmt.Sprintf("%s is listed on %d of %d domain blocklists", domain, len(listed), r.Sources),
 				Detail: listingSentence(listed[0]) + " " + impactSentence(listed[0].Impact, "domain"), Label: "Domain blocklists",
-				Ack:    fmt.Sprintf("I understand %s is listed on %s.", domain, JoinAnd(names)),
-				Fixes:  []ReadinessFix{link("Request delisting", b.href("/deliverability"))}})
+				Ack:   fmt.Sprintf("I understand %s is listed on %s.", domain, JoinAnd(names)),
+				Fixes: []ReadinessFix{link("Request delisting", b.href("/deliverability"))}})
 		}
 	}
 	// Dedicated IPs of the providers carrying the send.
@@ -297,7 +299,7 @@ func (b *builder) reputation() {
 				b.add(ReadinessCheck{Key: key, Group: GroupReputation, Status: Pass,
 					Title:  fmt.Sprintf("%s IP %s is clean on %d of %d IP blocklists", s.Name, ip, r.Sources, r.Sources),
 					Detail: strings.TrimPrefix(b.sourcesLine("ip")+checked, " · "), Label: "IP blocklists",
-					Short:  fmt.Sprintf("%s clean on %d of %d blocklists", ip, r.Sources, r.Sources)})
+					Short: fmt.Sprintf("%s clean on %d of %d blocklists", ip, r.Sources, r.Sources)})
 			default:
 				status := Warn
 				for _, l := range listed {
@@ -316,8 +318,8 @@ func (b *builder) reputation() {
 				b.add(ReadinessCheck{Key: key, Group: GroupReputation, Status: status,
 					Title:  fmt.Sprintf("%s IP %s is listed on %d of %d IP blocklists", s.Name, ip, len(listed), r.Sources),
 					Detail: detail, Label: "IP blocklists",
-					Ack:    fmt.Sprintf("I understand the %s IP is listed on %s, a %s-impact list.", s.Name, shortSource(listed[0].Source), listed[0].Impact),
-					Fixes:  fixes})
+					Ack:   fmt.Sprintf("I understand the %s IP is listed on %s, a %s-impact list.", s.Name, shortSource(listed[0].Source), listed[0].Impact),
+					Fixes: fixes})
 			}
 		}
 	}
@@ -595,7 +597,7 @@ func (b *builder) authentication() {
 		b.add(ReadinessCheck{Key: "auth.mail_from", Group: GroupAuthentication, Status: Warn,
 			Title:  fmt.Sprintf("%s %s the default MAIL FROM, so SPF doesn't align with %s", JoinAnd(bad), verb, domain),
 			Detail: "DMARC still passes through DKIM. A custom MAIL FROM (return path) on your domain aligns SPF too.", Label: "MAIL FROM",
-			Ack:    "I understand SPF doesn't align for " + JoinAnd(bad) + ".", Fixes: []ReadinessFix{link("Open senders & domains", senders)}})
+			Ack: "I understand SPF doesn't align for " + JoinAnd(bad) + ".", Fixes: []ReadinessFix{link("Open senders & domains", senders)}})
 	}
 	// BIMI.
 	if a.BIMIStatus == "pass" {
@@ -603,7 +605,7 @@ func (b *builder) authentication() {
 	} else {
 		b.add(ReadinessCheck{Key: "auth.bimi", Group: GroupAuthentication, Status: Pass, Title: "BIMI not required",
 			Detail: "Optional. No record found; only affects logo display in Gmail, Yahoo and Apple Mail.", Label: "BIMI",
-			Fixes:  []ReadinessFix{link("Set up BIMI", b.href("/deliverability"))}})
+			Fixes: []ReadinessFix{link("Set up BIMI", b.href("/deliverability"))}})
 	}
 }
 
@@ -759,7 +761,7 @@ func (b *builder) content() {
 		ptKB := int(math.Max(1, math.Round(float64(len(r.PlainText))/1024)))
 		b.add(ReadinessCheck{Key: "content.plain_text", Group: GroupContent, Status: Pass, Title: "Plain-text version generated",
 			Detail: fmt.Sprintf("multipart/alternative · %d KB", ptKB), Label: "Plain text", Short: "plain-text generated",
-			Fixes:  []ReadinessFix{link("Preview", b.href("/campaigns/"+b.f.Campaign.ID+"/edit?view=preview"))}})
+			Fixes: []ReadinessFix{link("Preview", b.href("/campaigns/"+b.f.Campaign.ID+"/edit?view=preview"))}})
 	} else {
 		b.add(ReadinessCheck{Key: "content.plain_text", Group: GroupContent, Status: Warn, Title: "The plain-text version is empty",
 			Detail: "The email has no text, so the text/plain part is blank. Add a sentence that says what the images show.", Label: "Plain text",
@@ -942,7 +944,7 @@ func (b *builder) links() {
 		}
 		c := ReadinessCheck{Key: "links.shortener", Group: GroupLinks, Status: Warn, Title: title,
 			Detail: "Shorteners are often on URI blocklists and hide the destination.", Label: "URL shortener",
-			Ack:    fmt.Sprintf("I understand %d %s through a URL shortener.", len(short), Plural(int64(len(short)), "link goes", "links go"))}
+			Ack: fmt.Sprintf("I understand %d %s through a URL shortener.", len(short), Plural(int64(len(short)), "link goes", "links go"))}
 		final := ""
 		for _, l := range r.LinkList {
 			if l.URL == first.URL && l.Final != "" {
@@ -1250,7 +1252,7 @@ func (b *builder) routing() {
 		}
 		c := ReadinessCheck{Key: "routing.health", Group: GroupRouting, Status: Pass, Title: "Every route has a healthy provider", Label: "Route health",
 			Detail: strings.Join(parts, " · ") + " · failover: " + policyWords(rt.Policy), Short: "every route healthy",
-			Fixes:  []ReadinessFix{link("Edit route", routes)}}
+			Fixes: []ReadinessFix{link("Edit route", routes)}}
 		if len(shares) == 1 {
 			c.Title = "The route has a healthy provider"
 		}

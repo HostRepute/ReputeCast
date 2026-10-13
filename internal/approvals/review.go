@@ -296,4 +296,3 @@ func (s *Service) reviewApproval(ctx context.Context, ws *store.Workspace, p *au
 	out.CanBypass = out.Required && p.RoleKey == authz.RoleOwner && policy.EmergencyBypass && p.IsHuman()
 	return out, nil
 }
-

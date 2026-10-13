@@ -313,15 +313,15 @@ type ApprovalCan struct {
 // ApprovalDetail is the approval review screen.
 type ApprovalDetail struct {
 	ApprovalRequestView
-	Name       string                 `json:"name"`
-	Author     ApprovalPerson         `json:"author"`
-	Approvers  []ApprovalPerson       `json:"approvers"`
-	Campaign   *ApprovalCampaignView  `json:"campaign,omitempty"`
-	Readiness  *ApprovalReadinessView `json:"readiness,omitempty"`
-	Audience   *ApprovalAudienceView  `json:"audience,omitempty"`
-	Route      *ApprovalRouteView     `json:"route,omitempty"`
-	Schedule   *ApprovalScheduleView  `json:"schedule,omitempty"`
-	Automation *ApprovalAutomationSnapshot    `json:"automation,omitempty"`
+	Name       string                      `json:"name"`
+	Author     ApprovalPerson              `json:"author"`
+	Approvers  []ApprovalPerson            `json:"approvers"`
+	Campaign   *ApprovalCampaignView       `json:"campaign,omitempty"`
+	Readiness  *ApprovalReadinessView      `json:"readiness,omitempty"`
+	Audience   *ApprovalAudienceView       `json:"audience,omitempty"`
+	Route      *ApprovalRouteView          `json:"route,omitempty"`
+	Schedule   *ApprovalScheduleView       `json:"schedule,omitempty"`
+	Automation *ApprovalAutomationSnapshot `json:"automation,omitempty"`
 	// ChangesSince lists what changed since the previous request this one
 	// follows (empty for a first request).
 	ChangesSince []ApprovalChange `json:"changesSince"`

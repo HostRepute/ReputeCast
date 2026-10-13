@@ -271,7 +271,7 @@ func (s *Service) store(ctx context.Context, ws *store.Workspace, c store.Readin
 			actor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name, Actor: actor,
-			After: map[string]any{"verdict": run.Verdict, "passed": run.Counts.Passed, "warnings": run.Counts.Warnings, "blocks": run.Counts.Blocks, "unknown": run.Counts.Unknown},
+			After:    map[string]any{"verdict": run.Verdict, "passed": run.Counts.Passed, "warnings": run.Counts.Warnings, "blocks": run.Counts.Blocks, "unknown": run.Counts.Unknown},
 			Metadata: map[string]any{"run_id": run.ID, "trigger": run.Trigger, "version": c.Version}})
 	})
 }
