@@ -3,6 +3,7 @@ import { useNavigate, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
+import { ForbiddenState } from '@/components/shell/SystemScreens'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
@@ -14,7 +15,7 @@ import { toast } from '@/components/ui/Toast'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { auditTime, count, monthDayTimeSeconds } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
-import { deniedReason, useCan, useMe, useWorkspace } from '@/lib/session'
+import { useCan, useMe, useWorkspace } from '@/lib/session'
 import type { AuditSearch } from '@/routes/w/$workspace/_app/settings/audit'
 import { AccessTable, copyText } from '../access/parts'
 import { AuditStreamDialog } from './AuditStreamDialog'
@@ -63,9 +64,7 @@ export function AuditPage({ search }: { search: AuditSearch }) {
   return (
     <Page title="Settings" tabs={settingsTabs(slug)}>
       {!can ? (
-        <Note tone="neutral" label="Read-only">
-          {deniedReason('audit:view')}
-        </Note>
+        <ForbiddenState permission="audit:view" title="Your role can't view the audit log" />
       ) : (
         <>
           <TopBar list={first} filters={filters} />

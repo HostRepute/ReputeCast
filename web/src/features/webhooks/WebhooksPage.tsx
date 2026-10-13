@@ -2,17 +2,17 @@ import { keepPreviousData, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState, type Ref } from 'react'
 import { $api, errorMessage, http } from '@/api/client'
 import { Page } from '@/components/shell/Page'
+import { ForbiddenState } from '@/components/shell/SystemScreens'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { CardSection } from '@/components/ui/Card'
 import { ErrorPanel } from '@/components/ui/Feedback'
-import { Note } from '@/components/ui/Note'
 import { EmptyRow, Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { clock, clockSeconds, count, dayMonthDate, logTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
-import { deniedReason, useCan, useWorkspace } from '@/lib/session'
+import { useCan, useWorkspace } from '@/lib/session'
 import { DashedEmpty, TableSkeleton } from '../keys/parts'
 import { DeliveryDialog } from './DeliveryDialog'
 import { attemptsText, endpointText, eventText, hostOf, responseBadge, statusBadge, successText, type Delivery, type Webhook } from './parts'
@@ -42,11 +42,9 @@ export function WebhooksPage() {
         </>
       }
     >
-      <MovedCard />
+      {can ? <MovedCard /> : null}
       {!can ? (
-        <Note tone="neutral" label="Read-only">
-          {deniedReason('webhooks:manage')}
-        </Note>
+        <ForbiddenState permission="webhooks:manage" title="Your role can't manage webhooks" />
       ) : q.isError ? (
         <ErrorPanel title="Couldn't load the webhooks" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
           {errorMessage(q.error)}

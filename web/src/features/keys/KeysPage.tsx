@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
+import { ForbiddenState } from '@/components/shell/SystemScreens'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { CardSection } from '@/components/ui/Card'
@@ -43,12 +44,8 @@ export function KeysPage() {
         ) : null
       }
     >
-      {!canKeys && !canAgents ? (
-        <Note tone="neutral" label="Read-only">
-          {deniedReason('apikeys:manage')} MCP agents need <span className="mono">mcp:manage</span>. Keys and agents never get more than their creator holds.
-        </Note>
-      ) : null}
-      {canKeys ? (
+      {!canKeys && !canAgents ? <ForbiddenState permission="apikeys:manage" title="Your role can't manage API keys or MCP agents" /> : null}
+      {!canKeys && !canAgents ? null : canKeys ? (
         <KeysCard q={keys} onCreate={() => setCreate('api_key')} onAction={(k, action) => setAct({ k, action })} />
       ) : (
         <Note tone="neutral">{deniedReason('apikeys:manage')}</Note>

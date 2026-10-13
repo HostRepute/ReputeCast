@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
+import { ForbiddenState } from '@/components/shell/SystemScreens'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
@@ -13,7 +14,7 @@ import { toast } from '@/components/ui/Toast'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { logTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
-import { deniedReason, useWorkspace } from '@/lib/session'
+import { useWorkspace } from '@/lib/session'
 import { CreateKeyDialog } from './CreateKeyDialog'
 import { KeySecretDialog } from './KeySecretDialog'
 import { DashedEmpty, TableSkeleton } from './parts'
@@ -60,9 +61,7 @@ export function McpPage() {
       }
     >
       {!can ? (
-        <Note tone="neutral" label="Read-only">
-          {deniedReason('mcp:manage')}
-        </Note>
+        <ForbiddenState permission="mcp:manage" title="Your role can't manage MCP agents" />
       ) : q.isError ? (
         <ErrorPanel title="Couldn't load the MCP server settings" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
           {errorMessage(q.error)}

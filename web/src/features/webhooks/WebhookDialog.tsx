@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
@@ -55,6 +56,7 @@ export function WebhookDialog({
   const [picked, setPicked] = useState<string[]>(webhook?.events ?? [])
   const [error, setError] = useState<{ field?: string; message: string }>()
   const [busy, setBusy] = useState<string>()
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const create = $api.useMutation('post', '/api/v1/workspaces/{workspace}/webhooks')
   const update = $api.useMutation('put', '/api/v1/workspaces/{workspace}/webhooks/{webhookId}')
   const refresh = () => {
@@ -102,7 +104,7 @@ export function WebhookDialog({
       )
     }
   }
-  const act = async (what: 'test' | 'rotate' | 'pause' | 'resume' | 'delete') => {
+  const act = async (what: 'test' | 'rotate' | 'pause' | 'resume') => {
     if (!webhook) return
     setBusy(what)
     setError(undefined)
@@ -119,13 +121,9 @@ export function WebhookDialog({
       } else if (what === 'rotate') {
         const r = (await http.POST('/api/v1/workspaces/{workspace}/webhooks/{webhookId}/rotate-secret', path)).data!
         onSecret(r.secret, webhook, 'rotated')
-      } else if (what === 'pause' || what === 'resume') {
+      } else {
         await http.POST(what === 'pause' ? '/api/v1/workspaces/{workspace}/webhooks/{webhookId}/pause' : '/api/v1/workspaces/{workspace}/webhooks/{webhookId}/resume', path)
         toast({ title: what === 'pause' ? 'Endpoint paused' : 'Endpoint resumed', detail: what === 'pause' ? 'events are held until you resume it' : 'held events are delivered in order' })
-        onClose()
-      } else {
-        await http.DELETE('/api/v1/workspaces/{workspace}/webhooks/{webhookId}', path)
-        toast({ kind: 'deleted', title: 'Endpoint deleted', detail: 'queued events for it were dropped' })
         onClose()
       }
       refresh()
@@ -153,7 +151,7 @@ export function WebhookDialog({
       footer={
         <>
           {webhook ? (
-            <Button variant="danger" className="mr-auto" loading={busy === 'delete'} onClick={() => void act('delete')}>
+            <Button variant="danger" className="mr-auto" onClick={() => setConfirmDelete(true)}>
               Delete endpoint
             </Button>
           ) : null}
@@ -270,6 +268,26 @@ export function WebhookDialog({
         <Note tone="bad" label="Not saved">
           {error.message}
         </Note>
+      ) : null}
+      {webhook && confirmDelete ? (
+        <ConfirmDialog
+          open
+          onOpenChange={setConfirmDelete}
+          tone="bad"
+          badge="Delete endpoint"
+          title={`Delete ${hostOf(webhook.url)}?`}
+          description={`ReputeCast stops sending ${webhook.events.join(', ')} to this URL. ${
+            webhook.queued ? `${count(webhook.queued)} queued ${webhook.queued === 1 ? 'event is' : 'events are'} dropped. ` : ''
+          }The delivery log and the audit log keep its history.`}
+          confirmLabel="Delete endpoint"
+          busyLabel="Deleting…"
+          onConfirm={async () => {
+            await http.DELETE('/api/v1/workspaces/{workspace}/webhooks/{webhookId}', { params: { path: { workspace: slug, webhookId: webhook.id } } })
+            toast({ kind: 'deleted', title: 'Endpoint deleted', detail: 'logged as webhook.deleted' })
+            refresh()
+            onClose()
+          }}
+        />
       ) : null}
     </Dialog>
   )

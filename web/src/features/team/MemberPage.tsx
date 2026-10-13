@@ -1,14 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Fragment, useState } from 'react'
-import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
+import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge, SensitiveFlag } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { CardSection } from '@/components/ui/Card'
 import { KeyValues } from '@/components/ui/Data'
-import { Dialog } from '@/components/ui/Dialog'
+import { ConfirmDialog, DialogRow } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { EmptyRow, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
@@ -385,50 +385,35 @@ function RemoveDialog({ member, keys, open, onOpenChange }: { member: Schemas['T
   const { slug, me } = useWorkspace()
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const remove = $api.useMutation('delete', '/api/v1/workspaces/{workspace}/members/{memberId}')
   return (
-    <Dialog
+    <ConfirmDialog
       open={open}
       onOpenChange={onOpenChange}
-      eyebrow={<span className="k">Dialog · remove member</span>}
+      tone="bad"
+      badge="Remove member"
       title={`Remove ${member.name} from ${me.workspace.name}?`}
-      description={<span className="text-[13.5px]">The membership is deleted; the audit log still names them. Deactivating instead keeps the membership so they can come back.</span>}
-      hideClose
-      footer={
-        <>
-          <Button onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button
-            variant="danger-primary"
-            loading={remove.isPending}
-            onClick={() =>
-              remove.mutate(
-                { params: { path: { workspace: slug, memberId: member.id } } },
-                {
-                  onSuccess: () => {
-                    toast({ kind: 'deleted', title: `${member.name} removed` })
-                    void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members'] })
-                    void navigate({ to: '/w/$workspace/settings/team', params: { workspace: slug } })
-                  },
-                  onError: (e) => toast({ kind: 'error', title: `Couldn't remove ${member.name}`, detail: errorMessage(e) }),
-                },
-              )
-            }
-          >
-            Remove {member.name.split(' ')[0]}
-          </Button>
-        </>
-      }
+      description="The membership is deleted; the audit log still names them. Deactivating instead keeps the membership so they can come back."
+      confirmLabel={`Remove ${member.name.split(' ')[0]}`}
+      busyLabel="Removing…"
+      onConfirm={async () => {
+        await http.DELETE('/api/v1/workspaces/{workspace}/members/{memberId}', { params: { path: { workspace: slug, memberId: member.id } } })
+        toast({ kind: 'deleted', title: `${member.name} removed`, detail: 'logged as member.removed' })
+        void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members'] })
+        void navigate({ to: '/w/$workspace/settings/team', params: { workspace: slug } })
+      }}
     >
-      <ul className="m-0 flex list-disc flex-col gap-1 pl-[18px] text-[13.5px] text-ink-nav">
-        <li>Loses access to {me.workspace.name} at once; other workspaces are unaffected</li>
-        {keys > 0 ? (
-          <li>
-            {keys} API {keys === 1 ? 'key or agent they created is' : 'keys or agents they created are'} revoked
-          </li>
-        ) : null}
-        <li>Campaigns, templates and approvals they made stay in the workspace</li>
-      </ul>
-    </Dialog>
+      <DialogRow tone="bad" label="Access" first>
+        Loses access to {me.workspace.name} at once; other workspaces are unaffected
+      </DialogRow>
+      {keys > 0 ? (
+        <DialogRow tone="bad" label="Keys">
+          {keys} API {keys === 1 ? 'key or agent they created is' : 'keys or agents they created are'} revoked
+        </DialogRow>
+      ) : null}
+      <DialogRow tone="ok" label="Keeps">
+        Campaigns, templates and approvals they made stay in the workspace
+      </DialogRow>
+    </ConfirmDialog>
   )
 }
 

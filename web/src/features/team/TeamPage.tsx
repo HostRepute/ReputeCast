@@ -6,11 +6,12 @@ import { Page } from '@/components/shell/Page'
 import { GoogleMark } from '@/components/icons/Icon'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
+import { BulkResultDialog } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { EmptyRow, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
-import { ago, inDays, monthDay, usDate } from '@/lib/format'
+import { ago, andList, inDays, monthDay, usDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { AccessTable, copyText, PersonCell, RoleBadge, SignInText, TwoFABadge } from '../access/parts'
@@ -305,6 +306,7 @@ function BulkBar({ list, selected, setSelected }: { list: Schemas['TeamMemberLis
   const roles = useMemo(() => bulkRoles(list.roles), [list.roles])
   const [roleKey, setRoleKey] = useState(roles[0]?.key ?? '')
   const [deactivating, setDeactivating] = useState(false)
+  const [result, setResult] = useState<{ action: 'change_role' | 'require_2fa'; role?: string; res: Schemas['TeamBulkResult'] }>()
   const bulk = $api.useMutation('post', '/api/v1/workspaces/{workspace}/members/bulk')
   const all = selectable.length > 0 && selectable.every((m) => selected.includes(m.id))
   const none = selected.length === 0
@@ -314,7 +316,9 @@ function BulkBar({ list, selected, setSelected }: { list: Schemas['TeamMemberLis
       { params: { path: { workspace: slug } }, body: { memberIds: selected, action, roleId: action === 'change_role' ? list.roles.find((r) => r.key === roleKey)?.id : undefined } },
       {
         onSuccess: (res) => {
-          toast({ title: `${label}: ${res.changed} ${res.changed === 1 ? 'member' : 'members'}`, detail: res.skipped.length ? `${res.skipped.join(', ')} unchanged` : undefined })
+          // A partial result says who was skipped and why (Dialogs board, bulk result).
+          if (res.skipped.length) setResult({ action, role: roles.find((r) => r.key === roleKey)?.name, res })
+          else toast({ title: `${label}: ${res.changed} ${res.changed === 1 ? 'member' : 'members'}` })
           setSelected([])
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members'] })
         },
@@ -353,6 +357,21 @@ function BulkBar({ list, selected, setSelected }: { list: Schemas['TeamMemberLis
       <Button size="sm" variant="danger" disabledReason={reason} onClick={() => setDeactivating(true)}>
         Deactivate
       </Button>
+      {result ? (
+        <BulkResultDialog
+          open
+          onOpenChange={(o) => !o && setResult(undefined)}
+          title={result.action === 'change_role' ? `Role changed to ${result.role ?? 'the new role'}` : 'Two-factor required now'}
+          done={{
+            count: result.res.changed,
+            text: result.action === 'change_role' ? `now ${result.role ?? 'have the new role'}` : 'must set up two-factor at their next sign-in',
+          }}
+          skipped={{
+            count: result.res.skipped.length,
+            text: `${andList(result.res.skipped)} ${result.action === 'change_role' ? 'already had this role' : 'already use two-factor or sign in through an IdP that enforces it'}`,
+          }}
+        />
+      ) : null}
       {deactivating ? (
         <DeactivateDialog
           members={selectedMembers}

@@ -1,10 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Fragment, useState } from 'react'
-import { $api, errorMessage, type Schemas } from '@/api/client'
+import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Badge, SensitiveFlag } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { CardSection } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
@@ -147,52 +148,44 @@ export function membersText(r: Role): string {
 function DeleteRoleDialog({ role, onClose }: { role: Role; onClose: () => void }) {
   const { slug } = useWorkspace()
   const qc = useQueryClient()
-  const del = $api.useMutation('delete', '/api/v1/workspaces/{workspace}/roles/{roleId}')
-  const [error, setError] = useState<string>()
   const assigned = role.active + role.deactivated
+  // A role someone still holds can't go (RoleEditorStates, "Can't delete").
+  if (assigned > 0)
+    return (
+      <Dialog
+        open
+        onOpenChange={(o) => !o && onClose()}
+        eyebrow={<span className="k">Dialog · delete role</span>}
+        title={`“${role.name}” can't be deleted yet`}
+        hideClose
+        footer={
+          <Button variant="primary" onClick={onClose}>
+            Close
+          </Button>
+        }
+      >
+        <Note tone="bad" label="Can't delete">
+          “{role.name}” is assigned to {assigned} {assigned === 1 ? 'member' : 'members'}. Move {role.members.map((m) => m.name).join(', ')} to another role first,
+          then delete.
+        </Note>
+      </Dialog>
+    )
   return (
-    <Dialog
+    <ConfirmDialog
       open
       onOpenChange={(o) => !o && onClose()}
-      eyebrow={<span className="k">Dialog · delete role</span>}
+      tone="bad"
+      badge="Delete role"
       title={`Delete “${role.name}”?`}
-      description={<span className="text-[13.5px]">The role and its permission set are deleted. The audit log keeps its history.</span>}
-      hideClose
-      footer={
-        <>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            variant="danger-primary"
-            loading={del.isPending}
-            disabledReason={assigned > 0 || error ? 'Move its members to another role first.' : undefined}
-            onClick={() =>
-              del.mutate(
-                { params: { path: { workspace: slug, roleId: role.id } } },
-                {
-                  onSuccess: () => {
-                    toast({ kind: 'deleted', title: `Role “${role.name}” deleted`, detail: 'logged as role.deleted' })
-                    void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/roles'] })
-                    onClose()
-                  },
-                  onError: (e) => setError(errorMessage(e)),
-                },
-              )
-            }
-          >
-            Delete role
-          </Button>
-        </>
-      }
-    >
-      {assigned > 0 || error ? (
-        <Note tone="bad" label="Can't delete">
-          {error ??
-            `“${role.name}” is assigned to ${assigned} ${assigned === 1 ? 'member' : 'members'}. Move ${role.members.map((m) => m.name).join(', ')} to another role first, then delete.`}
-        </Note>
-      ) : (
-        <span className="text-[13.5px] text-ink-nav">Nobody holds this role, so no one loses access.</span>
-      )}
-    </Dialog>
+      description="The role and its permission set are deleted. Nobody holds it, so no one loses access; the audit log keeps its history."
+      confirmLabel="Delete role"
+      busyLabel="Deleting…"
+      onConfirm={async () => {
+        await http.DELETE('/api/v1/workspaces/{workspace}/roles/{roleId}', { params: { path: { workspace: slug, roleId: role.id } } })
+        toast({ kind: 'deleted', title: `Role “${role.name}” deleted`, detail: 'logged as role.deleted' })
+        void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/roles'] })
+      }}
+    />
   )
 }
 

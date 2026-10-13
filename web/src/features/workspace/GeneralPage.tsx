@@ -5,6 +5,7 @@ import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { CardSection } from '@/components/ui/Card'
+import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { KeyValues } from '@/components/ui/Data'
 import { toast } from '@/components/ui/Toast'
@@ -92,6 +93,7 @@ function WorkspaceCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
   const zones = useMemo(() => timezoneOptions(tz), [tz])
   const save = $api.useMutation('put', '/api/v1/workspaces/{workspace}/settings')
   const current = s.senders.find((x) => x.id === sender)
+  const dirty = name !== s.name || tz !== s.timezone || sender !== (s.defaultSenderId ?? '')
   const reason = s.canManage ? undefined : s.reason
   const submit = () => {
     setError(undefined)
@@ -181,6 +183,7 @@ function WorkspaceCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
             Save
           </Button>
         </div>
+        <UnsavedChangesGuard dirty={s.canManage && dirty && !save.isPending} description="Your changes to the workspace name, timezone or default sender aren't saved." />
       </div>
     </section>
   )

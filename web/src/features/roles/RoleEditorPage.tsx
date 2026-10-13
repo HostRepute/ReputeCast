@@ -1,11 +1,13 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { FullPageState } from '@/components/shell/SystemScreens'
 import { Page } from '@/components/shell/Page'
 import { Badge, SensitiveFlag } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
+import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { KeyValues } from '@/components/ui/Data'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
@@ -61,7 +63,8 @@ export function RoleEditorPage({ roleId, search }: { roleId: string; search: Rol
           It may have been deleted. The audit log keeps its history.
         </FullPageState>
       ) : (
-        <RoleEditor key={`${roleId}:${search.from ?? ''}`} list={q.data} role={role} source={source} saved={search.saved} />
+        // A saved role remounts the editor with its new values (and a fresh unsaved-changes guard).
+        <RoleEditor key={`${roleId}:${search.from ?? ''}:${role?.updatedAt ?? ''}`} list={q.data} role={role} source={source} saved={search.saved} />
       )}
     </Page>
   )
@@ -98,6 +101,8 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
   )
   const [error, setError] = useState<{ field?: 'name'; message: string }>()
   const [dialog, setDialog] = useState<SaveKind>()
+  // Set right before the save navigates, so the unsaved-changes prompt stays out of the way.
+  const [leaving, setLeaving] = useState(false)
   const effective = useMemo(() => closure(catalog, picked), [catalog, picked])
   const includedBy = (key: string) => catalog.find((p) => p.key !== key && picked.includes(p.key) && p.implies.includes(key))?.key
   const lockedKeys = catalog.filter((p) => !list.held.includes(p.key)).map((p) => p.key)
@@ -143,6 +148,7 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
         {
           onSuccess: (r) => {
             void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/roles'] })
+            flushSync(() => setLeaving(true))
             void navigate({ to: '/w/$workspace/settings/roles/$roleId', params: { workspace: slug, roleId: r.id }, search: { saved: 'created' }, replace: true })
           },
           onError: fail,
@@ -159,6 +165,7 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/roles'] })
           void qc.invalidateQueries({ queryKey: ['role-impact'] })
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members'] })
+          flushSync(() => setLeaving(true))
           void navigate({ to: '/w/$workspace/settings/roles/$roleId', params: { workspace: slug, roleId: role.id }, search: { saved: 'updated' }, replace: true })
         },
         onError: fail,
@@ -387,6 +394,10 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
           {waiting ? <span className="k">Impact is recalculated after each change; saving waits for it.</span> : null}
         </div>
       </section>
+      <UnsavedChangesGuard
+        dirty={!readOnly && dirty && !leaving}
+        description={role ? `Your changes to “${role.name}” aren't saved. Its members keep their current permissions.` : "The new role isn't created yet."}
+      />
       {dialog && role && impact.data ? (
         <SaveRoleDialog kind={dialog} role={role} name={body.name} impact={impact.data} busy={busy} onBack={() => setDialog(undefined)} onSave={save} />
       ) : null}

@@ -4,6 +4,7 @@ import { errorMessage, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { KeyValues } from '@/components/ui/Data'
+import { ConfirmDialog, DialogRow } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
@@ -56,73 +57,63 @@ export function KeyActionDialog({
   onSecret: (c: Schemas['APIKeyCreated'], action: 'rotated' | 'replaced') => void
 }) {
   const calls = useKeyCalls(k)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string>()
   const agent = k.kind === 'mcp_agent'
-  const noun = agent ? 'agent token' : 'key'
+  const noun = agent ? 'agent token' : 'API key'
   if (action === 'replace') return <ExpiredKeyDialog k={k} onClose={onClose} onSecret={onSecret} />
   const run = async () => {
-    setBusy(true)
-    setError(undefined)
-    try {
-      if (action === 'rotate') {
-        const c = await calls.rotate()
-        calls.refresh()
-        onSecret(c, 'rotated')
-        return
-      }
-      if (action === 'revoke') await calls.revoke()
-      else await calls.remove()
+    if (action === 'rotate') {
+      const c = await calls.rotate()
       calls.refresh()
-      toast({ kind: 'deleted', title: `“${k.name}” ${action === 'revoke' ? 'revoked' : 'deleted'}`, detail: `logged as ${agent ? 'agent' : 'apikey'}.${action === 'revoke' ? 'revoked' : 'deleted'}` })
-      onClose()
-    } catch (e) {
-      setError(errorMessage(e))
-    } finally {
-      setBusy(false)
+      onSecret(c, 'rotated')
+      return
     }
+    if (action === 'revoke') await calls.revoke()
+    else await calls.remove()
+    calls.refresh()
+    toast({ kind: 'deleted', title: `“${k.name}” ${action === 'revoke' ? 'revoked' : 'deleted'}`, detail: `logged as ${agent ? 'agent' : 'apikey'}.${action === 'revoke' ? 'revoked' : 'deleted'}` })
   }
   const copy = {
     rotate: {
+      tone: 'warn' as const,
+      badge: `Rotate ${noun}`,
       title: `Rotate “${k.name}”?`,
       text: `A new ${noun} is created with the same permissions and shown once. The current value stops working at once, so update whatever uses it right after.`,
       button: `Rotate ${noun}`,
+      busy: 'Rotating…',
     },
     revoke: {
+      tone: 'bad' as const,
+      badge: `Revoke ${noun}`,
       title: `Revoke “${k.name}”?`,
       text: `Calls with this ${noun} fail with 401 from now on. ${agent ? 'The agent loses access to the MCP server.' : 'Integrations that use it stop working.'} This can't be undone; create a new ${noun} to restore access.`,
       button: `Revoke ${noun}`,
+      busy: 'Revoking…',
     },
     delete: {
+      tone: 'bad' as const,
+      badge: `Delete ${noun}`,
       title: `Delete “${k.name}”?`,
       text: `The expired ${noun} is removed from this list. The audit log keeps every call it made.`,
       button: `Delete ${noun}`,
+      busy: 'Deleting…',
     },
   }[action]
   return (
-    <Dialog
+    <ConfirmDialog
       open
       onOpenChange={(o) => !o && onClose()}
-      eyebrow={<span className="k">Dialog · {action} {noun}</span>}
+      tone={copy.tone}
+      badge={copy.badge}
       title={copy.title}
-      description={<span className="text-[13.5px]">{copy.text}</span>}
-      hideClose
-      footer={
-        <>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button variant={action === 'rotate' ? 'primary' : 'danger-primary'} loading={busy} onClick={() => void run()}>
-            {copy.button}
-          </Button>
-        </>
-      }
+      description={copy.text}
+      confirmLabel={copy.button}
+      busyLabel={copy.busy}
+      onConfirm={run}
     >
-      <span className="k">{keySummary(k)}</span>
-      {error ? (
-        <Note tone="bad" label="Not done">
-          {error}
-        </Note>
-      ) : null}
-    </Dialog>
+      <DialogRow tone="neutral" label={agent ? 'Agent' : 'Key'} first>
+        {keySummary(k)}
+      </DialogRow>
+    </ConfirmDialog>
   )
 }
 
