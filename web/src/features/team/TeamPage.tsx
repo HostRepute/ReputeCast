@@ -183,10 +183,26 @@ function MemberRow({
         </div>
       </Td>
       <Td>
+        {/* As on the board, the space before each note is outside it (body size, not 12px). */}
         <RoleBadge role={m.role} />
-        {!m.role.builtin ? <span className="k"> custom</span> : null}
-        {m.scope.label ? <span className="k"> · {m.scope.label}</span> : null}
-        {m.notes.length > 0 ? <span className="k"> {m.notes.join(' · ')}</span> : null}
+        {!m.role.builtin ? (
+          <>
+            {' '}
+            <span className="k">custom</span>
+          </>
+        ) : null}
+        {m.scope.label ? (
+          <>
+            {' '}
+            <span className="k">· {m.scope.label}</span>
+          </>
+        ) : null}
+        {m.notes.length > 0 ? (
+          <>
+            {' '}
+            <span className="k">{m.notes.join(' · ')}</span>
+          </>
+        ) : null}
       </Td>
       <Td>
         <SignInText methods={m.signIn} />
@@ -441,7 +457,12 @@ function InvitationsCard({ list, onInvite }: { list: Schemas['TeamInvitationList
                 </Td>
                 <Td>
                   <RoleBadge role={i.role} />
-                  {invite && i.scope.label ? <span className="k"> · {i.scope.label}</span> : null}
+                  {invite && i.scope.label ? (
+                    <>
+                      {' '}
+                      <span className="k">· {i.scope.label}</span>
+                    </>
+                  ) : null}
                 </Td>
                 <Td>
                   {monthDay(i.lastSentAt ?? i.createdAt)}
