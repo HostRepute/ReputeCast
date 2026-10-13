@@ -210,39 +210,68 @@ func composerPastedPrice(text string, bloat int) string {
 	return b.String()
 }
 
-// composerOctoberMJML is October Product Update (sent), offered as "Copy of …".
+// composerOctoberMJML is October Product Update (sent), offered as "Copy of
+// …": the email the Report board's click map draws (shown there at 340 px,
+// so the sizes here are the board's × 1.765). The navigation keeps the
+// board's room on its right for the click map's bubble.
 func composerOctoberMJML() string {
+	const ink, text = "#0B1220", "#374151"
+	link := func(href, label, color, decoration string) string {
+		return `<a href="` + href + `" style="color:` + color + `;text-decoration:` + decoration + `">` + label + `</a>`
+	}
+	card := func(img, alt, heading, href, label, padding string) string {
+		return `      <mj-column width="50%" padding="` + padding + `">
+        <mj-image src="@@october-card.png@@" href="` + img + `" alt="` + alt + `" width="275px" height="81px" padding="0px"></mj-image>
+        <mj-text font-weight="700" color="` + ink + `" padding="7px 0px 4px">` + heading + `</mj-text>
+        <mj-button href="` + href + `" align="left" background-color="#0F766E" color="#ffffff" font-family="` + composerPlexFont + `" font-size="14px" font-weight="600" line-height="20px" border-radius="5px" inner-padding="7px 12px" padding="0px">` + label + `</mj-button>
+      </mj-column>
+`
+	}
 	return `<mjml>
   <mj-head>
-    <mj-title>October at Acme: what shipped</mj-title>
-    <mj-preview>Feature flags preview, faster exports and the Postal warm-up.</mj-preview>
+    <mj-title>October Product Update: three launches</mj-title>
+    <mj-preview>Feature flags are generally available, audit log exports stream to S3 or your SIEM, and the v1 API retires on 30 November.</mj-preview>
     <mj-attributes>
       <mj-all font-family="Georgia, 'Times New Roman', serif"></mj-all>
-      <mj-text color="#1F2937" padding="0px"></mj-text>
+      <mj-text color="` + text + `" font-size="16px" line-height="1.45" padding="0px"></mj-text>
     </mj-attributes>
   </mj-head>
   <mj-body width="600px" background-color="#F3F4F6">
-` + composerDigestHeader + `
-    <mj-section background-color="#ffffff" padding="20px 24px 8px">
-      <mj-column>
-        <mj-image src="@@october-hero.png@@" alt="October at Acme" width="552px" height="200px" padding="0px 0px 16px"></mj-image>
-        <mj-text font-size="26px" line-height="1.2" font-weight="700" color="#0B1220" padding="0px 0px 10px">October at Acme: what shipped</mj-text>
-        <mj-text font-size="15px" line-height="1.55">Hi {{ first_name | default: "there" }}, five things shipped this month. Here are the ones you'll notice first.</mj-text>
+    <!-- rc:header-logo -->
+    <mj-section background-color="#ffffff" padding="14px 18px" border-bottom="2px solid #EEF0F3">
+      <mj-column width="40%" vertical-align="middle">
+        <mj-image src="@@october-logo.png@@" href="https://acme.io" alt="Acme" width="81px" height="28px" align="left" padding="0px"></mj-image>
+      </mj-column>
+      <mj-column width="60%" vertical-align="middle">
+        <mj-text align="right" font-family="` + composerPlexFont + `" font-size="14px" padding="0px 64px 0px 0px">` +
+		link("https://acme.io/blog", "Blog", text, "none") + ` · ` + link("https://docs.acme.io", "Docs", text, "none") + ` · ` + link("https://acme.io/changelog", "Changelog", text, "none") + `</mj-text>
       </mj-column>
     </mj-section>
-    <mj-section background-color="#ffffff" padding="8px 24px">
+    <mj-section background-color="#ffffff" padding="18px">
       <mj-column>
-        <mj-text font-size="17px" line-height="1.3" font-weight="700" color="#0B1220" padding="0px 0px 6px">Feature flags, in preview</mj-text>
-        <mj-text font-size="14px" line-height="1.5" color="#374151" padding="0px 0px 10px">Roll a change out to 5% of accounts, watch the numbers, then go to 100%. <a href="https://docs.acme.io/flags" style="color:#0F766E">Read the docs</a>.</mj-text>
+        <mj-image src="@@october-hero.png@@" href="https://acme.io/blog/october-product-update" alt="October Product Update" width="564px" height="127px" padding="0px 0px 11px"></mj-image>
+        <mj-text font-size="21px" font-weight="700" color="` + ink + `">October Product Update: three launches</mj-text>
+        <mj-text>Hi {{ first_name | default: "there" }}, here's what shipped in October…</mj-text>
       </mj-column>
     </mj-section>
-    <mj-section background-color="#ffffff" padding="8px 24px 16px">
+    <!-- rc:article-cards -->
+    <mj-section background-color="#ffffff" padding="0px 18px 18px">
+` + card("https://acme.io/features/feature-flags-ga", "Feature flags dashboard", "Feature flags GA", "https://docs.acme.io/flags", "Read the docs", "0px 7px 0px 0px") +
+		card("https://acme.io/features/audit-log-exports", "Audit log export settings", "Audit log exports", "https://acme.io/changelog/audit-exports", "See changelog", "0px 0px 0px 7px") + `    </mj-section>
+    <mj-section background-color="#ffffff" padding="11px 18px 18px">
       <mj-column>
-        <mj-text font-size="17px" line-height="1.3" font-weight="700" color="#0B1220" padding="0px 0px 6px">Exports are four times faster</mj-text>
-        <mj-text font-size="14px" line-height="1.5" color="#374151">CSV and JSON exports now stream, so a million rows arrive in under a minute.</mj-text>
+        <mj-text font-weight="700" color="` + ink + `">Retiring the v1 API on 30 November</mj-text>
+        <mj-text>The migration guide covers every endpoint. ` + link("https://docs.acme.io/migrate-v2", "Read the guide", text, "underline") + `</mj-text>
       </mj-column>
     </mj-section>
-` + composerDigestFooter + `
+    <!-- rc:footer -->
+    <mj-section background-color="#F3F4F6" padding="14px">
+      <mj-column>
+        <mj-text align="center" font-family="` + composerPlexFont + `" font-size="13px" color="#5B6472">Acme Inc · 500 Market St · ` +
+		link("{{ unsubscribe_url }}", "Unsubscribe", "#5B6472", "underline") + ` · ` + link("{{ preferences_url }}", "Email preferences", "#5B6472", "underline") + ` · ` +
+		link("{{ view_in_browser_url }}", "View in browser", "#5B6472", "underline") + `</mj-text>
+      </mj-column>
+    </mj-section>
   </mj-body>
 </mjml>
 `

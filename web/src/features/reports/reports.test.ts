@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Schemas } from '@/api/client'
-import { placeBubbles, screenRulesForPrint, withFallbacks, type AnchorBox } from './ClickMap'
+import { bubbleWidth, placeBubbles, screenRulesForPrint, withFallbacks, type AnchorBox } from './ClickMap'
 import { hourX, seriesPath } from './EngagementChart'
 import { abBadge, abExplanation, bounceLine, clickNote, engagementNote, fewerNote, headerCaption, providerNote, splitCaption, variantLine } from './words'
 
@@ -98,10 +98,10 @@ describe('engagement chart', () => {
 })
 
 describe('click map bubbles', () => {
-  const box = (o: Partial<AnchorBox>): AnchorBox => ({ top: 0, bottom: 20, right: 100, rowRight: 100, blockTop: 0, blockRight: 600, button: false, ...o })
+  const box = (o: Partial<AnchorBox>): AnchorBox => ({ top: 0, bottom: 20, right: 100, rowRight: 100, endsLine: false, bandTop: 0, blockRight: 600, button: false, ...o })
   const link = (o: Partial<Schemas['ReportLink']>) => ({ id: '', url: 'u', label: 'l', position: 0, clicks: 1, uniqueClicks: 1, share: 10, grouped: false, hot: false, ...o }) as Schemas['ReportLink']
   it('puts bubbles by buttons, after text links and their row, and Other on the footer', () => {
-    const anchors = [box({ top: 10, bottom: 30, right: 200, rowRight: 280 }), box({ top: 300, bottom: 334, right: 120, button: true }), box({ top: 500, bottom: 520, blockTop: 480, blockRight: 600 })]
+    const anchors = [box({ top: 10, bottom: 30, right: 200, rowRight: 280 }), box({ top: 300, bottom: 334, right: 120, button: true }), box({ top: 500, bottom: 520, bandTop: 480, blockRight: 600 })]
     const out = placeBubbles(
       [link({ position: 0, share: 6 }), link({ position: 1, share: 38, hot: true }), link({ position: 2, share: 1.5, grouped: true })],
       anchors,
@@ -112,9 +112,24 @@ describe('click map bubbles', () => {
     expect(out.map((b) => [b.key, b.left, b.top])).toEqual([
       ['0', 144, 0 + 2],
       ['1', 52, 159],
-      ['other', 250, 232],
+      ['other', 256, 232],
     ])
     expect(out[1]!.hot).toBe(true)
+  })
+
+  it('sizes bubbles by their text', () => {
+    expect([bubbleWidth(6), bubbleWidth(38), bubbleWidth(100)]).toEqual([34, 42, 49])
+  })
+
+  it('puts the bubble of a link that ends its line at the right edge of its block, as the board does', () => {
+    const out = placeBubbles([link({ position: 0, share: 19 })], [box({ top: 100, bottom: 120, right: 300, rowRight: 300, endsLine: true, blockRight: 560 })], undefined, 0.5, 300)
+    expect(out.map((b) => [b.left, b.top])).toEqual([[280 - 42, 44]])
+  })
+
+  it('keeps a right-aligned navigation row clear: its bubble goes after the row', () => {
+    const scale = 340 / 600
+    const out = placeBubbles([link({ position: 0, share: 6 })], [box({ top: 20, bottom: 38, right: 430, rowRight: 518, endsLine: true, blockRight: 518 })], undefined, scale, 340)
+    expect(out[0]!.left).toBeCloseTo(518 * scale + 4)
   })
 
   it('puts the bubble of a link that ends its line under it, not over its words', () => {

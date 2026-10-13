@@ -29,7 +29,7 @@ func reportEmailHTML(name string, oct bool) string {
 	var cards []article
 	var closing article
 	if oct {
-		title, intro = "October Product Update: three launches", "Hi there, here's what shipped in October…"
+		title, intro = OctoberSubjectA, "Hi there, here's what shipped in October…"
 		cards = []article{
 			{"Feature flags GA", "", "Read the docs", "https://docs.acme.io/flags"},
 			{"Audit log exports", "", "See changelog", "https://acme.io/changelog/audit-exports"},
@@ -58,7 +58,7 @@ func reportEmailHTML(name string, oct bool) string {
 	b.WriteString(`<div style="padding:14px;background:#F3F4F6;` + plex + `;font-size:13px;color:#5B6472;text-align:center">`)
 	b.WriteString(`Acme Inc · 500 Market St · <a href="{{ unsubscribe_url }}" style="color:inherit;text-decoration:underline">Unsubscribe</a> · `)
 	b.WriteString(`<a href="{{ preferences_url }}" style="color:inherit;text-decoration:underline">Email preferences</a> · `)
-	b.WriteString(`<a href="{{ view_online_url }}" style="color:inherit;text-decoration:underline">View in browser</a>`)
+	b.WriteString(`<a href="{{ view_in_browser_url }}" style="color:inherit;text-decoration:underline">View in browser</a>`)
 	b.WriteString(`</div></div></body></html>`)
 	return b.String()
 }

@@ -648,6 +648,10 @@ func abResult(cfg *abConfig, cells []store.ReportCounterCellsRow, c store.Report
 		if label == "" {
 			label = v.Label
 		}
+		if label == "" && v.Key == "A" && out.Kind == "subject" {
+			// The composer keeps variant A's subject on the campaign.
+			label = c.Subject
+		}
 		rv := ReportABVariant{Key: v.Key, Label: label, Recipients: a.sent, HumanOpenRate: rate(a.human, a.delivered), ClickRate: rate(a.clicked, a.delivered),
 			ComplaintRate: rate(a.complained, a.delivered), Winner: v.Key == cfg.Winner}
 		if total > 0 {

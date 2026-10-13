@@ -901,10 +901,13 @@ func reportAnchors(doc string) []reportAnchor {
 
 // Shares of clicks (percent) for the October Product Update's links, as on
 // the Report board's click map; other links share what is left.
+// The images are labelled by their alt text (the composer's email) or as
+// placeholders (reportEmailHTML).
 var octLinkShares = map[string]float64{
 	"read the docs": 38, "see changelog": 24, "read the guide": 19, "docs": 6,
-	"email preferences": 2.0, "view in browser": 1.8, "unsubscribe": 1.6, "blog": 1.5, "changelog": 1.4, "acme": 1.3, "hero image": 1.2,
-	"feature flags ga image": 1.1, "audit log exports image": 1.1,
+	"email preferences": 2.0, "view in browser": 1.8, "unsubscribe": 1.6, "blog": 1.5, "changelog": 1.4, "acme": 1.3,
+	"october product update": 1.2, "hero image": 1.2,
+	"feature flags dashboard": 1.1, "feature flags ga image": 1.1, "audit log export settings": 1.1, "audit log exports image": 1.1,
 }
 
 var footerLabel = regexp.MustCompile(`(?i)unsubscribe|preferences|view (in|online)|browser|privacy|github|^x$|twitter|linkedin|image$`)
@@ -1050,7 +1053,7 @@ func reportOctoberABTest(ctx context.Context, s *Seeder, c *reportCampaignSeed) 
 		ab["kind"] = "subject"
 	}
 	if ab["variants"] == nil {
-		ab["variants"] = []map[string]string{{"key": "A", "subject": "October at Acme: what shipped"}, {"key": "B", "subject": "Feature flags are here (and 4 more things)"}}
+		ab["variants"] = octoberVariants
 	}
 	decided := c.started.Add(2 * time.Hour)
 	ab["winner"] = "B"
