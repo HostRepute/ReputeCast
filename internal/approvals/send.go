@@ -153,6 +153,8 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	default:
 		return ReviewSendResult{}, api.Conflict("This campaign already started sending.")
 	}
+	// The campaign as the person reviewed it, before a new schedule.
+	reviewed := c
 	// The schedule: a new one replaces the saved one.
 	sched := readiness.ParseSchedule(c.Schedule)
 	if in.Schedule != nil {
@@ -189,7 +191,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if run == nil || (in.RunID != "" && run.ID != in.RunID) {
 		return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_changed", "Send Readiness ran again since you looked. Review the new results and confirm again.")
 	}
-	if run.Fingerprint != s.Readiness.CurrentFingerprint(ctx, ws, c) && in.Schedule == nil {
+	if run.Fingerprint != s.Readiness.CurrentFingerprint(ctx, ws, reviewed) {
 		return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_stale", "The campaign changed since the checks ran. Run them again before sending.")
 	}
 	if run.Verdict == readiness.VerdictBlocked {
@@ -262,6 +264,9 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		return ReviewSendResult{}, err
 	}
 	if err := s.starter().Start(ctx, c.ID, p.UserID); err != nil {
+		// Nothing was scheduled: the campaign keeps its time as it was.
+		_ = s.Q.ApprovalScheduleCampaign(ctx, store.ApprovalScheduleCampaignParams{Schedule: c.Schedule, ScheduledAt: c.ScheduledAt, UpdatedBy: c.UpdatedBy, Now: c.UpdatedAt,
+			WorkspaceID: ws.ID, ID: c.ID})
 		switch {
 		case errors.Is(err, sending.ErrUnavailable):
 			return ReviewSendResult{}, api.Err(http.StatusServiceUnavailable, "sending_unavailable",
@@ -290,6 +295,14 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		}
 		if err := q.ApprovalResolveHold(ctx, store.ApprovalResolveHoldParams{ResolvedAt: &now, Resolution: "resumed", ResolvedBy: &p.UserID, CampaignID: c.ID}); err != nil {
 			return err
+		}
+		// The confirmed run describes the campaign at its new time.
+		if fp := s.Readiness.CurrentFingerprint(ctx, ws, c); fp != run.Fingerprint {
+			if rid, err := uuid.Parse(run.ID); err == nil {
+				if err := q.ReadinessSetFingerprint(ctx, store.ReadinessSetFingerprintParams{Fingerprint: fp, ID: rid}); err != nil {
+					return err
+				}
+			}
 		}
 		if mode.bypass != "" {
 			if err := s.recordBypass(ctx, tx, ws, p, c, run, mode.bypass, ms); err != nil {

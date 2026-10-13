@@ -259,9 +259,10 @@ func (s *Service) reviewApproval(ctx context.Context, ws *store.Workspace, p *au
 		out.Request = &v
 		out.Valid = req.Status == "approved"
 		if req.Status == "pending" || req.Status == "approved" {
-			// The open request's rules and threshold are what the screen shows.
-			if snap := ParseSnapshot(req.Snapshot); len(snap.Rules) > 0 && req.RequestedBy != nil && *req.RequestedBy == p.UserID {
+			// The open request's rules are what the screen shows.
+			if snap := ParseSnapshot(req.Snapshot); len(snap.Rules) > 0 {
 				out.Rules = snap.Rules
+				out.Required = true
 			}
 			out.Needed = int(req.ApprovalsRequired)
 		}

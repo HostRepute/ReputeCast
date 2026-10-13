@@ -460,6 +460,7 @@ func (r *readinessSeed) november(ctx context.Context) error {
 	if err := r.routeKey(ctx, &snap); err != nil {
 		return err
 	}
+	snap.AudienceBaseline = r.baseline(ctx, audience)
 	note := "The Postal share is intentional: it's day 9 of the warm-up and the planner caps it at 4,800 today. I kept the shortener link because marketing tracks it; happy to swap it if you prefer."
 	reqID := ID()
 	if err := r.insertRequest(ctx, reqID, id, daniel.ID, requested, note, "pending", snap, &runID, nil, nil); err != nil {
@@ -494,6 +495,16 @@ func (r *readinessSeed) snapshotRun(snap *approvals.Snapshot, res readiness.Read
 			snap.Readiness.Issues = append(snap.Readiness.Issues, ch)
 		}
 	}
+}
+
+// baseline counts an audience the way revalidation will, so the sample
+// data's approvals stay valid on the live contacts.
+func (r *readinessSeed) baseline(ctx context.Context, audience json.RawMessage) int64 {
+	a, err := (&readiness.Service{Q: r.s.Q, Now: func() time.Time { return r.s.Now }}).Audience(ctx, &r.ws, audience)
+	if err != nil || a.Empty {
+		return 0
+	}
+	return a.Final
 }
 
 // routeKey is the routing an approval covers (the Broadcasts split).
@@ -573,6 +584,7 @@ func (r *readinessSeed) history(ctx context.Context) error {
 		if err := r.routeKey(ctx, &snap); err != nil {
 			return err
 		}
+		snap.AudienceBaseline = r.baseline(ctx, c.Audience)
 		snap.Readiness = approvals.SnapshotReadiness{Verdict: readiness.VerdictWarnings, Passed: 23, Warnings: 2, Total: 25, RanAt: requested.Add(-3 * time.Minute), Issues: []readiness.ReadinessCheck{}}
 		reqID := ID()
 		if err := r.insertRequest(ctx, reqID, id, sofia.ID, requested, "", "approved", snap, nil, &marcus.ID, &decided); err != nil {

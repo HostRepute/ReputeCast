@@ -752,8 +752,11 @@ func (b *builder) content() {
 		alt.Title, alt.Short = "No images, so no alt text needed", "no images"
 	case r.ImagesMissingAlt == 0:
 		alt.Title = fmt.Sprintf("All %d images have alt text", r.Images)
-		if r.Images == 1 {
+		switch r.Images {
+		case 1:
 			alt.Title = "The image has alt text"
+		case 2:
+			alt.Title = "Both images have alt text"
 		}
 		alt.Short = fmt.Sprintf("%d of %d images have alt text", r.Images, r.Images)
 	default:
@@ -1377,6 +1380,9 @@ func (b *builder) estimates() ReadinessEstimates {
 			ReadinessAudienceRow{Label: "Role addresses", Count: a.Role, Kind: "minus"})
 		if a.Duplicates > 0 {
 			aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: "Duplicates", Count: a.Duplicates, Kind: "minus"})
+		}
+		if a.Stopped > 0 {
+			aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: "Sunset policy (Broadcasts stopped)", Count: a.Stopped, Kind: "minus"})
 		}
 		if a.UnengagedExcluded {
 			aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: "Unengaged (sunset tier)", Count: a.SunsetExcluded, Kind: "minus"})

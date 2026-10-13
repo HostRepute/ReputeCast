@@ -400,7 +400,8 @@ func (q *Queries) ReadinessPruneRuns(ctx context.Context, campaignID uuid.UUID) 
 }
 
 const readinessRecipients = `-- name: ReadinessRecipients :many
-SELECT c.id, c.email, c.mailbox_provider, c.tier,
+SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address,
+       (c.broadcasts_stopped_at IS NOT NULL)::boolean AS broadcasts_stopped,
        coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')::uuid[] AS list_ids,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email) AS suppressed,
        EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > $1::timestamptz) AS bounced
@@ -422,13 +423,15 @@ type ReadinessRecipientsParams struct {
 }
 
 type ReadinessRecipientsRow struct {
-	ID              uuid.UUID   `json:"id"`
-	Email           string      `json:"email"`
-	MailboxProvider string      `json:"mailboxProvider"`
-	Tier            string      `json:"tier"`
-	ListIds         []uuid.UUID `json:"listIds"`
-	Suppressed      bool        `json:"suppressed"`
-	Bounced         bool        `json:"bounced"`
+	ID                uuid.UUID   `json:"id"`
+	Email             string      `json:"email"`
+	MailboxProvider   string      `json:"mailboxProvider"`
+	Tier              string      `json:"tier"`
+	RoleAddress       bool        `json:"roleAddress"`
+	BroadcastsStopped bool        `json:"broadcastsStopped"`
+	ListIds           []uuid.UUID `json:"listIds"`
+	Suppressed        bool        `json:"suppressed"`
+	Bounced           bool        `json:"bounced"`
 }
 
 // The audience before suppressions and exclusions by address: active
@@ -455,6 +458,8 @@ func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipien
 			&i.Email,
 			&i.MailboxProvider,
 			&i.Tier,
+			&i.RoleAddress,
+			&i.BroadcastsStopped,
 			&i.ListIds,
 			&i.Suppressed,
 			&i.Bounced,
@@ -603,6 +608,21 @@ type ReadinessSetContentSettingsParams struct {
 
 func (q *Queries) ReadinessSetContentSettings(ctx context.Context, arg ReadinessSetContentSettingsParams) error {
 	_, err := q.db.Exec(ctx, readinessSetContentSettings, arg.ContentSettings, arg.WorkspaceID, arg.ID)
+	return err
+}
+
+const readinessSetFingerprint = `-- name: ReadinessSetFingerprint :exec
+UPDATE readiness_runs SET fingerprint = $1 WHERE id = $2
+`
+
+type ReadinessSetFingerprintParams struct {
+	Fingerprint string    `json:"fingerprint"`
+	ID          uuid.UUID `json:"id"`
+}
+
+// A run confirmed for a new schedule at send time describes the campaign as scheduled.
+func (q *Queries) ReadinessSetFingerprint(ctx context.Context, arg ReadinessSetFingerprintParams) error {
+	_, err := q.db.Exec(ctx, readinessSetFingerprint, arg.Fingerprint, arg.ID)
 	return err
 }
 

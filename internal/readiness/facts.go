@@ -61,6 +61,8 @@ type AudienceFacts struct {
 	Suppressed int64
 	Role       int64
 	Duplicates int64
+	// Stopped counts contacts the sunset policy stopped Broadcasts to.
+	Stopped int64
 	// SunsetExcluded counts the sunset-tier contacts removed because the
 	// campaign excludes that tier; UnengagedExcluded says it does.
 	SunsetExcluded    int64

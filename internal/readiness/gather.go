@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/deliverability"
@@ -54,19 +55,12 @@ const (
 // runOrder is the order groups run (and tick in on the review screen).
 var runOrder = []string{GroupAuthentication, GroupContent, GroupCompliance, GroupReputation, GroupLinks, GroupAudience, GroupRouting}
 
-// sunsetDays is the number of days without an open after which a contact is
-// unengaged, from the workspace's sunset policy.
+// sunsetDays is the number of days without an open or click after which a
+// contact is unengaged: the last day before the sunset tier of the
+// workspace's sunset policy.
 func sunsetDays(raw json.RawMessage) int {
-	var p struct {
-		SunsetDays int `json:"sunset_days"`
-		AfterDays  int `json:"after_days"`
-	}
-	_ = json.Unmarshal(raw, &p)
-	switch {
-	case p.SunsetDays > 1:
-		return p.SunsetDays - 1
-	case p.AfterDays > 0:
-		return p.AfterDays
+	if d := audience.ParsePolicy(raw).SunsetDays - 1; d > 0 {
+		return d
 	}
 	return 180
 }

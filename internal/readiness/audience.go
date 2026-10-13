@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -49,28 +50,6 @@ type Recipient struct {
 	MailboxProvider string
 	Lists           []string
 	Tier            string
-}
-
-// roleLocals are shared inboxes. Role addresses never get Broadcasts: there
-// is no personal consent behind them and their complaint rates are high.
-// (Once the audience domain marks contacts.role_address, that flag decides.)
-var roleLocals = map[string]bool{
-	"abuse": true, "admin": true, "administrator": true, "billing": true, "contact": true, "enquiries": true, "hello": true,
-	"help": true, "helpdesk": true, "hostmaster": true, "info": true, "inquiries": true, "marketing": true, "noreply": true,
-	"no-reply": true, "office": true, "postmaster": true, "press": true, "sales": true, "security": true, "support": true,
-	"team": true, "webmaster": true, "careers": true, "jobs": true, "hr": true, "orders": true, "privacy": true,
-}
-
-// IsRoleAddress reports whether an address is a shared inbox (info@, sales@…).
-func IsRoleAddress(email string) bool {
-	local := strings.ToLower(email)
-	if i := strings.LastIndexByte(local, '@'); i >= 0 {
-		local = local[:i]
-	}
-	if i := strings.IndexByte(local, '+'); i > 0 {
-		local = local[:i]
-	}
-	return roleLocals[local]
 }
 
 // mailboxKey folds aliases that reach the same mailbox: plus-tags anywhere,
@@ -208,7 +187,7 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 		case r.Suppressed:
 			out.Suppressed++
 			continue
-		case IsRoleAddress(r.Email):
+		case r.RoleAddress || emailaddr.IsRole(r.Email):
 			out.Role++
 			continue
 		}
@@ -218,6 +197,11 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 			continue
 		}
 		seen[key] = true
+		if r.BroadcastsStopped {
+			// The sunset policy stopped Broadcasts to them.
+			out.Stopped++
+			continue
+		}
 		if sunset && r.Tier == "sunset" {
 			out.SunsetExcluded++
 			continue

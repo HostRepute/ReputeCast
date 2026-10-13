@@ -655,6 +655,8 @@ type Querier interface {
 	ReadinessSetAudience(ctx context.Context, arg ReadinessSetAudienceParams) error
 	ReadinessSetAudienceCount(ctx context.Context, arg ReadinessSetAudienceCountParams) error
 	ReadinessSetContentSettings(ctx context.Context, arg ReadinessSetContentSettingsParams) error
+	// A run confirmed for a new schedule at send time describes the campaign as scheduled.
+	ReadinessSetFingerprint(ctx context.Context, arg ReadinessSetFingerprintParams) error
 	ReadinessSetRouteOverride(ctx context.Context, arg ReadinessSetRouteOverrideParams) error
 	ReadinessSetSendSettings(ctx context.Context, arg ReadinessSetSendSettingsParams) error
 	// Starts a run unless one is already running (a run that stopped updating

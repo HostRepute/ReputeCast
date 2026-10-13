@@ -31,9 +31,12 @@ type Snapshot struct {
 	Audience       json.RawMessage `json:"audience"`
 	AudienceLabels []string        `json:"audience_labels"`
 	AudienceCount  int64           `json:"audience_count"`
-	Suppressed     int64           `json:"suppressed"`
-	Role           int64           `json:"role"`
-	Bounced        int64           `json:"bounced"`
+	// AudienceBaseline is the audience counted the way revalidation counts
+	// it, at request time: the audience "moves" against this number.
+	AudienceBaseline int64 `json:"audience_baseline,omitempty"`
+	Suppressed       int64 `json:"suppressed"`
+	Role             int64 `json:"role"`
+	Bounced          int64 `json:"bounced"`
 
 	Route      []SnapshotShare `json:"route"`
 	RouteKey   string          `json:"route_key"`
@@ -86,6 +89,14 @@ type ApprovalAutomationSnapshot struct {
 	Version   int      `json:"version"`
 	Migration string   `json:"migration"`
 	Changes   []string `json:"changes"`
+}
+
+// Baseline is the count audience drift is measured against.
+func (s Snapshot) Baseline() int64 {
+	if s.AudienceBaseline > 0 {
+		return s.AudienceBaseline
+	}
+	return s.AudienceCount
 }
 
 // ParseSnapshot reads a stored snapshot.
@@ -229,12 +240,12 @@ func Diff(s Snapshot, c Current, loc *time.Location) []ApprovalChange {
 	}
 	if !sameAudience(s.Audience, c.Audience) {
 		out = append(out, ApprovalChange{Field: "audience", Label: "Audience", Before: strings.Join(s.AudienceLabels, ", "), After: strings.Join(c.AudienceNames, ", ")})
-	} else if s.AudienceCount > 0 && c.AudienceCount > 0 {
+	} else if base := s.Baseline(); base > 0 && c.AudienceCount > 0 {
 		// (An empty audience can't be sent anyway: Send Readiness blocks it.)
-		moved := float64(c.AudienceCount-s.AudienceCount) / float64(s.AudienceCount) * 100
+		moved := float64(c.AudienceCount-base) / float64(base) * 100
 		if math.Abs(moved) > InvalidationShare {
 			out = append(out, ApprovalChange{Field: "audience_count", Label: "Audience",
-				Before: readiness.Count(s.AudienceCount), After: fmt.Sprintf("%s (%s)", readiness.Count(c.AudienceCount), signedPct(moved))})
+				Before: readiness.Count(s.AudienceCount), After: fmt.Sprintf("%s (%s)", readiness.Count(s.AudienceCount+c.AudienceCount-base), signedPct(moved))})
 		}
 	}
 	if s.RouteKey != "" && c.RouteKey != "" && s.RouteKey != c.RouteKey {

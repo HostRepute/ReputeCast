@@ -390,9 +390,9 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		excluded = append(excluded, "role addresses")
 		aud := &ApprovalAudienceView{Count: snap.AudienceCount, Lists: snap.AudienceLabels, Excluded: strings.Join(excluded, " · "), Current: snap.AudienceCount}
 		if c, err := s.Readiness.Campaign(ctx, ws, *r.CampaignID); err == nil {
-			if a, err := s.Readiness.Audience(ctx, ws, c.Audience); err == nil && !a.Empty && snap.AudienceCount > 0 {
-				aud.Current = a.Final
-				aud.ChangePct = math.Round(float64(a.Final-snap.AudienceCount)/float64(snap.AudienceCount)*1000) / 10
+			if a, err := s.Readiness.Audience(ctx, ws, c.Audience); err == nil && !a.Empty && snap.Baseline() > 0 {
+				aud.Current = snap.AudienceCount + a.Final - snap.Baseline()
+				aud.ChangePct = math.Round(float64(a.Final-snap.Baseline())/float64(snap.Baseline())*1000) / 10
 			}
 		}
 		out.Audience = aud

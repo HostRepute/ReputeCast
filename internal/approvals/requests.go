@@ -118,6 +118,9 @@ func (s *Service) buildSnapshot(ctx context.Context, ws *store.Workspace, c stor
 	}
 	ws2 := *ws
 	snap.Thresholds = readiness.ParseThresholds(c.Thresholds, ws2.SendThresholds)
+	if a, err := s.Readiness.Audience(ctx, ws, c.Audience); err == nil && !a.Empty {
+		snap.AudienceBaseline = a.Final
+	}
 	if run != nil {
 		e := run.Estimates
 		snap.AudienceCount, snap.AudienceLabels, snap.Suppressed, snap.Role = e.Audience.Final, e.Audience.Lists, e.Audience.Suppressed, e.Audience.Role

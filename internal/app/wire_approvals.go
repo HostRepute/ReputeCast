@@ -27,7 +27,8 @@ import (
 // deliverability's blocklists and authentication, routing and the audience.
 func readinessService(a *App) *readiness.Service {
 	var prober contentcheck.Prober = contentcheck.NewHTTPProber()
-	if a.Cfg != nil && a.Cfg.IsDevelopment() {
+	if a.Cfg != nil && (a.Cfg.IsDevelopment() || a.Cfg.Env == "test") {
+		// The sample emails' links answer offline (and tests never hit the network).
 		prober = demo.ReadinessProberOverlay(prober)
 	}
 	cs := &campaigns.Service{
@@ -38,7 +39,7 @@ func readinessService(a *App) *readiness.Service {
 		Checker:   &contentcheck.Checker{Blocklist: contentcheck.StoreBlocklist{Q: a.Q}, Prober: prober},
 	}
 	_, dl := deliverabilityServices(a)
-	return &readiness.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, Campaigns: cs, Deliverability: dl, URLs: a.URLs}
+	return &readiness.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, Campaigns: cs, Deliverability: dl, URLs: a.URLs, Segments: a.segments()}
 }
 
 // newApprovals builds the approvals service with its own Send Readiness.
