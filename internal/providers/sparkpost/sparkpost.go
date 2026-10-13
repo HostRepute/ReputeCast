@@ -90,7 +90,7 @@ func Descriptor() providers.Descriptor {
 			DomainAPI:       "full",
 			SuppressionSync: true,
 			BatchSize:       1,
-			DedicatedIPs:    "paid plans, about $20 per IP per month",
+			DedicatedIPs:    "paid plans above Starter, per IP per month",
 			Sandbox:         "mode",
 			QuotaDiscovery:  true,
 			Pricing:         "plan, set by your SparkPost contract",
