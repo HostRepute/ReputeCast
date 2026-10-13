@@ -802,6 +802,23 @@ func (q *Queries) SendingClearRoutes(ctx context.Context, campaignID uuid.UUID) 
 	return err
 }
 
+const sendingClearWindows = `-- name: SendingClearWindows :exec
+DELETE FROM sending_rate_windows WHERE provider_id = ANY($1::uuid[]) AND sec BETWEEN $2 AND $3
+`
+
+type SendingClearWindowsParams struct {
+	ProviderIds []uuid.UUID `json:"providerIds"`
+	FromSec     int64       `json:"fromSec"`
+	ToSec       int64       `json:"toSec"`
+}
+
+// Frees providers' windows over a past interval (the demo command's
+// fast-forward replays seconds the real-time worker may have used).
+func (q *Queries) SendingClearWindows(ctx context.Context, arg SendingClearWindowsParams) error {
+	_, err := q.db.Exec(ctx, sendingClearWindows, arg.ProviderIds, arg.FromSec, arg.ToSec)
+	return err
+}
+
 const sendingCohortContacts = `-- name: SendingCohortContacts :many
 SELECT m.contact_id
 FROM messages m JOIN contacts c ON c.id = m.contact_id

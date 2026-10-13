@@ -251,6 +251,11 @@ RETURNING last_grant;
 -- name: SendingPurgeWindows :exec
 DELETE FROM sending_rate_windows WHERE sec < @before;
 
+-- name: SendingClearWindows :exec
+-- Frees providers' windows over a past interval (the demo command's
+-- fast-forward replays seconds the real-time worker may have used).
+DELETE FROM sending_rate_windows WHERE provider_id = ANY(@provider_ids::uuid[]) AND sec BETWEEN @from_sec AND @to_sec;
+
 -- name: SendingQueueState :many
 -- What is left of a campaign per sending and mailbox provider: queued (and
 -- when the next retry is due) and held for the A/B winner.

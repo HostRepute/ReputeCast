@@ -675,6 +675,9 @@ type Querier interface {
 	// A send that is prepared again (after a failed preparation) starts clean.
 	SendingClearMessages(ctx context.Context, campaignID *uuid.UUID) error
 	SendingClearRoutes(ctx context.Context, campaignID uuid.UUID) error
+	// Frees providers' windows over a past interval (the demo command's
+	// fast-forward replays seconds the real-time worker may have used).
+	SendingClearWindows(ctx context.Context, arg SendingClearWindowsParams) error
 	SendingCohortContacts(ctx context.Context, arg SendingCohortContactsParams) ([]*uuid.UUID, error)
 	// Recipients of a mailbox provider in this send who joined from a source
 	// and never engaged, and how many of them are still to send.

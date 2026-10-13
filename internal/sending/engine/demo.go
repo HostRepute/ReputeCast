@@ -147,7 +147,17 @@ func (e *Engine) DemoSend(ctx context.Context, o DemoSendOptions) (DemoSendResul
 		err = e.prepare(ctx, c.ID, start)
 	}
 	if err == nil && o.Elapsed > 0 {
-		_, _, err = e.drive(ctx, c.ID, start, o.Elapsed)
+		// The fast-forward replays seconds that already passed: free the
+		// demo providers' rate windows over them first, or a real-time send
+		// in those seconds would leave it no room.
+		ids := make([]uuid.UUID, 0, len(provs))
+		for _, p := range provs {
+			ids = append(ids, p.ID)
+		}
+		err = e.Q.SendingClearWindows(ctx, store.SendingClearWindowsParams{ProviderIds: ids, FromSec: start.Unix() - 1, ToSec: now.Unix() + 1})
+		if err == nil {
+			_, _, err = e.drive(ctx, c.ID, start, o.Elapsed)
+		}
 	}
 	unlock()
 	if err != nil {
