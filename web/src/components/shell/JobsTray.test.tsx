@@ -47,4 +47,19 @@ describe('JobsTray', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Export · contacts with activity failed')
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Background jobs' })).not.toBeInTheDocument())
   })
+
+  it('leaves out the job whose own page is open', async () => {
+    const own = '/w/acme-newsletter/import/imp-1/progress'
+    trackJob('acme-newsletter', { id: 'imp-1', kind: 'import', title: 'Importing 13,739 contacts from Mailchimp', status: 'running', progress: 68, href: own })
+    const { router } = await renderInWorkspace(<JobsTray />, { path: own })
+    expect(screen.queryByRole('region', { name: 'Background jobs' })).not.toBeInTheDocument()
+
+    trackJob('acme-newsletter', { id: 'exp-1', kind: 'export', title: 'Export · contacts with activity', status: 'queued' })
+    const tray = await screen.findByRole('region', { name: 'Background jobs' })
+    expect(tray).toHaveTextContent('Background jobs · 1')
+    expect(tray).not.toHaveTextContent('Importing 13,739 contacts')
+
+    await act(async () => router.history.push('/w/acme-newsletter/audience'))
+    await waitFor(() => expect(tray).toHaveTextContent('Background jobs · 2'))
+  })
 })
