@@ -104,6 +104,9 @@ func (n *Normalizer) Normalize(ctx context.Context, rawID uuid.UUID) error {
 	events, err := prov.ParseWebhook(providers.WithSignatureVerified(ctx), req, raw.Body)
 	if err != nil {
 		n.Log.WarnContext(ctx, "normalize webhook", "provider", p.ID, "raw", raw.ID, "err", err)
+		if errors.Is(err, providers.ErrUnavailable) {
+			return err // the parser can't be reached now (community adapter): retry later
+		}
 		return fail(err.Error())
 	}
 	suppressed := 0

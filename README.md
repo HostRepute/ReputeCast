@@ -181,6 +181,7 @@ reputecast serve
 | `reputecast user reset-2fa --email … --reason …` | Removes the authenticator app; the reason goes to the audit log. |
 | `reputecast user make-admin\|unlock --email …` | Instance admin flag, clear a sign-in lockout. |
 | `reputecast secrets generate-key` | Prints a new encryption key. |
+| `reputecast adapter install\|set-url\|secret\|check\|list\|remove` | Installs a community adapter from its manifest, tells ReputeCast where its process runs and issues its signing secret ([docs/adapters.md](docs/adapters.md#community-adapters)). |
 | `reputecast openapi [--yaml]` | Prints the OpenAPI 3.1 document. |
 | `reputecast seed` | Loads the Acme demo data (development only). |
 | `reputecast version` | Prints the version. |
@@ -210,7 +211,7 @@ between levels (`http.public_url` → `REPUTECAST_HTTP__PUBLIC_URL`).
 | `REPUTECAST_METRICS__ENABLED` / `__ADDR` | `true` / main listener | Prometheus metrics at `/metrics`; set an address to serve them on a separate port. |
 | `REPUTECAST_UPDATES__CHECK` | `true` | Daily check of GitHub releases (only the version number is fetched). Can also be turned off in Instance admin. ReputeCast never sends usage data anywhere. |
 | `REPUTECAST_AUTH__COOKIE_SECURE` | `true` | Secure session cookie (always on when the public URL is https). |
-| `REPUTECAST_PROVIDERS__ALLOW_PRIVATE_NETWORKS` | `false` | Let provider URLs entered in a workspace (a Postal server, a generic HTTP adapter) resolve to loopback or private addresses, for providers on your own network. Cloud metadata and link-local addresses are always refused. |
+| `REPUTECAST_PROVIDERS__ALLOW_PRIVATE_NETWORKS` | `false` | Let provider URLs entered in a workspace (a Postal server, a generic HTTP adapter) and community adapters' addresses (a sidecar; plain `http://` only there) resolve to loopback or private addresses, for providers on your own network. Cloud metadata and link-local addresses are always refused. |
 | `REPUTECAST_WEBHOOKS__ALLOW_PRIVATE_NETWORKS` | `false` | The same for outgoing webhooks and the audit stream. |
 | `REPUTECAST_ADMIN_EMAIL` / `_NAME` / `_PASSWORD` | — | Used by `install` and `serve --auto-install`. Without a password a temporary one is printed. |
 | `REPUTECAST_AUTO_MIGRATE`, `REPUTECAST_AUTO_INSTALL` | `false` | Container conveniences (the Docker image enables both). |
@@ -258,7 +259,9 @@ Authentication**, not in configuration.
   (`internal/providers/provider.go`: capabilities, send, parse webhook, plus
   optional domain setup, webhook registration, quota and suppression sync)
   and must pass the shared contract-test suite. Core code never imports an
-  adapter.
+  adapter. Community adapters run in their own process and are called over
+  a signed protocol, written with the TypeScript SDK in `sdk/`
+  ([docs/adapters.md](docs/adapters.md#community-adapters)).
 - **Webhooks are cheap to receive.** Ingest verifies the signature, stores
   the raw payload and answers 200 immediately; a job normalizes events later,
   so provider retries never pile up.

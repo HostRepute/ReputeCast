@@ -787,6 +787,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/adapters/http/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Render the request a generic HTTP mapping sends for a sample message (instance admins)
+         * @description Nothing is sent. Secrets are shown as ••••.
+         */
+        post: operations["preview-http-adapter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/adapters/{adapterId}": {
         parameters: {
             query?: never;
@@ -799,6 +819,67 @@ export interface paths {
         post?: never;
         /** Remove a community adapter (instance admins) */
         delete: operations["remove-adapter"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where a community adapter runs, its secret's age and its health (instance admins)
+         * @description The signing secret is never returned.
+         */
+        get: operations["get-adapter-runtime"];
+        /**
+         * Set where a community adapter's process listens (instance admins)
+         * @description Loopback and private addresses need providers.allow_private_networks; plain http:// only reaches them.
+         */
+        put: operations["update-adapter-runtime"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Call a community adapter's health operation now (instance admins) */
+        post: operations["check-adapter-runtime"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime/secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue a new signing secret for a community adapter; it is shown once (instance admins)
+         * @description The previous secret keeps working for 24 hours, so the adapter process can be updated without downtime.
+         */
+        post: operations["issue-adapter-secret"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4505,7 +4586,7 @@ export interface components {
             /** Format: date-time */
             installedAt: string;
             /** @enum {string} */
-            kind: "http" | "wasm";
+            kind: "http" | "wasm" | "remote";
             /** Format: date-time */
             lastRelease?: string;
             latest?: string;
@@ -4516,15 +4597,64 @@ export interface components {
             update: "up_to_date" | "update_available" | "unmaintained";
             version: string;
         };
+        AdapterHTTPHeader: {
+            name: string;
+            value: string;
+        };
         AdapterHTTPInput: {
             bodyTemplate: string;
             /** @description Method and URL, e.g. POST https://api.example-esp.com/v1/messages */
             endpoint: string;
+            headers?: components["schemas"]["AdapterHTTPHeader"][];
             /** @description JSONPath of the message id in the response, e.g. $.data.id */
             messageIdPath: string;
             name: string;
+            /**
+             * @description hmac (default): a signature header; standard: Standard Webhooks; basic: basic auth; header: the secret in a header; none: only the webhook URL
+             * @enum {string}
+             */
+            webhookAuth?: "hmac" | "standard" | "basic" | "header" | "none";
+            webhookHeader?: string;
             /** @enum {string} */
             webhookMapping: "status" | "jsonpath";
+            webhookPaths?: components["schemas"]["AdapterHTTPWebhookPaths"];
+        };
+        AdapterHTTPMapping: {
+            bodyTemplate: string;
+            /** @description Method and URL, e.g. POST https://api.example-esp.com/v1/messages */
+            endpoint: string;
+            headers?: components["schemas"]["AdapterHTTPHeader"][];
+            /** @description JSONPath of the message id in the response, e.g. $.data.id */
+            messageIdPath: string;
+            /**
+             * @description hmac (default): a signature header; standard: Standard Webhooks; basic: basic auth; header: the secret in a header; none: only the webhook URL
+             * @enum {string}
+             */
+            webhookAuth?: "hmac" | "standard" | "basic" | "header" | "none";
+            webhookHeader?: string;
+            /** @enum {string} */
+            webhookMapping: "status" | "jsonpath";
+            webhookPaths?: components["schemas"]["AdapterHTTPWebhookPaths"];
+        };
+        AdapterHTTPPreview: {
+            body: string;
+            headers: components["schemas"]["AdapterHTTPPreviewHeader"][];
+            method: string;
+            url: string;
+        };
+        AdapterHTTPPreviewHeader: {
+            name: string;
+            value: string;
+        };
+        AdapterHTTPWebhookPaths: {
+            /** @description The events in one request, e.g. $.events[*] (default $: one event or an array of events) */
+            events?: string;
+            /** @description The provider's message id, e.g. $.message_id */
+            messageId?: string;
+            /** @description The recipient's address, e.g. $.email */
+            recipient?: string;
+            /** @description The event type, e.g. $.event */
+            type?: string;
         };
         AdapterInstallInput: {
             /**
@@ -4532,6 +4662,53 @@ export interface components {
              * @description HTTPS URL of the adapter's manifest.json
              */
             manifestUrl: string;
+        };
+        AdapterRuntime: {
+            /** @example community:example-esp */
+            adapter: string;
+            /** Format: uuid */
+            adapterId: string;
+            /** @enum {string} */
+            breaker: "closed" | "open" | "half_open";
+            /** Format: date-time */
+            breakerOpenUntil?: string;
+            capabilities: string[];
+            check?: components["schemas"]["AdapterRuntimeCheck"];
+            /**
+             * Format: int64
+             * @description Connected providers using the adapter, in every workspace
+             */
+            connected: number;
+            endpointProblem?: string;
+            endpointUrl: string;
+            lastFailure?: string;
+            name: string;
+            network: string[];
+            operations: string[];
+            /** Format: date-time */
+            previousSecretValidUntil?: string;
+            registered: boolean;
+            /** Format: date-time */
+            secretIssuedAt: string;
+            /** @description Version of the installed manifest */
+            version: string;
+        };
+        AdapterRuntimeCheck: {
+            /** Format: date-time */
+            at: string;
+            detail: string;
+            ok: boolean;
+            runningVersion?: string;
+        };
+        AdapterRuntimeInput: {
+            /** @description Base URL of the adapter process, like http://example-esp:4600 */
+            endpointUrl: string;
+        };
+        AdapterRuntimeSecret: {
+            /** Format: date-time */
+            previousSecretValidUntil?: string;
+            /** @description The new signing secret. Shown only in this response; set it on the adapter process as REPUTECAST_ADAPTER_SECRET. */
+            secret: string;
         };
         AdaptersOverview: {
             builtin: components["schemas"]["AdapterBuiltin"][];
@@ -11906,6 +12083,42 @@ export interface operations {
             };
         };
     };
+    "preview-http-adapter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdapterHTTPMapping"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterHTTPPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "remove-adapter": {
         parameters: {
             query?: never;
@@ -11925,6 +12138,142 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-adapter-runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRuntime"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-adapter-runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdapterRuntimeInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRuntime"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-adapter-runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRuntime"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "issue-adapter-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRuntimeSecret"];
+                };
             };
             /** @description Error */
             default: {

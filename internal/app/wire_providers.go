@@ -40,6 +40,9 @@ func (a *App) providersService() *manage.Service {
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Factory: a.providerFactory(), URLs: a.URLs, Log: a.Log,
 		Jobs:    func() *jobs.Client { return a.Jobs },
 		Sending: func() sending.Starter { return a.Sending },
+		// W16: installed community adapters and the generic HTTP form (wire_remote.go).
+		Community:    a.remoteRuntime(),
+		HTTPMappings: httpMappings{},
 	}
 }
 
