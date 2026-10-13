@@ -52,7 +52,7 @@ export function NotificationsPage({ filter }: { filter: NotificationFilter }) {
         </ButtonLink>
       }
     >
-      <div className="grid grid-cols-[minmax(0,3fr)_minmax(360px,2fr)] items-start gap-5 max-lg:grid-cols-1 [&>*]:min-w-0">
+      <div className="grid grid-cols-[minmax(0,3fr)_minmax(360px,2fr)] items-start gap-5 max-md:grid-cols-1 [&>*]:min-w-0">
         <section className="card" aria-labelledby="h-notifications">
           <CardSection
             id="h-notifications"
@@ -238,13 +238,16 @@ function PreferencesCard() {
           </tbody>
         </Table>
         <div className="pad col border-t border-line-2" style={{ gap: 10 }}>
-          <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
+          {/* The board's 1fr 1fr, except that the quiet-hours times never get
+              cut off when the card is narrow (834): that column keeps its
+              content width and the digest select takes the rest. */}
+          <div className="grid grid-cols-[minmax(max-content,1fr)_minmax(0,1fr)] gap-3.5 max-md:grid-cols-1">
             <div className="lbl">
               <span id={ids.quiet}>Quiet hours · email only</span>
               <div className="row flex-nowrap" style={{ gap: 8 }}>
                 <select
                   id={ids.start}
-                  className="in max-md:min-w-0 max-md:flex-[1_1_120px]"
+                  className="in pr-2.5 max-md:min-w-0 max-md:flex-[1_1_120px]"
                   aria-label="Quiet hours start"
                   value={p.quietHours?.start ?? 'off'}
                   onChange={(ev) =>
@@ -261,7 +264,7 @@ function PreferencesCard() {
                 <span className="k">to</span>
                 <select
                   id={ids.end}
-                  className="in max-md:min-w-0 max-md:flex-[1_1_120px]"
+                  className="in pr-2.5 max-md:min-w-0 max-md:flex-[1_1_120px]"
                   aria-label="Quiet hours end"
                   disabled={quietOff}
                   value={p.quietHours?.end ?? '07:00'}
@@ -274,11 +277,11 @@ function PreferencesCard() {
                   ))}
                 </select>
               </div>
-              <span className="k font-medium">Auto-pauses and provider outages always send immediately.</span>
+              <span className="k font-medium [contain:inline-size]">Auto-pauses and provider outages always send immediately.</span>
             </div>
             <div className="lbl">
               <label htmlFor={ids.digest}>Email digest</label>
-              <select id={ids.digest} className="in" value={p.digest} onChange={(ev) => setDraft({ ...p, digest: ev.target.value as typeof p.digest })}>
+              <select id={ids.digest} className="in pr-2.5" value={p.digest} onChange={(ev) => setDraft({ ...p, digest: ev.target.value as typeof p.digest })}>
                 <option value="immediate">Immediately</option>
                 <option value="hourly">Hourly digest</option>
                 <option value="daily">Daily digest at 09:00</option>
