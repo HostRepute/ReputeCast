@@ -1,4 +1,5 @@
-import type { HTMLAttributes, ReactNode, TableHTMLAttributes } from 'react'
+import { useRef, type HTMLAttributes, type ReactNode, type TableHTMLAttributes } from 'react'
+import { useOverflowX } from '@/lib/hooks'
 import { cn } from '@/lib/cn'
 
 /**
@@ -34,7 +35,28 @@ export function Table({
       {children}
     </table>
   )
-  return scroll ? <div className="tscroll">{table}</div> : table
+  return scroll ? <TableScroll label={caption}>{table}</TableScroll> : table
+}
+
+/**
+ * The sideways scroller around a wide table. While the table overflows it
+ * takes keyboard focus, so it can be scrolled without a mouse, and `label`
+ * names it for screen readers.
+ */
+export function TableScroll({ label, className, children }: { label?: string; className?: string; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const scrolls = useOverflowX(ref)
+  return (
+    <div
+      ref={ref}
+      className={cn('tscroll', className)}
+      tabIndex={scrolls ? 0 : undefined}
+      role={scrolls && label ? 'region' : undefined}
+      aria-label={scrolls ? label : undefined}
+    >
+      {children}
+    </div>
+  )
 }
 
 /** Column header cells with scope="col". */

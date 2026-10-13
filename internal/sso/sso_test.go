@@ -575,6 +575,10 @@ func TestDomainEnforcement(t *testing.T) {
 	if p["code"] != "sso_required" {
 		t.Fatalf("password under enforcement: %v", p)
 	}
+	// The answer doesn't reveal whether an account exists.
+	if p := c.Do("POST", "/auth/password", map[string]any{"email": "nobody@acme.io", "password": "x"}).MustStatus(t, 403).Problem(t); p["code"] != "sso_required" {
+		t.Fatalf("unknown account under enforcement: %v", p)
+	}
 	var idf struct{ Next string }
 	c.Do("POST", "/auth/identify", map[string]any{"email": "aisha@acme.io"}).MustStatus(t, 200).JSON(t, &idf)
 	if idf.Next != "sso" {

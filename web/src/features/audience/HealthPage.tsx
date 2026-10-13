@@ -8,6 +8,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { TableScroll } from '@/components/ui/Table'
 import { clock, count, pct, rate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { AudienceTabs } from './AudienceTabs'
@@ -307,7 +308,7 @@ function PerList({ h }: { h: Health }) {
         </h2>
         <span className="k">30-day figures</span>
       </div>
-      <div className="tscroll">
+      <TableScroll label="Health per list">
         <table className="tbl compact first160 phone-wrap">
           <thead>
             <tr>
@@ -391,7 +392,7 @@ function PerList({ h }: { h: Health }) {
             ) : null}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       {h.insight ? (
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 px-4.5 py-2.5">
           <span className="k">{h.insight.text}</span>

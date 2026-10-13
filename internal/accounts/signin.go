@@ -103,23 +103,20 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 	if err != nil && !isNoRows(err) {
 		return SignInResult{}, nil, err
 	}
-	if exists && u.Status == "deactivated" {
-		return SignInResult{}, nil, api.Err(http.StatusForbidden, "account_deactivated", "This account was deactivated. Ask your instance admin to reactivate it; nothing was deleted.").
-			WithMeta("deactivatedAt", u.DeactivatedAt)
-	}
-	// extra marks break-glass sign-ins under domain enforcement in the audit log.
+	// Domain enforcement and a turned-off method answer the same whether or
+	// not the account exists, so neither reveals who has one; only break-glass
+	// Owners get past them. extra marks their sign-ins in the audit log.
+	breakGlass := exists && u.BreakGlass
 	var extra map[string]any
-	if exists {
-		if p, _ := s.enforcingProvider(ctx, email); p != nil {
-			if !u.BreakGlass {
-				return SignInResult{}, nil, api.Err(http.StatusForbidden, "sso_required", email[strings.Index(email, "@")+1:]+" signs in with "+p.Name+". Password sign-in is turned off for this domain.").
-					WithMeta("providerId", p.ID.String(), "provider", p.Name, "preset", p.Preset)
-			}
-			extra = map[string]any{"break_glass": true, "enforced_by": p.Name}
+	if p, _ := s.enforcingProvider(ctx, email); p != nil {
+		if !breakGlass {
+			return SignInResult{}, nil, api.Err(http.StatusForbidden, "sso_required", email[strings.Index(email, "@")+1:]+" signs in with "+p.Name+". Password sign-in is turned off for this domain.").
+				WithMeta("providerId", p.ID.String(), "provider", p.Name, "preset", p.Preset)
 		}
-		if !methodAllowed(pol, "password") && !u.BreakGlass {
-			return SignInResult{}, nil, api.Err(http.StatusForbidden, "method_disabled", "Password sign-in is turned off on this instance. Use a passkey or single sign-on.")
-		}
+		extra = map[string]any{"break_glass": true, "enforced_by": p.Name}
+	}
+	if !methodAllowed(pol, "password") && !breakGlass {
+		return SignInResult{}, nil, api.Err(http.StatusForbidden, "method_disabled", "Password sign-in is turned off on this instance. Use a passkey or single sign-on.")
 	}
 	ok := false
 	if exists && u.PasswordHash != nil {
@@ -148,6 +145,11 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 		return SignInResult{}, nil, api.Err(http.StatusUnauthorized, api.CodeInvalidCredentials,
 			fmt.Sprintf("The email or password is incorrect. %d %s left before a %d-minute lock.", left, plural(int(left), "attempt", "attempts"), pol.LockoutMinutes)).
 			WithMeta("attemptsLeft", left, "lockMinutes", pol.LockoutMinutes)
+	}
+	// A deactivated account says so only to someone who knows its password.
+	if u.Status == "deactivated" {
+		return SignInResult{}, nil, api.Err(http.StatusForbidden, "account_deactivated", "This account was deactivated. Ask your instance admin to reactivate it; nothing was deleted.").
+			WithMeta("deactivatedAt", u.DeactivatedAt)
 	}
 	_ = s.Q.ClearSignInThrottle(ctx, email)
 	// The audit log shows "Password · after 3 failed attempts".

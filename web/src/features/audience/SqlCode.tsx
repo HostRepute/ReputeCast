@@ -3,6 +3,7 @@ import { EditorState } from '@codemirror/state'
 import { EditorView, lineNumbers, placeholder } from '@codemirror/view'
 import { minimalSetup } from 'codemirror'
 import { Fragment, useEffect, useRef, type ReactNode } from 'react'
+import { ScrollPre } from '@/components/ui/ScrollPre'
 
 const keywords = new Set(
   'SELECT FROM WHERE AND OR NOT EXISTS IN IS NULL TRUE FALSE INTERVAL AS ON JOIN LEFT INNER GROUP BY ORDER LIMIT DISTINCT CASE WHEN THEN ELSE END LIKE ILIKE ANY BETWEEN UNION ALL WITH HAVING'.split(
@@ -32,9 +33,9 @@ export function highlightSQL(src: string): ReactNode {
 /** Read-only SQL with the board's colours. */
 export function SqlBlock({ sql: text, label }: { sql: string; label: string }) {
   return (
-    <pre className="sqlpre" aria-label={label}>
+    <ScrollPre className="sqlpre" label={label}>
       {highlightSQL(text)}
-    </pre>
+    </ScrollPre>
   )
 }
 

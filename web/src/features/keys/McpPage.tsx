@@ -11,6 +11,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { EmptyRow, Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
+import { ScrollPre } from '@/components/ui/ScrollPre'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { logTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
@@ -148,9 +149,9 @@ function ConnectCard({ o }: { o: Overview }) {
       </div>
       <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-2">
         <span className="k">Connect from Claude Desktop, Claude Code or any MCP client</span>
-        <pre className="pre" aria-label="Client configuration">
+        <ScrollPre className="pre" label="Client configuration">
           {snippet}
-        </pre>
+        </ScrollPre>
       </div>
     </section>
   )

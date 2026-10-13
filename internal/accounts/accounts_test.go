@@ -137,3 +137,19 @@ func TestCrossOriginWritesRejected(t *testing.T) {
 		t.Fatalf("same-origin sign-out: %d", req.Status)
 	}
 }
+
+// A deactivated account says so only to someone who knows its password.
+func TestDeactivatedAccountNeedsThePassword(t *testing.T) {
+	env := apptest.New(t)
+	u := env.CreateUser(apptest.UserOpts{Email: "tom@acme.io", Name: "Tom Becker"})
+	if _, err := env.App.Pool.Exec(context.Background(), `UPDATE users SET status = 'deactivated', deactivated_at = now() WHERE id = $1`, u.ID); err != nil {
+		t.Fatal(err)
+	}
+	c := env.Client()
+	if p := c.Do("POST", "/auth/password", map[string]any{"email": "tom@acme.io", "password": "wrong"}).MustStatus(t, 401).Problem(t); p["code"] != "invalid_credentials" {
+		t.Fatalf("wrong password: %v", p)
+	}
+	if p := c.Do("POST", "/auth/password", map[string]any{"email": "tom@acme.io", "password": "correct horse battery staple"}).MustStatus(t, 403).Problem(t); p["code"] != "account_deactivated" {
+		t.Fatalf("right password: %v", p)
+	}
+}

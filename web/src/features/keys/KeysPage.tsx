@@ -179,7 +179,7 @@ function KeyButtons({ k, onAction }: { k: Key; onAction: (k: Key, a: KeyAction) 
     <div className="row gap-1.5">
       {k.status === 'expired' ? (
         <>
-          <Button size="sm" onClick={() => onAction(k, 'replace')} aria-label={`Create a replacement for ${k.name}`}>
+          <Button size="sm" onClick={() => onAction(k, 'replace')} aria-label={`Create replacement for ${k.name}`}>
             Create replacement
           </Button>
           <Button size="sm" onClick={() => onAction(k, 'delete')} aria-label={`Delete ${k.name}`}>
