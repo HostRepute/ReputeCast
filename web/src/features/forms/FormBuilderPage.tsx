@@ -548,15 +548,15 @@ function TypeSection({
       <span className="k">{help[draft.kind]}</span>
       {draft.kind === 'popup' ? (
         <div className="grid grid-cols-3 gap-2">
-          <label className="lbl">
+          <label className="lbl justify-between">
             Opens after (s)
             <input className="fb-in" type="number" min={0} max={600} value={c.popupDelay} disabled={readOnly} onChange={(e) => onContent({ popupDelay: Number(e.target.value) })} />
           </label>
-          <label className="lbl">
+          <label className="lbl justify-between">
             Or scrolled (%)
             <input className="fb-in" type="number" min={0} max={100} value={c.popupScroll} disabled={readOnly} onChange={(e) => onContent({ popupScroll: Number(e.target.value) })} />
           </label>
-          <label className="lbl">
+          <label className="lbl justify-between">
             Closed for (days)
             <input className="fb-in" type="number" min={0} max={365} value={c.popupRepeatDays} disabled={readOnly} onChange={(e) => onContent({ popupRepeatDays: Number(e.target.value) })} />
           </label>
