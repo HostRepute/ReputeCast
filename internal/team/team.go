@@ -18,6 +18,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/access"
+	"github.com/hostrepute/reputecast/internal/apikeys"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/mailer"
@@ -56,19 +57,19 @@ type TeamRoleRef struct {
 
 // TeamMember is one row of the members list.
 type TeamMember struct {
-	ID          string           `json:"id" doc:"Membership id"`
-	UserID      string           `json:"userId"`
-	Name        string           `json:"name"`
-	Email       string           `json:"email"`
-	AvatarColor string           `json:"avatarColor"`
-	Role        TeamRoleRef          `json:"role"`
+	ID          string              `json:"id" doc:"Membership id"`
+	UserID      string              `json:"userId"`
+	Name        string              `json:"name"`
+	Email       string              `json:"email"`
+	AvatarColor string              `json:"avatarColor"`
+	Role        TeamRoleRef         `json:"role"`
 	Scope       access.ScopeSummary `json:"scope"`
 	// Notes follow the role: "instance admin", "break-glass".
-	Notes        []string              `json:"notes"`
+	Notes        []string                    `json:"notes"`
 	SignIn       []access.MemberSignInMethod `json:"signIn"`
 	TwoFA        access.MemberTwoFA          `json:"twoFA"`
-	LastActiveAt *time.Time            `json:"lastActiveAt,omitempty"`
-	Status       string                `json:"status" enum:"active,deactivated"`
+	LastActiveAt *time.Time                  `json:"lastActiveAt,omitempty"`
+	Status       string                      `json:"status" enum:"active,deactivated"`
 	// Deactivated members of the instance (not only of this workspace).
 	AccountDeactivated bool       `json:"accountDeactivated"`
 	DeactivatedAt      *time.Time `json:"deactivatedAt,omitempty"`
@@ -293,13 +294,15 @@ type TeamEffectivePermission struct {
 
 // TeamMemberAPIKey is a key or agent the member created.
 type TeamMemberAPIKey struct {
-	ID          string     `json:"id"`
-	Kind        string     `json:"kind" enum:"api_key,mcp_agent"`
-	Name        string     `json:"name"`
-	Masked      string     `json:"masked"`
-	Permissions []string   `json:"permissions"`
-	Status      string     `json:"status" enum:"active,expired,revoked"`
-	LastUsedAt  *time.Time `json:"lastUsedAt,omitempty"`
+	ID          string   `json:"id"`
+	Kind        string   `json:"kind" enum:"api_key,mcp_agent"`
+	Name        string   `json:"name"`
+	Masked      string   `json:"masked"`
+	Permissions []string `json:"permissions"`
+	// Scope is "Weekly Digest" or "all lists".
+	Scope      string     `json:"scope"`
+	Status     string     `json:"status" enum:"active,expired,revoked"`
+	LastUsedAt *time.Time `json:"lastUsedAt,omitempty"`
 }
 
 // TeamMemberApproval is an approval the member gave or requested.
@@ -322,20 +325,22 @@ type TeamMemberActivity struct {
 
 // TeamMemberDetail is the member page (A5 §5.8 member detail).
 type TeamMemberDetail struct {
-	Member      TeamMember            `json:"member"`
+	Member      TeamMember                `json:"member"`
 	Permissions []TeamEffectivePermission `json:"permissions"`
-	Groups      []string              `json:"groups"`
+	Groups      []string                  `json:"groups"`
 	APIKeys     []TeamMemberAPIKey        `json:"apiKeys"`
 	// KeysNote explains an empty list ("Creating API keys needs apikeys:manage…").
-	KeysNote           string           `json:"keysNote,omitempty"`
+	KeysNote           string               `json:"keysNote,omitempty"`
 	ApprovalsGiven     []TeamMemberApproval `json:"approvalsGiven"`
 	ApprovalsRequested []TeamMemberApproval `json:"approvalsRequested"`
-	CanApprove         bool             `json:"canApprove"`
-	Sessions           int64            `json:"sessions"`
+	CanApprove         bool                 `json:"canApprove"`
+	Sessions           int64                `json:"sessions"`
+	// ScheduledCampaigns counts scheduled sends the member created (they keep their schedule).
+	ScheduledCampaigns int64 `json:"scheduledCampaigns"`
 	// SSODomain is the email domain used with SSO ("acme.io").
-	SSODomain string           `json:"ssoDomain,omitempty"`
+	SSODomain string               `json:"ssoDomain,omitempty"`
 	Activity  []TeamMemberActivity `json:"activity"`
-	CanManage bool             `json:"canManage"`
+	CanManage bool                 `json:"canManage"`
 	// Helpers are members who hold team:manage.
 	Helpers []string `json:"helpers"`
 }
@@ -403,7 +408,12 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 		if st == "revoked" {
 			continue
 		}
-		out.APIKeys = append(out.APIKeys, TeamMemberAPIKey{ID: k.ID.String(), Kind: k.Kind, Name: k.Name, Masked: k.Prefix, Permissions: nonNil(k.Permissions), Status: st, LastUsedAt: k.LastUsedAt})
+		ks := "all lists"
+		if sc := access.ParseScope(k.Scope); !sc.IsZero() {
+			ks = strings.TrimSuffix(access.View(sc, lists, false).Label, " only")
+		}
+		out.APIKeys = append(out.APIKeys, TeamMemberAPIKey{ID: k.ID.String(), Kind: k.Kind, Name: k.Name, Masked: k.Prefix, Permissions: apikeys.StoredOrder(k.Permissions),
+			Scope: ks, Status: st, LastUsedAt: k.LastUsedAt})
 	}
 	if len(out.APIKeys) == 0 {
 		if !perms.Has(authz.APIKeysManage) {
@@ -427,6 +437,10 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 		out.ApprovalsRequested = append(out.ApprovalsRequested, TeamMemberApproval{Campaign: a.CampaignName, CampaignID: idString(a.CampaignID), Status: a.Status, At: a.RequestedAt})
 	}
 	if out.Sessions, err = s.Q.TeamActiveSessionCount(ctx, r.UserID); err != nil {
+		return TeamMemberDetail{}, err
+	}
+	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM campaigns WHERE workspace_id = $1 AND created_by = $2 AND status = 'scheduled' AND deleted_at IS NULL`,
+		ws.ID, r.UserID).Scan(&out.ScheduledCampaigns); err != nil {
 		return TeamMemberDetail{}, err
 	}
 	for _, id := range idents[r.UserID] {

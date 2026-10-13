@@ -1753,7 +1753,7 @@ export interface components {
         TeamDeactivateInput: {
             /** @description Recorded in the audit log */
             reason?: string;
-            revokeKeys: boolean;
+            revokeKeys?: boolean;
         };
         TeamDeactivateResult: {
             keysRevoked: string[];
@@ -1882,6 +1882,7 @@ export interface components {
             masked: string;
             name: string;
             permissions: string[];
+            scope: string;
             /** @enum {string} */
             status: "active" | "expired" | "revoked";
         };
@@ -1920,6 +1921,8 @@ export interface components {
             keysNote?: string;
             member: components["schemas"]["TeamMember"];
             permissions: components["schemas"]["TeamEffectivePermission"][];
+            /** Format: int64 */
+            scheduledCampaigns: number;
             /** Format: int64 */
             sessions: number;
             ssoDomain?: string;

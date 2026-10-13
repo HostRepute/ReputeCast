@@ -160,3 +160,76 @@ export function andList(names: string[]): string {
   if (names.length <= 1) return names[0] ?? ''
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
 }
+
+// --- Team, keys and audit log (W03) ---------------------------------------
+
+/** "Oct 10" */
+export function monthDay(d: string | number | Date): string {
+  const p = parts('monthDay', toDate(d), { month: 'short', day: 'numeric' })
+  return `${p.month} ${p.day}`
+}
+
+/** "Oct 12, 09:41" */
+export function monthDayTime(d: string | number | Date): string {
+  return `${monthDay(d)}, ${clock(d)}`
+}
+
+/** "09:44:31" */
+export function clockSeconds(d: string | number | Date): string {
+  return fmt('timeSeconds', 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(toDate(d))
+}
+
+/** "Oct 12, 08:40:55" */
+export function monthDayTimeSeconds(d: string | number | Date): string {
+  return `${monthDay(d)}, ${clockSeconds(d)}`
+}
+
+function dayKey(d: Date): string {
+  const p = parts('dayKey', d, { year: 'numeric', month: '2-digit', day: '2-digit' })
+  return `${p.year}-${p.month}-${p.day}`
+}
+
+function sameDay(a: Date, b: Date): boolean {
+  return dayKey(a) === dayKey(b)
+}
+
+/** True when d falls on the day before now in the display timezone. */
+function isYesterday(d: Date, now: Date): boolean {
+  return dayKey(d) === dayKey(new Date(now.getTime() - 86_400_000))
+}
+
+/** "in 5 days", "in 3 h", "in 20 min", "expired" */
+export function inDays(d: string | number | Date, now: Date = new Date()): string {
+  const ms = toDate(d).getTime() - now.getTime()
+  if (ms <= 0) return 'expired'
+  const m = Math.round(ms / 60000)
+  if (m < 60) return `in ${m} min`
+  const h = Math.round(m / 60)
+  if (h < 24) return `in ${h} h`
+  const days = Math.floor(h / 24)
+  return `in ${days} day${days === 1 ? '' : 's'}`
+}
+
+/** Last use of an API key: "3 min ago", "2 h ago", "yesterday, 03:05", "Aug 30, 2026". */
+export function lastUsed(d: string | number | Date | null | undefined, now: Date = new Date()): string {
+  if (!d) return 'Never'
+  const t = toDate(d)
+  const m = Math.round((now.getTime() - t.getTime()) / 60000)
+  if (m < 1) return 'now'
+  if (m < 60) return `${m} min ago`
+  if (sameDay(t, now)) return `${Math.round(m / 60)} h ago`
+  if (isYesterday(t, now)) return `yesterday, ${clock(t)}`
+  return usDate(t)
+}
+
+/** A time in an activity list: "09:36" today, else "Mon 6 Oct". */
+export function logTime(d: string | number | Date, now: Date = new Date()): string {
+  const t = toDate(d)
+  return sameDay(t, now) ? clock(t) : shortDate(t)
+}
+
+/** Audit log time: "09:44:31" today, else "Sat 11 Oct 17:20". */
+export function auditTime(d: string | number | Date, now: Date = new Date()): string {
+  const t = toDate(d)
+  return sameDay(t, now) ? clockSeconds(t) : `${shortDate(t)} ${clock(t)}`
+}

@@ -2660,9 +2660,6 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "revokeKeys"
-        ],
         "type": "object"
       },
       "TeamDeactivateResult": {
@@ -3144,6 +3141,9 @@
             },
             "type": "array"
           },
+          "scope": {
+            "type": "string"
+          },
           "status": {
             "enum": [
               "active",
@@ -3159,6 +3159,7 @@
           "name",
           "masked",
           "permissions",
+          "scope",
           "status"
         ],
         "type": "object"
@@ -3298,6 +3299,10 @@
             },
             "type": "array"
           },
+          "scheduledCampaigns": {
+            "format": "int64",
+            "type": "integer"
+          },
           "sessions": {
             "format": "int64",
             "type": "integer"
@@ -3315,6 +3320,7 @@
           "approvalsRequested",
           "canApprove",
           "sessions",
+          "scheduledCampaigns",
           "activity",
           "canManage",
           "helpers"

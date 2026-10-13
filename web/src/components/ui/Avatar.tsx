@@ -8,6 +8,9 @@ const palettes = {
   neutral: { bg: '#EEF0F3', fg: '#4B5563' },
   bad: { bg: '#FEE2E2', fg: '#991B1B' },
   accent: { bg: '#0F766E', fg: '#FFFFFF' },
+  // Team boards: Marcus Chen's avatar, and muted rows (deactivated members, invitees, the system).
+  pink: { bg: '#FCE7F3', fg: '#9D174D' },
+  muted: { bg: '#EEF0F3', fg: '#5B6472' },
 } as const
 
 export type AvatarColor = keyof typeof palettes
@@ -26,12 +29,15 @@ export function Avatar({
   size = 28,
   shape = 'round',
   className,
+  text,
 }: {
   name: string
   color?: AvatarColor | string
   size?: number
   shape?: 'round' | 'square'
   className?: string
+  /** Shown instead of the initials ("AI" for an agent, "?" for an invitee). */
+  text?: string
 }) {
   const p = palettes[(color in palettes ? color : 'info') as AvatarColor]
   return (
@@ -40,7 +46,7 @@ export function Avatar({
       style={{ width: size, height: size, fontSize: size <= 24 ? 10 : 11, background: p.bg, color: p.fg, borderRadius: shape === 'square' ? 6 : '50%' }}
       aria-hidden="true"
     >
-      {initials(name)}
+      {text ?? initials(name)}
     </span>
   )
 }

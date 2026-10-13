@@ -1,5 +1,5 @@
-import { Link } from '@tanstack/react-router'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { Link, type LinkProps } from '@tanstack/react-router'
+import { Fragment, useEffect, useRef, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 import { useDocumentTitle } from '@/lib/hooks'
 import { useOptionalWorkspace } from '@/lib/session'
@@ -22,6 +22,7 @@ export function Page({
   tabsLabel = 'Sections',
   children,
   contentClassName,
+  breadcrumb,
 }: {
   title: string
   /** Overrides the browser tab title (defaults to the title). */
@@ -35,6 +36,11 @@ export function Page({
   tabsLabel?: string
   children: ReactNode
   contentClassName?: string
+  /**
+   * Replaces the visible title with a breadcrumb ("Settings / Team / Daniel
+   * Park"); the h1 stays for screen readers. The last crumb has no link.
+   */
+  breadcrumb?: Crumb[]
 }) {
   const ws = useOptionalWorkspace()
   useDocumentTitle(`${documentTitle ?? title}${ws ? ` · ${ws.me.workspace.name}` : ''} · ReputeCast`)
@@ -49,7 +55,23 @@ export function Page({
   return (
     <>
       <header className="top">
-        <h1 ref={h1} tabIndex={-1}>
+        {breadcrumb ? (
+          <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-[13px]">
+            {breadcrumb.map((c, i) => (
+              <Fragment key={i}>
+                {i > 0 ? <span className="k">/</span> : null}
+                {c.to ? (
+                  <Link to={c.to} params={c.params as never} className="text-ink-3 hover:text-ink">
+                    {c.label}
+                  </Link>
+                ) : (
+                  <span className="font-semibold">{c.label}</span>
+                )}
+              </Fragment>
+            ))}
+          </nav>
+        ) : null}
+        <h1 ref={h1} tabIndex={-1} className={breadcrumb ? 'vh' : undefined}>
           {title}
         </h1>
         {subtitle ? <span className="k">{subtitle}</span> : null}
@@ -70,6 +92,9 @@ export function Page({
     </>
   )
 }
+
+/** One step of a Page breadcrumb. */
+export type Crumb = { label: string; to?: LinkProps['to']; params?: LinkProps['params'] }
 
 /** Bell with the unread count; opens the notification center. */
 export function NotificationBell() {

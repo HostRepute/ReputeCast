@@ -1,11 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { MemberPage } from '@/features/team/MemberPage'
 
 export const Route = createFileRoute('/w/$workspace/_app/settings/team/$memberId')({
-  component: () => (
-    <Page title="Settings">
-      <NotBuilt screen="Settings" />
-    </Page>
-  ),
+  component: function MemberRoute() {
+    const { memberId } = Route.useParams()
+    return <MemberPage key={memberId} memberId={memberId} />
+  },
 })

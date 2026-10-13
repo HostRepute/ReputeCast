@@ -15,6 +15,8 @@ export interface DialogProps {
   size?: 'sm' | 'md' | 'lg'
   /** Destructive and protective dialogs can't be dismissed by clicking outside. */
   dismissible?: boolean
+  /** Hide the × button (boards that close with Cancel only); Escape still closes. */
+  hideClose?: boolean
   className?: string
 }
 
@@ -22,7 +24,7 @@ export interface DialogProps {
  * Modal dialog: focus is trapped inside and returned to the trigger on close
  * (Radix). Escape closes unless `dismissible` is false.
  */
-export function Dialog({ open, onOpenChange, title, description, eyebrow, children, footer, size = 'md', dismissible = true, className }: DialogProps) {
+export function Dialog({ open, onOpenChange, title, description, eyebrow, children, footer, size = 'md', dismissible = true, hideClose, className }: DialogProps) {
   return (
     <RDialog.Root open={open} onOpenChange={onOpenChange}>
       <RDialog.Portal>
@@ -37,9 +39,11 @@ export function Dialog({ open, onOpenChange, title, description, eyebrow, childr
               {eyebrow ? <div className="flex flex-wrap items-center gap-2">{eyebrow}</div> : null}
               <div className="flex items-start justify-between gap-3">
                 <RDialog.Title className="m-0 text-[18px] font-bold tracking-[-0.01em]">{title}</RDialog.Title>
-                <RDialog.Close className="btn sm ic -mr-1.5 -mt-0.5 border-transparent" aria-label="Close">
-                  <Icon name="close" size={14} />
-                </RDialog.Close>
+                {hideClose ? null : (
+                  <RDialog.Close className="btn sm ic -mr-1.5 -mt-0.5 border-transparent" aria-label="Close">
+                    <Icon name="close" size={14} />
+                  </RDialog.Close>
+                )}
               </div>
               {description ? <RDialog.Description className="text-ink-2">{description}</RDialog.Description> : <RDialog.Description className="vh">{typeof title === 'string' ? title : 'Dialog'}</RDialog.Description>}
             </div>
