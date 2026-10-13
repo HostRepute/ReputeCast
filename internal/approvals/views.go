@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/netip"
 	"sort"
 	"time"
 
@@ -166,7 +165,7 @@ func (s *Service) requestView(ctx context.Context, ws *store.Workspace, r store.
 		if a, err := s.Q.ApprovalLastAudit(ctx, store.ApprovalLastAuditParams{WorkspaceID: &ws.ID, Action: action, TargetID: target}); err == nil {
 			line := &ApprovalAuditLine{Action: action, Actor: a.ActorName, At: a.OccurredAt}
 			if a.Ip != nil && a.Ip.IsValid() {
-				line.IP = netip.Addr(*a.Ip).String()
+				line.IP = a.Ip.String()
 			}
 			v.Audit = line
 		}

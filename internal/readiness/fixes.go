@@ -46,6 +46,9 @@ type ReadinessFixResult struct {
 // (the approvals domain re-checks open approvals).
 type AfterChange func(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID)
 
+// footerMarker marks the composer's footer section in the MJML.
+const footerMarker = "<!-- rc:footer -->"
+
 // footerMJML is the composer's footer block (blocks.ts footerBlock).
 func footerMJML(address string) string {
 	addr := address
@@ -55,14 +58,22 @@ func footerMJML(address string) string {
 	addr = html.EscapeString(addr)
 	const plex = `'IBM Plex Sans', Helvetica, Arial, sans-serif`
 	const teal = "#0F766E"
-	return `<!-- rc:footer --><mj-section background-color="#F3F4F6" padding="18px 24px"><mj-column><mj-text align="center" font-family="` + plex +
+	return footerMarker + `<mj-section background-color="#F3F4F6" padding="18px 24px"><mj-column><mj-text align="center" font-family="` + plex +
 		`" font-size="12px" line-height="1.6" color="#5B6472" padding="0px">` + addr + `<br><a href="{{ unsubscribe_url }}" style="color:` + teal +
 		`;text-decoration:none">Unsubscribe</a> · <a href="{{ preferences_url }}" style="color:` + teal + `;text-decoration:none">Email preferences</a> · <a href="{{ view_in_browser_url }}" style="color:` +
 		teal + `;text-decoration:none">View in browser</a></mj-text></mj-column></mj-section>`
 }
 
-// InsertFooter adds the footer block at the end of the MJML body.
+// InsertFooter adds the footer block at the end of the MJML body, or puts
+// the composer's footer block back as new when it lost its address or links.
 func InsertFooter(src, address string) (string, bool) {
+	if i := strings.Index(src, footerMarker); i >= 0 {
+		rest := src[i+len(footerMarker):]
+		start, end := strings.Index(rest, "<mj-section"), strings.Index(rest, "</mj-section>")
+		if start >= 0 && end > start && strings.TrimSpace(rest[:start]) == "" {
+			return src[:i] + footerMJML(address) + rest[end+len("</mj-section>"):], true
+		}
+	}
 	i := strings.LastIndex(strings.ToLower(src), "</mj-body>")
 	if i < 0 {
 		return src, false
@@ -121,9 +132,6 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 		case FixInsertFooter:
 			if strings.TrimSpace(src) == "" {
 				return out, api.Invalid(field, "This campaign is written in HTML. Add the footer with the address and unsubscribe link in the editor.")
-			}
-			if strings.Contains(src, "<!-- rc:footer -->") {
-				continue
 			}
 			next, ok := InsertFooter(src, templates.WorkspaceAddress(ws))
 			if !ok {
@@ -216,7 +224,7 @@ func (s *Service) excludeSunset(ctx context.Context, ws *store.Workspace, p *aut
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.update", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Before: map[string]any{"audience": json.RawMessage(c.Audience)}, After: map[string]any{"audience": json.RawMessage(next)},
+			Before: map[string]any{"audience": c.Audience}, After: map[string]any{"audience": json.RawMessage(next)},
 			Metadata: map[string]any{"source": "send_readiness", "fix": FixExcludeSunset}})
 	})
 	if err != nil {
@@ -261,7 +269,7 @@ func (s *Service) routeOnly(ctx context.Context, ws *store.Workspace, p *authz.P
 		}
 		var before any
 		if len(c.RouteOverride) > 0 {
-			before = json.RawMessage(c.RouteOverride)
+			before = c.RouteOverride
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.route_override", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
 			Before: map[string]any{"route_override": before}, After: map[string]any{"route_override": json.RawMessage(next), "provider": short},
@@ -288,7 +296,7 @@ func (s *Service) ClearRouteOverride(ctx context.Context, ws *store.Workspace, p
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.route_override", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Before: map[string]any{"route_override": json.RawMessage(c.RouteOverride)}, After: map[string]any{"route_override": nil}})
+			Before: map[string]any{"route_override": c.RouteOverride}, After: map[string]any{"route_override": nil}})
 	})
 	if err == nil {
 		s.changed(ctx, ws, id)

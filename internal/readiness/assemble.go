@@ -438,11 +438,11 @@ func (b *builder) providerRates(s ShareFacts) ReadinessCheck {
 	l := s.Limits
 	detail := ""
 	if s.WarmupDays > 0 {
-		capWord := "today's cap"
+		capText := "today's cap"
 		if !s.WarmupToday {
-			capWord = "the cap on the send day"
+			capText = "the cap on the send day"
 		}
-		detail = fmt.Sprintf("Day %d of %d · %s %s messages, this send uses %s", s.WarmupDay, s.WarmupDays, capWord, Count(s.WarmupCap), Count(s.Recipients))
+		detail = fmt.Sprintf("Day %d of %d · %s %s messages, this send uses %s", s.WarmupDay, s.WarmupDays, capText, Count(s.WarmupCap), Count(s.Recipients))
 	} else {
 		standing := statusWord(s.Status)
 		if strings.Contains(strings.ToLower(s.Account), "no enforcement") {

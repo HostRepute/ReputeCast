@@ -163,7 +163,7 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 		}
 		next := t.toDB()
 		if string(next) != string(thresholds) {
-			before["thresholds"], after["thresholds"] = json.RawMessage(nonEmptyJSON(thresholds)), json.RawMessage(next)
+			before["thresholds"], after["thresholds"] = nonEmptyJSON(thresholds), next
 			thresholds = next
 		}
 	}
@@ -174,7 +174,7 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 		}
 		next, _ := json.Marshal(sch)
 		if string(next) != string(schedule) {
-			before["schedule"], after["schedule"] = json.RawMessage(nonEmptyJSON(schedule)), json.RawMessage(next)
+			before["schedule"], after["schedule"] = nonEmptyJSON(schedule), json.RawMessage(next)
 			schedule = next
 		}
 	}
