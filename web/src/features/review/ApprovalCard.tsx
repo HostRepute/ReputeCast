@@ -19,6 +19,15 @@ export type ApprovalMode = 'none' | 'required' | 'waiting' | 'approved' | 'inval
  */
 export function approvalMode(r: Review): ApprovalMode {
   const a = r.approval
+  if (r.campaign.status === 'scheduled') {
+    // A scheduled send keeps its time. It needs the approval card only when
+    // a request made for it doesn't cover it: the send won't start then.
+    const req = a.request
+    if (req?.status === 'pending') return 'waiting'
+    if (req?.status === 'invalidated') return 'invalidated'
+    const settled = req && ['changes_requested', 'rejected', 'cancelled'].includes(req.status)
+    return settled && r.scheduled && new Date(req.requestedAt) > new Date(r.scheduled.at) ? 'required' : 'none'
+  }
   if (!['draft', 'approval', 'approved'].includes(r.campaign.status)) return 'none'
   if (a.request?.status === 'pending') return 'waiting'
   // Blocks come first: nobody can ask for approval of a blocked send.

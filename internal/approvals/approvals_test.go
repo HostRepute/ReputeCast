@@ -465,3 +465,67 @@ func TestSendRecheck(t *testing.T) {
 		t.Fatalf("held by the engine: %+v", rv.Held)
 	}
 }
+
+// A scheduled send keeps its time when an edit invalidates its approval,
+// but it doesn't start until approvers approve the new version: the
+// author can ask again while the time stays reserved, and a request
+// approvers send back holds the send too.
+func TestScheduledSendLosesItsApproval(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	env.App.Sending = &fakeStarter{}
+	ctx := context.Background()
+	recheck := app.SendRecheck(env.App)
+	marcus, daniel := env.Client(), env.Client()
+	marcus.SignInDemo("marcus@acme.io")
+	daniel.SignInDemo("daniel@acme.io")
+	nov := campaignID(t, daniel, "November Product Update")
+	novID := uuid.MustParse(nov)
+	blocking := func(want string) {
+		t.Helper()
+		r, err := recheck(ctx, novID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want == "" && r.Verdict == "blocked" || want != "" && (r.Verdict != "blocked" || !slices.Contains(r.Blocking, want)) {
+			t.Fatalf("recheck: want %q, got %+v", want, r)
+		}
+	}
+
+	// Approved, then scheduled by Daniel.
+	r := getReview(t, daniel, nov)
+	marcus.Do("POST", ws+"/approvals/"+r.Approval.Request.ID+"/decision", map[string]any{"decision": "approve"}).MustStatus(t, 200)
+	r = getReview(t, daniel, nov)
+	daniel.Do("POST", ws+"/approvals/"+r.Approval.Request.ID+"/schedule", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r),
+		"confirm": fmt.Sprint(r.Run.Estimates.Audience.Final)}).MustStatus(t, 200)
+	blocking("")
+
+	// The subject changes: the approval is invalidated, the time stays.
+	var full map[string]any
+	daniel.Do("GET", ws+"/campaigns/"+nov, nil).MustStatus(t, 200).JSON(t, &full)
+	daniel.Do("PUT", ws+"/campaigns/"+nov+"/content", map[string]any{"baseVersion": full["version"], "subject": "November Product Update: faster exports, a new API and self-hosted sending",
+		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual"}).MustStatus(t, 200)
+	r = getReview(t, daniel, nov)
+	if r.Campaign.Status != "scheduled" || r.Approval.Request == nil || r.Approval.Request.Status != "invalidated" {
+		t.Fatalf("invalidated, still scheduled: %s %+v", r.Campaign.Status, r.Approval.Request)
+	}
+	blocking("The approval no longer covers the campaign")
+
+	// Daniel asks again; the time stays reserved while Marcus decides.
+	var asked struct{ ID string }
+	daniel.Do("POST", ws+"/campaigns/"+nov+"/approval", map[string]any{"note": "Only the subject changed."}).MustStatus(t, 201).JSON(t, &asked)
+	if r = getReview(t, daniel, nov); r.Campaign.Status != "scheduled" || r.Approval.Request.Status != "pending" {
+		t.Fatalf("asked again: %s %+v", r.Campaign.Status, r.Approval.Request)
+	}
+	blocking("Approval is still pending")
+	marcus.Do("POST", ws+"/approvals/"+asked.ID+"/decision", map[string]any{"decision": "request_changes", "comment": "Keep the Postal milestone in the subject."}).MustStatus(t, 200)
+	blocking("An approver asked for changes")
+
+	// Asked once more and approved: the send can start at its time.
+	daniel.Do("POST", ws+"/campaigns/"+nov+"/approval", map[string]any{}).MustStatus(t, 201).JSON(t, &asked)
+	marcus.Do("POST", ws+"/approvals/"+asked.ID+"/decision", map[string]any{"decision": "approve"}).MustStatus(t, 200)
+	if r = getReview(t, daniel, nov); r.Campaign.Status != "scheduled" || !r.Approval.Valid {
+		t.Fatalf("approved again: %s %+v", r.Campaign.Status, r.Approval)
+	}
+	blocking("")
+}

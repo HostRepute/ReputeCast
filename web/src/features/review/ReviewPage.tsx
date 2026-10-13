@@ -349,6 +349,8 @@ function ReviewBody({
   const incomplete = run.incomplete && !run.unknownAcceptedAt
   const scheduled = c.status === 'scheduled'
   const mode = approvalMode(d)
+  // A scheduled send its approval no longer covers won't start: the approval card leads.
+  const showScheduled = scheduled && mode === 'none'
   const can = { edit: a.canEdit, send: a.canSend, editable: c.editable }
   const reasonFor = (f: Fix) => fixReason(f, can, helpers)
   const apply = (check: Check, fix: Fix) => void applyFixes([{ check, fix }], `${check.key}:${fix.action}`)
@@ -394,7 +396,7 @@ function ReviewBody({
         <HeldActions held={d.held} busy={busy} onApply={apply} onCancel={a.canEdit ? () => setUnschedule(true) : undefined} />
       </HeldCard>
     )
-  } else if (scheduled) {
+  } else if (showScheduled) {
     top = (
       <div className="flex flex-col gap-3.5">
         <ScheduledBanner
@@ -501,7 +503,7 @@ function ReviewBody({
 
   const req = d.approval.request
   const approvalCard =
-    d.held || scheduled || incomplete || d.stale || !c.editable ? null : mode === 'required' ? (
+    d.held || showScheduled || incomplete || d.stale || !c.editable ? null : mode === 'required' ? (
       <RequiredCard
         review={d}
         run={run}

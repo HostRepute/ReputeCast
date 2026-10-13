@@ -154,7 +154,8 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 	switch c.Status {
 	case "draft", "approval", "approved":
 	case "scheduled":
-		return uuid.Nil, api.Conflict("The campaign is scheduled. Unschedule it before asking for a new approval.")
+		// The time stays reserved while approval is asked for again; the
+		// send-time recheck keeps it from starting until it is approved.
 	default:
 		return uuid.Nil, api.Conflict("This campaign already started sending.")
 	}
@@ -167,6 +168,9 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 		if changes, err := s.Revalidate(ctx, ws, campaignID); err != nil {
 			return uuid.Nil, err
 		} else if len(changes) == 0 {
+			if c.Status == "scheduled" {
+				return uuid.Nil, api.Conflict("This version is approved and scheduled.")
+			}
 			return uuid.Nil, api.Conflict("This version is already approved. Schedule it from Review & send.")
 		}
 	}

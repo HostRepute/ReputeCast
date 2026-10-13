@@ -464,8 +464,9 @@ func (s *Service) CheckSendTime(ctx context.Context, wsID, campaignID uuid.UUID)
 
 // approvalGap says why the campaign's approval doesn't let it send now
 // ("approval is still pending", "the approval no longer covers the
-// campaign"), or "" when it does or the send needed none. An approval
-// that stopped covering the campaign is invalidated on the way.
+// campaign", "an approver asked for changes"…), or "" when it does, an
+// Owner bypassed it or the send never needed one. An approval that stopped
+// covering the campaign is invalidated on the way.
 func (s *Service) approvalGap(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) (string, error) {
 	last, err := s.Q.ApprovalLatestForCampaign(ctx, &campaignID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -488,6 +489,20 @@ func (s *Service) approvalGap(ctx context.Context, ws *store.Workspace, campaign
 		return "approval is still pending", nil
 	case "invalidated":
 		return "the approval no longer covers the campaign", nil
+	}
+	settled := map[string]string{"changes_requested": "an approver asked for changes", "rejected": "the approval was rejected",
+		"cancelled": "the approval request was withdrawn"}[last.Status]
+	if settled == "" {
+		return "", nil
+	}
+	// Only a request made for the scheduled send holds it: an older one was
+	// settled before someone scheduled the campaign without needing it.
+	if sched, err := s.Q.ApprovalLastAudit(ctx, store.ApprovalLastAuditParams{WorkspaceID: &ws.ID, Action: "campaign.scheduled", TargetID: campaignID.String()}); err == nil {
+		if last.RequestedAt.After(sched.OccurredAt) {
+			return settled, nil
+		}
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return "", err
 	}
 	return "", nil
 }
