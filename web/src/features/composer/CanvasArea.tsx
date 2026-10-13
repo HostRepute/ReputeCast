@@ -2,7 +2,7 @@ import type { Component, Editor } from 'grapesjs'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { Popover } from '@/components/ui/Menu'
-import { clock } from '@/lib/format'
+import { clock, count } from '@/lib/format'
 import { useComposer, type Issue } from './context'
 import { DEVICES, type DeviceId } from './editor/grapes'
 import { componentLabel, mjChildren, tagOf } from './editor/labels'
@@ -689,9 +689,15 @@ export function CanvasArea({
           <div ref={setHost} className="relative">
             <div ref={setContainer} role="region" aria-label={`Email canvas, ${c.device === 'mobile' ? 'mobile 375 px' : 'desktop 600 px'}`} />
             {ed ? null : (
-              <div className="mx-auto flex items-center justify-center gap-3 bg-surface" style={{ width: frameWidth, minHeight: 320, boxShadow: '0 1px 3px rgba(11,18,32,.12)' }} aria-busy="true">
-                <span className="spin" style={{ width: 24, height: 24 }} />
-                <span className="font-semibold">Opening the editor…</span>
+              // ComposerStates: "Compiling Weekly Digest #142 from MJML · Version 15 · 212 lines".
+              <div className="mx-auto flex items-center justify-center gap-3 bg-surface" style={{ width: frameWidth, minHeight: 320, boxShadow: '0 1px 3px rgba(11,18,32,.12)' }} aria-busy="true" role="status">
+                <span className="spin" style={{ width: 24, height: 24 }} aria-hidden="true" />
+                <div className="flex flex-col">
+                  <span className="font-semibold">Compiling {c.name || 'the campaign'} from MJML</span>
+                  <span className="k">
+                    Version {c.campaign.version} · {count(c.campaign.mjml.split('\n').length)} lines · usually under a second
+                  </span>
+                </div>
               </div>
             )}
             <WarningOverlays host={host} tick={tick} />
