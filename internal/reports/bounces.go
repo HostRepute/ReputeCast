@@ -57,10 +57,10 @@ func bounceTypeByKey(key string) (bounceType, bool) {
 // each provider's original codes, most frequent first.
 func bounceTable(rows []store.ReportBounceCodesRow) ReportBounceTable {
 	type acc struct {
-		row          ReportBounceRow
-		recipients   int64
-		suppressed   int64
-		codes        map[string]*ReportCodeCount
+		row        ReportBounceRow
+		recipients int64
+		suppressed int64
+		codes      map[string]*ReportCodeCount
 	}
 	byKey := map[string]*acc{}
 	out := ReportBounceTable{Rows: []ReportBounceRow{}}

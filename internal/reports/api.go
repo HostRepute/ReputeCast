@@ -69,7 +69,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Get(h, api.Op{ID: "get-campaign-report", Path: base, Summary: "Campaign report: headline metrics, 72-hour engagement, click map, providers, bounces, unsubscribes, A/B",
 		Description: "Aggregate numbers only. Rates are percentages: delivered and bounces of sent; opens, clicks, unsubscribes and complaints of delivered.",
-		Tags: tags, Access: view},
+		Tags:        tags, Access: view},
 		func(ctx context.Context, in *ReportPath) (*api.Body[CampaignReport], error) {
 			id, err := in.id()
 			if err != nil {

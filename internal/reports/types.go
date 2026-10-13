@@ -54,26 +54,26 @@ type ReportProviderCount struct {
 // and bounces of sent; opens, clicks, unsubscribes and complaints of
 // delivered; click-to-open of human opens.
 type ReportHeadline struct {
-	Sent              int64                 `json:"sent"`
-	SentBy            []ReportProviderCount `json:"sentBy"`
-	Delivered         int64                 `json:"delivered"`
-	DeliveredRate     *float64              `json:"deliveredRate,omitempty"`
-	HumanOpens        int64                 `json:"humanOpens"`
-	HumanOpenRate     *float64              `json:"humanOpenRate,omitempty"`
-	MachineOpens      int64                 `json:"machineOpens"`
-	MachineOpenRate   *float64              `json:"machineOpenRate,omitempty"`
-	Clicks            int64                 `json:"clicks"`
-	ClickRate         *float64              `json:"clickRate,omitempty"`
-	ClickToOpen       *float64              `json:"clickToOpen,omitempty"`
-	Unsubscribes      int64                 `json:"unsubscribes"`
-	UnsubscribeRate   *float64              `json:"unsubscribeRate,omitempty"`
-	Complaints        int64                 `json:"complaints"`
-	ComplaintRate     *float64              `json:"complaintRate,omitempty"`
-	Bounces           int64                 `json:"bounces"`
-	HardBounces       int64                 `json:"hardBounces"`
-	SoftBounces       int64                 `json:"softBounces"`
-	BounceRate        *float64              `json:"bounceRate,omitempty"`
-	Rejected          int64                 `json:"rejected"`
+	Sent            int64                 `json:"sent"`
+	SentBy          []ReportProviderCount `json:"sentBy"`
+	Delivered       int64                 `json:"delivered"`
+	DeliveredRate   *float64              `json:"deliveredRate,omitempty"`
+	HumanOpens      int64                 `json:"humanOpens"`
+	HumanOpenRate   *float64              `json:"humanOpenRate,omitempty"`
+	MachineOpens    int64                 `json:"machineOpens"`
+	MachineOpenRate *float64              `json:"machineOpenRate,omitempty"`
+	Clicks          int64                 `json:"clicks"`
+	ClickRate       *float64              `json:"clickRate,omitempty"`
+	ClickToOpen     *float64              `json:"clickToOpen,omitempty"`
+	Unsubscribes    int64                 `json:"unsubscribes"`
+	UnsubscribeRate *float64              `json:"unsubscribeRate,omitempty"`
+	Complaints      int64                 `json:"complaints"`
+	ComplaintRate   *float64              `json:"complaintRate,omitempty"`
+	Bounces         int64                 `json:"bounces"`
+	HardBounces     int64                 `json:"hardBounces"`
+	SoftBounces     int64                 `json:"softBounces"`
+	BounceRate      *float64              `json:"bounceRate,omitempty"`
+	Rejected        int64                 `json:"rejected"`
 	// Undelivered were neither delivered nor bounced: deferrals that expired
 	// once the send is final, mail still in flight before that.
 	Undelivered int64 `json:"undelivered"`
@@ -141,11 +141,11 @@ type ReportClickMap struct {
 	HTML string `json:"html"`
 	// Available is false when the stored content is missing; the links
 	// are still listed.
-	Available bool              `json:"available"`
-	Total     int64             `json:"total" doc:"All link clicks"`
-	Links     []ReportLink      `json:"links"`
-	Threshold float64           `json:"threshold" doc:"Links under this share (percent) are grouped as Other"`
-	Other     *ReportLinkGroup  `json:"other,omitempty"`
+	Available bool             `json:"available"`
+	Total     int64            `json:"total" doc:"All link clicks"`
+	Links     []ReportLink     `json:"links"`
+	Threshold float64          `json:"threshold" doc:"Links under this share (percent) are grouped as Other"`
+	Other     *ReportLinkGroup `json:"other,omitempty"`
 }
 
 // ReportRates are a slice of the send's results. Rates as in ReportHeadline.
@@ -205,10 +205,10 @@ type ReportCodeCount struct {
 
 // ReportBounceRow is one type of the shared bounce taxonomy.
 type ReportBounceRow struct {
-	Type  string `json:"type" enum:"unknown_user,domain_invalid,mailbox_full,deferral_expired,blocked,other"`
-	Label string `json:"label"`
-	Tone  string `json:"tone" enum:"bad,warn,neutral"`
-	Count int64  `json:"count"`
+	Type  string            `json:"type" enum:"unknown_user,domain_invalid,mailbox_full,deferral_expired,blocked,other"`
+	Label string            `json:"label"`
+	Tone  string            `json:"tone" enum:"bad,warn,neutral"`
+	Count int64             `json:"count"`
 	Codes []ReportCodeCount `json:"codes"`
 	// Suppression: auto (every address was suppressed when it bounced),
 	// retry (soft bounces are retried next send), add (addresses aren't
@@ -268,8 +268,8 @@ type ReportABTest struct {
 	DecidedAt   *time.Time `json:"decidedAt,omitempty"`
 	// State: decided (a winner went out), testing (the window is open) or
 	// no_winner (the window closed without a significant difference).
-	State   string            `json:"state" enum:"decided,testing,no_winner"`
-	Winner  string            `json:"winner,omitempty"`
+	State    string            `json:"state" enum:"decided,testing,no_winner"`
+	Winner   string            `json:"winner,omitempty"`
 	Variants []ReportABVariant `json:"variants"`
 	// Lift is the leader's advantage on the metric, in percentage points.
 	Lift *float64 `json:"lift,omitempty"`
