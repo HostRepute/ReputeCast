@@ -359,7 +359,7 @@ func (q *Queries) IngestMarkNormalized(ctx context.Context, arg IngestMarkNormal
 }
 
 const ingestMessageByID = `-- name: IngestMessageByID :one
-SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.automation_node, m.contact_id, m.email, m.variant, m.provider_id, m.provider_message_id, m.mailbox_provider, m.status, m.queued_at, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at, m.error, m.kind, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
+SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.automation_node, m.contact_id, m.email, m.variant, m.provider_id, m.provider_message_id, m.mailbox_provider, m.status, m.queued_at, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at, m.error, m.kind, m.attempts, m.next_attempt_at, m.claimed_at, m.content_ref, m.human_opened_at, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
 FROM messages m
 LEFT JOIN campaigns c ON c.id = m.campaign_id
 LEFT JOIN automations a ON a.id = m.automation_id
@@ -372,28 +372,33 @@ type IngestMessageByIDParams struct {
 }
 
 type IngestMessageByIDRow struct {
-	ID                uuid.UUID  `json:"id"`
-	WorkspaceID       uuid.UUID  `json:"workspaceId"`
-	Stream            string     `json:"stream"`
-	CampaignID        *uuid.UUID `json:"campaignId"`
-	AutomationID      *uuid.UUID `json:"automationId"`
-	AutomationNode    *string    `json:"automationNode"`
-	ContactID         *uuid.UUID `json:"contactId"`
-	Email             string     `json:"email"`
-	Variant           string     `json:"variant"`
-	ProviderID        *uuid.UUID `json:"providerId"`
-	ProviderMessageID *string    `json:"providerMessageId"`
-	MailboxProvider   string     `json:"mailboxProvider"`
-	Status            string     `json:"status"`
-	QueuedAt          time.Time  `json:"queuedAt"`
-	SentAt            *time.Time `json:"sentAt"`
-	DeliveredAt       *time.Time `json:"deliveredAt"`
-	OpenedAt          *time.Time `json:"openedAt"`
-	ClickedAt         *time.Time `json:"clickedAt"`
-	Error             string     `json:"error"`
-	Kind              string     `json:"kind"`
-	CampaignName      string     `json:"campaignName"`
-	AutomationName    string     `json:"automationName"`
+	ID                uuid.UUID       `json:"id"`
+	WorkspaceID       uuid.UUID       `json:"workspaceId"`
+	Stream            string          `json:"stream"`
+	CampaignID        *uuid.UUID      `json:"campaignId"`
+	AutomationID      *uuid.UUID      `json:"automationId"`
+	AutomationNode    *string         `json:"automationNode"`
+	ContactID         *uuid.UUID      `json:"contactId"`
+	Email             string          `json:"email"`
+	Variant           string          `json:"variant"`
+	ProviderID        *uuid.UUID      `json:"providerId"`
+	ProviderMessageID *string         `json:"providerMessageId"`
+	MailboxProvider   string          `json:"mailboxProvider"`
+	Status            string          `json:"status"`
+	QueuedAt          time.Time       `json:"queuedAt"`
+	SentAt            *time.Time      `json:"sentAt"`
+	DeliveredAt       *time.Time      `json:"deliveredAt"`
+	OpenedAt          *time.Time      `json:"openedAt"`
+	ClickedAt         *time.Time      `json:"clickedAt"`
+	Error             string          `json:"error"`
+	Kind              string          `json:"kind"`
+	Attempts          int16           `json:"attempts"`
+	NextAttemptAt     *time.Time      `json:"nextAttemptAt"`
+	ClaimedAt         *time.Time      `json:"claimedAt"`
+	ContentRef        json.RawMessage `json:"contentRef"`
+	HumanOpenedAt     *time.Time      `json:"humanOpenedAt"`
+	CampaignName      string          `json:"campaignName"`
+	AutomationName    string          `json:"automationName"`
 }
 
 func (q *Queries) IngestMessageByID(ctx context.Context, arg IngestMessageByIDParams) (IngestMessageByIDRow, error) {
@@ -420,6 +425,11 @@ func (q *Queries) IngestMessageByID(ctx context.Context, arg IngestMessageByIDPa
 		&i.ClickedAt,
 		&i.Error,
 		&i.Kind,
+		&i.Attempts,
+		&i.NextAttemptAt,
+		&i.ClaimedAt,
+		&i.ContentRef,
+		&i.HumanOpenedAt,
 		&i.CampaignName,
 		&i.AutomationName,
 	)
@@ -427,7 +437,7 @@ func (q *Queries) IngestMessageByID(ctx context.Context, arg IngestMessageByIDPa
 }
 
 const ingestMessageByProviderID = `-- name: IngestMessageByProviderID :one
-SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.automation_node, m.contact_id, m.email, m.variant, m.provider_id, m.provider_message_id, m.mailbox_provider, m.status, m.queued_at, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at, m.error, m.kind, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
+SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.automation_node, m.contact_id, m.email, m.variant, m.provider_id, m.provider_message_id, m.mailbox_provider, m.status, m.queued_at, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at, m.error, m.kind, m.attempts, m.next_attempt_at, m.claimed_at, m.content_ref, m.human_opened_at, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
 FROM messages m
 LEFT JOIN campaigns c ON c.id = m.campaign_id
 LEFT JOIN automations a ON a.id = m.automation_id
@@ -440,28 +450,33 @@ type IngestMessageByProviderIDParams struct {
 }
 
 type IngestMessageByProviderIDRow struct {
-	ID                uuid.UUID  `json:"id"`
-	WorkspaceID       uuid.UUID  `json:"workspaceId"`
-	Stream            string     `json:"stream"`
-	CampaignID        *uuid.UUID `json:"campaignId"`
-	AutomationID      *uuid.UUID `json:"automationId"`
-	AutomationNode    *string    `json:"automationNode"`
-	ContactID         *uuid.UUID `json:"contactId"`
-	Email             string     `json:"email"`
-	Variant           string     `json:"variant"`
-	ProviderID        *uuid.UUID `json:"providerId"`
-	ProviderMessageID *string    `json:"providerMessageId"`
-	MailboxProvider   string     `json:"mailboxProvider"`
-	Status            string     `json:"status"`
-	QueuedAt          time.Time  `json:"queuedAt"`
-	SentAt            *time.Time `json:"sentAt"`
-	DeliveredAt       *time.Time `json:"deliveredAt"`
-	OpenedAt          *time.Time `json:"openedAt"`
-	ClickedAt         *time.Time `json:"clickedAt"`
-	Error             string     `json:"error"`
-	Kind              string     `json:"kind"`
-	CampaignName      string     `json:"campaignName"`
-	AutomationName    string     `json:"automationName"`
+	ID                uuid.UUID       `json:"id"`
+	WorkspaceID       uuid.UUID       `json:"workspaceId"`
+	Stream            string          `json:"stream"`
+	CampaignID        *uuid.UUID      `json:"campaignId"`
+	AutomationID      *uuid.UUID      `json:"automationId"`
+	AutomationNode    *string         `json:"automationNode"`
+	ContactID         *uuid.UUID      `json:"contactId"`
+	Email             string          `json:"email"`
+	Variant           string          `json:"variant"`
+	ProviderID        *uuid.UUID      `json:"providerId"`
+	ProviderMessageID *string         `json:"providerMessageId"`
+	MailboxProvider   string          `json:"mailboxProvider"`
+	Status            string          `json:"status"`
+	QueuedAt          time.Time       `json:"queuedAt"`
+	SentAt            *time.Time      `json:"sentAt"`
+	DeliveredAt       *time.Time      `json:"deliveredAt"`
+	OpenedAt          *time.Time      `json:"openedAt"`
+	ClickedAt         *time.Time      `json:"clickedAt"`
+	Error             string          `json:"error"`
+	Kind              string          `json:"kind"`
+	Attempts          int16           `json:"attempts"`
+	NextAttemptAt     *time.Time      `json:"nextAttemptAt"`
+	ClaimedAt         *time.Time      `json:"claimedAt"`
+	ContentRef        json.RawMessage `json:"contentRef"`
+	HumanOpenedAt     *time.Time      `json:"humanOpenedAt"`
+	CampaignName      string          `json:"campaignName"`
+	AutomationName    string          `json:"automationName"`
 }
 
 func (q *Queries) IngestMessageByProviderID(ctx context.Context, arg IngestMessageByProviderIDParams) (IngestMessageByProviderIDRow, error) {
@@ -488,6 +503,11 @@ func (q *Queries) IngestMessageByProviderID(ctx context.Context, arg IngestMessa
 		&i.ClickedAt,
 		&i.Error,
 		&i.Kind,
+		&i.Attempts,
+		&i.NextAttemptAt,
+		&i.ClaimedAt,
+		&i.ContentRef,
+		&i.HumanOpenedAt,
 		&i.CampaignName,
 		&i.AutomationName,
 	)

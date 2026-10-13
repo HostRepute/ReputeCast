@@ -158,6 +158,15 @@ type AutomationEmail struct {
 	DeletedAt     *time.Time `json:"deletedAt"`
 }
 
+type AutomationEmailLink struct {
+	EmailID  uuid.UUID `json:"emailId"`
+	Version  int32     `json:"version"`
+	Position int32     `json:"position"`
+	Url      string    `json:"url"`
+	Label    string    `json:"label"`
+	Clicks   int64     `json:"clicks"`
+}
+
 type AutomationEmailVersion struct {
 	EmailID   uuid.UUID  `json:"emailId"`
 	Version   int32      `json:"version"`
@@ -314,6 +323,12 @@ type Campaign struct {
 	ContentSettings json.RawMessage `json:"contentSettings"`
 }
 
+type CampaignAudienceStage struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	ContactID  uuid.UUID `json:"contactId"`
+	Exclude    bool      `json:"exclude"`
+}
+
 type CampaignCounter struct {
 	CampaignID      uuid.UUID `json:"campaignId"`
 	ProviderID      uuid.UUID `json:"providerId"`
@@ -375,6 +390,35 @@ type CampaignRoute struct {
 	Status       string    `json:"status"`
 	StatusDetail string    `json:"statusDetail"`
 	CostMicros   int64     `json:"costMicros"`
+}
+
+type CampaignSend struct {
+	CampaignID    uuid.UUID       `json:"campaignId"`
+	WorkspaceID   uuid.UUID       `json:"workspaceId"`
+	Phase         string          `json:"phase"`
+	PrepareCursor *uuid.UUID      `json:"prepareCursor"`
+	PreparedAt    *time.Time      `json:"preparedAt"`
+	Recipients    int64           `json:"recipients"`
+	Excluded      json.RawMessage `json:"excluded"`
+	StartedBy     *uuid.UUID      `json:"startedBy"`
+	StartedByName string          `json:"startedByName"`
+	ApprovedBy    *uuid.UUID      `json:"approvedBy"`
+	ApprovedAt    *time.Time      `json:"approvedAt"`
+	ScheduledBy   *uuid.UUID      `json:"scheduledBy"`
+	Throttles     json.RawMessage `json:"throttles"`
+	Thresholds    json.RawMessage `json:"thresholds"`
+	Holds         json.RawMessage `json:"holds"`
+	Changes       json.RawMessage `json:"changes"`
+	Ab            json.RawMessage `json:"ab"`
+	Content       json.RawMessage `json:"content"`
+	Scenario      string          `json:"scenario"`
+	PausedAt      *time.Time      `json:"pausedAt"`
+	PausedByName  string          `json:"pausedByName"`
+	PauseReason   string          `json:"pauseReason"`
+	Error         string          `json:"error"`
+	FinishedAt    *time.Time      `json:"finishedAt"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	UpdatedAt     time.Time       `json:"updatedAt"`
 }
 
 type CampaignVersion struct {
@@ -726,26 +770,31 @@ type MediaAsset struct {
 }
 
 type Message struct {
-	ID                uuid.UUID  `json:"id"`
-	WorkspaceID       uuid.UUID  `json:"workspaceId"`
-	Stream            string     `json:"stream"`
-	CampaignID        *uuid.UUID `json:"campaignId"`
-	AutomationID      *uuid.UUID `json:"automationId"`
-	AutomationNode    *string    `json:"automationNode"`
-	ContactID         *uuid.UUID `json:"contactId"`
-	Email             string     `json:"email"`
-	Variant           string     `json:"variant"`
-	ProviderID        *uuid.UUID `json:"providerId"`
-	ProviderMessageID *string    `json:"providerMessageId"`
-	MailboxProvider   string     `json:"mailboxProvider"`
-	Status            string     `json:"status"`
-	QueuedAt          time.Time  `json:"queuedAt"`
-	SentAt            *time.Time `json:"sentAt"`
-	DeliveredAt       *time.Time `json:"deliveredAt"`
-	OpenedAt          *time.Time `json:"openedAt"`
-	ClickedAt         *time.Time `json:"clickedAt"`
-	Error             string     `json:"error"`
-	Kind              string     `json:"kind"`
+	ID                uuid.UUID       `json:"id"`
+	WorkspaceID       uuid.UUID       `json:"workspaceId"`
+	Stream            string          `json:"stream"`
+	CampaignID        *uuid.UUID      `json:"campaignId"`
+	AutomationID      *uuid.UUID      `json:"automationId"`
+	AutomationNode    *string         `json:"automationNode"`
+	ContactID         *uuid.UUID      `json:"contactId"`
+	Email             string          `json:"email"`
+	Variant           string          `json:"variant"`
+	ProviderID        *uuid.UUID      `json:"providerId"`
+	ProviderMessageID *string         `json:"providerMessageId"`
+	MailboxProvider   string          `json:"mailboxProvider"`
+	Status            string          `json:"status"`
+	QueuedAt          time.Time       `json:"queuedAt"`
+	SentAt            *time.Time      `json:"sentAt"`
+	DeliveredAt       *time.Time      `json:"deliveredAt"`
+	OpenedAt          *time.Time      `json:"openedAt"`
+	ClickedAt         *time.Time      `json:"clickedAt"`
+	Error             string          `json:"error"`
+	Kind              string          `json:"kind"`
+	Attempts          int16           `json:"attempts"`
+	NextAttemptAt     *time.Time      `json:"nextAttemptAt"`
+	ClaimedAt         *time.Time      `json:"claimedAt"`
+	ContentRef        json.RawMessage `json:"contentRef"`
+	HumanOpenedAt     *time.Time      `json:"humanOpenedAt"`
 }
 
 type Notification struct {
@@ -978,6 +1027,24 @@ type SendingDomain struct {
 	CreatedAt     time.Time       `json:"createdAt"`
 }
 
+type SendingRateWindow struct {
+	ProviderID uuid.UUID `json:"providerId"`
+	Sec        int64     `json:"sec"`
+	Used       int32     `json:"used"`
+	LastGrant  int32     `json:"lastGrant"`
+}
+
+type SendingSimEvent struct {
+	ID          int64           `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	CampaignID  *uuid.UUID      `json:"campaignId"`
+	MessageID   uuid.UUID       `json:"messageId"`
+	ProviderID  uuid.UUID       `json:"providerId"`
+	DueAt       time.Time       `json:"dueAt"`
+	Kind        string          `json:"kind"`
+	Data        json.RawMessage `json:"data"`
+}
+
 type Session struct {
 	ID          uuid.UUID   `json:"id"`
 	UserID      uuid.UUID   `json:"userId"`
@@ -1101,6 +1168,12 @@ type Template struct {
 	SourceCampaignID *uuid.UUID      `json:"sourceCampaignId"`
 	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
 	DeletedAt        *time.Time      `json:"deletedAt"`
+}
+
+type TrackingLinkClick struct {
+	MessageID uuid.UUID `json:"messageId"`
+	Link      int32     `json:"link"`
+	ClickedAt time.Time `json:"clickedAt"`
 }
 
 type UnsubscribeFeedback struct {
