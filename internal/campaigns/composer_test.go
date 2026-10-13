@@ -358,7 +358,23 @@ func TestComposerChecksAndPreview(t *testing.T) {
 		Members []struct{ Email string }
 	}
 	c.Do("GET", ws+"/composer", nil).MustStatus(t, 200).JSON(t, &ctxOut)
-	if len(ctxOut.Senders) != 2 || len(ctxOut.Lists) != 3 || len(ctxOut.Members) == 0 {
+	// Other seeders add senders and lists too: assert the ones the composer demo needs.
+	has := func(want string, got []string) bool {
+		for _, g := range got {
+			if g == want {
+				return true
+			}
+		}
+		return false
+	}
+	var senders, lists []string
+	for _, s := range ctxOut.Senders {
+		senders = append(senders, s.Email)
+	}
+	for _, l := range ctxOut.Lists {
+		lists = append(lists, l.Name)
+	}
+	if !has("digest@news.acme.io", senders) || !has("hello@news.acme.io", senders) || !has("Weekly Digest", lists) || !has("Product Updates", lists) || len(ctxOut.Members) == 0 {
 		t.Fatalf("context: %+v", ctxOut)
 	}
 	keys := []string{}

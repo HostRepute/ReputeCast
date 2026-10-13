@@ -18,7 +18,7 @@ LIMIT @lim;
 SELECT id, workspace_id, file_name, content_type, size_bytes, width, height, has_alpha, created_at
 FROM media_assets WHERE workspace_id = @workspace_id AND id = @id;
 
--- name: GetMediaData :one
+-- name: GetMediaAssetData :one
 -- Public serving: by id only (ids are unguessable UUIDv7s embedded in emails).
 SELECT id, file_name, content_type, size_bytes, sha256, data, created_at FROM media_assets WHERE id = @id;
 

@@ -22,10 +22,10 @@ func init() { seedComposer = seedComposerImpl }
 //go:embed assets/composer/*.png
 var composerAssets embed.FS
 
-// FlashSaleBloat is the number of pasted spans per plan card; it puts the
+// ComposerFlashSaleBloat is the number of pasted spans per plan card; it puts the
 // flash sale at about 98 KB, inside the "approaching Gmail's clipping
 // limit" warning of the ComposerWarnings board.
-const FlashSaleBloat = 42
+const ComposerFlashSaleBloat = 42
 
 // seedComposerImpl gives the demo campaigns their content and history:
 // Weekly Digest #142 (the Composer board, 14 versions, an A/B subject
@@ -37,11 +37,11 @@ func seedComposerImpl(ctx context.Context, s *Seeder) error {
 	linh, marcus := s.Users["linh@acme.io"], s.Users["marcus@acme.io"]
 
 	// Senders: the sending-domains seeder may have created them already.
-	digestSender, err := ensureSender(ctx, s, "news.acme.io", "Acme Newsletter", "digest@news.acme.io")
+	digestSender, err := composerEnsureSender(ctx, s, "news.acme.io", "Acme Newsletter", "digest@news.acme.io")
 	if err != nil {
 		return err
 	}
-	helloSender, err := ensureSender(ctx, s, "news.acme.io", "Acme", "hello@news.acme.io")
+	helloSender, err := composerEnsureSender(ctx, s, "news.acme.io", "Acme", "hello@news.acme.io")
 	if err != nil {
 		return err
 	}
@@ -144,9 +144,9 @@ func seedComposerImpl(ctx context.Context, s *Seeder) error {
 	const digestSubject = "Three launches, one deprecation, and the roadmap for Q4"
 	const digestPreheader = "Feature flags are GA, audit log exports, and what we're retiring in November."
 	if id, ok := s.Campaigns["Weekly Digest #142"]; ok {
-		early := withImages(digestMJML(1, "This week at Acme", "Launches, guides and the changelog."))
-		mid := withImages(digestMJML(9, digestSubject, digestPreheader))
-		final := withImages(digestMJML(14, digestSubject, digestPreheader))
+		early := withImages(composerDigestMJML(1, "This week at Acme", "Launches, guides and the changelog."))
+		mid := withImages(composerDigestMJML(9, digestSubject, digestPreheader))
+		final := withImages(composerDigestMJML(14, digestSubject, digestPreheader))
 		labels := []struct {
 			day, h, m int
 			by        uuid.UUID
@@ -172,7 +172,7 @@ func seedComposerImpl(ctx context.Context, s *Seeder) error {
 			src, subject, pre := early, "This week at Acme", "Launches, guides and the changelog."
 			if i >= 2 {
 				subject, pre = digestSubject, digestPreheader
-				src = withImages(digestMJML(1, subject, pre))
+				src = withImages(composerDigestMJML(1, subject, pre))
 			}
 			if i >= 8 {
 				src = mid
@@ -198,14 +198,14 @@ func seedComposerImpl(ctx context.Context, s *Seeder) error {
 	// Flash sale: the inline warnings state.
 	if id, ok := s.Campaigns["Flash sale: 48 hours only"]; ok {
 		const subject, preheader = "FLASH SALE!!! 48 HOURS ONLY", "Annual plans 30% off until Thursday midnight."
-		withFooter := withImages(flashSaleMJML("Flash sale", preheader, true, FlashSaleBloat))
+		withFooter := withImages(composerFlashSaleMJML("Flash sale", preheader, true, ComposerFlashSaleBloat))
 		vs := []version{
-			{at: s.designDay(1, 17, 40), by: linh.ID, label: "created", source: "create", subject: "Flash sale", preheader: preheader, mjml: withImages(flashSaleMJML("Flash sale", preheader, true, 0))},
-			{at: s.designDay(1, 17, 52), by: linh.ID, label: "hero and button", subject: "Flash sale", preheader: preheader, mjml: withImages(flashSaleMJML("Flash sale", preheader, true, 0))},
+			{at: s.designDay(1, 17, 40), by: linh.ID, label: "created", source: "create", subject: "Flash sale", preheader: preheader, mjml: withImages(composerFlashSaleMJML("Flash sale", preheader, true, 0))},
+			{at: s.designDay(1, 17, 52), by: linh.ID, label: "hero and button", subject: "Flash sale", preheader: preheader, mjml: withImages(composerFlashSaleMJML("Flash sale", preheader, true, 0))},
 			{at: s.designDay(0, 9, 2), by: linh.ID, label: "plan cards pasted from the pricing page", subject: "Flash sale", preheader: preheader, mjml: withFooter},
 			{at: s.designDay(0, 9, 18), by: linh.ID, label: "second row of plans", subject: "Flash sale", preheader: preheader, mjml: withFooter},
-			{at: s.designDay(0, 9, 26), by: linh.ID, label: "subject", subject: subject, preheader: preheader, mjml: withImages(flashSaleMJML(subject, preheader, true, FlashSaleBloat))},
-			{at: s.designDay(0, 9, 31), by: linh.ID, label: "footer removed", subject: subject, preheader: preheader, mjml: withImages(flashSaleMJML(subject, preheader, false, FlashSaleBloat))},
+			{at: s.designDay(0, 9, 26), by: linh.ID, label: "subject", subject: subject, preheader: preheader, mjml: withImages(composerFlashSaleMJML(subject, preheader, true, ComposerFlashSaleBloat))},
+			{at: s.designDay(0, 9, 31), by: linh.ID, label: "footer removed", subject: subject, preheader: preheader, mjml: withImages(composerFlashSaleMJML(subject, preheader, false, ComposerFlashSaleBloat))},
 		}
 		for i := range vs {
 			if vs[i].source == "" {
@@ -222,7 +222,7 @@ func seedComposerImpl(ctx context.Context, s *Seeder) error {
 
 	// October Product Update: sent, so only its final content matters.
 	if id, ok := s.Campaigns["October Product Update"]; ok {
-		src := withImages(octoberMJML())
+		src := withImages(composerOctoberMJML())
 		var started time.Time
 		if err := s.Tx.QueryRow(ctx, `SELECT coalesce(started_at, now()) FROM campaigns WHERE id = $1`, id).Scan(&started); err != nil {
 			return err
@@ -248,7 +248,7 @@ func seedComposerImpl(ctx context.Context, s *Seeder) error {
 	}
 
 	// Gallery: the saved template and the saved sections.
-	tpl := withImages(digestMJML(1, "", ""))
+	tpl := withImages(composerDigestMJML(1, "", ""))
 	tplHTML, err := compile(tpl)
 	if err != nil {
 		return err
@@ -258,7 +258,7 @@ func seedComposerImpl(ctx context.Context, s *Seeder) error {
 		ID(), ws.ID, tpl, tplHTML, json.RawMessage(`[{"h":10,"w":40},{"h":34},{"row":[{"h":28},{"h":28}]}]`), len(tplHTML), linh.ID, s.designDay(40, 11, 0), s.designDay(5, 14, 20)); err != nil {
 		return err
 	}
-	for i, sec := range savedSections {
+	for i, sec := range composerSavedSections {
 		thumb, _ := json.Marshal(mjml.Thumb("<mjml><mj-body>" + sec.mjml + "</mj-body></mjml>"))
 		html, err := compile("<mjml><mj-body>" + sec.mjml + "</mj-body></mjml>")
 		if err != nil {
@@ -273,9 +273,9 @@ func seedComposerImpl(ctx context.Context, s *Seeder) error {
 	return nil
 }
 
-// ensureSender returns the sender for email, creating its sending domain and
+// composerEnsureSender returns the sender for email, creating its sending domain and
 // the sender when the senders seeder hasn't.
-func ensureSender(ctx context.Context, s *Seeder, domain, name, email string) (uuid.UUID, error) {
+func composerEnsureSender(ctx context.Context, s *Seeder, domain, name, email string) (uuid.UUID, error) {
 	if id, ok := s.Senders[email]; ok {
 		return id, nil
 	}

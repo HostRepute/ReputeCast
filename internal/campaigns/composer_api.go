@@ -27,17 +27,17 @@ func (in CampaignPath) id() (uuid.UUID, error) {
 
 type createCampaignInput struct {
 	api.WorkspaceInput
-	Body CreateCampaign
+	Body ComposerCreateCampaign
 }
 
 type updateCampaignInput struct {
 	CampaignPath
-	Body UpdateCampaign
+	Body ComposerUpdateCampaign
 }
 
 type saveContentInput struct {
 	CampaignPath
-	Body SaveContent
+	Body ComposerSaveContent
 }
 
 type versionsInput struct {
@@ -53,17 +53,17 @@ type VersionPath struct {
 
 type restoreInput struct {
 	VersionPath
-	Body RestoreVersion
+	Body ComposerRestoreVersion
 }
 
 type testSendInput struct {
 	CampaignPath
-	Body TestSend
+	Body ComposerTestSend
 }
 
 type previewInput struct {
 	CampaignPath
-	Body PreviewRequest
+	Body ComposerPreviewRequest
 }
 
 type previewContactsInput struct {
@@ -73,7 +73,7 @@ type previewContactsInput struct {
 
 type checksInput struct {
 	CampaignPath
-	Body CheckContent
+	Body ComposerChecksRequest
 }
 
 type contextInput struct {
@@ -82,16 +82,16 @@ type contextInput struct {
 
 type audienceCountInput struct {
 	api.WorkspaceInput
-	Body AudienceInput
+	Body ComposerAudienceInput
 }
 
-// CompileMJML is MJML to compile on the server.
-type CompileMJML struct {
+// ComposerCompileRequest is MJML to compile on the server.
+type ComposerCompileRequest struct {
 	MJML string `json:"mjml" minLength:"1" maxLength:"2000000"`
 }
 
-// CompiledMJML is the server-side compile result (gomjml, MJML 4.15).
-type CompiledMJML struct {
+// ComposerCompiled is the server-side compile result (gomjml, MJML 4.15).
+type ComposerCompiled struct {
 	HTML       string             `json:"html"`
 	Errors     []mjml.MJMLProblem `json:"errors"`
 	Warnings   []mjml.MJMLProblem `json:"warnings"`
@@ -101,7 +101,7 @@ type CompiledMJML struct {
 
 type compileInput struct {
 	api.WorkspaceInput
-	Body CompileMJML
+	Body ComposerCompileRequest
 }
 
 // RegisterComposer adds the composer operations.
@@ -111,13 +111,13 @@ func RegisterComposer(h huma.API, s *Service) {
 
 	api.Post(h, api.Op{ID: "create-campaign", Path: "/workspaces/{workspace}/campaigns", Summary: "Start a draft, blank or from a template or another campaign",
 		Tags: tags, Access: edit, Status: 201},
-		func(ctx context.Context, in *createCampaignInput) (*api.Body[CampaignDetail], error) {
+		func(ctx context.Context, in *createCampaignInput) (*api.Body[ComposerCampaign], error) {
 			out, err := s.Create(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-campaign", Path: "/workspaces/{workspace}/campaigns/{campaignId}", Summary: "Get a campaign with its content, audience, sender and route",
 		Tags: tags, Access: view},
-		func(ctx context.Context, in *CampaignPath) (*api.Body[CampaignDetail], error) {
+		func(ctx context.Context, in *CampaignPath) (*api.Body[ComposerCampaign], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -127,7 +127,7 @@ func RegisterComposer(h huma.API, s *Service) {
 		})
 	api.Patch(h, api.Op{ID: "update-campaign", Path: "/workspaces/{workspace}/campaigns/{campaignId}", Summary: "Rename a campaign or change its sender, reply-to, audience or content settings",
 		Tags: tags, Access: edit},
-		func(ctx context.Context, in *updateCampaignInput) (*api.Body[CampaignDetail], error) {
+		func(ctx context.Context, in *updateCampaignInput) (*api.Body[ComposerCampaign], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -138,7 +138,7 @@ func RegisterComposer(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "save-campaign-content", Path: "/workspaces/{workspace}/campaigns/{campaignId}/content", Summary: "Save the content as a new version (autosave)",
 		Description: "Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top.",
 		Tags:        tags, Access: edit, MaxBodyBytes: 16 << 20},
-		func(ctx context.Context, in *saveContentInput) (*api.Body[SavedContent], error) {
+		func(ctx context.Context, in *saveContentInput) (*api.Body[ComposerSavedContent], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -148,7 +148,7 @@ func RegisterComposer(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "list-campaign-versions", Path: "/workspaces/{workspace}/campaigns/{campaignId}/versions", Summary: "Version history, newest first",
 		Tags: tags, Access: view},
-		func(ctx context.Context, in *versionsInput) (*api.Body[CampaignVersionList], error) {
+		func(ctx context.Context, in *versionsInput) (*api.Body[ComposerVersionList], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -158,7 +158,7 @@ func RegisterComposer(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "get-campaign-version", Path: "/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}", Summary: "One version with its content",
 		Tags: tags, Access: view},
-		func(ctx context.Context, in *VersionPath) (*api.Body[CampaignVersionDetail], error) {
+		func(ctx context.Context, in *VersionPath) (*api.Body[ComposerVersionDetail], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -168,7 +168,7 @@ func RegisterComposer(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "restore-campaign-version", Path: "/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}/restore", Summary: "Restore a version (saved as a new version)",
 		Tags: tags, Access: edit},
-		func(ctx context.Context, in *restoreInput) (*api.Body[SavedContent], error) {
+		func(ctx context.Context, in *restoreInput) (*api.Body[ComposerSavedContent], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -178,7 +178,7 @@ func RegisterComposer(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "duplicate-campaign", Path: "/workspaces/{workspace}/campaigns/{campaignId}/duplicate", Summary: "Copy a campaign into a new draft",
 		Tags: tags, Access: edit, Status: 201},
-		func(ctx context.Context, in *CampaignPath) (*api.Body[CampaignDetail], error) {
+		func(ctx context.Context, in *CampaignPath) (*api.Body[ComposerCampaign], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -189,7 +189,7 @@ func RegisterComposer(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "send-campaign-test", Path: "/workspaces/{workspace}/campaigns/{campaignId}/test", Summary: "Send a test email of the saved content",
 		Description: "Goes through the System route. Without campaigns:send, test emails can only go to your own address.",
 		Tags:        tags, Access: edit},
-		func(ctx context.Context, in *testSendInput) (*api.Body[TestSendResult], error) {
+		func(ctx context.Context, in *testSendInput) (*api.Body[ComposerTestSendResult], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -199,7 +199,7 @@ func RegisterComposer(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "preview-campaign", Path: "/workspaces/{workspace}/campaigns/{campaignId}/preview", Summary: "Render the email for one recipient (personalization, links)",
 		Tags: tags, Access: view, MaxBodyBytes: 6 << 20},
-		func(ctx context.Context, in *previewInput) (*api.Body[Preview], error) {
+		func(ctx context.Context, in *previewInput) (*api.Body[ComposerPreview], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -209,7 +209,7 @@ func RegisterComposer(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "list-preview-contacts", Path: "/workspaces/{workspace}/campaigns/{campaignId}/preview-contacts", Summary: "Contacts of the audience to preview as",
 		Tags: tags, Access: api.Workspace(authz.SubscribersView)},
-		func(ctx context.Context, in *previewContactsInput) (*api.Body[PreviewContactList], error) {
+		func(ctx context.Context, in *previewContactsInput) (*api.Body[ComposerPreviewContactList], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -236,16 +236,16 @@ func RegisterComposer(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "count-campaign-audience", Path: "/workspaces/{workspace}/campaigns/audience-count", Summary: "Live recipient count of an audience definition",
 		Tags: tags, Access: view},
-		func(ctx context.Context, in *audienceCountInput) (*api.Body[AudienceCount], error) {
+		func(ctx context.Context, in *audienceCountInput) (*api.Body[ComposerAudienceCount], error) {
 			out, err := s.CountAudience(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body.def())
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "compile-mjml", Path: "/workspaces/{workspace}/mjml/compile", Summary: "Compile MJML to HTML on the server (gomjml, MJML 4)",
 		Description: "The composer compiles in the browser; this endpoint serves API clients and automations, and reports layout warnings.",
 		Tags:        tags, Access: view, MaxBodyBytes: 4 << 20},
-		func(ctx context.Context, in *compileInput) (*api.Body[CompiledMJML], error) {
+		func(ctx context.Context, in *compileInput) (*api.Body[ComposerCompiled], error) {
 			res := mjml.Compile(in.Body.MJML)
-			return api.OK(CompiledMJML{HTML: res.HTML, Errors: nonNilProblems(res.Errors), Warnings: mjml.Lint(in.Body.MJML), SizeBytes: len(res.HTML), DurationMs: res.Duration.Milliseconds()}), nil
+			return api.OK(ComposerCompiled{HTML: res.HTML, Errors: nonNilProblems(res.Errors), Warnings: mjml.Lint(in.Body.MJML), SizeBytes: len(res.HTML), DurationMs: res.Duration.Milliseconds()}), nil
 		})
 }
 

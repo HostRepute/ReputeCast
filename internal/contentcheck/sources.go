@@ -27,7 +27,7 @@ func (b StoreBlocklist) Listings(ctx context.Context, domains []string) (map[str
 	if len(domains) == 0 {
 		return out, nil
 	}
-	rows, err := b.Q.LinkDomainListings(ctx, domains)
+	rows, err := b.Q.ContentCheckLinkListings(ctx, domains)
 	if err != nil {
 		return nil, err
 	}

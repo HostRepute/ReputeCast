@@ -45,17 +45,17 @@ const DefaultAddress = "Your company · Street and number · City, postcode"
 
 type starter struct {
 	key, name, description string
-	thumb                  []mjml.ThumbItem
+	thumb                  []mjml.MJMLThumbItem
 }
 
 // The gallery order and wireframes of the starters (ComposerEmpty board).
 var starters = []starter{
-	{"blank", "Blank", "Just a body and a footer block", []mjml.ThumbItem{}},
-	{"weekly-digest", "Weekly digest", "Hero, two article cards, footer", []mjml.ThumbItem{{H: 10, W: 40}, {H: 34}, {Row: []mjml.ThumbItem{{H: 28}, {H: 28}}}, {H: 8}}},
-	{"product-update", "Product update", "One announcement, one button", []mjml.ThumbItem{{H: 10, W: 40}, {H: 40}, {H: 8, W: 70}, {H: 14, W: 35, Accent: true}}},
-	{"plain-text", "Plain text", "Personal note, no images", []mjml.ThumbItem{{H: 8, W: 90}, {H: 8, W: 85}, {H: 8, W: 88}, {H: 8, W: 60}}},
-	{"announcement", "Announcement", "Full-width hero", []mjml.ThumbItem{{H: 48}, {H: 10, W: 60}, {H: 8, W: 80}}},
-	{"product-grid", "Product grid", "Three product cards per row", []mjml.ThumbItem{{Row: []mjml.ThumbItem{{H: 30}, {H: 30}, {H: 30}}}, {H: 8, W: 70}, {Row: []mjml.ThumbItem{{H: 30}, {H: 30}, {H: 30}}}}},
+	{"blank", "Blank", "Just a body and a footer block", []mjml.MJMLThumbItem{}},
+	{"weekly-digest", "Weekly digest", "Hero, two article cards, footer", []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 34}, {Row: []mjml.MJMLThumbItem{{H: 28}, {H: 28}}}, {H: 8}}},
+	{"product-update", "Product update", "One announcement, one button", []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 40}, {H: 8, W: 70}, {H: 14, W: 35, Accent: true}}},
+	{"plain-text", "Plain text", "Personal note, no images", []mjml.MJMLThumbItem{{H: 8, W: 90}, {H: 8, W: 85}, {H: 8, W: 88}, {H: 8, W: 60}}},
+	{"announcement", "Announcement", "Full-width hero", []mjml.MJMLThumbItem{{H: 48}, {H: 10, W: 60}, {H: 8, W: 80}}},
+	{"product-grid", "Product grid", "Three product cards per row", []mjml.MJMLThumbItem{{Row: []mjml.MJMLThumbItem{{H: 30}, {H: 30}, {H: 30}}}, {H: 8, W: 70}, {Row: []mjml.MJMLThumbItem{{H: 30}, {H: 30}, {H: 30}}}}},
 }
 
 // StarterMJML returns a starter's MJML with the workspace address filled in
@@ -92,13 +92,13 @@ func (s *Service) now() time.Time {
 	return time.Now()
 }
 
-// TemplateSummary is one tile of the gallery.
-type TemplateSummary struct {
+// EmailTemplateSummary is one tile of the gallery.
+type EmailTemplateSummary struct {
 	ID          string           `json:"id" example:"starter:weekly-digest"`
 	Kind        string           `json:"kind" enum:"template,section"`
 	Name        string           `json:"name"`
 	Description string           `json:"description"`
-	Thumb       []mjml.ThumbItem `json:"thumb"`
+	Thumb       []mjml.MJMLThumbItem `json:"thumb"`
 	Builtin     bool             `json:"builtin"`
 	UpdatedAt   *time.Time       `json:"updatedAt,omitempty"`
 	UpdatedBy   string           `json:"updatedBy,omitempty"`
@@ -107,38 +107,38 @@ type TemplateSummary struct {
 	SourceCampaignID string `json:"sourceCampaignId,omitempty"`
 }
 
-// TemplateDetail adds the content.
-type TemplateDetail struct {
-	TemplateSummary
+// EmailTemplateDetail adds the content.
+type EmailTemplateDetail struct {
+	EmailTemplateSummary
 	MJML string `json:"mjml"`
 	HTML string `json:"html"`
 }
 
-// LastCampaign is the most recent sent campaign, offered as "Copy of …".
-type LastCampaign struct {
+// EmailTemplateLastCampaign is the most recent sent campaign, offered as "Copy of …".
+type EmailTemplateLastCampaign struct {
 	ID     string           `json:"id"`
 	Name   string           `json:"name"`
 	SentAt time.Time        `json:"sentAt"`
-	Thumb  []mjml.ThumbItem `json:"thumb"`
+	Thumb  []mjml.MJMLThumbItem `json:"thumb"`
 }
 
-// TemplateGallery is the empty-canvas gallery and the Templates tab.
-type TemplateGallery struct {
-	Starters     []TemplateSummary `json:"starters"`
-	Templates    []TemplateSummary `json:"templates"`
-	Sections     []TemplateSummary `json:"sections"`
-	LastCampaign *LastCampaign     `json:"lastCampaign,omitempty"`
+// EmailTemplateGallery is the empty-canvas gallery and the Templates tab.
+type EmailTemplateGallery struct {
+	Starters     []EmailTemplateSummary `json:"starters"`
+	Templates    []EmailTemplateSummary `json:"templates"`
+	Sections     []EmailTemplateSummary `json:"sections"`
+	LastCampaign *EmailTemplateLastCampaign     `json:"lastCampaign,omitempty"`
 }
 
 // Gallery lists starters, the workspace's templates and saved sections, and
 // the last sent campaign.
-func (s *Service) Gallery(ctx context.Context, ws *store.Workspace) (TemplateGallery, error) {
-	g := TemplateGallery{Starters: []TemplateSummary{}, Templates: []TemplateSummary{}, Sections: []TemplateSummary{}}
+func (s *Service) Gallery(ctx context.Context, ws *store.Workspace) (EmailTemplateGallery, error) {
+	g := EmailTemplateGallery{Starters: []EmailTemplateSummary{}, Templates: []EmailTemplateSummary{}, Sections: []EmailTemplateSummary{}}
 	for _, st := range starters {
 		src, _ := StarterMJML(st.key, "")
-		g.Starters = append(g.Starters, TemplateSummary{ID: StarterPrefix + st.key, Kind: "template", Name: st.name, Description: st.description, Thumb: st.thumb, Builtin: true, SizeBytes: len(src)})
+		g.Starters = append(g.Starters, EmailTemplateSummary{ID: StarterPrefix + st.key, Kind: "template", Name: st.name, Description: st.description, Thumb: st.thumb, Builtin: true, SizeBytes: len(src)})
 	}
-	rows, err := s.Q.ListTemplates(ctx, store.ListTemplatesParams{WorkspaceID: ws.ID, Kind: ""})
+	rows, err := s.Q.ListEmailTemplates(ctx, store.ListEmailTemplatesParams{WorkspaceID: ws.ID, Kind: ""})
 	if err != nil {
 		return g, err
 	}
@@ -150,21 +150,21 @@ func (s *Service) Gallery(ctx context.Context, ws *store.Workspace) (TemplateGal
 			g.Templates = append(g.Templates, t)
 		}
 	}
-	last, err := s.Q.LastSentCampaign(ctx, ws.ID)
+	last, err := s.Q.ComposerLastSentCampaign(ctx, ws.ID)
 	switch {
 	case err == nil:
-		g.LastCampaign = &LastCampaign{ID: last.ID.String(), Name: last.Name, SentAt: last.SentAt, Thumb: mjml.Thumb(last.Mjml)}
+		g.LastCampaign = &EmailTemplateLastCampaign{ID: last.ID.String(), Name: last.Name, SentAt: last.SentAt, Thumb: mjml.Thumb(last.Mjml)}
 	case !errors.Is(err, pgx.ErrNoRows):
 		return g, err
 	}
 	return g, nil
 }
 
-func summary(id uuid.UUID, kind, name, desc string, thumb json.RawMessage, size int32, source *uuid.UUID, updated time.Time, by string) TemplateSummary {
-	t := TemplateSummary{ID: id.String(), Kind: kind, Name: name, Description: desc, Thumb: []mjml.ThumbItem{}, SizeBytes: int(size), UpdatedBy: by}
+func summary(id uuid.UUID, kind, name, desc string, thumb json.RawMessage, size int32, source *uuid.UUID, updated time.Time, by string) EmailTemplateSummary {
+	t := EmailTemplateSummary{ID: id.String(), Kind: kind, Name: name, Description: desc, Thumb: []mjml.MJMLThumbItem{}, SizeBytes: int(size), UpdatedBy: by}
 	_ = json.Unmarshal(thumb, &t.Thumb)
 	if t.Thumb == nil {
-		t.Thumb = []mjml.ThumbItem{}
+		t.Thumb = []mjml.MJMLThumbItem{}
 	}
 	u := updated
 	t.UpdatedAt = &u
@@ -176,29 +176,29 @@ func summary(id uuid.UUID, kind, name, desc string, thumb json.RawMessage, size 
 
 // Get returns a template (starter or saved) with its content. address fills
 // a starter's footer.
-func (s *Service) Get(ctx context.Context, ws *store.Workspace, id, address string) (TemplateDetail, error) {
+func (s *Service) Get(ctx context.Context, ws *store.Workspace, id, address string) (EmailTemplateDetail, error) {
 	if key, ok := strings.CutPrefix(id, StarterPrefix); ok {
 		for _, st := range starters {
 			if st.key == key {
 				src, _ := StarterMJML(key, address)
-				return TemplateDetail{TemplateSummary: TemplateSummary{ID: id, Kind: "template", Name: st.name, Description: st.description, Thumb: st.thumb, Builtin: true, SizeBytes: len(src)}, MJML: src}, nil
+				return EmailTemplateDetail{EmailTemplateSummary: EmailTemplateSummary{ID: id, Kind: "template", Name: st.name, Description: st.description, Thumb: st.thumb, Builtin: true, SizeBytes: len(src)}, MJML: src}, nil
 			}
 		}
-		return TemplateDetail{}, api.NotFound("Template")
+		return EmailTemplateDetail{}, api.NotFound("Template")
 	}
 	uid, err := uuid.Parse(id)
 	if err != nil {
-		return TemplateDetail{}, api.NotFound("Template")
+		return EmailTemplateDetail{}, api.NotFound("Template")
 	}
-	r, err := s.Q.GetTemplate(ctx, store.GetTemplateParams{WorkspaceID: ws.ID, ID: uid})
+	r, err := s.Q.GetEmailTemplate(ctx, store.GetEmailTemplateParams{WorkspaceID: ws.ID, ID: uid})
 	if err != nil {
-		return TemplateDetail{}, api.MapError(err, "Template")
+		return EmailTemplateDetail{}, api.MapError(err, "Template")
 	}
-	return TemplateDetail{TemplateSummary: summary(r.ID, r.Kind, r.Name, r.Description, r.Thumb, r.SizeBytes, r.SourceCampaignID, r.UpdatedAt, r.UpdatedByName), MJML: r.Mjml, HTML: r.Html}, nil
+	return EmailTemplateDetail{EmailTemplateSummary: summary(r.ID, r.Kind, r.Name, r.Description, r.Thumb, r.SizeBytes, r.SourceCampaignID, r.UpdatedAt, r.UpdatedByName), MJML: r.Mjml, HTML: r.Html}, nil
 }
 
-// SaveTemplate is a new or changed template or saved section.
-type SaveTemplate struct {
+// EmailTemplateInput is a new or changed template or saved section.
+type EmailTemplateInput struct {
 	Kind             string `json:"kind,omitempty" enum:"template,section" default:"template"`
 	Name             string `json:"name" minLength:"1" maxLength:"120"`
 	Description      string `json:"description,omitempty" maxLength:"300"`
@@ -207,7 +207,7 @@ type SaveTemplate struct {
 	SourceCampaignID string `json:"sourceCampaignId,omitempty" format:"uuid"`
 }
 
-func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Workspace, id uuid.UUID, in *SaveTemplate) error {
+func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Workspace, id uuid.UUID, in *EmailTemplateInput) error {
 	in.Name = strings.TrimSpace(in.Name)
 	if in.Name == "" {
 		return api.Invalid("body.name", "Give the template a name.")
@@ -219,7 +219,7 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 	if _, err := mjml.Parse(src); err != nil {
 		return api.Invalid("body.mjml", "The MJML doesn't parse: "+err.Error())
 	}
-	taken, err := q.TemplateNameTaken(ctx, store.TemplateNameTakenParams{WorkspaceID: ws.ID, Kind: in.Kind, Name: in.Name, ID: id})
+	taken, err := q.EmailTemplateNameTaken(ctx, store.EmailTemplateNameTakenParams{WorkspaceID: ws.ID, Kind: in.Kind, Name: in.Name, ID: id})
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 	return nil
 }
 
-func thumbOf(kind, src string) []mjml.ThumbItem {
+func thumbOf(kind, src string) []mjml.MJMLThumbItem {
 	if kind == "section" && !strings.Contains(src, "<mjml") {
 		src = "<mjml><mj-body>" + src + "</mj-body></mjml>"
 	}
@@ -241,7 +241,7 @@ func thumbOf(kind, src string) []mjml.ThumbItem {
 }
 
 // Create saves a template or a section.
-func (s *Service) Create(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, in SaveTemplate) (TemplateDetail, error) {
+func (s *Service) Create(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, in EmailTemplateInput) (EmailTemplateDetail, error) {
 	if in.Kind == "" {
 		in.Kind = "template"
 	}
@@ -258,7 +258,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, actor *uuid.U
 			return err
 		}
 		thumb, _ := json.Marshal(thumbOf(in.Kind, in.MJML))
-		if err := q.InsertTemplate(ctx, store.InsertTemplateParams{ID: id, WorkspaceID: ws.ID, Kind: in.Kind, Name: in.Name, Description: in.Description,
+		if err := q.InsertEmailTemplate(ctx, store.InsertEmailTemplateParams{ID: id, WorkspaceID: ws.ID, Kind: in.Kind, Name: in.Name, Description: in.Description,
 			Mjml: in.MJML, Html: in.HTML, Thumb: thumb, SizeBytes: int32(len(in.HTML)), SourceCampaignID: source, CreatedBy: actor, Now: s.now()}); err != nil {
 			return err
 		}
@@ -266,20 +266,20 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, actor *uuid.U
 			After: map[string]any{"kind": in.Kind, "name": in.Name, "sourceCampaignId": in.SourceCampaignID}})
 	})
 	if err != nil {
-		return TemplateDetail{}, err
+		return EmailTemplateDetail{}, err
 	}
 	return s.Get(ctx, ws, id.String(), "")
 }
 
 // Update renames a template or replaces its content.
-func (s *Service) Update(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, id string, in SaveTemplate) (TemplateDetail, error) {
+func (s *Service) Update(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, id string, in EmailTemplateInput) (EmailTemplateDetail, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
-		return TemplateDetail{}, api.NotFound("Template")
+		return EmailTemplateDetail{}, api.NotFound("Template")
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		cur, err := q.GetTemplate(ctx, store.GetTemplateParams{WorkspaceID: ws.ID, ID: uid})
+		cur, err := q.GetEmailTemplate(ctx, store.GetEmailTemplateParams{WorkspaceID: ws.ID, ID: uid})
 		if err != nil {
 			return api.MapError(err, "Template")
 		}
@@ -288,7 +288,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, actor *uuid.U
 			return err
 		}
 		thumb, _ := json.Marshal(thumbOf(in.Kind, in.MJML))
-		if err := q.UpdateTemplate(ctx, store.UpdateTemplateParams{WorkspaceID: ws.ID, ID: uid, Name: in.Name, Description: in.Description, Mjml: in.MJML, Html: in.HTML,
+		if err := q.UpdateEmailTemplate(ctx, store.UpdateEmailTemplateParams{WorkspaceID: ws.ID, ID: uid, Name: in.Name, Description: in.Description, Mjml: in.MJML, Html: in.HTML,
 			Thumb: thumb, SizeBytes: int32(len(in.HTML)), UpdatedBy: actor, Now: s.now()}); err != nil {
 			return err
 		}
@@ -297,7 +297,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, actor *uuid.U
 			After:  map[string]any{"name": in.Name, "description": in.Description, "sizeBytes": len(in.HTML)}})
 	})
 	if err != nil {
-		return TemplateDetail{}, err
+		return EmailTemplateDetail{}, err
 	}
 	return s.Get(ctx, ws, id, "")
 }
@@ -310,12 +310,12 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, actor *uuid.U
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		cur, err := q.GetTemplate(ctx, store.GetTemplateParams{WorkspaceID: ws.ID, ID: uid})
+		cur, err := q.GetEmailTemplate(ctx, store.GetEmailTemplateParams{WorkspaceID: ws.ID, ID: uid})
 		if err != nil {
 			return api.MapError(err, "Template")
 		}
 		now := s.now()
-		if _, err := q.SoftDeleteTemplate(ctx, store.SoftDeleteTemplateParams{WorkspaceID: ws.ID, ID: uid, Now: &now, UpdatedBy: actor}); err != nil {
+		if _, err := q.SoftDeleteEmailTemplate(ctx, store.SoftDeleteEmailTemplateParams{WorkspaceID: ws.ID, ID: uid, Now: &now, UpdatedBy: actor}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "template.delete", TargetType: "template", TargetID: id, TargetName: cur.Name,

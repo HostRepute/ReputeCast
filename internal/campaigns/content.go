@@ -28,9 +28,9 @@ const KeepVersions = 300
 // CodeVersionConflict is the problem code of an autosave based on an old version.
 const CodeVersionConflict = "version_conflict"
 
-// SaveContent is one save of the composer: subject, preheader, MJML and the
+// ComposerSaveContent is one save of the composer: subject, preheader, MJML and the
 // HTML the browser compiled from it, and the A/B variants.
-type SaveContent struct {
+type ComposerSaveContent struct {
 	// BaseVersion is the version the editor started from. Saving on top of
 	// someone else's newer version fails with 409 unless Force is set.
 	BaseVersion int    `json:"baseVersion" minimum:"1"`
@@ -40,7 +40,7 @@ type SaveContent struct {
 	// HTML compiled by the composer (mjml-browser). Empty: the server
 	// compiles the MJML with gomjml.
 	HTML   string  `json:"html,omitempty" maxLength:"2500000"`
-	ABTest *ABTest `json:"abTest,omitempty"`
+	ABTest *ComposerABTest `json:"abTest,omitempty"`
 	// Label says what changed ("2-column section padding").
 	Label  string `json:"label,omitempty" maxLength:"200"`
 	Source string `json:"source,omitempty" enum:"autosave,manual,import,template" default:"autosave"`
@@ -48,8 +48,8 @@ type SaveContent struct {
 	Force bool `json:"force,omitempty"`
 }
 
-// SavedContent is the result of a save.
-type SavedContent struct {
+// ComposerSavedContent is the result of a save.
+type ComposerSavedContent struct {
 	Version     int       `json:"version"`
 	SavedAt     time.Time `json:"savedAt"`
 	ContentHash string    `json:"contentHash"`
@@ -77,22 +77,22 @@ func validateSubject(subject string) error {
 }
 
 // Save stores a new version of the content.
-func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in SaveContent) (SavedContent, error) {
+func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in ComposerSaveContent) (ComposerSavedContent, error) {
 	if err := validateSubject(in.Subject); err != nil {
-		return SavedContent{}, err
+		return ComposerSavedContent{}, err
 	}
 	if in.Source == "" {
 		in.Source = "autosave"
 	}
 	if in.ABTest != nil {
 		if err := validateAB(in.ABTest); err != nil {
-			return SavedContent{}, err
+			return ComposerSavedContent{}, err
 		}
 	}
-	var out SavedContent
+	var out ComposerSavedContent
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		cur, err := q.LockCampaignForSave(ctx, store.LockCampaignForSaveParams{WorkspaceID: ws.ID, ID: id})
+		cur, err := q.ComposerLockCampaign(ctx, store.ComposerLockCampaignParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
 			return api.MapError(err, "Campaign")
 		}
@@ -101,7 +101,7 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		}
 		if int(cur.Version) != in.BaseVersion && !in.Force {
 			var theirs, mine []string
-			if base, err := q.GetCampaignVersion(ctx, store.GetCampaignVersionParams{CampaignID: id, Version: int32(in.BaseVersion)}); err == nil {
+			if base, err := q.GetComposerVersion(ctx, store.GetComposerVersionParams{CampaignID: id, Version: int32(in.BaseVersion)}); err == nil {
 				theirs = mjml.ChangedSections(base.Mjml, cur.Mjml)
 				mine = mjml.ChangedSections(base.Mjml, in.MJML)
 				if base.Subject != cur.Subject {
@@ -117,7 +117,7 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			}
 			return conflict(cur.Version, cur.UpdatedByName, at, nonNil(theirs), nonNil(mine))
 		}
-		var settings ContentSettings
+		var settings ComposerContentSettings
 		_ = json.Unmarshal(cur.ContentSettings, &settings)
 		src, html := in.MJML, in.HTML
 		if html == "" && strings.TrimSpace(src) != "" {
@@ -136,16 +136,16 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		hash := ContentHash(in.Subject, in.Preheader, src, html, ab)
 		version := cur.Version + 1
 		now := s.now()
-		if err := q.SaveCampaignContent(ctx, store.SaveCampaignContentParams{WorkspaceID: ws.ID, ID: id, Subject: in.Subject, Preheader: in.Preheader, Mjml: src, Html: html,
+		if err := q.SaveComposerContent(ctx, store.SaveComposerContentParams{WorkspaceID: ws.ID, ID: id, Subject: in.Subject, Preheader: in.Preheader, Mjml: src, Html: html,
 			PlainText: plain, AbTest: ab, ContentHash: hash, Version: version, UpdatedBy: &p.UserID, Now: now}); err != nil {
 			return err
 		}
 		label := strings.TrimSpace(in.Label)
-		if err := q.InsertCampaignVersion(ctx, store.InsertCampaignVersionParams{CampaignID: id, Version: version, Subject: in.Subject, Preheader: in.Preheader,
+		if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: version, Subject: in.Subject, Preheader: in.Preheader,
 			Mjml: src, Html: html, PlainText: plain, AbTest: ab, SavedBy: &p.UserID, SavedAt: now, Label: label, Source: in.Source, SizeBytes: int32(len(html))}); err != nil {
 			return err
 		}
-		if _, err := q.PruneCampaignVersions(ctx, store.PruneCampaignVersionsParams{CampaignID: id, Keep: KeepVersions}); err != nil {
+		if _, err := q.PruneComposerVersions(ctx, store.PruneComposerVersionsParams{CampaignID: id, Keep: KeepVersions}); err != nil {
 			return err
 		}
 		before := map[string]any{"version": cur.Version}
@@ -163,13 +163,13 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			Before: before, After: after, Metadata: map[string]any{"label": label, "source": in.Source, "contentHash": hash}}); err != nil {
 			return err
 		}
-		out = SavedContent{Version: int(version), SavedAt: now, ContentHash: hash, SizeBytes: len(html), PlainText: plain, HTML: html}
+		out = ComposerSavedContent{Version: int(version), SavedAt: now, ContentHash: hash, SizeBytes: len(html), PlainText: plain, HTML: html}
 		return nil
 	})
 	return out, err
 }
 
-func validateAB(t *ABTest) error {
+func validateAB(t *ComposerABTest) error {
 	keys := map[string]bool{}
 	for _, v := range t.Variants {
 		if keys[v.Key] {
@@ -193,8 +193,8 @@ func validateAB(t *ABTest) error {
 	return nil
 }
 
-// CampaignVersion is one entry of the version history.
-type CampaignVersion struct {
+// ComposerVersion is one entry of the version history.
+type ComposerVersion struct {
 	Version   int       `json:"version"`
 	SavedAt   time.Time `json:"savedAt"`
 	SavedBy   string    `json:"savedBy"`
@@ -204,85 +204,85 @@ type CampaignVersion struct {
 	Current   bool      `json:"current"`
 }
 
-// CampaignVersionList is the version history, newest first.
-type CampaignVersionList struct {
-	Items []CampaignVersion `json:"items"`
+// ComposerVersionList is the version history, newest first.
+type ComposerVersionList struct {
+	Items []ComposerVersion `json:"items"`
 	Total int               `json:"total"`
 }
 
 // Versions lists the history of a campaign.
-func (s *Service) Versions(ctx context.Context, ws *store.Workspace, id uuid.UUID, limit int) (CampaignVersionList, error) {
+func (s *Service) Versions(ctx context.Context, ws *store.Workspace, id uuid.UUID, limit int) (ComposerVersionList, error) {
 	c, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return CampaignVersionList{}, api.MapError(err, "Campaign")
+		return ComposerVersionList{}, api.MapError(err, "Campaign")
 	}
-	rows, err := s.Q.ListCampaignVersions(ctx, store.ListCampaignVersionsParams{CampaignID: id, Lim: int32(limit)})
+	rows, err := s.Q.ListComposerVersions(ctx, store.ListComposerVersionsParams{CampaignID: id, Lim: int32(limit)})
 	if err != nil {
-		return CampaignVersionList{}, err
+		return ComposerVersionList{}, err
 	}
-	out := CampaignVersionList{Items: make([]CampaignVersion, 0, len(rows)), Total: int(c.VersionCount)}
+	out := ComposerVersionList{Items: make([]ComposerVersion, 0, len(rows)), Total: int(c.VersionCount)}
 	for _, r := range rows {
-		out.Items = append(out.Items, CampaignVersion{Version: int(r.Version), SavedAt: r.SavedAt, SavedBy: r.SavedByName, Label: r.Label, Source: r.Source,
+		out.Items = append(out.Items, ComposerVersion{Version: int(r.Version), SavedAt: r.SavedAt, SavedBy: r.SavedByName, Label: r.Label, Source: r.Source,
 			SizeBytes: int(r.SizeBytes), Current: r.Version == c.Version})
 	}
 	return out, nil
 }
 
-// CampaignVersionDetail is a version with its content (compare, restore).
-type CampaignVersionDetail struct {
-	CampaignVersion
+// ComposerVersionDetail is a version with its content (compare, restore).
+type ComposerVersionDetail struct {
+	ComposerVersion
 	Subject   string  `json:"subject"`
 	Preheader string  `json:"preheader"`
 	MJML      string  `json:"mjml"`
 	HTML      string  `json:"html"`
-	ABTest    *ABTest `json:"abTest,omitempty"`
+	ABTest    *ComposerABTest `json:"abTest,omitempty"`
 	// Sections are the labels of the sections that differ from the version before.
 	Sections []string `json:"sections"`
 }
 
 // Version returns one version.
-func (s *Service) Version(ctx context.Context, ws *store.Workspace, id uuid.UUID, version int) (CampaignVersionDetail, error) {
+func (s *Service) Version(ctx context.Context, ws *store.Workspace, id uuid.UUID, version int) (ComposerVersionDetail, error) {
 	c, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return CampaignVersionDetail{}, api.MapError(err, "Campaign")
+		return ComposerVersionDetail{}, api.MapError(err, "Campaign")
 	}
-	v, err := s.Q.GetCampaignVersion(ctx, store.GetCampaignVersionParams{CampaignID: id, Version: int32(version)})
+	v, err := s.Q.GetComposerVersion(ctx, store.GetComposerVersionParams{CampaignID: id, Version: int32(version)})
 	if err != nil {
-		return CampaignVersionDetail{}, api.MapError(err, "Version")
+		return ComposerVersionDetail{}, api.MapError(err, "Version")
 	}
-	d := CampaignVersionDetail{
-		CampaignVersion: CampaignVersion{Version: int(v.Version), SavedAt: v.SavedAt, SavedBy: v.SavedByName, Label: v.Label, Source: v.Source, SizeBytes: int(v.SizeBytes), Current: v.Version == c.Version},
+	d := ComposerVersionDetail{
+		ComposerVersion: ComposerVersion{Version: int(v.Version), SavedAt: v.SavedAt, SavedBy: v.SavedByName, Label: v.Label, Source: v.Source, SizeBytes: int(v.SizeBytes), Current: v.Version == c.Version},
 		Subject:         v.Subject, Preheader: v.Preheader, MJML: v.Mjml, HTML: v.Html, ABTest: abFromDB(v.AbTest), Sections: []string{},
 	}
-	if prev, err := s.Q.GetCampaignVersion(ctx, store.GetCampaignVersionParams{CampaignID: id, Version: int32(version - 1)}); err == nil {
+	if prev, err := s.Q.GetComposerVersion(ctx, store.GetComposerVersionParams{CampaignID: id, Version: int32(version - 1)}); err == nil {
 		d.Sections = mjml.ChangedSections(prev.Mjml, v.Mjml)
 	}
 	return d, nil
 }
 
-// RestoreVersion makes an old version current again, as a new version.
-type RestoreVersion struct {
+// ComposerRestoreVersion makes an old version current again, as a new version.
+type ComposerRestoreVersion struct {
 	BaseVersion int `json:"baseVersion" minimum:"1"`
 }
 
 // Restore copies a version on top of the history.
-func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, version int, in RestoreVersion) (SavedContent, error) {
+func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, version int, in ComposerRestoreVersion) (ComposerSavedContent, error) {
 	// The campaign must belong to the workspace before its versions are read.
 	if _, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id}); err != nil {
-		return SavedContent{}, api.MapError(err, "Campaign")
+		return ComposerSavedContent{}, api.MapError(err, "Campaign")
 	}
-	v, err := s.Q.GetCampaignVersion(ctx, store.GetCampaignVersionParams{CampaignID: id, Version: int32(version)})
+	v, err := s.Q.GetComposerVersion(ctx, store.GetComposerVersionParams{CampaignID: id, Version: int32(version)})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return SavedContent{}, api.NotFound("Version")
+			return ComposerSavedContent{}, api.NotFound("Version")
 		}
-		return SavedContent{}, err
+		return ComposerSavedContent{}, err
 	}
-	return s.Save(ctx, ws, p, id, SaveContent{BaseVersion: in.BaseVersion, Subject: v.Subject, Preheader: v.Preheader, MJML: v.Mjml, HTML: v.Html,
+	return s.Save(ctx, ws, p, id, ComposerSaveContent{BaseVersion: in.BaseVersion, Subject: v.Subject, Preheader: v.Preheader, MJML: v.Mjml, HTML: v.Html,
 		ABTest: abFromDB(v.AbTest), Label: fmt.Sprintf("restored v%d", version), Source: "restore"})
 }
 
 // Duplicate copies a campaign (any status) into a new draft.
-func (s *Service) Duplicate(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (CampaignDetail, error) {
-	return s.Create(ctx, ws, p, CreateCampaign{FromCampaignID: id.String()})
+func (s *Service) Duplicate(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (ComposerCampaign, error) {
+	return s.Create(ctx, ws, p, ComposerCreateCampaign{FromCampaignID: id.String()})
 }

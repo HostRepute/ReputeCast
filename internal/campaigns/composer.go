@@ -24,25 +24,25 @@ import (
 	"github.com/hostrepute/reputecast/internal/templates"
 )
 
-// AudienceDef says who receives a campaign: lists and segments, minus
+// ComposerAudience says who receives a campaign: lists and segments, minus
 // excluded lists and segments.
-type AudienceDef struct {
+type ComposerAudience struct {
 	Lists           []string `json:"lists"`
 	Segments        []string `json:"segments"`
 	ExcludeLists    []string `json:"excludeLists"`
 	ExcludeSegments []string `json:"excludeSegments"`
 }
 
-// AudienceInput is an audience in requests (every part optional).
-type AudienceInput struct {
+// ComposerAudienceInput is an audience in requests (every part optional).
+type ComposerAudienceInput struct {
 	Lists           []string `json:"lists,omitempty" maxItems:"100"`
 	Segments        []string `json:"segments,omitempty" maxItems:"100"`
 	ExcludeLists    []string `json:"excludeLists,omitempty" maxItems:"100"`
 	ExcludeSegments []string `json:"excludeSegments,omitempty" maxItems:"100"`
 }
 
-func (in AudienceInput) def() AudienceDef {
-	return AudienceDef{Lists: in.Lists, Segments: in.Segments, ExcludeLists: in.ExcludeLists, ExcludeSegments: in.ExcludeSegments}
+func (in ComposerAudienceInput) def() ComposerAudience {
+	return ComposerAudience{Lists: in.Lists, Segments: in.Segments, ExcludeLists: in.ExcludeLists, ExcludeSegments: in.ExcludeSegments}
 }
 
 // dbAudience is the stored shape of campaigns.audience.
@@ -54,13 +54,13 @@ type dbAudience struct {
 	ExcludeTiers    []string `json:"exclude_tiers,omitempty"`
 }
 
-func audienceFromDB(raw json.RawMessage) AudienceDef {
+func audienceFromDB(raw json.RawMessage) ComposerAudience {
 	var a dbAudience
 	_ = json.Unmarshal(raw, &a)
-	return AudienceDef{Lists: nonNil(a.Lists), Segments: nonNil(a.Segments), ExcludeLists: nonNil(a.ExcludeLists), ExcludeSegments: nonNil(a.ExcludeSegments)}
+	return ComposerAudience{Lists: nonNil(a.Lists), Segments: nonNil(a.Segments), ExcludeLists: nonNil(a.ExcludeLists), ExcludeSegments: nonNil(a.ExcludeSegments)}
 }
 
-func (a AudienceDef) toDB(prev json.RawMessage) json.RawMessage {
+func (a ComposerAudience) toDB(prev json.RawMessage) json.RawMessage {
 	var d dbAudience
 	_ = json.Unmarshal(prev, &d) // keeps exclude_tiers set elsewhere
 	d.Lists, d.Segments, d.ExcludeLists, d.ExcludeSegments = a.Lists, a.Segments, a.ExcludeLists, a.ExcludeSegments
@@ -68,7 +68,7 @@ func (a AudienceDef) toDB(prev json.RawMessage) json.RawMessage {
 	return b
 }
 
-func (a AudienceDef) empty() bool { return len(a.Lists) == 0 && len(a.Segments) == 0 }
+func (a ComposerAudience) empty() bool { return len(a.Lists) == 0 && len(a.Segments) == 0 }
 
 func nonNil(s []string) []string {
 	if s == nil {
@@ -77,8 +77,8 @@ func nonNil(s []string) []string {
 	return s
 }
 
-// ABVariant is one variant of an A/B test.
-type ABVariant struct {
+// ComposerABVariant is one variant of an A/B test.
+type ComposerABVariant struct {
 	Key       string `json:"key" enum:"A,B,C" doc:"Variant A is the campaign itself"`
 	Subject   string `json:"subject,omitempty" maxLength:"998"`
 	Preheader string `json:"preheader,omitempty" maxLength:"500"`
@@ -89,10 +89,10 @@ type ABVariant struct {
 	SendTime string `json:"sendTime,omitempty" pattern:"^([01]\\d|2[0-3]):[0-5]\\d$"`
 }
 
-// ABTest compares variants on a sample, then sends the winner to the rest.
-type ABTest struct {
+// ComposerABTest compares variants on a sample, then sends the winner to the rest.
+type ComposerABTest struct {
 	Kind        string      `json:"kind" enum:"subject,content,send_time"`
-	Variants    []ABVariant `json:"variants" minItems:"2" maxItems:"3"`
+	Variants    []ComposerABVariant `json:"variants" minItems:"2" maxItems:"3"`
 	TestPercent int         `json:"testPercent" minimum:"5" maximum:"50" doc:"Share of the audience in the test"`
 	Metric      string      `json:"metric" enum:"human_opens,clicks,manual"`
 	// DurationHours is how long the test runs before the winner is sent.
@@ -123,7 +123,7 @@ type dbABVariant struct {
 	SendTime  string `json:"send_time,omitempty"`
 }
 
-func abFromDB(raw json.RawMessage) *ABTest {
+func abFromDB(raw json.RawMessage) *ComposerABTest {
 	if len(raw) == 0 || string(raw) == "null" {
 		return nil
 	}
@@ -131,17 +131,17 @@ func abFromDB(raw json.RawMessage) *ABTest {
 	if json.Unmarshal(raw, &d) != nil || d.Kind == "" {
 		return nil
 	}
-	out := &ABTest{Kind: d.Kind, TestPercent: d.TestPercent, Metric: d.Metric, DurationHours: d.DurationHours, BestTime: d.BestTime, Winner: d.Winner, Variants: []ABVariant{}}
+	out := &ComposerABTest{Kind: d.Kind, TestPercent: d.TestPercent, Metric: d.Metric, DurationHours: d.DurationHours, BestTime: d.BestTime, Winner: d.Winner, Variants: []ComposerABVariant{}}
 	if out.Metric == "" {
 		out.Metric = "human_opens"
 	}
 	for _, v := range d.Variants {
-		out.Variants = append(out.Variants, ABVariant{Key: v.Key, Subject: v.Subject, Preheader: v.Preheader, MJML: v.MJML, HTML: v.HTML, SendTime: v.SendTime})
+		out.Variants = append(out.Variants, ComposerABVariant{Key: v.Key, Subject: v.Subject, Preheader: v.Preheader, MJML: v.MJML, HTML: v.HTML, SendTime: v.SendTime})
 	}
 	return out
 }
 
-func (t *ABTest) toDB() json.RawMessage {
+func (t *ComposerABTest) toDB() json.RawMessage {
 	if t == nil {
 		return nil
 	}
@@ -153,14 +153,14 @@ func (t *ABTest) toDB() json.RawMessage {
 	return b
 }
 
-// ContentSettings are composer options applied to the stored HTML.
-type ContentSettings struct {
+// ComposerContentSettings are composer options applied to the stored HTML.
+type ComposerContentSettings struct {
 	// Minify shrinks the HTML (whitespace, inline CSS) to stay under Gmail's clipping limit.
 	Minify bool `json:"minify"`
 }
 
-// SenderRef is the "From" identity.
-type SenderRef struct {
+// ComposerSenderRef is the "From" identity.
+type ComposerSenderRef struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
@@ -190,16 +190,16 @@ type ComposerAccess struct {
 	CanViewContacts     bool `json:"canViewContacts"`
 }
 
-// CampaignDetail is everything the composer loads.
-type CampaignDetail struct {
+// ComposerCampaign is everything the composer loads.
+type ComposerCampaign struct {
 	ID            string            `json:"id"`
 	Name          string            `json:"name"`
 	Status        string            `json:"status" enum:"draft,approval,approved,scheduled,sending,paused,sent,cancelled,failed"`
 	Subject       string            `json:"subject"`
 	Preheader     string            `json:"preheader"`
-	Sender        *SenderRef        `json:"sender,omitempty"`
+	Sender        *ComposerSenderRef        `json:"sender,omitempty"`
 	ReplyTo       string            `json:"replyTo"`
-	Audience      AudienceDef       `json:"audience"`
+	Audience      ComposerAudience       `json:"audience"`
 	AudienceLabel string            `json:"audienceLabel"`
 	AudienceCount *int64            `json:"audienceCount,omitempty"`
 	EditorMode    string            `json:"editorMode" enum:"visual,mjml,html"`
@@ -209,8 +209,8 @@ type CampaignDetail struct {
 	Version       int               `json:"version"`
 	VersionCount  int               `json:"versionCount"`
 	ContentHash   string            `json:"contentHash"`
-	ABTest        *ABTest           `json:"abTest,omitempty"`
-	Settings      ContentSettings   `json:"settings"`
+	ABTest        *ComposerABTest           `json:"abTest,omitempty"`
+	Settings      ComposerContentSettings   `json:"settings"`
 	ScheduledAt   *time.Time        `json:"scheduledAt,omitempty"`
 	CreatedAt     time.Time         `json:"createdAt"`
 	UpdatedAt     time.Time         `json:"updatedAt"`
@@ -235,12 +235,12 @@ func ContentHash(subject, preheader, mjmlSrc, html string, ab json.RawMessage) s
 }
 
 // Detail loads a campaign for the composer.
-func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (CampaignDetail, error) {
+func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (ComposerCampaign, error) {
 	r, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return CampaignDetail{}, api.MapError(err, "Campaign")
+		return ComposerCampaign{}, api.MapError(err, "Campaign")
 	}
-	d := CampaignDetail{
+	d := ComposerCampaign{
 		ID: r.ID.String(), Name: r.Name, Status: r.Status, Subject: r.Subject, Preheader: r.Preheader, ReplyTo: r.ReplyTo,
 		Audience: audienceFromDB(r.Audience), AudienceCount: r.AudienceCount, EditorMode: r.EditorMode, MJML: r.Mjml, HTML: r.Html, PlainText: r.PlainText,
 		Version: int(r.Version), VersionCount: int(r.VersionCount), ContentHash: r.ContentHash, ABTest: abFromDB(r.AbTest), ScheduledAt: r.ScheduledAt,
@@ -248,17 +248,17 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	_ = json.Unmarshal(r.ContentSettings, &d.Settings)
 	if r.SenderID != nil {
-		d.Sender = &SenderRef{ID: r.SenderID.String(), Name: r.SenderName, Email: r.SenderEmail}
+		d.Sender = &ComposerSenderRef{ID: r.SenderID.String(), Name: r.SenderName, Email: r.SenderEmail}
 	}
 	labels, err := s.audienceLabeler(ctx, ws.ID)
 	if err != nil {
-		return CampaignDetail{}, err
+		return ComposerCampaign{}, err
 	}
 	d.AudienceLabel = labels(r.Audience)
 	if d.Route, err = s.route(ctx, ws.ID, r.ID); err != nil {
-		return CampaignDetail{}, err
+		return ComposerCampaign{}, err
 	}
-	if run, err := s.Q.LatestReadiness(ctx, r.ID); err == nil {
+	if run, err := s.Q.ComposerLatestReadiness(ctx, r.ID); err == nil {
 		d.Readiness = &ReadinessSummary{Verdict: run.Verdict, Issues: run.Issues}
 	}
 	d.Access = s.access(ctx, ws, p, r.Status, r.StartedAt)
@@ -355,15 +355,15 @@ func (s *Service) broadcastRoute(ctx context.Context, wsID uuid.UUID) (ComposerR
 	return out, nil
 }
 
-// CreateCampaign starts a draft, blank or from a template or another campaign.
-type CreateCampaign struct {
+// ComposerCreateCampaign starts a draft, blank or from a template or another campaign.
+type ComposerCreateCampaign struct {
 	Name           string `json:"name,omitempty" maxLength:"200"`
 	TemplateID     string `json:"templateId,omitempty" maxLength:"64" doc:"Start from a template (starter:<key> or a saved template id)"`
 	FromCampaignID string `json:"fromCampaignId,omitempty" format:"uuid" doc:"Start from a copy of another campaign's content"`
 }
 
 // Create makes a draft and returns it.
-func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Principal, in CreateCampaign) (CampaignDetail, error) {
+func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Principal, in ComposerCreateCampaign) (ComposerCampaign, error) {
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
 		name = "Untitled campaign"
@@ -374,7 +374,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	var count *int64
 	var sender *uuid.UUID
 	source := "create"
-	if def, err := s.Q.GetWorkspaceDefaultSender(ctx, ws.ID); err == nil && def.SenderID != "" {
+	if def, err := s.Q.ComposerDefaultSender(ctx, ws.ID); err == nil && def.SenderID != "" {
 		if u, err := uuid.Parse(def.SenderID); err == nil {
 			sender = &u
 		}
@@ -387,14 +387,14 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	switch {
 	case in.TemplateID != "":
 		if s.Templates == nil {
-			return CampaignDetail{}, api.Invalid("body.templateId", "Templates aren't available.")
+			return ComposerCampaign{}, api.Invalid("body.templateId", "Templates aren't available.")
 		}
 		t, err := s.Templates.Get(ctx, ws, in.TemplateID, templates.WorkspaceAddress(ws))
 		if err != nil {
-			return CampaignDetail{}, err
+			return ComposerCampaign{}, err
 		}
 		if t.Kind != "template" {
-			return CampaignDetail{}, api.Invalid("body.templateId", "That is a saved section; start from a template.")
+			return ComposerCampaign{}, api.Invalid("body.templateId", "That is a saved section; start from a template.")
 		}
 		src, html = t.MJML, t.HTML
 		label = fmt.Sprintf("created from template “%s”", t.Name)
@@ -402,11 +402,11 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	case in.FromCampaignID != "":
 		from, err := uuid.Parse(in.FromCampaignID)
 		if err != nil {
-			return CampaignDetail{}, api.NotFound("Campaign")
+			return ComposerCampaign{}, api.NotFound("Campaign")
 		}
 		c, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: from})
 		if err != nil {
-			return CampaignDetail{}, api.MapError(err, "Campaign")
+			return ComposerCampaign{}, api.MapError(err, "Campaign")
 		}
 		subject, preheader, src, html, ab = c.Subject, c.Preheader, c.Mjml, c.Html, c.AbTest
 		if abt := abFromDB(ab); abt != nil {
@@ -443,7 +443,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}); err != nil {
 			return err
 		}
-		if err := q.InsertCampaignVersion(ctx, store.InsertCampaignVersionParams{CampaignID: id, Version: 1, Subject: subject, Preheader: preheader, Mjml: src, Html: html,
+		if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: 1, Subject: subject, Preheader: preheader, Mjml: src, Html: html,
 			PlainText: plain, AbTest: ab, SavedBy: &actor, SavedAt: now, Label: label, Source: source, SizeBytes: int32(len(html))}); err != nil {
 			return err
 		}
@@ -451,23 +451,23 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			After: map[string]any{"name": name, "templateId": in.TemplateID, "fromCampaignId": in.FromCampaignID}})
 	})
 	if err != nil {
-		return CampaignDetail{}, err
+		return ComposerCampaign{}, err
 	}
 	return s.Detail(ctx, ws, p, id)
 }
 
-// UpdateCampaign changes what isn't versioned content: name, sender,
+// ComposerUpdateCampaign changes what isn't versioned content: name, sender,
 // reply-to, audience and content settings. Omitted fields stay.
-type UpdateCampaign struct {
+type ComposerUpdateCampaign struct {
 	Name     *string          `json:"name,omitempty" minLength:"1" maxLength:"200"`
 	SenderID *string          `json:"senderId,omitempty" doc:"A sender id, or empty to clear"`
 	ReplyTo  *string          `json:"replyTo,omitempty" maxLength:"254"`
-	Audience *AudienceInput   `json:"audience,omitempty"`
-	Settings *ContentSettings `json:"settings,omitempty"`
+	Audience *ComposerAudienceInput   `json:"audience,omitempty"`
+	Settings *ComposerContentSettings `json:"settings,omitempty"`
 }
 
 // Update applies an UpdateCampaign.
-func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in UpdateCampaign) (CampaignDetail, error) {
+func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in ComposerUpdateCampaign) (ComposerCampaign, error) {
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		cur, err := q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id})
@@ -540,19 +540,19 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if len(after) == 0 {
 			return nil
 		}
-		if err := q.UpdateCampaignMeta(ctx, store.UpdateCampaignMetaParams{WorkspaceID: ws.ID, ID: id, Name: name, SenderID: sender, ReplyTo: replyTo,
+		if err := q.ComposerUpdateCampaignMeta(ctx, store.ComposerUpdateCampaignMetaParams{WorkspaceID: ws.ID, ID: id, Name: name, SenderID: sender, ReplyTo: replyTo,
 			Audience: audience, AudienceCount: count, ContentSettings: settings, UpdatedBy: &p.UserID, Now: s.now()}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.update", TargetType: "campaign", TargetID: id.String(), TargetName: name, Before: before, After: after})
 	})
 	if err != nil {
-		return CampaignDetail{}, err
+		return ComposerCampaign{}, err
 	}
 	return s.Detail(ctx, ws, p, id)
 }
 
-func normalizeAudience(a AudienceDef) AudienceDef {
+func normalizeAudience(a ComposerAudience) ComposerAudience {
 	clean := func(ids []string) []string {
 		out := []string{}
 		seen := map[string]bool{}
@@ -564,13 +564,13 @@ func normalizeAudience(a AudienceDef) AudienceDef {
 		}
 		return out
 	}
-	return AudienceDef{Lists: clean(a.Lists), Segments: clean(a.Segments), ExcludeLists: clean(a.ExcludeLists), ExcludeSegments: clean(a.ExcludeSegments)}
+	return ComposerAudience{Lists: clean(a.Lists), Segments: clean(a.Segments), ExcludeLists: clean(a.ExcludeLists), ExcludeSegments: clean(a.ExcludeSegments)}
 }
 
 // checkAudience verifies the lists and segments exist and that a scoped
 // member only targets lists in their scope.
-func (s *Service) checkAudience(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, a AudienceDef) error {
-	lists, err := q.ListAudienceLists(ctx, ws.ID)
+func (s *Service) checkAudience(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, a ComposerAudience) error {
+	lists, err := q.ComposerAudienceLists(ctx, ws.ID)
 	if err != nil {
 		return err
 	}
@@ -588,7 +588,7 @@ func (s *Service) checkAudience(ctx context.Context, q *store.Queries, ws *store
 		}
 	}
 	if len(a.Segments)+len(a.ExcludeSegments) > 0 {
-		segs, err := q.ListAudienceSegments(ctx, ws.ID)
+		segs, err := q.ComposerAudienceSegments(ctx, ws.ID)
 		if err != nil {
 			return err
 		}

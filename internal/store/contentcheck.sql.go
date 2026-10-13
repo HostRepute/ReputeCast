@@ -10,12 +10,12 @@ import (
 	"time"
 )
 
-const linkDomainListings = `-- name: LinkDomainListings :many
+const contentCheckLinkListings = `-- name: ContentCheckLinkListings :many
 SELECT domain, lists, source, checked_at FROM link_domain_listings WHERE domain = ANY($1::text[])
 `
 
-func (q *Queries) LinkDomainListings(ctx context.Context, domains []string) ([]LinkDomainListing, error) {
-	rows, err := q.db.Query(ctx, linkDomainListings, domains)
+func (q *Queries) ContentCheckLinkListings(ctx context.Context, domains []string) ([]LinkDomainListing, error) {
+	rows, err := q.db.Query(ctx, contentCheckLinkListings, domains)
 	if err != nil {
 		return nil, err
 	}
@@ -39,20 +39,20 @@ func (q *Queries) LinkDomainListings(ctx context.Context, domains []string) ([]L
 	return items, nil
 }
 
-const upsertLinkDomainListing = `-- name: UpsertLinkDomainListing :exec
+const contentCheckUpsertLinkListing = `-- name: ContentCheckUpsertLinkListing :exec
 INSERT INTO link_domain_listings (domain, lists, source, checked_at) VALUES ($1, $2, $3, $4)
 ON CONFLICT (domain) DO UPDATE SET lists = EXCLUDED.lists, source = EXCLUDED.source, checked_at = EXCLUDED.checked_at
 `
 
-type UpsertLinkDomainListingParams struct {
+type ContentCheckUpsertLinkListingParams struct {
 	Domain    string    `json:"domain"`
 	Lists     []string  `json:"lists"`
 	Source    string    `json:"source"`
 	CheckedAt time.Time `json:"checkedAt"`
 }
 
-func (q *Queries) UpsertLinkDomainListing(ctx context.Context, arg UpsertLinkDomainListingParams) error {
-	_, err := q.db.Exec(ctx, upsertLinkDomainListing,
+func (q *Queries) ContentCheckUpsertLinkListing(ctx context.Context, arg ContentCheckUpsertLinkListingParams) error {
+	_, err := q.db.Exec(ctx, contentCheckUpsertLinkListing,
 		arg.Domain,
 		arg.Lists,
 		arg.Source,

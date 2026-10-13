@@ -51,11 +51,11 @@ func (q *Queries) GetMediaAsset(ctx context.Context, arg GetMediaAssetParams) (G
 	return i, err
 }
 
-const getMediaData = `-- name: GetMediaData :one
+const getMediaAssetData = `-- name: GetMediaAssetData :one
 SELECT id, file_name, content_type, size_bytes, sha256, data, created_at FROM media_assets WHERE id = $1
 `
 
-type GetMediaDataRow struct {
+type GetMediaAssetDataRow struct {
 	ID          uuid.UUID `json:"id"`
 	FileName    string    `json:"fileName"`
 	ContentType string    `json:"contentType"`
@@ -66,9 +66,9 @@ type GetMediaDataRow struct {
 }
 
 // Public serving: by id only (ids are unguessable UUIDv7s embedded in emails).
-func (q *Queries) GetMediaData(ctx context.Context, id uuid.UUID) (GetMediaDataRow, error) {
-	row := q.db.QueryRow(ctx, getMediaData, id)
-	var i GetMediaDataRow
+func (q *Queries) GetMediaAssetData(ctx context.Context, id uuid.UUID) (GetMediaAssetDataRow, error) {
+	row := q.db.QueryRow(ctx, getMediaAssetData, id)
+	var i GetMediaAssetDataRow
 	err := row.Scan(
 		&i.ID,
 		&i.FileName,

@@ -24,13 +24,13 @@ type templateInput struct {
 
 type createInput struct {
 	api.WorkspaceInput
-	Body SaveTemplate
+	Body EmailTemplateInput
 }
 
 type updateInput struct {
 	api.WorkspaceInput
 	ID   string `path:"templateId" format:"uuid"`
-	Body SaveTemplate
+	Body EmailTemplateInput
 }
 
 func actorOf(ctx context.Context) *uuid.UUID {
@@ -64,26 +64,26 @@ func Register(h huma.API, s *Service) {
 	tags := []string{"Templates"}
 	api.Get(h, api.Op{ID: "template-gallery", Path: "/workspaces/{workspace}/templates", Summary: "Starter templates, saved templates, saved sections and the last sent campaign",
 		Tags: tags, Access: api.Workspace(authz.TemplatesView)},
-		func(ctx context.Context, _ *galleryInput) (*api.Body[TemplateGallery], error) {
+		func(ctx context.Context, _ *galleryInput) (*api.Body[EmailTemplateGallery], error) {
 			out, err := s.Gallery(ctx, api.WorkspaceFrom(ctx))
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-template", Path: "/workspaces/{workspace}/templates/{templateId}", Summary: "Get a template with its MJML",
 		Tags: tags, Access: api.Workspace(authz.TemplatesView)},
-		func(ctx context.Context, in *templateInput) (*api.Body[TemplateDetail], error) {
+		func(ctx context.Context, in *templateInput) (*api.Body[EmailTemplateDetail], error) {
 			ws := api.WorkspaceFrom(ctx)
 			out, err := s.Get(ctx, ws, in.ID, WorkspaceAddress(ws))
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "create-template", Path: "/workspaces/{workspace}/templates", Summary: "Save a template or a reusable section",
 		Tags: tags, Access: api.Workspace(authz.TemplatesEdit), Status: 201, MaxBodyBytes: 5 << 20},
-		func(ctx context.Context, in *createInput) (*api.Body[TemplateDetail], error) {
+		func(ctx context.Context, in *createInput) (*api.Body[EmailTemplateDetail], error) {
 			out, err := s.Create(ctx, api.WorkspaceFrom(ctx), actorOf(ctx), in.Body)
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "update-template", Path: "/workspaces/{workspace}/templates/{templateId}", Summary: "Rename a template or replace its content",
 		Tags: tags, Access: api.Workspace(authz.TemplatesEdit), MaxBodyBytes: 5 << 20},
-		func(ctx context.Context, in *updateInput) (*api.Body[TemplateDetail], error) {
+		func(ctx context.Context, in *updateInput) (*api.Body[EmailTemplateDetail], error) {
 			out, err := s.Update(ctx, api.WorkspaceFrom(ctx), actorOf(ctx), in.ID, in.Body)
 			return api.OK(out), err
 		})

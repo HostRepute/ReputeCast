@@ -3,11 +3,11 @@ import { createContext, useContext } from 'react'
 import type { Schemas } from '@/api/client'
 import type { ComposerEditor, DeviceId } from './editor/grapes'
 
-export type Campaign = Schemas['CampaignDetail']
+export type Campaign = Schemas['ComposerCampaign']
 export type ComposerCtxData = Schemas['ComposerContext']
 export type Checks = Schemas['ComposerChecks']
-export type Issue = Schemas['ContentIssue']
-export type ABTest = Schemas['ABTest']
+export type Issue = Schemas['ContentCheckIssue']
+export type ABTest = Schemas['ComposerABTest']
 export type View = 'visual' | 'mjml' | 'html' | 'preview'
 
 export type SaveStatus =

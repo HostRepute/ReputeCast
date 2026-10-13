@@ -11,9 +11,9 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 )
 
-// MediaList is the image library.
-type MediaList struct {
-	Items []Asset `json:"items"`
+// MediaAssetList is the image library.
+type MediaAssetList struct {
+	Items []MediaAsset `json:"items"`
 }
 
 type listInput struct {
@@ -37,14 +37,14 @@ type assetInput struct {
 func Register(h huma.API, s *Service) {
 	tags := []string{"Media"}
 	api.Get(h, api.Op{ID: "list-media", Path: "/workspaces/{workspace}/media", Summary: "List the images in the library", Tags: tags, Access: api.Workspace(authz.CampaignsView)},
-		func(ctx context.Context, in *listInput) (*api.Body[MediaList], error) {
+		func(ctx context.Context, in *listInput) (*api.Body[MediaAssetList], error) {
 			items, err := s.List(ctx, api.WorkspaceFrom(ctx), in.Limit)
-			return api.OK(MediaList{Items: items}), err
+			return api.OK(MediaAssetList{Items: items}), err
 		})
 	api.Post(h, api.Op{ID: "upload-media", Path: "/workspaces/{workspace}/media", Summary: "Upload an image (PNG, JPEG or GIF, up to 5 MB)",
 		Description: "The file is validated by its content, not its name. Uploading the same file twice returns the stored image.",
 		Tags:        tags, Access: api.Workspace(authz.CampaignsEdit), MaxBodyBytes: MaxBytes + 64<<10, Status: 201},
-		func(ctx context.Context, in *uploadInput) (*api.Body[Asset], error) {
+		func(ctx context.Context, in *uploadInput) (*api.Body[MediaAsset], error) {
 			f := in.RawBody.Data().File
 			if !f.IsSet {
 				return nil, api.Invalid("body.file", "Choose an image to upload.")

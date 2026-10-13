@@ -65,8 +65,8 @@ func (s *Service) now() time.Time {
 	return time.Now()
 }
 
-// Asset is one image in the library.
-type Asset struct {
+// MediaAsset is one image in the library.
+type MediaAsset struct {
 	ID          string    `json:"id"`
 	URL         string    `json:"url" doc:"Root-relative URL; emails get the absolute public URL"`
 	FileName    string    `json:"fileName"`
@@ -166,14 +166,14 @@ func hasAlpha(contentType string, data []byte, cfg image.Config) bool {
 }
 
 // Upload stores an image (or returns the identical one already stored).
-func (s *Service) Upload(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, fileName string, data []byte) (Asset, error) {
+func (s *Service) Upload(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, fileName string, data []byte) (MediaAsset, error) {
 	ctype, w, h, alpha, err := Inspect(data)
 	if err != nil {
-		return Asset{}, api.Invalid("body.file", err.Error())
+		return MediaAsset{}, api.Invalid("body.file", err.Error())
 	}
 	sum := sha256.Sum256(data)
 	name := SafeFileName(fileName, ctype)
-	var out Asset
+	var out MediaAsset
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		row, err := q.InsertMediaAsset(ctx, store.InsertMediaAssetParams{
@@ -183,7 +183,7 @@ func (s *Service) Upload(ctx context.Context, ws *store.Workspace, actor *uuid.U
 		if err != nil {
 			return err
 		}
-		out = Asset{ID: row.ID.String(), URL: URL(row.ID, row.FileName), FileName: row.FileName, ContentType: row.ContentType, SizeBytes: int(row.SizeBytes),
+		out = MediaAsset{ID: row.ID.String(), URL: URL(row.ID, row.FileName), FileName: row.FileName, ContentType: row.ContentType, SizeBytes: int(row.SizeBytes),
 			Width: int(row.Width), Height: int(row.Height), HasAlpha: row.HasAlpha, CreatedAt: row.CreatedAt}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "media.upload", TargetType: "media", TargetID: row.ID.String(), TargetName: row.FileName,
 			After: map[string]any{"fileName": row.FileName, "contentType": row.ContentType, "sizeBytes": row.SizeBytes, "width": row.Width, "height": row.Height, "new": row.Inserted}})
@@ -192,14 +192,14 @@ func (s *Service) Upload(ctx context.Context, ws *store.Workspace, actor *uuid.U
 }
 
 // List returns the library, newest first.
-func (s *Service) List(ctx context.Context, ws *store.Workspace, limit int) ([]Asset, error) {
+func (s *Service) List(ctx context.Context, ws *store.Workspace, limit int) ([]MediaAsset, error) {
 	rows, err := s.Q.ListMediaAssets(ctx, store.ListMediaAssetsParams{WorkspaceID: ws.ID, Lim: int32(limit)})
 	if err != nil {
 		return nil, err
 	}
-	out := make([]Asset, 0, len(rows))
+	out := make([]MediaAsset, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, Asset{ID: r.ID.String(), URL: URL(r.ID, r.FileName), FileName: r.FileName, ContentType: r.ContentType, SizeBytes: int(r.SizeBytes),
+		out = append(out, MediaAsset{ID: r.ID.String(), URL: URL(r.ID, r.FileName), FileName: r.FileName, ContentType: r.ContentType, SizeBytes: int(r.SizeBytes),
 			Width: int(r.Width), Height: int(r.Height), HasAlpha: r.HasAlpha, CreatedAt: r.CreatedAt, CreatedBy: r.CreatedByName})
 	}
 	return out, nil

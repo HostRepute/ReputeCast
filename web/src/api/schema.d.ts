@@ -593,76 +593,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        ABTest: {
-            bestTime?: boolean;
-            /** Format: int64 */
-            durationHours: number;
-            /** @enum {string} */
-            kind: "subject" | "content" | "send_time";
-            /** @enum {string} */
-            metric: "human_opens" | "clicks" | "manual";
-            /**
-             * Format: int64
-             * @description Share of the audience in the test
-             */
-            testPercent: number;
-            variants: components["schemas"]["ABVariant"][];
-            winner?: string;
-        };
-        ABVariant: {
-            html?: string;
-            /**
-             * @description Variant A is the campaign itself
-             * @enum {string}
-             */
-            key: "A" | "B" | "C";
-            mjml?: string;
-            preheader?: string;
-            sendTime?: string;
-            subject?: string;
-        };
-        Asset: {
-            /** @enum {string} */
-            contentType: "image/png" | "image/jpeg" | "image/gif";
-            /** Format: date-time */
-            createdAt: string;
-            createdBy: string;
-            fileName: string;
-            /** @description Transparent pixels (logos survive dark mode) */
-            hasAlpha: boolean;
-            /** Format: int64 */
-            height: number;
-            id: string;
-            /** Format: int64 */
-            sizeBytes: number;
-            /** @description Root-relative URL; emails get the absolute public URL */
-            url: string;
-            /** Format: int64 */
-            width: number;
-        };
-        AudienceCount: {
-            approximate: boolean;
-            /** Format: int64 */
-            count: number;
-        };
-        AudienceDef: {
-            excludeLists: string[];
-            excludeSegments: string[];
-            lists: string[];
-            segments: string[];
-        };
-        AudienceInput: {
-            excludeLists?: string[];
-            excludeSegments?: string[];
-            lists?: string[];
-            segments?: string[];
-        };
-        AudienceOption: {
-            /** Format: int64 */
-            count?: number;
-            id: string;
-            name: string;
-        };
         "Auth-identifyRequest": {
             /** Format: email */
             email: string;
@@ -678,44 +608,6 @@ export interface components {
             code: string;
             /** @enum {string} */
             method: "totp" | "recovery";
-        };
-        CampaignDetail: {
-            abTest?: components["schemas"]["ABTest"];
-            access: components["schemas"]["ComposerAccess"];
-            audience: components["schemas"]["AudienceDef"];
-            /** Format: int64 */
-            audienceCount?: number;
-            audienceLabel: string;
-            /** Format: date-time */
-            autosavedAt?: string;
-            contentHash: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** @enum {string} */
-            editorMode: "visual" | "mjml" | "html";
-            html: string;
-            id: string;
-            mjml: string;
-            name: string;
-            plainText: string;
-            preheader: string;
-            readiness?: components["schemas"]["ReadinessSummary"];
-            replyTo: string;
-            route: components["schemas"]["ComposerRoute"];
-            /** Format: date-time */
-            scheduledAt?: string;
-            sender?: components["schemas"]["SenderRef"];
-            settings: components["schemas"]["ContentSettings"];
-            /** @enum {string} */
-            status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
-            subject: string;
-            /** Format: date-time */
-            updatedAt: string;
-            updatedBy: string;
-            /** Format: int64 */
-            version: number;
-            /** Format: int64 */
-            versionCount: number;
         };
         CampaignList: {
             counts: components["schemas"]["CampaignStatusCounts"];
@@ -798,7 +690,314 @@ export interface components {
             /** Format: int64 */
             sent: number;
         };
-        CampaignVersion: {
+        "Change-passwordRequest": {
+            current?: string;
+            password: string;
+        };
+        CheckLine: {
+            detail: string;
+            /** @enum {string} */
+            status: "ok" | "warn" | "bad" | "skipped";
+        };
+        ComposerABTest: {
+            bestTime?: boolean;
+            /** Format: int64 */
+            durationHours: number;
+            /** @enum {string} */
+            kind: "subject" | "content" | "send_time";
+            /** @enum {string} */
+            metric: "human_opens" | "clicks" | "manual";
+            /**
+             * Format: int64
+             * @description Share of the audience in the test
+             */
+            testPercent: number;
+            variants: components["schemas"]["ComposerABVariant"][];
+            winner?: string;
+        };
+        ComposerABVariant: {
+            html?: string;
+            /**
+             * @description Variant A is the campaign itself
+             * @enum {string}
+             */
+            key: "A" | "B" | "C";
+            mjml?: string;
+            preheader?: string;
+            sendTime?: string;
+            subject?: string;
+        };
+        ComposerAccess: {
+            canEdit: boolean;
+            canEditTemplates: boolean;
+            canManageRouting: boolean;
+            canSend: boolean;
+            canSendTestToOthers: boolean;
+            canViewContacts: boolean;
+            editable: boolean;
+            readOnlyReason?: string;
+            /** @description Members who hold campaigns:send */
+            sendHelpers: string[];
+        };
+        ComposerAudience: {
+            excludeLists: string[];
+            excludeSegments: string[];
+            lists: string[];
+            segments: string[];
+        };
+        ComposerAudienceCount: {
+            approximate: boolean;
+            /** Format: int64 */
+            count: number;
+        };
+        ComposerAudienceInput: {
+            excludeLists?: string[];
+            excludeSegments?: string[];
+            lists?: string[];
+            segments?: string[];
+        };
+        ComposerAudienceOption: {
+            /** Format: int64 */
+            count?: number;
+            id: string;
+            name: string;
+        };
+        ComposerCampaign: {
+            abTest?: components["schemas"]["ComposerABTest"];
+            access: components["schemas"]["ComposerAccess"];
+            audience: components["schemas"]["ComposerAudience"];
+            /** Format: int64 */
+            audienceCount?: number;
+            audienceLabel: string;
+            /** Format: date-time */
+            autosavedAt?: string;
+            contentHash: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** @enum {string} */
+            editorMode: "visual" | "mjml" | "html";
+            html: string;
+            id: string;
+            mjml: string;
+            name: string;
+            plainText: string;
+            preheader: string;
+            readiness?: components["schemas"]["ReadinessSummary"];
+            replyTo: string;
+            route: components["schemas"]["ComposerRoute"];
+            /** Format: date-time */
+            scheduledAt?: string;
+            sender?: components["schemas"]["ComposerSenderRef"];
+            settings: components["schemas"]["ComposerContentSettings"];
+            /** @enum {string} */
+            status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
+            subject: string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: string;
+            /** Format: int64 */
+            version: number;
+            /** Format: int64 */
+            versionCount: number;
+        };
+        ComposerChecks: {
+            /** Format: int64 */
+            blocks: number;
+            /** Format: date-time */
+            checkedAt: string;
+            /** Format: int64 */
+            clipBytes: number;
+            /** Format: date-time */
+            footerRemovedAt?: string;
+            /** Format: int64 */
+            images: number;
+            /** Format: int64 */
+            imagesMissingAlt: number;
+            issues: components["schemas"]["ContentCheckIssue"][];
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            linksBlocklisted: number;
+            /** Format: int64 */
+            linksBroken: number;
+            lint: components["schemas"]["MJMLProblem"][];
+            plainText: string;
+            sections: components["schemas"]["ContentCheckSection"][];
+            /** Format: int64 */
+            sizeBytes: number;
+            subjectHeuristics: string[];
+            /** @enum {string} */
+            verdict: "ready" | "warnings" | "blocked";
+            /** Format: int64 */
+            warnings: number;
+        };
+        ComposerChecksRequest: {
+            html?: string;
+            mjml?: string;
+            preheader?: string;
+            /** @description Also request every link (slower; Send Readiness does it) */
+            probeLinks?: boolean;
+            subject?: string;
+        };
+        ComposerCompileRequest: {
+            mjml: string;
+        };
+        ComposerCompiled: {
+            /** Format: int64 */
+            durationMs: number;
+            errors: components["schemas"]["MJMLProblem"][];
+            html: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            warnings: components["schemas"]["MJMLProblem"][];
+        };
+        ComposerContentSettings: {
+            minify: boolean;
+        };
+        ComposerContext: {
+            broadcastRoute: components["schemas"]["ComposerRoute"];
+            defaultSenderId?: string;
+            lists: components["schemas"]["ComposerAudienceOption"][];
+            members: components["schemas"]["ComposerTestRecipient"][];
+            postalAddress: string;
+            publicUrl: string;
+            segments: components["schemas"]["ComposerAudienceOption"][];
+            senderDomains: string[];
+            senders: components["schemas"]["ComposerSenderOption"][];
+            tokens: components["schemas"]["PersonalizationToken"][];
+        };
+        ComposerCreateCampaign: {
+            /**
+             * Format: uuid
+             * @description Start from a copy of another campaign's content
+             */
+            fromCampaignId?: string;
+            name?: string;
+            /** @description Start from a template (starter:<key> or a saved template id) */
+            templateId?: string;
+        };
+        ComposerPreview: {
+            contact?: components["schemas"]["ComposerPreviewContact"];
+            fromEmail: string;
+            fromName: string;
+            html: string;
+            /** Format: int64 */
+            missingFirstName?: number;
+            preheader: string;
+            problems: components["schemas"]["LiquidProblem"][];
+            /** Format: date-time */
+            renderedAt: string;
+            subject: string;
+            text: string;
+            tokens: components["schemas"]["ComposerTokenValue"][];
+        };
+        ComposerPreviewContact: {
+            email: string;
+            id?: string;
+            label: string;
+            name: string;
+        };
+        ComposerPreviewContactList: {
+            items: components["schemas"]["ComposerPreviewContact"][];
+        };
+        ComposerPreviewRequest: {
+            /** Format: uuid */
+            contactId?: string;
+            html?: string;
+            preheader?: string;
+            /**
+             * @default contact
+             * @enum {string}
+             */
+            sample: "contact" | "no_first_name" | "random";
+            subject?: string;
+            /** @enum {string} */
+            variant?: "A" | "B" | "C";
+        };
+        ComposerRestoreVersion: {
+            /** Format: int64 */
+            baseVersion: number;
+        };
+        ComposerRoute: {
+            shares: components["schemas"]["RouteShare"][];
+            /** @enum {string} */
+            source: "campaign" | "rule" | "none";
+        };
+        ComposerSaveContent: {
+            abTest?: components["schemas"]["ComposerABTest"];
+            /** Format: int64 */
+            baseVersion: number;
+            force?: boolean;
+            html?: string;
+            label?: string;
+            mjml?: string;
+            preheader?: string;
+            /**
+             * @default autosave
+             * @enum {string}
+             */
+            source: "autosave" | "manual" | "import" | "template";
+            subject?: string;
+        };
+        ComposerSavedContent: {
+            contentHash: string;
+            html: string;
+            plainText: string;
+            /** Format: date-time */
+            savedAt: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: int64 */
+            version: number;
+        };
+        ComposerSenderOption: {
+            domain: string;
+            email: string;
+            id: string;
+            name: string;
+            verified: boolean;
+        };
+        ComposerSenderRef: {
+            email: string;
+            id: string;
+            name: string;
+        };
+        ComposerTestRecipient: {
+            email: string;
+            name: string;
+        };
+        ComposerTestSend: {
+            /**
+             * Format: uuid
+             * @description Personalize as this contact
+             */
+            contactId?: string;
+            to: string[];
+            /** @enum {string} */
+            variant?: "A" | "B" | "C";
+        };
+        ComposerTestSendResult: {
+            provider: string;
+            sent: string[];
+        };
+        ComposerTokenValue: {
+            fallbackUsed: boolean;
+            key: string;
+            /** @description A link filled in per recipient at send time */
+            perRecipient: boolean;
+            /** @example {{ first_name | default: "there" }} */
+            token: string;
+            value: string;
+        };
+        ComposerUpdateCampaign: {
+            audience?: components["schemas"]["ComposerAudienceInput"];
+            name?: string;
+            replyTo?: string;
+            /** @description A sender id, or empty to clear */
+            senderId?: string;
+            settings?: components["schemas"]["ComposerContentSettings"];
+        };
+        ComposerVersion: {
             current: boolean;
             label: string;
             /** Format: date-time */
@@ -811,8 +1010,8 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
-        CampaignVersionDetail: {
-            abTest?: components["schemas"]["ABTest"];
+        ComposerVersionDetail: {
+            abTest?: components["schemas"]["ComposerABTest"];
             current: boolean;
             html: string;
             label: string;
@@ -830,110 +1029,21 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
-        CampaignVersionList: {
-            items: components["schemas"]["CampaignVersion"][];
+        ComposerVersionList: {
+            items: components["schemas"]["ComposerVersion"][];
             /** Format: int64 */
             total: number;
         };
-        "Change-passwordRequest": {
-            current?: string;
-            password: string;
-        };
-        CheckContent: {
-            html?: string;
-            mjml?: string;
-            preheader?: string;
-            /** @description Also request every link (slower; Send Readiness does it) */
-            probeLinks?: boolean;
-            subject?: string;
-        };
-        CheckLine: {
-            detail: string;
-            /** @enum {string} */
-            status: "ok" | "warn" | "bad" | "skipped";
-        };
-        CompileMJML: {
-            mjml: string;
-        };
-        CompiledMJML: {
-            /** Format: int64 */
-            durationMs: number;
-            errors: components["schemas"]["MJMLProblem"][];
-            html: string;
-            /** Format: int64 */
-            sizeBytes: number;
-            warnings: components["schemas"]["MJMLProblem"][];
-        };
-        ComposerAccess: {
-            canEdit: boolean;
-            canEditTemplates: boolean;
-            canManageRouting: boolean;
-            canSend: boolean;
-            canSendTestToOthers: boolean;
-            canViewContacts: boolean;
-            editable: boolean;
-            readOnlyReason?: string;
-            /** @description Members who hold campaigns:send */
-            sendHelpers: string[];
-        };
-        ComposerChecks: {
-            /** Format: int64 */
-            blocks: number;
-            /** Format: date-time */
-            checkedAt: string;
-            /** Format: int64 */
-            clipBytes: number;
-            /** Format: date-time */
-            footerRemovedAt?: string;
-            /** Format: int64 */
-            images: number;
-            /** Format: int64 */
-            imagesMissingAlt: number;
-            issues: components["schemas"]["ContentIssue"][];
-            /** Format: int64 */
-            links: number;
-            /** Format: int64 */
-            linksBlocklisted: number;
-            /** Format: int64 */
-            linksBroken: number;
-            lint: components["schemas"]["MJMLProblem"][];
-            plainText: string;
-            sections: components["schemas"]["ContentSection"][];
-            /** Format: int64 */
-            sizeBytes: number;
-            subjectHeuristics: string[];
-            /** @enum {string} */
-            verdict: "ready" | "warnings" | "blocked";
-            /** Format: int64 */
-            warnings: number;
-        };
-        ComposerContext: {
-            broadcastRoute: components["schemas"]["ComposerRoute"];
-            defaultSenderId?: string;
-            lists: components["schemas"]["AudienceOption"][];
-            members: components["schemas"]["TestRecipient"][];
-            postalAddress: string;
-            publicUrl: string;
-            segments: components["schemas"]["AudienceOption"][];
-            senderDomains: string[];
-            senders: components["schemas"]["SenderOption"][];
-            tokens: components["schemas"]["PersonalizationToken"][];
-        };
-        ComposerRoute: {
-            shares: components["schemas"]["RouteShare"][];
-            /** @enum {string} */
-            source: "campaign" | "rule" | "none";
-        };
-        ContentFix: {
+        ContentCheckFix: {
             /** @enum {string} */
             kind: "replace_link" | "edit_link" | "insert_footer" | "set_alt" | "minify" | "remove_section" | "use_subject";
             label: string;
             path?: number[];
             value?: string;
         };
-        ContentIssue: {
+        ContentCheckIssue: {
             detail?: string;
-            fixes: components["schemas"]["ContentFix"][];
+            fixes: components["schemas"]["ContentCheckFix"][];
             /** @enum {string} */
             group: "Content" | "Links" | "Compliance" | "Subject" | "Personalization";
             /** @example links.blocklist */
@@ -947,7 +1057,7 @@ export interface components {
             title: string;
             url?: string;
         };
-        ContentSection: {
+        ContentCheckSection: {
             /** Format: int64 */
             images: number;
             /** Format: int64 */
@@ -962,27 +1072,74 @@ export interface components {
             /** Format: int64 */
             linksOk: number;
         };
-        ContentSettings: {
-            minify: boolean;
-        };
         "Create-workspaceRequest": {
             name: string;
             timezone?: string;
-        };
-        CreateCampaign: {
-            /**
-             * Format: uuid
-             * @description Start from a copy of another campaign's content
-             */
-            fromCampaignId?: string;
-            name?: string;
-            /** @description Start from a template (starter:<key> or a saved template id) */
-            templateId?: string;
         };
         CreatedWorkspace: {
             id: string;
             name: string;
             slug: string;
+        };
+        EmailTemplateDetail: {
+            builtin: boolean;
+            description: string;
+            html: string;
+            /** @example starter:weekly-digest */
+            id: string;
+            /** @enum {string} */
+            kind: "template" | "section";
+            mjml: string;
+            name: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            sourceCampaignId?: string;
+            thumb: components["schemas"]["MJMLThumbItem"][];
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy?: string;
+        };
+        EmailTemplateGallery: {
+            lastCampaign?: components["schemas"]["EmailTemplateLastCampaign"];
+            sections: components["schemas"]["EmailTemplateSummary"][];
+            starters: components["schemas"]["EmailTemplateSummary"][];
+            templates: components["schemas"]["EmailTemplateSummary"][];
+        };
+        EmailTemplateInput: {
+            description?: string;
+            html?: string;
+            /**
+             * @default template
+             * @enum {string}
+             */
+            kind: "template" | "section";
+            mjml: string;
+            name: string;
+            /** Format: uuid */
+            sourceCampaignId?: string;
+        };
+        EmailTemplateLastCampaign: {
+            id: string;
+            name: string;
+            /** Format: date-time */
+            sentAt: string;
+            thumb: components["schemas"]["MJMLThumbItem"][];
+        };
+        EmailTemplateSummary: {
+            builtin: boolean;
+            description: string;
+            /** @example starter:weekly-digest */
+            id: string;
+            /** @enum {string} */
+            kind: "template" | "section";
+            name: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            sourceCampaignId?: string;
+            thumb: components["schemas"]["MJMLThumbItem"][];
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy?: string;
         };
         ErrorDetail: {
             /** @description Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id' */
@@ -1021,13 +1178,6 @@ export interface components {
             /** @example v1.4.2 */
             version: string;
         };
-        LastCampaign: {
-            id: string;
-            name: string;
-            /** Format: date-time */
-            sentAt: string;
-            thumb: components["schemas"]["ThumbItem"][];
-        };
         LiquidProblem: {
             /** Format: int64 */
             line: number;
@@ -1038,6 +1188,14 @@ export interface components {
             line: number;
             message: string;
             tag?: string;
+        };
+        MJMLThumbItem: {
+            accent?: boolean;
+            /** Format: int64 */
+            h?: number;
+            row?: components["schemas"]["MJMLThumbItem"][];
+            /** Format: int64 */
+            w?: number;
         };
         Me: {
             instance: components["schemas"]["MeInstance"];
@@ -1084,8 +1242,27 @@ export interface components {
             /** Format: int64 */
             subscribers: number;
         };
-        MediaList: {
-            items: components["schemas"]["Asset"][];
+        MediaAsset: {
+            /** @enum {string} */
+            contentType: "image/png" | "image/jpeg" | "image/gif";
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            fileName: string;
+            /** @description Transparent pixels (logos survive dark mode) */
+            hasAlpha: boolean;
+            /** Format: int64 */
+            height: number;
+            id: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** @description Root-relative URL; emails get the absolute public URL */
+            url: string;
+            /** Format: int64 */
+            width: number;
+        };
+        MediaAssetList: {
+            items: components["schemas"]["MediaAsset"][];
         };
         PersonalizationToken: {
             fallback?: string;
@@ -1095,44 +1272,6 @@ export interface components {
             kind: "contact" | "custom" | "system";
             /** @example First name */
             label: string;
-        };
-        Preview: {
-            contact?: components["schemas"]["PreviewContact"];
-            fromEmail: string;
-            fromName: string;
-            html: string;
-            /** Format: int64 */
-            missingFirstName?: number;
-            preheader: string;
-            problems: components["schemas"]["LiquidProblem"][];
-            /** Format: date-time */
-            renderedAt: string;
-            subject: string;
-            text: string;
-            tokens: components["schemas"]["TokenValue"][];
-        };
-        PreviewContact: {
-            email: string;
-            id?: string;
-            label: string;
-            name: string;
-        };
-        PreviewContactList: {
-            items: components["schemas"]["PreviewContact"][];
-        };
-        PreviewRequest: {
-            /** Format: uuid */
-            contactId?: string;
-            html?: string;
-            preheader?: string;
-            /**
-             * @default contact
-             * @enum {string}
-             */
-            sample: "contact" | "no_first_name" | "random";
-            subject?: string;
-            /** @enum {string} */
-            variant?: "A" | "B" | "C";
         };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
@@ -1191,10 +1330,6 @@ export interface components {
         RecoveryCodes: {
             codes: string[];
         };
-        RestoreVersion: {
-            /** Format: int64 */
-            baseVersion: number;
-        };
         RouteShare: {
             /** @example ses */
             adapter: string;
@@ -1224,61 +1359,9 @@ export interface components {
             /** @description Navigate here to start the OIDC flow */
             startUrl: string;
         };
-        SaveContent: {
-            abTest?: components["schemas"]["ABTest"];
-            /** Format: int64 */
-            baseVersion: number;
-            force?: boolean;
-            html?: string;
-            label?: string;
-            mjml?: string;
-            preheader?: string;
-            /**
-             * @default autosave
-             * @enum {string}
-             */
-            source: "autosave" | "manual" | "import" | "template";
-            subject?: string;
-        };
-        SaveTemplate: {
-            description?: string;
-            html?: string;
-            /**
-             * @default template
-             * @enum {string}
-             */
-            kind: "template" | "section";
-            mjml: string;
-            name: string;
-            /** Format: uuid */
-            sourceCampaignId?: string;
-        };
-        SavedContent: {
-            contentHash: string;
-            html: string;
-            plainText: string;
-            /** Format: date-time */
-            savedAt: string;
-            /** Format: int64 */
-            sizeBytes: number;
-            /** Format: int64 */
-            version: number;
-        };
         Scope: {
             lists?: string[];
             senderDomains?: string[];
-        };
-        SenderOption: {
-            domain: string;
-            email: string;
-            id: string;
-            name: string;
-            verified: boolean;
-        };
-        SenderRef: {
-            email: string;
-            id: string;
-            name: string;
         };
         "Setup-check-urlRequest": {
             /** Format: uri */
@@ -1312,81 +1395,6 @@ export interface components {
             /** @description otpauth:// URL for the QR code */
             url: string;
         };
-        TemplateDetail: {
-            builtin: boolean;
-            description: string;
-            html: string;
-            /** @example starter:weekly-digest */
-            id: string;
-            /** @enum {string} */
-            kind: "template" | "section";
-            mjml: string;
-            name: string;
-            /** Format: int64 */
-            sizeBytes: number;
-            sourceCampaignId?: string;
-            thumb: components["schemas"]["ThumbItem"][];
-            /** Format: date-time */
-            updatedAt?: string;
-            updatedBy?: string;
-        };
-        TemplateGallery: {
-            lastCampaign?: components["schemas"]["LastCampaign"];
-            sections: components["schemas"]["TemplateSummary"][];
-            starters: components["schemas"]["TemplateSummary"][];
-            templates: components["schemas"]["TemplateSummary"][];
-        };
-        TemplateSummary: {
-            builtin: boolean;
-            description: string;
-            /** @example starter:weekly-digest */
-            id: string;
-            /** @enum {string} */
-            kind: "template" | "section";
-            name: string;
-            /** Format: int64 */
-            sizeBytes: number;
-            sourceCampaignId?: string;
-            thumb: components["schemas"]["ThumbItem"][];
-            /** Format: date-time */
-            updatedAt?: string;
-            updatedBy?: string;
-        };
-        TestRecipient: {
-            email: string;
-            name: string;
-        };
-        TestSend: {
-            /**
-             * Format: uuid
-             * @description Personalize as this contact
-             */
-            contactId?: string;
-            to: string[];
-            /** @enum {string} */
-            variant?: "A" | "B" | "C";
-        };
-        TestSendResult: {
-            provider: string;
-            sent: string[];
-        };
-        ThumbItem: {
-            accent?: boolean;
-            /** Format: int64 */
-            h?: number;
-            row?: components["schemas"]["ThumbItem"][];
-            /** Format: int64 */
-            w?: number;
-        };
-        TokenValue: {
-            fallbackUsed: boolean;
-            key: string;
-            /** @description A link filled in per recipient at send time */
-            perRecipient: boolean;
-            /** @example {{ first_name | default: "there" }} */
-            token: string;
-            value: string;
-        };
         "Totp-confirmRequest": {
             challenge: string;
             code: string;
@@ -1397,14 +1405,6 @@ export interface components {
             dns: components["schemas"]["CheckLine"];
             reachable: components["schemas"]["CheckLine"];
             tls: components["schemas"]["CheckLine"];
-        };
-        UpdateCampaign: {
-            audience?: components["schemas"]["AudienceInput"];
-            name?: string;
-            replyTo?: string;
-            /** @description A sender id, or empty to clear */
-            senderId?: string;
-            settings?: components["schemas"]["ContentSettings"];
         };
         WorkspaceMe: {
             /** @enum {string} */
@@ -1882,7 +1882,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateCampaign"];
+                "application/json": components["schemas"]["ComposerCreateCampaign"];
             };
         };
         responses: {
@@ -1892,7 +1892,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CampaignDetail"];
+                    "application/json": components["schemas"]["ComposerCampaign"];
                 };
             };
             /** @description Error */
@@ -1918,7 +1918,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AudienceInput"];
+                "application/json": components["schemas"]["ComposerAudienceInput"];
             };
         };
         responses: {
@@ -1928,7 +1928,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AudienceCount"];
+                    "application/json": components["schemas"]["ComposerAudienceCount"];
                 };
             };
             /** @description Error */
@@ -1995,7 +1995,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CampaignDetail"];
+                    "application/json": components["schemas"]["ComposerCampaign"];
                 };
             };
             /** @description Error */
@@ -2022,7 +2022,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateCampaign"];
+                "application/json": components["schemas"]["ComposerUpdateCampaign"];
             };
         };
         responses: {
@@ -2032,7 +2032,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CampaignDetail"];
+                    "application/json": components["schemas"]["ComposerCampaign"];
                 };
             };
             /** @description Error */
@@ -2059,7 +2059,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CheckContent"];
+                "application/json": components["schemas"]["ComposerChecksRequest"];
             };
         };
         responses: {
@@ -2096,7 +2096,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SaveContent"];
+                "application/json": components["schemas"]["ComposerSaveContent"];
             };
         };
         responses: {
@@ -2106,7 +2106,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SavedContent"];
+                    "application/json": components["schemas"]["ComposerSavedContent"];
                 };
             };
             /** @description Error */
@@ -2139,7 +2139,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CampaignDetail"];
+                    "application/json": components["schemas"]["ComposerCampaign"];
                 };
             };
             /** @description Error */
@@ -2166,7 +2166,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PreviewRequest"];
+                "application/json": components["schemas"]["ComposerPreviewRequest"];
             };
         };
         responses: {
@@ -2176,7 +2176,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Preview"];
+                    "application/json": components["schemas"]["ComposerPreview"];
                 };
             };
             /** @description Error */
@@ -2211,7 +2211,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PreviewContactList"];
+                    "application/json": components["schemas"]["ComposerPreviewContactList"];
                 };
             };
             /** @description Error */
@@ -2238,7 +2238,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TestSend"];
+                "application/json": components["schemas"]["ComposerTestSend"];
             };
         };
         responses: {
@@ -2248,7 +2248,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TestSendResult"];
+                    "application/json": components["schemas"]["ComposerTestSendResult"];
                 };
             };
             /** @description Error */
@@ -2283,7 +2283,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CampaignVersionList"];
+                    "application/json": components["schemas"]["ComposerVersionList"];
                 };
             };
             /** @description Error */
@@ -2317,7 +2317,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CampaignVersionDetail"];
+                    "application/json": components["schemas"]["ComposerVersionDetail"];
                 };
             };
             /** @description Error */
@@ -2345,7 +2345,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RestoreVersion"];
+                "application/json": components["schemas"]["ComposerRestoreVersion"];
             };
         };
         responses: {
@@ -2355,7 +2355,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SavedContent"];
+                    "application/json": components["schemas"]["ComposerSavedContent"];
                 };
             };
             /** @description Error */
@@ -2453,7 +2453,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MediaList"];
+                    "application/json": components["schemas"]["MediaAssetList"];
                 };
             };
             /** @description Error */
@@ -2495,7 +2495,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Asset"];
+                    "application/json": components["schemas"]["MediaAsset"];
                 };
             };
             /** @description Error */
@@ -2552,7 +2552,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CompileMJML"];
+                "application/json": components["schemas"]["ComposerCompileRequest"];
             };
         };
         responses: {
@@ -2562,7 +2562,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompiledMJML"];
+                    "application/json": components["schemas"]["ComposerCompiled"];
                 };
             };
             /** @description Error */
@@ -2594,7 +2594,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TemplateGallery"];
+                    "application/json": components["schemas"]["EmailTemplateGallery"];
                 };
             };
             /** @description Error */
@@ -2620,7 +2620,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SaveTemplate"];
+                "application/json": components["schemas"]["EmailTemplateInput"];
             };
         };
         responses: {
@@ -2630,7 +2630,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TemplateDetail"];
+                    "application/json": components["schemas"]["EmailTemplateDetail"];
                 };
             };
             /** @description Error */
@@ -2664,7 +2664,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TemplateDetail"];
+                    "application/json": components["schemas"]["EmailTemplateDetail"];
                 };
             };
             /** @description Error */
@@ -2691,7 +2691,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SaveTemplate"];
+                "application/json": components["schemas"]["EmailTemplateInput"];
             };
         };
         responses: {
@@ -2701,7 +2701,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TemplateDetail"];
+                    "application/json": components["schemas"]["EmailTemplateDetail"];
                 };
             };
             /** @description Error */

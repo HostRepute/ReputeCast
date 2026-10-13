@@ -1,266 +1,6 @@
 {
   "components": {
     "schemas": {
-      "ABTest": {
-        "additionalProperties": false,
-        "properties": {
-          "bestTime": {
-            "type": "boolean"
-          },
-          "durationHours": {
-            "format": "int64",
-            "maximum": 72,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "kind": {
-            "enum": [
-              "subject",
-              "content",
-              "send_time"
-            ],
-            "type": "string"
-          },
-          "metric": {
-            "enum": [
-              "human_opens",
-              "clicks",
-              "manual"
-            ],
-            "type": "string"
-          },
-          "testPercent": {
-            "description": "Share of the audience in the test",
-            "format": "int64",
-            "maximum": 50,
-            "minimum": 5,
-            "type": "integer"
-          },
-          "variants": {
-            "items": {
-              "$ref": "#/components/schemas/ABVariant"
-            },
-            "maxItems": 3,
-            "minItems": 2,
-            "type": "array"
-          },
-          "winner": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind",
-          "variants",
-          "testPercent",
-          "metric",
-          "durationHours"
-        ],
-        "type": "object"
-      },
-      "ABVariant": {
-        "additionalProperties": false,
-        "properties": {
-          "html": {
-            "maxLength": 2000000,
-            "type": "string"
-          },
-          "key": {
-            "description": "Variant A is the campaign itself",
-            "enum": [
-              "A",
-              "B",
-              "C"
-            ],
-            "type": "string"
-          },
-          "mjml": {
-            "maxLength": 2000000,
-            "type": "string"
-          },
-          "preheader": {
-            "maxLength": 500,
-            "type": "string"
-          },
-          "sendTime": {
-            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
-            "type": "string"
-          },
-          "subject": {
-            "maxLength": 998,
-            "type": "string"
-          }
-        },
-        "required": [
-          "key"
-        ],
-        "type": "object"
-      },
-      "Asset": {
-        "additionalProperties": false,
-        "properties": {
-          "contentType": {
-            "enum": [
-              "image/png",
-              "image/jpeg",
-              "image/gif"
-            ],
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "createdBy": {
-            "type": "string"
-          },
-          "fileName": {
-            "type": "string"
-          },
-          "hasAlpha": {
-            "description": "Transparent pixels (logos survive dark mode)",
-            "type": "boolean"
-          },
-          "height": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "id": {
-            "type": "string"
-          },
-          "sizeBytes": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "url": {
-            "description": "Root-relative URL; emails get the absolute public URL",
-            "type": "string"
-          },
-          "width": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "id",
-          "url",
-          "fileName",
-          "contentType",
-          "sizeBytes",
-          "width",
-          "height",
-          "hasAlpha",
-          "createdAt",
-          "createdBy"
-        ],
-        "type": "object"
-      },
-      "AudienceCount": {
-        "additionalProperties": false,
-        "properties": {
-          "approximate": {
-            "type": "boolean"
-          },
-          "count": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "count",
-          "approximate"
-        ],
-        "type": "object"
-      },
-      "AudienceDef": {
-        "additionalProperties": false,
-        "properties": {
-          "excludeLists": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "excludeSegments": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "lists": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "segments": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "lists",
-          "segments",
-          "excludeLists",
-          "excludeSegments"
-        ],
-        "type": "object"
-      },
-      "AudienceInput": {
-        "additionalProperties": false,
-        "properties": {
-          "excludeLists": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 100,
-            "type": "array"
-          },
-          "excludeSegments": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 100,
-            "type": "array"
-          },
-          "lists": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 100,
-            "type": "array"
-          },
-          "segments": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 100,
-            "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "AudienceOption": {
-        "additionalProperties": false,
-        "properties": {
-          "count": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name"
-        ],
-        "type": "object"
-      },
       "Auth-identifyRequest": {
         "additionalProperties": false,
         "properties": {
@@ -323,139 +63,6 @@
           "challenge",
           "method",
           "code"
-        ],
-        "type": "object"
-      },
-      "CampaignDetail": {
-        "additionalProperties": false,
-        "properties": {
-          "abTest": {
-            "$ref": "#/components/schemas/ABTest"
-          },
-          "access": {
-            "$ref": "#/components/schemas/ComposerAccess"
-          },
-          "audience": {
-            "$ref": "#/components/schemas/AudienceDef"
-          },
-          "audienceCount": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "audienceLabel": {
-            "type": "string"
-          },
-          "autosavedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "contentHash": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "editorMode": {
-            "enum": [
-              "visual",
-              "mjml",
-              "html"
-            ],
-            "type": "string"
-          },
-          "html": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "mjml": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "plainText": {
-            "type": "string"
-          },
-          "preheader": {
-            "type": "string"
-          },
-          "readiness": {
-            "$ref": "#/components/schemas/ReadinessSummary"
-          },
-          "replyTo": {
-            "type": "string"
-          },
-          "route": {
-            "$ref": "#/components/schemas/ComposerRoute"
-          },
-          "scheduledAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "sender": {
-            "$ref": "#/components/schemas/SenderRef"
-          },
-          "settings": {
-            "$ref": "#/components/schemas/ContentSettings"
-          },
-          "status": {
-            "enum": [
-              "draft",
-              "approval",
-              "approved",
-              "scheduled",
-              "sending",
-              "paused",
-              "sent",
-              "cancelled",
-              "failed"
-            ],
-            "type": "string"
-          },
-          "subject": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedBy": {
-            "type": "string"
-          },
-          "version": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "versionCount": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "status",
-          "subject",
-          "preheader",
-          "replyTo",
-          "audience",
-          "audienceLabel",
-          "editorMode",
-          "mjml",
-          "html",
-          "plainText",
-          "version",
-          "versionCount",
-          "contentHash",
-          "settings",
-          "createdAt",
-          "updatedAt",
-          "updatedBy",
-          "route",
-          "access"
         ],
         "type": "object"
       },
@@ -687,7 +294,1132 @@
         ],
         "type": "object"
       },
-      "CampaignVersion": {
+      "Change-passwordRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
+      "CheckLine": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "warn",
+              "bad",
+              "skipped"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "ComposerABTest": {
+        "additionalProperties": false,
+        "properties": {
+          "bestTime": {
+            "type": "boolean"
+          },
+          "durationHours": {
+            "format": "int64",
+            "maximum": 72,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "subject",
+              "content",
+              "send_time"
+            ],
+            "type": "string"
+          },
+          "metric": {
+            "enum": [
+              "human_opens",
+              "clicks",
+              "manual"
+            ],
+            "type": "string"
+          },
+          "testPercent": {
+            "description": "Share of the audience in the test",
+            "format": "int64",
+            "maximum": 50,
+            "minimum": 5,
+            "type": "integer"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerABVariant"
+            },
+            "maxItems": 3,
+            "minItems": 2,
+            "type": "array"
+          },
+          "winner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "variants",
+          "testPercent",
+          "metric",
+          "durationHours"
+        ],
+        "type": "object"
+      },
+      "ComposerABVariant": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "key": {
+            "description": "Variant A is the campaign itself",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "sendTime": {
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "type": "object"
+      },
+      "ComposerAccess": {
+        "additionalProperties": false,
+        "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canEditTemplates": {
+            "type": "boolean"
+          },
+          "canManageRouting": {
+            "type": "boolean"
+          },
+          "canSend": {
+            "type": "boolean"
+          },
+          "canSendTestToOthers": {
+            "type": "boolean"
+          },
+          "canViewContacts": {
+            "type": "boolean"
+          },
+          "editable": {
+            "type": "boolean"
+          },
+          "readOnlyReason": {
+            "type": "string"
+          },
+          "sendHelpers": {
+            "description": "Members who hold campaigns:send",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "editable",
+          "canEdit",
+          "canSend",
+          "sendHelpers",
+          "canManageRouting",
+          "canSendTestToOthers",
+          "canEditTemplates",
+          "canViewContacts"
+        ],
+        "type": "object"
+      },
+      "ComposerAudience": {
+        "additionalProperties": false,
+        "properties": {
+          "excludeLists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "excludeSegments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "segments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "lists",
+          "segments",
+          "excludeLists",
+          "excludeSegments"
+        ],
+        "type": "object"
+      },
+      "ComposerAudienceCount": {
+        "additionalProperties": false,
+        "properties": {
+          "approximate": {
+            "type": "boolean"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "approximate"
+        ],
+        "type": "object"
+      },
+      "ComposerAudienceInput": {
+        "additionalProperties": false,
+        "properties": {
+          "excludeLists": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "excludeSegments": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "segments": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ComposerAudienceOption": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ComposerCampaign": {
+        "additionalProperties": false,
+        "properties": {
+          "abTest": {
+            "$ref": "#/components/schemas/ComposerABTest"
+          },
+          "access": {
+            "$ref": "#/components/schemas/ComposerAccess"
+          },
+          "audience": {
+            "$ref": "#/components/schemas/ComposerAudience"
+          },
+          "audienceCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "audienceLabel": {
+            "type": "string"
+          },
+          "autosavedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "editorMode": {
+            "enum": [
+              "visual",
+              "mjml",
+              "html"
+            ],
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mjml": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "plainText": {
+            "type": "string"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/ReadinessSummary"
+          },
+          "replyTo": {
+            "type": "string"
+          },
+          "route": {
+            "$ref": "#/components/schemas/ComposerRoute"
+          },
+          "scheduledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/ComposerSenderRef"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ComposerContentSettings"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "approval",
+              "approved",
+              "scheduled",
+              "sending",
+              "paused",
+              "sent",
+              "cancelled",
+              "failed"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "versionCount": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "subject",
+          "preheader",
+          "replyTo",
+          "audience",
+          "audienceLabel",
+          "editorMode",
+          "mjml",
+          "html",
+          "plainText",
+          "version",
+          "versionCount",
+          "contentHash",
+          "settings",
+          "createdAt",
+          "updatedAt",
+          "updatedBy",
+          "route",
+          "access"
+        ],
+        "type": "object"
+      },
+      "ComposerChecks": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "clipBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "footerRemovedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "images": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "imagesMissingAlt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/ContentCheckIssue"
+            },
+            "type": "array"
+          },
+          "links": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "linksBlocklisted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "linksBroken": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lint": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLProblem"
+            },
+            "type": "array"
+          },
+          "plainText": {
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/ContentCheckSection"
+            },
+            "type": "array"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "subjectHeuristics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "verdict": {
+            "enum": [
+              "ready",
+              "warnings",
+              "blocked"
+            ],
+            "type": "string"
+          },
+          "warnings": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lint",
+          "verdict",
+          "blocks",
+          "warnings",
+          "sizeBytes",
+          "clipBytes",
+          "images",
+          "imagesMissingAlt",
+          "links",
+          "linksBlocklisted",
+          "linksBroken",
+          "subjectHeuristics",
+          "issues",
+          "sections",
+          "plainText",
+          "checkedAt"
+        ],
+        "type": "object"
+      },
+      "ComposerChecksRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "maxLength": 2500000,
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "probeLinks": {
+            "description": "Also request every link (slower; Send Readiness does it)",
+            "type": "boolean"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ComposerCompileRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mjml": {
+            "maxLength": 2000000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "mjml"
+        ],
+        "type": "object"
+      },
+      "ComposerCompiled": {
+        "additionalProperties": false,
+        "properties": {
+          "durationMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLProblem"
+            },
+            "type": "array"
+          },
+          "html": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLProblem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "html",
+          "errors",
+          "warnings",
+          "sizeBytes",
+          "durationMs"
+        ],
+        "type": "object"
+      },
+      "ComposerContentSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "minify": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "minify"
+        ],
+        "type": "object"
+      },
+      "ComposerContext": {
+        "additionalProperties": false,
+        "properties": {
+          "broadcastRoute": {
+            "$ref": "#/components/schemas/ComposerRoute"
+          },
+          "defaultSenderId": {
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerAudienceOption"
+            },
+            "type": "array"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerTestRecipient"
+            },
+            "type": "array"
+          },
+          "postalAddress": {
+            "type": "string"
+          },
+          "publicUrl": {
+            "type": "string"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerAudienceOption"
+            },
+            "type": "array"
+          },
+          "senderDomains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "senders": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerSenderOption"
+            },
+            "type": "array"
+          },
+          "tokens": {
+            "items": {
+              "$ref": "#/components/schemas/PersonalizationToken"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "senders",
+          "lists",
+          "segments",
+          "tokens",
+          "members",
+          "broadcastRoute",
+          "postalAddress",
+          "publicUrl",
+          "senderDomains"
+        ],
+        "type": "object"
+      },
+      "ComposerCreateCampaign": {
+        "additionalProperties": false,
+        "properties": {
+          "fromCampaignId": {
+            "description": "Start from a copy of another campaign's content",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "templateId": {
+            "description": "Start from a template (starter:\u003ckey\u003e or a saved template id)",
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ComposerPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "contact": {
+            "$ref": "#/components/schemas/ComposerPreviewContact"
+          },
+          "fromEmail": {
+            "type": "string"
+          },
+          "fromName": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "missingFirstName": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/LiquidProblem"
+            },
+            "type": "array"
+          },
+          "renderedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "tokens": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerTokenValue"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "subject",
+          "preheader",
+          "html",
+          "text",
+          "fromName",
+          "fromEmail",
+          "tokens",
+          "problems",
+          "renderedAt"
+        ],
+        "type": "object"
+      },
+      "ComposerPreviewContact": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "label"
+        ],
+        "type": "object"
+      },
+      "ComposerPreviewContactList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerPreviewContact"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "ComposerPreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "html": {
+            "maxLength": 2500000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "sample": {
+            "default": "contact",
+            "enum": [
+              "contact",
+              "no_first_name",
+              "random"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          },
+          "variant": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ComposerRestoreVersion": {
+        "additionalProperties": false,
+        "properties": {
+          "baseVersion": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "baseVersion"
+        ],
+        "type": "object"
+      },
+      "ComposerRoute": {
+        "additionalProperties": false,
+        "properties": {
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/RouteShare"
+            },
+            "type": "array"
+          },
+          "source": {
+            "enum": [
+              "campaign",
+              "rule",
+              "none"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "shares"
+        ],
+        "type": "object"
+      },
+      "ComposerSaveContent": {
+        "additionalProperties": false,
+        "properties": {
+          "abTest": {
+            "$ref": "#/components/schemas/ComposerABTest"
+          },
+          "baseVersion": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "force": {
+            "type": "boolean"
+          },
+          "html": {
+            "maxLength": 2500000,
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "source": {
+            "default": "autosave",
+            "enum": [
+              "autosave",
+              "manual",
+              "import",
+              "template"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          }
+        },
+        "required": [
+          "baseVersion"
+        ],
+        "type": "object"
+      },
+      "ComposerSavedContent": {
+        "additionalProperties": false,
+        "properties": {
+          "contentHash": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "plainText": {
+            "type": "string"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "savedAt",
+          "contentHash",
+          "sizeBytes",
+          "plainText",
+          "html"
+        ],
+        "type": "object"
+      },
+      "ComposerSenderOption": {
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "domain",
+          "verified"
+        ],
+        "type": "object"
+      },
+      "ComposerSenderRef": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email"
+        ],
+        "type": "object"
+      },
+      "ComposerTestRecipient": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email"
+        ],
+        "type": "object"
+      },
+      "ComposerTestSend": {
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "description": "Personalize as this contact",
+            "format": "uuid",
+            "type": "string"
+          },
+          "to": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array"
+          },
+          "variant": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "to"
+        ],
+        "type": "object"
+      },
+      "ComposerTestSendResult": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "sent": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "sent",
+          "provider"
+        ],
+        "type": "object"
+      },
+      "ComposerTokenValue": {
+        "additionalProperties": false,
+        "properties": {
+          "fallbackUsed": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "perRecipient": {
+            "description": "A link filled in per recipient at send time",
+            "type": "boolean"
+          },
+          "token": {
+            "examples": [
+              "{{ first_name | default: \"there\" }}"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "key",
+          "value",
+          "fallbackUsed",
+          "perRecipient"
+        ],
+        "type": "object"
+      },
+      "ComposerUpdateCampaign": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "$ref": "#/components/schemas/ComposerAudienceInput"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "replyTo": {
+            "maxLength": 254,
+            "type": "string"
+          },
+          "senderId": {
+            "description": "A sender id, or empty to clear",
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ComposerContentSettings"
+          }
+        },
+        "type": "object"
+      },
+      "ComposerVersion": {
         "additionalProperties": false,
         "properties": {
           "current": {
@@ -736,11 +1468,11 @@
         ],
         "type": "object"
       },
-      "CampaignVersionDetail": {
+      "ComposerVersionDetail": {
         "additionalProperties": false,
         "properties": {
           "abTest": {
-            "$ref": "#/components/schemas/ABTest"
+            "$ref": "#/components/schemas/ComposerABTest"
           },
           "current": {
             "type": "boolean"
@@ -811,12 +1543,12 @@
         ],
         "type": "object"
       },
-      "CampaignVersionList": {
+      "ComposerVersionList": {
         "additionalProperties": false,
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/CampaignVersion"
+              "$ref": "#/components/schemas/ComposerVersion"
             },
             "type": "array"
           },
@@ -831,362 +1563,7 @@
         ],
         "type": "object"
       },
-      "Change-passwordRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "current": {
-            "maxLength": 1024,
-            "type": "string"
-          },
-          "password": {
-            "maxLength": 1024,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "password"
-        ],
-        "type": "object"
-      },
-      "CheckContent": {
-        "additionalProperties": false,
-        "properties": {
-          "html": {
-            "maxLength": 2500000,
-            "type": "string"
-          },
-          "mjml": {
-            "maxLength": 2000000,
-            "type": "string"
-          },
-          "preheader": {
-            "maxLength": 500,
-            "type": "string"
-          },
-          "probeLinks": {
-            "description": "Also request every link (slower; Send Readiness does it)",
-            "type": "boolean"
-          },
-          "subject": {
-            "maxLength": 998,
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "CheckLine": {
-        "additionalProperties": false,
-        "properties": {
-          "detail": {
-            "type": "string"
-          },
-          "status": {
-            "enum": [
-              "ok",
-              "warn",
-              "bad",
-              "skipped"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "status",
-          "detail"
-        ],
-        "type": "object"
-      },
-      "CompileMJML": {
-        "additionalProperties": false,
-        "properties": {
-          "mjml": {
-            "maxLength": 2000000,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "mjml"
-        ],
-        "type": "object"
-      },
-      "CompiledMJML": {
-        "additionalProperties": false,
-        "properties": {
-          "durationMs": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "errors": {
-            "items": {
-              "$ref": "#/components/schemas/MJMLProblem"
-            },
-            "type": "array"
-          },
-          "html": {
-            "type": "string"
-          },
-          "sizeBytes": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "warnings": {
-            "items": {
-              "$ref": "#/components/schemas/MJMLProblem"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "html",
-          "errors",
-          "warnings",
-          "sizeBytes",
-          "durationMs"
-        ],
-        "type": "object"
-      },
-      "ComposerAccess": {
-        "additionalProperties": false,
-        "properties": {
-          "canEdit": {
-            "type": "boolean"
-          },
-          "canEditTemplates": {
-            "type": "boolean"
-          },
-          "canManageRouting": {
-            "type": "boolean"
-          },
-          "canSend": {
-            "type": "boolean"
-          },
-          "canSendTestToOthers": {
-            "type": "boolean"
-          },
-          "canViewContacts": {
-            "type": "boolean"
-          },
-          "editable": {
-            "type": "boolean"
-          },
-          "readOnlyReason": {
-            "type": "string"
-          },
-          "sendHelpers": {
-            "description": "Members who hold campaigns:send",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "editable",
-          "canEdit",
-          "canSend",
-          "sendHelpers",
-          "canManageRouting",
-          "canSendTestToOthers",
-          "canEditTemplates",
-          "canViewContacts"
-        ],
-        "type": "object"
-      },
-      "ComposerChecks": {
-        "additionalProperties": false,
-        "properties": {
-          "blocks": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "checkedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "clipBytes": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "footerRemovedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "images": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "imagesMissingAlt": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "issues": {
-            "items": {
-              "$ref": "#/components/schemas/ContentIssue"
-            },
-            "type": "array"
-          },
-          "links": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "linksBlocklisted": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "linksBroken": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "lint": {
-            "items": {
-              "$ref": "#/components/schemas/MJMLProblem"
-            },
-            "type": "array"
-          },
-          "plainText": {
-            "type": "string"
-          },
-          "sections": {
-            "items": {
-              "$ref": "#/components/schemas/ContentSection"
-            },
-            "type": "array"
-          },
-          "sizeBytes": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "subjectHeuristics": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "verdict": {
-            "enum": [
-              "ready",
-              "warnings",
-              "blocked"
-            ],
-            "type": "string"
-          },
-          "warnings": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "lint",
-          "verdict",
-          "blocks",
-          "warnings",
-          "sizeBytes",
-          "clipBytes",
-          "images",
-          "imagesMissingAlt",
-          "links",
-          "linksBlocklisted",
-          "linksBroken",
-          "subjectHeuristics",
-          "issues",
-          "sections",
-          "plainText",
-          "checkedAt"
-        ],
-        "type": "object"
-      },
-      "ComposerContext": {
-        "additionalProperties": false,
-        "properties": {
-          "broadcastRoute": {
-            "$ref": "#/components/schemas/ComposerRoute"
-          },
-          "defaultSenderId": {
-            "type": "string"
-          },
-          "lists": {
-            "items": {
-              "$ref": "#/components/schemas/AudienceOption"
-            },
-            "type": "array"
-          },
-          "members": {
-            "items": {
-              "$ref": "#/components/schemas/TestRecipient"
-            },
-            "type": "array"
-          },
-          "postalAddress": {
-            "type": "string"
-          },
-          "publicUrl": {
-            "type": "string"
-          },
-          "segments": {
-            "items": {
-              "$ref": "#/components/schemas/AudienceOption"
-            },
-            "type": "array"
-          },
-          "senderDomains": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "senders": {
-            "items": {
-              "$ref": "#/components/schemas/SenderOption"
-            },
-            "type": "array"
-          },
-          "tokens": {
-            "items": {
-              "$ref": "#/components/schemas/PersonalizationToken"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "senders",
-          "lists",
-          "segments",
-          "tokens",
-          "members",
-          "broadcastRoute",
-          "postalAddress",
-          "publicUrl",
-          "senderDomains"
-        ],
-        "type": "object"
-      },
-      "ComposerRoute": {
-        "additionalProperties": false,
-        "properties": {
-          "shares": {
-            "items": {
-              "$ref": "#/components/schemas/RouteShare"
-            },
-            "type": "array"
-          },
-          "source": {
-            "enum": [
-              "campaign",
-              "rule",
-              "none"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "source",
-          "shares"
-        ],
-        "type": "object"
-      },
-      "ContentFix": {
+      "ContentCheckFix": {
         "additionalProperties": false,
         "properties": {
           "kind": {
@@ -1221,7 +1598,7 @@
         ],
         "type": "object"
       },
-      "ContentIssue": {
+      "ContentCheckIssue": {
         "additionalProperties": false,
         "properties": {
           "detail": {
@@ -1229,7 +1606,7 @@
           },
           "fixes": {
             "items": {
-              "$ref": "#/components/schemas/ContentFix"
+              "$ref": "#/components/schemas/ContentCheckFix"
             },
             "type": "array"
           },
@@ -1290,7 +1667,7 @@
         ],
         "type": "object"
       },
-      "ContentSection": {
+      "ContentCheckSection": {
         "additionalProperties": false,
         "properties": {
           "images": {
@@ -1332,18 +1709,6 @@
         ],
         "type": "object"
       },
-      "ContentSettings": {
-        "additionalProperties": false,
-        "properties": {
-          "minify": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "minify"
-        ],
-        "type": "object"
-      },
       "Create-workspaceRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1360,26 +1725,6 @@
         "required": [
           "name"
         ],
-        "type": "object"
-      },
-      "CreateCampaign": {
-        "additionalProperties": false,
-        "properties": {
-          "fromCampaignId": {
-            "description": "Start from a copy of another campaign's content",
-            "format": "uuid",
-            "type": "string"
-          },
-          "name": {
-            "maxLength": 200,
-            "type": "string"
-          },
-          "templateId": {
-            "description": "Start from a template (starter:\u003ckey\u003e or a saved template id)",
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
         "type": "object"
       },
       "CreatedWorkspace": {
@@ -1399,6 +1744,228 @@
           "id",
           "slug",
           "name"
+        ],
+        "type": "object"
+      },
+      "EmailTemplateDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "builtin": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "id": {
+            "examples": [
+              "starter:weekly-digest"
+            ],
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "template",
+              "section"
+            ],
+            "type": "string"
+          },
+          "mjml": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sourceCampaignId": {
+            "type": "string"
+          },
+          "thumb": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLThumbItem"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mjml",
+          "html",
+          "id",
+          "kind",
+          "name",
+          "description",
+          "thumb",
+          "builtin",
+          "sizeBytes"
+        ],
+        "type": "object"
+      },
+      "EmailTemplateGallery": {
+        "additionalProperties": false,
+        "properties": {
+          "lastCampaign": {
+            "$ref": "#/components/schemas/EmailTemplateLastCampaign"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/EmailTemplateSummary"
+            },
+            "type": "array"
+          },
+          "starters": {
+            "items": {
+              "$ref": "#/components/schemas/EmailTemplateSummary"
+            },
+            "type": "array"
+          },
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/EmailTemplateSummary"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "starters",
+          "templates",
+          "sections"
+        ],
+        "type": "object"
+      },
+      "EmailTemplateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "html": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "kind": {
+            "default": "template",
+            "enum": [
+              "template",
+              "section"
+            ],
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sourceCampaignId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "mjml"
+        ],
+        "type": "object"
+      },
+      "EmailTemplateLastCampaign": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "thumb": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLThumbItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "sentAt",
+          "thumb"
+        ],
+        "type": "object"
+      },
+      "EmailTemplateSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "builtin": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "examples": [
+              "starter:weekly-digest"
+            ],
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "template",
+              "section"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sourceCampaignId": {
+            "type": "string"
+          },
+          "thumb": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLThumbItem"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "description",
+          "thumb",
+          "builtin",
+          "sizeBytes"
         ],
         "type": "object"
       },
@@ -1539,34 +2106,6 @@
         ],
         "type": "object"
       },
-      "LastCampaign": {
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "sentAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "thumb": {
-            "items": {
-              "$ref": "#/components/schemas/ThumbItem"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "sentAt",
-          "thumb"
-        ],
-        "type": "object"
-      },
       "LiquidProblem": {
         "additionalProperties": false,
         "properties": {
@@ -1602,6 +2141,29 @@
           "line",
           "message"
         ],
+        "type": "object"
+      },
+      "MJMLThumbItem": {
+        "additionalProperties": false,
+        "properties": {
+          "accent": {
+            "type": "boolean"
+          },
+          "h": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "row": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLThumbItem"
+            },
+            "type": "array"
+          },
+          "w": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "Me": {
@@ -1759,12 +2321,71 @@
         ],
         "type": "object"
       },
-      "MediaList": {
+      "MediaAsset": {
+        "additionalProperties": false,
+        "properties": {
+          "contentType": {
+            "enum": [
+              "image/png",
+              "image/jpeg",
+              "image/gif"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "hasAlpha": {
+            "description": "Transparent pixels (logos survive dark mode)",
+            "type": "boolean"
+          },
+          "height": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "description": "Root-relative URL; emails get the absolute public URL",
+            "type": "string"
+          },
+          "width": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "fileName",
+          "contentType",
+          "sizeBytes",
+          "width",
+          "height",
+          "hasAlpha",
+          "createdAt",
+          "createdBy"
+        ],
+        "type": "object"
+      },
+      "MediaAssetList": {
         "additionalProperties": false,
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/Asset"
+              "$ref": "#/components/schemas/MediaAsset"
             },
             "type": "array"
           }
@@ -1806,141 +2427,6 @@
           "label",
           "kind"
         ],
-        "type": "object"
-      },
-      "Preview": {
-        "additionalProperties": false,
-        "properties": {
-          "contact": {
-            "$ref": "#/components/schemas/PreviewContact"
-          },
-          "fromEmail": {
-            "type": "string"
-          },
-          "fromName": {
-            "type": "string"
-          },
-          "html": {
-            "type": "string"
-          },
-          "missingFirstName": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "preheader": {
-            "type": "string"
-          },
-          "problems": {
-            "items": {
-              "$ref": "#/components/schemas/LiquidProblem"
-            },
-            "type": "array"
-          },
-          "renderedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "subject": {
-            "type": "string"
-          },
-          "text": {
-            "type": "string"
-          },
-          "tokens": {
-            "items": {
-              "$ref": "#/components/schemas/TokenValue"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "subject",
-          "preheader",
-          "html",
-          "text",
-          "fromName",
-          "fromEmail",
-          "tokens",
-          "problems",
-          "renderedAt"
-        ],
-        "type": "object"
-      },
-      "PreviewContact": {
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "email",
-          "label"
-        ],
-        "type": "object"
-      },
-      "PreviewContactList": {
-        "additionalProperties": false,
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/PreviewContact"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "items"
-        ],
-        "type": "object"
-      },
-      "PreviewRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "contactId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "html": {
-            "maxLength": 2500000,
-            "type": "string"
-          },
-          "preheader": {
-            "maxLength": 500,
-            "type": "string"
-          },
-          "sample": {
-            "default": "contact",
-            "enum": [
-              "contact",
-              "no_first_name",
-              "random"
-            ],
-            "type": "string"
-          },
-          "subject": {
-            "maxLength": 998,
-            "type": "string"
-          },
-          "variant": {
-            "enum": [
-              "A",
-              "B",
-              "C"
-            ],
-            "type": "string"
-          }
-        },
         "type": "object"
       },
       "Problem": {
@@ -2072,20 +2558,6 @@
         ],
         "type": "object"
       },
-      "RestoreVersion": {
-        "additionalProperties": false,
-        "properties": {
-          "baseVersion": {
-            "format": "int64",
-            "minimum": 1,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "baseVersion"
-        ],
-        "type": "object"
-      },
       "RouteShare": {
         "additionalProperties": false,
         "properties": {
@@ -2190,131 +2662,6 @@
         ],
         "type": "object"
       },
-      "SaveContent": {
-        "additionalProperties": false,
-        "properties": {
-          "abTest": {
-            "$ref": "#/components/schemas/ABTest"
-          },
-          "baseVersion": {
-            "format": "int64",
-            "minimum": 1,
-            "type": "integer"
-          },
-          "force": {
-            "type": "boolean"
-          },
-          "html": {
-            "maxLength": 2500000,
-            "type": "string"
-          },
-          "label": {
-            "maxLength": 200,
-            "type": "string"
-          },
-          "mjml": {
-            "maxLength": 2000000,
-            "type": "string"
-          },
-          "preheader": {
-            "maxLength": 500,
-            "type": "string"
-          },
-          "source": {
-            "default": "autosave",
-            "enum": [
-              "autosave",
-              "manual",
-              "import",
-              "template"
-            ],
-            "type": "string"
-          },
-          "subject": {
-            "maxLength": 998,
-            "type": "string"
-          }
-        },
-        "required": [
-          "baseVersion"
-        ],
-        "type": "object"
-      },
-      "SaveTemplate": {
-        "additionalProperties": false,
-        "properties": {
-          "description": {
-            "maxLength": 300,
-            "type": "string"
-          },
-          "html": {
-            "maxLength": 2000000,
-            "type": "string"
-          },
-          "kind": {
-            "default": "template",
-            "enum": [
-              "template",
-              "section"
-            ],
-            "type": "string"
-          },
-          "mjml": {
-            "maxLength": 2000000,
-            "minLength": 1,
-            "type": "string"
-          },
-          "name": {
-            "maxLength": 120,
-            "minLength": 1,
-            "type": "string"
-          },
-          "sourceCampaignId": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "mjml"
-        ],
-        "type": "object"
-      },
-      "SavedContent": {
-        "additionalProperties": false,
-        "properties": {
-          "contentHash": {
-            "type": "string"
-          },
-          "html": {
-            "type": "string"
-          },
-          "plainText": {
-            "type": "string"
-          },
-          "savedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "sizeBytes": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "version": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "version",
-          "savedAt",
-          "contentHash",
-          "sizeBytes",
-          "plainText",
-          "html"
-        ],
-        "type": "object"
-      },
       "Scope": {
         "additionalProperties": false,
         "properties": {
@@ -2331,54 +2678,6 @@
             "type": "array"
           }
         },
-        "type": "object"
-      },
-      "SenderOption": {
-        "additionalProperties": false,
-        "properties": {
-          "domain": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "verified": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "email",
-          "domain",
-          "verified"
-        ],
-        "type": "object"
-      },
-      "SenderRef": {
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "email"
-        ],
         "type": "object"
       },
       "Setup-check-urlRequest": {
@@ -2490,280 +2789,6 @@
         ],
         "type": "object"
       },
-      "TemplateDetail": {
-        "additionalProperties": false,
-        "properties": {
-          "builtin": {
-            "type": "boolean"
-          },
-          "description": {
-            "type": "string"
-          },
-          "html": {
-            "type": "string"
-          },
-          "id": {
-            "examples": [
-              "starter:weekly-digest"
-            ],
-            "type": "string"
-          },
-          "kind": {
-            "enum": [
-              "template",
-              "section"
-            ],
-            "type": "string"
-          },
-          "mjml": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "sizeBytes": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "sourceCampaignId": {
-            "type": "string"
-          },
-          "thumb": {
-            "items": {
-              "$ref": "#/components/schemas/ThumbItem"
-            },
-            "type": "array"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedBy": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "mjml",
-          "html",
-          "id",
-          "kind",
-          "name",
-          "description",
-          "thumb",
-          "builtin",
-          "sizeBytes"
-        ],
-        "type": "object"
-      },
-      "TemplateGallery": {
-        "additionalProperties": false,
-        "properties": {
-          "lastCampaign": {
-            "$ref": "#/components/schemas/LastCampaign"
-          },
-          "sections": {
-            "items": {
-              "$ref": "#/components/schemas/TemplateSummary"
-            },
-            "type": "array"
-          },
-          "starters": {
-            "items": {
-              "$ref": "#/components/schemas/TemplateSummary"
-            },
-            "type": "array"
-          },
-          "templates": {
-            "items": {
-              "$ref": "#/components/schemas/TemplateSummary"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "starters",
-          "templates",
-          "sections"
-        ],
-        "type": "object"
-      },
-      "TemplateSummary": {
-        "additionalProperties": false,
-        "properties": {
-          "builtin": {
-            "type": "boolean"
-          },
-          "description": {
-            "type": "string"
-          },
-          "id": {
-            "examples": [
-              "starter:weekly-digest"
-            ],
-            "type": "string"
-          },
-          "kind": {
-            "enum": [
-              "template",
-              "section"
-            ],
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "sizeBytes": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "sourceCampaignId": {
-            "type": "string"
-          },
-          "thumb": {
-            "items": {
-              "$ref": "#/components/schemas/ThumbItem"
-            },
-            "type": "array"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedBy": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "kind",
-          "name",
-          "description",
-          "thumb",
-          "builtin",
-          "sizeBytes"
-        ],
-        "type": "object"
-      },
-      "TestRecipient": {
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "email"
-        ],
-        "type": "object"
-      },
-      "TestSend": {
-        "additionalProperties": false,
-        "properties": {
-          "contactId": {
-            "description": "Personalize as this contact",
-            "format": "uuid",
-            "type": "string"
-          },
-          "to": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 10,
-            "minItems": 1,
-            "type": "array"
-          },
-          "variant": {
-            "enum": [
-              "A",
-              "B",
-              "C"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "to"
-        ],
-        "type": "object"
-      },
-      "TestSendResult": {
-        "additionalProperties": false,
-        "properties": {
-          "provider": {
-            "type": "string"
-          },
-          "sent": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "sent",
-          "provider"
-        ],
-        "type": "object"
-      },
-      "ThumbItem": {
-        "additionalProperties": false,
-        "properties": {
-          "accent": {
-            "type": "boolean"
-          },
-          "h": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "row": {
-            "items": {
-              "$ref": "#/components/schemas/ThumbItem"
-            },
-            "type": "array"
-          },
-          "w": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "type": "object"
-      },
-      "TokenValue": {
-        "additionalProperties": false,
-        "properties": {
-          "fallbackUsed": {
-            "type": "boolean"
-          },
-          "key": {
-            "type": "string"
-          },
-          "perRecipient": {
-            "description": "A link filled in per recipient at send time",
-            "type": "boolean"
-          },
-          "token": {
-            "examples": [
-              "{{ first_name | default: \"there\" }}"
-            ],
-            "type": "string"
-          },
-          "value": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "token",
-          "key",
-          "value",
-          "fallbackUsed",
-          "perRecipient"
-        ],
-        "type": "object"
-      },
       "Totp-confirmRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2807,31 +2832,6 @@
           "tls",
           "reachable"
         ],
-        "type": "object"
-      },
-      "UpdateCampaign": {
-        "additionalProperties": false,
-        "properties": {
-          "audience": {
-            "$ref": "#/components/schemas/AudienceInput"
-          },
-          "name": {
-            "maxLength": 200,
-            "minLength": 1,
-            "type": "string"
-          },
-          "replyTo": {
-            "maxLength": 254,
-            "type": "string"
-          },
-          "senderId": {
-            "description": "A sender id, or empty to clear",
-            "type": "string"
-          },
-          "settings": {
-            "$ref": "#/components/schemas/ContentSettings"
-          }
-        },
         "type": "object"
       },
       "WorkspaceMe": {
@@ -3573,7 +3573,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCampaign"
+                "$ref": "#/components/schemas/ComposerCreateCampaign"
               }
             }
           },
@@ -3584,7 +3584,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CampaignDetail"
+                  "$ref": "#/components/schemas/ComposerCampaign"
                 }
               }
             },
@@ -3640,7 +3640,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AudienceInput"
+                "$ref": "#/components/schemas/ComposerAudienceInput"
               }
             }
           },
@@ -3651,7 +3651,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AudienceCount"
+                  "$ref": "#/components/schemas/ComposerAudienceCount"
                 }
               }
             },
@@ -3786,7 +3786,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CampaignDetail"
+                  "$ref": "#/components/schemas/ComposerCampaign"
                 }
               }
             },
@@ -3849,7 +3849,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCampaign"
+                "$ref": "#/components/schemas/ComposerUpdateCampaign"
               }
             }
           },
@@ -3860,7 +3860,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CampaignDetail"
+                  "$ref": "#/components/schemas/ComposerCampaign"
                 }
               }
             },
@@ -3926,7 +3926,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CheckContent"
+                "$ref": "#/components/schemas/ComposerChecksRequest"
               }
             }
           },
@@ -4003,7 +4003,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SaveContent"
+                "$ref": "#/components/schemas/ComposerSaveContent"
               }
             }
           },
@@ -4014,7 +4014,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SavedContent"
+                  "$ref": "#/components/schemas/ComposerSavedContent"
                 }
               }
             },
@@ -4080,7 +4080,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CampaignDetail"
+                  "$ref": "#/components/schemas/ComposerCampaign"
                 }
               }
             },
@@ -4145,7 +4145,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PreviewRequest"
+                "$ref": "#/components/schemas/ComposerPreviewRequest"
               }
             }
           },
@@ -4156,7 +4156,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Preview"
+                  "$ref": "#/components/schemas/ComposerPreview"
                 }
               }
             },
@@ -4231,7 +4231,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PreviewContactList"
+                  "$ref": "#/components/schemas/ComposerPreviewContactList"
                 }
               }
             },
@@ -4297,7 +4297,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestSend"
+                "$ref": "#/components/schemas/ComposerTestSend"
               }
             }
           },
@@ -4308,7 +4308,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestSendResult"
+                  "$ref": "#/components/schemas/ComposerTestSendResult"
                 }
               }
             },
@@ -4386,7 +4386,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CampaignVersionList"
+                  "$ref": "#/components/schemas/ComposerVersionList"
                 }
               }
             },
@@ -4462,7 +4462,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CampaignVersionDetail"
+                  "$ref": "#/components/schemas/ComposerVersionDetail"
                 }
               }
             },
@@ -4537,7 +4537,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RestoreVersion"
+                "$ref": "#/components/schemas/ComposerRestoreVersion"
               }
             }
           },
@@ -4548,7 +4548,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SavedContent"
+                  "$ref": "#/components/schemas/ComposerSavedContent"
                 }
               }
             },
@@ -4730,7 +4730,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MediaList"
+                  "$ref": "#/components/schemas/MediaAssetList"
                 }
               }
             },
@@ -4812,7 +4812,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Asset"
+                  "$ref": "#/components/schemas/MediaAsset"
                 }
               }
             },
@@ -4929,7 +4929,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CompileMJML"
+                "$ref": "#/components/schemas/ComposerCompileRequest"
               }
             }
           },
@@ -4940,7 +4940,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CompiledMJML"
+                  "$ref": "#/components/schemas/ComposerCompiled"
                 }
               }
             },
@@ -4997,7 +4997,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TemplateGallery"
+                  "$ref": "#/components/schemas/EmailTemplateGallery"
                 }
               }
             },
@@ -5051,7 +5051,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SaveTemplate"
+                "$ref": "#/components/schemas/EmailTemplateInput"
               }
             }
           },
@@ -5062,7 +5062,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TemplateDetail"
+                  "$ref": "#/components/schemas/EmailTemplateDetail"
                 }
               }
             },
@@ -5187,7 +5187,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TemplateDetail"
+                  "$ref": "#/components/schemas/EmailTemplateDetail"
                 }
               }
             },
@@ -5250,7 +5250,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SaveTemplate"
+                "$ref": "#/components/schemas/EmailTemplateInput"
               }
             }
           },
@@ -5261,7 +5261,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TemplateDetail"
+                  "$ref": "#/components/schemas/EmailTemplateDetail"
                 }
               }
             },

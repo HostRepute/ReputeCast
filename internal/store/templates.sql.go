@@ -13,7 +13,30 @@ import (
 	"github.com/google/uuid"
 )
 
-const getTemplate = `-- name: GetTemplate :one
+const emailTemplateNameTaken = `-- name: EmailTemplateNameTaken :one
+SELECT EXISTS (SELECT 1 FROM templates WHERE workspace_id = $1 AND kind = $2 AND lower(name) = lower($3) AND deleted_at IS NULL AND id <> $4)
+`
+
+type EmailTemplateNameTakenParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Kind        string    `json:"kind"`
+	Name        string    `json:"name"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) EmailTemplateNameTaken(ctx context.Context, arg EmailTemplateNameTakenParams) (bool, error) {
+	row := q.db.QueryRow(ctx, emailTemplateNameTaken,
+		arg.WorkspaceID,
+		arg.Kind,
+		arg.Name,
+		arg.ID,
+	)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const getEmailTemplate = `-- name: GetEmailTemplate :one
 SELECT t.id, t.workspace_id, t.kind, t.name, t.description, t.mjml, t.html, t.thumb, t.size_bytes, t.source_campaign_id,
        t.created_at, t.updated_at, coalesce(u.name, '')::text AS updated_by_name
 FROM templates t
@@ -21,12 +44,12 @@ LEFT JOIN users u ON u.id = coalesce(t.updated_by, t.created_by)
 WHERE t.workspace_id = $1 AND t.id = $2 AND t.deleted_at IS NULL
 `
 
-type GetTemplateParams struct {
+type GetEmailTemplateParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	ID          uuid.UUID `json:"id"`
 }
 
-type GetTemplateRow struct {
+type GetEmailTemplateRow struct {
 	ID               uuid.UUID       `json:"id"`
 	WorkspaceID      uuid.UUID       `json:"workspaceId"`
 	Kind             string          `json:"kind"`
@@ -42,9 +65,9 @@ type GetTemplateRow struct {
 	UpdatedByName    string          `json:"updatedByName"`
 }
 
-func (q *Queries) GetTemplate(ctx context.Context, arg GetTemplateParams) (GetTemplateRow, error) {
-	row := q.db.QueryRow(ctx, getTemplate, arg.WorkspaceID, arg.ID)
-	var i GetTemplateRow
+func (q *Queries) GetEmailTemplate(ctx context.Context, arg GetEmailTemplateParams) (GetEmailTemplateRow, error) {
+	row := q.db.QueryRow(ctx, getEmailTemplate, arg.WorkspaceID, arg.ID)
+	var i GetEmailTemplateRow
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,
@@ -63,12 +86,12 @@ func (q *Queries) GetTemplate(ctx context.Context, arg GetTemplateParams) (GetTe
 	return i, err
 }
 
-const insertTemplate = `-- name: InsertTemplate :exec
+const insertEmailTemplate = `-- name: InsertEmailTemplate :exec
 INSERT INTO templates (id, workspace_id, kind, name, description, mjml, html, thumb, size_bytes, source_campaign_id, created_by, updated_by, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11, $12, $12)
 `
 
-type InsertTemplateParams struct {
+type InsertEmailTemplateParams struct {
 	ID               uuid.UUID       `json:"id"`
 	WorkspaceID      uuid.UUID       `json:"workspaceId"`
 	Kind             string          `json:"kind"`
@@ -83,8 +106,8 @@ type InsertTemplateParams struct {
 	Now              time.Time       `json:"now"`
 }
 
-func (q *Queries) InsertTemplate(ctx context.Context, arg InsertTemplateParams) error {
-	_, err := q.db.Exec(ctx, insertTemplate,
+func (q *Queries) InsertEmailTemplate(ctx context.Context, arg InsertEmailTemplateParams) error {
+	_, err := q.db.Exec(ctx, insertEmailTemplate,
 		arg.ID,
 		arg.WorkspaceID,
 		arg.Kind,
@@ -101,7 +124,7 @@ func (q *Queries) InsertTemplate(ctx context.Context, arg InsertTemplateParams) 
 	return err
 }
 
-const listTemplates = `-- name: ListTemplates :many
+const listEmailTemplates = `-- name: ListEmailTemplates :many
 SELECT t.id, t.kind, t.name, t.description, t.thumb, t.size_bytes, t.source_campaign_id, t.created_at, t.updated_at,
        coalesce(u.name, '')::text AS updated_by_name
 FROM templates t
@@ -110,12 +133,12 @@ WHERE t.workspace_id = $1 AND t.deleted_at IS NULL AND ($2::text = '' OR t.kind 
 ORDER BY t.updated_at DESC, t.name
 `
 
-type ListTemplatesParams struct {
+type ListEmailTemplatesParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	Kind        string    `json:"kind"`
 }
 
-type ListTemplatesRow struct {
+type ListEmailTemplatesRow struct {
 	ID               uuid.UUID       `json:"id"`
 	Kind             string          `json:"kind"`
 	Name             string          `json:"name"`
@@ -128,15 +151,15 @@ type ListTemplatesRow struct {
 	UpdatedByName    string          `json:"updatedByName"`
 }
 
-func (q *Queries) ListTemplates(ctx context.Context, arg ListTemplatesParams) ([]ListTemplatesRow, error) {
-	rows, err := q.db.Query(ctx, listTemplates, arg.WorkspaceID, arg.Kind)
+func (q *Queries) ListEmailTemplates(ctx context.Context, arg ListEmailTemplatesParams) ([]ListEmailTemplatesRow, error) {
+	rows, err := q.db.Query(ctx, listEmailTemplates, arg.WorkspaceID, arg.Kind)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListTemplatesRow{}
+	items := []ListEmailTemplatesRow{}
 	for rows.Next() {
-		var i ListTemplatesRow
+		var i ListEmailTemplatesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Kind,
@@ -159,20 +182,20 @@ func (q *Queries) ListTemplates(ctx context.Context, arg ListTemplatesParams) ([
 	return items, nil
 }
 
-const softDeleteTemplate = `-- name: SoftDeleteTemplate :execrows
+const softDeleteEmailTemplate = `-- name: SoftDeleteEmailTemplate :execrows
 UPDATE templates SET deleted_at = $1, updated_by = $2
 WHERE workspace_id = $3 AND id = $4 AND deleted_at IS NULL
 `
 
-type SoftDeleteTemplateParams struct {
+type SoftDeleteEmailTemplateParams struct {
 	Now         *time.Time `json:"now"`
 	UpdatedBy   *uuid.UUID `json:"updatedBy"`
 	WorkspaceID uuid.UUID  `json:"workspaceId"`
 	ID          uuid.UUID  `json:"id"`
 }
 
-func (q *Queries) SoftDeleteTemplate(ctx context.Context, arg SoftDeleteTemplateParams) (int64, error) {
-	result, err := q.db.Exec(ctx, softDeleteTemplate,
+func (q *Queries) SoftDeleteEmailTemplate(ctx context.Context, arg SoftDeleteEmailTemplateParams) (int64, error) {
+	result, err := q.db.Exec(ctx, softDeleteEmailTemplate,
 		arg.Now,
 		arg.UpdatedBy,
 		arg.WorkspaceID,
@@ -184,37 +207,14 @@ func (q *Queries) SoftDeleteTemplate(ctx context.Context, arg SoftDeleteTemplate
 	return result.RowsAffected(), nil
 }
 
-const templateNameTaken = `-- name: TemplateNameTaken :one
-SELECT EXISTS (SELECT 1 FROM templates WHERE workspace_id = $1 AND kind = $2 AND lower(name) = lower($3) AND deleted_at IS NULL AND id <> $4)
-`
-
-type TemplateNameTakenParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	Kind        string    `json:"kind"`
-	Name        string    `json:"name"`
-	ID          uuid.UUID `json:"id"`
-}
-
-func (q *Queries) TemplateNameTaken(ctx context.Context, arg TemplateNameTakenParams) (bool, error) {
-	row := q.db.QueryRow(ctx, templateNameTaken,
-		arg.WorkspaceID,
-		arg.Kind,
-		arg.Name,
-		arg.ID,
-	)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const updateTemplate = `-- name: UpdateTemplate :exec
+const updateEmailTemplate = `-- name: UpdateEmailTemplate :exec
 UPDATE templates
 SET name = $1, description = $2, mjml = $3, html = $4, thumb = $5, size_bytes = $6,
     updated_by = $7, updated_at = $8
 WHERE workspace_id = $9 AND id = $10 AND deleted_at IS NULL
 `
 
-type UpdateTemplateParams struct {
+type UpdateEmailTemplateParams struct {
 	Name        string          `json:"name"`
 	Description string          `json:"description"`
 	Mjml        string          `json:"mjml"`
@@ -227,8 +227,8 @@ type UpdateTemplateParams struct {
 	ID          uuid.UUID       `json:"id"`
 }
 
-func (q *Queries) UpdateTemplate(ctx context.Context, arg UpdateTemplateParams) error {
-	_, err := q.db.Exec(ctx, updateTemplate,
+func (q *Queries) UpdateEmailTemplate(ctx context.Context, arg UpdateEmailTemplateParams) error {
+	_, err := q.db.Exec(ctx, updateEmailTemplate,
 		arg.Name,
 		arg.Description,
 		arg.Mjml,

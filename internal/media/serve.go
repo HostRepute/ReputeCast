@@ -94,7 +94,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.once.Do(func() { s.cache = newLRU(32 << 20) })
 	item, ok := s.cache.get(id)
 	if !ok {
-		row, err := s.Q.GetMediaData(r.Context(), id)
+		row, err := s.Q.GetMediaAssetData(r.Context(), id)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				http.NotFound(w, r)

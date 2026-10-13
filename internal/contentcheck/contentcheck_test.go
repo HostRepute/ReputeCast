@@ -66,7 +66,7 @@ func TestCheckFindsEveryInlineWarning(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ids := map[string]ContentIssue{}
+	ids := map[string]ContentCheckIssue{}
 	for _, is := range r.Issues {
 		ids[is.ID] = is
 	}

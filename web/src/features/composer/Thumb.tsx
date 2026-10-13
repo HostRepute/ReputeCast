@@ -1,6 +1,6 @@
 import type { Schemas } from '@/api/client'
 
-type Item = Schemas['ThumbItem']
+type Item = Schemas['MJMLThumbItem']
 
 function Bar({ it }: { it: Item }) {
   if (it.row?.length) {
