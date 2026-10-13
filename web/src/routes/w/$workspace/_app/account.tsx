@@ -1,11 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { z } from 'zod'
+import { AccountPage } from '@/features/account/AccountPage'
 
 export const Route = createFileRoute('/w/$workspace/_app/account')({
-  component: () => (
-    <Page title="Account & security">
-      <NotBuilt screen="Account & security" />
-    </Page>
-  ),
+  // verifyEmail comes from the link in the email-change verification email.
+  validateSearch: z.object({ verifyEmail: z.string().optional() }),
+  component: function AccountRoute() {
+    const { verifyEmail } = Route.useSearch()
+    return <AccountPage verifyEmail={verifyEmail} />
+  },
 })

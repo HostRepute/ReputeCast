@@ -189,24 +189,38 @@ type InstanceBasics struct {
 	UpdateCheck bool   `json:"updateCheck"`
 }
 
-// SaveInstanceBasics stores the instance name, public URL, timezone and update check.
+// SaveInstanceBasics stores the instance name, public URL, timezone and
+// update check, and marks the setup step done.
 func (s *Service) SaveInstanceBasics(ctx context.Context, in InstanceBasics) error {
 	u, err := url.Parse(strings.TrimRight(in.PublicURL, "/"))
 	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
 		return api.Invalid("body.publicUrl", "Use the full address people open, like https://reputecast.acme.io.")
 	}
+	if strings.TrimSpace(in.Name) == "" {
+		return api.Invalid("body.name", "Give the instance a name, like Acme ReputeCast.")
+	}
 	if _, err := time.LoadLocation(in.Timezone); err != nil {
 		return api.Invalid("body.timezone", "Unknown timezone.")
 	}
 	before, _ := s.policy(ctx)
-	if _, err := s.Q.UpdateInstanceBasics(ctx, store.UpdateInstanceBasicsParams{
-		Name: strings.TrimSpace(in.Name), LogoSvg: before.LogoSvg, PublicUrl: u.String(), DefaultTimezone: in.Timezone, UpdateCheck: in.UpdateCheck,
-	}); err != nil {
-		return err
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if _, err := q.UpdateInstanceBasics(ctx, store.UpdateInstanceBasicsParams{
+			Name: strings.TrimSpace(in.Name), LogoSvg: before.LogoSvg, PublicUrl: u.String(), DefaultTimezone: in.Timezone, UpdateCheck: in.UpdateCheck,
+		}); err != nil {
+			return err
+		}
+		if err := q.ConfirmInstanceBasics(ctx); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.settings_update", TargetType: "instance", TargetName: in.Name,
+			Before: map[string]any{"name": before.Name, "public_url": before.PublicUrl, "timezone": before.DefaultTimezone, "update_check": before.UpdateCheck},
+			After:  map[string]any{"name": in.Name, "public_url": u.String(), "timezone": in.Timezone, "update_check": in.UpdateCheck}})
+	})
+	if err == nil && s.OnPolicyChange != nil {
+		s.OnPolicyChange()
 	}
-	return s.Audit.Log(ctx, audit.Event{Action: "instance.settings_update", TargetType: "instance", TargetName: in.Name,
-		Before: map[string]any{"name": before.Name, "public_url": before.PublicUrl, "timezone": before.DefaultTimezone, "update_check": before.UpdateCheck},
-		After:  map[string]any{"name": in.Name, "public_url": u.String(), "timezone": in.Timezone, "update_check": in.UpdateCheck}})
+	return err
 }
 
 // URLCheck reports whether the public URL resolves, has valid TLS and answers.
@@ -321,6 +335,14 @@ func (s *Service) CreateWorkspace(ctx context.Context, name, timezone string) (C
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return CreatedWorkspace{}, api.Invalid("body.name", "Give the workspace a name.")
+	}
+	// The first Owner finishes the earlier setup steps before creating the
+	// first workspace: two-factor can't be skipped (A5 §5.5).
+	if st, err := s.policy(ctx); err == nil && u.IsInstanceAdmin && st.SetupCompletedAt == nil {
+		m := s.methodsOf(ctx, *u)
+		if u.MustChangePassword || (!m.totp && m.passkeys == 0) || st.BasicsConfirmedAt == nil {
+			return CreatedWorkspace{}, api.Err(http.StatusConflict, "setup_incomplete", "Finish the earlier setup steps first: replace the temporary password, add a passkey or authenticator app and confirm the instance basics.")
+		}
 	}
 	if timezone == "" {
 		st, _ := s.policy(ctx)

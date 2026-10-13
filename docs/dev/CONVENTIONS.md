@@ -177,8 +177,9 @@ handlers. Never hand-write API types; derive them: `type Item = Schemas['Campaig
    `bg-ground`, `border-line-2`, `bg-ok-tint`); hex values only when a board
    uses a colour that has no token.
    **Box model:** the boards use the browser default — `content-box`, except
-   form controls (`button`, `input`, `select`, `textarea`) and tables, which
-   are `border-box`. The app restores exactly that default in `app.css`
+   buttons, selects, tables and button-like inputs (search, checkbox, radio,
+   submit…), which are `border-box`; text inputs and textareas are
+   `content-box` unless a class says otherwise (`.in` is `border-box`). The app restores exactly that default in `app.css`
    (Tailwind's preflight would make everything `border-box`), so a width,
    height or flex-basis copied from a board renders at the same size. Where a
    board sets `box-sizing:border-box` itself (inline or in a class), add

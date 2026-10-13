@@ -40,8 +40,9 @@ const (
 	CodeHumansOnly          = "humans_only"
 	CodeWorkspaceNotFound   = "workspace_not_found"
 	CodeLastOwner           = "last_owner"
-	CodeInvalidCredentials  = "invalid_credentials"
+	CodeInvalidCredentials  = "invalid_credentials" //nolint:gosec // an error code, not a credential
 	CodeProviderUnavailable = "provider_unavailable"
+	CodeUnavailable         = "unavailable"
 )
 
 func init() {
@@ -52,7 +53,8 @@ func init() {
 	// Every error Huma creates (validation, 404, 500…) uses our model.
 	huma.NewError = func(status int, msg string, errs ...error) huma.StatusError {
 		for _, e := range errs {
-			if m, ok := e.(problemMarker); ok {
+			var m problemMarker
+			if errors.As(e, &m) {
 				return m.p
 			}
 		}
