@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore, type RefObject } from 'react'
 
 /** Subscribes to a CSS media query. */
 export function useMediaQuery(query: string): boolean {
@@ -37,4 +37,24 @@ export function useNow(ms = 30_000): Date {
 /** True when the user asked the OS to reduce motion. */
 export function useReducedMotion(): boolean {
   return useMediaQuery('(prefers-reduced-motion: reduce)')
+}
+
+/**
+ * Whether an element scrolls sideways (its content is wider than it). A
+ * scrolling region must take keyboard focus (WCAG 2.1.1), but only then:
+ * a table that fits needs no extra tab stop.
+ */
+export function useOverflowX(ref: RefObject<HTMLElement | null>): boolean {
+  const [over, setOver] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const check = () => setOver(el.scrollWidth > el.clientWidth + 1)
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    if (el.firstElementChild) ro.observe(el.firstElementChild)
+    return () => ro.disconnect()
+  }, [ref])
+  return over
 }

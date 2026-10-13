@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
+import { TableScroll } from '@/components/ui/Table'
 import { count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ImportFrame, sourceHint, stepPath, useImportDetail, WizardHeading, type Detail } from './ImportFrame'
@@ -170,7 +171,7 @@ function Mapping({ d, rows }: { d: Detail; rows: Row[] }) {
           </Button>
         </div>
         {err ? <Note tone="bad">{err}</Note> : null}
-        <div className="tscroll">
+        <TableScroll label="Field mapping">
           <table className="tbl">
             <thead>
               <tr>
@@ -235,7 +236,7 @@ function Mapping({ d, rows }: { d: Detail; rows: Row[] }) {
               })}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
         <div className="flex flex-wrap gap-4 border-t border-line-2 px-5 py-3 text-[13px] text-ink-2">
           <span>
             <strong>Duplicates:</strong> matched on email, case-insensitive. Existing contacts are merged; imported values fill empty fields only, unless you choose "overwrite" in the
