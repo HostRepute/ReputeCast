@@ -166,6 +166,9 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		out = ComposerSavedContent{Version: int(version), SavedAt: now, ContentHash: hash, SizeBytes: len(html), PlainText: plain, HTML: html}
 		return nil
 	})
+	if err == nil {
+		s.changed(ctx, ws, id)
+	}
 	return out, err
 }
 

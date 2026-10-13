@@ -549,6 +549,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err != nil {
 		return ComposerCampaign{}, err
 	}
+	s.changed(ctx, ws, id)
 	return s.Detail(ctx, ws, p, id)
 }
 

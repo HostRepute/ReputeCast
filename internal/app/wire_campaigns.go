@@ -20,6 +20,8 @@ func init() {
 				Blocklist: contentcheck.StoreBlocklist{Q: a.Q},
 				Prober:    contentcheck.NewHTTPProber(),
 			},
+			// Saves re-check the campaign's open approval (W11).
+			AfterChange: CampaignChangeHook(a),
 		}
 		campaigns.Register(h, s)
 		campaigns.RegisterComposer(h, s)
