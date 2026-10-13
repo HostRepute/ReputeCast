@@ -29,6 +29,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
+	"github.com/hostrepute/reputecast/internal/providers/flex"
 	"github.com/hostrepute/reputecast/internal/providers/mimemsg"
 	"github.com/hostrepute/reputecast/internal/version"
 )
@@ -54,7 +55,7 @@ type Settings struct {
 	// eu-west-1, sa-east-1, ap-northeast-1).
 	Region string `json:"region,omitempty"`
 	// MonthlyLimit is the plan's monthly allowance, entered at connect time.
-	MonthlyLimit int64 `json:"monthly_limit,omitempty"`
+	MonthlyLimit flex.Int `json:"monthly_limit,omitempty"`
 	// BaseURL overrides the API (tests).
 	BaseURL string `json:"base_url,omitempty"`
 }
@@ -148,7 +149,7 @@ func (p *Provider) Adapter() string { return Adapter }
 func (p *Provider) Capabilities() providers.Capabilities {
 	c := Descriptor().Capabilities
 	if p.s.MonthlyLimit > 0 {
-		c.Pricing = "plan, " + count(p.s.MonthlyLimit) + " per month"
+		c.Pricing = "plan, " + count(int64(p.s.MonthlyLimit)) + " per month"
 	}
 	return c
 }

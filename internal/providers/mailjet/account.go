@@ -103,7 +103,7 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 	}
 	now := time.Now().UTC()
 	if c, err := p.stats(ctx, time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)); err == nil {
-		q.Kind, q.Used, q.Max = "monthly_plan", int64(c.MessageSentCount), p.s.MonthlyLimit
+		q.Kind, q.Used, q.Max = "monthly_plan", int64(c.MessageSentCount), int64(p.s.MonthlyLimit)
 	}
 	return q, nil
 }

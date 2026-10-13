@@ -31,6 +31,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
+	"github.com/hostrepute/reputecast/internal/providers/flex"
 	"github.com/hostrepute/reputecast/internal/providers/mimemsg"
 	"github.com/hostrepute/reputecast/internal/version"
 )
@@ -51,7 +52,7 @@ const WebhookUser = "reputecast"
 // Settings are the non-secret connection settings.
 type Settings struct {
 	// MonthlyLimit is the plan's monthly allowance, entered at connect time.
-	MonthlyLimit int64 `json:"monthly_limit,omitempty"`
+	MonthlyLimit flex.Int `json:"monthly_limit,omitempty"`
 	// BaseURL overrides the API (tests, Mailjet's US infrastructure).
 	BaseURL string `json:"base_url,omitempty"`
 }

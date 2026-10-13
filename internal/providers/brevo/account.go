@@ -71,7 +71,7 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 			}
 		case "subscription":
 			if p.s.MonthlyLimit > 0 {
-				q.Kind, q.Max, q.Used = "monthly_plan", p.s.MonthlyLimit, max(0, p.s.MonthlyLimit-left)
+				q.Kind, q.Max, q.Used = "monthly_plan", int64(p.s.MonthlyLimit), max(0, int64(p.s.MonthlyLimit)-left)
 			}
 			q.Account += " · subscription · " + strconv.FormatInt(left, 10) + " emails left"
 		default: // payAsYouGo

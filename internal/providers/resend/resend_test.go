@@ -563,3 +563,14 @@ func TestBackfillAndReputation(t *testing.T) {
 		t.Fatalf("reputation: %+v, %v", rep, err)
 	}
 }
+
+func TestSettingsFromAForm(t *testing.T) {
+	// A connection form may store numbers as strings.
+	p, err := resend.New(providers.Config{Settings: json.RawMessage(`{"region":"eu-west-1","monthly_limit":"50,000"}`), Credentials: json.RawMessage(`{"api_key":"re_x"}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := p.Capabilities().Pricing; got != "plan, 50,000 per month" {
+		t.Fatalf("pricing: %q", got)
+	}
+}

@@ -32,10 +32,10 @@ func (p *Provider) Verify(ctx context.Context) (providers.Quota, error) {
 	q := providers.Quota{Account: "Communication Services · reachable"}
 	if p.s.PerMinute > 0 {
 		q.MaxRate = float64(p.s.PerMinute) / 60
-		q.Account += " · " + strconv.FormatInt(p.s.PerMinute, 10) + " per minute"
+		q.Account += " · " + strconv.FormatInt(int64(p.s.PerMinute), 10) + " per minute"
 	}
 	if p.s.PerHour > 0 {
-		q.Account += " · " + strconv.FormatInt(p.s.PerHour, 10) + " per hour"
+		q.Account += " · " + strconv.FormatInt(int64(p.s.PerHour), 10) + " per hour"
 	}
 	return q, nil
 }

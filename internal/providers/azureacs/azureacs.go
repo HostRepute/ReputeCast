@@ -46,6 +46,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
+	"github.com/hostrepute/reputecast/internal/providers/flex"
 	"github.com/hostrepute/reputecast/internal/version"
 )
 
@@ -78,8 +79,8 @@ type Settings struct {
 	ClientID string `json:"client_id,omitempty"`
 	// PerMinute and PerHour are the sending limits Azure granted (30 and
 	// 100 for a custom domain until raised), shown as the account's rate.
-	PerMinute int64 `json:"per_minute,omitempty"`
-	PerHour   int64 `json:"per_hour,omitempty"`
+	PerMinute flex.Int `json:"per_minute,omitempty"`
+	PerHour   flex.Int `json:"per_hour,omitempty"`
 	// EventGridAudience is the Application ID (or ID URI) of the Entra ID
 	// application protecting the webhook, when the Event Grid subscription
 	// uses Microsoft Entra authentication; EventGridTenantID is its tenant

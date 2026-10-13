@@ -90,9 +90,9 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 		q.Account = strconv.Itoa(verified) + " verified domains"
 	}
 	if used, err := strconv.ParseInt(strings.TrimSpace(header.Get("X-Resend-Monthly-Quota")), 10, 64); err == nil {
-		q.Kind, q.Used, q.Max = "monthly_plan", used, p.s.MonthlyLimit
+		q.Kind, q.Used, q.Max = "monthly_plan", used, int64(p.s.MonthlyLimit)
 		if p.s.MonthlyLimit > 0 {
-			q.Account += " · " + count(p.s.MonthlyLimit) + " per month plan"
+			q.Account += " · " + count(int64(p.s.MonthlyLimit)) + " per month plan"
 		}
 	}
 	return q, nil
