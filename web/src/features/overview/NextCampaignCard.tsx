@@ -104,8 +104,9 @@ export function NextCampaignCard({ n }: { n: Schemas['OverviewNextCampaign'] }) 
         <ButtonLink variant="primary" to="/w/$workspace/campaigns/$campaignId/review" params={params}>
           Open Send Readiness
         </ButtonLink>
+        {/* The composer opens read-only for members who can't edit campaigns. */}
         <ButtonLink to="/w/$workspace/campaigns/$campaignId/edit" params={params}>
-          Edit campaign
+          {editReason ? 'View campaign' : 'Edit campaign'}
         </ButtonLink>
       </div>
     </section>

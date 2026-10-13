@@ -768,5 +768,7 @@ func (s *Service) backlog(ctx context.Context, ws *store.Workspace, routes []sto
 			out.Current = append(out.Current, provstate.Short(p.Name, p.Adapter))
 		}
 	}
+	// "Postal and Postmark events are current": by name, as the board reads.
+	sort.Strings(out.Current)
 	return out, nil
 }

@@ -59,14 +59,17 @@ export function SharedReportPage({ token }: { token: string }) {
         Skip to content
       </a>
       <header className="top">
-        <span className="flex items-center gap-2.5 text-ink" aria-label="ReputeCast">
-          <LogoMark size={26} />
-          <span className="text-[15px] font-bold tracking-[-0.01em]">ReputeCast</span>
-        </span>
-        <span className="k">Read-only report</span>
-        {q.data ? <span className="k ml-auto">Shared by {q.data.workspace}</span> : null}
+        <div className="mx-auto flex w-full max-w-[1152px] flex-wrap items-center gap-3">
+          <span className="flex items-center gap-2.5 text-ink" aria-label="ReputeCast">
+            <LogoMark size={26} />
+            <span className="text-[15px] font-bold tracking-[-0.01em]">ReputeCast</span>
+          </span>
+          <span className="k">Read-only report</span>
+          {q.data ? <span className="k ml-auto">Shared by {q.data.workspace}</span> : null}
+        </div>
       </header>
-      <main className="content" id="main" tabIndex={-1}>
+      {/* As wide as the report inside the app at 1440 px, so the tiles and cards fall the same way. */}
+      <main className="content mx-auto max-w-[1152px]" id="main" tabIndex={-1}>
         {q.isPending ? (
           <ReportSkeleton />
         ) : gone || limited || q.isError ? (

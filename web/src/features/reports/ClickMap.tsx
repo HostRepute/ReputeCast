@@ -259,7 +259,7 @@ export function ClickMap({ m }: { m: Schemas['ReportClickMap'] }) {
         <span className="k">share of {count(m.total)} clicks</span>
       </div>
       {noLinks ? (
-        <div className="flex flex-col items-center gap-2 py-8 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center">
           <span className="font-semibold">No tracked links</span>
           <span className="k max-w-[320px]">Clicks are counted on links in the email. This campaign had none, or link tracking was off.</span>
         </div>
@@ -289,7 +289,8 @@ export function ClickMap({ m }: { m: Schemas['ReportClickMap'] }) {
           </table>
         </>
       ) : (
-        <div className="flex flex-col items-center gap-2 py-4 text-center">
+        // The card stretches to the chart beside it; the notice sits in its middle.
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 py-4 text-center">
           <span className="font-semibold">Click map couldn't render</span>
           <span className="k">The stored content of this campaign is missing, so there's no email to draw the clicks on. Link-level clicks are still counted.</span>
           <Button size="sm" onClick={() => setTable(true)}>

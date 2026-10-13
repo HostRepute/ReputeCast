@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -14,6 +15,7 @@ type report struct {
 	Campaign struct {
 		ID, Name, Status, Audience string
 		Final                      bool
+		FinalAt                    *time.Time
 		Notes                      []string
 	}
 	Headline struct {
@@ -26,9 +28,18 @@ type report struct {
 	}
 	Engagement struct {
 		Available     bool
+		Hours         int
 		HumanWithin6h float64
 		Points        []struct{ Hour int }
 		Rollout       *struct{ Variant string }
+	}
+	Backlog *struct {
+		Minutes   int
+		Providers []struct {
+			Short   string
+			Waiting int64
+		}
+		Current []string
 	}
 	ClickMap struct {
 		Available bool
@@ -392,6 +403,81 @@ func TestReportShares(t *testing.T) {
 	}
 	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE after::text LIKE '%' || $1 || '%' OR metadata::text LIKE '%' || $1 || '%'`, token).Scan(&n); err != nil || n != 0 {
 		t.Fatalf("token in the audit log: %d %v", n, err)
+	}
+}
+
+// TestReportLiveAndBehind covers a send that ended recently (results still
+// coming in), provider events waiting in the ingest queue (ReportStates'
+// error) and an email whose stored content is missing.
+func TestReportLiveAndBehind(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	id := campaignID(t, c, "Weekly Digest #141")
+	base := "/workspaces/acme-newsletter/campaigns/" + id + "/report"
+	ctx := context.Background()
+
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE campaigns SET started_at = now() - interval '3 hours', completed_at = now() - interval '2 hours', html = ''
+		WHERE id = $1`, id); err != nil {
+		t.Fatal(err)
+	}
+	// Each read decodes into a fresh report: fields left out (backlog) stay empty.
+	get := func() (r report) {
+		t.Helper()
+		c.Do("GET", base, nil).MustStatus(t, 200).JSON(t, &r)
+		return r
+	}
+	r := get()
+	if r.Campaign.Final || r.Campaign.FinalAt == nil || time.Until(*r.Campaign.FinalAt) < 69*time.Hour || time.Until(*r.Campaign.FinalAt) > 70*time.Hour {
+		t.Fatalf("live: %+v", r.Campaign)
+	}
+	if r.Engagement.Hours != 3 || r.Backlog != nil {
+		t.Fatalf("live engagement %d hours, backlog %+v", r.Engagement.Hours, r.Backlog)
+	}
+	// Without the email the map can't be drawn; the clicks per link remain.
+	if r.ClickMap.Available || r.ClickMap.HTML != "" || len(r.ClickMap.Links) == 0 || r.ClickMap.Total == 0 {
+		t.Fatalf("click map without content: %+v", r.ClickMap)
+	}
+
+	// SES events received 12 minutes ago wait to be processed. Postal's
+	// unsigned posts are never processed, so they don't make it "behind".
+	queue := func(adapter string, n int, signed bool) {
+		t.Helper()
+		if _, err := env.App.Pool.Exec(ctx, `INSERT INTO provider_raw_events (id, workspace_id, provider_id, received_at, body, signature_ok)
+			SELECT gen_random_uuid(), p.workspace_id, p.id, now() - interval '12 minutes' + g * interval '1 second', '\x7b7d'::bytea, $3
+			FROM providers p, generate_series(1, $4::int) g
+			WHERE p.adapter = $2 AND p.workspace_id = (SELECT workspace_id FROM campaigns WHERE id = $1)`, id, adapter, signed, n); err != nil {
+			t.Fatal(err)
+		}
+	}
+	queue("ses", 40, true)
+	queue("postal", 5, false)
+	r = get()
+	b := r.Backlog
+	if b == nil || b.Minutes < 11 || b.Minutes > 12 || len(b.Providers) != 1 || b.Providers[0].Short != "SES" || b.Providers[0].Waiting != 40 ||
+		strings.Join(b.Current, ",") != "Postal,Postmark" {
+		t.Fatalf("backlog: %+v", b)
+	}
+	// A queue younger than five minutes isn't behind yet.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE provider_raw_events SET received_at = now() - interval '2 minutes' WHERE normalized_at IS NULL`); err != nil {
+		t.Fatal(err)
+	}
+	r = get()
+	if r.Backlog != nil {
+		t.Fatalf("a 2-minute queue is current: %+v", r.Backlog)
+	}
+
+	// Once the results are final, a late queue no longer matters.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE provider_raw_events SET received_at = now() - interval '12 minutes' WHERE normalized_at IS NULL`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE campaigns SET started_at = now() - interval '74 hours', completed_at = now() - interval '73 hours' WHERE id = $1`, id); err != nil {
+		t.Fatal(err)
+	}
+	r = get()
+	if !r.Campaign.Final || r.Backlog != nil || r.Engagement.Hours != 72 {
+		t.Fatalf("final: %+v, backlog %+v, %d hours", r.Campaign, r.Backlog, r.Engagement.Hours)
 	}
 }
 
