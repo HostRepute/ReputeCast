@@ -13,7 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/permcheck"
 )
 
-type segmentPath struct {
+type SegmentPathInput struct {
 	api.WorkspaceInput
 	ID string `path:"segment" format:"uuid" doc:"Segment id"`
 }
@@ -24,7 +24,7 @@ type segmentBody struct {
 }
 
 type segmentUpdate struct {
-	segmentPath
+	SegmentPathInput
 	Body SegmentInput
 }
 
@@ -99,7 +99,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), Problem(err)
 		})
 	api.Get(h, api.Op{ID: "get-segment", Path: base + "/{segment}", Summary: "Get a segment with its definition and generated SQL", Tags: tags, Access: view},
-		func(ctx context.Context, in *segmentPath) (*api.Body[SegmentDetail], error) {
+		func(ctx context.Context, in *SegmentPathInput) (*api.Body[SegmentDetail], error) {
 			out, err := s.Get(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID))
 			return api.OK(out), Problem(err)
 		})
@@ -121,11 +121,11 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), Problem(err)
 		})
 	api.Delete(h, api.Op{ID: "delete-segment", Path: base + "/{segment}", Summary: "Delete a segment", Tags: tags, Access: edit},
-		func(ctx context.Context, in *segmentPath) (*api.Empty, error) {
+		func(ctx context.Context, in *SegmentPathInput) (*api.Empty, error) {
 			return api.NoContent, Problem(s.Delete(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID)))
 		})
 	api.Post(h, api.Op{ID: "count-segment", Path: base + "/{segment}/count", Summary: "Count a saved segment again and store the result", Tags: tags, Access: view},
-		func(ctx context.Context, in *segmentPath) (*api.Body[SegmentCountResult], error) {
+		func(ctx context.Context, in *SegmentPathInput) (*api.Body[SegmentCountResult], error) {
 			ws := api.WorkspaceFrom(ctx)
 			id := uuid.MustParse(in.ID)
 			out, err := s.Recount(ctx, ws, id)

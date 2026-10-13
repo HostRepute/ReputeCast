@@ -44,13 +44,13 @@ func (q contactsQuery) filter() ContactFilter {
 	return ContactFilter{Q: q.Q, List: q.List, Tier: q.Tier, Mailbox: q.Mailbox, Consent: q.Consent, Source: q.Source, Tag: q.Tag, Segment: q.Segment, JoinedAfter: q.JoinedAfter}
 }
 
-type contactPath struct {
+type ContactPathInput struct {
 	api.WorkspaceInput
 	Contact string `path:"contact" format:"uuid"`
 }
 
 type activityQuery struct {
-	contactPath
+	ContactPathInput
 	Filter string `query:"filter" enum:"all,deliveries,engagement,consent" default:"all"`
 	Cursor string `query:"cursor" maxLength:"200"`
 	Limit  int    `query:"limit" minimum:"1" maximum:"100" default:"8"`
@@ -67,7 +67,7 @@ type suppressionsQuery struct {
 	PageSize int    `query:"pageSize" minimum:"1" maximum:"100" default:"10"`
 }
 
-type idPath struct {
+type AudienceIDInput struct {
 	api.WorkspaceInput
 	ID string `path:"id" format:"uuid"`
 }
@@ -78,12 +78,12 @@ type body[T any] struct {
 }
 
 type idBody[T any] struct {
-	idPath
+	AudienceIDInput
 	Body T
 }
 
 type contactBody[T any] struct {
-	contactPath
+	ContactPathInput
 	Body T
 }
 
@@ -151,7 +151,7 @@ func Register(h huma.API, s *Service, box Box) {
 			return api.OK(out), err
 		})
 	api.Delete(h, api.Op{ID: "delete-contact-view", Path: ws + "/contacts/views/{id}", Summary: "Delete a saved view", Tags: tags, Access: edit},
-		func(ctx context.Context, in *idPath) (*api.Empty, error) {
+		func(ctx context.Context, in *AudienceIDInput) (*api.Empty, error) {
 			return api.NoContent, s.DeleteView(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID))
 		})
 	api.Post(h, api.Op{ID: "bulk-contacts", Path: ws + "/contacts/bulk", Summary: "Add to a list, add a tag, resend opt-in or suppress many contacts", Tags: tags, Access: edit},
@@ -175,7 +175,7 @@ func Register(h huma.API, s *Service, box Box) {
 			return download(b, "text/csv; charset=utf-8", fmt.Sprintf("contacts-%s-%s.csv", wsp.Slug, s.now().In(workspaceLocation(wsp)).Format("2006-01-02"))), nil
 		})
 	api.Get(h, api.Op{ID: "get-contact", Path: ws + "/contacts/{contact}", Summary: "Contact profile: fields, consent per list, stats", Tags: tags, Access: view},
-		func(ctx context.Context, in *contactPath) (*api.Body[ContactProfile], error) {
+		func(ctx context.Context, in *ContactPathInput) (*api.Body[ContactProfile], error) {
 			out, err := s.Profile(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.Contact))
 			return api.OK(out), err
 		})
@@ -190,7 +190,7 @@ func Register(h huma.API, s *Service, box Box) {
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "resend-contact-optin", Path: ws + "/contacts/{contact}/resend-optin", Summary: "Send the opt-in confirmation email again", Tags: tags, Access: edit},
-		func(ctx context.Context, in *contactPath) (*api.Body[OptInResendResult], error) {
+		func(ctx context.Context, in *ContactPathInput) (*api.Body[OptInResendResult], error) {
 			out, err := s.ResendOptIn(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.Contact))
 			return api.OK(out), err
 		})
@@ -199,12 +199,12 @@ func Register(h huma.API, s *Service, box Box) {
 			return api.NoContent, s.SuppressContact(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.Contact), in.Body)
 		})
 	api.Post(h, api.Op{ID: "contact-preference-link", Path: ws + "/contacts/{contact}/preference-link", Summary: "Get the contact's preference center link (logged)", Tags: tags, Access: edit},
-		func(ctx context.Context, in *contactPath) (*api.Body[PreferenceLinkResult], error) {
+		func(ctx context.Context, in *ContactPathInput) (*api.Body[PreferenceLinkResult], error) {
 			url, err := s.PreferenceLink(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.Contact))
 			return api.OK(PreferenceLinkResult{URL: url}), err
 		})
 	api.Get(h, api.Op{ID: "export-contact", Path: ws + "/contacts/{contact}/export", Summary: "Everything stored about one contact, as JSON (GDPR, logged)", Tags: tags, Access: api.Workspace(authz.SubscribersExport)},
-		func(ctx context.Context, in *contactPath) (*File, error) {
+		func(ctx context.Context, in *ContactPathInput) (*File, error) {
 			b, name, err := s.ExportContact(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.Contact))
 			if err != nil {
 				return nil, err
@@ -229,7 +229,7 @@ func Register(h huma.API, s *Service, box Box) {
 			return api.OK(out), err
 		})
 	api.Delete(h, api.Op{ID: "delete-list", Path: ws + "/lists/{id}", Summary: "Delete a list (contacts stay)", Tags: tags, Access: manage},
-		func(ctx context.Context, in *idPath) (*api.Empty, error) {
+		func(ctx context.Context, in *AudienceIDInput) (*api.Empty, error) {
 			return api.NoContent, s.DeleteList(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID))
 		})
 	api.Get(h, api.Op{ID: "list-fields", Path: ws + "/fields", Summary: "Custom fields", Tags: tags, Access: view},
@@ -248,7 +248,7 @@ func Register(h huma.API, s *Service, box Box) {
 			return api.OK(out), err
 		})
 	api.Delete(h, api.Op{ID: "delete-field", Path: ws + "/fields/{id}", Summary: "Delete a custom field and its values", Tags: tags, Access: manage},
-		func(ctx context.Context, in *idPath) (*api.Empty, error) {
+		func(ctx context.Context, in *AudienceIDInput) (*api.Empty, error) {
 			return api.NoContent, s.DeleteField(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID))
 		})
 

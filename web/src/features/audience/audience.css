@@ -64,6 +64,72 @@
   min-width: 170px;
 }
 
+/* Screens whose top bar shows a breadcrumb instead of the title keep the
+   h1 for screen readers only (Contact profile). */
+.mainc:has(> main.aud-crumbs) > .top > h1 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Contact profile: key/value rows, tags, the activity timeline. */
+.pkv {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line-2);
+}
+.pkv:last-child {
+  border-bottom: 0;
+}
+.ptag {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: var(--ground);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 500;
+}
+.ev {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 11px 18px;
+  border-top: 1px solid var(--line-2);
+  font-size: 13px;
+}
+.ev .ic {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+button.badge.afilter {
+  border: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.badge.afilter:hover {
+  background: var(--line);
+}
+button.badge.afilter[aria-pressed='true'] {
+  background: var(--ink);
+  color: #fff;
+}
+
 /* Checkboxes keep the browser's default margin, as on the boards. */
 input[type='checkbox'].cbx {
   margin: 3px 3px 3px 4px;

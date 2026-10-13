@@ -363,7 +363,7 @@ func audTimelines(ctx context.Context, s *Seeder, a *audSeed, welcome uuid.UUID)
 		{stream: "broadcast", campaign: "Weekly Digest #141", provider: "ses", queued: t(5, 9, 0), delivered: t(5, 9, 3), deliveredEvent: true,
 			code: "250 2.6.0", diagnostic: "Queued mail for delivery · outlook-com.olc.protection.outlook.com", open: ptr(t(5, 9, 41)), ua: outlookUA},
 		{stream: "automation", node: "step 2", provider: "postmark", failover: true, queued: t(10, 9, 0), delivered: t(10, 9, 3), deliveredEvent: true,
-			code: "250 2.0.0", routeNote: "SES was down for 14 min; Automations route failed over automatically"},
+			routeNote: "SES was down for 14 min; Automations route failed over automatically"},
 		{stream: "broadcast", campaign: "Weekly Digest #140", provider: "ses", queued: t(12, 9, 0), delivered: t(12, 9, 3), deliveredEvent: true,
 			code: "250 2.6.0", open: ptr(t(12, 10, 12)), ua: outlookUA},
 		{stream: "broadcast", campaign: "Weekly Digest #139", provider: "ses", queued: t(19, 9, 0), delivered: t(19, 9, 58), softBounce: ptr(t(19, 9, 12)),

@@ -5703,7 +5703,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -5740,7 +5744,11 @@ export interface operations {
                 limit?: number;
             };
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -5871,7 +5879,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -6272,7 +6284,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -6437,7 +6453,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -6503,7 +6523,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -6569,7 +6593,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -6635,7 +6663,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -6671,7 +6703,11 @@ export interface operations {
                 fileName?: string;
             };
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -6705,6 +6741,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
                 kind: "report" | "skipped" | "invalid" | "unreadable";
             };
             cookie?: never;
@@ -7236,7 +7275,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -8017,7 +8060,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Segment id */
+                segment: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -8365,7 +8413,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
