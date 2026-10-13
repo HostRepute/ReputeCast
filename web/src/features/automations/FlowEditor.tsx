@@ -20,6 +20,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Badge, Dot } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
+import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Banner } from '@/components/ui/Note'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
@@ -28,6 +29,8 @@ import { cn } from '@/lib/cn'
 import { count, dayMonthDate } from '@/lib/format'
 import { useDocumentTitle, useMediaQuery, useReducedMotion } from '@/lib/hooks'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
+import { useUnsavedWork } from '@/lib/sessionClock'
+import { useShortcutHandler } from '@/lib/shortcuts'
 import { CanvasControls, FlowMiniMap } from './canvas/CanvasChrome'
 import { Motion } from './canvas/Motion'
 import { edgeTypes } from './canvas/StepEdge'
@@ -268,6 +271,24 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
     window.addEventListener('beforeunload', h)
     return () => window.removeEventListener('beforeunload', h)
   }, [dirty, saving])
+  // ⌘S saves the draft right away (it saves itself anyway).
+  useShortcutHandler(
+    'save',
+    canEdit
+      ? () => {
+          flush().then(
+            () => toast({ title: `Draft v${meta.draftVersion} saved`, detail: 'Publish it when it looks right.' }),
+            (e: unknown) => toast({ kind: 'error', title: "Couldn't save the draft", detail: errorMessage(e) }),
+          )
+        }
+      : undefined,
+  )
+  // If the session ends while editing, the notices say the work is safe.
+  useUnsavedWork(
+    canEdit
+      ? { whileEnding: 'the draft saves itself', afterEnded: `"${detail.name}" is saved as draft v${meta.draftVersion} and will reopen where you left off.` }
+      : undefined,
+  )
 
   /* -- selection and panels (kept in the URL: ?step=n3&panel=stats) -- */
   const [selectedId, setSelectedId] = useState<string | undefined>(() => firstSelection(detail.graph, search.step))
@@ -750,6 +771,11 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
         </aside>
       </div>
 
+      <UnsavedChangesGuard
+        dirty={Boolean(failed) && dirty}
+        description="Your last changes to this flow couldn't be saved. Leave without them, or try saving again."
+        onSave={flush}
+      />
       <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} automationId={id} onSaveDraft={flush} />
       <VersionHistoryDialog
         open={historyOpen}

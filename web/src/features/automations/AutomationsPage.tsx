@@ -1,6 +1,6 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { $api, errorMessage, type Schemas } from '@/api/client'
+import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -28,6 +28,8 @@ export function AutomationsPage({ status }: { status: AutomationFilter }) {
   const newReason = usePermissionReason('automations:edit')
   const data = list.data
   const empty = data !== undefined && data.counts.all === 0
+  // No access or no such workspace: the shell's 403/404 state, not a panel.
+  if (list.error instanceof ApiError && (list.error.status === 403 || list.error.status === 404)) throw list.error
   return (
     <Page
       title="Automations"

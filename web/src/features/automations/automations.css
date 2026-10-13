@@ -209,11 +209,9 @@
   gap: 6px;
   font-size: 12.5px;
 }
-/* The board's checkboxes keep the browser's default margins, and next to a
-   long label they give way a little, as there. */
+/* Next to a long label the board's checkboxes give way a little. */
 .fe-tools input[type='checkbox'],
 .fe-chk input[type='checkbox'] {
-  margin: 3px 3px 3px 4px;
   flex: 0 1 auto;
 }
 
@@ -640,10 +638,6 @@
 }
 .fe-dlg .btn.tall {
   min-height: 40px;
-}
-/* The board's radios keep the browser's side margins. */
-.fe-dlg label.opt input[type='radio'] {
-  margin: 3px 3px 0 5px;
 }
 .chg {
   display: flex;
