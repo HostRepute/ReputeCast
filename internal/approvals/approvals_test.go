@@ -382,7 +382,8 @@ func TestReadinessRunAndFixes(t *testing.T) {
 		Stale    bool
 	}
 	linh.Do("GET", ws+"/campaigns/"+flash+"/review", nil).MustStatus(t, 200).JSON(t, &rv)
-	if rv.Thresholds.Bounce != 1.5 || rv.Thresholds.Scope != "campaign" || rv.Schedule.Mode != "at" || rv.Schedule.Time != "09:00" || !rv.Stale {
+	// A new time keeps the checks: they still describe the campaign.
+	if rv.Thresholds.Bounce != 1.5 || rv.Thresholds.Scope != "campaign" || rv.Schedule.Mode != "at" || rv.Schedule.Time != "09:00" || rv.Stale {
 		t.Fatalf("settings: %+v", rv)
 	}
 	if n.audit("campaign.send_settings_updated", flash) != settings+1 {

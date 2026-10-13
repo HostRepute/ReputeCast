@@ -1066,6 +1066,21 @@ func (q *Queries) ApprovalOpenRequests(ctx context.Context) ([]ApprovalOpenReque
 	return items, nil
 }
 
+const approvalPauseAlertsSlack = `-- name: ApprovalPauseAlertsSlack :one
+SELECT EXISTS (
+    SELECT 1 FROM webhooks
+    WHERE workspace_id = $1 AND enabled AND 'campaign.paused' = ANY(events) AND url LIKE 'https://hooks.slack.com/%'
+)::boolean
+`
+
+// Whether an enabled webhook posts campaign.paused to Slack (Review & send says who hears about a held send).
+func (q *Queries) ApprovalPauseAlertsSlack(ctx context.Context, workspaceID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, approvalPauseAlertsSlack, workspaceID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const approvalPendingForWorkspace = `-- name: ApprovalPendingForWorkspace :many
 SELECT r.id, r.requested_at, coalesce((r.snapshot ->> 'audience_count')::bigint, 0)::bigint AS audience_count,
        coalesce(c.name, a.name, '')::text AS subject_name,

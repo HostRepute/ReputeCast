@@ -173,7 +173,9 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		}
 		at = &t
 	}
-	if sb, _ := json.Marshal(sched); string(sb) != string(c.Schedule) && mode.approval == nil {
+	// Compared as values: Postgres hands jsonb back reformatted.
+	if sched != readiness.ParseSchedule(c.Schedule) && mode.approval == nil {
+		sb, _ := json.Marshal(sched)
 		if err := s.Q.ApprovalScheduleCampaign(ctx, store.ApprovalScheduleCampaignParams{Schedule: sb, ScheduledAt: nil, UpdatedBy: &p.UserID, Now: now, WorkspaceID: ws.ID, ID: c.ID}); err != nil {
 			return ReviewSendResult{}, err
 		}
@@ -211,7 +213,9 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		return ReviewSendResult{}, api.Invalid("body.acknowledged", "Confirm each warning before sending: "+strings.Join(missing, "; ")+".")
 	}
 	recipients := run.Estimates.Audience.Final
-	if recipients >= LargeSend && digits(in.Confirm) != fmt.Sprint(recipients) {
+	// Large sends are confirmed by typing the count; a bypass is confirmed
+	// by the written reason and the Owner's password instead.
+	if recipients >= LargeSend && mode.bypass == "" && digits(in.Confirm) != fmt.Sprint(recipients) {
 		return ReviewSendResult{}, api.Invalid("body.confirm", fmt.Sprintf("Type %d to confirm the send.", recipients))
 	}
 	// Approval.

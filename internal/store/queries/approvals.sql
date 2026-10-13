@@ -235,3 +235,10 @@ WHERE v.campaign_id = @campaign_id AND v.version = @version;
 
 -- name: ApprovalAudienceLists :many
 SELECT id, name, requires_approval FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL;
+
+-- name: ApprovalPauseAlertsSlack :one
+-- Whether an enabled webhook posts campaign.paused to Slack (Review & send says who hears about a held send).
+SELECT EXISTS (
+    SELECT 1 FROM webhooks
+    WHERE workspace_id = @workspace_id AND enabled AND 'campaign.paused' = ANY(events) AND url LIKE 'https://hooks.slack.com/%'
+)::boolean;

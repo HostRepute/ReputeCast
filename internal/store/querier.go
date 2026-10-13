@@ -56,6 +56,8 @@ type Querier interface {
 	ApprovalOpenHold(ctx context.Context, campaignID uuid.UUID) (CampaignIncident, error)
 	// Open campaign requests of every workspace (the revalidation job).
 	ApprovalOpenRequests(ctx context.Context) ([]ApprovalOpenRequestsRow, error)
+	// Whether an enabled webhook posts campaign.paused to Slack (Review & send says who hears about a held send).
+	ApprovalPauseAlertsSlack(ctx context.Context, workspaceID uuid.UUID) (bool, error)
 	ApprovalPendingForWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalPendingForWorkspaceRow, error)
 	// "Restore … (keeps approval)": the campaign matches the snapshot again.
 	ApprovalReopen(ctx context.Context, arg ApprovalReopenParams) error

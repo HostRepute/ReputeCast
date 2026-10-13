@@ -116,6 +116,9 @@ type CampaignReview struct {
 	Access     ReviewAccess                  `json:"access"`
 	// LargeSend is the audience size from which sending asks to type the count.
 	LargeSend int64 `json:"largeSend"`
+	// PauseSlack is true when a webhook posts campaign.paused to Slack, so a
+	// held send is announced there as well as by email.
+	PauseSlack bool `json:"pauseSlack"`
 	// Timezone is the workspace's.
 	Timezone string `json:"timezone"`
 }
@@ -186,6 +189,9 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if len(out.TestSends) > 4 {
 			out.TestSends = out.TestSends[:4]
 		}
+	}
+	if slack, err := s.Q.ApprovalPauseAlertsSlack(ctx, ws.ID); err == nil {
+		out.PauseSlack = slack
 	}
 	// Who scheduled it.
 	if c.Status == "scheduled" {

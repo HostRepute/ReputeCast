@@ -161,8 +161,9 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 		if t.MailboxComplaint > t.Complaint*5 {
 			return api.Invalid("body.thresholds.mailboxComplaint", "Keep the per-mailbox complaint threshold within five times the overall one.")
 		}
-		next := t.toDB()
-		if string(next) != string(thresholds) {
+		// Compared as values: Postgres hands jsonb back reformatted, so the
+		// stored text never equals freshly marshalled JSON.
+		if next := t.toDB(); ParseThresholds(next, nil) != ParseThresholds(thresholds, ws.SendThresholds) {
 			before["thresholds"], after["thresholds"] = nonEmptyJSON(thresholds), next
 			thresholds = next
 		}
@@ -172,8 +173,8 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 		if err != nil {
 			return err
 		}
-		next, _ := json.Marshal(sch)
-		if string(next) != string(schedule) {
+		if sch != ParseSchedule(schedule) {
+			next, _ := json.Marshal(sch)
 			before["schedule"], after["schedule"] = nonEmptyJSON(schedule), json.RawMessage(next)
 			schedule = next
 		}
@@ -181,10 +182,31 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 	if len(after) == 0 {
 		return nil
 	}
+	// A new time doesn't change what the checks found: a run that described
+	// the campaign keeps describing it (the send-time recheck runs anyway).
+	var carry *uuid.UUID
+	if _, ok := after["schedule"]; ok {
+		if run, err := s.Latest(ctx, id); err == nil && run != nil && run.Fingerprint == s.CurrentFingerprint(ctx, ws, c) {
+			if rid, err := uuid.Parse(run.ID); err == nil {
+				carry = &rid
+			}
+		}
+	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.ReadinessSetSendSettings(ctx, store.ReadinessSetSendSettingsParams{Thresholds: thresholds, Schedule: schedule, UpdatedBy: &p.UserID, Now: s.now(), WorkspaceID: ws.ID, ID: id}); err != nil {
 			return err
+		}
+		if carry != nil {
+			// Fingerprint the row as Postgres stored it, as every later
+			// comparison does.
+			moved, err := q.ReadinessCampaign(ctx, store.ReadinessCampaignParams{WorkspaceID: ws.ID, ID: id})
+			if err != nil {
+				return err
+			}
+			if err := q.ReadinessSetFingerprint(ctx, store.ReadinessSetFingerprintParams{Fingerprint: s.CurrentFingerprint(ctx, ws, moved), ID: *carry}); err != nil {
+				return err
+			}
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.send_settings_updated", TargetType: "campaign", TargetID: id.String(), TargetName: c.Name,
 			Before: before, After: after})
