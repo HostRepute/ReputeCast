@@ -338,11 +338,20 @@ function ColorField({ label, value, readOnly, error, onChange }: { label: string
   return (
     <label className="lbl">
       {label}
-      <div className="flex items-center gap-2">
+      {/* On phones the board wraps the hex value under the swatch. */}
+      <div className="flex items-center gap-2 max-md:flex-wrap">
         <span className="fs-sw" style={{ background: ok ? value : '#ffffff' }}>
           <input type="color" aria-label={`${label} picker`} value={ok ? value.toLowerCase() : '#ffffff'} disabled={readOnly} onChange={(e) => onChange(e.target.value.toUpperCase())} />
         </span>
-        <input className="fb-in mono" value={value} maxLength={7} disabled={readOnly} aria-invalid={error ? true : undefined} onChange={(e) => onChange(e.target.value)} />
+        <input
+          className="fb-in mono max-md:w-0 max-md:min-w-full"
+          aria-label={label}
+          value={value}
+          maxLength={7}
+          disabled={readOnly}
+          aria-invalid={error ? true : undefined}
+          onChange={(e) => onChange(e.target.value)}
+        />
       </div>
       {error ? <span className="err">{error}</span> : null}
     </label>

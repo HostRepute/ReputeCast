@@ -122,13 +122,13 @@
     background: #fffbeb;
   }
 
-  /* Segmented control of the builder (Type, Desktop · Mobile). */
+  /* Segmented control of the builder (Type, Desktop · Mobile). In a side
+     column it spans the column, as on the board; the buttons stay left. */
   .fb-seg {
     display: inline-flex;
     border: 1px solid var(--line-strong);
     border-radius: 8px;
     overflow: hidden;
-    align-self: flex-start;
   }
   .fb-seg button {
     height: 32px;
