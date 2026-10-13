@@ -1388,6 +1388,12 @@
     align-items: center;
     flex-wrap: wrap;
   }
+  /* Without actions the boards give the tools only their auto margin
+     (style="margin-left:auto" replaces the 8px), so free space splits evenly
+     with another auto-margin item in the bar (List health's caption). */
+  .top .acts > .tools:first-child {
+    margin-left: 0;
+  }
   .top .tabs.sections {
     flex-basis: 100%;
     min-width: 0;
