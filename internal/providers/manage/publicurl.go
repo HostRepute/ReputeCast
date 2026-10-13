@@ -12,6 +12,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/publicurl"
+	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // A new public URL moves every provider webhook (spec 5.5): providers whose
@@ -36,26 +37,16 @@ type ManualWebhook struct {
 
 // PublicURLMoved sorts the connected providers of every workspace for a new
 // public URL and queues the re-registration (demo providers have no real
-// webhook and are left out).
+// webhook and are left out). If the job can't be queued, those providers are
+// listed for a manual update too, with the error.
 func (s *Service) PublicURLMoved(ctx context.Context, publicURL string) (WebhookMove, error) {
 	provs, err := s.Q.ProvListAllActive(ctx)
 	if err != nil {
 		return WebhookMove{}, err
 	}
 	urls := publicurl.New(publicURL)
-	out := WebhookMove{Manual: []ManualWebhook{}}
-	var ids []uuid.UUID
 	names := map[uuid.UUID]string{}
-	for _, p := range provs {
-		if IsDemo(p) {
-			continue
-		}
-		if adapter, err := s.Factory.Open(ctx, p); err == nil {
-			if _, ok := adapter.(providers.WebhookRegistrar); ok {
-				ids = append(ids, p.ID)
-				continue
-			}
-		}
+	manual := func(p store.Provider) ManualWebhook {
 		ws, ok := names[p.WorkspaceID]
 		if !ok {
 			if w, err := s.Q.GetWorkspace(ctx, p.WorkspaceID); err == nil {
@@ -63,18 +54,40 @@ func (s *Service) PublicURLMoved(ctx context.Context, publicURL string) (Webhook
 			}
 			names[p.WorkspaceID] = ws
 		}
-		out.Manual = append(out.Manual, ManualWebhook{Workspace: ws, Provider: p.Name, URL: WebhookURL(urls, p)})
+		return ManualWebhook{Workspace: ws, Provider: p.Name, URL: WebhookURL(urls, p)}
 	}
-	out.Reregistering = len(ids)
-	if len(ids) > 0 {
-		c := s.jobs()
-		if c == nil {
-			return out, errors.New("move webhooks: no job client")
+	out := WebhookMove{Manual: []ManualWebhook{}}
+	var auto []store.Provider
+	for _, p := range provs {
+		if IsDemo(p) {
+			continue
 		}
-		if _, err := c.Insert(ctx, MoveWebhooksArgs{ProviderIDs: ids}, nil); err != nil {
-			return out, err
+		if adapter, err := s.Factory.Open(ctx, p); err == nil {
+			if _, ok := adapter.(providers.WebhookRegistrar); ok {
+				auto = append(auto, p)
+				continue
+			}
 		}
+		out.Manual = append(out.Manual, manual(p))
 	}
+	if len(auto) == 0 {
+		return out, nil
+	}
+	ids := make([]uuid.UUID, len(auto))
+	for i, p := range auto {
+		ids[i] = p.ID
+	}
+	err = errors.New("move webhooks: no job client")
+	if c := s.jobs(); c != nil {
+		_, err = c.Insert(ctx, MoveWebhooksArgs{ProviderIDs: ids}, nil)
+	}
+	if err != nil {
+		for _, p := range auto {
+			out.Manual = append(out.Manual, manual(p))
+		}
+		return out, err
+	}
+	out.Reregistering = len(auto)
 	return out, nil
 }
 

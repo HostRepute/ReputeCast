@@ -24,6 +24,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/sso"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -97,13 +98,11 @@ func admin(ctx context.Context) (*store.User, error) {
 
 // publicURL is where people open ReputeCast, without a trailing slash.
 func (s *Service) publicURL(st store.InstanceSetting) string {
-	if st.PublicUrl != "" {
-		return strings.TrimRight(st.PublicUrl, "/")
-	}
+	configured := ""
 	if s.Cfg != nil {
-		return strings.TrimRight(s.Cfg.HTTP.PublicURL, "/")
+		configured = s.Cfg.HTTP.PublicURL
 	}
-	return ""
+	return publicurl.Effective(st.PublicUrl, configured)
 }
 
 func displayName(name, email string) string {

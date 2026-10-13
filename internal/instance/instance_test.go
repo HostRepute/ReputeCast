@@ -435,6 +435,22 @@ func TestInstanceSettingsAndLogo(t *testing.T) {
 	if moved.Webhooks == nil || moved.Webhooks.Reregistering != 0 || len(moved.Webhooks.Manual) != 0 || env.App.URLs.Base() != "https://news.acme.io" {
 		t.Fatalf("second change: %+v, %q", moved.Webhooks, env.App.URLs.Base())
 	}
+	// Browser requests from the new address pass the cross-origin check;
+	// the address the instance moved away from is no longer trusted.
+	for origin, want := range map[string]int{"https://news.acme.io": http.StatusOK, "https://mail.acme.io": http.StatusForbidden} {
+		req, _ := http.NewRequest(http.MethodPost, env.Server.URL+"/api/v1/auth/identify", strings.NewReader(`{"email":"x@example.com"}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Origin", origin)
+		req.Header.Set("Sec-Fetch-Site", "cross-site")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = res.Body.Close()
+		if res.StatusCode != want {
+			t.Fatalf("request from %s: %d, want %d", origin, res.StatusCode, want)
+		}
+	}
 	// SVG logos are checked: no scripts, no external references.
 	for _, bad := range []string{
 		`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><script>alert(1)</script></svg>`,

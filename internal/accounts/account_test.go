@@ -293,6 +293,10 @@ func TestSetupFlow(t *testing.T) {
 		t.Fatalf("after codes: %v", st["current"])
 	}
 	c.Do("PUT", "/setup/instance", map[string]any{"name": "Acme ReputeCast", "publicUrl": "https://reputecast.acme.io", "timezone": "America/New_York", "updateCheck": true}).MustStatus(t, 204)
+	// Links built from then on use the address just saved.
+	if got := env.App.URLs.Base(); got != "https://reputecast.acme.io" {
+		t.Fatalf("public URL after setup: %q", got)
+	}
 	var ws map[string]any
 	c.Do("POST", "/workspaces", map[string]any{"name": "Acme Newsletter"}).MustStatus(t, 201).JSON(t, &ws)
 	c.Do("GET", "/setup", nil).MustStatus(t, 200).JSON(t, &st)
