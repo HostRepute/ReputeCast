@@ -1,17 +1,18 @@
 package engine
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/automations"
-	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -44,7 +45,8 @@ type engagement struct {
 func (e *Engine) PumpSim(ctx context.Context, now time.Time) (int, *time.Time, error) {
 	var later []engagement
 	n := 0
-	err := db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
+	err := sending.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
+		later, n = later[:0], 0
 		q := store.New(tx)
 		rows, err := q.SendingDueSimEvents(ctx, store.SendingDueSimEventsParams{Now: now, Lim: 500})
 		if err != nil || len(rows) == 0 {
@@ -65,6 +67,11 @@ func (e *Engine) PumpSim(ctx context.Context, now time.Time) (int, *time.Time, e
 		for _, m := range msgs {
 			byID[m.ID] = m
 		}
+		// Apply in counter-row order (campaign, sending provider, mailbox
+		// provider, variant), the order the send loop locks them in.
+		sort.SliceStable(rows, func(i, j int) bool {
+			return cellBefore(byID[rows[i].MessageID], byID[rows[j].MessageID])
+		})
 		provs := map[uuid.UUID]store.Provider{}
 		touched := map[uuid.UUID]time.Time{}
 		links := map[string]int{}
@@ -152,6 +159,34 @@ func (e *Engine) PumpSim(ctx context.Context, now time.Time) (int, *time.Time, e
 		return 0, nil, err
 	}
 	return 0, &next, nil
+}
+
+// cellBefore orders messages by the campaign counter row they bump.
+func cellBefore(a, b store.SendingSimMessagesRow) bool {
+	ac, bc := uuid.Nil, uuid.Nil
+	if a.CampaignID != nil {
+		ac = *a.CampaignID
+	}
+	if b.CampaignID != nil {
+		bc = *b.CampaignID
+	}
+	if c := bytes.Compare(ac[:], bc[:]); c != 0 {
+		return c < 0
+	}
+	ap, bp := uuid.Nil, uuid.Nil
+	if a.ProviderID != nil {
+		ap = *a.ProviderID
+	}
+	if b.ProviderID != nil {
+		bp = *b.ProviderID
+	}
+	if c := bytes.Compare(ap[:], bp[:]); c != 0 {
+		return c < 0
+	}
+	if a.MailboxProvider != b.MailboxProvider {
+		return a.MailboxProvider < b.MailboxProvider
+	}
+	return a.Variant < b.Variant
 }
 
 // linkCount is how many tracked links the message's email has.

@@ -101,11 +101,11 @@ type MoveEstimate struct {
 	ExtraCost    float64 `json:"extraCost"`
 	ExtraSeconds int64   `json:"extraSeconds"`
 	// Rate is the target's rate in messages per second ("Extra time at 14 /s").
-	Rate float64 `json:"rate"`
-	QuotaFree    *int64  `json:"quotaFree,omitempty"`
-	QuotaMax     *int64  `json:"quotaMax,omitempty"`
-	Risk         string  `json:"risk"` // low, high
-	RiskText     string  `json:"riskText"`
+	Rate      float64 `json:"rate"`
+	QuotaFree *int64  `json:"quotaFree,omitempty"`
+	QuotaMax  *int64  `json:"quotaMax,omitempty"`
+	Risk      string  `json:"risk"` // low, high
+	RiskText  string  `json:"riskText"`
 }
 
 // analyzeThreshold explains a threshold trip with the send's own data.

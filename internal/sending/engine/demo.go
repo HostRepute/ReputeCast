@@ -120,20 +120,38 @@ func (e *Engine) DemoSend(ctx context.Context, o DemoSendOptions) (DemoSendResul
 		}
 	}
 	start := now.Add(-o.Elapsed)
+	// The command builds the audience and fast-forwards the send itself, on
+	// the virtual clock: it holds the send's lock throughout, so the
+	// server's worker (woken by the start) waits until it's done.
+	// A worker still running an earlier send of it (just reset) lets go
+	// within seconds.
+	var unlock func()
+	for wait := time.Now().Add(90 * time.Second); ; {
+		if unlock, err = e.lockSend(ctx, c.ID); err == nil {
+			break
+		}
+		if !errors.Is(err, errBusy) || time.Now().After(wait) {
+			return DemoSendResult{}, fmt.Errorf("%q is being sent by another process; try again in a minute", c.Name)
+		}
+		select {
+		case <-ctx.Done():
+			return DemoSendResult{}, ctx.Err()
+		case <-time.After(500 * time.Millisecond):
+		}
+	}
 	prev := e.Now
 	e.Now = func() time.Time { return start }
 	err = e.StartWith(ctx, c.ID, StartOptions{By: sofia, Now: true, Scenario: o.Scenario, ABWindow: o.ABWindow, ApprovedBy: &marcus, ApprovedAt: &approvedAt, ScheduledBy: &linh})
 	e.Now = prev
+	if err == nil {
+		err = e.prepare(ctx, c.ID, start)
+	}
+	if err == nil && o.Elapsed > 0 {
+		_, _, err = e.drive(ctx, c.ID, start, o.Elapsed)
+	}
+	unlock()
 	if err != nil {
 		return DemoSendResult{}, err
-	}
-	if err := e.prepare(ctx, c.ID, start); err != nil {
-		return DemoSendResult{}, err
-	}
-	if o.Elapsed > 0 {
-		if _, _, err := e.Drive(ctx, c.ID, start, o.Elapsed); err != nil {
-			return DemoSendResult{}, err
-		}
 	}
 	e.kick(ctx, c.ID)
 	e.insert(ctx, SimArgs{}, nil)

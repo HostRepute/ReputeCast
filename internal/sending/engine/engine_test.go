@@ -343,8 +343,11 @@ func containsDots(s string) bool {
 func testAutoPause(t *testing.T, f *fixture) {
 	f.exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.campaign)
 	f.addContacts(
-		contactSpec{n: 1400, mailbox: "outlook", domain: "hotmail.com", tier: "at_risk", source: "import:mailchimp"},
-		contactSpec{n: 900, mailbox: "gmail", domain: "gmail.com", engaged: true},
+		// Outlook sends at 5 /s, so 2,500 take over eight minutes: complaints
+		// arrive one to six minutes after delivery and trip the threshold
+		// while most of the share is still queued.
+		contactSpec{n: 2500, mailbox: "outlook", domain: "hotmail.com", tier: "at_risk", source: "import:mailchimp"},
+		contactSpec{n: 600, mailbox: "gmail", domain: "gmail.com", engaged: true},
 	)
 	f.startSend(engine.StartOptions{Scenario: "outlook-complaints"})
 	if _, _, err := f.e.Drive(f.ctx, f.campaign, f.start, 20*time.Minute); err != nil {

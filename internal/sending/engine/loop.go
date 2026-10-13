@@ -16,7 +16,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/providers"
@@ -24,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/simulator"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
+	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -727,7 +727,10 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 			out.cell(p.row.MailboxProvider, p.row.Variant).rejected++
 		}
 	}
-	err := db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
+	// The provider has the batch now: the outcome must be recorded, or the
+	// messages would be claimed again later. A deadlock with delivery events
+	// or opens bumping the same counters is retried.
+	err := sending.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		return e.record(ctx, q, tx, rs.campaign.ID, r.provider.ID, &out, now)
 	})
@@ -763,8 +766,21 @@ func (e *Engine) record(ctx context.Context, q *store.Queries, tx pgx.Tx, campai
 		}
 	}
 	if len(out.cells) > 0 && campaign != uuid.Nil {
+		// Counter rows are locked in one order (mailbox provider, variant),
+		// as the delivery-event pump does, so batches don't deadlock.
+		keys := make([]cellKey, 0, len(out.cells))
+		for k := range out.cells {
+			keys = append(keys, k)
+		}
+		sort.Slice(keys, func(i, j int) bool {
+			if keys[i].mailbox != keys[j].mailbox {
+				return keys[i].mailbox < keys[j].mailbox
+			}
+			return keys[i].variant < keys[j].variant
+		})
 		p := store.SendingBumpCountersParams{CampaignID: campaign}
-		for k, c := range out.cells {
+		for _, k := range keys {
+			c := out.cells[k]
 			p.ProviderIds = append(p.ProviderIds, provider)
 			p.Mailboxes = append(p.Mailboxes, k.mailbox)
 			p.Variants = append(p.Variants, k.variant)

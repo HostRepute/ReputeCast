@@ -37,7 +37,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/automations"
-	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/sending"
@@ -336,7 +335,9 @@ func (s *Service) RecordEngagement(ctx context.Context, evs []sending.Engagement
 	if len(evs) == 0 {
 		return nil
 	}
-	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	// A batch bumps several counter rows: a deadlock with the send loop or
+	// delivery events is retried.
+	return sending.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		for _, ev := range evs {
 			if err := s.apply(ctx, q, ev); err != nil {
@@ -453,7 +454,9 @@ func (s *Service) apply(ctx context.Context, q *store.Queries, ev sending.Engage
 			}
 		}
 	}
-	if m.CampaignID != nil && m.ProviderID != nil && human+machine+clicked != 0 {
+	// A person opening after a machine prefetch moves the open from machine
+	// to human (+1, -1): the deltas cancel out in a sum, so test each one.
+	if m.CampaignID != nil && m.ProviderID != nil && (human != 0 || machine != 0 || clicked != 0) {
 		if err := q.TrackingBumpCounters(ctx, store.TrackingBumpCountersParams{CampaignID: *m.CampaignID, ProviderID: *m.ProviderID, MailboxProvider: m.MailboxProvider,
 			Variant: m.Variant, OpenedHuman: human, OpenedMachine: machine, Clicked: clicked}); err != nil {
 			return err

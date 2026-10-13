@@ -10,6 +10,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/sse"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
@@ -76,9 +77,13 @@ type LiveActionResult struct {
 	Snapshot  LiveSnapshot `json:"snapshot"`
 }
 
+// body is an action's input: the campaign's path and a JSON body. Huma reads
+// parameters only from exported fields, so the path fields are spelled out
+// here rather than embedded from the unexported liveInput.
 type body[T any] struct {
-	liveInput
-	Body T
+	api.WorkspaceInput
+	CampaignID string `path:"campaignId" format:"uuid" doc:"Campaign id"`
+	Body       T
 }
 
 // Register adds the live monitor's operations.
@@ -255,6 +260,9 @@ func (e *Engine) actionIDs(ctx context.Context, raw string) (uuid.UUID, uuid.UUI
 	}
 	ws := api.WorkspaceFrom(ctx)
 	owner, err := e.Q.SendingCampaignWorkspace(ctx, id)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, uuid.Nil, err
+	}
 	if err != nil || ws == nil || owner != ws.ID {
 		return uuid.Nil, uuid.Nil, api.NotFound("Campaign")
 	}
@@ -280,4 +288,3 @@ func mapErr(err error) error {
 	}
 	return err
 }
-

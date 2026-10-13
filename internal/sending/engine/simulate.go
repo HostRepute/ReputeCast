@@ -17,13 +17,18 @@ import (
 // consistent, back-dated history. It returns the virtual time it stopped at
 // and whether the send ended (finished, paused or cancelled).
 func (e *Engine) Drive(ctx context.Context, campaignID uuid.UUID, start time.Time, d time.Duration) (time.Time, bool, error) {
-	end := start.Add(d)
-	t := start
 	unlock, err := e.lockSend(ctx, campaignID)
 	if err != nil {
-		return t, false, err
+		return start, false, err
 	}
 	defer unlock()
+	return e.drive(ctx, campaignID, start, d)
+}
+
+// drive is Drive for a caller that already holds the send's lock.
+func (e *Engine) drive(ctx context.Context, campaignID uuid.UUID, start time.Time, d time.Duration) (time.Time, bool, error) {
+	end := start.Add(d)
+	t := start
 	rs, err := e.load(ctx, campaignID, t)
 	if errors.Is(err, errStopped) {
 		return t, true, e.drain(ctx, t, end)

@@ -11,7 +11,6 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/sending"
-	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // One job of each kind per campaign may wait or run at a time; a finished
@@ -81,9 +80,14 @@ type PrepareWorker struct {
 // Timeout allows a large audience build.
 func (w *PrepareWorker) Timeout(*river.Job[PrepareArgs]) time.Duration { return 20 * time.Minute }
 
-// Work implements river.Worker.
+// Work implements river.Worker. While another process holds the send (the
+// demo command's fast-forward), it comes back a little later.
 func (w *PrepareWorker) Work(ctx context.Context, job *river.Job[PrepareArgs]) error {
-	return w.E.Prepare(ctx, job.Args.CampaignID)
+	err := w.E.Prepare(ctx, job.Args.CampaignID)
+	if errors.Is(err, errBusy) {
+		return river.JobSnooze(5 * time.Second)
+	}
+	return err
 }
 
 // RunArgs runs a campaign's send loop for a while, then snoozes.
@@ -270,5 +274,3 @@ func RegisterJobs(reg *jobs.Registry, e *Engine) {
 	river.AddWorker(reg.Workers, &WatchWorker{E: e})
 	reg.Every(30*time.Second, func() (river.JobArgs, *river.InsertOpts) { return WatchArgs{}, nil }, true)
 }
-
-var _ = store.New
