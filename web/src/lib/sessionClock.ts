@@ -32,7 +32,7 @@ interface State {
   /** Last API activity seen in other tabs (epoch ms). */
   sharedActivity: number
   guards: number
-  workNote?: string
+  work?: UnsavedWork
 }
 
 let state: State = { skew: 0, sharedActivity: 0, guards: 0 }
@@ -203,19 +203,30 @@ export function registerSessionGuard(): () => void {
 
 // ------------------------------------------------------------ unsaved work
 
-/**
- * Lets a screen describe its unsaved work for the session dialogs, e.g. the
- * composer: "The campaign you were editing is saved as draft v18 and will
- * reopen where you left off."
- */
-export function useUnsavedWorkNote(note: string | undefined) {
+export interface UnsavedWork {
+  /** Finishes "otherwise … and you'll be asked to sign in again": "the draft autosaves". */
+  whileEnding?: string
+  /** A sentence for the sign-in dialog: "The campaign you were editing is saved as draft v18 and will reopen where you left off." */
+  afterEnded?: string
+}
+
+/** Lets the screen on display describe its unsaved work for the session notices. */
+export function useUnsavedWork(work: UnsavedWork | undefined) {
+  const whileEnding = work?.whileEnding
+  const afterEnded = work?.afterEnded
   useEffect(() => {
-    if (!note) return
-    set({ workNote: note })
+    if (!whileEnding && !afterEnded) return
+    const mine = { whileEnding, afterEnded }
+    set({ work: mine })
     return () => {
-      if (state.workNote === note) set({ workNote: undefined })
+      if (state.work === mine) set({ work: undefined })
     }
-  }, [note])
+  }, [whileEnding, afterEnded])
+}
+
+/** The session store itself (timing, ended, the screen's unsaved work). */
+export function useSessionState(): Readonly<State> {
+  return useSyncExternalStore(subscribe, getSessionState, getSessionState)
 }
 
 // ------------------------------------------------------------ other tabs

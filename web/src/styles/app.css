@@ -2118,6 +2118,9 @@
   .corner > * {
     pointer-events: auto;
   }
+  .corner.c-notices {
+    bottom: calc(16px + var(--rc-toasts-h, 0px) + var(--rc-tray-h, 0px));
+  }
   .notice {
     padding: 18px 20px;
     display: flex;
@@ -2214,6 +2217,9 @@
       width: auto;
       max-width: none;
       bottom: calc(84px + var(--rc-toasts-h, 0px));
+    }
+    .corner.c-notices {
+      bottom: calc(84px + var(--rc-toasts-h, 0px) + var(--rc-tray-h, 0px));
     }
   }
 
