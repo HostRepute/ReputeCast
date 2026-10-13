@@ -278,38 +278,40 @@ type BlocklistResult struct {
 }
 
 type Campaign struct {
-	ID            uuid.UUID       `json:"id"`
-	WorkspaceID   uuid.UUID       `json:"workspaceId"`
-	Name          string          `json:"name"`
-	Status        string          `json:"status"`
-	Subject       string          `json:"subject"`
-	Preheader     string          `json:"preheader"`
-	SenderID      *uuid.UUID      `json:"senderId"`
-	ReplyTo       string          `json:"replyTo"`
-	Audience      json.RawMessage `json:"audience"`
-	AudienceCount *int64          `json:"audienceCount"`
-	EditorMode    string          `json:"editorMode"`
-	Mjml          string          `json:"mjml"`
-	Html          string          `json:"html"`
-	PlainText     string          `json:"plainText"`
-	Version       int32           `json:"version"`
-	AbTest        json.RawMessage `json:"abTest"`
-	Schedule      json.RawMessage `json:"schedule"`
-	Thresholds    json.RawMessage `json:"thresholds"`
-	RouteOverride json.RawMessage `json:"routeOverride"`
-	Tracking      json.RawMessage `json:"tracking"`
-	CreatedBy     *uuid.UUID      `json:"createdBy"`
-	UpdatedBy     *uuid.UUID      `json:"updatedBy"`
-	CreatedAt     time.Time       `json:"createdAt"`
-	UpdatedAt     time.Time       `json:"updatedAt"`
-	AutosavedAt   *time.Time      `json:"autosavedAt"`
-	ScheduledAt   *time.Time      `json:"scheduledAt"`
-	StartedBy     *uuid.UUID      `json:"startedBy"`
-	StartedAt     *time.Time      `json:"startedAt"`
-	CompletedAt   *time.Time      `json:"completedAt"`
-	DeletedAt     *time.Time      `json:"deletedAt"`
-	Origin        string          `json:"origin"`
-	Note          string          `json:"note"`
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	Name            string          `json:"name"`
+	Status          string          `json:"status"`
+	Subject         string          `json:"subject"`
+	Preheader       string          `json:"preheader"`
+	SenderID        *uuid.UUID      `json:"senderId"`
+	ReplyTo         string          `json:"replyTo"`
+	Audience        json.RawMessage `json:"audience"`
+	AudienceCount   *int64          `json:"audienceCount"`
+	EditorMode      string          `json:"editorMode"`
+	Mjml            string          `json:"mjml"`
+	Html            string          `json:"html"`
+	PlainText       string          `json:"plainText"`
+	Version         int32           `json:"version"`
+	AbTest          json.RawMessage `json:"abTest"`
+	Schedule        json.RawMessage `json:"schedule"`
+	Thresholds      json.RawMessage `json:"thresholds"`
+	RouteOverride   json.RawMessage `json:"routeOverride"`
+	Tracking        json.RawMessage `json:"tracking"`
+	CreatedBy       *uuid.UUID      `json:"createdBy"`
+	UpdatedBy       *uuid.UUID      `json:"updatedBy"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	UpdatedAt       time.Time       `json:"updatedAt"`
+	AutosavedAt     *time.Time      `json:"autosavedAt"`
+	ScheduledAt     *time.Time      `json:"scheduledAt"`
+	StartedBy       *uuid.UUID      `json:"startedBy"`
+	StartedAt       *time.Time      `json:"startedAt"`
+	CompletedAt     *time.Time      `json:"completedAt"`
+	DeletedAt       *time.Time      `json:"deletedAt"`
+	Origin          string          `json:"origin"`
+	Note            string          `json:"note"`
+	ContentHash     string          `json:"contentHash"`
+	ContentSettings json.RawMessage `json:"contentSettings"`
 }
 
 type CampaignCounter struct {
@@ -376,15 +378,19 @@ type CampaignRoute struct {
 }
 
 type CampaignVersion struct {
-	CampaignID uuid.UUID  `json:"campaignId"`
-	Version    int32      `json:"version"`
-	Subject    string     `json:"subject"`
-	Preheader  string     `json:"preheader"`
-	Mjml       string     `json:"mjml"`
-	Html       string     `json:"html"`
-	SavedBy    *uuid.UUID `json:"savedBy"`
-	SavedAt    time.Time  `json:"savedAt"`
-	Label      string     `json:"label"`
+	CampaignID uuid.UUID       `json:"campaignId"`
+	Version    int32           `json:"version"`
+	Subject    string          `json:"subject"`
+	Preheader  string          `json:"preheader"`
+	Mjml       string          `json:"mjml"`
+	Html       string          `json:"html"`
+	SavedBy    *uuid.UUID      `json:"savedBy"`
+	SavedAt    time.Time       `json:"savedAt"`
+	Label      string          `json:"label"`
+	PlainText  string          `json:"plainText"`
+	AbTest     json.RawMessage `json:"abTest"`
+	Source     string          `json:"source"`
+	SizeBytes  int32           `json:"sizeBytes"`
 }
 
 type ConsentEvent struct {
@@ -674,6 +680,13 @@ type Invitation struct {
 	ReinviteRequestedAt *time.Time      `json:"reinviteRequestedAt"`
 }
 
+type LinkDomainListing struct {
+	Domain    string    `json:"domain"`
+	Lists     []string  `json:"lists"`
+	Source    string    `json:"source"`
+	CheckedAt time.Time `json:"checkedAt"`
+}
+
 type List struct {
 	ID               uuid.UUID  `json:"id"`
 	WorkspaceID      uuid.UUID  `json:"workspaceId"`
@@ -694,6 +707,22 @@ type ListMembership struct {
 	SubscribedAt   *time.Time `json:"subscribedAt"`
 	UnsubscribedAt *time.Time `json:"unsubscribedAt"`
 	CreatedAt      time.Time  `json:"createdAt"`
+}
+
+type MediaAsset struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	FileName    string     `json:"fileName"`
+	ContentType string     `json:"contentType"`
+	SizeBytes   int32      `json:"sizeBytes"`
+	Width       int32      `json:"width"`
+	Height      int32      `json:"height"`
+	HasAlpha    bool       `json:"hasAlpha"`
+	Sha256      []byte     `json:"sha256"`
+	Data        []byte     `json:"data"`
+	CreatedBy   *uuid.UUID `json:"createdBy"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	HiddenAt    *time.Time `json:"hiddenAt"`
 }
 
 type Message struct {
@@ -1057,16 +1086,21 @@ type Suppression struct {
 }
 
 type Template struct {
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	Kind        string     `json:"kind"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Mjml        string     `json:"mjml"`
-	Html        string     `json:"html"`
-	CreatedBy   *uuid.UUID `json:"createdBy"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   time.Time  `json:"updatedAt"`
+	ID               uuid.UUID       `json:"id"`
+	WorkspaceID      uuid.UUID       `json:"workspaceId"`
+	Kind             string          `json:"kind"`
+	Name             string          `json:"name"`
+	Description      string          `json:"description"`
+	Mjml             string          `json:"mjml"`
+	Html             string          `json:"html"`
+	CreatedBy        *uuid.UUID      `json:"createdBy"`
+	CreatedAt        time.Time       `json:"createdAt"`
+	UpdatedAt        time.Time       `json:"updatedAt"`
+	Thumb            json.RawMessage `json:"thumb"`
+	SizeBytes        int32           `json:"sizeBytes"`
+	SourceCampaignID *uuid.UUID      `json:"sourceCampaignId"`
+	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
+	DeletedAt        *time.Time      `json:"deletedAt"`
 }
 
 type UnsubscribeFeedback struct {
