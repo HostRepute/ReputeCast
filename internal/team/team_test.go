@@ -373,3 +373,25 @@ func TestBulk(t *testing.T) {
 		t.Fatalf("bulk role: %+v", res)
 	}
 }
+
+// The second demo workspace matches InstanceUsers and ShellSwitcher: Kenji
+// Watanabe owns it, Linh is an Admin, Marcus an Editor, and Sofia isn't a member.
+func TestSecondWorkspaceMembers(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	var l memberList
+	c.Do("GET", "/workspaces/acme-engineering-blog/members", nil).MustStatus(t, 200).JSON(t, &l)
+	roles := map[string]string{}
+	for _, m := range l.Items {
+		roles[m.Email] = m.Role.Key
+	}
+	if roles["kenji@acme.io"] != "owner" || roles["linh@acme.io"] != "admin" || roles["marcus@acme.io"] != "editor" || len(roles) != 3 {
+		t.Fatalf("members: %v", roles)
+	}
+	kenji := byEmail(t, l, "kenji@acme.io")
+	if signInLabels(kenji.SignIn) != "Passkey" || kenji.TwoFA.State != "on" || !kenji.LastOwner {
+		t.Fatalf("kenji: %+v", kenji)
+	}
+}

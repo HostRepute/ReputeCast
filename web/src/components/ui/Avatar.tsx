@@ -11,6 +11,8 @@ const palettes = {
   // Team boards: Marcus Chen's avatar, and muted rows (deactivated members, invitees, the system).
   pink: { bg: '#FCE7F3', fg: '#9D174D' },
   muted: { bg: '#EEF0F3', fg: '#5B6472' },
+  // Kenji Watanabe on InstanceUsers.
+  sky: { bg: '#E0F2FE', fg: '#075985' },
 } as const
 
 export type AvatarColor = keyof typeof palettes

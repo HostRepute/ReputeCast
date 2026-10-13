@@ -73,16 +73,55 @@ func seedTeamImpl(ctx context.Context, s *Seeder) error {
 			}
 		}
 	}
-	// Second workspace: Linh (Owner), Marcus (Admin) and Sofia (Editor).
+	// Second workspace (InstanceUsers, ShellSwitcher, AccountSecurity): Kenji
+	// Watanabe owns it, Linh is an Admin and Marcus an Editor there; Sofia is
+	// only in Acme Newsletter. Kenji becomes Owner before Linh steps down, so
+	// the workspace never lacks an Owner.
 	eng := s.Workspaces["acme-engineering-blog"]
-	for _, m := range []struct{ email, role string }{{"marcus@acme.io", "admin"}, {"sofia@acme.io", "editor"}} {
-		if _, err := s.Q.CreateMember(ctx, store.CreateMemberParams{ID: ID(), WorkspaceID: eng.ID, UserID: s.Users[m.email].ID, RoleID: s.Roles[eng.Slug+"/"+m.role].ID, Scope: json.RawMessage(`{}`), Source: "sso_group", InvitedBy: &linh.ID}); err != nil {
-			return err
-		}
+	kenji, err := ensureKenji(ctx, s)
+	if err != nil {
+		return err
+	}
+	km, err := s.Q.CreateMember(ctx, store.CreateMemberParams{ID: ID(), WorkspaceID: eng.ID, UserID: kenji.ID, RoleID: s.Roles[eng.Slug+"/owner"].ID, Scope: json.RawMessage(`{}`), Source: "install", InvitedBy: &linh.ID})
+	if err != nil {
+		return err
+	}
+	if _, err := s.Tx.Exec(ctx, `UPDATE workspace_members SET joined_at = $2, last_active_at = $3 WHERE id = $1`, km.ID, s.Ago(230*24*time.Hour), kenji.LastActiveAt); err != nil {
+		return err
+	}
+	if _, err := s.Tx.Exec(ctx, `UPDATE workspace_members SET role_id = $3 WHERE workspace_id = $1 AND user_id = $2`, eng.ID, linh.ID, s.Roles[eng.Slug+"/admin"].ID); err != nil {
+		return err
+	}
+	if _, err := s.Q.CreateMember(ctx, store.CreateMemberParams{ID: ID(), WorkspaceID: eng.ID, UserID: s.Users["marcus@acme.io"].ID, RoleID: s.Roles[eng.Slug+"/editor"].ID, Scope: json.RawMessage(`{}`), Source: "sso_group", InvitedBy: &kenji.ID}); err != nil {
+		return err
 	}
 	// The pending invite needs the Beta Program list, seeded later.
 	s.After(seedTeamLate)
 	return nil
+}
+
+// ensureKenji returns Kenji Watanabe, the Owner of Acme Engineering Blog
+// (InstanceUsers: Google SSO · passkey, two-factor on through the passkey,
+// signed in an hour ago), creating him unless another seeder did.
+func ensureKenji(ctx context.Context, s *Seeder) (store.User, error) {
+	const email = "kenji@acme.io"
+	if u, ok := s.Users[email]; ok {
+		return u, nil
+	}
+	u, err := s.Q.GetUserByEmail(ctx, email)
+	if err != nil {
+		if u, err = s.Q.CreateUser(ctx, store.CreateUserParams{ID: ID(), Email: email, Name: "Kenji Watanabe", Timezone: "America/New_York", AvatarColor: "sky"}); err != nil {
+			return u, err
+		}
+		if _, err := s.Tx.Exec(ctx, `UPDATE users SET last_active_at = $2, last_sign_in_at = $2, created_at = $3 WHERE id = $1`, u.ID, s.Ago(time.Hour), s.Ago(230*24*time.Hour)); err != nil {
+			return u, err
+		}
+		if u, err = s.Q.GetUser(ctx, u.ID); err != nil {
+			return u, err
+		}
+	}
+	s.Users[email] = u
+	return u, nil
 }
 
 // seedTeamLate runs after every seeder: the invite scoped to Beta Program,
@@ -188,8 +227,11 @@ func seedSignIns(ctx context.Context, s *Seeder) error {
 			return err
 		}
 	}
-	for _, email := range []string{"marcus@acme.io", "sofia@acme.io", "daniel@acme.io"} {
-		u := s.Users[email]
+	for _, email := range []string{"marcus@acme.io", "sofia@acme.io", "daniel@acme.io", "kenji@acme.io"} {
+		u, ok := s.Users[email]
+		if !ok {
+			continue
+		}
 		var n int
 		if err := s.Tx.QueryRow(ctx, `SELECT count(*) FROM user_identities WHERE user_id = $1`, u.ID).Scan(&n); err != nil {
 			return err
@@ -201,18 +243,27 @@ func seedSignIns(ctx context.Context, s *Seeder) error {
 			}
 		}
 	}
-	// Linh signs in with a password and a passkey (A5 §4).
-	linh := s.Users["linh@acme.io"]
-	var passkeys int
-	if err := s.Tx.QueryRow(ctx, `SELECT count(*) FROM user_passkeys WHERE user_id = $1`, linh.ID).Scan(&passkeys); err != nil {
-		return err
-	}
-	if passkeys == 0 {
-		cred := make([]byte, 32)
-		_, _ = rand.Read(cred)
-		if _, err := s.Tx.Exec(ctx, `INSERT INTO user_passkeys (id, user_id, name, credential_id, public_key, attestation_type, created_at, last_used_at)
-			VALUES ($1, $2, 'MacBook Pro · Touch ID', $3, $4, 'none', $5, $6)`, ID(), linh.ID, cred, []byte("demo-public-key"), s.Ago(180*24*time.Hour), s.Ago(2*time.Hour)); err != nil {
+	// Linh signs in with a password and a passkey (A5 §4); Kenji with Google
+	// Workspace and a passkey, which is also his second factor (InstanceUsers).
+	for _, pk := range []struct {
+		email, name string
+		used        time.Duration
+	}{{"linh@acme.io", "MacBook Pro · Touch ID", 2 * time.Hour}, {"kenji@acme.io", "MacBook Air · Touch ID", time.Hour}} {
+		u, ok := s.Users[pk.email]
+		if !ok {
+			continue
+		}
+		var passkeys int
+		if err := s.Tx.QueryRow(ctx, `SELECT count(*) FROM user_passkeys WHERE user_id = $1`, u.ID).Scan(&passkeys); err != nil {
 			return err
+		}
+		if passkeys == 0 {
+			cred := make([]byte, 32)
+			_, _ = rand.Read(cred)
+			if _, err := s.Tx.Exec(ctx, `INSERT INTO user_passkeys (id, user_id, name, credential_id, public_key, attestation_type, created_at, last_used_at)
+				VALUES ($1, $2, $3, $4, $5, 'none', $6, $7)`, ID(), u.ID, pk.name, cred, []byte("demo-public-key"), s.Ago(180*24*time.Hour), s.Ago(pk.used)); err != nil {
+				return err
+			}
 		}
 	}
 	if err := seedDefaultSender(ctx, s); err != nil {

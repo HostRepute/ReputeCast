@@ -298,9 +298,13 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
               </span>
               <Button
                 size="sm"
-                disabledReason={created ? undefined : 'Create the invites first.'}
+                loading={!created && invite.isPending}
                 onClick={async () => {
-                  if (!created) return
+                  // Before the invites exist, this creates them and copies their links.
+                  if (!created) {
+                    submit()
+                    return
+                  }
                   const ok = await copyText(created.invitations.map((i) => `${i.email}: ${i.link}`).join('\n'))
                   toast({ title: ok ? 'Invite links copied' : 'Copy failed', detail: ok ? `${created.invitations.length} ${created.invitations.length === 1 ? 'link' : 'links'}` : 'select the links and copy them' })
                 }}
