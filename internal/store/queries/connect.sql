@@ -87,10 +87,12 @@ SELECT * FROM messages WHERE workspace_id = @workspace_id AND id = @id;
 SELECT * FROM delivery_events WHERE message_id = @message_id ORDER BY occurred_at, received_at;
 
 -- name: ConnectFirstWebhook :one
--- The first webhook payload a provider sent since a time (the test send's
--- "event came back" step), with its body to name the event.
+-- The first webhook payload about a message (its provider message id is in
+-- the body) a provider sent in a window after the send: the test send's
+-- "event came back" step, with the body to name the event.
 SELECT received_at, body FROM provider_raw_events
-WHERE provider_id = @provider_id AND source = 'webhook' AND received_at >= @since
+WHERE provider_id = @provider_id AND source = 'webhook' AND received_at >= @since AND received_at < @until
+  AND position(convert_to(@provider_message_id::text, 'UTF8') IN body) > 0
 ORDER BY received_at
 LIMIT 1;
 

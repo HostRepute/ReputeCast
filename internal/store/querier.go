@@ -142,8 +142,9 @@ type Querier interface {
 	ConfirmInstanceBasics(ctx context.Context) error
 	ConnectActiveContacts(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	ConnectCreateList(ctx context.Context, arg ConnectCreateListParams) error
-	// The first webhook payload a provider sent since a time (the test send's
-	// "event came back" step), with its body to name the event.
+	// The first webhook payload about a message (its provider message id is in
+	// the body) a provider sent in a window after the send: the test send's
+	// "event came back" step, with the body to name the event.
 	ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebhookParams) (ConnectFirstWebhookRow, error)
 	ConnectInsertProvider(ctx context.Context, arg ConnectInsertProviderParams) (Provider, error)
 	ConnectListNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)

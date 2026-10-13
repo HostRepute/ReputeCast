@@ -3,6 +3,7 @@ package connect_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -354,8 +355,40 @@ func TestConnectAPIProvider(t *testing.T) {
 	if last.From.Address != "digest@news.acme.io" || last.To.Address != "linh@acme.io" || !strings.Contains(last.HTML, "This is a test from") || last.Stream != providers.StreamBroadcast {
 		t.Fatalf("sent: %+v", last)
 	}
-	// The delivery event arrives (here written as the normalizer would).
+	// A webhook about another message isn't the test's event; one naming
+	// the test's provider message id is, and the timeline keeps it.
 	mid := uuid.MustParse(test.MessageID)
+	var pid uuid.UUID
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT provider_id FROM messages WHERE id = $1`, mid).Scan(&pid); err != nil {
+		t.Fatal(err)
+	}
+	raw := func(body string, after time.Duration) {
+		t.Helper()
+		if _, err := env.App.Pool.Exec(context.Background(), `INSERT INTO provider_raw_events (id, workspace_id, provider_id, received_at, content_type, body, signature_ok, source, events)
+			SELECT $1, workspace_id, provider_id, sent_at + $3::interval, 'application/json', $2, true, 'webhook', 1 FROM messages WHERE id = $4`,
+			uuid.Must(uuid.NewV7()), []byte(body), fmt.Sprintf("%d milliseconds", after.Milliseconds()), mid); err != nil {
+			t.Fatal(err)
+		}
+	}
+	raw(`{"event":"Bounce","message_id":"fake-someone-else"}`, 200*time.Millisecond)
+	c.Do("GET", base+"/test", nil).MustStatus(t, 200).JSON(t, &test)
+	if test.Timeline[2].Status != "waiting" {
+		t.Fatalf("another message's webhook counted: %+v", test.Timeline[2])
+	}
+	raw(`{"event":"Processed","message_id":"fake-`+test.MessageID+`"}`, 900*time.Millisecond)
+	c.Do("GET", base+"/test", nil).MustStatus(t, 200).JSON(t, &test)
+	if test.Timeline[2].Status != "done" || !strings.Contains(test.Timeline[2].Detail, `"Processed" event via webhook · 900 ms after accept`) {
+		t.Fatalf("the test's webhook: %+v", test.Timeline[2])
+	}
+	if _, err := env.App.Pool.Exec(context.Background(), `DELETE FROM provider_raw_events WHERE provider_id = $1`, pid); err != nil {
+		t.Fatal(err)
+	}
+	c.Do("GET", base+"/test", nil).MustStatus(t, 200).JSON(t, &test)
+	if !strings.Contains(test.Timeline[2].Detail, `"Processed" event via webhook`) {
+		t.Fatalf("the kept event is gone with the raw payload: %+v", test.Timeline[2])
+	}
+
+	// The delivery event arrives (here written as the normalizer would).
 	if _, err := env.App.Pool.Exec(context.Background(), `INSERT INTO delivery_events (id, workspace_id, message_id, provider_id, type, occurred_at, original_type, original_code, diagnostic)
 		SELECT $1, workspace_id, id, provider_id, 'delivered', now(), 'delivered', '250', '2.0.0 OK' FROM messages WHERE id = $2`, uuid.Must(uuid.NewV7()), mid); err != nil {
 		t.Fatal(err)
@@ -686,7 +719,8 @@ func TestDemoSetupAndSettings(t *testing.T) {
 		Auth     *struct{ Receiver, Header, DKIM, SPF, DMARC string }
 	}
 	c.Do("GET", ws+"/connect/setups/"+setupID+"/test", nil).MustStatus(t, 200).JSON(t, &test)
-	if len(test.Timeline) != 5 || test.Timeline[2].Title != "Sent to Gmail" || test.Timeline[2].Status != "done" || test.Timeline[3].Status != "done" || test.Timeline[4].Status != "waiting" {
+	if len(test.Timeline) != 5 || test.Timeline[2].Title != "Sent to Gmail" || test.Timeline[2].Status != "done" || test.Timeline[3].Status != "done" || test.Timeline[4].Status != "waiting" ||
+		!strings.HasSuffix(test.Timeline[2].Detail, `SES "Send" event via SNS · 636 ms after accept`) {
 		t.Fatalf("demo timeline: %+v", test.Timeline)
 	}
 	if test.Auth == nil || test.Auth.Receiver != "Gmail" || test.Auth.DKIM != "pass" || test.Auth.SPF != "pass" || test.Auth.DMARC != "pass" ||

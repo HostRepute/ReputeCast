@@ -170,6 +170,17 @@ type TestStep struct {
 	SizeBytes int `json:"size_bytes,omitempty"`
 	// Seeds are the seed-list addresses of the last seed test.
 	Seeds []string `json:"seeds,omitempty"`
+	// FirstEvent is the provider's first webhook about the message, kept
+	// once seen: raw webhook payloads are swept after 90 days.
+	FirstEvent *TestEvent `json:"first_event,omitempty"`
+}
+
+// TestEvent is a provider event the test timeline shows.
+type TestEvent struct {
+	At time.Time `json:"at"`
+	// Name is the provider's event name ("Send"), Via how it came ("SNS").
+	Name string `json:"name,omitempty"`
+	Via  string `json:"via"`
 }
 
 // StreamChoice is one stream of step 5.

@@ -47,14 +47,17 @@ func (q *Queries) ConnectCreateList(ctx context.Context, arg ConnectCreateListPa
 
 const connectFirstWebhook = `-- name: ConnectFirstWebhook :one
 SELECT received_at, body FROM provider_raw_events
-WHERE provider_id = $1 AND source = 'webhook' AND received_at >= $2
+WHERE provider_id = $1 AND source = 'webhook' AND received_at >= $2 AND received_at < $3
+  AND position(convert_to($4::text, 'UTF8') IN body) > 0
 ORDER BY received_at
 LIMIT 1
 `
 
 type ConnectFirstWebhookParams struct {
-	ProviderID uuid.UUID `json:"providerId"`
-	Since      time.Time `json:"since"`
+	ProviderID        uuid.UUID `json:"providerId"`
+	Since             time.Time `json:"since"`
+	Until             time.Time `json:"until"`
+	ProviderMessageID string    `json:"providerMessageId"`
 }
 
 type ConnectFirstWebhookRow struct {
@@ -62,10 +65,16 @@ type ConnectFirstWebhookRow struct {
 	Body       []byte    `json:"body"`
 }
 
-// The first webhook payload a provider sent since a time (the test send's
-// "event came back" step), with its body to name the event.
+// The first webhook payload about a message (its provider message id is in
+// the body) a provider sent in a window after the send: the test send's
+// "event came back" step, with the body to name the event.
 func (q *Queries) ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebhookParams) (ConnectFirstWebhookRow, error) {
-	row := q.db.QueryRow(ctx, connectFirstWebhook, arg.ProviderID, arg.Since)
+	row := q.db.QueryRow(ctx, connectFirstWebhook,
+		arg.ProviderID,
+		arg.Since,
+		arg.Until,
+		arg.ProviderMessageID,
+	)
 	var i ConnectFirstWebhookRow
 	err := row.Scan(&i.ReceivedAt, &i.Body)
 	return i, err

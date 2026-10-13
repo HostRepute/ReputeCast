@@ -11,8 +11,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/domains"
 	"github.com/hostrepute/reputecast/internal/linktoken"
@@ -352,18 +354,20 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 	mailpit := delivered != nil && strings.HasPrefix(delivered.OriginalType, "Delivered to Mailpit")
 	inferred := d.Capabilities.Webhooks == "" || d.Capabilities.Webhooks == "Bounce mailbox" || mailpit
 	if m.SentAt != nil {
-		if hook, err := s.Q.ConnectFirstWebhook(ctx, store.ConnectFirstWebhookParams{ProviderID: p.ID, Since: *m.SentAt}); err == nil && !inferred {
-			via := "webhook"
-			if d.Capabilities.Webhooks == "SNS" {
-				via = "SNS"
+		first := t.FirstEvent
+		if first == nil && !inferred {
+			if first = s.firstWebhook(ctx, p, m, d); first != nil {
+				_ = s.setFirstEvent(ctx, st.ID, *first)
 			}
-			first := hook.ReceivedAt
+		}
+		if first != nil && !inferred {
+			at := first.At
 			event := c.Short + " event"
-			if name := webhookEventName(hook.Body); name != "" {
-				event = c.Short + " \"" + name + "\" event"
+			if first.Name != "" {
+				event = c.Short + " \"" + first.Name + "\" event"
 			}
-			sent.Status, sent.At = "done", &first
-			sent.Detail = clockMs(first) + " · " + event + " via " + via + " · " + fmt.Sprint(first.Sub(*m.SentAt).Milliseconds()) + " ms after accept"
+			sent.Status, sent.At = "done", &at
+			sent.Detail = clockMs(at) + " · " + event + " via " + first.Via + " · " + fmt.Sprint(at.Sub(*m.SentAt).Milliseconds()) + " ms after accept"
 		} else if delivered != nil {
 			at := delivered.OccurredAt
 			sent.Status, sent.At = "done", &at
@@ -477,18 +481,62 @@ func roundTrip(d time.Duration, desc providers.Descriptor, mailpit bool) string 
 	return "Round trip " + secs + " from queue to delivery event. Webhooks work."
 }
 
-func (s *Service) setRoundTrip(ctx context.Context, setupID uuid.UUID, ms int64) error {
-	st, err := s.Q.SetupGetAny(ctx, setupID)
-	if err != nil {
-		return err
-	}
-	state := decodeState(st.State)
-	if state.Test == nil {
+// firstWebhook finds the provider's first webhook about the test message:
+// its provider message id is in the payload, and it came while the
+// timeline listens (30 minutes after the send).
+func (s *Service) firstWebhook(ctx context.Context, p store.Provider, m store.Message, d providers.Descriptor) *TestEvent {
+	if m.SentAt == nil || m.ProviderMessageID == nil {
 		return nil
 	}
-	state.Test.RoundTripMs = ms
-	_, err = s.save(ctx, s.Q, st, state)
-	return err
+	pmid := strings.Trim(strings.TrimSpace(*m.ProviderMessageID), "<>")
+	if pmid == "" {
+		return nil
+	}
+	hook, err := s.Q.ConnectFirstWebhook(ctx, store.ConnectFirstWebhookParams{ProviderID: p.ID, Since: *m.SentAt, Until: m.SentAt.Add(30 * time.Minute), ProviderMessageID: pmid})
+	if err != nil {
+		return nil
+	}
+	via := "webhook"
+	if d.Capabilities.Webhooks == "SNS" {
+		via = "SNS"
+	}
+	return &TestEvent{At: hook.ReceivedAt, Name: webhookEventName(hook.Body), Via: via}
+}
+
+// setFirstEvent keeps the first provider event of the setup's test.
+func (s *Service) setFirstEvent(ctx context.Context, setupID uuid.UUID, ev TestEvent) error {
+	return s.updateTest(ctx, setupID, func(t *TestStep) bool {
+		if t.FirstEvent != nil {
+			return false
+		}
+		t.FirstEvent = &ev
+		return true
+	})
+}
+
+func (s *Service) setRoundTrip(ctx context.Context, setupID uuid.UUID, ms int64) error {
+	return s.updateTest(ctx, setupID, func(t *TestStep) bool {
+		t.RoundTripMs = ms
+		return true
+	})
+}
+
+// updateTest changes what the setup remembers about its test message,
+// under the row lock (the status poll writes while people move on).
+func (s *Service) updateTest(ctx context.Context, setupID uuid.UUID, fn func(t *TestStep) bool) error {
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		st, err := q.SetupLock(ctx, setupID)
+		if err != nil {
+			return err
+		}
+		state := decodeState(st.State)
+		if state.Test == nil || !fn(state.Test) {
+			return nil
+		}
+		_, err = s.save(ctx, q, st, state)
+		return err
+	})
 }
 
 // authResult predicts the receiver's Authentication-Results from the

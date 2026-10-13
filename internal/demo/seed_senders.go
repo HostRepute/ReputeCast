@@ -347,7 +347,9 @@ func seedSendersSetup(ctx context.Context, s *Seeder) error {
 	}
 	hello := s.Senders["hello@news.acme.io"]
 	state.Test = &connect.TestStep{MessageID: msgID.String(), SenderID: hello.String(), From: "hello@news.acme.io", To: "linh@acme.io", Subject: "ReputeCast test from Amazon SES",
-		QueuedAt: queued, RoundTripMs: delivered.Sub(queued).Milliseconds(), SizeBytes: 4 << 10}
+		QueuedAt: queued, RoundTripMs: delivered.Sub(queued).Milliseconds(), SizeBytes: 4 << 10,
+		// The SNS "Send" event, as the timeline kept it (raw payloads are swept after 90 days).
+		FirstEvent: &connect.TestEvent{At: event, Name: "Send", Via: "SNS"}}
 	streamsAt := at(9, 21, 30, 0)
 	state.Streams = &connect.StreamsStep{Saved: true, At: &streamsAt, Streams: map[string]connect.StreamChoice{
 		"broadcast": {Enabled: true, Role: "primary", Weight: 100}, "automation": {Enabled: true, Role: "primary"}, "system": {Enabled: true, Role: "primary"}}}
