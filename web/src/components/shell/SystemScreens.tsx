@@ -220,6 +220,13 @@ export function ServerErrorState({
   )
 }
 
+/** "just now", "5 min ago", "yesterday", "on Oct 3" */
+function askedWhen(at: string): string {
+  const w = ago(at)
+  if (w === 'now') return 'just now'
+  return w.endsWith(' ago') || w === 'yesterday' ? w : `on ${w}`
+}
+
 function names(list: string[]): string {
   if (list.length <= 1) return list[0] ?? ''
   return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`
@@ -337,7 +344,7 @@ export function ForbiddenState({
         }
         footnote={
           s?.requestedAt
-            ? `You asked ${ago(s.requestedAt)}; ${names(s.managers)} will see it. Ask them directly if it's urgent.`
+            ? `You asked ${askedWhen(s.requestedAt)}; ${names(s.managers)} will see it. Ask them directly if it's urgent.`
             : 'Requests go to the owners with a note; they usually answer within the day.'
         }
       >
