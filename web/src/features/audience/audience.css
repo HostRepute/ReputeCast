@@ -240,4 +240,21 @@
   .segrow.first {
     border-top: 0;
   }
+
+  /* List health: the weekly tier columns (stacked bottom-up) and the
+     per-list table, whose first cell is 160px as on the board. */
+  .wk {
+    flex: 1;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 2px;
+    min-width: 0;
+  }
+  .wk i {
+    display: block;
+    border-radius: 2px;
+  }
+  .tbl.compact.htbl td:first-child {
+    min-width: 160px;
+  }
 }

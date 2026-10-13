@@ -3,12 +3,14 @@ package audience
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -27,11 +29,13 @@ type HealthTierCard struct {
 
 // HealthTrendWeek is one column of the tier trend: shares of the list (0–1).
 type HealthTrendWeek struct {
-	Day     time.Time `json:"day"`
-	Active  float64   `json:"active"`
-	Cooling float64   `json:"cooling"`
-	AtRisk  float64   `json:"atRisk"`
-	Sunset  float64   `json:"sunset"`
+	// Day is the workspace-local calendar day of the snapshot (today for the
+	// newest column).
+	Day     string  `json:"day" format:"date"`
+	Active  float64 `json:"active"`
+	Cooling float64 `json:"cooling"`
+	AtRisk  float64 `json:"atRisk"`
+	Sunset  float64 `json:"sunset"`
 }
 
 // ListHealthRow is one row of "Health per list": a list or a followed view.
@@ -76,6 +80,8 @@ type ListHealth struct {
 	Trend      []HealthTrendWeek `json:"trend"`
 	PolicyWeek int               `json:"policyWeek" doc:"Index of the trend column when the policy started, -1 if none"`
 	Policy     SunsetPolicy      `json:"policy"`
+	// ReengageFlowID is the automation the policy names, when it exists.
+	ReengageFlowID *uuid.UUID `json:"reengageFlowId,omitempty"`
 	// WinBackRate is the share of re-engaged contacts who came back, percent.
 	WinBackRate *float64           `json:"winBackRate,omitempty"`
 	ThisWeek    SunsetThisWeek     `json:"thisWeek"`
@@ -105,7 +111,11 @@ func (s *Service) Health(ctx context.Context, ws *store.Workspace) (ListHealth, 
 		return out, err
 	}
 	current := []int64{c.Active, c.Cooling, c.AtRisk, c.Sunset}
-	monthAgo := snapshotAt(history, now.AddDate(0, 0, -30))
+	// Snapshots are keyed by the workspace-local calendar day.
+	loc := workspaceLocation(ws)
+	l := now.In(loc)
+	today := time.Date(l.Year(), l.Month(), l.Day(), 0, 0, 0, 0, time.UTC)
+	monthAgo := snapshotAt(history, today.AddDate(0, 0, -30))
 	tiers := []string{"active", "cooling", "at_risk", "sunset"}
 	for i, t := range tiers {
 		card := HealthTierCard{Tier: t, Count: current[i], Pct: share(current[i], c.Contacts)}
@@ -118,34 +128,40 @@ func (s *Service) Health(ctx context.Context, ws *store.Workspace) (ListHealth, 
 		out.Tiers = append(out.Tiers, card)
 	}
 	// Twelve weekly columns, oldest first; the newest is today.
-	loc := workspaceLocation(ws)
 	for w := 11; w >= 0; w-- {
-		day := now.AddDate(0, 0, -7*w)
 		var tw HealthTrendWeek
 		if w == 0 {
-			tw = HealthTrendWeek{Day: day}
+			tw = HealthTrendWeek{Day: today.Format(time.DateOnly)}
 			if c.Contacts > 0 {
 				tw.Active, tw.Cooling, tw.AtRisk, tw.Sunset = frac(c.Active, c.Contacts), frac(c.Cooling, c.Contacts), frac(c.AtRisk, c.Contacts), frac(c.Sunset, c.Contacts)
 			}
 		} else {
-			snap := snapshotAt(history, day)
+			snap := snapshotAt(history, today.AddDate(0, 0, -7*w))
 			if snap == nil || snap.Contacts == 0 {
 				continue
 			}
-			tw = HealthTrendWeek{Day: snap.Day, Active: frac(snap.Active, snap.Contacts), Cooling: frac(snap.Cooling, snap.Contacts),
+			tw = HealthTrendWeek{Day: snap.Day.Format(time.DateOnly), Active: frac(snap.Active, snap.Contacts), Cooling: frac(snap.Cooling, snap.Contacts),
 				AtRisk: frac(snap.AtRisk, snap.Contacts), Sunset: frac(snap.Sunset, snap.Contacts)}
 		}
 		out.Trend = append(out.Trend, tw)
 	}
+	// The policy column is the first snapshot taken after the day it was
+	// switched on (the nightly run on that day predates it).
 	if p.Enabled && p.EnabledAt != "" {
-		enabled := dateOrZero(p.EnabledAt)
 		for i, tw := range out.Trend {
-			d := tw.Day.In(loc)
-			day := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.UTC)
-			if !day.Before(enabled) {
+			if tw.Day > p.EnabledAt {
 				out.PolicyWeek = i
 				break
 			}
+		}
+	}
+	if p.ReengageAutomation != "" {
+		id, err := s.Q.AudienceAutomationByName(ctx, store.AudienceAutomationByNameParams{WorkspaceID: ws.ID, Name: p.ReengageAutomation})
+		switch {
+		case err == nil:
+			out.ReengageFlowID = &id
+		case !errors.Is(err, pgx.ErrNoRows):
+			return out, err
 		}
 	}
 	if out.ThisWeek, err = s.thisWeek(ctx, ws, p); err != nil {
@@ -172,10 +188,10 @@ func frac(n, total int64) float64 {
 	return float64(n) / float64(total)
 }
 
-// snapshotAt returns the latest snapshot on or before t.
-func snapshotAt(rows []store.WorkspaceTierHistoryRow, t time.Time) *store.WorkspaceTierHistoryRow {
+// snapshotAt returns the latest snapshot on or before day (a calendar day
+// at UTC midnight, like the date column).
+func snapshotAt(rows []store.WorkspaceTierHistoryRow, day time.Time) *store.WorkspaceTierHistoryRow {
 	var best *store.WorkspaceTierHistoryRow
-	day := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 	for i := range rows {
 		if !rows[i].Day.After(day) {
 			best = &rows[i]

@@ -199,9 +199,3 @@ func TierFor(p SunsetPolicy, lastHumanOpen, lastOpen, lastClick *time.Time, crea
 	}
 	return "sunset"
 }
-
-// dateOrZero parses a policy date.
-func dateOrZero(s string) time.Time {
-	t, _ := time.Parse("2006-01-02", s)
-	return t
-}

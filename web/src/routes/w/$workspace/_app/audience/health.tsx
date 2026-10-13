@@ -1,11 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { HealthPage } from '@/features/audience/HealthPage'
 
 export const Route = createFileRoute('/w/$workspace/_app/audience/health')({
-  component: () => (
-    <Page title="Audience">
-      <NotBuilt screen="Audience" />
-    </Page>
-  ),
+  component: HealthPage,
 })

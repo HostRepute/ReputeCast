@@ -3942,7 +3942,7 @@
             "type": "number"
           },
           "day": {
-            "format": "date-time",
+            "format": "date",
             "type": "string"
           },
           "sunset": {
@@ -6086,6 +6086,9 @@
             "description": "Index of the trend column when the policy started, -1 if none",
             "format": "int64",
             "type": "integer"
+          },
+          "reengageFlowId": {
+            "type": "string"
           },
           "rows": {
             "items": {

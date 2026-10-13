@@ -14,6 +14,26 @@ import (
 	"github.com/google/uuid"
 )
 
+const audienceAutomationByName = `-- name: AudienceAutomationByName :one
+SELECT id FROM automations
+WHERE workspace_id = $1 AND name = $2 AND deleted_at IS NULL
+ORDER BY created_at
+LIMIT 1
+`
+
+type AudienceAutomationByNameParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Name        string    `json:"name"`
+}
+
+// The automation the sunset policy names (List health links to its flow).
+func (q *Queries) AudienceAutomationByName(ctx context.Context, arg AudienceAutomationByNameParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, audienceAutomationByName, arg.WorkspaceID, arg.Name)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const audienceCounts = `-- name: AudienceCounts :one
 
 SELECT count(*)::bigint AS contacts,

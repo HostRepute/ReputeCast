@@ -21,6 +21,8 @@ type Querier interface {
 	// The draft or running import the wizard resumes.
 	ActiveImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
 	AddSegmentMembers(ctx context.Context, arg AddSegmentMembersParams) error
+	// The automation the sunset policy names (List health links to its flow).
+	AudienceAutomationByName(ctx context.Context, arg AudienceAutomationByNameParams) (uuid.UUID, error)
 	// Audience: lists, custom fields, contacts, consent, saved views,
 	// suppressions and the daily rollups behind List health.
 	AudienceCounts(ctx context.Context, workspaceID uuid.UUID) (AudienceCountsRow, error)

@@ -3487,7 +3487,7 @@ export interface components {
             atRisk: number;
             /** Format: double */
             cooling: number;
-            /** Format: date-time */
+            /** Format: date */
             day: string;
             /** Format: double */
             sunset: number;
@@ -4115,6 +4115,7 @@ export interface components {
              * @description Index of the trend column when the policy started, -1 if none
              */
             policyWeek: number;
+            reengageFlowId?: string;
             rows: components["schemas"]["ListHealthRow"][];
             thisWeek: components["schemas"]["SunsetThisWeek"];
             tiers: components["schemas"]["HealthTierCard"][];

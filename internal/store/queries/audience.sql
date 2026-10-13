@@ -225,6 +225,13 @@ ORDER BY connected_at, name;
 -- name: GetAudienceState :one
 SELECT * FROM audience_state WHERE workspace_id = @workspace_id;
 
+-- name: AudienceAutomationByName :one
+-- The automation the sunset policy names (List health links to its flow).
+SELECT id FROM automations
+WHERE workspace_id = @workspace_id AND name = @name AND deleted_at IS NULL
+ORDER BY created_at
+LIMIT 1;
+
 -- name: UpsertAudienceState :exec
 INSERT INTO audience_state (workspace_id, tiers_computed_at, reengaged, won_back, updated_at)
 VALUES (@workspace_id, @tiers_computed_at, @reengaged, @won_back, now())
