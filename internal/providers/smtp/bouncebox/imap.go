@@ -47,7 +47,7 @@ func openIMAP(ctx context.Context, cfg Config) (Box, error) {
 	}()
 	b := &imapBox{c: c, cfg: cfg, cancel: cancel}
 	if err := c.Login(cfg.Username, cfg.Password).Wait(); err != nil {
-		b.Close()
+		_ = b.Close()
 		var ie *imap.Error
 		if errors.As(err, &ie) && (ie.Type == imap.StatusResponseTypeNo || ie.Code == imap.ResponseCodeAuthenticationFailed) {
 			return nil, ErrAuth
@@ -59,7 +59,7 @@ func openIMAP(ctx context.Context, cfg Config) (Box, error) {
 		folder = "INBOX"
 	}
 	if _, err := c.Select(folder, nil).Wait(); err != nil {
-		b.Close()
+		_ = b.Close()
 		return nil, err
 	}
 	return b, nil

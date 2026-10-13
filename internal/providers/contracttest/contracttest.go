@@ -286,7 +286,7 @@ func Run(t *testing.T, s Suite) {
 
 			// The normalization job parses stored payloads again without the
 			// original transport: a verified context must be enough.
-			req2, _ := http.NewRequest(http.MethodPost, "http://ingest.test/", bytes.NewReader(body))
+			req2, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "http://ingest.test/", bytes.NewReader(body))
 			req2.Header = req.Header.Clone()
 			again, err := p.ParseWebhook(providers.WithSignatureVerified(context.Background()), req2, body)
 			if err != nil {

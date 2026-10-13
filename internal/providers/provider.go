@@ -186,6 +186,9 @@ type Quota struct {
 	MaxRate float64 // per second, 0 = unknown
 	Sandbox bool
 	Account string // human status: "Production · no enforcement"
+	// VDM is true when Amazon SES's Virtual Deliverability Manager is on for
+	// the account; other providers leave it false.
+	VDM bool
 }
 
 // QuotaReporter is implemented by providers that expose quota and rate.

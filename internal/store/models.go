@@ -114,48 +114,122 @@ type AuthChallenge struct {
 }
 
 type Automation struct {
+	ID            uuid.UUID       `json:"id"`
+	WorkspaceID   uuid.UUID       `json:"workspaceId"`
+	Name          string          `json:"name"`
+	Description   string          `json:"description"`
+	Status        string          `json:"status"`
+	TemplateKey   string          `json:"templateKey"`
+	LiveVersion   *int32          `json:"liveVersion"`
+	DraftVersion  int32           `json:"draftVersion"`
+	Trigger       json.RawMessage `json:"trigger"`
+	CreatedBy     *uuid.UUID      `json:"createdBy"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	UpdatedAt     time.Time       `json:"updatedAt"`
+	DeletedAt     *time.Time      `json:"deletedAt"`
+	PausedAt      *time.Time      `json:"pausedAt"`
+	PausedBy      *uuid.UUID      `json:"pausedBy"`
+	PauseReason   string          `json:"pauseReason"`
+	DraftRevision int64           `json:"draftRevision"`
+	UpdatedBy     *uuid.UUID      `json:"updatedBy"`
+}
+
+type AutomationAlert struct {
 	ID           uuid.UUID       `json:"id"`
-	WorkspaceID  uuid.UUID       `json:"workspaceId"`
-	Name         string          `json:"name"`
-	Description  string          `json:"description"`
-	Status       string          `json:"status"`
-	TemplateKey  string          `json:"templateKey"`
-	LiveVersion  *int32          `json:"liveVersion"`
-	DraftVersion int32           `json:"draftVersion"`
-	Trigger      json.RawMessage `json:"trigger"`
-	CreatedBy    *uuid.UUID      `json:"createdBy"`
-	CreatedAt    time.Time       `json:"createdAt"`
-	UpdatedAt    time.Time       `json:"updatedAt"`
-	DeletedAt    *time.Time      `json:"deletedAt"`
+	AutomationID uuid.UUID       `json:"automationId"`
+	Kind         string          `json:"kind"`
+	NodeID       string          `json:"nodeId"`
+	Detail       json.RawMessage `json:"detail"`
+	Failures     int64           `json:"failures"`
+	FirstAt      time.Time       `json:"firstAt"`
+	LastAt       time.Time       `json:"lastAt"`
+	ResolvedAt   *time.Time      `json:"resolvedAt"`
+}
+
+type AutomationEmail struct {
+	ID            uuid.UUID  `json:"id"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	AutomationID  *uuid.UUID `json:"automationId"`
+	Name          string     `json:"name"`
+	LatestVersion int32      `json:"latestVersion"`
+	CreatedBy     *uuid.UUID `json:"createdBy"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
+	DeletedAt     *time.Time `json:"deletedAt"`
+}
+
+type AutomationEmailVersion struct {
+	EmailID   uuid.UUID  `json:"emailId"`
+	Version   int32      `json:"version"`
+	Subject   string     `json:"subject"`
+	Preheader string     `json:"preheader"`
+	Mjml      string     `json:"mjml"`
+	Html      string     `json:"html"`
+	PlainText string     `json:"plainText"`
+	CreatedBy *uuid.UUID `json:"createdBy"`
+	CreatedAt time.Time  `json:"createdAt"`
+}
+
+type AutomationEvent struct {
+	ID          int64           `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Kind        string          `json:"kind"`
+	ContactID   uuid.UUID       `json:"contactId"`
+	Ref         string          `json:"ref"`
+	Payload     json.RawMessage `json:"payload"`
+	OccurredAt  time.Time       `json:"occurredAt"`
+	ProcessedAt *time.Time      `json:"processedAt"`
+	Enrolled    int32           `json:"enrolled"`
 }
 
 type AutomationRun struct {
-	ID           uuid.UUID       `json:"id"`
-	AutomationID uuid.UUID       `json:"automationId"`
-	Version      int32           `json:"version"`
-	ContactID    uuid.UUID       `json:"contactId"`
-	NodeID       string          `json:"nodeId"`
-	Status       string          `json:"status"`
-	State        json.RawMessage `json:"state"`
-	EnteredAt    time.Time       `json:"enteredAt"`
-	NextAt       *time.Time      `json:"nextAt"`
-	FinishedAt   *time.Time      `json:"finishedAt"`
+	ID            uuid.UUID       `json:"id"`
+	AutomationID  uuid.UUID       `json:"automationId"`
+	Version       int32           `json:"version"`
+	ContactID     uuid.UUID       `json:"contactId"`
+	NodeID        string          `json:"nodeId"`
+	Status        string          `json:"status"`
+	State         json.RawMessage `json:"state"`
+	EnteredAt     time.Time       `json:"enteredAt"`
+	NextAt        *time.Time      `json:"nextAt"`
+	FinishedAt    *time.Time      `json:"finishedAt"`
+	NodeEnteredAt time.Time       `json:"nodeEnteredAt"`
+	ExitReason    string          `json:"exitReason"`
+}
+
+type AutomationStepSecret struct {
+	AutomationID uuid.UUID  `json:"automationId"`
+	NodeID       string     `json:"nodeId"`
+	SecretEnc    []byte     `json:"secretEnc"`
+	UpdatedBy    *uuid.UUID `json:"updatedBy"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
 }
 
 type AutomationStepStat struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	Version      int32     `json:"version"`
-	NodeID       string    `json:"nodeId"`
-	Entered      int64     `json:"entered"`
-	Waiting      int64     `json:"waiting"`
-	Completed    int64     `json:"completed"`
-	Sent         int64     `json:"sent"`
-	Delivered    int64     `json:"delivered"`
-	Opened       int64     `json:"opened"`
-	Clicked      int64     `json:"clicked"`
-	BranchYes    int64     `json:"branchYes"`
-	BranchNo     int64     `json:"branchNo"`
-	GoalReached  int64     `json:"goalReached"`
+	AutomationID uuid.UUID       `json:"automationId"`
+	Version      int32           `json:"version"`
+	NodeID       string          `json:"nodeId"`
+	Entered      int64           `json:"entered"`
+	Waiting      int64           `json:"waiting"`
+	Completed    int64           `json:"completed"`
+	Sent         int64           `json:"sent"`
+	Delivered    int64           `json:"delivered"`
+	Opened       int64           `json:"opened"`
+	Clicked      int64           `json:"clicked"`
+	BranchYes    int64           `json:"branchYes"`
+	BranchNo     int64           `json:"branchNo"`
+	GoalReached  int64           `json:"goalReached"`
+	Day          time.Time       `json:"day"`
+	Exited       int64           `json:"exited"`
+	Dropped      int64           `json:"dropped"`
+	Skipped      int64           `json:"skipped"`
+	Failed       int64           `json:"failed"`
+	Bounced      int64           `json:"bounced"`
+	Complained   int64           `json:"complained"`
+	OpenedHuman  int64           `json:"openedHuman"`
+	Unsubscribed int64           `json:"unsubscribed"`
+	Paths        json.RawMessage `json:"paths"`
+	Providers    json.RawMessage `json:"providers"`
 }
 
 type AutomationVersion struct {
@@ -167,6 +241,22 @@ type AutomationVersion struct {
 	PublishedBy  *uuid.UUID      `json:"publishedBy"`
 	PublishedAt  *time.Time      `json:"publishedAt"`
 	RetiredAt    *time.Time      `json:"retiredAt"`
+	Summary      string          `json:"summary"`
+	Migration    string          `json:"migration"`
+}
+
+type AutomationWebhookCall struct {
+	ID           uuid.UUID  `json:"id"`
+	AutomationID uuid.UUID  `json:"automationId"`
+	Version      int32      `json:"version"`
+	NodeID       string     `json:"nodeId"`
+	RunID        *uuid.UUID `json:"runId"`
+	Url          string     `json:"url"`
+	StatusCode   int32      `json:"statusCode"`
+	Error        string     `json:"error"`
+	DurationMs   int32      `json:"durationMs"`
+	Attempt      int32      `json:"attempt"`
+	CalledAt     time.Time  `json:"calledAt"`
 }
 
 type BlocklistResult struct {

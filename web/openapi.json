@@ -1678,6 +1678,2005 @@
         ],
         "type": "object"
       },
+      "AutomationAlert": {
+        "additionalProperties": false,
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationAlertAction"
+            },
+            "type": "array"
+          },
+          "automation": {
+            "type": "string"
+          },
+          "automationId": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "failures": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "sending_held",
+              "step_failing"
+            ],
+            "type": "string"
+          },
+          "nodeId": {
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "automationId",
+          "automation",
+          "kind",
+          "title",
+          "detail",
+          "since",
+          "failures",
+          "actions"
+        ],
+        "type": "object"
+      },
+      "AutomationAlertAction": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "open_step",
+              "step_log",
+              "providers",
+              "routing"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "examples": [
+              "Open the step"
+            ],
+            "type": "string"
+          },
+          "nodeId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "AutomationCondition": {
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "field": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "humanOnly": {
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "opened",
+              "clicked",
+              "field",
+              "tag",
+              "list",
+              "event"
+            ],
+            "type": "string"
+          },
+          "listId": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "op": {
+            "description": "equals, not_equals, contains, is_set, is_not_set",
+            "maxLength": 16,
+            "type": "string"
+          },
+          "step": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "tag": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "urlContains": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "within": {
+            "$ref": "#/components/schemas/AutomationDuration"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "AutomationCreateBody": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "template": {
+            "description": "Starter template; omit for a blank canvas",
+            "enum": [
+              "welcome-series",
+              "re-engagement",
+              "onboarding"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AutomationCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "AutomationDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "changes": {
+            "description": "Unpublished changes, as counted by the version diff",
+            "format": "int64",
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "draftVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/AutomationGraph"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inFlow": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationGraphIssue"
+            },
+            "type": "array"
+          },
+          "liveNodeIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "liveVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pauseReason": {
+            "type": "string"
+          },
+          "pausedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "pausedBy": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "publishedBy": {
+            "type": "string"
+          },
+          "publishedNodeIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "route": {
+            "$ref": "#/components/schemas/AutomationRoute"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "live",
+              "paused"
+            ],
+            "type": "string"
+          },
+          "templateKey": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "status",
+          "draftVersion",
+          "revision",
+          "graph",
+          "liveNodeIds",
+          "publishedNodeIds",
+          "changes",
+          "issues",
+          "route",
+          "inFlow",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "AutomationDiff": {
+        "additionalProperties": false,
+        "properties": {
+          "changes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "from": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationDiffItem"
+            },
+            "type": "array"
+          },
+          "to": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "items",
+          "changes"
+        ],
+        "type": "object"
+      },
+      "AutomationDiffItem": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "added",
+              "changed",
+              "removed",
+              "unchanged"
+            ],
+            "type": "string"
+          },
+          "nodeIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "title",
+          "nodeIds"
+        ],
+        "type": "object"
+      },
+      "AutomationDraftBody": {
+        "additionalProperties": false,
+        "properties": {
+          "graph": {
+            "$ref": "#/components/schemas/AutomationGraph"
+          },
+          "revision": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "graph",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "AutomationDraftSaved": {
+        "additionalProperties": false,
+        "properties": {
+          "changes": {
+            "description": "Unpublished changes compared with the live version",
+            "format": "int64",
+            "type": "integer"
+          },
+          "draftVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationGraphIssue"
+            },
+            "type": "array"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "draftVersion",
+          "revision",
+          "changes",
+          "issues"
+        ],
+        "type": "object"
+      },
+      "AutomationDuration": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "format": "int64",
+            "maximum": 100000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "unit": {
+            "enum": [
+              "minutes",
+              "hours",
+              "days",
+              "weeks"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "unit"
+        ],
+        "type": "object"
+      },
+      "AutomationEdge": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AutomationEdgeData"
+          },
+          "id": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "source": {
+            "maxLength": 40,
+            "minLength": 1,
+            "type": "string"
+          },
+          "target": {
+            "maxLength": 40,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "target",
+          "data"
+        ],
+        "type": "object"
+      },
+      "AutomationEdgeData": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "maxLength": 16,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AutomationEmailContent": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "latestVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "version",
+          "latestVersion",
+          "subject",
+          "preheader",
+          "html",
+          "text"
+        ],
+        "type": "object"
+      },
+      "AutomationEmailCreateBody": {
+        "additionalProperties": false,
+        "properties": {
+          "automationId": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "AutomationEmailOption": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "latestVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "latestVersion",
+          "subject",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "AutomationEmailStep": {
+        "additionalProperties": false,
+        "properties": {
+          "emailId": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "emailVersion": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "route": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "sendWindow": {
+            "$ref": "#/components/schemas/AutomationSendWindow"
+          },
+          "skipListId": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "skipRecentHours": {
+            "format": "int64",
+            "maximum": 720,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "subject": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AutomationEmailUpdateBody": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "preheader",
+          "html"
+        ],
+        "type": "object"
+      },
+      "AutomationEventBody": {
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "maxLength": 320,
+            "type": "string"
+          },
+          "event": {
+            "examples": [
+              "workspace.created"
+            ],
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "properties": {
+            "additionalProperties": {},
+            "type": "object"
+          }
+        },
+        "required": [
+          "event"
+        ],
+        "type": "object"
+      },
+      "AutomationEventResult": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "flows": {
+            "description": "Live automations triggered by this event",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "accepted",
+          "contactId",
+          "flows"
+        ],
+        "type": "object"
+      },
+      "AutomationFieldOption": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "AutomationFormOption": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "type": "object"
+      },
+      "AutomationGoal": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "examples": [
+              "Clicked docs"
+            ],
+            "type": "string"
+          },
+          "percent": {
+            "description": "Contacts who reached the goal, % of those who entered in the window",
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "type": "object"
+      },
+      "AutomationGoalCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "examples": [
+              "welcome"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "count"
+        ],
+        "type": "object"
+      },
+      "AutomationGraph": {
+        "additionalProperties": false,
+        "properties": {
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationEdge"
+            },
+            "maxItems": 400,
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationNode"
+            },
+            "maxItems": 200,
+            "type": "array"
+          }
+        },
+        "required": [
+          "nodes",
+          "edges"
+        ],
+        "type": "object"
+      },
+      "AutomationGraphIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "edgeId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "nodeId": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "error",
+              "warning"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "type": "object"
+      },
+      "AutomationList": {
+        "additionalProperties": false,
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationAlert"
+            },
+            "type": "array"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/AutomationStatusCounts"
+          },
+          "days": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationListItem"
+            },
+            "type": "array"
+          },
+          "route": {
+            "$ref": "#/components/schemas/AutomationRoute"
+          }
+        },
+        "required": [
+          "items",
+          "counts",
+          "route",
+          "alerts",
+          "days"
+        ],
+        "type": "object"
+      },
+      "AutomationListAction": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "add_list",
+              "remove_list",
+              "add_tag",
+              "remove_tag",
+              "unsubscribe_all"
+            ],
+            "type": "string"
+          },
+          "listId": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "tag": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "AutomationListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "completed": {
+            "description": "% of entrants who finished the flow (goal or end)",
+            "format": "double",
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          },
+          "draftVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "entered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "goal": {
+            "$ref": "#/components/schemas/AutomationGoal"
+          },
+          "humanOpens": {
+            "description": "Human opens, % of delivered",
+            "format": "double",
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inFlow": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "liveVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pauseReason": {
+            "type": "string"
+          },
+          "pausedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "pausedBy": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "live",
+              "paused"
+            ],
+            "type": "string"
+          },
+          "steps": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "trigger": {
+            "type": "string"
+          },
+          "unpublishedChanges": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "status",
+          "draftVersion",
+          "trigger",
+          "steps",
+          "unpublishedChanges"
+        ],
+        "type": "object"
+      },
+      "AutomationMetaBody": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "description"
+        ],
+        "type": "object"
+      },
+      "AutomationNode": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AutomationNodeData"
+          },
+          "id": {
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "position": {
+            "$ref": "#/components/schemas/AutomationNodePosition"
+          },
+          "type": {
+            "enum": [
+              "trigger",
+              "delay",
+              "email",
+              "branch",
+              "filter",
+              "split",
+              "webhook",
+              "list",
+              "goal",
+              "exit"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "position",
+          "data"
+        ],
+        "type": "object"
+      },
+      "AutomationNodeData": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/AutomationListAction"
+          },
+          "condition": {
+            "$ref": "#/components/schemas/AutomationCondition",
+            "description": "Branch, filter and goal condition"
+          },
+          "delay": {
+            "$ref": "#/components/schemas/AutomationDuration"
+          },
+          "email": {
+            "$ref": "#/components/schemas/AutomationEmailStep"
+          },
+          "label": {
+            "maxLength": 80,
+            "type": "string"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/AutomationTrigger"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationSplitVariant"
+            },
+            "maxItems": 5,
+            "type": "array"
+          },
+          "webhook": {
+            "$ref": "#/components/schemas/AutomationWebhook"
+          }
+        },
+        "type": "object"
+      },
+      "AutomationNodePosition": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "format": "double",
+            "type": "number"
+          },
+          "y": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "type": "object"
+      },
+      "AutomationOptionItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "AutomationOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "emails": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationEmailOption"
+            },
+            "type": "array"
+          },
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationFieldOption"
+            },
+            "type": "array"
+          },
+          "forms": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationFormOption"
+            },
+            "type": "array"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationOptionItem"
+            },
+            "type": "array"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationRouteProvider"
+            },
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "lists",
+          "forms",
+          "fields",
+          "emails",
+          "providers",
+          "tags",
+          "events"
+        ],
+        "type": "object"
+      },
+      "AutomationPathCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "path": {
+            "examples": [
+              "yes"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "count"
+        ],
+        "type": "object"
+      },
+      "AutomationPauseBody": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AutomationProviderSends": {
+        "additionalProperties": false,
+        "properties": {
+          "fallback": {
+            "type": "boolean"
+          },
+          "lastDay": {
+            "examples": [
+              "2026-10-02"
+            ],
+            "format": "date",
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "short": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerId",
+          "provider",
+          "short",
+          "sent",
+          "fallback"
+        ],
+        "type": "object"
+      },
+      "AutomationPublishBody": {
+        "additionalProperties": false,
+        "properties": {
+          "migration": {
+            "description": "finish: contacts in the flow finish on the old version; move: they move to the new one at their current step",
+            "enum": [
+              "finish",
+              "move"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "description": "The draft version reviewed in the publish dialog",
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "migration"
+        ],
+        "type": "object"
+      },
+      "AutomationPublishCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "warn",
+              "bad"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "label"
+        ],
+        "type": "object"
+      },
+      "AutomationPublishPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "blocker": {
+            "type": "string"
+          },
+          "canPublish": {
+            "type": "boolean"
+          },
+          "changes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationPublishCheck"
+            },
+            "type": "array"
+          },
+          "finishEstimate": {
+            "examples": [
+              "about 9 days"
+            ],
+            "type": "string"
+          },
+          "fromVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inFlow": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationDiffItem"
+            },
+            "type": "array"
+          },
+          "livePublishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "livePublishedBy": {
+            "type": "string"
+          },
+          "moveImpact": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "toVersion": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "toVersion",
+          "items",
+          "changes",
+          "inFlow",
+          "finishEstimate",
+          "moveImpact",
+          "checks",
+          "canPublish"
+        ],
+        "type": "object"
+      },
+      "AutomationPublishResult": {
+        "additionalProperties": false,
+        "properties": {
+          "approvalId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "published",
+              "approval_required"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "version"
+        ],
+        "type": "object"
+      },
+      "AutomationRoute": {
+        "additionalProperties": false,
+        "properties": {
+          "fallback": {
+            "$ref": "#/components/schemas/AutomationRouteProvider"
+          },
+          "healthy": {
+            "description": "A provider on the route can send right now",
+            "type": "boolean"
+          },
+          "label": {
+            "examples": [
+              "SES, failover Postmark"
+            ],
+            "type": "string"
+          },
+          "primary": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationRouteProvider"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "label",
+          "healthy",
+          "primary"
+        ],
+        "type": "object"
+      },
+      "AutomationRouteProvider": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "downReason": {
+            "type": "string"
+          },
+          "downSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastErrorStatus": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "examples": [
+              "Amazon SES"
+            ],
+            "type": "string"
+          },
+          "short": {
+            "examples": [
+              "SES"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "description": "healthy, degraded, down, sandbox, warming_up or paused",
+            "type": "string"
+          },
+          "weight": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "short",
+          "adapter",
+          "status"
+        ],
+        "type": "object"
+      },
+      "AutomationSecretBody": {
+        "additionalProperties": false,
+        "properties": {
+          "secret": {
+            "maxLength": 256,
+            "type": "string"
+          }
+        },
+        "required": [
+          "secret"
+        ],
+        "type": "object"
+      },
+      "AutomationSendWindow": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "end": {
+            "maxLength": 5,
+            "type": "string"
+          },
+          "start": {
+            "description": "HH:MM, recipient-local",
+            "maxLength": 5,
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "start",
+          "end"
+        ],
+        "type": "object"
+      },
+      "AutomationSplitVariant": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "maxLength": 4,
+            "minLength": 1,
+            "type": "string"
+          },
+          "weight": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "weight"
+        ],
+        "type": "object"
+      },
+      "AutomationStarterTemplate": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "enum": [
+              "welcome-series",
+              "re-engagement",
+              "onboarding"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "outline": {
+            "type": "string"
+          },
+          "preview": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "steps": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "summary",
+          "outline",
+          "steps",
+          "preview"
+        ],
+        "type": "object"
+      },
+      "AutomationStats": {
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "entered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inFlow": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationStepStats"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "days",
+          "since",
+          "entered",
+          "inFlow",
+          "steps"
+        ],
+        "type": "object"
+      },
+      "AutomationStatusCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "all": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "drafts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "live": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "paused": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "all",
+          "live",
+          "paused",
+          "drafts"
+        ],
+        "type": "object"
+      },
+      "AutomationStepStats": {
+        "additionalProperties": false,
+        "properties": {
+          "bounced": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "clicked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "complained": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "completed": {
+            "description": "Moved on to the next step",
+            "format": "int64",
+            "type": "integer"
+          },
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "dropped": {
+            "description": "Left early: filtered out, unsubscribed or removed",
+            "format": "int64",
+            "type": "integer"
+          },
+          "entered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "exited": {
+            "description": "Finished the flow at this step",
+            "format": "int64",
+            "type": "integer"
+          },
+          "failed": {
+            "description": "Webhook calls that failed",
+            "format": "int64",
+            "type": "integer"
+          },
+          "goalReached": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inFlowNow": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nodeId": {
+            "type": "string"
+          },
+          "opened": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "openedHuman": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "paths": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationPathCount"
+            },
+            "type": "array"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationProviderSends"
+            },
+            "type": "array"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "skipped": {
+            "description": "Emails skipped by a rule",
+            "format": "int64",
+            "type": "integer"
+          },
+          "unsubscribed": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "nodeId",
+          "entered",
+          "inFlowNow",
+          "completed",
+          "exited",
+          "dropped",
+          "goalReached",
+          "skipped",
+          "failed",
+          "sent",
+          "delivered",
+          "bounced",
+          "complained",
+          "opened",
+          "openedHuman",
+          "clicked",
+          "unsubscribed",
+          "paths",
+          "providers"
+        ],
+        "type": "object"
+      },
+      "AutomationSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "clicks": {
+            "format": "double",
+            "type": "number"
+          },
+          "days": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "goals": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "goalsBy": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationGoalCount"
+            },
+            "type": "array"
+          },
+          "humanOpens": {
+            "format": "double",
+            "type": "number"
+          },
+          "inFlow": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "liveCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sentBy": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationProviderSends"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "days",
+          "inFlow",
+          "liveCount",
+          "sent",
+          "sentBy",
+          "goals",
+          "goalsBy"
+        ],
+        "type": "object"
+      },
+      "AutomationTemplates": {
+        "additionalProperties": false,
+        "properties": {
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationStarterTemplate"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "templates"
+        ],
+        "type": "object"
+      },
+      "AutomationTrigger": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "maxLength": 5,
+            "type": "string"
+          },
+          "confirmedOnly": {
+            "type": "boolean"
+          },
+          "event": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "field": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "formId": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "includeImports": {
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "joined_list",
+              "form_submitted",
+              "tag_added",
+              "api_event",
+              "date_field"
+            ],
+            "type": "string"
+          },
+          "listId": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "offsetDays": {
+            "format": "int64",
+            "maximum": 365,
+            "minimum": -365,
+            "type": "integer"
+          },
+          "reentry": {
+            "maxLength": 8,
+            "type": "string"
+          },
+          "tag": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "yearly": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "AutomationVersionGraph": {
+        "additionalProperties": false,
+        "properties": {
+          "graph": {
+            "$ref": "#/components/schemas/AutomationGraph"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "graph"
+        ],
+        "type": "object"
+      },
+      "AutomationVersionItem": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "inFlow": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "publishedBy": {
+            "type": "string"
+          },
+          "retiredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "description": "retiring: replaced, but contacts are still finishing on it",
+            "enum": [
+              "draft",
+              "live",
+              "retiring",
+              "retired"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "status",
+          "createdAt",
+          "createdBy",
+          "summary",
+          "inFlow"
+        ],
+        "type": "object"
+      },
+      "AutomationVersions": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationVersionItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "versions"
+        ],
+        "type": "object"
+      },
+      "AutomationWebhook": {
+        "additionalProperties": false,
+        "properties": {
+          "hasSecret": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "method": {
+            "maxLength": 6,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "type": "string"
+          },
+          "url": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AutomationWebhookCall": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "calledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "durationMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "statusCode": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "url",
+          "statusCode",
+          "durationMs",
+          "attempt",
+          "calledAt"
+        ],
+        "type": "object"
+      },
+      "AutomationWebhookCalls": {
+        "additionalProperties": false,
+        "properties": {
+          "calls": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationWebhookCall"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "calls"
+        ],
+        "type": "object"
+      },
       "CampaignList": {
         "additionalProperties": false,
         "properties": {
@@ -8188,12 +10187,20 @@
             "format": "int64",
             "type": "integer"
           },
+          "largest": {
+            "format": "int64",
+            "type": "integer"
+          },
           "per": {
             "enum": [
               "day",
               "week"
             ],
             "type": "string"
+          },
+          "smallest": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -14313,6 +16320,1877 @@
         "x-permission": "workspace:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/automation-emails": {
+      "post": {
+        "operationId": "create-automation-email",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationEmailCreateBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationEmailOption"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an email for a send step",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}": {
+      "get": {
+        "operationId": "get-automation-email",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Defaults to the latest version",
+            "explode": false,
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "description": "Defaults to the latest version",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationEmailContent"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get an email version (for previews)",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      },
+      "put": {
+        "operationId": "update-automation-email",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationEmailUpdateBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationEmailContent"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save new content as the email's next version",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations": {
+      "get": {
+        "operationId": "list-automations",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "default": "all",
+              "enum": [
+                "all",
+                "live",
+                "paused",
+                "drafts"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List automations with their 30-day performance",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      },
+      "post": {
+        "operationId": "create-automation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationCreateBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationCreated"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a draft automation from a starter template or a blank canvas",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/events": {
+      "post": {
+        "operationId": "send-automation-event",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationEventBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationEventResult"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send an API event for a contact (triggers, goals and branches listen to it)",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/options": {
+      "get": {
+        "operationId": "automation-options",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationOptions"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lists, forms, fields, emails, providers, tags and events steps can use",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/summary": {
+      "get": {
+        "operationId": "automations-summary",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "days",
+            "schema": {
+              "default": 7,
+              "format": "int64",
+              "maximum": 90,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationSummary"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Contacts in flows now and the last N days of automation email",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/templates": {
+      "get": {
+        "operationId": "list-automation-templates",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationTemplates"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List starter templates",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}": {
+      "delete": {
+        "operationId": "delete-automation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an automation; contacts in it leave (published flows need automations:publish)",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
+      },
+      "get": {
+        "operationId": "get-automation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get an automation with its draft graph",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      },
+      "patch": {
+        "operationId": "update-automation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationMetaBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename an automation or change its description",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}/diff": {
+      "get": {
+        "operationId": "automation-diff",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Defaults to the live version",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "Defaults to the live version",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Defaults to the draft",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "description": "Defaults to the draft",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationDiff"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Compare two versions (live → draft by default)",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}/draft": {
+      "delete": {
+        "operationId": "discard-automation-draft",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Discard unpublished changes",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
+      },
+      "put": {
+        "operationId": "save-automation-draft",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationDraftBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationDraftSaved"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the canvas as the draft",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}/duplicate": {
+      "post": {
+        "operationId": "duplicate-automation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationCreated"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Copy an automation's draft into a new draft",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}/pause": {
+      "post": {
+        "operationId": "pause-automation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationPauseBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pause a live automation",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}/publish": {
+      "post": {
+        "operationId": "publish-automation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationPublishBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationPublishResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish the draft as the live version (may need approval)",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}/publish-preview": {
+      "get": {
+        "operationId": "automation-publish-preview",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationPublishPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What publishing the draft would change, for whom, and the pre-publish checks",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}/resume": {
+      "post": {
+        "operationId": "resume-automation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resume a paused automation",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}/stats": {
+      "get": {
+        "operationId": "automation-stats",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "days",
+            "schema": {
+              "default": 30,
+              "format": "int64",
+              "maximum": 365,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationStats"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Live stats per step",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}/steps/{node}/calls": {
+      "get": {
+        "operationId": "list-automation-webhook-calls",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "node",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "format": "int64",
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationWebhookCalls"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delivery log of a webhook step",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}/steps/{node}/secret": {
+      "put": {
+        "operationId": "set-automation-step-secret",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "node",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationSecretBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set or clear a webhook step's signing secret (write-only)",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}/versions": {
+      "get": {
+        "operationId": "list-automation-versions",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationVersions"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Version history",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}/versions/{version}": {
+      "get": {
+        "operationId": "get-automation-version",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationVersionGraph"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get one version's graph",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/automations/{id}/versions/{version}/restore": {
+      "post": {
+        "operationId": "restore-automation-version",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Automation id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Automation id",
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationDraftSaved"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make an earlier version the draft",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
+      }
+    },
     "/api/v1/workspaces/{workspace}/campaigns": {
       "get": {
         "operationId": "list-campaigns",
@@ -17666,6 +21544,31 @@
       },
       "patch": {
         "operationId": "update-provider",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "providerId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -17916,6 +21819,31 @@
       "put": {
         "description": "The provider checks the new credentials before they are stored, encrypted. They are never returned.",
         "operationId": "replace-provider-credentials",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "providerId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -17969,6 +21897,29 @@
         "description": "Cancelling needs campaigns:pause; waiting for the provider and moving the held recipients resume the send and need campaigns:send.",
         "operationId": "decide-held-broadcast",
         "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "providerId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
           {
             "in": "path",
             "name": "campaignId",
@@ -18030,6 +21981,31 @@
     "/api/v1/workspaces/{workspace}/providers/{providerId}/tracking": {
       "post": {
         "operationId": "provider-tracking-action",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "providerId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -19230,6 +23206,31 @@
     "/api/v1/workspaces/{workspace}/warmup/{planId}": {
       "put": {
         "operationId": "update-warmup",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
