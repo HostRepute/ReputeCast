@@ -154,13 +154,14 @@ func (s *Service) SavePolicy(ctx context.Context, ws *store.Workspace, p SunsetP
 
 // engagementExpr is the date a contact last engaged under policy p: the
 // latest human open (or any open when machine opens count) or click, or
-// the day they joined when they never engaged.
+// the day they joined when they never engaged. Imported engagement history
+// counts, so a contact imported today who last opened in June is At risk.
 func engagementExpr(p SunsetPolicy) string {
 	open := "c.last_human_open_at"
 	if p.CountMachineOpens {
 		open = "c.last_open_at"
 	}
-	return "greatest(" + open + ", c.last_click_at, c.created_at)"
+	return "coalesce(greatest(" + open + ", c.last_click_at), c.created_at)"
 }
 
 // tierExpr assigns the tier from the days since engagement.
@@ -175,15 +176,18 @@ func tierExpr(p SunsetPolicy, now string) string {
 // TierFor assigns a tier in Go, the same way the nightly SQL does, for
 // contacts created between runs (imports).
 func TierFor(p SunsetPolicy, lastHumanOpen, lastOpen, lastClick *time.Time, created, now time.Time) string {
-	e := created
 	open := lastHumanOpen
 	if p.CountMachineOpens {
 		open = lastOpen
 	}
+	var e time.Time
 	for _, t := range []*time.Time{open, lastClick} {
 		if t != nil && t.After(e) {
 			e = *t
 		}
+	}
+	if e.IsZero() {
+		e = created
 	}
 	switch age := now.Sub(e); {
 	case age < time.Duration(p.ActiveDays+1)*24*time.Hour:
