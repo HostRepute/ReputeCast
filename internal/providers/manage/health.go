@@ -66,6 +66,22 @@ func opName(adapter string) string {
 		return "POST /api/v1/messages/message"
 	case "smtp":
 		return "SMTP AUTH"
+	case "resend":
+		return "GET /domains"
+	case "sendgrid":
+		return "GET /v3/user/credits"
+	case "mailgun":
+		return "GET /v5/accounts/limit/custom/monthly"
+	case "sparkpost":
+		return "GET /api/v1/account"
+	case "mailjet":
+		return "GET /v3/REST/apikey"
+	case "brevo":
+		return "GET /v3/account"
+	case "azureacs":
+		return "GET /emails/operations/{id}"
+	case "httpgeneric":
+		return "credential check"
 	}
 	return "health check"
 }
@@ -378,8 +394,11 @@ func (s *Service) diagnose(ctx context.Context, p store.Provider, adapter provid
 	now := s.now()
 	yes, no := true, false
 	checks := []state.WebhookCheck{}
-	api := state.WebhookCheck{Key: "api", At: &now, Detail: map[string]string{
-		"postal": "/api/v1/messages responds", "ses": "GetAccount responds", "postmark": "GET /server responds", "smtp": "AUTH accepted"}[p.Adapter]}
+	detail := map[string]string{"postal": "/api/v1/messages responds", "ses": "GetAccount responds", "postmark": "GET /server responds", "smtp": "AUTH accepted"}[p.Adapter]
+	if detail == "" {
+		detail = opName(p.Adapter) + " responds"
+	}
+	api := state.WebhookCheck{Key: "api", At: &now, Detail: detail}
 	if probeErr == nil {
 		api.OK = &yes
 	} else {

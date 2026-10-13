@@ -129,6 +129,9 @@ each other, keep the per-row numbers and let totals be computed.
   (sign in as `aisha@acme.io`, the Viewer, or `daniel@acme.io`, the Content
   Writer), audit entry written, no secret in responses.
 - Run with the compose Postgres: `REPUTECAST_TEST_DATABASE_URL=postgres://reputecast:reputecast@localhost:5433/postgres?sslmode=disable go test ./...`.
+  When several people (or worktrees) test against the same server, add
+  `-p 4`: each package's app keeps a small pool, but many packages at once
+  can still exhaust `max_connections` ("too many clients").
 
 ## 3. API contract → web types
 

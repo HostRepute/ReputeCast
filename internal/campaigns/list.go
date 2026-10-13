@@ -323,7 +323,7 @@ func ShortName(name, adapter string) string {
 	switch adapter {
 	case "ses":
 		return "SES"
-	case "azure":
+	case "azureacs", "azure":
 		return "Azure"
 	}
 	if i := strings.Index(name, " ("); i > 0 {
