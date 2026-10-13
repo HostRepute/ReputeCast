@@ -804,6 +804,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where a community adapter runs, its secret's age and its health (instance admins)
+         * @description The signing secret is never returned.
+         */
+        get: operations["get-adapter-runtime"];
+        /**
+         * Set where a community adapter's process listens (instance admins)
+         * @description Loopback and private addresses need adapters.allow_private_networks; plain http:// only reaches them.
+         */
+        put: operations["update-adapter-runtime"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Call a community adapter's health operation now (instance admins) */
+        post: operations["check-adapter-runtime"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime/secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue a new signing secret for a community adapter; it is shown once (instance admins)
+         * @description The previous secret keeps working for 24 hours, so the adapter process can be updated without downtime.
+         */
+        post: operations["issue-adapter-secret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/adapters/{adapterId}/update": {
         parameters: {
             query?: never;
@@ -2964,7 +3025,7 @@ export interface components {
             /** Format: date-time */
             installedAt: string;
             /** @enum {string} */
-            kind: "http" | "wasm";
+            kind: "http" | "wasm" | "remote";
             /** Format: date-time */
             lastRelease?: string;
             latest?: string;
@@ -2991,6 +3052,53 @@ export interface components {
              * @description HTTPS URL of the adapter's manifest.json
              */
             manifestUrl: string;
+        };
+        AdapterRuntime: {
+            /** @example community:example-esp */
+            adapter: string;
+            /** Format: uuid */
+            adapterId: string;
+            /** @enum {string} */
+            breaker: "closed" | "open" | "half_open";
+            /** Format: date-time */
+            breakerOpenUntil?: string;
+            capabilities: string[];
+            check?: components["schemas"]["AdapterRuntimeCheck"];
+            /**
+             * Format: int64
+             * @description Connected providers using the adapter, in every workspace
+             */
+            connected: number;
+            endpointProblem?: string;
+            endpointUrl: string;
+            lastFailure?: string;
+            name: string;
+            network: string[];
+            operations: string[];
+            /** Format: date-time */
+            previousSecretValidUntil?: string;
+            registered: boolean;
+            /** Format: date-time */
+            secretIssuedAt: string;
+            /** @description Version of the installed manifest */
+            version: string;
+        };
+        AdapterRuntimeCheck: {
+            /** Format: date-time */
+            at: string;
+            detail: string;
+            ok: boolean;
+            runningVersion?: string;
+        };
+        AdapterRuntimeInput: {
+            /** @description Base URL of the adapter process, like http://example-esp:4600 */
+            endpointUrl: string;
+        };
+        AdapterRuntimeSecret: {
+            /** Format: date-time */
+            previousSecretValidUntil?: string;
+            /** @description The new signing secret. Shown only in this response; set it on the adapter process as REPUTECAST_ADAPTER_SECRET. */
+            secret: string;
         };
         AdaptersOverview: {
             builtin: components["schemas"]["AdapterBuiltin"][];
@@ -8022,6 +8130,142 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-adapter-runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRuntime"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-adapter-runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdapterRuntimeInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRuntime"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-adapter-runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRuntime"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "issue-adapter-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRuntimeSecret"];
+                };
             };
             /** @description Error */
             default: {

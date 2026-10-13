@@ -980,7 +980,8 @@
           "kind": {
             "enum": [
               "http",
-              "wasm"
+              "wasm",
+              "remote"
             ],
             "type": "string"
           },
@@ -1077,6 +1078,157 @@
         },
         "required": [
           "manifestUrl"
+        ],
+        "type": "object"
+      },
+      "AdapterRuntime": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "examples": [
+              "community:example-esp"
+            ],
+            "type": "string"
+          },
+          "adapterId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "breaker": {
+            "enum": [
+              "closed",
+              "open",
+              "half_open"
+            ],
+            "type": "string"
+          },
+          "breakerOpenUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "check": {
+            "$ref": "#/components/schemas/AdapterRuntimeCheck"
+          },
+          "connected": {
+            "description": "Connected providers using the adapter, in every workspace",
+            "format": "int64",
+            "type": "integer"
+          },
+          "endpointProblem": {
+            "type": "string"
+          },
+          "endpointUrl": {
+            "type": "string"
+          },
+          "lastFailure": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "network": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "operations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "previousSecretValidUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "registered": {
+            "type": "boolean"
+          },
+          "secretIssuedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "version": {
+            "description": "Version of the installed manifest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "adapterId",
+          "adapter",
+          "name",
+          "version",
+          "endpointUrl",
+          "secretIssuedAt",
+          "operations",
+          "capabilities",
+          "network",
+          "breaker",
+          "registered",
+          "connected"
+        ],
+        "type": "object"
+      },
+      "AdapterRuntimeCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "runningVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "ok",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "AdapterRuntimeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "endpointUrl": {
+            "description": "Base URL of the adapter process, like http://example-esp:4600",
+            "maxLength": 2048,
+            "minLength": 8,
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpointUrl"
+        ],
+        "type": "object"
+      },
+      "AdapterRuntimeSecret": {
+        "additionalProperties": false,
+        "properties": {
+          "previousSecretValidUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "secret": {
+            "description": "The new signing secret. Shown only in this response; set it on the adapter process as REPUTECAST_ADAPTER_SECRET.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "secret"
         ],
         "type": "object"
       },
@@ -15336,6 +15488,269 @@
           }
         ],
         "summary": "Remove a community adapter (instance admins)",
+        "tags": [
+          "Adapters"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime": {
+      "get": {
+        "description": "The signing secret is never returned.",
+        "operationId": "get-adapter-runtime",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "adapterId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterRuntime"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Where a community adapter runs, its secret's age and its health (instance admins)",
+        "tags": [
+          "Adapters"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      },
+      "put": {
+        "description": "Loopback and private addresses need adapters.allow_private_networks; plain http:// only reaches them.",
+        "operationId": "update-adapter-runtime",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "adapterId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdapterRuntimeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterRuntime"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Set where a community adapter's process listens (instance admins)",
+        "tags": [
+          "Adapters"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime/check": {
+      "post": {
+        "operationId": "check-adapter-runtime",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "adapterId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterRuntime"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Call a community adapter's health operation now (instance admins)",
+        "tags": [
+          "Adapters"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime/secret": {
+      "post": {
+        "description": "The previous secret keeps working for 24 hours, so the adapter process can be updated without downtime.",
+        "operationId": "issue-adapter-secret",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "adapterId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterRuntimeSecret"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Issue a new signing secret for a community adapter; it is shown once (instance admins)",
         "tags": [
           "Adapters"
         ],

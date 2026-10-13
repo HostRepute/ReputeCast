@@ -9,7 +9,7 @@ export const links = {
   repo,
   discord: 'https://discord.gg/reputecast',
   docs: `${repo}/tree/main/docs`,
-  adapterSdk: `${repo}/tree/main/docs/adapter-sdk`,
+  adapterSdk: `${repo}/blob/main/docs/adapters.md#community-adapters`,
   releases: `${repo}/releases`,
   installGuide: `${repo}#quick-start`,
   hostrepute: 'https://hostrepute.com',
