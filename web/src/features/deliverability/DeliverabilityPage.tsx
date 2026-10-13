@@ -48,7 +48,7 @@ export function DeliverabilityPage() {
           </div>
           <SkeletonGrid />
         </section>
-      ) : o.assets.length === 0 && o.providers.length === 0 ? (
+      ) : noSetup(o) ? (
         <NoSetup />
       ) : (
         <Body o={o} />
@@ -146,16 +146,29 @@ function Actions({ o }: { o?: Overview }) {
   }
   const running = Boolean(o?.checks.running)
   const label = o && o.hostRepute.status === 'connected' ? 'Run all checks now' : 'Run checks now'
+  // Nothing to check or export before a sending domain or provider exists.
+  const empty = o && noSetup(o) ? 'Connect a sending provider first: there is nothing to check yet.' : undefined
   return (
     <>
-      <Button onClick={exportReport} loading={exporting} disabled={!o}>
+      <Button onClick={exportReport} loading={exporting} disabled={!o} disabledReason={empty}>
         Export report
       </Button>
-      <Button variant="primary" onClick={() => run.mutate({ params: { path: { workspace: slug } } })} loading={run.isPending || running} disabled={!o}>
+      <Button
+        variant="primary"
+        onClick={() => run.mutate({ params: { path: { workspace: slug } } })}
+        loading={run.isPending || running}
+        disabled={!o}
+        disabledReason={empty}
+      >
         {label}
       </Button>
     </>
   )
+}
+
+/** A workspace without a sending domain or provider has nothing to check yet. */
+function noSetup(o: Overview): boolean {
+  return o.assets.length === 0 && o.providers.length === 0
 }
 
 /** First run of a workspace without a sending domain or provider. */

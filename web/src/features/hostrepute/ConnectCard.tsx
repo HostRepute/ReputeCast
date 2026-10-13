@@ -34,6 +34,7 @@ export function ConnectCard({
   const status = conn?.status ?? 'not_connected'
   const reconnect = status === 'revoked' || status === 'expired'
   const shared = conn?.shared
+  const nothingYet = Boolean(shared) && !shared?.domains.length && !shared?.ips.length
   return (
     <section className="card" aria-labelledby="h-hr-before">
       <div className="sec">
@@ -69,7 +70,14 @@ export function ConnectCard({
             <ul className="m-0 flex list-disc flex-col gap-[3px] pl-[18px]">
               {shared?.domains.length ? <li>Sending domains: {shared.domains.join(', ')}</li> : null}
               {shared?.ips.length ? <li>Dedicated IPs: {shared.ips.join(', ')}</li> : null}
-              <li>Nothing else: no contacts, no email content, no reports</li>
+              {nothingYet ? (
+                <>
+                  <li>Nothing yet: your sending domains and dedicated IPs, once you add them</li>
+                  <li>Never contacts, email content or reports</li>
+                </>
+              ) : (
+                <li>Nothing else: no contacts, no email content, no reports</li>
+              )}
             </ul>
           </div>
           <div className="note i flex-col items-stretch gap-1.5">
