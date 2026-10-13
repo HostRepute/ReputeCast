@@ -10,7 +10,7 @@ import { TransferDialog } from '../workspace/TransferDialog'
  * The blocked change for the last Owner (TeamDialogs, left): a workspace
  * always keeps one Owner, so the way out is a transfer of ownership.
  */
-export function LastOwnerDialog({ member, open, onOpenChange }: { member: Pick<Schemas['TeamMember'], 'name' | 'you'>; open: boolean; onOpenChange: (o: boolean) => void }) {
+export function LastOwnerDialog({ member, open, onOpenChange }: { member: Pick<Schemas['TeamMember'], 'name'>; open: boolean; onOpenChange: (o: boolean) => void }) {
   const { slug } = useWorkspace()
   const settings = $api.useQuery('get', '/api/v1/workspaces/{workspace}/settings', { params: { path: { workspace: slug } } })
   const [transfer, setTransfer] = useState(false)
@@ -44,8 +44,9 @@ export function LastOwnerDialog({ member, open, onOpenChange }: { member: Pick<S
         <span>A workspace always keeps at least one Owner, so this role can&apos;t be changed to Admin and the member can&apos;t be removed or deactivated.</span>
       </div>
       <p className="m-0 text-[13.5px] text-ink-nav">
-        To change it, first transfer ownership to another member with two-factor enabled{suggest ? `, for example ${suggest}` : ''}. {member.you ? 'You then become' : `${first} then becomes`} an
-        Admin automatically.
+        {/* TeamDialogs names the Owner even when it's the person reading ("Linh then becomes"). */}
+        To change it, first transfer ownership to another member with two-factor enabled{suggest ? `, for example ${suggest}` : ''}. {first} then becomes an Admin
+        automatically.
       </p>
     </Dialog>
   )
