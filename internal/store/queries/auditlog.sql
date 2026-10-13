@@ -92,7 +92,7 @@ LIMIT 3;
 -- name: AuditStreamWorkspaces :many
 SELECT id, slug, audit_stream_url, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status
 FROM workspaces
-WHERE deleted_at IS NULL AND audit_stream_enabled AND coalesce(audit_stream_url, '') <> '';
+WHERE deleted_at IS NULL AND audit_stream_enabled AND NOT audit_stream_demo AND coalesce(audit_stream_url, '') <> '';
 
 -- name: AuditStreamBatch :many
 SELECT id, workspace_id, occurred_at, actor_type, actor_id, actor_name, action, target_type, target_id,
@@ -114,6 +114,8 @@ UPDATE workspaces SET audit_stream_status = @status WHERE id = @id;
 -- name: AuditStreamConfigure :exec
 UPDATE workspaces
 SET audit_stream_enabled = @enabled, audit_stream_url = @url,
+    -- A demo stream stays one only while its address is unchanged.
+    audit_stream_demo = audit_stream_demo AND audit_stream_url IS NOT DISTINCT FROM @url::text,
     audit_stream_secret_enc = coalesce(sqlc.narg(secret_enc), audit_stream_secret_enc),
     audit_stream_cursor_at = CASE WHEN @reset_cursor::boolean THEN now() ELSE audit_stream_cursor_at END,
     audit_stream_cursor_id = CASE WHEN @reset_cursor::boolean THEN NULL ELSE audit_stream_cursor_id END,

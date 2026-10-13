@@ -634,6 +634,12 @@ func (s *Service) Attempt(ctx context.Context, deliveryID uuid.UUID) (*time.Time
 		}
 		return nil, err
 	}
+	if d.Demo {
+		// Demo endpoints point at fictional addresses: nothing is sent, and
+		// the endpoint's health is left as the demo shows it.
+		return nil, s.Q.HooksFinishDelivery(ctx, store.HooksFinishDeliveryParams{ID: d.ID, State: "dead",
+			Error: "Demo endpoint: ReputeCast never sends demo data. Point it at your own URL to receive events."})
+	}
 	secret, err := s.Box.OpenString(d.SecretEnc, secretAD(d.WebhookID))
 	if err != nil {
 		return nil, err

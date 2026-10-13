@@ -324,6 +324,7 @@ type Querier interface {
 	HooksSetSecret(ctx context.Context, arg HooksSetSecretParams) error
 	// A worker that died mid-attempt leaves a row in 'delivering'; give it back.
 	HooksStaleDelivering(ctx context.Context) error
+	// A demo endpoint stays one only while its address is unchanged.
 	HooksUpdate(ctx context.Context, arg HooksUpdateParams) (Webhook, error)
 	// The sending domains an asset list is built from (with the records their
 	// providers require). Connected providers come from ProvListActive.

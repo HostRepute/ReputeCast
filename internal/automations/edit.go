@@ -164,6 +164,7 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, by *uuid.U
 			return err
 		}
 		before := s.graphOf(prev.Graph)
+		g = keepDemo(g, before)
 		version := a.DraftVersion
 		if prev.PublishedAt != nil {
 			version = a.DraftVersion + 1
@@ -218,6 +219,25 @@ func normalizeGraph(g AutomationGraph) AutomationGraph {
 		if w := g.Nodes[i].Data.Webhook; w != nil {
 			w.HasSecret = false
 			w.URL = strings.TrimSpace(w.URL)
+		}
+	}
+	return g
+}
+
+// keepDemo carries the demo mark of webhook steps over from the saved graph:
+// a step stays demo data while its address is unchanged (the client can't
+// set the mark).
+func keepDemo(g, before AutomationGraph) AutomationGraph {
+	demo := map[string]string{}
+	for _, n := range before.Nodes {
+		if w := n.Data.Webhook; w != nil && w.Demo {
+			demo[n.ID] = w.URL
+		}
+	}
+	for i := range g.Nodes {
+		if w := g.Nodes[i].Data.Webhook; w != nil {
+			url, ok := demo[g.Nodes[i].ID]
+			w.Demo = ok && url == w.URL
 		}
 	}
 	return g

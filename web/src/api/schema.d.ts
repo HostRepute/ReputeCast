@@ -5833,6 +5833,7 @@ export interface components {
             versions: components["schemas"]["AutomationVersionItem"][];
         };
         AutomationWebhook: {
+            readonly demo?: boolean;
             readonly hasSecret?: boolean;
             method?: string;
             name?: string;

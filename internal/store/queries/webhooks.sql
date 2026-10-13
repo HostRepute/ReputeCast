@@ -27,7 +27,9 @@ VALUES (@id, @workspace_id, @name, @description, @url, @events, @secret_enc, tru
 RETURNING *;
 
 -- name: HooksUpdate :one
-UPDATE webhooks SET name = @name, description = @description, url = @url, events = @events, updated_at = now()
+-- A demo endpoint stays one only while its address is unchanged.
+UPDATE webhooks SET name = @name, description = @description, url = @url, events = @events,
+    demo = demo AND url = @url, updated_at = now()
 WHERE id = @id AND workspace_id = @workspace_id
 RETURNING *;
 
@@ -77,7 +79,7 @@ UPDATE webhook_deliveries d SET state = 'delivering', last_attempt_at = now()
 FROM webhooks h
 WHERE d.id = @id AND h.id = d.webhook_id AND h.enabled
   AND d.state IN ('pending','retrying') AND (d.next_attempt_at IS NULL OR d.next_attempt_at <= now() + interval '5 seconds')
-RETURNING d.id, d.webhook_id, d.event, d.event_id, d.payload, d.attempt, d.max_attempts, h.url, h.secret_enc, h.workspace_id;
+RETURNING d.id, d.webhook_id, d.event, d.event_id, d.payload, d.attempt, d.max_attempts, h.url, h.secret_enc, h.workspace_id, h.demo;
 
 -- name: HooksFinishDelivery :exec
 UPDATE webhook_deliveries
@@ -100,13 +102,13 @@ WHERE id = @id;
 -- probes are found once per failing endpoint, not once per waiting delivery.
 WITH probe AS (
     SELECT DISTINCT ON (d3.webhook_id) d3.webhook_id, d3.id
-    FROM webhook_deliveries d3 JOIN webhooks h3 ON h3.id = d3.webhook_id AND h3.enabled AND h3.failing_since IS NOT NULL
+    FROM webhook_deliveries d3 JOIN webhooks h3 ON h3.id = d3.webhook_id AND h3.enabled AND NOT h3.demo AND h3.failing_since IS NOT NULL
     WHERE d3.state IN ('pending','retrying','delivering')
     ORDER BY d3.webhook_id, d3.created_at, d3.id
 )
 UPDATE webhook_deliveries d SET enqueued_at = now()
 WHERE d.id IN (
-    SELECT d2.id FROM webhook_deliveries d2 JOIN webhooks h ON h.id = d2.webhook_id AND h.enabled
+    SELECT d2.id FROM webhook_deliveries d2 JOIN webhooks h ON h.id = d2.webhook_id AND h.enabled AND NOT h.demo
     LEFT JOIN probe p ON p.webhook_id = h.id
     WHERE d2.state IN ('pending','retrying') AND coalesce(d2.next_attempt_at, d2.created_at) <= now()
       AND (d2.enqueued_at IS NULL OR d2.enqueued_at < now() - interval '10 minutes')

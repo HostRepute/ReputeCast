@@ -4088,6 +4088,10 @@
       "AutomationWebhook": {
         "additionalProperties": false,
         "properties": {
+          "demo": {
+            "readOnly": true,
+            "type": "boolean"
+          },
           "hasSecret": {
             "readOnly": true,
             "type": "boolean"
