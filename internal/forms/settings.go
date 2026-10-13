@@ -198,6 +198,16 @@ func (b Branding) public() PublicBranding {
 	return out
 }
 
+// brandingOut is the branding for the app, the logo served by the instance
+// (the custom domain may not resolve where the app runs).
+func (s *Service) brandingOut(ws *store.Workspace, set *Settings) PublicBranding {
+	out := set.Branding.public()
+	if l := set.Branding.Logo; l != nil {
+		out.Logo = &PublicBrandingLogo{Name: l.Name, Type: l.Type, URL: LinksOn(s.URLs.Base(), ws.Slug, false).Logo(l.Hash)}
+	}
+	return out
+}
+
 // --- page options (public_page_settings.pages) -------------------------------
 
 // SubscribePage are the hosted subscribe page's options.
@@ -585,9 +595,7 @@ func (s *Service) PublicPages(ctx context.Context, ws *store.Workspace) (PublicP
 	out := PublicPagesSettings{Branding: set.Branding.public(), Domain: dom, Pages: set.Pages, Forms: []SignupFormSummary{}, Lists: []PublicPageList{},
 		URLs:      PublicPageURLs{Subscribe: links.Subscribe(""), Preferences: links.PreferencesRequest(), Archive: links.Archive(), Feed: links.Feed(), Sitemap: links.Sitemap()},
 		Turnstile: set.turnstile(), UpdatedAt: set.row.UpdatedAt}
-	if set.Branding.Logo != nil {
-		out.Branding.Logo = &PublicBrandingLogo{Name: set.Branding.Logo.Name, Type: set.Branding.Logo.Type, URL: links.Logo(set.Branding.Logo.Hash)}
-	}
+	out.Branding = s.brandingOut(ws, set)
 	if set.row.HostedFormID != nil {
 		out.HostedFormID = set.row.HostedFormID.String()
 	}
@@ -910,6 +918,26 @@ func (s *Service) WithDraft(ctx context.Context, set *Settings, in PublicPageInp
 		}
 	}
 	return &out, nil
+}
+
+// UnsubscribeStats are the Unsubscribe page tab's numbers.
+type UnsubscribeStats struct {
+	Days int `json:"days"`
+	// Unsubscribed counts contacts who left from the public pages: the
+	// unsubscribe page, one-click, or unticking lists in the preference center.
+	Unsubscribed int64 `json:"unsubscribed"`
+	OneClick     int64 `json:"oneClick" doc:"Of them, with their mail app's one-click unsubscribe"`
+	ChoseFewer   int64 `json:"choseFewer" doc:"Took the monthly best-of instead of leaving"`
+	Answered     int64 `json:"answered" doc:"Said why they left"`
+}
+
+// UnsubscribeNumbers counts the last 30 days of the unsubscribe page.
+func (s *Service) UnsubscribeNumbers(ctx context.Context, ws *store.Workspace) (UnsubscribeStats, error) {
+	row, err := s.Q.PublicUnsubscribeStats(ctx, store.PublicUnsubscribeStatsParams{WorkspaceID: ws.ID, Since: s.now().AddDate(0, 0, -30)})
+	if err != nil {
+		return UnsubscribeStats{}, err
+	}
+	return UnsubscribeStats{Days: 30, Unsubscribed: row.Unsubscribed, OneClick: row.OneClick, ChoseFewer: row.ChoseFewer, Answered: row.Answered}, nil
 }
 
 // --- logo ------------------------------------------------------------------------

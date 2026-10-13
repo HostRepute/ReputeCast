@@ -3416,6 +3416,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/public-pages/unsubscribe/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Unsubscribes from the public pages in the last 30 days */
+        get: operations["get-unsubscribe-stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/roles": {
         parameters: {
             query?: never;
@@ -9409,6 +9426,27 @@ export interface components {
             fewerTitle: string;
             /** @description Ask why, optionally */
             reasons: boolean;
+        };
+        UnsubscribeStats: {
+            /**
+             * Format: int64
+             * @description Said why they left
+             */
+            answered: number;
+            /**
+             * Format: int64
+             * @description Took the monthly best-of instead of leaving
+             */
+            choseFewer: number;
+            /** Format: int64 */
+            days: number;
+            /**
+             * Format: int64
+             * @description Of them, with their mail app's one-click unsubscribe
+             */
+            oneClick: number;
+            /** Format: int64 */
+            unsubscribed: number;
         };
         WarmupCampaignUse: {
             /** Format: int64 */
@@ -17355,7 +17393,7 @@ export interface operations {
                 q?: string;
                 /** @description Only issues filed under this list (id) */
                 list?: string;
-                /** @description Page, from 1 (25 issues a page) */
+                /** @description Page, from 1 (10 issues a page) */
                 page?: number;
             };
             header?: never;
@@ -17734,6 +17772,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-unsubscribe-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnsubscribeStats"];
                 };
             };
             /** @description Error */

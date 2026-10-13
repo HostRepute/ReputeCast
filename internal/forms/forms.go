@@ -513,7 +513,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (SignupForm
 	}
 	out.SystemProvider = s.systemProvider(ctx, ws)
 	out.Turnstile = set.turnstile()
-	out.Branding = set.Branding.public()
+	out.Branding = s.brandingOut(ws, set)
 	out.Domain = set.domain(s.URLs)
 	return out, nil
 }

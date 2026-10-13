@@ -63,6 +63,8 @@ strong { font-weight: 700; }
 
 /* Page and card */
 .page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 16px 32px; box-sizing: border-box; }
+/* In-app previews size their frame to the content. */
+.preview .page { min-height: 0; }
 .card { width: 100%; max-width: 560px; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; }
 .card.g18 { gap: 18px; }
 .brand { display: flex; align-items: center; gap: 12px; }

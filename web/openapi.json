@@ -18793,6 +18793,42 @@
         ],
         "type": "object"
       },
+      "UnsubscribeStats": {
+        "additionalProperties": false,
+        "properties": {
+          "answered": {
+            "description": "Said why they left",
+            "format": "int64",
+            "type": "integer"
+          },
+          "choseFewer": {
+            "description": "Took the monthly best-of instead of leaving",
+            "format": "int64",
+            "type": "integer"
+          },
+          "days": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "oneClick": {
+            "description": "Of them, with their mail app's one-click unsubscribe",
+            "format": "int64",
+            "type": "integer"
+          },
+          "unsubscribed": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "days",
+          "unsubscribed",
+          "oneClick",
+          "choseFewer",
+          "answered"
+        ],
+        "type": "object"
+      },
       "WarmupCampaignUse": {
         "additionalProperties": false,
         "properties": {
@@ -34407,12 +34443,12 @@
             }
           },
           {
-            "description": "Page, from 1 (25 issues a page)",
+            "description": "Page, from 1 (10 issues a page)",
             "explode": false,
             "in": "query",
             "name": "page",
             "schema": {
-              "description": "Page, from 1 (25 issues a page)",
+              "description": "Page, from 1 (10 issues a page)",
               "format": "int64",
               "maximum": 100000,
               "minimum": 0,
@@ -35160,6 +35196,63 @@
         ],
         "x-access": "workspace",
         "x-permission": "forms:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/public-pages/unsubscribe/stats": {
+      "get": {
+        "operationId": "get-unsubscribe-stats",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnsubscribeStats"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unsubscribes from the public pages in the last 30 days",
+        "tags": [
+          "Public pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
       }
     },
     "/api/v1/workspaces/{workspace}/roles": {

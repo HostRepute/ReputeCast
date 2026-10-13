@@ -305,7 +305,7 @@ func (s *Service) ArchiveIssues(ctx context.Context, ws *store.Workspace, search
 	if err != nil {
 		return ArchiveIssuePage{}, err
 	}
-	aq := ArchiveQuery{Search: search, Page: page, PageSize: 25, IncludeHidden: true}
+	aq := ArchiveQuery{Search: search, Page: page, PageSize: 10, IncludeHidden: true}
 	if list != "" {
 		id, err := uuid.Parse(list)
 		if err != nil {

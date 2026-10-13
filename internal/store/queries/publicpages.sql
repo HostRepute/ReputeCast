@@ -153,7 +153,7 @@ VALUES (@id, @workspace_id, @contact_id, @campaign_id, @reason, @comment, @chose
 SELECT
     (SELECT count(DISTINCT ce.contact_id) FROM consent_events ce JOIN contacts c ON c.id = ce.contact_id
      WHERE c.workspace_id = @workspace_id AND ce.action = 'unsubscribed' AND ce.occurred_at >= @since
-       AND ce.source IN ('unsubscribe_page', 'one_click'))::bigint AS unsubscribed,
+       AND ce.source IN ('unsubscribe_page', 'one_click', 'preference_center'))::bigint AS unsubscribed,
     (SELECT count(DISTINCT ce.contact_id) FROM consent_events ce JOIN contacts c ON c.id = ce.contact_id
      WHERE c.workspace_id = @workspace_id AND ce.action = 'unsubscribed' AND ce.occurred_at >= @since
        AND ce.source = 'one_click')::bigint AS one_click,

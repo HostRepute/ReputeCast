@@ -36,7 +36,7 @@ type archiveListInput struct {
 	api.WorkspaceInput
 	Q    string `query:"q" maxLength:"100" doc:"Search titles, subjects and excerpts"`
 	List string `query:"list" doc:"Only issues filed under this list (id)"`
-	Page int    `query:"page" minimum:"0" maximum:"100000" doc:"Page, from 1 (25 issues a page)"`
+	Page int    `query:"page" minimum:"0" maximum:"100000" doc:"Page, from 1 (10 issues a page)"`
 }
 
 type archiveIssueInput struct {
@@ -178,6 +178,12 @@ func Register(h huma.API, s *Service) {
 		Tags: ptags, Access: api.Workspace(authz.FormsEdit)},
 		func(ctx context.Context, in *archiveIssueInput) (*api.Body[ArchiveIssueItem], error) {
 			out, err := s.UpdateArchiveIssue(ctx, api.WorkspaceFrom(ctx), in.Campaign, in.Body)
+			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "get-unsubscribe-stats", Path: "/workspaces/{workspace}/public-pages/unsubscribe/stats", Summary: "Unsubscribes from the public pages in the last 30 days",
+		Tags: ptags, Access: api.Workspace(viewPerm)},
+		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[UnsubscribeStats], error) {
+			out, err := s.UnsubscribeNumbers(ctx, api.WorkspaceFrom(ctx))
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "save-public-turnstile", Path: "/workspaces/{workspace}/public-pages/turnstile", Summary: "Save the Cloudflare Turnstile keys",
