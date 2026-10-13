@@ -2,6 +2,8 @@ package demo
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -13,6 +15,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+
+	"github.com/hostrepute/reputecast/internal/authn"
 )
 
 func init() { seedReports = seedReportsImpl }
@@ -109,6 +113,9 @@ func seedReportsImpl(ctx context.Context, s *Seeder) error {
 				return fmt.Errorf("%s: %w", c.name, err)
 			}
 			if err := reportOctoberABTest(ctx, s, c); err != nil {
+				return err
+			}
+			if err := reportShareLink(ctx, s, c); err != nil {
 				return err
 			}
 		} else {
@@ -864,6 +871,7 @@ func reportHourly(ctx context.Context, s *Seeder, c *reportCampaignSeed, ab bool
 var (
 	anchorRe = regexp.MustCompile(`(?is)<a\s[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>(.*?)</a>`)
 	tagRe    = regexp.MustCompile(`(?s)<[^>]+>`)
+	attrRe   = regexp.MustCompile(`(?i)\b(aria-label|title|alt)\s*=\s*["']([^"']+)["']`)
 	spaceRe  = regexp.MustCompile(`\s+`)
 )
 
@@ -878,8 +886,12 @@ func reportAnchors(doc string) []reportAnchor {
 		}
 		label := strings.TrimSpace(spaceRe.ReplaceAllString(html.UnescapeString(tagRe.ReplaceAllString(m[2], " ")), " "))
 		if label == "" {
-			if alt := regexp.MustCompile(`(?i)alt\s*=\s*["']([^"']*)["']`).FindStringSubmatch(m[2]); alt != nil {
-				label = strings.TrimSpace(alt[1])
+			// An image link: its aria-label, title or the image's alt text.
+			for _, src := range []string{m[0], m[2]} {
+				if a := attrRe.FindStringSubmatch(src); a != nil {
+					label = strings.TrimSpace(html.UnescapeString(a[2]))
+					break
+				}
 			}
 		}
 		out = append(out, reportAnchor{u, label})
@@ -891,10 +903,11 @@ func reportAnchors(doc string) []reportAnchor {
 // the Report board's click map; other links share what is left.
 var octLinkShares = map[string]float64{
 	"read the docs": 38, "see changelog": 24, "read the guide": 19, "docs": 6,
-	"email preferences": 2.0, "view in browser": 1.8, "unsubscribe": 1.6, "blog": 1.5, "changelog": 1.4, "acme": 1.3, "github": 1.2, "x": 1.1, "privacy": 1.1,
+	"email preferences": 2.0, "view in browser": 1.8, "unsubscribe": 1.6, "blog": 1.5, "changelog": 1.4, "acme": 1.3, "hero image": 1.2,
+	"feature flags ga image": 1.1, "audit log exports image": 1.1,
 }
 
-var footerLabel = regexp.MustCompile(`(?i)unsubscribe|preferences|view (in|online)|browser|privacy|github|^x$|twitter|linkedin`)
+var footerLabel = regexp.MustCompile(`(?i)unsubscribe|preferences|view (in|online)|browser|privacy|github|^x$|twitter|linkedin|image$`)
 
 // reportLinks stores the email (when no other seeder wrote its content)
 // and the clicks per link: Σ clicks equals the campaign's clicks.
@@ -1073,5 +1086,25 @@ func reportOctoberABTest(ctx context.Context, s *Seeder, c *reportCampaignSeed) 
 	done := decided.Add(time.Duration(secs) * time.Second).Truncate(time.Minute)
 	_, err = s.Tx.Exec(ctx, `UPDATE campaigns SET ab_test = $2, completed_at = $3, updated_at = $3 WHERE id = $1`, c.id, b, done)
 	c.completed = done
+	return err
+}
+
+// reportShareLink is the read-only link the Report board shows at the
+// bottom of the October Product Update: made by Linh two days ago, opened
+// a few times since. The token is sealed like the app seals it.
+func reportShareLink(ctx context.Context, s *Seeder, c *reportCampaignSeed) error {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return err
+	}
+	token := base64.RawURLEncoding.EncodeToString(b)
+	id := ID()
+	sealed, err := s.Box.SealString(token, "report_share:"+id.String()+":token")
+	if err != nil {
+		return err
+	}
+	linh := s.Users["linh@acme.io"]
+	_, err = s.Tx.Exec(ctx, `INSERT INTO report_shares (id, campaign_id, token_hash, token_sealed, created_by, created_at, views, last_viewed_at)
+		VALUES ($1,$2,$3,$4,$5,$6,14,$7)`, id, c.id, authn.HashToken(token), sealed, linh.ID, s.Ago(46*time.Hour), s.Ago(3*time.Hour))
 	return err
 }

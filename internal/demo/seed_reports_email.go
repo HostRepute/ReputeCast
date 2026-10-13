@@ -42,11 +42,12 @@ func reportEmailHTML(name string, oct bool) string {
 		}
 		closing = article{"Office hours on Thursday", "Bring your questions about the API and the dashboard.", "Save a seat", "https://acme.io/office-hours"}
 	}
-	b.WriteString(`<div style="padding:18px"><div style="` + ph + `;height:124px;margin-bottom:11px">Hero image</div>`)
+	heroURL, imgURLs := "https://acme.io/blog/"+fileSlug(name), []string{"https://acme.io/features/" + fileSlug(cards[0].heading), "https://acme.io/features/" + fileSlug(cards[1].heading)}
+	b.WriteString(`<div style="padding:18px"><a href="` + esc(heroURL) + `" style="` + link + `"><div style="` + ph + `;height:124px;margin-bottom:11px">Hero image</div></a>`)
 	b.WriteString(`<div style="font-size:21px;font-weight:700;color:#0B1220">` + esc(title) + `</div><div>` + esc(intro) + `</div></div>`)
 	b.WriteString(`<div style="display:flex;gap:14px;padding:0 18px 18px">`)
-	for _, c := range cards {
-		b.WriteString(`<div style="flex:1"><div style="` + ph + `;height:78px"></div>`)
+	for i, c := range cards {
+		b.WriteString(fmt.Sprintf(`<div style="flex:1"><a href="%s" aria-label="%s image" style="display:block;%s"><div style="%s;height:78px"></div></a>`, esc(imgURLs[i]), esc(c.heading), link, ph))
 		b.WriteString(fmt.Sprintf(`<div style="font-weight:700;margin:7px 0 4px;color:#0B1220">%s</div>`, esc(c.heading)))
 		b.WriteString(fmt.Sprintf(`<a href="%s" style="%s">%s</a></div>`, esc(c.url), btn, esc(c.label)))
 	}
@@ -57,8 +58,7 @@ func reportEmailHTML(name string, oct bool) string {
 	b.WriteString(`<div style="padding:14px;background:#F3F4F6;` + plex + `;font-size:13px;color:#5B6472;text-align:center">`)
 	b.WriteString(`Acme Inc · 500 Market St · <a href="{{ unsubscribe_url }}" style="color:inherit;text-decoration:underline">Unsubscribe</a> · `)
 	b.WriteString(`<a href="{{ preferences_url }}" style="color:inherit;text-decoration:underline">Email preferences</a> · `)
-	b.WriteString(`<a href="{{ view_online_url }}" style="color:inherit;text-decoration:underline">View in browser</a><br>`)
-	b.WriteString(`<a href="https://github.com/acme" style="color:inherit">GitHub</a> · <a href="https://x.com/acme" style="color:inherit">X</a> · <a href="https://acme.io/privacy" style="color:inherit">Privacy</a>`)
+	b.WriteString(`<a href="{{ view_online_url }}" style="color:inherit;text-decoration:underline">View in browser</a>`)
 	b.WriteString(`</div></div></body></html>`)
 	return b.String()
 }

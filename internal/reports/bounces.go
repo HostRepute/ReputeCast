@@ -64,6 +64,12 @@ func bounceTable(rows []store.ReportBounceCodesRow) ReportBounceTable {
 	}
 	byKey := map[string]*acc{}
 	out := ReportBounceTable{Rows: []ReportBounceRow{}}
+	// Codes are listed provider by provider, the provider with the most
+	// bounces first, so every row reads in the same order.
+	perProvider := map[string]int64{}
+	for _, r := range rows {
+		perProvider[provstate.Short(r.ProviderName, r.Adapter)] += r.N
+	}
 	for _, r := range rows {
 		t := bounceTypeOf(r.BounceClass)
 		a := byKey[t.Key]
@@ -93,10 +99,17 @@ func bounceTable(rows []store.ReportBounceCodesRow) ReportBounceTable {
 			a.row.Codes = append(a.row.Codes, *c)
 		}
 		sort.SliceStable(a.row.Codes, func(i, j int) bool {
-			if a.row.Codes[i].Count != a.row.Codes[j].Count {
-				return a.row.Codes[i].Count > a.row.Codes[j].Count
+			ci, cj := a.row.Codes[i], a.row.Codes[j]
+			if ci.Provider != cj.Provider {
+				if perProvider[ci.Provider] != perProvider[cj.Provider] {
+					return perProvider[ci.Provider] > perProvider[cj.Provider]
+				}
+				return ci.Provider < cj.Provider
 			}
-			return a.row.Codes[i].Provider < a.row.Codes[j].Provider
+			if ci.Count != cj.Count {
+				return ci.Count > cj.Count
+			}
+			return ci.CodeText() < cj.CodeText()
 		})
 		a.row.Unsuppressed = max(a.recipients-a.suppressed, 0)
 		a.row.Suppression = suppressionState(t, a.recipients, a.row.Unsuppressed)
