@@ -658,6 +658,20 @@ func TestConnectSMTP(t *testing.T) {
 	if mb.Connection.Mailbox == nil || mb.Connection.Mailbox.OK || mb.Connection.Mailbox.Error == "" {
 		t.Fatalf("mailbox: %+v", mb.Connection.Mailbox)
 	}
+	// A reload keeps what was tried, but no password was stored with it.
+	var form struct {
+		Connection struct {
+			SMTPForm struct {
+				ReturnPath, MailboxHost, MailboxUser string
+				MailboxPort                          int
+				MailboxPassSet                       bool
+			}
+		}
+	}
+	c.Do("GET", base, nil).MustStatus(t, 200).JSON(t, &form)
+	if f := form.Connection.SMTPForm; f.ReturnPath != "bounces@news.acme.io" || f.MailboxHost != "127.0.0.1" || f.MailboxPort != 1 || f.MailboxUser != "bounces@news.acme.io" || f.MailboxPassSet {
+		t.Fatalf("form after a failed mailbox test: %+v", f)
+	}
 }
 
 func TestDemoSetupAndSettings(t *testing.T) {

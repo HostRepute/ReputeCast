@@ -1262,6 +1262,8 @@ func (s *Service) ConnectMailbox(ctx context.Context, ws *store.Workspace, rawID
 		probe.Error = d.Name + " can't test a bounce mailbox."
 	}
 	state.Connection.Mailbox = probe
+	state.Connection.MailboxTried = &MailboxTried{Address: address, Protocol: in.Protocol, Host: stringOf(mb["host"]), Port: in.Port, TLS: in.TLS,
+		Username: strings.TrimSpace(in.Username), Folder: folder, PollEvery: in.PollEvery, AfterProcessing: in.AfterProcessing}
 	cb, _ := json.Marshal(cfg)
 	credJSON, _ := json.Marshal(creds)
 	sealed, err := s.Box.Seal(credJSON, manage.CredentialsAD(p))

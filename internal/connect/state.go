@@ -43,6 +43,10 @@ type Connection struct {
 	// SMTP
 	SMTP    *ProbeState `json:"smtp,omitempty"`
 	Mailbox *ProbeState `json:"mailbox,omitempty"`
+	// MailboxTried is the bounce mailbox last tested (no password), so a
+	// reload after a failed test keeps the form; the provider keeps it
+	// only once the test passes.
+	MailboxTried *MailboxTried `json:"mailbox_tried,omitempty"`
 
 	// Events
 	Webhook *WebhookState `json:"webhook,omitempty"`
@@ -181,6 +185,19 @@ type TestEvent struct {
 	// Name is the provider's event name ("Send"), Via how it came ("SNS").
 	Name string `json:"name,omitempty"`
 	Via  string `json:"via"`
+}
+
+// MailboxTried is a bounce mailbox's settings as they were tested.
+type MailboxTried struct {
+	Address         string `json:"address,omitempty"`
+	Protocol        string `json:"protocol"`
+	Host            string `json:"host"`
+	Port            int    `json:"port"`
+	TLS             string `json:"tls"`
+	Username        string `json:"username,omitempty"`
+	Folder          string `json:"folder,omitempty"`
+	PollEvery       string `json:"poll_every,omitempty"`
+	AfterProcessing string `json:"after_processing,omitempty"`
 }
 
 // StreamChoice is one stream of step 5.

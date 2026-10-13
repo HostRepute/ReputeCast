@@ -700,6 +700,18 @@ func joinAnd(xs []string) string {
 	return strings.Join(xs[:len(xs)-1], ", ") + " and " + xs[len(xs)-1]
 }
 
+// smtpMailbox is the bounce mailbox in an SMTP provider's settings.
+type smtpMailbox struct {
+	Protocol        string `json:"protocol"`
+	Host            string `json:"host"`
+	Port            int    `json:"port"`
+	TLS             string `json:"tls"`
+	Username        string `json:"username"`
+	Folder          string `json:"folder"`
+	PollEvery       string `json:"poll_every"`
+	AfterProcessing string `json:"after_processing"`
+}
+
 // smtpForm returns the SMTP form's values from the provider's settings.
 func smtpForm(prov *store.Provider, cn Connection) *ConnectSMTPForm {
 	f := &ConnectSMTPForm{Port: 587, TLS: "starttls", Protocol: "imap", MailboxPort: 993, MailboxTLS: "tls", Folder: "INBOX", PollEvery: "1m", AfterProcessing: "move"}
@@ -710,23 +722,14 @@ func smtpForm(prov *store.Provider, cn Connection) *ConnectSMTPForm {
 		return f
 	}
 	var c struct {
-		Host       string `json:"host"`
-		Port       int    `json:"port"`
-		TLS        string `json:"tls"`
-		Username   string `json:"username"`
-		ReturnPath string `json:"return_path"`
-		MaxRate    string `json:"max_rate"`
-		DailyCap   string `json:"daily_cap"`
-		Mailbox    *struct {
-			Protocol        string `json:"protocol"`
-			Host            string `json:"host"`
-			Port            int    `json:"port"`
-			TLS             string `json:"tls"`
-			Username        string `json:"username"`
-			Folder          string `json:"folder"`
-			PollEvery       string `json:"poll_every"`
-			AfterProcessing string `json:"after_processing"`
-		} `json:"bounce_mailbox"`
+		Host       string       `json:"host"`
+		Port       int          `json:"port"`
+		TLS        string       `json:"tls"`
+		Username   string       `json:"username"`
+		ReturnPath string       `json:"return_path"`
+		MaxRate    string       `json:"max_rate"`
+		DailyCap   string       `json:"daily_cap"`
+		Mailbox    *smtpMailbox `json:"bounce_mailbox"`
 	}
 	_ = json.Unmarshal(prov.Config, &c)
 	f.Host, f.Username, f.ReturnPath, f.MaxRate, f.DailyCap = c.Host, c.Username, c.ReturnPath, c.MaxRate, c.DailyCap
@@ -737,6 +740,16 @@ func smtpForm(prov *store.Provider, cn Connection) *ConnectSMTPForm {
 		f.TLS = c.TLS
 	}
 	f.PasswordSet = len(prov.CredentialsEnc) > 0
+	// The mailbox is saved with its password once a test passes; after a
+	// failed test the form shows what was tried (the password isn't kept).
+	f.MailboxPassSet = c.Mailbox != nil
+	if t := cn.MailboxTried; t != nil && (c.Mailbox == nil || cn.Mailbox == nil || !cn.Mailbox.OK) {
+		c.Mailbox = &smtpMailbox{Protocol: t.Protocol, Host: t.Host, Port: t.Port, TLS: t.TLS, Username: t.Username, Folder: t.Folder,
+			PollEvery: t.PollEvery, AfterProcessing: t.AfterProcessing}
+		if t.Address != "" {
+			f.ReturnPath = t.Address
+		}
+	}
 	if m := c.Mailbox; m != nil {
 		f.MailboxHost, f.MailboxUser = m.Host, m.Username
 		if m.Protocol != "" {
@@ -757,7 +770,6 @@ func smtpForm(prov *store.Provider, cn Connection) *ConnectSMTPForm {
 		if m.AfterProcessing != "" {
 			f.AfterProcessing = m.AfterProcessing
 		}
-		f.MailboxPassSet = cn.Mailbox != nil
 	}
 	return f
 }
