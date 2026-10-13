@@ -631,6 +631,54 @@ func (q *Queries) SetupGetAny(ctx context.Context, id uuid.UUID) (ProviderSetup,
 	return i, err
 }
 
+const setupList = `-- name: SetupList :many
+SELECT id, workspace_id, adapter, provider_id, step, status, state, created_by, created_at, updated_at, finished_at FROM provider_setups
+WHERE workspace_id = $1
+  AND ($2::text IS NULL OR adapter = $2::text)
+  AND ($3::text IS NULL OR status = $3::text)
+ORDER BY updated_at DESC
+LIMIT 50
+`
+
+type SetupListParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Adapter     *string   `json:"adapter"`
+	Status      *string   `json:"status"`
+}
+
+// A workspace's setups, newest first, optionally of one adapter or status.
+func (q *Queries) SetupList(ctx context.Context, arg SetupListParams) ([]ProviderSetup, error) {
+	rows, err := q.db.Query(ctx, setupList, arg.WorkspaceID, arg.Adapter, arg.Status)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ProviderSetup{}
+	for rows.Next() {
+		var i ProviderSetup
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Adapter,
+			&i.ProviderID,
+			&i.Step,
+			&i.Status,
+			&i.State,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.FinishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setupLock = `-- name: SetupLock :one
 SELECT id, workspace_id, adapter, provider_id, step, status, state, created_by, created_at, updated_at, finished_at FROM provider_setups WHERE id = $1 FOR UPDATE
 `

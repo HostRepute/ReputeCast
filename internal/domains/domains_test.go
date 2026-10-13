@@ -89,7 +89,8 @@ func TestSendersOverview(t *testing.T) {
 		t.Fatalf("news.acme.io: %+v", news)
 	}
 	acme := ov.Domains[1]
-	if acme.DKIM.Text != "Pending CNAME 2 of 3" || acme.DKIM.Tone != "warn" || acme.ReturnPath.Text != "Default" || strings.Join(acme.UsedBy, ",") != "SES" {
+	if acme.DKIM.Text != "Pending CNAME 2 of 3" || acme.DKIM.Tone != "warn" || acme.ReturnPath.Text != "Default" || strings.Join(acme.UsedBy, ",") != "SES" ||
+		acme.SPF.Text != "pass" || acme.DMARC.Text != "p=none" || acme.DMARC.Tone != "warn" {
 		t.Fatalf("acme.io: %+v", acme)
 	}
 	if ov.Defaults.DefaultSenderID != digest.ID || ov.Defaults.ReplyTo != "hello@acme.io" || !strings.HasPrefix(ov.Defaults.FooterAddress, "Acme Inc") ||

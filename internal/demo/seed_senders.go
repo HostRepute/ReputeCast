@@ -282,6 +282,9 @@ func SendersDNSOverlay(r dnscheck.Resolver, trackingTarget string) dnscheck.Reso
 	t := sendersAcmeDKIM[0]
 	z.Add(t+"._domainkey.acme.io", "CNAME", t+".dkim.amazonses.com")
 	z.Add(t+".dkim.amazonses.com", "TXT", "p="+deliverabilityDemoKey)
+	// The corporate domain monitors (p=none) while its subdomains, the
+	// sending domain among them, quarantine (Settings › Senders).
+	z.Add("_dmarc.acme.io", "TXT", "v=DMARC1; p=none; sp=quarantine; adkim=r; aspf=r; rua=mailto:dmarc@reports.hostrepute.com")
 	if trackingTarget != "" {
 		z.Add("go.news.acme.io", "CNAME", trackingTarget)
 	}

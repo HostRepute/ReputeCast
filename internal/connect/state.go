@@ -110,6 +110,9 @@ type WebhookState struct {
 	// bounce mailbox), none.
 	Mode string `json:"mode"`
 	URL  string `json:"url,omitempty"`
+	// Token is the webhook token reserved for the provider the setup
+	// connects, so the URL is known before the key works.
+	Token string `json:"token,omitempty"`
 	// PublicURL overrides the instance's public URL for this provider (a
 	// tunnel while testing).
 	PublicURL    string         `json:"public_url,omitempty"`

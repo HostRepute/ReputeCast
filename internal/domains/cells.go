@@ -101,7 +101,14 @@ func domainRow(d store.SendingDomain, provs []store.Provider) SendingDomainRow {
 		}
 	}
 	row.DKIM = dkimCell(dkimProviders, dkimVerified, pendingType, pendingIndex, pendingTotal)
-	row.SPF = spfCell(sum.SPF, det.SPFAll)
+	// With the providers' own return paths, receivers check SPF on the
+	// providers' domains, so the domain's own qualifier says nothing about
+	// this mail.
+	qualifier := det.SPFAll
+	if len(det.MailFrom) == 0 {
+		qualifier = ""
+	}
+	row.SPF = spfCell(sum.SPF, qualifier)
 	row.DMARC = dmarcCell(sum.DMARC)
 	row.ReturnPath = returnPathCell(det.MailFrom, d.Domain)
 	row.Tracking = trackingCell(d.TrackingDomain, d.TrackingStatus)

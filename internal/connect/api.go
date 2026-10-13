@@ -24,6 +24,12 @@ type createInput struct {
 	Body ConnectSetupInput
 }
 
+type listInput struct {
+	api.WorkspaceInput
+	Adapter string `query:"adapter" doc:"Only setups of this adapter (ses, smtp…)"`
+	Status  string `query:"status" enum:"open,finished,abandoned" doc:"Only setups in this state"`
+}
+
 // Huma only reads parameters from exported embedded structs, so every input
 // spells out its path parameters.
 type stepInput struct {
@@ -101,6 +107,12 @@ func Register(h huma.API, s *Service) {
 		Tags: tags, Access: view},
 		func(ctx context.Context, _ *wsInput) (*api.Body[ConnectCatalog], error) {
 			out, err := s.Catalog(ctx, api.WorkspaceFrom(ctx))
+			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "list-provider-setups", Path: "/workspaces/{workspace}/connect/setups", Summary: "The workspace's latest provider setups, newest first",
+		Tags: tags, Access: view},
+		func(ctx context.Context, in *listInput) (*api.Body[ConnectSetupList], error) {
+			out, err := s.List(ctx, api.WorkspaceFrom(ctx), in.Adapter, in.Status)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "start-provider-setup", Path: "/workspaces/{workspace}/connect/setups", Summary: "Start connecting a provider (or resume the open setup)",

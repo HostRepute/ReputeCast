@@ -1,6 +1,7 @@
 package connect
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -76,6 +77,8 @@ type built struct {
 	settings map[string]any
 	creds    map[string]any
 	label    string
+	// token is the webhook token reserved on the setup for a new provider.
+	token string
 }
 
 func (s *Service) currentCreds(prov *store.Provider) map[string]any {
@@ -144,6 +147,15 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 	providerID := uuid.Must(uuid.NewV7())
 	if prov != nil {
 		providerID = prov.ID
+	}
+	if flow == "api" && d.Capabilities.Webhooks != "" {
+		if state.Connection.Webhook == nil {
+			state.Connection.Webhook = &WebhookState{Mode: "webhook"}
+		}
+		if state.Connection.Webhook.Token == "" {
+			state.Connection.Webhook.Token = randomToken(16)
+		}
+		b.token = state.Connection.Webhook.Token
 	}
 	webhookSecret := randomToken(24)
 	if prov != nil && s.Factory != nil {
@@ -280,6 +292,16 @@ func (s *Service) saveSetup(ctx context.Context, ws *store.Workspace, st store.P
 func (s *Service) connectFailed(ctx context.Context, ws *store.Workspace, st store.ProviderSetup, state State, b built, e *StepError) (ConnectSetup, error) {
 	now := s.now()
 	state.Connection.Status, state.Connection.At, state.Connection.Error = "failed", &now, e
+	// Whether the provider could reach the webhook endpoint is known before
+	// the key works: a private or local public URL fails up front.
+	if w := state.Connection.Webhook; w != nil && w.Mode == "webhook" && w.Token != "" && st.ProviderID == nil {
+		w.URL = s.webhookBase(w.PublicURL) + "/hooks/" + st.Adapter + "/" + w.Token
+		w.SelfTest = Preflight(ctx, w.URL, now, s.AllowPrivateURL)
+		w.Registration = nil
+		if w.SelfTest != nil {
+			w.Registration = &Registration{Status: "skipped", At: now, Detail: "after the endpoint is reachable"}
+		}
+	}
 	if state.Connection.Settings == nil {
 		state.Connection.Settings = map[string]string{}
 	}
@@ -631,7 +653,7 @@ func (s *Service) saveProvider(ctx context.Context, ws *store.Workspace, d provi
 		}
 		name := s.providerName(ctx, ws.ID, d, b.label)
 		out, err = q.ConnectInsertProvider(ctx, store.ConnectInsertProviderParams{ID: id, WorkspaceID: ws.ID, Adapter: d.Adapter, Name: name, Label: b.label, Config: cfg,
-			CredentialsEnc: sealed, WebhookToken: randomToken(16), WebhookSecretEnc: secretSealed, Status: statusWord, StatusDetail: detail, IpMode: ipMode, Ips: []string{},
+			CredentialsEnc: sealed, WebhookToken: cmp.Or(b.token, randomToken(16)), WebhookSecretEnc: secretSealed, Status: statusWord, StatusDetail: detail, IpMode: ipMode, Ips: []string{},
 			Capabilities: caps, Limits: lb, Health: health, Pricing: pb, ConnectedBy: principalUser(ctx), ConnectedAt: now})
 		if err != nil {
 			return err
@@ -661,10 +683,22 @@ func (s *Service) webhookURL(p store.Provider, override string) string {
 		_ = json.Unmarshal(p.Config, &cfg)
 		base = strings.TrimRight(cfg.Base, "/")
 	}
-	if base == "" && s.PublicURL != nil {
-		base = strings.TrimRight(s.PublicURL(), "/")
+	if base == "" {
+		base = s.webhookBase("")
 	}
 	return base + "/hooks/" + p.Adapter + "/" + p.WebhookToken
+}
+
+// webhookBase is the address providers call: the override (a tunnel) or
+// the instance's public URL.
+func (s *Service) webhookBase(override string) string {
+	if base := strings.TrimRight(override, "/"); base != "" {
+		return base
+	}
+	if s.PublicURL != nil {
+		return strings.TrimRight(s.PublicURL(), "/")
+	}
+	return ""
 }
 
 // setupEvents tests the webhook endpoint the way the provider would reach
@@ -738,39 +772,62 @@ func SelfTest(ctx context.Context, rawURL, token string, now time.Time, allowPri
 		out.Code, out.Reason = "EINVAL", "the public URL isn't a valid URL"
 		return out
 	}
-	host := strings.ToLower(u.Hostname())
 	if allowPrivate {
 		return selfTestPost(ctx, out, u, rawURL, token, now)
 	}
+	if bad, ok := unreachable(ctx, u, now); ok {
+		return bad
+	}
+	return selfTestPost(ctx, out, u, rawURL, token, now)
+}
+
+// Preflight checks, before anything is connected, whether providers could
+// reach a webhook URL at all: localhost, private addresses and names that
+// don't resolve fail up front. It returns nil when the URL may be
+// reachable (the self-test proper needs the connected provider).
+func Preflight(ctx context.Context, rawURL string, now time.Time, allowPrivate bool) *SelfTestState {
+	if allowPrivate {
+		return nil
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Host == "" {
+		return &SelfTestState{At: now, Code: "EINVAL", Reason: "the public URL isn't a valid URL"}
+	}
+	if bad, ok := unreachable(ctx, u, now); ok {
+		return &bad
+	}
+	return nil
+}
+
+// unreachable reports a URL no provider can reach from the internet.
+func unreachable(ctx context.Context, u *url.URL, now time.Time) (SelfTestState, bool) {
+	out := SelfTestState{At: now}
+	host := strings.ToLower(u.Hostname())
 	if host == "localhost" || strings.HasSuffix(host, ".localhost") || strings.HasSuffix(host, ".local") || strings.HasSuffix(host, ".internal") || strings.HasSuffix(host, ".lan") {
 		out.Code, out.Reason, out.Private = "ECONNREFUSED", host+" only works on this machine", true
-		return out
+		return out, true
 	}
 	if ip, err := netip.ParseAddr(host); err == nil {
 		if !manage.PublicIP(ip) {
 			out.Code, out.Reason, out.Private = "ECONNREFUSED", ip.String()+" is a private address", true
-			return out
+			return out, true
 		}
-	} else {
-		cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		addrs, err := net.DefaultResolver.LookupNetIP(cctx, "ip", host)
-		cancel()
-		if err != nil || len(addrs) == 0 {
-			out.Code, out.Reason = "ENOTFOUND", host+" doesn't resolve in public DNS"
-			return out
-		}
-		public := false
-		for _, a := range addrs {
-			if manage.PublicIP(a) {
-				public = true
-			}
-		}
-		if !public {
-			out.Code, out.Reason, out.Private = "ECONNREFUSED", "DNS resolves to "+addrs[0].Unmap().String()+", a private address", true
-			return out
+		return out, false
+	}
+	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	addrs, err := net.DefaultResolver.LookupNetIP(cctx, "ip", host)
+	cancel()
+	if err != nil || len(addrs) == 0 {
+		out.Code, out.Reason = "ENOTFOUND", host+" doesn't resolve in public DNS"
+		return out, true
+	}
+	for _, a := range addrs {
+		if manage.PublicIP(a) {
+			return out, false
 		}
 	}
-	return selfTestPost(ctx, out, u, rawURL, token, now)
+	out.Code, out.Reason, out.Private = "ECONNREFUSED", "DNS resolves to "+addrs[0].Unmap().String()+", a private address", true
+	return out, true
 }
 
 // selfTestPost posts a signed self-test to the endpoint and expects 200.

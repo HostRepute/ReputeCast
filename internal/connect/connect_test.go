@@ -430,6 +430,15 @@ func TestSelfTestPrivateURL(t *testing.T) {
 		if r.OK || !r.Private || r.Code != "ECONNREFUSED" {
 			t.Errorf("%s: %+v", u, r)
 		}
+		if p := connect.Preflight(context.Background(), u, now, false); p == nil || !p.Private {
+			t.Errorf("preflight %s: %+v", u, p)
+		}
+	}
+	if p := connect.Preflight(context.Background(), "http://localhost:5210/hooks/x/y", now, true); p != nil {
+		t.Errorf("allowed private URL: %+v", p)
+	}
+	if p := connect.Preflight(context.Background(), "https://203.0.113.9/hooks/x/y", now, false); p != nil {
+		t.Errorf("public address: %+v", p)
 	}
 }
 
@@ -512,9 +521,17 @@ func TestDemoSetupAndSettings(t *testing.T) {
 	env.SeedDemo()
 	c := env.Client()
 	c.SignInDemo("linh@acme.io")
-	var setupID string
-	if err := env.App.Pool.QueryRow(context.Background(), `SELECT id::text FROM provider_setups WHERE adapter = 'ses'`).Scan(&setupID); err != nil {
-		t.Fatal(err)
+	var list struct {
+		Items []struct{ ID, Name, Step, Status, Provider string }
+	}
+	c.Do("GET", ws+"/connect/setups?adapter=ses&status=finished", nil).MustStatus(t, 200).JSON(t, &list)
+	if len(list.Items) != 1 || list.Items[0].Name != "Amazon SES" || list.Items[0].Provider != "Amazon SES" || list.Items[0].Step != "done" {
+		t.Fatalf("setups: %+v", list.Items)
+	}
+	setupID := list.Items[0].ID
+	c.Do("GET", ws+"/connect/setups?status=open", nil).MustStatus(t, 200).JSON(t, &list)
+	if len(list.Items) != 0 {
+		t.Fatalf("open setups: %+v", list.Items)
 	}
 	var st struct {
 		Status     string

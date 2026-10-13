@@ -1595,7 +1595,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** The workspace's latest provider setups, newest first */
+        get: operations["list-provider-setups"];
         put?: never;
         /** Start connecting a provider (or resume the open setup) */
         post: operations["start-provider-setup"];
@@ -5316,6 +5317,24 @@ export interface components {
         };
         ConnectSetupInput: {
             adapter: string;
+        };
+        ConnectSetupList: {
+            items: components["schemas"]["ConnectSetupSummary"][];
+        };
+        ConnectSetupSummary: {
+            adapter: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            name: string;
+            provider: string;
+            /** @enum {string} */
+            status: "open" | "finished" | "abandoned";
+            step: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
         ConnectStepInput: {
             /** @enum {string} */
@@ -11955,6 +11974,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConnectCatalog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-provider-setups": {
+        parameters: {
+            query?: {
+                /** @description Only setups of this adapter (ses, smtp…) */
+                adapter?: string;
+                /** @description Only setups in this state */
+                status?: "open" | "finished" | "abandoned";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetupList"];
                 };
             };
             /** @description Error */

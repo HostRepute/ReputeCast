@@ -23,6 +23,15 @@ WHERE workspace_id = @workspace_id AND status = 'open'
 ORDER BY updated_at DESC
 LIMIT 20;
 
+-- name: SetupList :many
+-- A workspace's setups, newest first, optionally of one adapter or status.
+SELECT * FROM provider_setups
+WHERE workspace_id = @workspace_id
+  AND (sqlc.narg(adapter)::text IS NULL OR adapter = sqlc.narg(adapter)::text)
+  AND (sqlc.narg(status)::text IS NULL OR status = sqlc.narg(status)::text)
+ORDER BY updated_at DESC
+LIMIT 50;
+
 -- name: SetupByProvider :one
 -- The latest setup that connected a provider.
 SELECT * FROM provider_setups WHERE provider_id = @provider_id ORDER BY created_at DESC LIMIT 1;

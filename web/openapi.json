@@ -6662,6 +6662,72 @@
         ],
         "type": "object"
       },
+      "ConnectSetupList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConnectSetupSummary"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "ConnectSetupSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "finished",
+              "abandoned"
+            ],
+            "type": "string"
+          },
+          "step": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "adapter",
+          "name",
+          "step",
+          "status",
+          "provider",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "ConnectStepInput": {
         "additionalProperties": false,
         "properties": {
@@ -24087,6 +24153,86 @@
       }
     },
     "/api/v1/workspaces/{workspace}/connect/setups": {
+      "get": {
+        "operationId": "list-provider-setups",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only setups of this adapter (ses, smtp…)",
+            "explode": false,
+            "in": "query",
+            "name": "adapter",
+            "schema": {
+              "description": "Only setups of this adapter (ses, smtp…)",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only setups in this state",
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "description": "Only setups in this state",
+              "enum": [
+                "open",
+                "finished",
+                "abandoned"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectSetupList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The workspace's latest provider setups, newest first",
+        "tags": [
+          "Connect a provider"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:view"
+      },
       "post": {
         "operationId": "start-provider-setup",
         "parameters": [

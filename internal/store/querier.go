@@ -654,6 +654,8 @@ type Querier interface {
 	SetupCreate(ctx context.Context, arg SetupCreateParams) (ProviderSetup, error)
 	SetupGet(ctx context.Context, arg SetupGetParams) (ProviderSetup, error)
 	SetupGetAny(ctx context.Context, id uuid.UUID) (ProviderSetup, error)
+	// A workspace's setups, newest first, optionally of one adapter or status.
+	SetupList(ctx context.Context, arg SetupListParams) ([]ProviderSetup, error)
 	SetupLock(ctx context.Context, id uuid.UUID) (ProviderSetup, error)
 	// Unfinished setups of a workspace, newest first (resume "Connect SES").
 	SetupOpen(ctx context.Context, arg SetupOpenParams) ([]ProviderSetup, error)

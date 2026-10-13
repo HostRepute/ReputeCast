@@ -212,6 +212,56 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, in ConnectSet
 	return s.View(ctx, ws, st)
 }
 
+// ConnectSetupSummary is one setup of the list.
+type ConnectSetupSummary struct {
+	ID      string `json:"id"`
+	Adapter string `json:"adapter"`
+	// Name is the adapter's display name ("Amazon SES").
+	Name       string     `json:"name"`
+	Step       string     `json:"step"`
+	Status     string     `json:"status" enum:"open,finished,abandoned"`
+	Provider   string     `json:"provider"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
+	FinishedAt *time.Time `json:"finishedAt,omitempty"`
+}
+
+// ConnectSetupList is a workspace's setups, newest first.
+type ConnectSetupList struct {
+	Items []ConnectSetupSummary `json:"items"`
+}
+
+// List returns the workspace's latest setups, optionally of one adapter or
+// status.
+func (s *Service) List(ctx context.Context, ws *store.Workspace, adapter, status string) (ConnectSetupList, error) {
+	out := ConnectSetupList{Items: []ConnectSetupSummary{}}
+	p := store.SetupListParams{WorkspaceID: ws.ID}
+	if adapter != "" {
+		p.Adapter = &adapter
+	}
+	if status != "" {
+		p.Status = &status
+	}
+	rows, err := s.Q.SetupList(ctx, p)
+	if err != nil {
+		return out, err
+	}
+	for _, st := range rows {
+		it := ConnectSetupSummary{ID: st.ID.String(), Adapter: st.Adapter, Name: st.Adapter, Step: st.Step, Status: st.Status, CreatedAt: st.CreatedAt,
+			UpdatedAt: st.UpdatedAt, FinishedAt: st.FinishedAt}
+		if d, ok := providers.Lookup(st.Adapter); ok {
+			it.Name = copyFor(d).Display
+		}
+		if st.ProviderID != nil {
+			if p, err := s.Q.ProvGetAny(ctx, *st.ProviderID); err == nil {
+				it.Provider = p.Name
+			}
+		}
+		out.Items = append(out.Items, it)
+	}
+	return out, nil
+}
+
 // Get returns a setup.
 func (s *Service) Get(ctx context.Context, ws *store.Workspace, rawID string) (ConnectSetup, error) {
 	st, err := s.setup(ctx, ws, rawID)
