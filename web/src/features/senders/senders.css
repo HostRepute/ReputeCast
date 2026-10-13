@@ -1,0 +1,19 @@
+/*
+ * Settings › Senders and Settings › Providers: the boards' own values,
+ * prefixed `sd-` so they never collide with the shared vocabulary.
+ */
+@layer components {
+  /* The senders and domains tables: 11 px rows, every cell on one line. */
+  .sd-tbl td {
+    padding: 11px 12px;
+    white-space: nowrap;
+  }
+
+  /* A key and its value on one line (provider cards). */
+  .sd-kv {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+  }
+}

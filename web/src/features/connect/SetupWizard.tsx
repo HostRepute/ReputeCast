@@ -153,7 +153,7 @@ function SetupScreens({ setupId, step, onStep }: { setupId: string; step?: Setup
         onError: failed("Couldn't save the setup"),
       },
     )
-  const props: StepProps = { setup, go, saveLater, reason }
+  const props: StepProps = { setup, go, saveLater, reason, finished: setup.status === 'finished' }
   return (
     <WizardLayout title={setup.info.title} badge={<StepBadge n={stepNumber[view]} />}>
       <WizardBody current={stepNumber[view]} setup={setup}>

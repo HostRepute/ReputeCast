@@ -14,7 +14,7 @@ type Contacts = Schemas['ConnectContacts']
 const WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six']
 
 /** 7.2 step 6 (SetupContacts): import, pull suppressions, or start empty. */
-export function ContactsStep({ setup, go, reason }: StepProps) {
+export function ContactsStep({ setup, go, reason, finished }: StepProps) {
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/connect/setups/{setupId}/contacts', { params: { path: { workspace: slug, setupId: setup.id } } })
   return (
@@ -25,7 +25,7 @@ export function ContactsStep({ setup, go, reason }: StepProps) {
         }`}
       </StepHeading>
       {q.data ? (
-        <ContactsBody setup={setup} contacts={q.data} go={go} reason={reason} />
+        <ContactsBody setup={setup} contacts={q.data} go={go} reason={reason} finished={finished} />
       ) : q.isError ? (
         <ErrorPanel title="Couldn't load the import options" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
           {errorMessage(q.error)}
@@ -44,7 +44,7 @@ export function ContactsStep({ setup, go, reason }: StepProps) {
   )
 }
 
-function ContactsBody({ setup, contacts: c, go, reason }: { setup: Schemas['ConnectSetup']; contacts: Contacts; go: StepProps['go']; reason?: string }) {
+function ContactsBody({ setup, contacts: c, go, reason, finished }: { setup: Schemas['ConnectSetup']; contacts: Contacts; go: StepProps['go']; reason?: string; finished: boolean }) {
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const a = useSetupActions(slug, setup.id)
@@ -62,7 +62,7 @@ function ContactsBody({ setup, contacts: c, go, reason }: { setup: Schemas['Conn
             type="button"
             className="cn-src"
             onClick={() =>
-              reason
+              reason || finished
                 ? void navigate({ to: '/w/$workspace/import', params: { workspace: slug } })
                 : finish({ startEmpty: false, source: s.key as Schemas['ConnectFinishInput']['source'] }, () => void navigate({ to: '/w/$workspace/import', params: { workspace: slug } }))
             }
@@ -86,7 +86,7 @@ function ContactsBody({ setup, contacts: c, go, reason }: { setup: Schemas['Conn
           </div>
           <span className="text-[13px] text-ink-2">{`Your ${sup.short} account-level suppression list has ${count(sup.total)} ${sup.total === 1 ? 'address' : 'addresses'} from earlier sending. Importing them now means ReputeCast never tries them, on any provider.`}</span>
           <label className="flex items-center gap-2.5 text-[13px]">
-            <input type="checkbox" checked={pull} onChange={(e) => setPull(e.target.checked)} disabled={Boolean(reason)} />
+            <input type="checkbox" checked={pull} onChange={(e) => setPull(e.target.checked)} disabled={Boolean(reason) || finished} />
             {`Import ${count(sup.total)} suppressed ${sup.total === 1 ? 'address' : 'addresses'} from ${sup.short} (bounces ${count(sup.bounces)}, complaints ${count(sup.complaints)})`}
           </label>
         </section>
@@ -115,13 +115,13 @@ function ContactsBody({ setup, contacts: c, go, reason }: { setup: Schemas['Conn
             ))}
           </div>
         ) : null}
-        <Button className="self-start" onClick={() => finish({ startEmpty: true })} loading={a.finish.isPending} disabledReason={reason}>
+        <Button className="self-start" onClick={() => finish({ startEmpty: true })} loading={a.finish.isPending} disabledReason={finished ? 'This setup is finished.' : reason}>
           Start empty and finish
         </Button>
       </section>
 
       <WizardFooter back={<Button onClick={() => go('streams')}>Back</Button>}>
-        <Button variant="primary" className={continueClass} onClick={() => finish({ startEmpty: false })} loading={a.finish.isPending} busyLabel="Finishing…" disabledReason={reason}>
+        <Button variant="primary" className={continueClass} onClick={() => (finished ? go('done') : finish({ startEmpty: false }))} loading={a.finish.isPending} disabledReason={finished ? undefined : reason}>
           Finish setup
         </Button>
       </WizardFooter>

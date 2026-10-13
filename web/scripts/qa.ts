@@ -84,6 +84,14 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
     if (!hit) throw new Error(`no campaign named ${name}`)
     return hit.id
   },
+  // W10: the latest provider setup of an adapter ({setup:ses}).
+  async setup(ctx, adapter) {
+    const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/connect/setups`, { params: { adapter } })
+    const body = (await r.json()) as { items?: { id: string }[] }
+    const hit = body.items?.[0]
+    if (!hit) throw new Error(`no ${adapter} setup`)
+    return hit.id
+  },
 }
 
 async function resolvePath(ctx: BrowserContext, path: string) {

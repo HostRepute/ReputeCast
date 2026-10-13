@@ -1,7 +1,9 @@
+import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { Note } from '@/components/ui/Note'
 import { cn } from '@/lib/cn'
 import { useWorkspace } from '@/lib/session'
 import { failed, useSetupActions, type StepProps } from './parts'
@@ -13,7 +15,7 @@ type Choice = { enabled: boolean; role: View['role']; weight: number }
 const ROLE_WORDS: Record<View['role'], string> = { primary: 'Primary', split: 'Weighted split', fallback: 'Fallback' }
 
 /** 7.2 step 5 (SetupStreams): which streams the provider carries, and in which role. */
-export function StreamsStep({ setup, go, reason }: StepProps) {
+export function StreamsStep({ setup, go, reason, finished }: StepProps) {
   const { slug } = useWorkspace()
   const a = useSetupActions(slug, setup.id)
   const views = setup.streams.streams
@@ -37,9 +39,24 @@ export function StreamsStep({ setup, go, reason }: StepProps) {
       <StepHeading title={`Which streams should ${setup.info.name} carry?`}>
         A stream is a kind of mail. Each one gets its own route, failover policy and configuration set, so a bad campaign never blocks a password reset.
       </StepHeading>
+      {finished ? (
+        <Note tone="neutral">
+          This setup is finished: these are the streams it set up. Routing has its own page now.{' '}
+          <Link to="/w/$workspace/providers/routing" params={{ workspace: slug }}>
+            Open Routing
+          </Link>
+        </Note>
+      ) : null}
       <div className="grid gap-3.5 max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))' }}>
         {views.map((v) => (
-          <StreamCard key={v.stream} view={v} choice={choices[v.stream]!} onChange={(p) => set(v.stream, p)} disabled={Boolean(reason)} short={setup.info.short} />
+          <StreamCard
+            key={v.stream}
+            view={finished ? { ...v, hasRoute: false, current: [] } : v}
+            choice={choices[v.stream]!}
+            onChange={(p) => set(v.stream, p)}
+            disabled={Boolean(reason) || finished}
+            short={setup.info.short}
+          />
         ))}
       </div>
       {setup.streams.tips.length || setup.streams.defaults ? (
@@ -65,10 +82,9 @@ export function StreamsStep({ setup, go, reason }: StepProps) {
         <Button
           variant="primary"
           className={continueClass}
-          onClick={save}
+          onClick={finished ? () => go('contacts') : save}
           loading={a.streams.isPending}
-          busyLabel="Saving…"
-          disabledReason={reason ?? (none ? `Pick at least one stream for ${setup.info.short}.` : undefined)}
+          disabledReason={finished ? undefined : (reason ?? (none ? `Pick at least one stream for ${setup.info.short}.` : undefined))}
         >
           Continue to contacts
         </Button>

@@ -1,4 +1,3 @@
-import { Link } from '@tanstack/react-router'
 import { useId, useMemo, useState } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
@@ -6,15 +5,12 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { DisabledReason } from '@/components/ui/DisabledReason'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { NoResults } from '@/components/ui/NoResults'
-import { Note } from '@/components/ui/Note'
 import { cn } from '@/lib/cn'
 import { deniedReason, useWorkspace } from '@/lib/session'
 import { StepBadge, StepHeading, WizardBody, WizardLayout } from './Wizard'
 
 type Entry = Schemas['ConnectCatalogEntry']
 type Community = Schemas['ConnectCommunityEntry']
-
-const STEP_NAMES: Record<string, string> = { connection: 'connection', domain: 'domain verification', test: 'test send', streams: 'streams', contacts: 'contacts' }
 
 /** 7.2 step 1 (SetupCatalog): every adapter this build can connect. */
 export function CatalogPage() {
@@ -75,7 +71,6 @@ export function CatalogPage() {
           </label>
           {data ? <span className="k ml-auto">{`${data.builtin.length} built-in · ${data.community.length} community`}</span> : null}
         </div>
-        {data?.open.length ? <OpenSetups open={data.open} /> : null}
         {q.isError ? (
           <ErrorPanel title="Couldn't load the providers" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
             {errorMessage(q.error)}
@@ -166,23 +161,6 @@ function CommunityCard({ items, reason }: { items: Community[]; reason?: string 
         ))}
       </div>
     </section>
-  )
-}
-
-function OpenSetups({ open }: { open: Schemas['ConnectOpenSetup'][] }) {
-  const { slug } = useWorkspace()
-  return (
-    <Note tone="info">
-      {open.map((o, i) => (
-        <span key={o.id}>
-          {i > 0 ? ' · ' : null}
-          {`${o.name} isn't finished (${STEP_NAMES[o.step] ?? o.step}). `}
-          <Link to="/w/$workspace/providers/connect/$adapter" params={{ workspace: slug, adapter: o.adapter }} search={{ setup: o.id, step: o.step as never }}>
-            Continue
-          </Link>
-        </span>
-      ))}
-    </Note>
   )
 }
 

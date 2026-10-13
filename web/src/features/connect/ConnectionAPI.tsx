@@ -65,7 +65,6 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
             form="api-key"
             variant={connected ? 'default' : 'primary'}
             loading={a.connect.isPending}
-            busyLabel="Checking…"
             disabledReason={reason ?? (missing ? `Enter the ${missing.label.toLowerCase()} first.` : undefined)}
           >
             {failedKey ? 'Try again' : connected ? 'Check again' : 'Connect'}

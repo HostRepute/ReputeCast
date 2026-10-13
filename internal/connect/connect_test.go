@@ -349,7 +349,7 @@ func TestConnectAPIProvider(t *testing.T) {
 	fakeMu.Lock()
 	last := fakeSent[len(fakeSent)-1]
 	fakeMu.Unlock()
-	if last.From.Address != "digest@news.acme.io" || last.To.Address != "linh@acme.io" || !strings.Contains(last.HTML, "This is a test from") || last.Stream != providers.StreamSystem {
+	if last.From.Address != "digest@news.acme.io" || last.To.Address != "linh@acme.io" || !strings.Contains(last.HTML, "This is a test from") || last.Stream != providers.StreamBroadcast {
 		t.Fatalf("sent: %+v", last)
 	}
 	// The delivery event arrives (here written as the normalizer would).

@@ -15,6 +15,11 @@ export interface StepProps {
   saveLater: () => void
   /** Why the person can't change the setup (providers:manage), if so. */
   reason?: string
+  /**
+   * The setup is finished: its streams and contacts steps show what it did,
+   * and moving on doesn't change routing again (that's on Routing now).
+   */
+  finished: boolean
 }
 
 /** A numbered card of a step: "1. How to grant access". */

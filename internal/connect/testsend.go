@@ -17,7 +17,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/domains"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/providers"
-	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/routing"
@@ -179,7 +178,7 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, rawID strin
 		if sender.ReplyTo != "" && !strings.EqualFold(sender.ReplyTo, sender.Email) {
 			replyTo = &mail.Address{Address: sender.ReplyTo}
 		}
-		msg := providers.Message{ID: id, Stream: providers.StreamSystem, From: mail.Address{Name: sender.Name, Address: sender.Email}, ReplyTo: replyTo,
+		msg := providers.Message{ID: id, Stream: testStream(p), From: mail.Address{Name: sender.Name, Address: sender.Email}, ReplyTo: replyTo,
 			To: mail.Address{Address: to}, Subject: in.Subject, HTML: rendered.HTML, Text: rendered.Text,
 			Headers: map[string]string{"X-ReputeCast-Kind": "test"}, Tags: map[string]string{"rc_kind": "test"}}
 		if _, err := s.Deliver.Send(ctx, p, msg, "test"); err != nil {
@@ -303,7 +302,7 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 	clockMs := func(t time.Time) string { return t.In(loc).Format("15:04:05.000") }
 	queued := m.QueuedAt
 	out.Timeline = append(out.Timeline, ConnectTimelineStep{Key: "queued", Title: "Queued by ReputeCast", Status: "done", At: &queued,
-		Detail: clockMs(queued) + " · message `rc_" + strings.ReplaceAll(m.ID.String(), "-", "")[:8] + "…`"})
+		Detail: clockMs(queued) + " · message rc_" + strings.ReplaceAll(m.ID.String(), "-", "")[:8] + "…"})
 	accepted := ConnectTimelineStep{Key: "accepted", Title: "Accepted by " + p.Name, Status: "waiting", Detail: "Waiting for " + c.Short}
 	switch {
 	case m.Status == "failed":
@@ -319,7 +318,7 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 			Set  string            `json:"configuration_set"`
 		}
 		_ = json.Unmarshal(p.Config, &cfg)
-		if cs := cfg.Sets["system"]; cs != "" {
+		if cs := cfg.Sets[m.Stream]; cs != "" {
 			detail += " · configuration set " + cs
 		} else if cfg.Set != "" {
 			detail += " · configuration set " + cfg.Set
@@ -349,7 +348,10 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 	}
 	sent := ConnectTimelineStep{Key: "sent", Title: "Sent to " + routing.MailboxName(mailbox), Status: "waiting", Detail: "Waiting for the first event from " + c.Short}
 	webhook := state.Connection.Webhook
-	inferred := d.Capabilities.Webhooks == "" || d.Capabilities.Webhooks == "Bounce mailbox" || manage.IsDemo(p)
+	// In development a demo provider's test goes to Mailpit, which records
+	// the delivery itself; the demo's own test message has real events.
+	mailpit := delivered != nil && strings.HasPrefix(delivered.OriginalType, "Delivered to Mailpit")
+	inferred := d.Capabilities.Webhooks == "" || d.Capabilities.Webhooks == "Bounce mailbox" || mailpit
 	if m.SentAt != nil {
 		if first, err := s.Q.ConnectFirstWebhook(ctx, store.ConnectFirstWebhookParams{ProviderID: p.ID, Since: *m.SentAt}); err == nil && !inferred {
 			via := "webhook"
@@ -362,7 +364,7 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 			at := delivered.OccurredAt
 			sent.Status, sent.At = "done", &at
 			if inferred {
-				sent.Detail = clockMs(at) + " · " + smtpVia(p) + " accepted it for delivery"
+				sent.Detail = clockMs(at) + " · " + smtpVia(p, mailpit) + " accepted it for delivery"
 			} else {
 				sent.Detail = clockMs(at) + " · " + c.Short + " event"
 			}
@@ -373,6 +375,12 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 	}
 	out.Timeline = append(out.Timeline, sent)
 	host := mx
+	if delivered != nil {
+		// The receiving server, as the provider reported it.
+		if parts := strings.SplitN(delivered.Diagnostic, " · smtpResponse from ", 2); len(parts) == 2 && parts[1] != "" {
+			host = parts[1]
+		}
+	}
 	if host == "" {
 		host = t.To[strings.LastIndexByte(t.To, '@')+1:]
 	}
@@ -387,10 +395,10 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 			detail += " · `" + code + "`"
 		}
 		del.Detail = detail
-		if manage.IsDemo(p) {
+		if mailpit {
 			del.Title = "Delivered to Mailpit (development)"
 		}
-		out.RoundTrip = roundTrip(at.Sub(queued), d, p)
+		out.RoundTrip = roundTrip(at.Sub(queued), d, mailpit)
 		ms := at.Sub(queued).Milliseconds()
 		if t.RoundTripMs != ms {
 			_ = s.setRoundTrip(ctx, st.ID, ms)
@@ -419,8 +427,17 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 
 func state2Location(tz string) *time.Location { return state.Location(tz) }
 
-func smtpVia(p store.Provider) string {
-	if manage.IsDemo(p) {
+// testStream is the stream a test goes on: Broadcasts, the provider's
+// main use, unless its terms keep it to transactional mail.
+func testStream(p store.Provider) providers.Stream {
+	if state.Caps(p).BulkAllowed() {
+		return providers.StreamBroadcast
+	}
+	return providers.StreamSystem
+}
+
+func smtpVia(p store.Provider, mailpit bool) string {
+	if mailpit {
 		return "Mailpit (development)"
 	}
 	var c struct {
@@ -441,10 +458,10 @@ func shorten(id string) string {
 	return id[:7] + "…" + id[len(id)-4:]
 }
 
-func roundTrip(d time.Duration, desc providers.Descriptor, p store.Provider) string {
+func roundTrip(d time.Duration, desc providers.Descriptor, mailpit bool) string {
 	secs := fmt.Sprintf("%.1f s", d.Seconds())
 	switch {
-	case manage.IsDemo(p):
+	case mailpit:
 		return "Round trip " + secs + " from queue to Mailpit. In development the demo's providers deliver there."
 	case desc.Capabilities.Webhooks == "Bounce mailbox" || desc.Capabilities.Webhooks == "":
 		return "Round trip " + secs + " from queue to the server's 250 reply. Bounces arrive through the bounce mailbox."

@@ -301,7 +301,7 @@ function MailboxCard({ setup, reason, connected }: { setup: Schemas['ConnectSetu
         </label>
       </form>
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" form="smtp-mailbox" loading={a.mailbox.isPending} busyLabel="Testing…" disabledReason={reason ?? (connected ? undefined : 'Test the outgoing server first.')}>
+        <Button type="submit" form="smtp-mailbox" loading={a.mailbox.isPending} disabledReason={reason ?? (connected ? undefined : 'Test the outgoing server first.')}>
           Test mailbox
         </Button>
         {mb ? (

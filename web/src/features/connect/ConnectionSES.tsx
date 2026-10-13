@@ -72,7 +72,7 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
             title="CloudFormation stack (recommended)"
             description="Opens the AWS console with a stack that creates an IAM role with the exact policy below. No long-lived keys. About 2 minutes."
           >
-              <a href={c.template?.launchUrl} className="btn sm mt-2" target="_blank" rel="noopener noreferrer">
+              <a href={c.template?.launchUrl} className="btn sm mt-2 underline decoration-1 underline-offset-2" target="_blank" rel="noopener noreferrer">
                 Launch stack in AWS
               </a>
               {!connected && access === 'role' ? (
@@ -156,7 +156,7 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
               </Note>
             ) : null}
             <Row gap={10}>
-              <Button type="submit" form="ses-access" variant="primary" loading={connecting} busyLabel="Checking…" disabledReason={reason}>
+              <Button type="submit" form="ses-access" variant="primary" loading={connecting} disabledReason={reason}>
                 {err ? 'Try again' : 'Check access'}
               </Button>
               <span className="k">ReputeCast checks the access with read-only calls first (GetAccount), then stores it encrypted.</span>

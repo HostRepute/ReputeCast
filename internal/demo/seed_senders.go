@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/connect"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/domains"
+	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -92,7 +93,9 @@ func seedSendersImpl(ctx context.Context, s *Seeder) error {
 		s.Senders[sn.email] = id
 	}
 	digest, hello, noReply := s.Senders["digest@news.acme.io"], s.Senders["hello@news.acme.io"], s.Senders["no-reply@news.acme.io"]
-	defaults, _ := json.Marshal(map[string]any{"reply_handling": "forward", "reply_to": "hello@acme.io", "tracking_domain": "go.news.acme.io"})
+	// The webhook signing secrets were last rotated in September (Settings › Providers).
+	defaults, _ := json.Marshal(map[string]any{"reply_handling": "forward", "reply_to": "hello@acme.io", "tracking_domain": "go.news.acme.io",
+		"webhook_secrets_rotated_at": s.designDay(25, 10, 4)})
 	if _, err := s.Tx.Exec(ctx, `UPDATE workspaces SET default_sender_id = $2, default_automation_sender_id = $3, default_system_sender_id = $4,
 		sending_defaults = sending_defaults || $5::jsonb, branding = jsonb_set(branding, '{footer_address}', to_jsonb($6::text)) WHERE id = $1`,
 		ws.ID, digest, hello, noReply, defaults, SendersFooterAddress); err != nil {
@@ -209,7 +212,7 @@ func seedSendersSetup(ctx context.Context, s *Seeder) error {
 	queued, sent, event, delivered := at(9, 21, 4, 112), at(9, 21, 4, 380), at(9, 21, 5, 16), at(9, 21, 6, 471)
 	pmid := "010001929f3a8b2e-6c1d0f4e-9a7b-4c3e-b1f2-0d9e8c7b6a5f-000000"
 	if _, err := s.Tx.Exec(ctx, `INSERT INTO messages (id, workspace_id, stream, email, provider_id, provider_message_id, mailbox_provider, status, queued_at, sent_at, delivered_at, kind)
-		VALUES ($1,$2,'system','linh@acme.io',$3,$4,'gmail','delivered',$5,$6,$7,'test')`, msgID, ws.ID, ses, pmid, queued, sent, delivered); err != nil {
+		VALUES ($1,$2,'broadcast','linh@acme.io',$3,$4,'gmail','delivered',$5,$6,$7,'test')`, msgID, ws.ID, ses, pmid, queued, sent, delivered); err != nil {
 		return err
 	}
 	rawID := ID()
@@ -250,8 +253,36 @@ func seedSendersSetup(ctx context.Context, s *Seeder) error {
 	}
 	stateJSON, _ := json.Marshal(state)
 	created, finished := at(9, 12, 30, 0), at(9, 21, 50, 0)
-	_, err := s.Tx.Exec(ctx, `INSERT INTO provider_setups (id, workspace_id, adapter, provider_id, step, status, state, created_by, created_at, updated_at, finished_at)
-		VALUES ($1,$2,'ses',$3,'done','finished',$4,$5,$6,$7,$7)`, ID(), ws.ID, ses, stateJSON, linh.ID, created, finished)
+	if _, err := s.Tx.Exec(ctx, `INSERT INTO provider_setups (id, workspace_id, adapter, provider_id, step, status, state, created_by, created_at, updated_at, finished_at)
+		VALUES ($1,$2,'ses',$3,'done','finished',$4,$5,$6,$7,$7)`, ID(), ws.ID, ses, stateJSON, linh.ID, created, finished); err != nil {
+		return err
+	}
+	return seedSendersMailgunAttempt(ctx, s)
+}
+
+// seedSendersMailgunAttempt is an unfinished Mailgun setup (SetupError):
+// the key was rejected, and the webhook endpoint can't be reached from the
+// internet. Nothing was connected, so no provider exists for it.
+func seedSendersMailgunAttempt(ctx context.Context, s *Seeder) error {
+	if _, ok := providers.Lookup("mailgun"); !ok {
+		return nil
+	}
+	ws := s.WS()
+	token := strings.ReplaceAll(ID().String(), "-", "")[:16]
+	hook := strings.TrimRight(s.Cfg.HTTP.PublicURL, "/") + "/hooks/mailgun/" + token
+	tried := s.Ago(3 * time.Minute)
+	w := &connect.WebhookState{Mode: "webhook", Token: token, URL: hook, SelfTest: connect.Preflight(ctx, hook, tried, false)}
+	if w.SelfTest != nil {
+		w.Registration = &connect.Registration{Status: "skipped", At: tried, Detail: "after the endpoint is reachable"}
+	}
+	st := connect.State{Connection: connect.Connection{
+		Status: "failed", At: &tried, Settings: map[string]string{"region": "us"}, Webhook: w,
+		Error: &connect.StepError{Field: "api_key", Code: "invalid_credentials", Detail: "401 Unauthorized · Forbidden",
+			Message: "Mailgun rejected this key: `401 Unauthorized · Forbidden`. Check that it's a Private API key (not a Sending key or the HTTP webhook signing key) and that it belongs to the region selected below."},
+	}}
+	b, _ := json.Marshal(st)
+	_, err := s.Tx.Exec(ctx, `INSERT INTO provider_setups (id, workspace_id, adapter, step, status, state, created_by, created_at, updated_at)
+		VALUES ($1,$2,'mailgun','connection','open',$3,$4,$5,$6)`, ID(), ws.ID, b, s.Users["linh@acme.io"].ID, s.Ago(6*time.Minute), tried)
 	return err
 }
 
