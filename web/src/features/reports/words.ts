@@ -126,8 +126,9 @@ export function engagementNote(e: Schemas['ReportEngagement'], final: boolean): 
   return `${s}.`
 }
 
+/** "Email preferences" reads "email preferences" mid-sentence; one-word names keep their capital. */
 function lowerFirst(s: string) {
-  return s ? s[0]!.toLowerCase() + s.slice(1) : s
+  return s.includes(' ') ? s[0]!.toLowerCase() + s.slice(1) : s
 }
 
 /** "Links with under 5% of clicks are grouped: “Other” 13% covers 9 links including email preferences and view in browser." */

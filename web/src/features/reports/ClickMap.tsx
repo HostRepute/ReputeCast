@@ -268,7 +268,7 @@ export function ClickMap({ m }: { m: Schemas['ReportClickMap'] }) {
           </Button>
         </div>
       )}
-      {note && !noLinks ? <span className="k">{note}</span> : null}
+      {note && !noLinks && m.available && !table ? <span className="k">{note}</span> : null}
     </section>
   )
 }
