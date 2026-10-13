@@ -359,7 +359,7 @@ function UnreachableAlert({ o }: { o: Overview }) {
   const fallback = o.assets.find((a) => a.fallback)?.fallback
   const fallbackListed = o.assets.reduce((n, a) => n + (a.fallback?.listed ?? 0), 0)
   return (
-    <div role="alert" className="flex items-start gap-3.5 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3.5">
+    <div role="alert" className="flex items-start gap-3.5 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3.5 max-md:flex-wrap">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#B91C1C" strokeWidth="1.8" aria-hidden="true">
         <circle cx="10" cy="10" r="8" />
         <path d="M10 6v5M10 13.5v.5" strokeLinecap="round" />
