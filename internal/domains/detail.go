@@ -2,6 +2,7 @@ package domains
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"time"
 
@@ -83,6 +84,9 @@ func statusText(r Record) string {
 		return "Verified"
 	case StatusWrong:
 		if strings.EqualFold(r.Type, "TXT") {
+			if r.TTL > 0 {
+				return "Pending · old value still cached (TTL " + strconv.FormatUint(uint64(r.TTL), 10) + ")"
+			}
 			return "Pending · old value still cached"
 		}
 		return "Wrong value"

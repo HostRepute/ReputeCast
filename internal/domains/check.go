@@ -177,7 +177,20 @@ func providerWord(s string) string {
 
 // verify checks one record against DNS.
 func (s *Service) verify(ctx context.Context, domain string, r Record) Record {
-	r.Found, r.FoundName = "", ""
+	r = s.verifyRecord(ctx, domain, r)
+	// An old TXT value may still be cached: say for how long.
+	if r.Status == StatusWrong && strings.EqualFold(r.Type, "TXT") {
+		name := r.Name
+		if r.FoundName != "" {
+			name = r.FoundName
+		}
+		r.TTL = s.ttl(ctx, name, r.Type)
+	}
+	return r
+}
+
+func (s *Service) verifyRecord(ctx context.Context, domain string, r Record) Record {
+	r.Found, r.FoundName, r.TTL = "", "", 0
 	switch {
 	case r.Purpose == PurposeDMARC:
 		dm := dnscheck.CheckDMARC(ctx, s.DNS, domain)

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -114,8 +115,22 @@ func TestVerifyRecords(t *testing.T) {
 	s := &Service{DNS: z}
 	ctx := context.Background()
 	spf := s.verify(ctx, "news.example.com", Record{Purpose: PurposeSPF, Type: "TXT", Name: "news.example.com", Mechanisms: []string{"include:amazonses.com"}})
-	if spf.Status != StatusWrong || spf.Value != "v=spf1 include:_spf.google.com include:amazonses.com -all" || spf.Found == "" {
+	if spf.Status != StatusWrong || spf.Value != "v=spf1 include:_spf.google.com include:amazonses.com -all" || spf.Found == "" || spf.TTL != 0 {
 		t.Errorf("domain SPF: %+v", spf)
+	}
+	if got := statusText(spf); got != "Pending · old value still cached" {
+		t.Errorf("status without a TTL: %q", got)
+	}
+	// With a TTL lookup, the old value's TTL says how long it may be cached.
+	s.TTL = func(_ context.Context, name, rrtype string) (time.Duration, error) {
+		if name != "news.example.com" || rrtype != "TXT" {
+			t.Errorf("TTL asked for %s %s", name, rrtype)
+		}
+		return time.Hour, nil
+	}
+	spf = s.verify(ctx, "news.example.com", Record{Purpose: PurposeSPF, Type: "TXT", Name: "news.example.com", Mechanisms: []string{"include:amazonses.com"}})
+	if spf.TTL != 3600 || statusText(spf) != "Pending · old value still cached (TTL 3600)" {
+		t.Errorf("status with a TTL: %+v %q", spf, statusText(spf))
 	}
 	dm := s.verify(ctx, "news.example.com", Record{Purpose: PurposeDMARC, Type: "TXT", Name: "_dmarc.news.example.com", Value: SuggestDMARC("")})
 	if dm.Status != StatusVerified || dm.FoundName != "_dmarc.example.com" || !strings.Contains(dm.Found, "p=reject") {

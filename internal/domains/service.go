@@ -43,6 +43,8 @@ type Service struct {
 	DNS     dnscheck.Resolver
 	// NS returns the nameservers of a zone; nil skips the lookup.
 	NS func(ctx context.Context, name string) ([]string, error)
+	// TTL returns how long resolvers may cache a record set; nil skips it.
+	TTL TTLFunc
 	// TrackingTarget is the host custom tracking domains point to (the
 	// host of the public URL).
 	TrackingTarget func() string

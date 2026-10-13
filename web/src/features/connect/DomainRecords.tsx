@@ -117,7 +117,7 @@ export function DomainRecordsCard({ detail, title }: { detail: DomainDetail; tit
         </thead>
         <tbody>
           {detail.records.map((r) => (
-            <tr key={r.key} className={cn(r.status === 'pending' && 'bg-[#FFFBEB]', (r.status === 'missing' || r.status === 'wrong_value') && 'bg-bad-tint')}>
+            <tr key={r.key} className={cn((r.status === 'pending' || stale(r)) && 'bg-[#FFFBEB]', (r.status === 'missing' || (r.status === 'wrong_value' && !stale(r))) && 'bg-bad-tint')}>
               <td className="font-semibold">
                 {r.label}
                 {r.note ? <div className="k">{r.note}</div> : null}
@@ -128,7 +128,11 @@ export function DomainRecordsCard({ detail, title }: { detail: DomainDetail; tit
               </td>
               <td>
                 <span className="cn-val">{r.value}</span>
-                {r.status === 'wrong_value' && r.found ? <div className="k mt-1">Found: <span className="mono">{r.found}</span></div> : null}
+                {r.status === 'wrong_value' && r.found && !stale(r) ? (
+                  <div className="k mt-1">
+                    Found: <span className="mono">{r.found}</span>
+                  </div>
+                ) : null}
               </td>
               <td>
                 <RecordBadge record={r} />
@@ -153,7 +157,24 @@ export function DomainRecordsCard({ detail, title }: { detail: DomainDetail; tit
   )
 }
 
+/**
+ * A TXT record that still shows its old value (the SPF merge, a DMARC
+ * change): resolvers serve the cached value until its TTL runs out, so it
+ * is pending, not wrong.
+ */
+function stale(r: DomainRecord) {
+  return r.status === 'wrong_value' && r.type.toUpperCase() === 'TXT'
+}
+
 function RecordBadge({ record: r }: { record: DomainRecord }) {
+  if (stale(r)) {
+    return (
+      <Badge tone="warn">
+        <span className="spin sm" style={{ borderTopColor: '#92400E' }} aria-hidden="true" />
+        {r.statusText || 'Pending'}
+      </Badge>
+    )
+  }
   switch (r.status) {
     case 'verified':
       return <Badge tone="ok">{r.statusText || 'Verified'}</Badge>

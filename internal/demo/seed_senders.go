@@ -297,7 +297,7 @@ func SendersDomainService(tx store.DBTX, publicURL string) *domains.Service {
 	target := TrackingTarget(publicURL)
 	z, owned := DeliverabilityDNSZone()
 	r := SendersDNSOverlay(dnscheck.Overlay(z, owned, dnscheck.NewZone()), target)
-	return &domains.Service{Q: store.New(tx), DNS: r, NS: SendersNS(nil), TrackingTarget: func() string { return target }}
+	return &domains.Service{Q: store.New(tx), DNS: r, NS: SendersNS(nil), TTL: SendersTTL(nil), TrackingTarget: func() string { return target }}
 }
 
 // TrackingTarget is the host custom tracking domains point to: the host of
@@ -325,6 +325,21 @@ func SendersDNSOverlay(r dnscheck.Resolver, trackingTarget string) dnscheck.Reso
 		z.Add("go.news.acme.io", "CNAME", trackingTarget)
 	}
 	return dnscheck.Overlay(z, nil, r)
+}
+
+// SendersTTL answers the demo zone's TTL (an hour, as the sample records
+// say) for acme.io names and asks next for everything else.
+func SendersTTL(next domains.TTLFunc) domains.TTLFunc {
+	return func(ctx context.Context, name, rrtype string) (time.Duration, error) {
+		n := strings.ToLower(strings.TrimSuffix(name, "."))
+		if n == "acme.io" || strings.HasSuffix(n, ".acme.io") {
+			return time.Hour, nil
+		}
+		if next == nil {
+			return 0, errors.New("no TTL lookup")
+		}
+		return next(ctx, name, rrtype)
+	}
 }
 
 // SendersNS answers the demo zone's nameservers (acme.io and its

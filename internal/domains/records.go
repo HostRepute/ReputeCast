@@ -29,6 +29,9 @@ type Record struct {
 	// the published policy, at FoundName when inherited).
 	Found     string `json:"found,omitempty"`
 	FoundName string `json:"found_name,omitempty"`
+	// TTL is how long resolvers may still serve the found TXT value, in
+	// seconds, while it differs from Value (0 when unknown).
+	TTL uint32 `json:"ttl,omitempty"`
 	// ProviderStatus is the provider's own verdict when its API reports one.
 	ProviderStatus string `json:"provider_status,omitempty"`
 	// Source says who asked for the record: "provider" (its domain API) or
