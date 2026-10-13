@@ -43,10 +43,12 @@ export function AccountPage({ verifyEmail }: { verifyEmail?: string }) {
       ) : (
         <Grid min={420} gap={20} className="items-start">
           <ProfileCard a={a} />
-          {a.password.ssoOnly ? null : <PasswordCard a={a} />}
+          {/* SSO-only members have no Password card: their sign-in card (which
+              explains SSO) takes its place beside the profile. */}
+          {a.password.ssoOnly ? <ConnectedSignInsCard a={a} /> : <PasswordCard a={a} />}
           <PasskeysCard a={a} />
           {a.password.set || a.twoFactor.totp ? <AuthenticatorCard a={a} /> : null}
-          <ConnectedSignInsCard a={a} />
+          {a.password.ssoOnly ? null : <ConnectedSignInsCard a={a} />}
           <SessionsCard policy={a.sessionPolicy} />
           <WorkspacesCard a={a} />
           <NotificationPreferencesCard a={a} />

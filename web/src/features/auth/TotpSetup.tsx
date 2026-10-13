@@ -6,6 +6,14 @@ import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
 
+/** "ABCD EFGH IJKL MNOP QRST UVWX YZ23 4567" as two lines of four groups. */
+function keyLines(secret: string): string[] {
+  const groups = secret.trim().split(/\s+/)
+  if (groups.length <= 4) return [groups.join(' ')]
+  const half = Math.ceil(groups.length / 2)
+  return [groups.slice(0, half).join(' '), groups.slice(half).join(' ')]
+}
+
 /** The otpauth:// URL as a QR code, drawn as one SVG path. */
 export function QrCode({ value, size = 132, label }: { value: string; size?: number; label: string }) {
   const path = useMemo(() => {
@@ -106,8 +114,16 @@ export function TotpSetupForm({
         </div>
         <div className="col" style={{ gap: 8, flex: '1 1 220px' }}>
           <span className="text-[13.5px]">Scan with 1Password, Google Authenticator, Authy or any TOTP app. Can't scan? Enter the key by hand:</span>
-          <div className="row" style={{ gap: 8 }}>
-            <span className="mono rounded-lg border border-dashed border-muted-line px-2.5 py-2 text-[14px] tracking-[.06em]">{setup ? setup.secret : '•••• •••• •••• ••••'}</span>
+          {/* A 160-bit key is eight groups: two lines of four keep Copy beside
+              the box, as on the board's one-line key. */}
+          <div className="row flex-nowrap" style={{ gap: 8 }}>
+            <span className="mono min-w-0 rounded-lg border border-dashed border-muted-line px-2.5 py-2 text-[14px] tracking-[.06em]">
+              {keyLines(setup ? setup.secret : '•••• •••• •••• ••••').map((line, i) => (
+                <span key={i} className="block whitespace-nowrap">
+                  {line}
+                </span>
+              ))}
+            </span>
             <Button
               size="sm"
               disabled={!setup}
