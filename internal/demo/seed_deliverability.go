@@ -19,11 +19,14 @@ func init() { seedDeliverability = seedDeliverabilityImpl }
 // The sample sending setup's DNS (spec §6): SPF, DKIM and DMARC
 // p=quarantine aligned on every provider, custom return paths, and the
 // Postal IP 203.0.113.25 with forward-confirmed reverse DNS mta.acme.io.
+// The DKIM names are the boards': SES's three Easy DKIM tokens (SetupDomain,
+// SendReadiness), Postmark's pm-2026 and Postal's postal-2026 selectors
+// (ProvidersRouting, SendReadiness).
 var (
-	deliverabilitySESDKIMTokens = []string{"4fpa3xq7utjl2kdrmw5a3zvyxnoqbe2h", "w6c2fzl3ryq7h4dk5xg2qkzv7m3jp4xa", "kd7a2hx9pq3mzl4w5vbn8rt6yc2ej7fs"}
+	deliverabilitySESDKIMTokens = []string{"7kq2n3x", "p9m4ab2", "z1c8e7h"}
 	deliverabilityDemoKey       = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA" + strings.Repeat("u3Zq8xN2pL7vR4kT9wY6bH1mC5", 13) + "IDAQAB"
-	deliverabilityPostmarkSel   = "20260807pm"
-	deliverabilityPostalSel     = "postal-x7kq2"
+	deliverabilityPostmarkSel   = "pm-2026"
+	deliverabilityPostalSel     = "postal-2026"
 )
 
 // deliverabilityDemoRecords are the records each provider requires for news.acme.io.
@@ -74,6 +77,7 @@ func DeliverabilityDNSZone() (*dnscheck.Zone, []string) {
 	}
 	z.Add(deliverabilityPostmarkSel+"._domainkey.news.acme.io", "TXT", "k=rsa; p="+deliverabilityDemoKey)
 	z.Add(deliverabilityPostalSel+"._domainkey.news.acme.io", "TXT", "v=DKIM1; t=s; h=sha256; p="+deliverabilityDemoKey)
+	sendersDemoZone(z) // the other sending domains' records (seed_senders.go)
 	owned := []string{"acme.io"}
 	for _, l := range dnscheck.Builtin {
 		for _, a := range []string{"news.acme.io", "203.0.113.25"} {

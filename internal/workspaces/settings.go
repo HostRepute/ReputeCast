@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/notify"
+	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -211,9 +212,17 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			out.Reason += " Ask " + access.OrList(out.Helpers) + "."
 		}
 	}
-	provs, err := s.Q.WsProviderNames(ctx, ws.ID)
+	active, err := s.Q.ProvListActive(ctx, ws.ID)
 	if err != nil {
 		return out, err
+	}
+	// The default sender is for campaigns: "verified on" names the providers
+	// that can send them (not a transactional-only stream).
+	provs := []store.Provider{}
+	for _, pr := range active {
+		if provstate.Caps(pr).BulkAllowed() {
+			provs = append(provs, pr)
+		}
 	}
 	pname := map[string]string{}
 	for _, pr := range provs {

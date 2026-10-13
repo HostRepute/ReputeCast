@@ -207,6 +207,30 @@ type Querier interface {
 	// The MJML of recent versions, newest first (to find when a section was removed).
 	ComposerVersionSources(ctx context.Context, arg ComposerVersionSourcesParams) ([]ComposerVersionSourcesRow, error)
 	ConfirmInstanceBasics(ctx context.Context) error
+	ConnectActiveContacts(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	ConnectCreateList(ctx context.Context, arg ConnectCreateListParams) error
+	// The first webhook payload about a message (its provider message id is in
+	// the body) a provider sent in a window after the send: the test send's
+	// "event came back" step, with the body to name the event.
+	ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebhookParams) (ConnectFirstWebhookRow, error)
+	ConnectInsertProvider(ctx context.Context, arg ConnectInsertProviderParams) (Provider, error)
+	ConnectListNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	ConnectMessage(ctx context.Context, arg ConnectMessageParams) (Message, error)
+	ConnectMessageEvents(ctx context.Context, messageID *uuid.UUID) ([]DeliveryEvent, error)
+	ConnectProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	// Whether any routing rule of the workspace uses the provider.
+	ConnectProviderRouted(ctx context.Context, arg ConnectProviderRoutedParams) (bool, error)
+	// Connected providers whose webhooks are authenticated with a secret.
+	ConnectProvidersWithSecrets(ctx context.Context, workspaceID uuid.UUID) ([]Provider, error)
+	// Other connections of an adapter on this instance (resource-name clashes
+	// when two workspaces share one provider account).
+	ConnectSameAdapter(ctx context.Context, arg ConnectSameAdapterParams) ([]ConnectSameAdapterRow, error)
+	ConnectSetProviderConfig(ctx context.Context, arg ConnectSetProviderConfigParams) error
+	ConnectSetSendThresholds(ctx context.Context, arg ConnectSetSendThresholdsParams) error
+	ConnectSetWebhookSecret(ctx context.Context, arg ConnectSetWebhookSecretParams) error
+	ConnectSuppressionSyncMode(ctx context.Context, arg ConnectSuppressionSyncModeParams) error
+	// Settings and credentials from a repeated connection step (new key, other region).
+	ConnectUpdateProvider(ctx context.Context, arg ConnectUpdateProviderParams) (Provider, error)
 	ConsumeEmailChange(ctx context.Context, arg ConsumeEmailChangeParams) (EmailChange, error)
 	// A state is single use: reading it deletes it.
 	ConsumeHostReputeOAuthState(ctx context.Context, stateHash []byte) (HostreputeOauthState, error)
@@ -293,6 +317,26 @@ type Querier interface {
 	DeliverabilityWarmupPlans(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityWarmupPlansRow, error)
 	// Workspaces the daily checks look at: they send through something.
 	DeliverabilityWorkspaces(ctx context.Context) ([]uuid.UUID, error)
+	DomCreate(ctx context.Context, arg DomCreateParams) (SendingDomain, error)
+	// Where HostRepute collects DMARC aggregate reports for this workspace (rua=).
+	DomDMARCReports(ctx context.Context, workspaceID uuid.UUID) (string, error)
+	DomDelete(ctx context.Context, id uuid.UUID) error
+	// Sending domains whose DNS was last checked before a time (the periodic
+	// re-verification job), oldest first.
+	DomDue(ctx context.Context, arg DomDueParams) ([]uuid.UUID, error)
+	DomGet(ctx context.Context, arg DomGetParams) (SendingDomain, error)
+	DomGetAny(ctx context.Context, id uuid.UUID) (SendingDomain, error)
+	DomGetByName(ctx context.Context, arg DomGetByNameParams) (SendingDomain, error)
+	// W10 · Sending domains and sender identities (Settings › Senders, the
+	// domain step of Connect a sending provider, system mail). Query names start
+	// with Dom or Sender so they never collide with other domains.
+	DomList(ctx context.Context, workspaceID uuid.UUID) ([]SendingDomain, error)
+	// The result of a live DNS check: every record's status, the authentication
+	// summary and detail, the tracking domain and where the zone is hosted.
+	DomSaveCheck(ctx context.Context, arg DomSaveCheckParams) error
+	DomUpdateNote(ctx context.Context, arg DomUpdateNoteParams) error
+	DomUpdateRecords(ctx context.Context, arg DomUpdateRecordsParams) error
+	DomUpdateTracking(ctx context.Context, arg DomUpdateTrackingParams) error
 	EmailTaken(ctx context.Context, arg EmailTakenParams) (bool, error)
 	EmailTemplateNameTaken(ctx context.Context, arg EmailTemplateNameTakenParams) (bool, error)
 	// Must run inside the same transaction as PurgeAuditEvents (retention job only).
@@ -1028,6 +1072,22 @@ type Querier interface {
 	// 30-day sums per list or followed view.
 	ScopeTotalsSince(ctx context.Context, arg ScopeTotalsSinceParams) ([]ScopeTotalsSinceRow, error)
 	SegmentMemberIDs(ctx context.Context, segmentID uuid.UUID) ([]uuid.UUID, error)
+	// Campaigns that are not sent yet and use the sender (deleting it clears them).
+	SenderCampaignCount(ctx context.Context, senderID *uuid.UUID) (int64, error)
+	SenderCreate(ctx context.Context, arg SenderCreateParams) (Sender, error)
+	SenderDelete(ctx context.Context, id uuid.UUID) error
+	SenderGet(ctx context.Context, arg SenderGetParams) (SenderGetRow, error)
+	SenderGetByEmail(ctx context.Context, arg SenderGetByEmailParams) (SenderGetByEmailRow, error)
+	SenderList(ctx context.Context, workspaceID uuid.UUID) ([]SenderListRow, error)
+	SenderListByDomain(ctx context.Context, domainID uuid.UUID) ([]Sender, error)
+	// The publisher's postal address (branding.footer_address), shown in email
+	// footers and on public pages.
+	SenderSetFooterAddress(ctx context.Context, arg SenderSetFooterAddressParams) error
+	SenderSetSendingDefaults(ctx context.Context, arg SenderSetSendingDefaultsParams) error
+	SenderSetStreamDefaults(ctx context.Context, arg SenderSetStreamDefaultsParams) error
+	SenderSetVerification(ctx context.Context, arg SenderSetVerificationParams) error
+	SenderUpdate(ctx context.Context, arg SenderUpdateParams) error
+	SenderWorkspaceDefaults(ctx context.Context, id uuid.UUID) (SenderWorkspaceDefaultsRow, error)
 	// Restarts the idle clock now (the middleware only touches sessions every
 	// 30 seconds). The absolute lifetime (expires_at) never moves.
 	SessionExtRestartIdle(ctx context.Context, arg SessionExtRestartIdleParams) (SessionExtRestartIdleRow, error)
@@ -1070,6 +1130,19 @@ type Querier interface {
 	// Account & security, passkeys, password resets, email changes, invitations
 	// (accept side) and the first sign-in. Owned by internal/accounts.
 	SetUserWebAuthnID(ctx context.Context, arg SetUserWebAuthnIDParams) error
+	// The latest setup that connected a provider.
+	SetupByProvider(ctx context.Context, providerID *uuid.UUID) (ProviderSetup, error)
+	// W10 · Connect a sending provider (the setup wizard), Settings › Providers
+	// and the system mailer. Query names start with Setup, Connect or Sysmail.
+	SetupCreate(ctx context.Context, arg SetupCreateParams) (ProviderSetup, error)
+	SetupGet(ctx context.Context, arg SetupGetParams) (ProviderSetup, error)
+	SetupGetAny(ctx context.Context, id uuid.UUID) (ProviderSetup, error)
+	// A workspace's setups, newest first, optionally of one adapter or status.
+	SetupList(ctx context.Context, arg SetupListParams) ([]ProviderSetup, error)
+	SetupLock(ctx context.Context, id uuid.UUID) (ProviderSetup, error)
+	// Unfinished setups of a workspace, newest first (resume "Connect SES").
+	SetupOpen(ctx context.Context, arg SetupOpenParams) ([]ProviderSetup, error)
+	SetupSave(ctx context.Context, arg SetupSaveParams) (ProviderSetup, error)
 	// Unsubscribes block Broadcasts and Automations; System mail (password
 	// resets, receipts) still reaches the contact.
 	SignupAddUnsubscribe(ctx context.Context, arg SignupAddUnsubscribeParams) error
@@ -1140,6 +1213,16 @@ type Querier interface {
 	// the providers domain) and, for providers without a suppression API, the
 	// addresses their bounce and complaint events added to the shared list.
 	SuppressionSyncStates(ctx context.Context, workspaceID uuid.UUID) ([]SuppressionSyncStatesRow, error)
+	// A message the system mailer or a setup's test sends (stream system, or
+	// the stream a test goes on).
+	SysmailInsertMessage(ctx context.Context, arg SysmailInsertMessageParams) error
+	SysmailMarkSent(ctx context.Context, arg SysmailMarkSentParams) error
+	// Every workspace, oldest first (instance-level mail falls back to the
+	// first workspace with a System route).
+	SysmailWorkspaces(ctx context.Context) ([]uuid.UUID, error)
+	// The workspaces of the person a message without a workspace goes to,
+	// oldest membership first.
+	SysmailWorkspacesForEmail(ctx context.Context, email string) ([]uuid.UUID, error)
 	// The provider of the default System-stream route of a workspace (read-only
 	// view of the routing domain, for "emails go out … via Postmark").
 	SystemStreamProviderName(ctx context.Context, workspaceID uuid.UUID) (string, error)

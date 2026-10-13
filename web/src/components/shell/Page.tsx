@@ -23,6 +23,7 @@ export function Page({
   children,
   contentClassName,
   breadcrumb,
+  toolsAfterTabs,
 }: {
   title: string
   /** Overrides the browser tab title (defaults to the title). */
@@ -41,6 +42,11 @@ export function Page({
    * Park"); the h1 stays for screen readers. The last crumb has no link.
    */
   breadcrumb?: Crumb[]
+  /**
+   * Put the actions, bell and user menu on their own row after the section
+   * tabs (Settings › Senders, where a badge takes the end of the title row).
+   */
+  toolsAfterTabs?: boolean
 }) {
   const ws = useOptionalWorkspace()
   useDocumentTitle(`${documentTitle ?? title}${ws ? ` · ${ws.me.workspace.name}` : ''} · ReputeCast`)
@@ -52,6 +58,15 @@ export function Page({
       h1.current?.focus({ preventScroll: true })
     }
   }, [title])
+  const acts = (
+    <div className="acts">
+      {actions}
+      <div className="tools">
+        <NotificationBell />
+        <UserMenu />
+      </div>
+    </div>
+  )
   return (
     <>
       <header className="top">
@@ -77,14 +92,9 @@ export function Page({
         {subtitle ? <span className="k">{subtitle}</span> : null}
         {badges}
         {filters}
-        <div className="acts">
-          {actions}
-          <div className="tools">
-            <NotificationBell />
-            <UserMenu />
-          </div>
-        </div>
+        {toolsAfterTabs ? null : acts}
         {tabs ? <NavTabs tabs={tabs} label={tabsLabel} className="sections" /> : null}
+        {toolsAfterTabs ? acts : null}
       </header>
       <main className={cn('content', contentClassName)} id="main" tabIndex={-1}>
         {children}

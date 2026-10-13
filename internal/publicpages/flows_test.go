@@ -44,14 +44,12 @@ func signUp(t *testing.T, env *apptest.Env, ids demoIDs, email string) resp {
 	}, hdr{"Origin": env.Server.URL})
 }
 
-// While nothing can send System mail (App.Mail is mailer.Unavailable until a
-// provider handles the System stream), double opt-in signups wait and the
+// While nothing can send System mail (App.Mail is mailer.Unavailable when no
+// provider can handle the System stream), double opt-in signups wait and the
 // builder hands out their links to send by hand, each one logged.
 func TestConfirmationLinksWithoutSystemMail(t *testing.T) {
 	env, ids := demo(t)
-	if _, ok := env.App.Mail.(mailer.Unavailable); !ok {
-		t.Fatalf("App.Mail is %T, want mailer.Unavailable", env.App.Mail)
-	}
+	env.App.Mail = mailer.Unavailable{}
 	must(t, signUp(t, env, ids, "lee.wong@fastmail.com"), 200, "Check your inbox", "lee.wong@fastmail.com")
 	lee, ok := contactID(t, env, ids.ws, "lee.wong@fastmail.com")
 	if !ok {

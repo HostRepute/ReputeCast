@@ -49,6 +49,10 @@ const parallel = 10
 type Settings struct {
 	Region           string `json:"region"`
 	ConfigurationSet string `json:"configuration_set,omitempty"`
+	// ConfigurationSets names a configuration set per stream ("broadcast",
+	// "automation", "system"), as provisioned by the connect flow; streams
+	// without one use ConfigurationSet.
+	ConfigurationSets map[string]string `json:"configuration_sets,omitempty"`
 	// Access is "keys" (access key in the credentials) or "role" (assume
 	// RoleARN with ExternalID from the instance's own AWS credentials, as
 	// set up by the CloudFormation template).
@@ -113,6 +117,9 @@ type Provider struct {
 	s      Settings
 	client *sesv2.Client
 	http   *http.Client
+	// aws is the resolved SDK configuration, reused by provisioning (SNS)
+	// and region scans (provision.go).
+	aws aws.Config
 }
 
 var _ providers.Provider = (*Provider)(nil)
@@ -156,6 +163,7 @@ func New(cfg providers.Config) (providers.Provider, error) {
 	default:
 		return nil, errors.New("ses: access keys or a role are required")
 	}
+	p.aws = awsCfg
 	p.client = sesv2.NewFromConfig(awsCfg, func(o *sesv2.Options) {
 		if p.s.Endpoint != "" {
 			o.BaseEndpoint = aws.String(p.s.Endpoint)
@@ -243,8 +251,8 @@ func (p *Provider) sendOne(ctx context.Context, m providers.Message) (providers.
 			in.EmailTags = append(in.EmailTags, types.MessageTag{Name: aws.String(k), Value: aws.String(v)})
 		}
 	}
-	if p.s.ConfigurationSet != "" {
-		in.ConfigurationSetName = aws.String(p.s.ConfigurationSet)
+	if cs := p.configurationSet(m.Stream); cs != "" {
+		in.ConfigurationSetName = aws.String(cs)
 	}
 	out, err := p.client.SendEmail(ctx, in)
 	if err != nil {
