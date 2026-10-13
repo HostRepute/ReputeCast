@@ -304,7 +304,7 @@ func (q *Queries) GetAvatar(ctx context.Context, userID uuid.UUID) (UserAvatar, 
 }
 
 const getInvitationView = `-- name: GetInvitationView :one
-SELECT i.id, i.workspace_id, i.email, i.role_id, i.scope, i.message, i.token_hash, i.invited_by, i.sent_via, i.last_sent_at, i.created_at, i.expires_at, i.accepted_at, i.accepted_by, i.revoked_at, i.reinvite_requested_at, r.name AS role_name, r.key AS role_key, r.builtin AS role_builtin, r.permissions AS role_permissions,
+SELECT i.id, i.workspace_id, i.email, i.role_id, i.scope, i.message, i.token_hash, i.invited_by, i.sent_via, i.last_sent_at, i.created_at, i.expires_at, i.accepted_at, i.accepted_by, i.revoked_at, i.token_enc, i.expires_days, i.reinvite_requested_at, r.name AS role_name, r.key AS role_key, r.builtin AS role_builtin, r.permissions AS role_permissions,
        w.name AS workspace_name, w.slug AS workspace_slug, w.approval_policy AS workspace_approval_policy,
        coalesce(u.name, '')::text AS invited_by_name, coalesce(u.email, '')::text AS invited_by_email,
        coalesce(u.status, '')::text AS invited_by_status
@@ -331,6 +331,8 @@ type GetInvitationViewRow struct {
 	AcceptedAt              *time.Time      `json:"acceptedAt"`
 	AcceptedBy              *uuid.UUID      `json:"acceptedBy"`
 	RevokedAt               *time.Time      `json:"revokedAt"`
+	TokenEnc                []byte          `json:"tokenEnc"`
+	ExpiresDays             int32           `json:"expiresDays"`
 	ReinviteRequestedAt     *time.Time      `json:"reinviteRequestedAt"`
 	RoleName                string          `json:"roleName"`
 	RoleKey                 string          `json:"roleKey"`
@@ -363,6 +365,8 @@ func (q *Queries) GetInvitationView(ctx context.Context, tokenHash []byte) (GetI
 		&i.AcceptedAt,
 		&i.AcceptedBy,
 		&i.RevokedAt,
+		&i.TokenEnc,
+		&i.ExpiresDays,
 		&i.ReinviteRequestedAt,
 		&i.RoleName,
 		&i.RoleKey,

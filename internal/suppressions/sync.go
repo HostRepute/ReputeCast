@@ -232,8 +232,7 @@ func (s *Service) SyncProvider(ctx context.Context, p store.Provider) error {
 }
 
 func (s *Service) save(ctx context.Context, r store.ProviderSuppressionSync) error {
-	return s.Q.SuppSyncUpsert(ctx, store.SuppSyncUpsertParams{ProviderID: r.ProviderID, Mode: r.Mode, LastPushAt: r.LastPushAt, LastPullAt: r.LastPullAt,
-		Pushed: r.Pushed, Pulled: r.Pulled, Pending: r.Pending, Status: r.Status, StatusDetail: r.StatusDetail})
+	return s.Q.SuppSyncUpsert(ctx, store.SuppSyncUpsertParams(r))
 }
 
 // SuppressionSyncRow is one provider in "Shared suppression list sync".

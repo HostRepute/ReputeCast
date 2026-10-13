@@ -13,22 +13,35 @@ import (
 )
 
 type ApiKey struct {
-	ID          uuid.UUID       `json:"id"`
-	WorkspaceID uuid.UUID       `json:"workspaceId"`
-	Kind        string          `json:"kind"`
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	Prefix      string          `json:"prefix"`
-	TokenHash   []byte          `json:"tokenHash"`
-	Permissions []string        `json:"permissions"`
-	Scope       json.RawMessage `json:"scope"`
-	CreatedBy   *uuid.UUID      `json:"createdBy"`
-	CreatedAt   time.Time       `json:"createdAt"`
-	ExpiresAt   *time.Time      `json:"expiresAt"`
-	LastUsedAt  *time.Time      `json:"lastUsedAt"`
-	LastUsedIp  *netip.Addr     `json:"lastUsedIp"`
-	RevokedAt   *time.Time      `json:"revokedAt"`
-	RotatedFrom *uuid.UUID      `json:"rotatedFrom"`
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	Kind           string          `json:"kind"`
+	Name           string          `json:"name"`
+	Description    string          `json:"description"`
+	Prefix         string          `json:"prefix"`
+	TokenHash      []byte          `json:"tokenHash"`
+	Permissions    []string        `json:"permissions"`
+	Scope          json.RawMessage `json:"scope"`
+	CreatedBy      *uuid.UUID      `json:"createdBy"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	ExpiresAt      *time.Time      `json:"expiresAt"`
+	LastUsedAt     *time.Time      `json:"lastUsedAt"`
+	LastUsedIp     *netip.Addr     `json:"lastUsedIp"`
+	RevokedAt      *time.Time      `json:"revokedAt"`
+	RotatedFrom    *uuid.UUID      `json:"rotatedFrom"`
+	LastUsedClient string          `json:"lastUsedClient"`
+	LastCall       string          `json:"lastCall"`
+}
+
+type ApiKeyRejection struct {
+	ApiKeyID uuid.UUID `json:"apiKeyId"`
+	Day      time.Time `json:"day"`
+	Ip       string    `json:"ip"`
+	Client   string    `json:"client"`
+	Reason   string    `json:"reason"`
+	Calls    int32     `json:"calls"`
+	FirstAt  time.Time `json:"firstAt"`
+	LastAt   time.Time `json:"lastAt"`
 }
 
 type ApprovalComment struct {
@@ -101,48 +114,122 @@ type AuthChallenge struct {
 }
 
 type Automation struct {
+	ID            uuid.UUID       `json:"id"`
+	WorkspaceID   uuid.UUID       `json:"workspaceId"`
+	Name          string          `json:"name"`
+	Description   string          `json:"description"`
+	Status        string          `json:"status"`
+	TemplateKey   string          `json:"templateKey"`
+	LiveVersion   *int32          `json:"liveVersion"`
+	DraftVersion  int32           `json:"draftVersion"`
+	Trigger       json.RawMessage `json:"trigger"`
+	CreatedBy     *uuid.UUID      `json:"createdBy"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	UpdatedAt     time.Time       `json:"updatedAt"`
+	DeletedAt     *time.Time      `json:"deletedAt"`
+	PausedAt      *time.Time      `json:"pausedAt"`
+	PausedBy      *uuid.UUID      `json:"pausedBy"`
+	PauseReason   string          `json:"pauseReason"`
+	DraftRevision int64           `json:"draftRevision"`
+	UpdatedBy     *uuid.UUID      `json:"updatedBy"`
+}
+
+type AutomationAlert struct {
 	ID           uuid.UUID       `json:"id"`
-	WorkspaceID  uuid.UUID       `json:"workspaceId"`
-	Name         string          `json:"name"`
-	Description  string          `json:"description"`
-	Status       string          `json:"status"`
-	TemplateKey  string          `json:"templateKey"`
-	LiveVersion  *int32          `json:"liveVersion"`
-	DraftVersion int32           `json:"draftVersion"`
-	Trigger      json.RawMessage `json:"trigger"`
-	CreatedBy    *uuid.UUID      `json:"createdBy"`
-	CreatedAt    time.Time       `json:"createdAt"`
-	UpdatedAt    time.Time       `json:"updatedAt"`
-	DeletedAt    *time.Time      `json:"deletedAt"`
+	AutomationID uuid.UUID       `json:"automationId"`
+	Kind         string          `json:"kind"`
+	NodeID       string          `json:"nodeId"`
+	Detail       json.RawMessage `json:"detail"`
+	Failures     int64           `json:"failures"`
+	FirstAt      time.Time       `json:"firstAt"`
+	LastAt       time.Time       `json:"lastAt"`
+	ResolvedAt   *time.Time      `json:"resolvedAt"`
+}
+
+type AutomationEmail struct {
+	ID            uuid.UUID  `json:"id"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	AutomationID  *uuid.UUID `json:"automationId"`
+	Name          string     `json:"name"`
+	LatestVersion int32      `json:"latestVersion"`
+	CreatedBy     *uuid.UUID `json:"createdBy"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
+	DeletedAt     *time.Time `json:"deletedAt"`
+}
+
+type AutomationEmailVersion struct {
+	EmailID   uuid.UUID  `json:"emailId"`
+	Version   int32      `json:"version"`
+	Subject   string     `json:"subject"`
+	Preheader string     `json:"preheader"`
+	Mjml      string     `json:"mjml"`
+	Html      string     `json:"html"`
+	PlainText string     `json:"plainText"`
+	CreatedBy *uuid.UUID `json:"createdBy"`
+	CreatedAt time.Time  `json:"createdAt"`
+}
+
+type AutomationEvent struct {
+	ID          int64           `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Kind        string          `json:"kind"`
+	ContactID   uuid.UUID       `json:"contactId"`
+	Ref         string          `json:"ref"`
+	Payload     json.RawMessage `json:"payload"`
+	OccurredAt  time.Time       `json:"occurredAt"`
+	ProcessedAt *time.Time      `json:"processedAt"`
+	Enrolled    int32           `json:"enrolled"`
 }
 
 type AutomationRun struct {
-	ID           uuid.UUID       `json:"id"`
-	AutomationID uuid.UUID       `json:"automationId"`
-	Version      int32           `json:"version"`
-	ContactID    uuid.UUID       `json:"contactId"`
-	NodeID       string          `json:"nodeId"`
-	Status       string          `json:"status"`
-	State        json.RawMessage `json:"state"`
-	EnteredAt    time.Time       `json:"enteredAt"`
-	NextAt       *time.Time      `json:"nextAt"`
-	FinishedAt   *time.Time      `json:"finishedAt"`
+	ID            uuid.UUID       `json:"id"`
+	AutomationID  uuid.UUID       `json:"automationId"`
+	Version       int32           `json:"version"`
+	ContactID     uuid.UUID       `json:"contactId"`
+	NodeID        string          `json:"nodeId"`
+	Status        string          `json:"status"`
+	State         json.RawMessage `json:"state"`
+	EnteredAt     time.Time       `json:"enteredAt"`
+	NextAt        *time.Time      `json:"nextAt"`
+	FinishedAt    *time.Time      `json:"finishedAt"`
+	NodeEnteredAt time.Time       `json:"nodeEnteredAt"`
+	ExitReason    string          `json:"exitReason"`
+}
+
+type AutomationStepSecret struct {
+	AutomationID uuid.UUID  `json:"automationId"`
+	NodeID       string     `json:"nodeId"`
+	SecretEnc    []byte     `json:"secretEnc"`
+	UpdatedBy    *uuid.UUID `json:"updatedBy"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
 }
 
 type AutomationStepStat struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	Version      int32     `json:"version"`
-	NodeID       string    `json:"nodeId"`
-	Entered      int64     `json:"entered"`
-	Waiting      int64     `json:"waiting"`
-	Completed    int64     `json:"completed"`
-	Sent         int64     `json:"sent"`
-	Delivered    int64     `json:"delivered"`
-	Opened       int64     `json:"opened"`
-	Clicked      int64     `json:"clicked"`
-	BranchYes    int64     `json:"branchYes"`
-	BranchNo     int64     `json:"branchNo"`
-	GoalReached  int64     `json:"goalReached"`
+	AutomationID uuid.UUID       `json:"automationId"`
+	Version      int32           `json:"version"`
+	NodeID       string          `json:"nodeId"`
+	Entered      int64           `json:"entered"`
+	Waiting      int64           `json:"waiting"`
+	Completed    int64           `json:"completed"`
+	Sent         int64           `json:"sent"`
+	Delivered    int64           `json:"delivered"`
+	Opened       int64           `json:"opened"`
+	Clicked      int64           `json:"clicked"`
+	BranchYes    int64           `json:"branchYes"`
+	BranchNo     int64           `json:"branchNo"`
+	GoalReached  int64           `json:"goalReached"`
+	Day          time.Time       `json:"day"`
+	Exited       int64           `json:"exited"`
+	Dropped      int64           `json:"dropped"`
+	Skipped      int64           `json:"skipped"`
+	Failed       int64           `json:"failed"`
+	Bounced      int64           `json:"bounced"`
+	Complained   int64           `json:"complained"`
+	OpenedHuman  int64           `json:"openedHuman"`
+	Unsubscribed int64           `json:"unsubscribed"`
+	Paths        json.RawMessage `json:"paths"`
+	Providers    json.RawMessage `json:"providers"`
 }
 
 type AutomationVersion struct {
@@ -154,6 +241,22 @@ type AutomationVersion struct {
 	PublishedBy  *uuid.UUID      `json:"publishedBy"`
 	PublishedAt  *time.Time      `json:"publishedAt"`
 	RetiredAt    *time.Time      `json:"retiredAt"`
+	Summary      string          `json:"summary"`
+	Migration    string          `json:"migration"`
+}
+
+type AutomationWebhookCall struct {
+	ID           uuid.UUID  `json:"id"`
+	AutomationID uuid.UUID  `json:"automationId"`
+	Version      int32      `json:"version"`
+	NodeID       string     `json:"nodeId"`
+	RunID        *uuid.UUID `json:"runId"`
+	Url          string     `json:"url"`
+	StatusCode   int32      `json:"statusCode"`
+	Error        string     `json:"error"`
+	DurationMs   int32      `json:"durationMs"`
+	Attempt      int32      `json:"attempt"`
+	CalledAt     time.Time  `json:"calledAt"`
 }
 
 type BlocklistResult struct {
@@ -572,6 +675,8 @@ type Invitation struct {
 	AcceptedAt          *time.Time      `json:"acceptedAt"`
 	AcceptedBy          *uuid.UUID      `json:"acceptedBy"`
 	RevokedAt           *time.Time      `json:"revokedAt"`
+	TokenEnc            []byte          `json:"tokenEnc"`
+	ExpiresDays         int32           `json:"expiresDays"`
 	ReinviteRequestedAt *time.Time      `json:"reinviteRequestedAt"`
 }
 
@@ -1115,49 +1220,66 @@ type WarmupPlan struct {
 }
 
 type Webhook struct {
-	ID             uuid.UUID  `json:"id"`
-	WorkspaceID    uuid.UUID  `json:"workspaceId"`
-	Name           string     `json:"name"`
-	Url            string     `json:"url"`
-	Events         []string   `json:"events"`
-	SecretEnc      []byte     `json:"secretEnc"`
-	Enabled        bool       `json:"enabled"`
-	CreatedBy      *uuid.UUID `json:"createdBy"`
-	CreatedAt      time.Time  `json:"createdAt"`
-	LastStatus     *int32     `json:"lastStatus"`
-	LastDeliveryAt *time.Time `json:"lastDeliveryAt"`
-	FailingSince   *time.Time `json:"failingSince"`
+	ID              uuid.UUID  `json:"id"`
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	Name            string     `json:"name"`
+	Url             string     `json:"url"`
+	Events          []string   `json:"events"`
+	SecretEnc       []byte     `json:"secretEnc"`
+	Enabled         bool       `json:"enabled"`
+	CreatedBy       *uuid.UUID `json:"createdBy"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	LastStatus      *int32     `json:"lastStatus"`
+	LastDeliveryAt  *time.Time `json:"lastDeliveryAt"`
+	FailingSince    *time.Time `json:"failingSince"`
+	Description     string     `json:"description"`
+	SecretRotatedAt *time.Time `json:"secretRotatedAt"`
+	PausedAt        *time.Time `json:"pausedAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
 }
 
 type WebhookDelivery struct {
-	ID         uuid.UUID       `json:"id"`
-	WebhookID  uuid.UUID       `json:"webhookId"`
-	Event      string          `json:"event"`
-	Payload    json.RawMessage `json:"payload"`
-	Attempt    int32           `json:"attempt"`
-	StatusCode *int32          `json:"statusCode"`
-	DurationMs *int32          `json:"durationMs"`
-	Response   string          `json:"response"`
-	Error      string          `json:"error"`
-	CreatedAt  time.Time       `json:"createdAt"`
+	ID            uuid.UUID       `json:"id"`
+	WebhookID     uuid.UUID       `json:"webhookId"`
+	Event         string          `json:"event"`
+	Payload       json.RawMessage `json:"payload"`
+	Attempt       int32           `json:"attempt"`
+	StatusCode    *int32          `json:"statusCode"`
+	DurationMs    *int32          `json:"durationMs"`
+	Response      string          `json:"response"`
+	Error         string          `json:"error"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	EventID       *uuid.UUID      `json:"eventId"`
+	State         string          `json:"state"`
+	MaxAttempts   int32           `json:"maxAttempts"`
+	NextAttemptAt *time.Time      `json:"nextAttemptAt"`
+	EnqueuedAt    *time.Time      `json:"enqueuedAt"`
+	LastAttemptAt *time.Time      `json:"lastAttemptAt"`
+	DeliveredAt   *time.Time      `json:"deliveredAt"`
 }
 
 type Workspace struct {
-	ID                 uuid.UUID       `json:"id"`
-	Slug               string          `json:"slug"`
-	Name               string          `json:"name"`
-	Timezone           string          `json:"timezone"`
-	DefaultSenderID    *uuid.UUID      `json:"defaultSenderId"`
-	ApprovalPolicy     json.RawMessage `json:"approvalPolicy"`
-	SunsetPolicy       json.RawMessage `json:"sunsetPolicy"`
-	Branding           json.RawMessage `json:"branding"`
-	SendThresholds     json.RawMessage `json:"sendThresholds"`
-	AuditRetentionDays int32           `json:"auditRetentionDays"`
-	AuditStreamUrl     *string         `json:"auditStreamUrl"`
-	CreatedBy          *uuid.UUID      `json:"createdBy"`
-	CreatedAt          time.Time       `json:"createdAt"`
-	UpdatedAt          time.Time       `json:"updatedAt"`
-	DeletedAt          *time.Time      `json:"deletedAt"`
+	ID                   uuid.UUID       `json:"id"`
+	Slug                 string          `json:"slug"`
+	Name                 string          `json:"name"`
+	Timezone             string          `json:"timezone"`
+	DefaultSenderID      *uuid.UUID      `json:"defaultSenderId"`
+	ApprovalPolicy       json.RawMessage `json:"approvalPolicy"`
+	SunsetPolicy         json.RawMessage `json:"sunsetPolicy"`
+	Branding             json.RawMessage `json:"branding"`
+	SendThresholds       json.RawMessage `json:"sendThresholds"`
+	AuditRetentionDays   int32           `json:"auditRetentionDays"`
+	AuditStreamUrl       *string         `json:"auditStreamUrl"`
+	CreatedBy            *uuid.UUID      `json:"createdBy"`
+	CreatedAt            time.Time       `json:"createdAt"`
+	UpdatedAt            time.Time       `json:"updatedAt"`
+	DeletedAt            *time.Time      `json:"deletedAt"`
+	McpSettings          json.RawMessage `json:"mcpSettings"`
+	AuditStreamEnabled   bool            `json:"auditStreamEnabled"`
+	AuditStreamSecretEnc []byte          `json:"auditStreamSecretEnc"`
+	AuditStreamCursorAt  *time.Time      `json:"auditStreamCursorAt"`
+	AuditStreamCursorID  *uuid.UUID      `json:"auditStreamCursorId"`
+	AuditStreamStatus    json.RawMessage `json:"auditStreamStatus"`
 }
 
 type WorkspaceMember struct {

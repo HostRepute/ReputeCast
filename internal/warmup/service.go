@@ -256,7 +256,8 @@ func (s *Service) view(ctx context.Context, ws *store.Workspace, r store.WarmupL
 			}
 			v.PlannedToDate += wd.Cap
 		}
-		if !date.Before(today.AddDate(0, 0, -7)) && date.Before(today) {
+		// The last seven days, today included, as on Sending providers.
+		if !date.Before(today.AddDate(0, 0, -6)) && !date.After(today) {
 			st := byDate[date.Format("2006-01-02")]
 			weekSent += st.Sent
 			weekBounced += st.Bounced

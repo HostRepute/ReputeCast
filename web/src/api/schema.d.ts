@@ -821,6 +821,507 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List API keys with permissions, scope, creator, last use and expiry */
+        get: operations["list-api-keys"];
+        put?: never;
+        /** Create an API key; the secret is shown once */
+        post: operations["create-api-key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/api-keys/{keyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One API key with the calls rejected since it expired */
+        get: operations["get-api-key"];
+        put?: never;
+        post?: never;
+        /** Delete an expired or revoked API key */
+        delete: operations["delete-api-key"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/api-keys/{keyId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke an API key immediately */
+        post: operations["revoke-api-key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/api-keys/{keyId}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate (or replace an expired) API key; the new secret is shown once */
+        post: operations["rotate-api-key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List audit entries with filters, newest first */
+        get: operations["list-audit-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/audit/events/{eventId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One audit entry with before/after values, IP, user agent and request id */
+        get: operations["get-audit-event"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/audit/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export matching entries as CSV or JSON (streamed) */
+        get: operations["export-audit-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/audit/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Retention and the webhook stream of the audit log */
+        get: operations["get-audit-settings"];
+        /** Change retention or stream the log to a webhook */
+        put: operations["update-audit-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automation-emails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create an email for a send step */
+        post: operations["create-automation-email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an email version (for previews) */
+        get: operations["get-automation-email"];
+        /** Save new content as the email's next version */
+        put: operations["update-automation-email"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List automations with their 30-day performance */
+        get: operations["list-automations"];
+        put?: never;
+        /** Create a draft automation from a starter template or a blank canvas */
+        post: operations["create-automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send an API event for a contact (triggers, goals and branches listen to it) */
+        post: operations["send-automation-event"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists, forms, fields, emails, providers, tags and events steps can use */
+        get: operations["automation-options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contacts in flows now and the last N days of automation email */
+        get: operations["automations-summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List starter templates */
+        get: operations["list-automation-templates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an automation with its draft graph */
+        get: operations["get-automation"];
+        put?: never;
+        post?: never;
+        /** Delete an automation; contacts in it leave (published flows need automations:publish) */
+        delete: operations["delete-automation"];
+        options?: never;
+        head?: never;
+        /** Rename an automation or change its description */
+        patch: operations["update-automation"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compare two versions (live → draft by default) */
+        get: operations["automation-diff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save the canvas as the draft */
+        put: operations["save-automation-draft"];
+        post?: never;
+        /** Discard unpublished changes */
+        delete: operations["discard-automation-draft"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy an automation's draft into a new draft */
+        post: operations["duplicate-automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause a live automation */
+        post: operations["pause-automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish the draft as the live version (may need approval) */
+        post: operations["publish-automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/publish-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What publishing the draft would change, for whom, and the pre-publish checks */
+        get: operations["automation-publish-preview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a paused automation */
+        post: operations["resume-automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Live stats per step */
+        get: operations["automation-stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/steps/{node}/calls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Delivery log of a webhook step */
+        get: operations["list-automation-webhook-calls"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/steps/{node}/secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set or clear a webhook step's signing secret (write-only) */
+        put: operations["set-automation-step-secret"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Version history */
+        get: operations["list-automation-versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one version's graph */
+        get: operations["get-automation-version"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/versions/{version}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make an earlier version the draft */
+        post: operations["restore-automation-version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns": {
         parameters: {
             query?: never;
@@ -1070,6 +1571,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete the workspace (typed confirmation; restorable for 7 days) */
+        post: operations["delete-workspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/deliverability": {
         parameters: {
             query?: never;
@@ -1209,6 +1727,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export everything: contacts with consent, campaigns as MJML, reports as CSV, audit log as JSON (ZIP, streamed) */
+        get: operations["export-workspace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/integrations": {
         parameters: {
             query?: never;
@@ -1337,6 +1872,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List pending invitations */
+        get: operations["list-invitations"];
+        put?: never;
+        /** Invite people by email or copyable link */
+        post: operations["create-invitations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/invitations/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Roles you can grant, scopes, SSO hints and whether email can be sent */
+        get: operations["invitation-options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/invitations/{invitationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke a pending invitation */
+        delete: operations["revoke-invitation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/invitations/{invitationId}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy the link of a pending invitation */
+        post: operations["invitation-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/invitations/{invitationId}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Email a pending invitation again and restart its expiry */
+        post: operations["resend-invitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/leave": {
         parameters: {
             query?: never;
@@ -1348,6 +1969,111 @@ export interface paths {
         put?: never;
         /** Leave the workspace (the last Owner can't) */
         post: operations["leave-workspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mcp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** MCP server endpoint, settings, tools and what each agent may do */
+        get: operations["get-mcp-server"];
+        /** Turn the MCP server on or off, set the rate limit and proposal expiry */
+        put: operations["update-mcp-server"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mcp-agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List MCP agents with permissions, scope, creator, last use and expiry */
+        get: operations["list-mcp-agents"];
+        put?: never;
+        /** Create an MCP agent; the secret is shown once */
+        post: operations["create-mcp-agent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mcp-agents/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent MCP agent tool calls from the audit log */
+        get: operations["list-agent-actions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mcp-agents/{keyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One MCP agent with the calls rejected since it expired */
+        get: operations["get-mcp-agent"];
+        put?: never;
+        post?: never;
+        /** Delete an expired or revoked MCP agent */
+        delete: operations["delete-mcp-agent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mcp-agents/{keyId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke an MCP agent immediately */
+        post: operations["revoke-mcp-agent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mcp-agents/{keyId}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate (or replace an expired) MCP agent; the new secret is shown once */
+        post: operations["rotate-mcp-agent"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1407,6 +2133,110 @@ export interface paths {
          * @description The image disappears from the library but stays reachable, so emails already sent keep showing it.
          */
         delete: operations["remove-media"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List members with role, scope, sign-in methods and two-factor status */
+        get: operations["list-members"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/members/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change the role of, require two-factor for, or deactivate several members */
+        post: operations["bulk-members"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/members/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Member detail: effective permissions and where each comes from, keys, approvals, activity */
+        get: operations["get-member"];
+        put?: never;
+        post?: never;
+        /** Remove a member (the audit log keeps their history) */
+        delete: operations["remove-member"];
+        options?: never;
+        head?: never;
+        /** Change a member's role or scope */
+        patch: operations["update-member"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/members/{memberId}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deactivate a member: keeps history, signs out everywhere, keeps or revokes their API keys */
+        post: operations["deactivate-member"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/members/{memberId}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reactivate a deactivated member */
+        post: operations["reactivate-member"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/members/{memberId}/sign-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End every session of a member */
+        post: operations["sign-out-member"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1703,6 +2533,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List roles with members, and the permission catalogue */
+        get: operations["list-roles"];
+        put?: never;
+        /** Create a custom role (only permissions you hold) */
+        post: operations["create-role"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/roles/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview who gains or loses what before saving a role */
+        post: operations["role-impact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/roles/{roleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One role for the role editor */
+        get: operations["get-role"];
+        /** Update a custom role; changes apply to its members at once */
+        put: operations["update-role"];
+        post?: never;
+        /** Delete a custom role nobody holds */
+        delete: operations["delete-role"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/routing": {
         parameters: {
             query?: never;
@@ -1735,6 +2619,24 @@ export interface paths {
         put?: never;
         /** Which provider would send this email? */
         post: operations["test-route"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** General settings, approval and team summaries, danger-zone counts */
+        get: operations["get-workspace-settings"];
+        /** Change the name, timezone and default sender */
+        put: operations["update-workspace-settings"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1829,6 +2731,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make another member the Owner; you become an Admin */
+        post: operations["transfer-workspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/warmup": {
         parameters: {
             query?: never;
@@ -1898,10 +2817,258 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List outgoing webhook endpoints with 24-hour delivery stats */
+        get: operations["list-webhooks"];
+        put?: never;
+        /** Add an endpoint; the signing secret is shown once */
+        post: operations["create-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/webhooks/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The delivery log, newest first */
+        get: operations["list-webhook-deliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/webhooks/deliveries/{deliveryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One delivery with its payload and the endpoint's response */
+        get: operations["get-webhook-delivery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/webhooks/deliveries/{deliveryId}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry a failed delivery now, or replay one from the dead-letter queue */
+        post: operations["retry-webhook-delivery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/webhooks/retry-failed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry every failed delivery (of one endpoint, or all) */
+        post: operations["retry-failed-webhooks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/webhooks/{webhookId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change an endpoint's URL, name or events */
+        put: operations["update-webhook"];
+        post?: never;
+        /** Delete an endpoint and its delivery log */
+        delete: operations["delete-webhook"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/webhooks/{webhookId}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause an endpoint; events keep queuing */
+        post: operations["pause-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/webhooks/{webhookId}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume an endpoint and deliver what queued, in order */
+        post: operations["resume-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/webhooks/{webhookId}/rotate-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace the signing secret; the new one is shown once */
+        post: operations["rotate-webhook-secret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/webhooks/{webhookId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a webhook.test event now and return the result */
+        post: operations["test-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        APIKeyCreateInput: {
+            /** @description Client label, e.g. Claude Desktop */
+            description?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            lists?: string[];
+            name: string;
+            permissions: string[];
+        };
+        APIKeyCreated: {
+            endpoint: string;
+            key: components["schemas"]["APIKeyView"];
+            /** @description The full key. Shown only in this response. */
+            secret: string;
+        };
+        APIKeyCreator: {
+            avatarColor: string;
+            id?: string;
+            name: string;
+        };
+        APIKeyList: {
+            endpoint: string;
+            groups: string[];
+            held: string[];
+            items: components["schemas"]["APIKeyView"][];
+            lists: components["schemas"]["ScopedList"][];
+            locked: components["schemas"]["APIKeyLockedPermission"][];
+            permissions: components["schemas"]["PermissionInfo"][];
+        };
+        APIKeyLockedPermission: {
+            key: string;
+            reason: string;
+        };
+        APIKeyRejections: {
+            /**
+             * Format: int64
+             * @description In the last 7 days
+             */
+            calls: number;
+            /** @description Client label of that address */
+            client?: string;
+            /** @description Busiest client address */
+            ip?: string;
+            /**
+             * Format: date-time
+             * @description First rejected call
+             */
+            since?: string;
+        };
+        APIKeyView: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: components["schemas"]["APIKeyCreator"];
+            /** @description Client label for agents (Claude Desktop) */
+            description: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "api_key" | "mcp_agent";
+            lastCall?: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            lastUsedClient?: string;
+            lastUsedIp?: string;
+            /** @example rc_live_8f2c…a91d */
+            masked: string;
+            name: string;
+            permissions: string[];
+            rejections?: components["schemas"]["APIKeyRejections"];
+            scope: components["schemas"]["ScopeSummary"];
+            /** @description The ⚑ permissions among them */
+            sensitive: string[];
+            /** @enum {string} */
+            status: "active" | "expired";
+        };
         AccessRequestInputBody: {
             /** @description Why you need it; shown to whoever decides */
             note?: string;
@@ -2150,6 +3317,117 @@ export interface components {
             upToDate: boolean;
             version: string;
         };
+        AuditActor: {
+            avatarColor?: string;
+            id?: string;
+            label: string;
+            name: string;
+            role?: string;
+            /** @enum {string} */
+            type: "user" | "api_key" | "mcp_agent" | "system";
+        };
+        AuditActorRef: {
+            id: string;
+            name: string;
+            type: string;
+        };
+        AuditCategory: {
+            groups: string[];
+            key: string;
+            label: string;
+        };
+        AuditDiffLine: {
+            /** @enum {string} */
+            kind: "same" | "del" | "add";
+            text: string;
+        };
+        AuditEventDetail: {
+            after?: unknown;
+            before?: unknown;
+            client?: string;
+            diff: components["schemas"]["AuditDiffLine"][];
+            event: components["schemas"]["AuditEventItem"];
+            ip?: string;
+            json: unknown;
+            link?: string;
+            linkLabel?: string;
+            permission?: string;
+            related: string[];
+            userAgent?: string;
+            what: string;
+            workspace: string;
+        };
+        AuditEventItem: {
+            action: string;
+            actor: components["schemas"]["AuditActor"];
+            changes: boolean;
+            id: string;
+            /** Format: date-time */
+            occurredAt: string;
+            reason?: string;
+            requestId?: string;
+            /** @enum {string} */
+            result: "allowed" | "denied" | "error";
+            source: components["schemas"]["AuditSource"];
+            summary: string;
+            target: string;
+            targetId: string;
+            targetName: string;
+            targetType: string;
+        };
+        AuditEventList: {
+            actionGroups: string[];
+            actors: components["schemas"]["AuditActorRef"][];
+            categories: components["schemas"]["AuditCategory"][];
+            items: components["schemas"]["AuditEventItem"][];
+            nextCursor?: string;
+            /** Format: int32 */
+            retentionDays: number;
+            stream: components["schemas"]["AuditStreamStatus"];
+            /** Format: int64 */
+            total: number;
+        };
+        AuditSettings: {
+            /** @description Changing settings needs workspace:manage */
+            canManage: boolean;
+            /** Format: int32 */
+            retentionDays: number;
+            stream: components["schemas"]["AuditStreamStatus"];
+            /** Format: int64 */
+            total: number;
+        };
+        AuditSettingsInput: {
+            /** Format: int32 */
+            retentionDays?: number;
+            stream?: components["schemas"]["AuditStreamInput"];
+        };
+        AuditSettingsResult: {
+            /** @description New signing secret, shown only in this response */
+            secret?: string;
+            settings: components["schemas"]["AuditSettings"];
+        };
+        AuditSource: {
+            channel: string;
+            detail?: string;
+        };
+        AuditStreamInput: {
+            enabled: boolean;
+            rotateSecret?: boolean;
+            url?: string;
+        };
+        AuditStreamStatus: {
+            /** Format: int64 */
+            delivered: number;
+            enabled: boolean;
+            /** Format: date-time */
+            failingSince?: string;
+            hasSecret: boolean;
+            host?: string;
+            lastError?: string;
+            /** Format: date-time */
+            lastOkAt?: string;
+            url?: string;
+        };
         "Auth-identifyRequest": {
             /** Format: email */
             email: string;
@@ -2184,6 +3462,608 @@ export interface components {
             code: string;
             /** @enum {string} */
             method: "totp" | "recovery";
+        };
+        AutomationAlert: {
+            actions: components["schemas"]["AutomationAlertAction"][];
+            automation: string;
+            automationId: string;
+            detail: string;
+            /** Format: int64 */
+            failures: number;
+            id: string;
+            /** @enum {string} */
+            kind: "sending_held" | "step_failing";
+            nodeId?: string;
+            /** Format: date-time */
+            since: string;
+            title: string;
+        };
+        AutomationAlertAction: {
+            /** @enum {string} */
+            kind: "open_step" | "step_log" | "providers" | "routing";
+            /** @example Open the step */
+            label: string;
+            nodeId?: string;
+        };
+        AutomationCondition: {
+            event?: string;
+            field?: string;
+            humanOnly?: boolean;
+            /** @enum {string} */
+            kind: "opened" | "clicked" | "field" | "tag" | "list" | "event";
+            listId?: string;
+            /** @description equals, not_equals, contains, is_set, is_not_set */
+            op?: string;
+            step?: string;
+            tag?: string;
+            urlContains?: string;
+            value?: string;
+            within?: components["schemas"]["AutomationDuration"];
+        };
+        AutomationCreateBody: {
+            name?: string;
+            /**
+             * @description Starter template; omit for a blank canvas
+             * @enum {string}
+             */
+            template?: "welcome-series" | "re-engagement" | "onboarding";
+        };
+        AutomationCreated: {
+            id: string;
+        };
+        AutomationDetail: {
+            /**
+             * Format: int64
+             * @description Unpublished changes, as counted by the version diff
+             */
+            changes: number;
+            description: string;
+            /** Format: int64 */
+            draftVersion: number;
+            graph: components["schemas"]["AutomationGraph"];
+            id: string;
+            /** Format: int64 */
+            inFlow: number;
+            issues: components["schemas"]["AutomationGraphIssue"][];
+            liveNodeIds: string[];
+            /** Format: int64 */
+            liveVersion?: number;
+            name: string;
+            pauseReason?: string;
+            /** Format: date-time */
+            pausedAt?: string;
+            pausedBy?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            publishedNodeIds: string[];
+            /** Format: int64 */
+            revision: number;
+            route: components["schemas"]["AutomationRoute"];
+            /** @enum {string} */
+            status: "draft" | "live" | "paused";
+            templateKey?: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AutomationDiff: {
+            /** Format: int64 */
+            changes: number;
+            /** Format: int64 */
+            from: number;
+            items: components["schemas"]["AutomationDiffItem"][];
+            /** Format: int64 */
+            to: number;
+        };
+        AutomationDiffItem: {
+            detail?: string;
+            /** @enum {string} */
+            kind: "added" | "changed" | "removed" | "unchanged";
+            nodeIds: string[];
+            title: string;
+        };
+        AutomationDraftBody: {
+            graph: components["schemas"]["AutomationGraph"];
+            /** Format: int64 */
+            revision: number;
+        };
+        AutomationDraftSaved: {
+            /**
+             * Format: int64
+             * @description Unpublished changes compared with the live version
+             */
+            changes: number;
+            /** Format: int64 */
+            draftVersion: number;
+            issues: components["schemas"]["AutomationGraphIssue"][];
+            /** Format: int64 */
+            revision: number;
+        };
+        AutomationDuration: {
+            /** Format: int64 */
+            amount: number;
+            /** @enum {string} */
+            unit: "minutes" | "hours" | "days" | "weeks";
+        };
+        AutomationEdge: {
+            data: components["schemas"]["AutomationEdgeData"];
+            id: string;
+            source: string;
+            target: string;
+        };
+        AutomationEdgeData: {
+            path?: string;
+        };
+        AutomationEmailContent: {
+            html: string;
+            id: string;
+            /** Format: int64 */
+            latestVersion: number;
+            name: string;
+            preheader: string;
+            subject: string;
+            text: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationEmailCreateBody: {
+            automationId?: string;
+            name: string;
+            subject?: string;
+        };
+        AutomationEmailOption: {
+            id: string;
+            /** Format: int64 */
+            latestVersion: number;
+            name: string;
+            subject: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AutomationEmailStep: {
+            emailId?: string;
+            /** Format: int64 */
+            emailVersion?: number;
+            route?: string;
+            sendWindow?: components["schemas"]["AutomationSendWindow"];
+            skipListId?: string;
+            /** Format: int64 */
+            skipRecentHours?: number;
+            subject?: string;
+        };
+        AutomationEmailUpdateBody: {
+            html: string;
+            preheader: string;
+            subject: string;
+            text?: string;
+        };
+        AutomationEventBody: {
+            contactId?: string;
+            /** Format: email */
+            email?: string;
+            /** @example workspace.created */
+            event: string;
+            properties?: {
+                [key: string]: unknown;
+            };
+        };
+        AutomationEventResult: {
+            accepted: boolean;
+            contactId: string;
+            /**
+             * Format: int64
+             * @description Live automations triggered by this event
+             */
+            flows: number;
+        };
+        AutomationFieldOption: {
+            key: string;
+            label: string;
+            type: string;
+        };
+        AutomationFormOption: {
+            id: string;
+            name: string;
+            slug: string;
+        };
+        AutomationGoal: {
+            /** @example Clicked docs */
+            label: string;
+            /**
+             * Format: double
+             * @description Contacts who reached the goal, % of those who entered in the window
+             */
+            percent?: number;
+        };
+        AutomationGoalCount: {
+            /** Format: int64 */
+            count: number;
+            /** @example welcome */
+            name: string;
+        };
+        AutomationGraph: {
+            edges: components["schemas"]["AutomationEdge"][];
+            nodes: components["schemas"]["AutomationNode"][];
+        };
+        AutomationGraphIssue: {
+            code: string;
+            edgeId?: string;
+            message: string;
+            nodeId?: string;
+            /** @enum {string} */
+            severity: "error" | "warning";
+        };
+        AutomationList: {
+            alerts: components["schemas"]["AutomationAlert"][];
+            counts: components["schemas"]["AutomationStatusCounts"];
+            /** Format: int64 */
+            days: number;
+            items: components["schemas"]["AutomationListItem"][];
+            route: components["schemas"]["AutomationRoute"];
+        };
+        AutomationListAction: {
+            /** @enum {string} */
+            kind: "add_list" | "remove_list" | "add_tag" | "remove_tag" | "unsubscribe_all";
+            listId?: string;
+            tag?: string;
+        };
+        AutomationListItem: {
+            /**
+             * Format: double
+             * @description % of entrants who finished the flow (goal or end)
+             */
+            completed?: number;
+            description: string;
+            /** Format: int64 */
+            draftVersion: number;
+            /** Format: int64 */
+            entered?: number;
+            goal?: components["schemas"]["AutomationGoal"];
+            /**
+             * Format: double
+             * @description Human opens, % of delivered
+             */
+            humanOpens?: number;
+            id: string;
+            /** Format: int64 */
+            inFlow?: number;
+            /** Format: int64 */
+            liveVersion?: number;
+            name: string;
+            pauseReason?: string;
+            /** Format: date-time */
+            pausedAt?: string;
+            pausedBy?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            /** @enum {string} */
+            status: "draft" | "live" | "paused";
+            /** Format: int64 */
+            steps: number;
+            trigger: string;
+            unpublishedChanges: boolean;
+        };
+        AutomationMetaBody: {
+            description: string;
+            name: string;
+        };
+        AutomationNode: {
+            data: components["schemas"]["AutomationNodeData"];
+            id: string;
+            position: components["schemas"]["AutomationNodePosition"];
+            /** @enum {string} */
+            type: "trigger" | "delay" | "email" | "branch" | "filter" | "split" | "webhook" | "list" | "goal" | "exit";
+        };
+        AutomationNodeData: {
+            action?: components["schemas"]["AutomationListAction"];
+            /** @description Branch, filter and goal condition */
+            condition?: components["schemas"]["AutomationCondition"];
+            delay?: components["schemas"]["AutomationDuration"];
+            email?: components["schemas"]["AutomationEmailStep"];
+            label?: string;
+            trigger?: components["schemas"]["AutomationTrigger"];
+            variants?: components["schemas"]["AutomationSplitVariant"][];
+            webhook?: components["schemas"]["AutomationWebhook"];
+        };
+        AutomationNodePosition: {
+            /** Format: double */
+            x: number;
+            /** Format: double */
+            y: number;
+        };
+        AutomationOptionItem: {
+            id: string;
+            name: string;
+        };
+        AutomationOptions: {
+            emails: components["schemas"]["AutomationEmailOption"][];
+            events: string[];
+            fields: components["schemas"]["AutomationFieldOption"][];
+            forms: components["schemas"]["AutomationFormOption"][];
+            lists: components["schemas"]["AutomationOptionItem"][];
+            providers: components["schemas"]["AutomationRouteProvider"][];
+            tags: string[];
+        };
+        AutomationPathCount: {
+            /** Format: int64 */
+            count: number;
+            /** @example yes */
+            path: string;
+        };
+        AutomationPauseBody: {
+            reason?: string;
+        };
+        AutomationProviderSends: {
+            fallback: boolean;
+            /**
+             * Format: date
+             * @example 2026-10-02
+             */
+            lastDay?: string;
+            provider: string;
+            providerId: string;
+            /** Format: int64 */
+            sent: number;
+            short: string;
+        };
+        AutomationPublishBody: {
+            /**
+             * @description finish: contacts in the flow finish on the old version; move: they move to the new one at their current step
+             * @enum {string}
+             */
+            migration: "finish" | "move";
+            /**
+             * Format: int64
+             * @description The draft version reviewed in the publish dialog
+             */
+            version: number;
+        };
+        AutomationPublishCheck: {
+            label: string;
+            /** @enum {string} */
+            status: "ok" | "warn" | "bad";
+        };
+        AutomationPublishPreview: {
+            blocker?: string;
+            canPublish: boolean;
+            /** Format: int64 */
+            changes: number;
+            checks: components["schemas"]["AutomationPublishCheck"][];
+            /** @example about 9 days */
+            finishEstimate: string;
+            /** Format: int64 */
+            fromVersion?: number;
+            /** Format: int64 */
+            inFlow: number;
+            items: components["schemas"]["AutomationDiffItem"][];
+            /** Format: date-time */
+            livePublishedAt?: string;
+            livePublishedBy?: string;
+            moveImpact: string;
+            name: string;
+            /** Format: int64 */
+            toVersion: number;
+        };
+        AutomationPublishResult: {
+            approvalId?: string;
+            message?: string;
+            /** @enum {string} */
+            status: "published" | "approval_required";
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationRoute: {
+            fallback?: components["schemas"]["AutomationRouteProvider"];
+            /** @description A provider on the route can send right now */
+            healthy: boolean;
+            /** @example SES, failover Postmark */
+            label: string;
+            primary: components["schemas"]["AutomationRouteProvider"][];
+        };
+        AutomationRouteProvider: {
+            adapter: string;
+            detail?: string;
+            downReason?: string;
+            /** Format: date-time */
+            downSince?: string;
+            id: string;
+            /** Format: int64 */
+            lastErrorStatus?: number;
+            /** @example Amazon SES */
+            name: string;
+            /** @example SES */
+            short: string;
+            /** @description healthy, degraded, down, sandbox, warming_up or paused */
+            status: string;
+            /** Format: int64 */
+            weight?: number;
+        };
+        AutomationSecretBody: {
+            secret: string;
+        };
+        AutomationSendWindow: {
+            enabled: boolean;
+            end: string;
+            /** @description HH:MM, recipient-local */
+            start: string;
+        };
+        AutomationSplitVariant: {
+            key: string;
+            /** Format: int64 */
+            weight: number;
+        };
+        AutomationStarterTemplate: {
+            /** @enum {string} */
+            key: "welcome-series" | "re-engagement" | "onboarding";
+            name: string;
+            outline: string;
+            preview: string[];
+            /** Format: int64 */
+            steps: number;
+            summary: string;
+        };
+        AutomationStats: {
+            /** Format: int64 */
+            days: number;
+            /** Format: int64 */
+            entered: number;
+            /** Format: int64 */
+            inFlow: number;
+            /** Format: date-time */
+            since: string;
+            steps: components["schemas"]["AutomationStepStats"][];
+        };
+        AutomationStatusCounts: {
+            /** Format: int64 */
+            all: number;
+            /** Format: int64 */
+            drafts: number;
+            /** Format: int64 */
+            live: number;
+            /** Format: int64 */
+            paused: number;
+        };
+        AutomationStepStats: {
+            /** Format: int64 */
+            bounced: number;
+            /** Format: int64 */
+            clicked: number;
+            /** Format: int64 */
+            complained: number;
+            /**
+             * Format: int64
+             * @description Moved on to the next step
+             */
+            completed: number;
+            /** Format: int64 */
+            delivered: number;
+            /**
+             * Format: int64
+             * @description Left early: filtered out, unsubscribed or removed
+             */
+            dropped: number;
+            /** Format: int64 */
+            entered: number;
+            /**
+             * Format: int64
+             * @description Finished the flow at this step
+             */
+            exited: number;
+            /**
+             * Format: int64
+             * @description Webhook calls that failed
+             */
+            failed: number;
+            /** Format: int64 */
+            goalReached: number;
+            /** Format: int64 */
+            inFlowNow: number;
+            nodeId: string;
+            /** Format: int64 */
+            opened: number;
+            /** Format: int64 */
+            openedHuman: number;
+            paths: components["schemas"]["AutomationPathCount"][];
+            providers: components["schemas"]["AutomationProviderSends"][];
+            /** Format: int64 */
+            sent: number;
+            /**
+             * Format: int64
+             * @description Emails skipped by a rule
+             */
+            skipped: number;
+            /** Format: int64 */
+            unsubscribed: number;
+        };
+        AutomationSummary: {
+            /** Format: double */
+            clicks?: number;
+            /** Format: int64 */
+            days: number;
+            /** Format: int64 */
+            goals: number;
+            goalsBy: components["schemas"]["AutomationGoalCount"][];
+            /** Format: double */
+            humanOpens?: number;
+            /** Format: int64 */
+            inFlow: number;
+            /** Format: int64 */
+            liveCount: number;
+            /** Format: int64 */
+            sent: number;
+            sentBy: components["schemas"]["AutomationProviderSends"][];
+        };
+        AutomationTemplates: {
+            templates: components["schemas"]["AutomationStarterTemplate"][];
+        };
+        AutomationTrigger: {
+            at?: string;
+            confirmedOnly?: boolean;
+            event?: string;
+            field?: string;
+            formId?: string;
+            includeImports?: boolean;
+            /** @enum {string} */
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field";
+            listId?: string;
+            /** Format: int64 */
+            offsetDays?: number;
+            reentry?: string;
+            tag?: string;
+            yearly?: boolean;
+        };
+        AutomationVersionGraph: {
+            graph: components["schemas"]["AutomationGraph"];
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationVersionItem: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /** Format: int64 */
+            inFlow: number;
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            /** Format: date-time */
+            retiredAt?: string;
+            /**
+             * @description retiring: replaced, but contacts are still finishing on it
+             * @enum {string}
+             */
+            status: "draft" | "live" | "retiring" | "retired";
+            summary: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationVersions: {
+            name: string;
+            versions: components["schemas"]["AutomationVersionItem"][];
+        };
+        AutomationWebhook: {
+            readonly hasSecret?: boolean;
+            method?: string;
+            name?: string;
+            url?: string;
+        };
+        AutomationWebhookCall: {
+            /** Format: int64 */
+            attempt: number;
+            /** Format: date-time */
+            calledAt: string;
+            /** Format: int64 */
+            durationMs: number;
+            error?: string;
+            id: string;
+            /** Format: int64 */
+            statusCode: number;
+            url: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationWebhookCalls: {
+            calls: components["schemas"]["AutomationWebhookCall"][];
         };
         CampaignList: {
             counts: components["schemas"]["CampaignStatusCounts"];
@@ -3340,6 +5220,68 @@ export interface components {
             line: number;
             message: string;
         };
+        MCPAgentAction: {
+            agent: string;
+            agentId?: string;
+            id: string;
+            note?: string;
+            /** Format: date-time */
+            occurredAt: string;
+            /** @enum {string} */
+            result: "allowed" | "denied" | "error";
+            summary?: string;
+            target: string;
+            tool: string;
+        };
+        MCPAgentActionList: {
+            items: components["schemas"]["MCPAgentAction"][];
+        };
+        MCPAgentRow: {
+            cells: components["schemas"]["MCPCapabilityCell"][];
+            createdBy: string;
+            id: string;
+            masked: string;
+            name: string;
+            permissions: string[];
+            /** @enum {string} */
+            status: "active" | "expired";
+        };
+        MCPCapabilityCell: {
+            capability: string;
+            /** @example Pause only · never start */
+            label: string;
+            /** @enum {string} */
+            level: "allow" | "approve" | "partial" | "deny";
+        };
+        MCPOverview: {
+            agents: components["schemas"]["MCPAgentRow"][];
+            /** Format: int64 */
+            approvalExpiryHours: number;
+            canManage: boolean;
+            capabilities: string[];
+            enabled: boolean;
+            endpoint: string;
+            prompts: string[];
+            /** Format: int64 */
+            rateLimitPerMinute: number;
+            resources: string[];
+            tools: components["schemas"]["MCPToolInfo"][];
+            /** @enum {string} */
+            transport: "streamable_http";
+        };
+        MCPSettingsInput: {
+            /** Format: int64 */
+            approvalExpiryHours: number;
+            enabled: boolean;
+            /** Format: int64 */
+            rateLimitPerMinute: number;
+        };
+        MCPToolInfo: {
+            description: string;
+            name: string;
+            permission: string;
+            writes: boolean;
+        };
         MJMLProblem: {
             /** Format: int64 */
             line: number;
@@ -3421,6 +5363,21 @@ export interface components {
         };
         MediaAssetList: {
             items: components["schemas"]["MediaAsset"][];
+        };
+        MemberSignInMethod: {
+            /** @enum {string} */
+            kind: "password" | "passkey" | "sso" | "google" | "microsoft" | "github";
+            label: string;
+            preset?: string;
+        };
+        MemberTwoFA: {
+            /** Format: int64 */
+            graceDays?: number;
+            /** Format: date-time */
+            graceUntil?: string;
+            method?: string;
+            /** @enum {string} */
+            state: "on" | "off" | "idp" | "required";
         };
         NewPlanInput: {
             /**
@@ -3553,6 +5510,18 @@ export interface components {
             sso?: components["schemas"]["SSOStart"];
             /** @enum {string} */
             status: "sent" | "email_unavailable" | "sso";
+        };
+        PermissionInfo: {
+            description: string;
+            /** @example Campaigns */
+            group: string;
+            implies: string[];
+            /** @example campaigns:send */
+            key: string;
+            /** @example Send or schedule campaigns */
+            label: string;
+            ownerOnly: boolean;
+            sensitive: boolean;
         };
         PersonalizationToken: {
             fallback?: string;
@@ -4110,6 +6079,113 @@ export interface components {
         "Rename-passkeyRequest": {
             name: string;
         };
+        RoleCreated: {
+            id: string;
+        };
+        RoleDetail: {
+            canManage: boolean;
+            groups: string[];
+            held: string[];
+            helpers: string[];
+            permissions: components["schemas"]["PermissionInfo"][];
+            role: components["schemas"]["RoleSummary"];
+        };
+        RoleImpact: {
+            added: string[];
+            addedSensitive: string[];
+            /**
+             * Format: int64
+             * @description MCP agents that lose permissions
+             */
+            agents: number;
+            /**
+             * Format: int64
+             * @description API keys that lose permissions
+             */
+            apiKeys: number;
+            approvals: string;
+            /** Format: int64 */
+            graceDays: number;
+            keys: components["schemas"]["RoleImpactKey"][];
+            locked: components["schemas"]["RoleLockedPermission"][];
+            members: components["schemas"]["RoleImpactMember"][];
+            /** Format: int64 */
+            membersAffected: number;
+            /** Format: int64 */
+            pendingApprovals: number;
+            removed: string[];
+            removedSensitive: string[];
+            sensitive: string;
+            summary: string;
+        };
+        RoleImpactInput: {
+            permissions: string[];
+            roleId?: string;
+        };
+        RoleImpactKey: {
+            effect: string;
+            id: string;
+            /** @enum {string} */
+            kind: "api_key" | "mcp_agent";
+            loses: string[];
+            name: string;
+        };
+        RoleImpactMember: {
+            avatarColor: string;
+            effect: string;
+            email: string;
+            gains: string[];
+            id: string;
+            loses: string[];
+            name: string;
+        };
+        RoleInput: {
+            description?: string;
+            name: string;
+            permissions: string[];
+        };
+        RoleList: {
+            canManage: boolean;
+            groups: string[];
+            held: string[];
+            helpers: string[];
+            permissions: components["schemas"]["PermissionInfo"][];
+            roles: components["schemas"]["RoleSummary"][];
+        };
+        RoleLockedPermission: {
+            key: string;
+            reason: string;
+        };
+        RoleMemberRef: {
+            avatarColor: string;
+            email: string;
+            /** @description Membership id */
+            id: string;
+            name: string;
+            /** @enum {string} */
+            status: "active" | "deactivated";
+        };
+        RoleSummary: {
+            /** Format: int64 */
+            active: number;
+            builtin: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy?: string;
+            /** Format: int64 */
+            deactivated: number;
+            description: string;
+            id: string;
+            /** Format: int64 */
+            invited: number;
+            key: string;
+            members: components["schemas"]["RoleMemberRef"][];
+            name: string;
+            permissions: string[];
+            sensitive: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         RouteShare: {
             /** @example ses */
             adapter: string;
@@ -4300,8 +6376,12 @@ export interface components {
         RoutingVolume: {
             /** Format: int64 */
             count: number;
+            /** Format: int64 */
+            largest?: number;
             /** @enum {string} */
             per: "day" | "week";
+            /** Format: int64 */
+            smallest?: number;
         };
         SSOOption: {
             domains: string[];
@@ -4322,6 +6402,21 @@ export interface components {
         Scope: {
             lists?: string[];
             senderDomains?: string[];
+        };
+        ScopeRequest: {
+            /** @description List ids */
+            lists?: string[];
+            senderDomains?: string[];
+        };
+        ScopeSummary: {
+            all: boolean;
+            label: string;
+            lists: components["schemas"]["ScopedList"][];
+            senderDomains: string[];
+        };
+        ScopedList: {
+            id: string;
+            name: string;
         };
         SessionTiming: {
             /**
@@ -4490,6 +6585,242 @@ export interface components {
             /** @description otpauth:// URL for the QR code */
             url: string;
         };
+        TeamBulkInput: {
+            /** @enum {string} */
+            action: "change_role" | "require_2fa" | "deactivate";
+            memberIds: string[];
+            reason?: string;
+            /** @description For deactivate */
+            revokeKeys?: boolean;
+            /** @description For change_role */
+            roleId?: string;
+        };
+        TeamBulkResult: {
+            /** Format: int64 */
+            changed: number;
+            skipped: string[];
+        };
+        TeamCounts: {
+            /** Format: int64 */
+            active: number;
+            /** Format: int64 */
+            deactivated: number;
+            /** Format: int64 */
+            invited: number;
+            /** Format: int64 */
+            members: number;
+        };
+        TeamCreatedInvitation: {
+            email: string;
+            emailed: boolean;
+            id: string;
+            link: string;
+        };
+        TeamDeactivateInput: {
+            /** @description Recorded in the audit log */
+            reason?: string;
+            revokeKeys?: boolean;
+        };
+        TeamDeactivateResult: {
+            keysRevoked: string[];
+            /** Format: int64 */
+            sessionsRevoked: number;
+        };
+        TeamEffectivePermission: {
+            granted: boolean;
+            group: string;
+            includedBy?: string;
+            key: string;
+            label: string;
+            scope: string;
+            sensitive: boolean;
+            source: string;
+        };
+        TeamInvitation: {
+            /** Format: date-time */
+            createdAt: string;
+            email: string;
+            expired: boolean;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            invitedBy: string;
+            /** Format: date-time */
+            lastSentAt?: string;
+            message: string;
+            role: components["schemas"]["TeamRoleRef"];
+            scope: components["schemas"]["ScopeSummary"];
+            sentVia: string;
+        };
+        TeamInvitationList: {
+            canInvite: boolean;
+            /** Format: int64 */
+            defaultDays: number;
+            items: components["schemas"]["TeamInvitation"][];
+            jit: components["schemas"]["TeamJITHint"][];
+        };
+        TeamInviteInput: {
+            emails: string[];
+            /**
+             * Format: int64
+             * @description Defaults to 7
+             */
+            expiresInDays?: number;
+            message?: string;
+            /** Format: uuid */
+            roleId: string;
+            scope?: components["schemas"]["ScopeRequest"];
+            sendEmail?: boolean;
+        };
+        TeamInviteLink: {
+            /** Format: date-time */
+            expiresAt: string;
+            link: string;
+        };
+        TeamInviteOptions: {
+            canEmail: boolean;
+            /** Format: int64 */
+            defaultDays: number;
+            defaultRoleId: string;
+            expiryOptions: number[];
+            jit: components["schemas"]["TeamJITHint"][];
+            lists: components["schemas"]["ScopedList"][];
+            roles: components["schemas"]["TeamInviteRole"][];
+            senderDomains: string[];
+            signInSummary: string;
+            systemProvider: string;
+            workspace: string;
+        };
+        TeamInviteResult: {
+            emailed: boolean;
+            fallback?: string;
+            invitations: components["schemas"]["TeamCreatedInvitation"][];
+            sentVia?: string;
+        };
+        TeamInviteRole: {
+            builtin: boolean;
+            grantable: boolean;
+            hint: string;
+            id: string;
+            key: string;
+            name: string;
+            reason?: string;
+            /** @description Holders need two-factor */
+            sensitive: boolean;
+        };
+        TeamJITHint: {
+            domain: string;
+            preset: string;
+            provider: string;
+            roleName: string;
+        };
+        TeamMember: {
+            accountDeactivated: boolean;
+            avatarColor: string;
+            /** Format: date-time */
+            deactivatedAt?: string;
+            email: string;
+            /** @description Membership id */
+            id: string;
+            /** Format: date-time */
+            joinedAt: string;
+            /** Format: date-time */
+            lastActiveAt?: string;
+            lastOwner: boolean;
+            name: string;
+            notes: string[];
+            role: components["schemas"]["TeamRoleRef"];
+            scope: components["schemas"]["ScopeSummary"];
+            signIn: components["schemas"]["MemberSignInMethod"][];
+            source: string;
+            /** @enum {string} */
+            status: "active" | "deactivated";
+            twoFA: components["schemas"]["MemberTwoFA"];
+            userId: string;
+            you: boolean;
+        };
+        TeamMemberAPIKey: {
+            id: string;
+            /** @enum {string} */
+            kind: "api_key" | "mcp_agent";
+            /** Format: date-time */
+            lastUsedAt?: string;
+            masked: string;
+            name: string;
+            permissions: string[];
+            scope: string;
+            /** @enum {string} */
+            status: "active" | "expired" | "revoked";
+        };
+        TeamMemberActivity: {
+            action: string;
+            id: string;
+            /** Format: date-time */
+            occurredAt: string;
+            reason?: string;
+            /** @enum {string} */
+            result: "allowed" | "denied" | "error";
+            target: string;
+        };
+        TeamMemberApproval: {
+            /** Format: date-time */
+            at: string;
+            campaign: string;
+            campaignId?: string;
+            /** @description approve, request_changes, reject (given) or the request status (requested) */
+            status: string;
+        };
+        TeamMemberChangeInput: {
+            /** Format: uuid */
+            roleId: string;
+            scope?: components["schemas"]["ScopeRequest"];
+        };
+        TeamMemberDetail: {
+            activity: components["schemas"]["TeamMemberActivity"][];
+            apiKeys: components["schemas"]["TeamMemberAPIKey"][];
+            approvalsGiven: components["schemas"]["TeamMemberApproval"][];
+            approvalsRequested: components["schemas"]["TeamMemberApproval"][];
+            canApprove: boolean;
+            canManage: boolean;
+            groups: string[];
+            helpers: string[];
+            keysNote?: string;
+            member: components["schemas"]["TeamMember"];
+            permissions: components["schemas"]["TeamEffectivePermission"][];
+            /** Format: int64 */
+            scheduledCampaigns: number;
+            /** Format: int64 */
+            sessions: number;
+            signInMethods: components["schemas"]["MemberSignInMethod"][];
+            ssoDomain?: string;
+        };
+        TeamMemberList: {
+            canInvite: boolean;
+            canManage: boolean;
+            counts: components["schemas"]["TeamCounts"];
+            helpers: string[];
+            items: components["schemas"]["TeamMember"][];
+            reason?: string;
+            roles: components["schemas"]["TeamRoleRef"][];
+        };
+        TeamResendResult: {
+            emailed: boolean;
+            /** Format: date-time */
+            expiresAt: string;
+            fallback?: string;
+            link: string;
+            sentVia?: string;
+        };
+        TeamRoleRef: {
+            builtin: boolean;
+            id: string;
+            key: string;
+            name: string;
+        };
+        TeamSignOutResult: {
+            /** Format: int64 */
+            sessionsRevoked: number;
+        };
         "Totp-confirmRequest": {
             challenge: string;
             code: string;
@@ -4619,6 +6950,176 @@ export interface components {
             /** Format: double */
             value: number;
         };
+        WebhookCreated: {
+            /** @description The signing secret. Shown only in this response. */
+            secret: string;
+            webhook: components["schemas"]["WebhookView"];
+        };
+        WebhookDeliveryDetail: {
+            delivery: components["schemas"]["WebhookDeliveryView"];
+            payload: unknown;
+            /** @description First kilobyte of the endpoint's last response */
+            response: string;
+        };
+        WebhookDeliveryList: {
+            items: components["schemas"]["WebhookDeliveryView"][];
+            queued: {
+                [key: string]: number;
+            };
+        };
+        WebhookDeliveryView: {
+            /** Format: int32 */
+            attempts: number;
+            /** Format: int64 */
+            backoffMinutes?: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int32 */
+            durationMs?: number;
+            /** @description Host and path, e.g. api.acme.io/hooks/reputecast */
+            endpoint: string;
+            error?: string;
+            event: string;
+            id: string;
+            /** Format: date-time */
+            lastAttemptAt?: string;
+            /** Format: int32 */
+            maxAttempts: number;
+            /** Format: date-time */
+            nextAttemptAt?: string;
+            /** @enum {string} */
+            state: "pending" | "delivering" | "delivered" | "retrying" | "dead" | "held";
+            /** Format: int32 */
+            statusCode?: number;
+            /** @description Bad Gateway */
+            statusText?: string;
+            subtype?: string;
+            webhookId: string;
+        };
+        WebhookEventInfo: {
+            description: string;
+            /** @example Email */
+            group: string;
+            /** @example email.bounced */
+            name: string;
+        };
+        WebhookInput: {
+            description?: string;
+            events: string[];
+            name: string;
+            url: string;
+        };
+        WebhookList: {
+            events: components["schemas"]["WebhookEventInfo"][];
+            items: components["schemas"]["WebhookView"][];
+            /** Format: int64 */
+            maxAttempts: number;
+            signatureHeader: string;
+            timestampHeader: string;
+        };
+        WebhookRetryInput: {
+            /** @description Only this endpoint; empty retries every endpoint */
+            webhookId?: string;
+        };
+        WebhookRetryResult: {
+            /** Format: int64 */
+            queued: number;
+        };
+        WebhookSecretResult: {
+            secret: string;
+        };
+        WebhookTestResult: {
+            delivery: components["schemas"]["WebhookDeliveryView"];
+        };
+        WebhookView: {
+            /** Format: date-time */
+            createdAt: string;
+            description: string;
+            enabled: boolean;
+            events: string[];
+            /** Format: date-time */
+            failingSince?: string;
+            id: string;
+            /** Format: date-time */
+            lastDeliveryAt?: string;
+            /** Format: int32 */
+            lastStatus?: number;
+            name: string;
+            /**
+             * Format: int64
+             * @description Deliveries waiting for an attempt or a retry
+             */
+            queued: number;
+            /**
+             * Format: date-time
+             * @description Set when the secret was replaced after creation
+             */
+            secretRotatedAt?: string;
+            /** @enum {string} */
+            status: "new" | "healthy" | "failing" | "paused";
+            /**
+             * Format: double
+             * @description Percent delivered in the last 24 hours
+             */
+            success24h?: number;
+            /**
+             * Format: int64
+             * @description Deliveries attempted in the last 24 hours
+             */
+            total24h: number;
+            url: string;
+        };
+        WorkspaceApprovals: {
+            /** Format: int64 */
+            approvalsRequired: number;
+            approvers: string[];
+            /** @description Publishing automations needs approval */
+            automations: boolean;
+            /** @description Owners can bypass with a reason */
+            bypass: boolean;
+            /** Format: int64 */
+            pending: number;
+            rules: string[];
+        };
+        WorkspaceDanger: {
+            /** Format: int64 */
+            agents: number;
+            /** Format: int64 */
+            apiKeys: number;
+            /** Format: int64 */
+            automations: number;
+            /** Format: int64 */
+            campaigns: number;
+            /** Format: int64 */
+            contacts: number;
+            /** Format: int64 */
+            lists: number;
+            /** Format: int64 */
+            providers: number;
+            /** Format: int64 */
+            restoreDays: number;
+            /** Format: int64 */
+            scheduled: number;
+            /** Format: int64 */
+            segments: number;
+            /** Format: int64 */
+            templates: number;
+        };
+        WorkspaceDeleteInput: {
+            /** @description The workspace name, typed exactly */
+            confirm: string;
+        };
+        WorkspaceDeleteResult: {
+            /** Format: int64 */
+            cancelled: number;
+            /** Format: date-time */
+            restoreUntil: string;
+        };
+        WorkspaceGeneralInput: {
+            defaultSenderId?: string;
+            name: string;
+            timezone: string;
+        };
         WorkspaceMe: {
             /** @enum {string} */
             actorType: "user" | "api_key" | "mcp_agent";
@@ -4629,6 +7130,57 @@ export interface components {
             /** Format: int64 */
             unread: number;
             workspace: components["schemas"]["MeWorkspace"];
+        };
+        WorkspaceMembersSummary: {
+            /** Format: int64 */
+            active: number;
+            builtin: string[];
+            custom: string[];
+            /** Format: int64 */
+            deactivated: number;
+            /** Format: int64 */
+            invited: number;
+            signIn: string;
+        };
+        WorkspaceSender: {
+            email: string;
+            id: string;
+            name: string;
+            verifiedOn: string[];
+        };
+        WorkspaceSettings: {
+            approvals: components["schemas"]["WorkspaceApprovals"];
+            canDelete: boolean;
+            canManage: boolean;
+            canTransfer: boolean;
+            candidates: components["schemas"]["WorkspaceTransferCandidate"][];
+            danger: components["schemas"]["WorkspaceDanger"];
+            defaultSenderId?: string;
+            hasPassword: boolean;
+            helpers: string[];
+            id: string;
+            members: components["schemas"]["WorkspaceMembersSummary"];
+            name: string;
+            reason?: string;
+            senders: components["schemas"]["WorkspaceSender"][];
+            slug: string;
+            timezone: string;
+        };
+        WorkspaceTransferCandidate: {
+            eligible: boolean;
+            email: string;
+            memberId: string;
+            name: string;
+            note?: string;
+            reason?: string;
+            roleName: string;
+            twoFA: components["schemas"]["MemberTwoFA"];
+        };
+        WorkspaceTransferInput: {
+            /** Format: uuid */
+            memberId: string;
+            /** @description The caller's password (re-authentication) */
+            password?: string;
         };
     };
     responses: never;
@@ -6311,6 +8863,1316 @@ export interface operations {
             };
         };
     };
+    "list-api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-api-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["APIKeyCreateInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-api-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-api-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-api-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rotate-api-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-audit-events": {
+        parameters: {
+            query?: {
+                /** @description Target name, target id, request id or actor name */
+                q?: string;
+                actorType?: "user" | "api_key" | "mcp_agent" | "system";
+                /** @description Actor id */
+                actor?: string;
+                /** @description Action group (routing) or action (routing.updated) */
+                action?: string;
+                /** @description A group of actions, as in the action filter */
+                category?: "sending" | "routing" | "audience" | "team" | "settings";
+                result?: "allowed" | "denied" | "error";
+                range?: "24h" | "7d" | "30d" | "90d" | "all";
+                /** @description Overrides range */
+                since?: string;
+                until?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEventList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-audit-event": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEventDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-audit-events": {
+        parameters: {
+            query?: {
+                /** @description Target name, target id, request id or actor name */
+                q?: string;
+                actorType?: "user" | "api_key" | "mcp_agent" | "system";
+                /** @description Actor id */
+                actor?: string;
+                /** @description Action group (routing) or action (routing.updated) */
+                action?: string;
+                /** @description A group of actions, as in the action filter */
+                category?: "sending" | "routing" | "audience" | "team" | "settings";
+                result?: "allowed" | "denied" | "error";
+                range?: "24h" | "7d" | "30d" | "90d" | "all";
+                /** @description Overrides range */
+                since?: string;
+                until?: string;
+                format?: "csv" | "json";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-audit-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-audit-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditSettingsResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-automation-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationEmailCreateBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationEmailOption"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation-email": {
+        parameters: {
+            query?: {
+                /** @description Defaults to the latest version */
+                version?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationEmailContent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-automation-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationEmailUpdateBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationEmailContent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-automations": {
+        parameters: {
+            query?: {
+                status?: "all" | "live" | "paused" | "drafts";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationCreateBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-automation-event": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationEventBody"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationEventResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "automation-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationOptions"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "automations-summary": {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-automation-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationTemplates"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationMetaBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "automation-diff": {
+        parameters: {
+            query?: {
+                /** @description Defaults to the live version */
+                from?: number;
+                /** @description Defaults to the draft */
+                to?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDiff"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-automation-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationDraftBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDraftSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "discard-automation-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "duplicate-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationPauseBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationPublishBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationPublishResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "automation-publish-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationPublishPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "automation-stats": {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationStats"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-automation-webhook-calls": {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+                node: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationWebhookCalls"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-automation-step-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+                node: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationSecretBody"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-automation-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationVersions"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationVersionGraph"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-automation-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDraftSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-campaigns": {
         parameters: {
             query?: {
@@ -6880,6 +10742,42 @@ export interface operations {
             };
         };
     };
+    "delete-workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceDeleteInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceDeleteResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-deliverability": {
         parameters: {
             query?: never;
@@ -7151,6 +11049,36 @@ export interface operations {
             };
         };
     };
+    "export-workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-integrations": {
         parameters: {
             query?: never;
@@ -7385,6 +11313,203 @@ export interface operations {
             };
         };
     };
+    "list-invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamInvitationList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamInviteInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamInviteResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "invitation-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamInviteOptions"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-invitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "invitation-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamInviteLink"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resend-invitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "leave-workspace": {
         parameters: {
             query?: never;
@@ -7403,6 +11528,304 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-mcp-server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-mcp-server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-mcp-agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-mcp-agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["APIKeyCreateInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-agent-actions": {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPAgentActionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-mcp-agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-mcp-agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-mcp-agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rotate-mcp-agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyCreated"];
+                };
             };
             /** @description Error */
             default: {
@@ -7542,6 +11965,281 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-members": {
+        parameters: {
+            query?: {
+                /** @description Search name or email */
+                q?: string;
+                /** @description Role id or key */
+                role?: string;
+                status?: "active" | "deactivated";
+                twofa?: "on" | "off" | "idp" | "required";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamMemberList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "bulk-members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamBulkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamBulkResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-member": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamMemberDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-member": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-member": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamMemberChangeInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "deactivate-member": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamDeactivateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamDeactivateResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reactivate-member": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sign-out-member": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamSignOutResult"];
+                };
             };
             /** @description Error */
             default: {
@@ -7840,7 +12538,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -7972,7 +12674,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -8006,6 +12712,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
                 campaignId: string;
             };
             cookie?: never;
@@ -8040,7 +12749,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -8121,6 +12834,209 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProviderWebhookTestResult"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "role-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleImpactInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleImpact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                roleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                roleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                roleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -8225,6 +13141,72 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RouteTestResult"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-workspace-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-workspace-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceGeneralInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -8503,6 +13485,40 @@ export interface operations {
             };
         };
     };
+    "transfer-workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceTransferInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-warmup": {
         parameters: {
             query?: never;
@@ -8575,7 +13591,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                planId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -8657,6 +13677,409 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WarmupPlanView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-webhook-deliveries": {
+        parameters: {
+            query?: {
+                /** @description Only this endpoint */
+                webhookId?: string;
+                state?: "pending" | "delivered" | "retrying" | "dead" | "held" | "failed";
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookDeliveryList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-webhook-delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                deliveryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookDeliveryDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "retry-webhook-delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                deliveryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookRetryResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "retry-failed-webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookRetryInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookRetryResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rotate-webhook-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSecretResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookTestResult"];
                 };
             };
             /** @description Error */

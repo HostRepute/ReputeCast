@@ -1,0 +1,689 @@
+/*
+ * Automations: the list's template cards and the flow editor. Values are
+ * copied from design/boards/AutomationsList, AutomationsStates,
+ * AutomationFlow and AutomationPublish.
+ */
+@import '@xyflow/react/dist/base.css' layer(components);
+
+@layer components {
+/* ------------------------------------------------------- template cards */
+.tpl {
+  display: flex;
+  flex-direction: column;
+  /* The boards' standalone-link rule centres the card's content. */
+  align-items: center;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: content-box;
+}
+.tpl:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.tpl[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+.tpl[aria-disabled='true']:hover {
+  border-color: var(--line);
+}
+.tpl.lg {
+  gap: 8px;
+  padding: 16px 18px;
+}
+.tpl.blank {
+  border-style: dashed;
+  justify-content: center;
+  text-align: center;
+}
+.mini {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.mini i {
+  display: block;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--line-hover);
+}
+.mini b {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.tpl.lg .mini {
+  flex-wrap: wrap;
+}
+.tpl.lg .mini b {
+  width: 10px;
+  height: 10px;
+}
+
+/* Version history and skeleton rows */
+.ver {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line-2);
+  font-size: 12.5px;
+}
+
+/* --------------------------------------------------------- flow editor */
+.fe {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ground);
+  font-size: 13px;
+}
+/* The flow and publish boards' buttons; small ones keep the app's .btn.sm. */
+.fe .btn:where(:not(.sm, .xs)),
+.fe-dlg .btn:where(:not(.sm, .xs)) {
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 7px;
+  font-size: 12.5px;
+}
+.fe .btn.ic {
+  width: 32px;
+  padding: 0;
+}
+.fe .btn.mini-btn {
+  min-height: 28px;
+  font-size: 12px;
+}
+.fe .in,
+.fe-dlg .in {
+  height: 32px;
+  padding: 0 9px;
+  border-radius: 7px;
+  font-size: 12.5px;
+}
+.fe-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.fe-body {
+  display: flex;
+  flex-wrap: wrap;
+  flex: 1;
+  align-items: stretch;
+}
+.fe-panel {
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.fe-left {
+  flex: 1 1 240px;
+  max-width: 240px;
+  border-right: 1px solid var(--line);
+}
+.fe-right {
+  flex: 1 1 300px;
+  max-width: 300px;
+  border-left: 1px solid var(--line);
+}
+.fe-main {
+  flex: 999 1 560px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--ground);
+}
+@media (max-width: 1100px) {
+  .fe-panel {
+    max-width: none;
+  }
+}
+@media (max-width: 767px) {
+  .fe-panel {
+    max-width: none;
+    flex: 1 1 100%;
+  }
+}
+
+/* Palette */
+.fe-pal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: grab;
+  box-sizing: border-box;
+}
+.fe-pal:hover {
+  border-color: var(--line-hover);
+  background: var(--ground-3);
+}
+.fe-pal[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.fe-pal .sw {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+
+/* Canvas toolbar */
+.fe-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 14px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.fe-tools label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+}
+/* Next to a long label the board's checkboxes give way a little. */
+.fe-tools input[type='checkbox'],
+.fe-chk input[type='checkbox'] {
+  flex: 0 1 auto;
+}
+
+/* Canvas */
+.fe-canvas {
+  position: relative;
+  flex: 1;
+  background: var(--ground);
+}
+.fe-canvas .react-flow {
+  position: absolute;
+  inset: 0;
+  --xy-background-color: var(--ground);
+}
+.fe-canvas .react-flow__pane {
+  cursor: default;
+}
+.fe-canvas .react-flow__pane.dragging {
+  cursor: grabbing;
+}
+.fe-ctl {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 4px;
+}
+.fe-ctl .btn[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.fe-minimap {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 5;
+  width: 160px;
+  height: 110px;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+/* The canvas while the flow loads (the board's dot grid). */
+.fe-canvas.fe-dots {
+  background-image: radial-gradient(#d4d8df 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.fe-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* Steps */
+.fn {
+  position: relative;
+  width: 224px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 9px 11px;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(11, 18, 32, 0.08);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+  animation: fl-node-in 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--fl-d, 0s);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.fn.compact {
+  padding: 7px 11px;
+}
+/* A step added while editing fades in where it lands. */
+.fn.later {
+  animation-name: fl-fade-in;
+  animation-duration: 0.3s;
+}
+.fn.new {
+  border-style: dashed;
+}
+.fn.sel {
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 3px var(--info-bg);
+}
+.fn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(11, 18, 32, 0.14);
+}
+.fn.issue {
+  border-color: var(--bad-bar);
+}
+.fn .hd {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.fn .t {
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.3;
+}
+.fn .st {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.fn .st .badge {
+  height: 18px;
+  font-size: 10.5px;
+}
+.fn .hit {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow:
+    inset 0 0 0 2px #0f766e,
+    0 0 0 4px rgba(15, 118, 110, 0.22),
+    0 8px 18px rgba(15, 118, 110, 0.18);
+}
+.fn .hd .dot.live {
+  animation: fl-livepulse 1.8s ease-out 1.4s infinite;
+}
+.react-flow__node:focus-visible {
+  outline: none;
+}
+.react-flow__node:focus-visible .fn {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Handles */
+.fe-canvas .react-flow__handle.fn-hb {
+  position: absolute;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: content-box;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #6b7280;
+  transform: translateX(-50%);
+}
+.fe-canvas .react-flow__handle.fn-hb.i {
+  top: -6px;
+  bottom: auto;
+}
+.fe-canvas .react-flow__handle.fn-hb.o {
+  top: auto;
+  bottom: -6px;
+}
+.fe-canvas .react-flow__handle.fn-hb.connectionindicator:hover,
+.fe-canvas .react-flow__handle.fn-hb.valid {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Edges */
+.fe-canvas .react-flow__edge-path.fe-edge {
+  stroke: #9aa3b2;
+  stroke-width: 2;
+  fill: none;
+  /* Square lines on whole pixels, like the board's 2px bars. */
+  shape-rendering: crispEdges;
+}
+.fe-canvas .react-flow__edge.selected .fe-edge,
+.fe-canvas .react-flow__edge:focus-visible .fe-edge {
+  stroke: #1d4ed8;
+}
+/* The edge a dragged step would be inserted into. */
+.fe-canvas .react-flow__edge.fe-drop .fe-edge {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.fe-canvas .react-flow__connection-path {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+.fe-edge.draw {
+  animation: fl-draw var(--fl-t, 0.45s) ease-out both;
+  animation-delay: var(--fl-d, 0s);
+}
+.fe-elab {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink-nav);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: fl-lab-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--fl-d, 0s);
+}
+.fe-elab.yes {
+  background: var(--ok-bg);
+  border-color: #86efac;
+  color: var(--ok-fg);
+}
+.fe-elab.no {
+  background: var(--warn-bg);
+  border-color: var(--color-warn-line);
+  color: var(--warn-fg);
+}
+
+/* Pulses (above edges and labels, below steps) */
+.fe-pu {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  width: 4px;
+  height: 18px;
+  border-radius: 3px;
+  background: #0f766e;
+  box-shadow: 0 0 6px 1px rgba(15, 118, 110, 0.6);
+  opacity: 0;
+  pointer-events: none;
+}
+.fe-pu.h {
+  width: 18px;
+  height: 4px;
+}
+
+/* "Animate flow" off: everything holds still. */
+.fe-still .fn,
+.fe-still .fe-edge,
+.fe-still .fe-elab,
+.fe-still .dot.live {
+  animation-play-state: paused !important;
+}
+
+@keyframes fl-node-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+    scale: 0.97;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes fl-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fl-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes fl-lab-in {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  70% {
+    opacity: 1;
+    scale: 1.08;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+@keyframes fl-livepulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(15, 118, 110, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fn,
+  .fe-elab,
+  .fn .hd .dot.live,
+  .fe-edge.draw {
+    animation: none !important;
+    opacity: 1;
+    translate: none;
+    scale: none;
+  }
+  .fe-edge.draw {
+    stroke-dashoffset: 0 !important;
+  }
+  .fe-pu,
+  .fn .hit {
+    display: none;
+  }
+}
+
+/* Side panels */
+.fe-ph {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-2);
+}
+.fe-prop {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-2);
+}
+.fe-prop .tt {
+  font-size: 12px;
+  font-weight: 600;
+}
+.fe-chk {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12.5px;
+}
+.fe-foot {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line-2);
+}
+.fe-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  font-size: 12.5px;
+}
+.fe-steprow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line-2);
+  font-size: 12.5px;
+  text-align: left;
+  background: none;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  width: 100%;
+  cursor: pointer;
+  color: var(--ink);
+  font: inherit;
+  box-sizing: border-box;
+}
+.fe-steprow:hover {
+  background: var(--ground-3);
+}
+.fe-steprow[aria-current='true'] {
+  background: var(--accent-tint);
+}
+
+/* -------------------------------------------- publish & history dialogs */
+.fe-ovl {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  background: rgba(11, 18, 32, 0.45);
+}
+.fe-dlg {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 24px 60px rgba(11, 18, 32, 0.3);
+  font-size: 13px;
+}
+.fe-dlg:focus {
+  outline: none;
+}
+.fe-dlg .btn.tall {
+  min-height: 40px;
+}
+.chg {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line-2);
+}
+.chg.add {
+  background: var(--ok-tint);
+}
+.chg.rem {
+  background: var(--bad-tint);
+}
+.chg .badge {
+  height: 20px;
+}
+@media (max-width: 767px) {
+  .fe-dlg .badge {
+    white-space: normal;
+    height: auto;
+    min-height: 22px;
+    line-height: 1.25;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    max-width: 100%;
+  }
+  /* The board's diff badges keep their 20px height; the phone minimum wins. */
+  .fe-dlg .chg .badge {
+    height: 20px;
+  }
+  .fe-dlg .btn {
+    white-space: normal;
+    max-width: 100%;
+  }
+  .fe .badge {
+    white-space: normal;
+    height: auto;
+    min-height: 22px;
+    line-height: 1.25;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    max-width: 100%;
+  }
+  .fe .fn .st .badge {
+    min-height: 18px;
+  }
+}
+}

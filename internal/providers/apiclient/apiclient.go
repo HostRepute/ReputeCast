@@ -81,7 +81,7 @@ func (c *Client) DoRaw(ctx context.Context, op, method, path string, in, out any
 	if err != nil {
 		return nil, NetworkError(op, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, MaxResponse))
 	if err != nil {
 		return nil, NetworkError(op, err)
