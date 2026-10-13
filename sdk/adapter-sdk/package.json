@@ -1,0 +1,48 @@
+{
+  "name": "@reputecast/adapter-sdk",
+  "version": "0.1.0",
+  "description": "Build ReputeCast community sending adapters: protocol types, defineAdapter, a signed protocol server, webhook helpers and the contract-test runner.",
+  "license": "AGPL-3.0-only",
+  "homepage": "https://github.com/hostrepute/reputecast/blob/main/docs/adapters.md#community-adapters",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hostrepute/reputecast.git",
+    "directory": "sdk/adapter-sdk"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=24.11"
+  },
+  "exports": {
+    ".": {
+      "reputecast-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "reputecast-source": "./src/testing/index.ts",
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "reputecast-adapter": "./bin/reputecast-adapter.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "6.0.3",
+    "vitest": "5.0.4"
+  }
+}

@@ -14,6 +14,7 @@ import (
 	"errors"
 	"net/http"
 	"net/mail"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -271,10 +272,17 @@ type Field struct {
 	Help     string   `json:"help,omitempty"`
 }
 
-var registry = map[string]Descriptor{}
+// The registry holds built-in adapters (registered from init) and runtime
+// adapters (community adapters, see SetRuntime), so reads take the lock.
+var (
+	registryMu sync.RWMutex
+	registry   = map[string]Descriptor{}
+)
 
 // Register adds an adapter to the catalog. Adapters call it from init.
 func Register(d Descriptor) {
+	registryMu.Lock()
+	defer registryMu.Unlock()
 	if _, dup := registry[d.Adapter]; dup {
 		panic("providers: duplicate adapter " + d.Adapter)
 	}
@@ -283,12 +291,16 @@ func Register(d Descriptor) {
 
 // Lookup returns a registered adapter.
 func Lookup(adapter string) (Descriptor, bool) {
+	registryMu.RLock()
+	defer registryMu.RUnlock()
 	d, ok := registry[adapter]
 	return d, ok
 }
 
 // Catalog returns every registered adapter.
 func Catalog() []Descriptor {
+	registryMu.RLock()
+	defer registryMu.RUnlock()
 	out := make([]Descriptor, 0, len(registry))
 	for _, d := range registry {
 		out = append(out, d)

@@ -1,0 +1,42 @@
+{
+  "protocol": 1,
+  "kind": "remote",
+  "id": "example-esp",
+  "name": "Example ESP",
+  "version": "0.1.0",
+  "maintainer": "your-github-handle",
+  "description": "Sends through the Example ESP v1 API: batches of 100, signed webhooks, suppression pull and quota discovery.",
+  "source_url": "https://github.com/hostrepute/reputecast/tree/main/sdk/adapter-template",
+  "last_release": "2026-10-13T00:00:00Z",
+  "capabilities": {
+    "batch": 100,
+    "webhooks": true,
+    "suppressionSync": "pull",
+    "quotaDiscovery": true
+  },
+  "terms": {
+    "bulkMarketing": "allowed",
+    "note": "Example ESP allows newsletters to opted-in lists that carry an unsubscribe link.",
+    "url": "https://example-esp.com/acceptable-use"
+  },
+  "pricing": "$0.80 per 1,000",
+  "config": [
+    {
+      "key": "api_key",
+      "label": "API key",
+      "secret": true,
+      "required": true,
+      "help": "Example ESP › Settings › API keys. Needs the send and read scopes."
+    },
+    {
+      "key": "webhook_signing_key",
+      "label": "Webhook signing key",
+      "secret": true,
+      "required": true,
+      "help": "Example ESP › Settings › Webhooks. Point the webhook at the URL ReputeCast shows for this provider."
+    }
+  ],
+  "permissions": {
+    "network": ["api.example-esp.com"]
+  }
+}

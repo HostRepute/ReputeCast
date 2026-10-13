@@ -113,6 +113,9 @@ type Querier interface {
 	ClearSegmentMembers(ctx context.Context, segmentID uuid.UUID) error
 	ClearSignInThrottle(ctx context.Context, email string) error
 	ClearUserLockout(ctx context.Context, id uuid.UUID) error
+	// Every installed community adapter, any kind: the runtime registers the
+	// kinds it runs, and registry keys must not collide across kinds.
+	CommunityAdapterList(ctx context.Context) ([]CommunityAdapterListRow, error)
 	CompleteInstanceSetup(ctx context.Context, arg CompleteInstanceSetupParams) (InstanceSetting, error)
 	// Lists with their subscribed, active contacts (suppressed addresses excluded).
 	ComposerAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceListsRow, error)
@@ -593,6 +596,19 @@ type Querier interface {
 	RecoveryCodeStats(ctx context.Context, userID uuid.UUID) (RecoveryCodeStatsRow, error)
 	RefreshInvitation(ctx context.Context, arg RefreshInvitationParams) (Invitation, error)
 	ReleaseAutomationHeldMessages(ctx context.Context, arg ReleaseAutomationHeldMessagesParams) (int64, error)
+	RemoteAdapterConnected(ctx context.Context, adapter string) (int64, error)
+	RemoteAdapterDelete(ctx context.Context, id uuid.UUID) (int64, error)
+	RemoteAdapterGet(ctx context.Context, id uuid.UUID) (RemoteAdapterGetRow, error)
+	RemoteAdapterGetByKey(ctx context.Context, adapterKey string) (RemoteAdapterGetByKeyRow, error)
+	RemoteAdapterInsert(ctx context.Context, arg RemoteAdapterInsertParams) error
+	// Community adapters of kind "remote" and their runtime (internal/providers/remote).
+	RemoteAdapterList(ctx context.Context) ([]RemoteAdapterListRow, error)
+	RemoteAdapterUpdateManifest(ctx context.Context, arg RemoteAdapterUpdateManifestParams) error
+	RemoteRuntimeCreate(ctx context.Context, arg RemoteRuntimeCreateParams) error
+	RemoteRuntimeRecordCheck(ctx context.Context, arg RemoteRuntimeRecordCheckParams) error
+	RemoteRuntimeSetEndpoint(ctx context.Context, arg RemoteRuntimeSetEndpointParams) error
+	RemoteRuntimeSetSecret(ctx context.Context, arg RemoteRuntimeSetSecretParams) error
+	RemoteRuntimeTouch(ctx context.Context, adapterID uuid.UUID) error
 	RenamePasskey(ctx context.Context, arg RenamePasskeyParams) error
 	ResetUserTwoFactor(ctx context.Context, id uuid.UUID) error
 	ResolveAutomationAlert(ctx context.Context, arg ResolveAutomationAlertParams) (int64, error)

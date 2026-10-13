@@ -980,7 +980,8 @@
           "kind": {
             "enum": [
               "http",
-              "wasm"
+              "wasm",
+              "remote"
             ],
             "type": "string"
           },
@@ -1025,6 +1026,25 @@
         ],
         "type": "object"
       },
+      "AdapterHTTPHeader": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ],
+        "type": "object"
+      },
       "AdapterHTTPInput": {
         "additionalProperties": false,
         "properties": {
@@ -1038,6 +1058,13 @@
             "minLength": 10,
             "type": "string"
           },
+          "headers": {
+            "items": {
+              "$ref": "#/components/schemas/AdapterHTTPHeader"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
           "messageIdPath": {
             "description": "JSONPath of the message id in the response, e.g. $.data.id",
             "maxLength": 200,
@@ -1048,12 +1075,30 @@
             "minLength": 2,
             "type": "string"
           },
+          "webhookAuth": {
+            "description": "hmac (default): a signature header; standard: Standard Webhooks; basic: basic auth; header: the secret in a header; none: only the webhook URL",
+            "enum": [
+              "hmac",
+              "standard",
+              "basic",
+              "header",
+              "none"
+            ],
+            "type": "string"
+          },
+          "webhookHeader": {
+            "maxLength": 100,
+            "type": "string"
+          },
           "webhookMapping": {
             "enum": [
               "status",
               "jsonpath"
             ],
             "type": "string"
+          },
+          "webhookPaths": {
+            "$ref": "#/components/schemas/AdapterHTTPWebhookPaths"
           }
         },
         "required": [
@@ -1063,6 +1108,134 @@
           "messageIdPath",
           "webhookMapping"
         ],
+        "type": "object"
+      },
+      "AdapterHTTPMapping": {
+        "additionalProperties": false,
+        "properties": {
+          "bodyTemplate": {
+            "maxLength": 20000,
+            "type": "string"
+          },
+          "endpoint": {
+            "description": "Method and URL, e.g. POST https://api.example-esp.com/v1/messages",
+            "maxLength": 2048,
+            "minLength": 10,
+            "type": "string"
+          },
+          "headers": {
+            "items": {
+              "$ref": "#/components/schemas/AdapterHTTPHeader"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "messageIdPath": {
+            "description": "JSONPath of the message id in the response, e.g. $.data.id",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "webhookAuth": {
+            "description": "hmac (default): a signature header; standard: Standard Webhooks; basic: basic auth; header: the secret in a header; none: only the webhook URL",
+            "enum": [
+              "hmac",
+              "standard",
+              "basic",
+              "header",
+              "none"
+            ],
+            "type": "string"
+          },
+          "webhookHeader": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "webhookMapping": {
+            "enum": [
+              "status",
+              "jsonpath"
+            ],
+            "type": "string"
+          },
+          "webhookPaths": {
+            "$ref": "#/components/schemas/AdapterHTTPWebhookPaths"
+          }
+        },
+        "required": [
+          "endpoint",
+          "bodyTemplate",
+          "messageIdPath",
+          "webhookMapping"
+        ],
+        "type": "object"
+      },
+      "AdapterHTTPPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "headers": {
+            "items": {
+              "$ref": "#/components/schemas/AdapterHTTPPreviewHeader"
+            },
+            "type": "array"
+          },
+          "method": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "method",
+          "url",
+          "headers",
+          "body"
+        ],
+        "type": "object"
+      },
+      "AdapterHTTPPreviewHeader": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ],
+        "type": "object"
+      },
+      "AdapterHTTPWebhookPaths": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "description": "The events in one request, e.g. $.events[*] (default $: one event or an array of events)",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "messageId": {
+            "description": "The provider's message id, e.g. $.message_id",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "recipient": {
+            "description": "The recipient's address, e.g. $.email",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "type": {
+            "description": "The event type, e.g. $.event",
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "AdapterInstallInput": {
@@ -1077,6 +1250,157 @@
         },
         "required": [
           "manifestUrl"
+        ],
+        "type": "object"
+      },
+      "AdapterRuntime": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "examples": [
+              "community:example-esp"
+            ],
+            "type": "string"
+          },
+          "adapterId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "breaker": {
+            "enum": [
+              "closed",
+              "open",
+              "half_open"
+            ],
+            "type": "string"
+          },
+          "breakerOpenUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "check": {
+            "$ref": "#/components/schemas/AdapterRuntimeCheck"
+          },
+          "connected": {
+            "description": "Connected providers using the adapter, in every workspace",
+            "format": "int64",
+            "type": "integer"
+          },
+          "endpointProblem": {
+            "type": "string"
+          },
+          "endpointUrl": {
+            "type": "string"
+          },
+          "lastFailure": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "network": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "operations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "previousSecretValidUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "registered": {
+            "type": "boolean"
+          },
+          "secretIssuedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "version": {
+            "description": "Version of the installed manifest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "adapterId",
+          "adapter",
+          "name",
+          "version",
+          "endpointUrl",
+          "secretIssuedAt",
+          "operations",
+          "capabilities",
+          "network",
+          "breaker",
+          "registered",
+          "connected"
+        ],
+        "type": "object"
+      },
+      "AdapterRuntimeCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "runningVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "ok",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "AdapterRuntimeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "endpointUrl": {
+            "description": "Base URL of the adapter process, like http://example-esp:4600",
+            "maxLength": 2048,
+            "minLength": 8,
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpointUrl"
+        ],
+        "type": "object"
+      },
+      "AdapterRuntimeSecret": {
+        "additionalProperties": false,
+        "properties": {
+          "previousSecretValidUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "secret": {
+            "description": "The new signing secret. Shown only in this response; set it on the adapter process as REPUTECAST_ADAPTER_SECRET.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "secret"
         ],
         "type": "object"
       },
@@ -20769,6 +21093,71 @@
         "x-permission": "providers:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/adapters/http/preview": {
+      "post": {
+        "description": "Nothing is sent. Secrets are shown as ••••.",
+        "operationId": "preview-http-adapter",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdapterHTTPMapping"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterHTTPPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Render the request a generic HTTP mapping sends for a sample message (instance admins)",
+        "tags": [
+          "Adapters"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      }
+    },
     "/api/v1/workspaces/{workspace}/adapters/{adapterId}": {
       "delete": {
         "operationId": "remove-adapter",
@@ -20818,6 +21207,269 @@
           }
         ],
         "summary": "Remove a community adapter (instance admins)",
+        "tags": [
+          "Adapters"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime": {
+      "get": {
+        "description": "The signing secret is never returned.",
+        "operationId": "get-adapter-runtime",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "adapterId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterRuntime"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Where a community adapter runs, its secret's age and its health (instance admins)",
+        "tags": [
+          "Adapters"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      },
+      "put": {
+        "description": "Loopback and private addresses need providers.allow_private_networks; plain http:// only reaches them.",
+        "operationId": "update-adapter-runtime",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "adapterId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdapterRuntimeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterRuntime"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Set where a community adapter's process listens (instance admins)",
+        "tags": [
+          "Adapters"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime/check": {
+      "post": {
+        "operationId": "check-adapter-runtime",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "adapterId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterRuntime"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Call a community adapter's health operation now (instance admins)",
+        "tags": [
+          "Adapters"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime/secret": {
+      "post": {
+        "description": "The previous secret keeps working for 24 hours, so the adapter process can be updated without downtime.",
+        "operationId": "issue-adapter-secret",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "adapterId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterRuntimeSecret"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Issue a new signing secret for a community adapter; it is shown once (instance admins)",
         "tags": [
           "Adapters"
         ],

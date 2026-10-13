@@ -12,6 +12,22 @@ import (
 	"github.com/google/uuid"
 )
 
+type AdapterRuntime struct {
+	AdapterID          uuid.UUID  `json:"adapterId"`
+	AdapterKey         string     `json:"adapterKey"`
+	EndpointUrl        string     `json:"endpointUrl"`
+	SecretEnc          []byte     `json:"secretEnc"`
+	SecretIssuedAt     time.Time  `json:"secretIssuedAt"`
+	PreviousSecretEnc  []byte     `json:"previousSecretEnc"`
+	PreviousValidUntil *time.Time `json:"previousValidUntil"`
+	CheckedAt          *time.Time `json:"checkedAt"`
+	CheckOk            *bool      `json:"checkOk"`
+	CheckDetail        string     `json:"checkDetail"`
+	RunningVersion     string     `json:"runningVersion"`
+	CreatedAt          time.Time  `json:"createdAt"`
+	UpdatedAt          time.Time  `json:"updatedAt"`
+}
+
 type ApiKey struct {
 	ID             uuid.UUID       `json:"id"`
 	WorkspaceID    uuid.UUID       `json:"workspaceId"`

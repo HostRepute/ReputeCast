@@ -98,6 +98,11 @@ site: ## Check and build the landing site (reputecast.com) into site/dist
 site-dev: ## Run the landing site with live reload on :5288
 	cd site && $(PNPM) install --frozen-lockfile && $(PNPM) dev
 
+.PHONY: sdk
+sdk: ## Check, build and test the adapter SDK and template, then run the template through the Go runtime
+	cd sdk && $(PNPM) install --frozen-lockfile && $(PNPM) typecheck && $(PNPM) build && $(PNPM) test
+	REPUTECAST_ADAPTER_E2E=required $(GO) test -count=1 -run 'TestTemplateAdapterEndToEnd' ./internal/providers/remote/
+
 .PHONY: docker
 docker: ## Build the Docker image
 	docker build -t reputecast:$(VERSION) --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) .
