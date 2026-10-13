@@ -3,6 +3,7 @@ package demo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -440,7 +441,7 @@ func autoLinkBetaForm(ctx context.Context, s *Seeder, flow uuid.UUID, g automati
 	ws := s.WS()
 	var form uuid.UUID
 	err := s.Tx.QueryRow(ctx, `SELECT id FROM forms WHERE workspace_id = $1 AND slug = 'beta-apply'`, ws.ID).Scan(&form)
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		form = ID()
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO forms (id, workspace_id, name, kind, slug, list_ids, double_opt_in, status, created_by, created_at)
 			VALUES ($1,$2,'Beta application','hosted','beta-apply',$3,true,'live',$4,$5)`,

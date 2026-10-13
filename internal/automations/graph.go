@@ -3,6 +3,7 @@ package automations
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"slices"
@@ -718,7 +719,7 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 		if err := checkWebhookURL(w.URL); err != nil {
 			bad("invalid_url", "%s", err.Error())
 		}
-		if w.Method != "" && w.Method != "POST" && w.Method != "PUT" {
+		if w.Method != "" && w.Method != http.MethodPost && w.Method != http.MethodPut {
 			bad("invalid_method", "Webhooks use POST or PUT.")
 		}
 	case NodeList:

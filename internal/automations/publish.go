@@ -578,7 +578,7 @@ func retireEmpty(ctx context.Context, q *store.Queries, automationID uuid.UUID) 
 		if r.AutomationID != automationID {
 			continue
 		}
-		if err := q.RetireAutomationVersion(ctx, store.RetireAutomationVersionParams{AutomationID: r.AutomationID, Version: r.Version}); err != nil {
+		if err := q.RetireAutomationVersion(ctx, store.RetireAutomationVersionParams(r)); err != nil {
 			return err
 		}
 	}

@@ -329,7 +329,7 @@ func TestWebhookStepsAreSignedLoggedAndNeverBlock(t *testing.T) {
 		}
 	}
 	c.Do("GET", wsPath+"/"+flow+"/steps/w/calls", nil).MustStatus(t, 200).JSON(t, &calls)
-	if len(calls.Calls) != 2 || calls.Calls[0].StatusCode != 404 || calls.Calls[1].StatusCode != 200 {
+	if len(calls.Calls) != 2 || calls.Calls[0].StatusCode != http.StatusNotFound || calls.Calls[1].StatusCode != http.StatusOK {
 		t.Fatalf("calls %+v", calls.Calls)
 	}
 	var l list

@@ -277,10 +277,7 @@ func emailItemRef(g AutomationGraph, n AutomationNode, refs *Refs) string {
 		// A variant after a split takes its letter: Step 3 + A → 3A.
 		for _, e := range g.In(n.ID) {
 			if src := g.Node(e.Source); src != nil && src.Type == NodeSplit && e.Data.Path != "" {
-				ref += e.Data.Path
-				if strings.HasPrefix(ref, "Step ") {
-					ref = strings.TrimPrefix(ref, "Step ")
-				}
+				ref = strings.TrimPrefix(ref+e.Data.Path, "Step ")
 				break
 			}
 		}
@@ -288,7 +285,7 @@ func emailItemRef(g AutomationGraph, n AutomationNode, refs *Refs) string {
 	if q := emailQuoted(name); q != "" && q != ref {
 		return fmt.Sprintf("%s %s", ref, quote(q))
 	}
-	return fmt.Sprintf("%s", quote(ref))
+	return quote(ref)
 }
 
 var numberWords = []string{"No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"}
@@ -537,8 +534,7 @@ func unchangedLine(g AutomationGraph, added, changed map[string]bool, refs *Refs
 	var ids []string
 	var terminals []AutomationNode
 	listed := map[string]bool{}
-	var visitPath func(start string) (members []string, clean bool)
-	visitPath = func(start string) ([]string, bool) {
+	visitPath := func(start string) ([]string, bool) {
 		var members []string
 		clean := true
 		seen := map[string]bool{}
@@ -569,8 +565,7 @@ func unchangedLine(g AutomationGraph, added, changed map[string]bool, refs *Refs
 		walk(start)
 		return members, clean
 	}
-	var spine func(id string)
-	spine = func(id string) {
+	spine := func(id string) {
 		for id != "" {
 			n := g.Node(id)
 			if n == nil || listed[id] {

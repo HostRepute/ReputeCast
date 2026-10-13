@@ -290,7 +290,7 @@ func NodeTitle(g AutomationGraph, n AutomationNode, refs *Refs) string {
 		return "Set a condition"
 	case NodeFilter:
 		if p := conditionPhrase(g, d.Condition, refs); p != "" {
-			return "Only contacts " + strings.Replace(p, "is ", "where ", 0)
+			return "Only contacts " + p
 		}
 		return "Set a condition"
 	case NodeSplit:

@@ -15,6 +15,7 @@ package automations
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -251,7 +252,7 @@ func (s *Service) route(ctx context.Context, q *store.Queries, wsID uuid.UUID) (
 	rp := routeProvider
 	rule, err := q.AutomationRoute(ctx, wsID)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return out, nil
 		}
 		return out, err

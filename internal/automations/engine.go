@@ -214,9 +214,18 @@ func triggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool
 	return false
 }
 
+// stepID reads an id stored in a step's settings. A malformed one means
+// there is nothing to act on (validation keeps them out of published
+// versions), so callers skip instead of failing the run.
+func stepID(s string) (uuid.UUID, bool) {
+	id, err := uuid.Parse(s)
+	return id, err == nil
+}
+
 func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, f store.LiveAutomationsForTriggerRow, ev store.ClaimAutomationEventsRow, now time.Time) (bool, error) {
 	var t AutomationTrigger
-	if json.Unmarshal(f.Trigger, &t) != nil || !triggerMatches(t, ev) || f.LiveVersion == nil {
+	decoded := json.Unmarshal(f.Trigger, &t) == nil
+	if !decoded || !triggerMatches(t, ev) || f.LiveVersion == nil {
 		return false, nil
 	}
 	if t.Reentry != "always" {
@@ -500,8 +509,8 @@ func (e *executor) email(ctx context.Context, n AutomationNode) (string, string,
 			}
 		}
 	}
-	emailID, err := uuid.Parse(cfg.EmailID)
-	if err != nil {
+	emailID, ok := stepID(cfg.EmailID)
+	if !ok {
 		e.stat(n.ID).Skipped++
 		return next, "", false, nil
 	}
@@ -593,8 +602,8 @@ func (e *executor) engaged(ctx context.Context, c *AutomationCondition) (met boo
 		if msg == "" {
 			return false, "", sentAt, nil
 		}
-		mid, err := uuid.Parse(msg)
-		if err != nil {
+		mid, ok := stepID(msg)
+		if !ok {
 			return false, "", sentAt, nil
 		}
 		met, err = e.q.AutomationMessageEngaged(ctx, store.AutomationMessageEngagedParams{MessageID: &mid, Want: c.Kind, HumanOnly: c.HumanOnly, UrlContains: c.URLContains})
@@ -620,8 +629,8 @@ func (e *executor) eval(ctx context.Context, c *AutomationCondition) (bool, erro
 		}
 		return slices.Contains(ct.Tags, c.Tag), nil
 	case "list":
-		lid, err := uuid.Parse(c.ListID)
-		if err != nil {
+		lid, ok := stepID(c.ListID)
+		if !ok {
 			return false, nil
 		}
 		return e.q.AutomationContactInList(ctx, store.AutomationContactInListParams{ListID: lid, ContactID: e.run.ContactID})
@@ -699,8 +708,8 @@ func (e *executor) listAction(ctx context.Context, a *AutomationListAction) erro
 	source := "automation:" + e.run.AutomationID.String()
 	switch a.Kind {
 	case "add_list", "remove_list":
-		lid, err := uuid.Parse(a.ListID)
-		if err != nil {
+		lid, ok := stepID(a.ListID)
+		if !ok {
 			return nil
 		}
 		if a.Kind == "add_list" {
@@ -821,7 +830,7 @@ func (s *Service) Scan(ctx context.Context) error {
 			return err
 		}
 		for _, r := range rows {
-			if err := q.RetireAutomationVersion(ctx, store.RetireAutomationVersionParams{AutomationID: r.AutomationID, Version: r.Version}); err != nil {
+			if err := q.RetireAutomationVersion(ctx, store.RetireAutomationVersionParams(r)); err != nil {
 				return err
 			}
 		}
@@ -872,8 +881,8 @@ func (s *Service) detectGoals(ctx context.Context, now time.Time) error {
 						ids = append(ids, r.ID)
 					}
 				case "list":
-					lid, err := uuid.Parse(c.ListID)
-					if err != nil {
+					lid, ok := stepID(c.ListID)
+					if !ok {
 						return nil
 					}
 					rows, err := q.AutomationGoalRunsInList(ctx, store.AutomationGoalRunsInListParams{AutomationID: v.AutomationID, Version: v.Version, ListID: lid})
