@@ -78,6 +78,9 @@ type SignInResult struct {
 type twoFactorChallenge struct {
 	Remember bool   `json:"remember"`
 	Method   string `json:"method"`
+	// Extra is added to the sign-in's audit entry (an SSO sign-in that
+	// still needs the person's own second factor keeps its provider).
+	Extra map[string]any `json:"extra,omitempty"`
 }
 
 // PasswordSignIn checks a password and either signs in or asks for a second factor.
@@ -88,8 +91,12 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 		return SignInResult{}, nil, err
 	}
 	// Locked emails are refused before the password is even checked.
-	if th, err := s.Q.GetSignInThrottle(ctx, email); err == nil && th.LockedUntil != nil && th.LockedUntil.After(s.now()) {
-		return SignInResult{}, nil, lockMessage(*th.LockedUntil, th.Failures)
+	failedBefore := int32(0)
+	if th, err := s.Q.GetSignInThrottle(ctx, email); err == nil {
+		if th.LockedUntil != nil && th.LockedUntil.After(s.now()) {
+			return SignInResult{}, nil, lockMessage(*th.LockedUntil, th.Failures)
+		}
+		failedBefore = th.Failures
 	}
 	u, err := s.Q.GetUserByEmail(ctx, email)
 	exists := err == nil
@@ -100,10 +107,15 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 		return SignInResult{}, nil, api.Err(http.StatusForbidden, "account_deactivated", "This account was deactivated. Ask your instance admin to reactivate it; nothing was deleted.").
 			WithMeta("deactivatedAt", u.DeactivatedAt)
 	}
+	// extra marks break-glass sign-ins under domain enforcement in the audit log.
+	var extra map[string]any
 	if exists {
-		if p, _ := s.enforcingProvider(ctx, email); p != nil && !u.BreakGlass {
-			return SignInResult{}, nil, api.Err(http.StatusForbidden, "sso_required", email[strings.Index(email, "@")+1:]+" signs in with "+p.Name+". Password sign-in is turned off for this domain.").
-				WithMeta("providerId", p.ID.String(), "provider", p.Name, "preset", p.Preset)
+		if p, _ := s.enforcingProvider(ctx, email); p != nil {
+			if !u.BreakGlass {
+				return SignInResult{}, nil, api.Err(http.StatusForbidden, "sso_required", email[strings.Index(email, "@")+1:]+" signs in with "+p.Name+". Password sign-in is turned off for this domain.").
+					WithMeta("providerId", p.ID.String(), "provider", p.Name, "preset", p.Preset)
+			}
+			extra = map[string]any{"break_glass": true, "enforced_by": p.Name}
 		}
 		if !methodAllowed(pol, "password") && !u.BreakGlass {
 			return SignInResult{}, nil, api.Err(http.StatusForbidden, "method_disabled", "Password sign-in is turned off on this instance. Use a passkey or single sign-on.")
@@ -127,8 +139,8 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 		if exists {
 			_, _ = s.Q.RecordSignInFailure(ctx, store.RecordSignInFailureParams{ID: u.ID, MaxAttempts: pol.LockoutAttempts, LockMinutes: pol.LockoutMinutes})
 		}
-		_ = s.Audit.Log(ctx, audit.Event{Action: "auth.sign_in", Result: audit.Denied, Reason: "wrong password or unknown email", TargetType: "user", TargetName: email, Actor: anonActor(email),
-			Metadata: map[string]any{"method": "password", "failures": th.Failures}})
+		_ = s.Audit.Log(ctx, audit.Event{Action: "signin.failed", Result: audit.Denied, Reason: "wrong password or unknown email", TargetType: "user", TargetName: email, Actor: anonActor(email),
+			Metadata: map[string]any{"method": "password", "failures": th.Failures, "max_attempts": pol.LockoutAttempts}})
 		if th.LockedUntil != nil && th.LockedUntil.After(s.now()) {
 			return SignInResult{}, nil, lockMessage(*th.LockedUntil, th.Failures)
 		}
@@ -138,6 +150,13 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 			WithMeta("attemptsLeft", left, "lockMinutes", pol.LockoutMinutes)
 	}
 	_ = s.Q.ClearSignInThrottle(ctx, email)
+	// The audit log shows "Password · after 3 failed attempts".
+	if failedBefore > 0 {
+		if extra == nil {
+			extra = map[string]any{}
+		}
+		extra["failed_before"] = failedBefore
+	}
 	if u.PasswordHash != nil && authn.NeedsRehash(*u.PasswordHash) {
 		if h, err := authn.HashPassword(password); err == nil {
 			_ = s.Q.SetUserPassword(ctx, store.SetUserPasswordParams{ID: u.ID, PasswordHash: &h, MustChangePassword: u.MustChangePassword})
@@ -157,14 +176,14 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 			TokenHash: hash,
 			Kind:      "two_factor",
 			UserID:    &uid,
-			Data:      mustJSON(twoFactorChallenge{Remember: remember, Method: "password"}),
+			Data:      mustJSON(twoFactorChallenge{Remember: remember, Method: "password", Extra: extra}),
 			ExpiresAt: s.now().Add(10 * time.Minute),
 		}); err != nil {
 			return SignInResult{}, nil, err
 		}
 		return SignInResult{Status: "two_factor", Challenge: token, Methods: methods, PasskeyHint: hint, Email: u.Email, RecoveryCodesLeft: left, RecoveryCodesTotal: total}, nil, nil
 	}
-	cookie, err := s.completeSignIn(ctx, u, "password", false, remember, nil)
+	cookie, err := s.completeSignInWith(ctx, u, "password", false, remember, nil, extra)
 	if err != nil {
 		return SignInResult{}, nil, err
 	}
@@ -200,6 +219,17 @@ func (s *Service) secondFactors(ctx context.Context, u store.User) ([]string, st
 // completeSignIn creates the session and records the sign-in. passkeyID
 // names the passkey the person used, if any.
 func (s *Service) completeSignIn(ctx context.Context, u store.User, method string, mfa, remember bool, passkeyID *uuid.UUID) (http.Cookie, error) {
+	return s.completeSignInWith(ctx, u, method, mfa, remember, passkeyID, nil)
+}
+
+// completeSignInWith is completeSignIn with extra audit metadata.
+func (s *Service) completeSignInWith(ctx context.Context, u store.User, method string, mfa, remember bool, passkeyID *uuid.UUID, extra map[string]any) (http.Cookie, error) {
+	meta := map[string]any{"method": method, "mfa": mfa}
+	for k, v := range extra {
+		if _, taken := meta[k]; !taken {
+			meta[k] = v
+		}
+	}
 	var cookie http.Cookie
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -216,8 +246,8 @@ func (s *Service) completeSignIn(ctx context.Context, u store.User, method strin
 		if err := q.RecordSignInSuccess(ctx, u.ID); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "auth.sign_in", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u),
-			Metadata: map[string]any{"method": method, "mfa": mfa}})
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "signin.succeeded", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u),
+			Metadata: meta})
 	})
 	return cookie, err
 }
@@ -283,7 +313,7 @@ func (s *Service) TwoFactor(ctx context.Context, challenge, method, code string)
 		return SignInResult{}, nil, api.BadRequest("Unknown method. Use totp or recovery; passkeys use /auth/two-factor/passkey.")
 	}
 	_ = s.Q.DeleteChallenge(ctx, ch.ID)
-	cookie, err := s.completeSignIn(ctx, u, data.Method+"+"+method, true, data.Remember, nil)
+	cookie, err := s.completeSignInWith(ctx, u, data.Method+"+"+method, true, data.Remember, nil, data.Extra)
 	if err != nil {
 		return SignInResult{}, nil, err
 	}

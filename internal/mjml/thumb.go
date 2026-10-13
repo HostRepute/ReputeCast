@@ -12,11 +12,42 @@ type MJMLThumbItem struct {
 	Row    []MJMLThumbItem `json:"row,omitempty"`
 }
 
+// The gallery thumbnail is 120 px tall with 10 px of padding and 6 px
+// between bars, so the bars have 100 px.
+const (
+	thumbHeight = 100
+	thumbGap    = 6
+)
+
+// height is the space a bar takes in the thumbnail.
+func (it MJMLThumbItem) height() int {
+	h := it.H
+	for _, r := range it.Row {
+		h = max(h, r.H)
+	}
+	return h
+}
+
 // Thumb derives the gallery wireframe from a document: a short bar for the
 // header, a block for a hero image, a row of blocks for columns, lines for
-// text and a pill for a button. It keeps at most five items so it fits the
-// 120 px thumbnail.
+// text and a pill for a button. It keeps at most five items and stops at the
+// first one that doesn't fit the thumbnail, so no bar is cut off.
 func Thumb(src string) []MJMLThumbItem {
+	items := thumbItems(src)
+	used := 0
+	for i, it := range items {
+		if i > 0 {
+			used += thumbGap
+		}
+		used += it.height()
+		if used > thumbHeight {
+			return items[:i]
+		}
+	}
+	return items
+}
+
+func thumbItems(src string) []MJMLThumbItem {
 	root, err := Parse(src)
 	if err != nil {
 		return []MJMLThumbItem{}

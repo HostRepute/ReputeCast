@@ -99,8 +99,22 @@ export function KeyValues({ items, className }: { items: [ReactNode, ReactNode][
   )
 }
 
-/** Donut score (sender health). */
-export function ScoreRing({ score, label, verdict, verdictColor = '#166534', size = 112 }: { score: number; label: string; verdict: string; verdictColor?: string; size?: number }) {
+/** Donut score (sender health). `color` is the ring (accent by default; amber or red for a fair or poor score). */
+export function ScoreRing({
+  score,
+  label,
+  verdict,
+  verdictColor = '#166534',
+  size = 112,
+  color = '#0F766E',
+}: {
+  score: number
+  label: string
+  verdict: string
+  verdictColor?: string
+  size?: number
+  color?: string
+}) {
   const r = 46
   const c = 2 * Math.PI * r
   const filled = (Math.max(0, Math.min(100, score)) / 100) * c
@@ -112,7 +126,7 @@ export function ScoreRing({ score, label, verdict, verdictColor = '#166534', siz
         cy="56"
         r={r}
         fill="none"
-        stroke="#0F766E"
+        stroke={color}
         strokeWidth="10"
         strokeLinecap="round"
         strokeDasharray={`${filled.toFixed(1)} ${c.toFixed(0)}`}

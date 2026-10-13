@@ -83,8 +83,14 @@ func (w *CleanupWorker) purgeAudit(ctx context.Context) (int64, error) {
 			}
 			total += n
 		}
+		// Instance-level entries keep the instance retention.
+		n, err := q.PurgeInstanceAuditEvents(ctx, time.Now().AddDate(0, 0, -int(st.AuditRetentionDays)))
+		if err != nil {
+			return err
+		}
+		total += n
 		// Entries older than the longest allowed retention go regardless.
-		n, err := q.PurgeAuditEvents(ctx, store.PurgeAuditEventsParams{Before: time.Now().AddDate(0, 0, -int(max(st.AuditRetentionDays, 3650)))})
+		n, err = q.PurgeAuditEvents(ctx, store.PurgeAuditEventsParams{Before: time.Now().AddDate(0, 0, -int(max(st.AuditRetentionDays, 3650)))})
 		total += n
 		return err
 	})

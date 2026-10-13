@@ -341,6 +341,16 @@ const icons = {
     viewBox: '0 0 24 24',
     strokeWidth: 2,
   },
+  // Instance admin (user actions menu).
+  terminal: { body: <path d="M3 4l4 4-4 4M8 12h5" /> },
+  ban: {
+    body: (
+      <>
+        <circle cx="8" cy="8" r="6" />
+        <path d="M4 4l8 8" />
+      </>
+    ),
+  },
 } satisfies Record<string, IconDef>
 
 export type IconName = keyof typeof icons

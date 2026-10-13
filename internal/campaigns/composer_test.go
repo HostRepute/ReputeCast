@@ -167,7 +167,7 @@ func TestComposerDraftLifecycle(t *testing.T) {
 	oct := campaignID(t, env, "October Product Update")
 	var dup detail
 	c.Do("POST", ws+"/campaigns/"+oct+"/duplicate", nil).MustStatus(t, 201).JSON(t, &dup)
-	if dup.Name != "Copy of October Product Update" || dup.Status != "draft" || !strings.Contains(dup.MJML, "October at Acme") || dup.Version != 1 {
+	if dup.Name != "Copy of October Product Update" || dup.Status != "draft" || !strings.Contains(dup.MJML, "October Product Update: three launches") || dup.Version != 1 {
 		t.Fatalf("duplicate: %+v", dup)
 	}
 	// Sent campaigns are read-only.

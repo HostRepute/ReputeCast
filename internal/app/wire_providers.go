@@ -74,6 +74,7 @@ func init() {
 		jobsFn := func() *jobs.Client { return a.Jobs }
 		river.AddWorker(a.JobReg.Workers, &manage.HealthWorker{S: svc})
 		river.AddWorker(a.JobReg.Workers, &manage.TrackingWorker{S: svc})
+		river.AddWorker(a.JobReg.Workers, &manage.MoveWebhooksWorker{S: svc, PublicURL: a.currentPublicURL})
 		river.AddWorker(a.JobReg.Workers, &ingest.NormalizeWorker{N: n})
 		river.AddWorker(a.JobReg.Workers, &ingest.SweepWorker{N: n, Jobs: jobsFn})
 		river.AddWorker(a.JobReg.Workers, &ingest.MailboxWorker{N: n, Jobs: jobsFn})

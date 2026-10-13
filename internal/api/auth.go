@@ -169,8 +169,12 @@ func (a *Authenticator) sessionUser(ctx context.Context, hctx huma.Context) (*st
 		return nil, nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "Sign in to continue.")
 	}
 	sess, err := a.Q.GetSessionByToken(ctx, authn.HashToken(token))
-	if err != nil {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "Sign in to continue.")
+	}
+	if err != nil {
+		// A database blip is not a signed-out session: keep the cookie.
+		return nil, nil, a.unavailable(ctx, "session", err)
 	}
 	pol, err := a.Policy(ctx)
 	if err == nil && pol.SessionIdle > 0 && a.now().Sub(sess.LastSeenAt) > pol.SessionIdle {
@@ -178,7 +182,12 @@ func (a *Authenticator) sessionUser(ctx context.Context, hctx huma.Context) (*st
 		return nil, nil, Err(http.StatusUnauthorized, CodeSessionExpired, "Your session timed out. Sign in again; unsaved work in this tab is kept.")
 	}
 	u, err := a.Q.GetUser(ctx, sess.UserID)
-	if err != nil || u.Status != "active" {
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return nil, nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "Sign in to continue.")
+	case err != nil:
+		return nil, nil, a.unavailable(ctx, "session user", err)
+	case u.Status != "active":
 		return nil, nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "This account is deactivated. Ask an instance admin.")
 	}
 	_ = a.Q.TouchSession(ctx, sess.ID)
@@ -220,8 +229,11 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, token string) (*authz.
 		return nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "Unknown API key.")
 	}
 	k, err := a.Q.GetAPIKeyByToken(ctx, authn.HashToken(token))
-	if err != nil {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key is revoked or unknown.")
+	}
+	if err != nil {
+		return nil, a.unavailable(ctx, "API key", err)
 	}
 	if k.RevokedAt != nil {
 		a.keyRejected(ctx, k.ID, "revoked")
@@ -232,10 +244,17 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, token string) (*authz.
 		return nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key expired on "+k.ExpiresAt.Format("Jan 2, 2006")+". Rotate it in Settings › Keys & MCP.")
 	}
 	perms := authz.ParseSet(k.Permissions)
-	// A key never exceeds what its creator can do right now.
+	// A key never exceeds what its creator can do right now: nothing once
+	// they have left the workspace, and no answer while that can't be read.
 	if k.CreatedBy != nil {
-		if m, err := a.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: k.WorkspaceID, UserID: *k.CreatedBy}); err == nil {
+		m, err := a.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: k.WorkspaceID, UserID: *k.CreatedBy})
+		switch {
+		case err == nil && m.Status == "active":
 			perms = perms.Intersect(authz.Effective(m.RoleKey, m.RoleBuiltin, m.RolePermissions))
+		case err == nil || errors.Is(err, pgx.ErrNoRows):
+			perms = authz.Set{}
+		default:
+			return nil, a.unavailable(ctx, "API key creator", err)
 		}
 	}
 	var scope authz.Scope
@@ -266,8 +285,11 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, token string) (*authz.
 // permissions there.
 func (a *Authenticator) workspacePrincipal(ctx context.Context, slug string, p *authz.Principal) (*store.Workspace, *Problem) {
 	ws, err := a.Q.GetWorkspaceBySlug(ctx, slug)
-	if err != nil {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, Err(http.StatusNotFound, CodeWorkspaceNotFound, "Workspace not found.")
+	}
+	if err != nil {
+		return nil, a.unavailable(ctx, "workspace", err)
 	}
 	switch p.Type {
 	case authz.ActorAPIKey, authz.ActorMCPAgent:
@@ -280,7 +302,7 @@ func (a *Authenticator) workspacePrincipal(ctx context.Context, slug string, p *
 			if errors.Is(err, pgx.ErrNoRows) || err == nil {
 				return nil, Err(http.StatusNotFound, CodeWorkspaceNotFound, "Workspace not found.")
 			}
-			return nil, Err(http.StatusInternalServerError, "", "Could not load your membership.")
+			return nil, a.unavailable(ctx, "membership", err)
 		}
 		p.WorkspaceID = ws.ID
 		p.RoleKey = m.RoleKey
@@ -399,4 +421,13 @@ func cookieValue(header, name string) string {
 		return ""
 	}
 	return c.Value
+}
+
+// unavailable answers 503 when the database can't say who is asking (the
+// request may be retried; the session and key stay valid).
+func (a *Authenticator) unavailable(ctx context.Context, what string, err error) *Problem {
+	if a.Log != nil {
+		a.Log.WarnContext(ctx, "authentication lookup failed", "what", what, "err", err)
+	}
+	return Err(http.StatusServiceUnavailable, CodeUnavailable, "Couldn't check who you are right now. Try again in a moment.")
 }

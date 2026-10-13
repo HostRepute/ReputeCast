@@ -33,9 +33,4 @@ func (a *App) notifyMailer() mailer.Sender {
 }
 
 // notifyPublicURL is the instance's public URL (instance settings, then config).
-func (a *App) notifyPublicURL(ctx context.Context) string {
-	if st, err := a.Q.GetInstanceSettings(ctx); err == nil && st.PublicUrl != "" {
-		return st.PublicUrl
-	}
-	return a.Cfg.HTTP.PublicURL
-}
+func (a *App) notifyPublicURL(ctx context.Context) string { return a.currentPublicURL(ctx) }
