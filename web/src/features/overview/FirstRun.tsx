@@ -36,6 +36,8 @@ export function FirstRun({ audience }: { audience?: Schemas['OverviewAudience'] 
   const meta = useInstanceMeta()
   const params = { workspace: slug }
   const lists = audience?.lists.map((l) => l.name) ?? []
+  const subscribers = audience?.subscribers ?? 0
+  const where = lists.length === 1 ? 'On 1 list' : `Across ${lists.length} lists`
   return (
     <>
       <section className="card flex flex-col" aria-labelledby="ov-welcome-h">
@@ -81,11 +83,13 @@ export function FirstRun({ audience }: { audience?: Schemas['OverviewAudience'] 
           <h3 className="h2 text-ink-3" id="ov-subs-p">
             Subscribers
           </h3>
-          <span className="n text-[28px] text-[#6B7280]">{count(audience?.subscribers ?? 0)}</span>
+          <span className="n text-[28px] text-[#6B7280]">{count(subscribers)}</span>
           <span className="k">
-            {lists.length
-              ? `${lists.length} ${lists.length === 1 ? 'list is' : 'lists are'} ready to receive contacts: ${lists.join(', ')}.`
-              : 'Create a list to collect contacts, or import them with their lists.'}
+            {!lists.length
+              ? 'Create a list to collect contacts, or import them with their lists.'
+              : subscribers
+                ? `${where}: ${lists.join(', ')}. Nothing is sent to them until a sending provider is connected.`
+                : `${lists.length} ${lists.length === 1 ? 'list is' : 'lists are'} ready to receive contacts: ${lists.join(', ')}.`}
           </span>
         </section>
       </Grid>
