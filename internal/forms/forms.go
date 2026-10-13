@@ -483,7 +483,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (SignupForm
 		return SignupFormsOverview{}, err
 	}
 	links := s.Links(ws, set)
-	out := SignupFormsOverview{Forms: []SignupFormSummary{}, Lists: []SignupFormList{}, CustomFields: []SignupFormCustomField{}, HostedURL: links.Subscribe(""), OwnOrigins: s.ownOrigins(set)}
+	out := SignupFormsOverview{Forms: []SignupFormSummary{}, Lists: []SignupFormList{}, CustomFields: []SignupFormCustomField{}, HostedURL: links.Subscribe(""), OwnOrigins: s.OwnOrigins(set)}
 	if set.row.HostedFormID != nil {
 		out.HostedFormID = set.row.HostedFormID.String()
 	}

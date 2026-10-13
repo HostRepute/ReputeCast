@@ -1,0 +1,28 @@
+{{define "content"}}{{with .Body}}<main class="card g18" id="main">
+  {{template "brand" $}}
+  <div class="col4"><h1 class="h26">Unsubscribe {{.Email}}?</h1><span class="sub">{{.OnLists}}</span></div>
+  {{with .Alert}}<div class="alert" role="alert">{{.}}</div>{{end}}
+  {{if .Fewer}}<form class="fewer" method="post" action="{{.Action}}">
+    <input type="hidden" name="action" value="fewer">
+    <span class="nm">{{.FewerTitle}}</span>
+    {{with .FewerText}}<span class="text">{{.}}</span>{{end}}
+    <button class="btn-sm start" type="submit"{{if $.Preview}} disabled{{end}}>{{.FewerButton}}</button>
+  </form>
+  {{end}}<form class="col10" method="post" action="{{.Action}}">
+    <input type="hidden" name="action" value="unsubscribe">
+    {{if .Reasons}}<label class="field"><span>Why are you leaving? <span class="opt">optional</span></span>
+      <select class="in" name="reason">
+        <option value="">Choose a reason</option>
+        {{range .Reasons}}<option value="{{.Value}}">{{.Label}}</option>
+        {{end}}
+      </select>
+    </label>
+    {{end}}<button class="btn-out" type="submit"{{if $.Preview}} disabled{{end}}>Unsubscribe from all {{$.Brand.Name}} emails</button>
+    <span class="t13">Takes effect immediately for newsletters and automated emails. You'll still get account emails like password resets, which go through a separate stream.</span>
+  </form>
+  <div class="split rule"><span>Changed your mind? <a href="{{.PrefsHref}}">Manage preferences</a> instead.</span><span>{{if .FirstName}}Not {{.FirstName}}?{{else}}Not you?{{end}} <a href="{{.NotYouHref}}">Ignore this page</a></span></div>
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  <span>One-click unsubscribe from your mail app works too.</span>
+  {{- if .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

@@ -470,6 +470,38 @@ func (q *Queries) SignupPreferences(ctx context.Context, contactID uuid.UUID) (S
 	return i, err
 }
 
+const signupPreviewConfirmed = `-- name: SignupPreviewConfirmed :one
+SELECT ce.contact_id::uuid AS contact_id
+FROM consent_events ce
+JOIN contacts c ON c.id = ce.contact_id
+WHERE c.workspace_id = $1 AND ce.action = 'confirmed' AND c.erased_at IS NULL AND c.status = 'active'
+ORDER BY ce.occurred_at DESC, ce.id DESC
+LIMIT 1
+`
+
+// The subscriber who confirmed most recently: the app previews the public
+// pages as they see them.
+func (q *Queries) SignupPreviewConfirmed(ctx context.Context, workspaceID uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, signupPreviewConfirmed, workspaceID)
+	var contact_id uuid.UUID
+	err := row.Scan(&contact_id)
+	return contact_id, err
+}
+
+const signupPreviewLatest = `-- name: SignupPreviewLatest :one
+SELECT id FROM contacts
+WHERE workspace_id = $1 AND erased_at IS NULL AND status = 'active'
+ORDER BY created_at DESC, id DESC
+LIMIT 1
+`
+
+func (q *Queries) SignupPreviewLatest(ctx context.Context, workspaceID uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, signupPreviewLatest, workspaceID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const signupPublicLists = `-- name: SignupPublicLists :many
 SELECT l.id, l.name, l.description, l.public, l.created_at,
        (SELECT count(*) FROM list_memberships lm WHERE lm.list_id = l.id AND lm.status = 'subscribed')::bigint AS subscribed

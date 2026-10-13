@@ -18,9 +18,14 @@ ORDER BY sent_at, c.id;
 -- name: ArchiveSlugTaken :one
 SELECT EXISTS (SELECT 1 FROM archive_issues WHERE workspace_id = @workspace_id AND slug = @slug)::boolean;
 
+-- name: ArchiveLock :exec
+-- Serializes archive syncs of a workspace, so two requests never hand out
+-- the same slug.
+SELECT pg_advisory_xact_lock(hashtextextended('archive:' || CAST(@workspace_id::uuid AS text), 0));
+
 -- name: ArchiveInsertIssue :exec
-INSERT INTO archive_issues (campaign_id, workspace_id, slug, list_id, created_at, updated_at)
-VALUES (@campaign_id, @workspace_id, @slug, @list_id, @at, @at)
+INSERT INTO archive_issues (campaign_id, workspace_id, slug, list_id, label, created_at, updated_at)
+VALUES (@campaign_id, @workspace_id, @slug, @list_id, @label, @at, @at)
 ON CONFLICT (campaign_id) DO NOTHING;
 
 -- name: ArchiveIssues :many
@@ -38,6 +43,17 @@ WHERE ai.workspace_id = @workspace_id
   AND (@q::text = '' OR ai.title ILIKE @q OR c.subject ILIKE @q OR ai.excerpt ILIKE @q OR c.preheader ILIKE @q)
 ORDER BY sent_at DESC, c.id DESC
 LIMIT @lim OFFSET @off;
+
+-- name: ArchiveIssueOne :one
+-- One issue of the Archive tab, as ArchiveIssues lists it.
+SELECT ai.campaign_id, ai.slug, ai.list_id, coalesce(l.name, '')::text AS list_name, ai.title, ai.excerpt, ai.label, ai.hidden,
+       c.name, c.subject, c.preheader, c.plain_text,
+       coalesce(c.started_at, c.completed_at, c.created_at)::timestamptz AS sent_at,
+       coalesce(c.completed_at, c.started_at, c.created_at)::timestamptz AS updated_at
+FROM archive_issues ai
+JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status = 'sent'
+LEFT JOIN lists l ON l.id = ai.list_id
+WHERE ai.workspace_id = @workspace_id AND ai.campaign_id = @campaign_id;
 
 -- name: ArchiveIssueCount :one
 SELECT count(*)::bigint
@@ -102,7 +118,7 @@ WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.deleted_at IS NULL;
 SELECT c.id, c.audience, c.scheduled_at::timestamptz AS scheduled_at
 FROM campaigns c
 WHERE c.workspace_id = @workspace_id AND c.status IN ('scheduled', 'approved') AND c.deleted_at IS NULL
-  AND c.scheduled_at IS NOT NULL AND c.scheduled_at > @after
+  AND c.scheduled_at IS NOT NULL AND c.scheduled_at > @after::timestamptz
 ORDER BY c.scheduled_at
 LIMIT 50;
 

@@ -142,7 +142,7 @@ func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings
 		s.recordReject(ctx, ws, c, "rate_limit", sub.Origin)
 		return Outcome{Status: OutcomeRateLimited, Message: msgRateLimited}
 	}
-	if !OriginAllowed(sub.Origin, c.AllowedOrigins, s.ownOrigins(set)) {
+	if !OriginAllowed(sub.Origin, c.AllowedOrigins, s.OwnOrigins(set)) {
 		s.recordReject(ctx, ws, c, "origin", sub.Origin)
 		return Outcome{Status: OutcomeRejected, Message: msgOrigin}
 	}

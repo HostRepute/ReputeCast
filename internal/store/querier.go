@@ -25,8 +25,13 @@ type Querier interface {
 	ArchiveIssueBySlug(ctx context.Context, arg ArchiveIssueBySlugParams) (ArchiveIssueBySlugRow, error)
 	ArchiveIssueCount(ctx context.Context, arg ArchiveIssueCountParams) (int64, error)
 	ArchiveIssueGet(ctx context.Context, arg ArchiveIssueGetParams) (ArchiveIssue, error)
+	// One issue of the Archive tab, as ArchiveIssues lists it.
+	ArchiveIssueOne(ctx context.Context, arg ArchiveIssueOneParams) (ArchiveIssueOneRow, error)
 	ArchiveIssues(ctx context.Context, arg ArchiveIssuesParams) ([]ArchiveIssuesRow, error)
 	ArchiveListCounts(ctx context.Context, arg ArchiveListCountsParams) ([]ArchiveListCountsRow, error)
+	// Serializes archive syncs of a workspace, so two requests never hand out
+	// the same slug.
+	ArchiveLock(ctx context.Context, workspaceID uuid.UUID) error
 	// W13 · Public pages (spec 7.12): the archive, view online and what an
 	// unsubscribe records about the email it came from.
 	// Archive ---------------------------------------------------------------------
@@ -802,6 +807,10 @@ type Querier interface {
 	SignupLiftUnsubscribe(ctx context.Context, arg SignupLiftUnsubscribeParams) (int64, error)
 	SignupMemberships(ctx context.Context, contactID uuid.UUID) ([]SignupMembershipsRow, error)
 	SignupPreferences(ctx context.Context, contactID uuid.UUID) (SignupPreferencesRow, error)
+	// The subscriber who confirmed most recently: the app previews the public
+	// pages as they see them.
+	SignupPreviewConfirmed(ctx context.Context, workspaceID uuid.UUID) (uuid.UUID, error)
+	SignupPreviewLatest(ctx context.Context, workspaceID uuid.UUID) (uuid.UUID, error)
 	// Lists a public page can show, with their size.
 	SignupPublicLists(ctx context.Context, workspaceID uuid.UUID) ([]SignupPublicListsRow, error)
 	SignupSetContactState(ctx context.Context, arg SignupSetContactStateParams) error

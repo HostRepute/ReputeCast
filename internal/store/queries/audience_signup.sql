@@ -122,3 +122,19 @@ SELECT l.id, l.name, l.description, l.public, l.created_at,
 FROM lists l
 WHERE l.workspace_id = @workspace_id AND l.deleted_at IS NULL
 ORDER BY l.created_at, l.id;
+
+-- name: SignupPreviewConfirmed :one
+-- The subscriber who confirmed most recently: the app previews the public
+-- pages as they see them.
+SELECT ce.contact_id::uuid AS contact_id
+FROM consent_events ce
+JOIN contacts c ON c.id = ce.contact_id
+WHERE c.workspace_id = @workspace_id AND ce.action = 'confirmed' AND c.erased_at IS NULL AND c.status = 'active'
+ORDER BY ce.occurred_at DESC, ce.id DESC
+LIMIT 1;
+
+-- name: SignupPreviewLatest :one
+SELECT id FROM contacts
+WHERE workspace_id = @workspace_id AND erased_at IS NULL AND status = 'active'
+ORDER BY created_at DESC, id DESC
+LIMIT 1;

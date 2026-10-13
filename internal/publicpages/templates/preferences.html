@@ -1,0 +1,35 @@
+{{define "content"}}{{with .Body}}<main class="card g18" id="main">
+  {{template "brand" $}}
+  <div class="col4"><h1 class="h26">Email preferences</h1><span class="sub">for {{.Email}} · <a href="{{.NotYouHref}}">not you?</a></span></div>
+  {{with .Saved}}<div class="notice ok" role="status">{{.}}</div>{{end}}
+  {{with .Alert}}<div class="alert" role="alert">{{.}}</div>{{end}}
+  <form class="col18" method="post" action="{{.Action}}">
+    {{if .Lists}}<fieldset class="group">
+      <legend class="t13b">Lists</legend>
+      {{range .Lists}}<label class="row"><input type="checkbox" name="list" value="{{.ID}}"{{if .Checked}} checked{{end}}><span><span class="nm">{{.Name}}</span>{{with .Text}}<br><span class="ds">{{.}}</span>{{end}}</span></label>
+      {{end}}<input type="hidden" name="shown" value="{{.Shown}}">
+    </fieldset>
+    {{end}}{{if .Frequencies}}<fieldset class="group">
+      <legend class="t13b">How often</legend>
+      <div class="pills">
+        {{range .Frequencies}}<label><input type="radio" name="frequency" value="{{.Value}}"{{if .Checked}} checked{{end}}>{{.Label}}</label>
+        {{end}}
+      </div>
+    </fieldset>
+    {{end}}{{if .Pauses}}<fieldset class="group">
+      <legend class="t13b">Need a break?</legend>
+      <div class="pills">
+        {{range .Pauses}}<label><input type="radio" name="pause" value="{{.Value}}"{{if .Checked}} checked{{end}}>{{.Label}}</label>
+        {{end}}
+      </div>
+      <span class="t13">Paused contacts get nothing from these lists until the date passes, then resume automatically.</span>
+    </fieldset>
+    {{end}}{{if .AskName}}<div class="col8"><label class="field">First name<input class="in h44" type="text" name="first_name" value="{{.FirstName}}" autocomplete="given-name" maxlength="100"></label></div>
+    {{end}}<button class="btn-pri" type="submit"{{if $.Preview}} disabled{{end}}>Save preferences</button>
+  </form>
+  <div class="split"><span>Changes apply to the next send.</span><a class="plain" href="{{.UnsubscribeHref}}">Unsubscribe from everything</a></div>
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Privacy}}<a href="{{.}}">Privacy</a>{{end}}
+  {{- if and .Privacy .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

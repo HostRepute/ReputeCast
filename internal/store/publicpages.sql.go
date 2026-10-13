@@ -15,8 +15,8 @@ import (
 )
 
 const archiveInsertIssue = `-- name: ArchiveInsertIssue :exec
-INSERT INTO archive_issues (campaign_id, workspace_id, slug, list_id, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $5)
+INSERT INTO archive_issues (campaign_id, workspace_id, slug, list_id, label, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $6)
 ON CONFLICT (campaign_id) DO NOTHING
 `
 
@@ -25,6 +25,7 @@ type ArchiveInsertIssueParams struct {
 	WorkspaceID uuid.UUID  `json:"workspaceId"`
 	Slug        string     `json:"slug"`
 	ListID      *uuid.UUID `json:"listId"`
+	Label       string     `json:"label"`
 	At          time.Time  `json:"at"`
 }
 
@@ -34,6 +35,7 @@ func (q *Queries) ArchiveInsertIssue(ctx context.Context, arg ArchiveInsertIssue
 		arg.WorkspaceID,
 		arg.Slug,
 		arg.ListID,
+		arg.Label,
 		arg.At,
 	)
 	return err
@@ -153,6 +155,62 @@ func (q *Queries) ArchiveIssueGet(ctx context.Context, arg ArchiveIssueGetParams
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.UpdatedBy,
+	)
+	return i, err
+}
+
+const archiveIssueOne = `-- name: ArchiveIssueOne :one
+SELECT ai.campaign_id, ai.slug, ai.list_id, coalesce(l.name, '')::text AS list_name, ai.title, ai.excerpt, ai.label, ai.hidden,
+       c.name, c.subject, c.preheader, c.plain_text,
+       coalesce(c.started_at, c.completed_at, c.created_at)::timestamptz AS sent_at,
+       coalesce(c.completed_at, c.started_at, c.created_at)::timestamptz AS updated_at
+FROM archive_issues ai
+JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status = 'sent'
+LEFT JOIN lists l ON l.id = ai.list_id
+WHERE ai.workspace_id = $1 AND ai.campaign_id = $2
+`
+
+type ArchiveIssueOneParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+}
+
+type ArchiveIssueOneRow struct {
+	CampaignID uuid.UUID  `json:"campaignId"`
+	Slug       string     `json:"slug"`
+	ListID     *uuid.UUID `json:"listId"`
+	ListName   string     `json:"listName"`
+	Title      string     `json:"title"`
+	Excerpt    string     `json:"excerpt"`
+	Label      string     `json:"label"`
+	Hidden     bool       `json:"hidden"`
+	Name       string     `json:"name"`
+	Subject    string     `json:"subject"`
+	Preheader  string     `json:"preheader"`
+	PlainText  string     `json:"plainText"`
+	SentAt     time.Time  `json:"sentAt"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
+}
+
+// One issue of the Archive tab, as ArchiveIssues lists it.
+func (q *Queries) ArchiveIssueOne(ctx context.Context, arg ArchiveIssueOneParams) (ArchiveIssueOneRow, error) {
+	row := q.db.QueryRow(ctx, archiveIssueOne, arg.WorkspaceID, arg.CampaignID)
+	var i ArchiveIssueOneRow
+	err := row.Scan(
+		&i.CampaignID,
+		&i.Slug,
+		&i.ListID,
+		&i.ListName,
+		&i.Title,
+		&i.Excerpt,
+		&i.Label,
+		&i.Hidden,
+		&i.Name,
+		&i.Subject,
+		&i.Preheader,
+		&i.PlainText,
+		&i.SentAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -280,6 +338,17 @@ func (q *Queries) ArchiveListCounts(ctx context.Context, arg ArchiveListCountsPa
 		return nil, err
 	}
 	return items, nil
+}
+
+const archiveLock = `-- name: ArchiveLock :exec
+SELECT pg_advisory_xact_lock(hashtextextended('archive:' || CAST($1::uuid AS text), 0))
+`
+
+// Serializes archive syncs of a workspace, so two requests never hand out
+// the same slug.
+func (q *Queries) ArchiveLock(ctx context.Context, workspaceID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, archiveLock, workspaceID)
+	return err
 }
 
 const archiveMissingIssues = `-- name: ArchiveMissingIssues :many
@@ -634,14 +703,14 @@ const publicScheduledCampaigns = `-- name: PublicScheduledCampaigns :many
 SELECT c.id, c.audience, c.scheduled_at::timestamptz AS scheduled_at
 FROM campaigns c
 WHERE c.workspace_id = $1 AND c.status IN ('scheduled', 'approved') AND c.deleted_at IS NULL
-  AND c.scheduled_at IS NOT NULL AND c.scheduled_at > $2
+  AND c.scheduled_at IS NOT NULL AND c.scheduled_at > $2::timestamptz
 ORDER BY c.scheduled_at
 LIMIT 50
 `
 
 type PublicScheduledCampaignsParams struct {
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	After       *time.Time `json:"after"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	After       time.Time `json:"after"`
 }
 
 type PublicScheduledCampaignsRow struct {

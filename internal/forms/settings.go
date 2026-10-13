@@ -18,6 +18,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/providers"
@@ -135,6 +136,19 @@ func cssString(s string) string {
 	return "'" + s + "'"
 }
 
+// FontFace is the @font-face rule of a custom web font ("" otherwise).
+func (b Branding) FontFace() string {
+	if b.FontOrigin() == "" || b.CustomFontFamily == "" {
+		return ""
+	}
+	u := strings.NewReplacer(`"`, "%22", `\`, "%5C", "\n", "", "\r", "", "(", "%28", ")", "%29").Replace(b.CustomFontURL)
+	format := "woff2"
+	if strings.HasSuffix(strings.ToLower(u), ".woff") {
+		format = "woff"
+	}
+	return "@font-face{font-family:" + cssString(b.CustomFontFamily) + ";src:url(\"" + u + "\") format('" + format + "');font-display:swap}\n"
+}
+
 // FontOrigin is the origin a custom web font loads from ("" for the built-in fonts).
 func (b Branding) FontOrigin() string {
 	if b.Font != "custom" || b.CustomFontURL == "" {
@@ -203,6 +217,9 @@ type ConfirmPage struct {
 	// ListText says what each list sends and when ("Tuesdays at 09:00 your
 	// time."); the next scheduled issue is added after it.
 	ListText map[string]string `json:"listText"`
+	// OfferText names what a list the contact isn't on brings ("release
+	// news"): "Add it if you'd like release news too."
+	OfferText map[string]string `json:"offerText"`
 	// InboxTip asks to add the sender to the contacts.
 	InboxTip bool `json:"inboxTip"`
 }
@@ -242,12 +259,15 @@ type Pages struct {
 	Preferences PreferencesPage `json:"preferences"`
 	Unsubscribe UnsubscribePage `json:"unsubscribe"`
 	Archive     ArchivePage     `json:"archive"`
+	// PreviewEmail is the subscriber the app previews the pages for; empty
+	// uses whoever confirmed a subscription last.
+	PreviewEmail string `json:"previewEmail"`
 }
 
 func defaultPages() Pages {
 	return Pages{
 		Subscribe:   SubscribePage{ListText: map[string]string{}, Index: true, Footnote: "We'll send a confirmation link first. No spam, ever. You can change lists or pause emails from any message."},
-		Confirm:     ConfirmPage{ListText: map[string]string{}, InboxTip: true},
+		Confirm:     ConfirmPage{ListText: map[string]string{}, OfferText: map[string]string{}, InboxTip: true},
 		Preferences: PreferencesPage{Lists: []string{}, ListText: map[string]string{}, Frequency: true, Pause: true, FirstName: true},
 		Unsubscribe: UnsubscribePage{Fewer: true, FewerTitle: "Too many emails? Get fewer instead.",
 			FewerText:   "Switch to one monthly best-of and nothing else. Most people who pick this stay subscribed.",
@@ -266,6 +286,9 @@ func pagesOf(raw json.RawMessage) Pages {
 	}
 	if p.Confirm.ListText == nil {
 		p.Confirm.ListText = map[string]string{}
+	}
+	if p.Confirm.OfferText == nil {
+		p.Confirm.OfferText = map[string]string{}
 	}
 	if p.Preferences.ListText == nil {
 		p.Preferences.ListText = map[string]string{}
@@ -454,7 +477,9 @@ func (l PageLinks) TurnstileError() string {
 	return l.origin + "/p/" + url.PathEscape(l.slug) + "/turnstile-error"
 }
 
-func (s *Service) ownOrigins(set *Settings) []string {
+// OwnOrigins are the hosts that may always submit a form: the instance and
+// the verified custom domain.
+func (s *Service) OwnOrigins(set *Settings) []string {
 	out := []string{}
 	if u, err := url.Parse(s.URLs.Base()); err == nil && u.Host != "" {
 		out = append(out, strings.ToLower(u.Host))
@@ -708,6 +733,8 @@ type PublicPageInput struct {
 	Archive     *ArchivePage     `json:"archive,omitempty"`
 	// HostedFormID picks the form behind the subscribe page ("" for the built-in form).
 	HostedFormID *string `json:"hostedFormId,omitempty"`
+	// PreviewEmail changes whose pages the app previews ("" for the latest confirmation).
+	PreviewEmail *string `json:"previewEmail,omitempty" maxLength:"320"`
 }
 
 // SavePage stores the options of one or more pages.
@@ -722,88 +749,13 @@ func (s *Service) SavePage(ctx context.Context, ws *store.Workspace, in PublicPa
 			return err
 		}
 		before := pagesOf(row.Pages)
-		after := before
 		lists, err := s.Audience.PublicLists(ctx, q, ws)
 		if err != nil {
 			return err
 		}
-		known := map[string]bool{}
-		for _, l := range lists {
-			known[l.ID.String()] = true
-		}
-		cleanText := func(m map[string]string, loc string) (map[string]string, error) {
-			out := map[string]string{}
-			for k, v := range m {
-				if !known[k] {
-					continue
-				}
-				v = strings.TrimSpace(v)
-				if len(v) > 300 {
-					return nil, api.Invalid(loc, "Keep each list's line under 300 characters.")
-				}
-				if v != "" {
-					out[k] = v
-				}
-			}
-			return out, nil
-		}
-		cleanLists := func(ids []string, loc string) ([]string, error) {
-			out := []string{}
-			for _, id := range ids {
-				if !known[id] {
-					return nil, api.Invalid(loc, "Pick lists from this workspace.")
-				}
-				if !slices.Contains(out, id) {
-					out = append(out, id)
-				}
-			}
-			return out, nil
-		}
-		changed := []string{}
-		if in.Subscribe != nil {
-			p := *in.Subscribe
-			p.Heading, p.Description, p.Footnote = strings.TrimSpace(p.Heading), strings.TrimSpace(p.Description), strings.TrimSpace(p.Footnote)
-			if p.ListText, err = cleanText(p.ListText, "body.subscribe.listText"); err != nil {
-				return err
-			}
-			after.Subscribe = p
-			changed = append(changed, "subscribe")
-		}
-		if in.Confirm != nil {
-			p := *in.Confirm
-			if p.ListText, err = cleanText(p.ListText, "body.confirm.listText"); err != nil {
-				return err
-			}
-			after.Confirm = p
-			changed = append(changed, "confirm")
-		}
-		if in.Preferences != nil {
-			p := *in.Preferences
-			if p.Lists, err = cleanLists(p.Lists, "body.preferences.lists"); err != nil {
-				return err
-			}
-			if p.ListText, err = cleanText(p.ListText, "body.preferences.listText"); err != nil {
-				return err
-			}
-			after.Preferences = p
-			changed = append(changed, "preferences")
-		}
-		if in.Unsubscribe != nil {
-			p := *in.Unsubscribe
-			p.FewerTitle, p.FewerText, p.FewerButton = strings.TrimSpace(p.FewerTitle), strings.TrimSpace(p.FewerText), strings.TrimSpace(p.FewerButton)
-			if p.Fewer && (p.FewerTitle == "" || p.FewerButton == "") {
-				return api.Invalid("body.unsubscribe.fewerButton", "Give the offer a heading and a button, or turn it off.")
-			}
-			after.Unsubscribe = p
-			changed = append(changed, "unsubscribe")
-		}
-		if in.Archive != nil {
-			p := *in.Archive
-			if p.Lists, err = cleanLists(p.Lists, "body.archive.lists"); err != nil {
-				return err
-			}
-			after.Archive = p
-			changed = append(changed, "archive")
+		after, changed, err := applyPages(before, in, lists)
+		if err != nil {
+			return err
 		}
 		raw, _ := json.Marshal(after)
 		if err := q.PublicSettingsSetPages(ctx, store.PublicSettingsSetPagesParams{WorkspaceID: ws.ID, Pages: raw, UpdatedBy: actor(ctx), At: s.now()}); err != nil {
@@ -839,6 +791,125 @@ func (s *Service) SavePage(ctx context.Context, ws *store.Workspace, in PublicPa
 		return PublicPagesSettings{}, err
 	}
 	return s.PublicPages(ctx, ws)
+}
+
+// applyPages lays the pages named in in over before, cleaned as they are
+// saved: trimmed text, lists of the workspace only.
+func applyPages(before Pages, in PublicPageInput, lists []audience.PublicList) (Pages, []string, error) {
+	after := before
+	known := map[string]bool{}
+	for _, l := range lists {
+		known[l.ID.String()] = true
+	}
+	cleanText := func(m map[string]string, loc string) (map[string]string, error) {
+		out := map[string]string{}
+		for k, v := range m {
+			if !known[k] {
+				continue
+			}
+			v = strings.TrimSpace(v)
+			if len(v) > 300 {
+				return nil, api.Invalid(loc, "Keep each list's line under 300 characters.")
+			}
+			if v != "" {
+				out[k] = v
+			}
+		}
+		return out, nil
+	}
+	cleanLists := func(ids []string, loc string) ([]string, error) {
+		out := []string{}
+		for _, id := range ids {
+			if !known[id] {
+				return nil, api.Invalid(loc, "Pick lists from this workspace.")
+			}
+			if !slices.Contains(out, id) {
+				out = append(out, id)
+			}
+		}
+		return out, nil
+	}
+	var err error
+	changed := []string{}
+	if in.Subscribe != nil {
+		p := *in.Subscribe
+		p.Heading, p.Description, p.Footnote = strings.TrimSpace(p.Heading), strings.TrimSpace(p.Description), strings.TrimSpace(p.Footnote)
+		if p.ListText, err = cleanText(p.ListText, "body.subscribe.listText"); err != nil {
+			return before, nil, err
+		}
+		after.Subscribe = p
+		changed = append(changed, "subscribe")
+	}
+	if in.Confirm != nil {
+		p := *in.Confirm
+		if p.ListText, err = cleanText(p.ListText, "body.confirm.listText"); err != nil {
+			return before, nil, err
+		}
+		if p.OfferText, err = cleanText(p.OfferText, "body.confirm.offerText"); err != nil {
+			return before, nil, err
+		}
+		after.Confirm = p
+		changed = append(changed, "confirm")
+	}
+	if in.Preferences != nil {
+		p := *in.Preferences
+		if p.Lists, err = cleanLists(p.Lists, "body.preferences.lists"); err != nil {
+			return before, nil, err
+		}
+		if p.ListText, err = cleanText(p.ListText, "body.preferences.listText"); err != nil {
+			return before, nil, err
+		}
+		after.Preferences = p
+		changed = append(changed, "preferences")
+	}
+	if in.Unsubscribe != nil {
+		p := *in.Unsubscribe
+		p.FewerTitle, p.FewerText, p.FewerButton = strings.TrimSpace(p.FewerTitle), strings.TrimSpace(p.FewerText), strings.TrimSpace(p.FewerButton)
+		if p.Fewer && (p.FewerTitle == "" || p.FewerButton == "") {
+			return before, nil, api.Invalid("body.unsubscribe.fewerButton", "Give the offer a heading and a button, or turn it off.")
+		}
+		after.Unsubscribe = p
+		changed = append(changed, "unsubscribe")
+	}
+	if in.Archive != nil {
+		p := *in.Archive
+		if p.Lists, err = cleanLists(p.Lists, "body.archive.lists"); err != nil {
+			return before, nil, err
+		}
+		after.Archive = p
+		changed = append(changed, "archive")
+	}
+	if in.PreviewEmail != nil {
+		e := strings.ToLower(strings.TrimSpace(*in.PreviewEmail))
+		if e != "" && (!strings.Contains(e, "@") || strings.ContainsAny(e, " <>\"")) {
+			return before, nil, api.Invalid("body.previewEmail", "Enter a subscriber's email address, or leave it empty.")
+		}
+		after.PreviewEmail = e
+		changed = append(changed, "preview")
+	}
+	return after, changed, nil
+}
+
+// WithDraft is a copy of the settings with unsaved page options laid over
+// them, for previews. Nothing is stored.
+func (s *Service) WithDraft(ctx context.Context, set *Settings, in PublicPageInput) (*Settings, error) {
+	lists, err := s.Audience.PublicLists(ctx, s.Q, set.Workspace)
+	if err != nil {
+		return nil, err
+	}
+	pages, _, err := applyPages(set.Pages, in, lists)
+	if err != nil {
+		return nil, err
+	}
+	out := *set
+	out.Pages = pages
+	if in.HostedFormID != nil {
+		out.row.HostedFormID = nil
+		if id, err := uuid.Parse(*in.HostedFormID); err == nil {
+			out.row.HostedFormID = &id
+		}
+	}
+	return &out, nil
 }
 
 // --- logo ------------------------------------------------------------------------

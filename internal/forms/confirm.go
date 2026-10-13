@@ -327,3 +327,39 @@ func RegisterJobs(reg *jobs.Registry, s *Service) {
 	reg.Every(5*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return ConfirmationsArgs{}, nil }, true)
 	reg.Every(10*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return DomainsArgs{}, nil }, true)
 }
+
+// SendPreferenceLink emails a contact the link to their preference center
+// ("Send me a link" on the public preferences page).
+func (s *Service) SendPreferenceLink(ctx context.Context, ws *store.Workspace, set *Settings, contactID uuid.UUID) error {
+	m := s.mail()
+	if !m.SystemAvailable(ctx, &ws.ID) {
+		return errNoSystemMail
+	}
+	pc, err := s.Audience.LoadPublicContact(ctx, s.Q, ws, contactID)
+	if err != nil {
+		return err
+	}
+	link := s.URLs.Preferences(ws.Slug, s.Tokens.Sign(linktoken.Claims{Kind: linktoken.Preferences, WorkspaceID: ws.ID, ContactID: contactID}))
+	name := strings.TrimSpace(pc.FirstName)
+	if name == "" {
+		name = "there"
+	}
+	b := set.Branding
+	subject := "Your email preferences for " + b.PublisherName
+	text := fmt.Sprintf("Hi %s,\n\nHere's the link to your email preferences for %s. Pick your lists, how often you hear from us, or take a break:\n\n%s\n\nIf you didn't ask for this, ignore this email; nothing changes.\n\n%s\n", name, b.PublisherName, link, b.PublisherName)
+	esc := html.EscapeString
+	body := `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>` + esc(subject) + `</title></head>` +
+		`<body style="margin:0;padding:24px 16px;background:` + esc(b.Palette.Background) + `;font-family:'IBM Plex Sans',Arial,sans-serif;color:#1F2937">` +
+		`<div style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #E3E6EB;border-radius:14px;padding:28px">` +
+		`<p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#0B1220">` + esc(b.PublisherName) + `</p>` +
+		`<p style="margin:0 0 12px;font-size:15px;line-height:1.5">Hi ` + esc(name) + `,</p>` +
+		`<p style="margin:0 0 20px;font-size:15px;line-height:1.5">Here's the link to your email preferences: pick your lists, how often you hear from us, or take a break.</p>` +
+		`<p style="margin:0 0 20px"><a href="` + esc(link) + `" style="display:inline-block;padding:12px 20px;border-radius:9px;background:` + esc(b.Palette.Accent) + `;color:` + esc(b.Palette.OnAccent) + `;font-weight:700;font-size:15px;text-decoration:none">Open my preferences</a></p>` +
+		`<p style="margin:0;font-size:13px;line-height:1.5;color:#5B6472">If you didn't ask for this, ignore this email; nothing changes.</p></div></body></html>`
+	msg := mailer.Message{WorkspaceID: &ws.ID, To: pc.Email, ToName: pc.FirstName, Subject: subject, Text: text, HTML: body, Kind: "preference_link"}
+	_, err = m.SendSystem(ctx, msg)
+	return err
+}
+
+// IsNoSystemMail reports that System mail can't go out yet.
+func IsNoSystemMail(err error) bool { return errors.Is(err, errNoSystemMail) }

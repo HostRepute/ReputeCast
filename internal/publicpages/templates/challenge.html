@@ -1,0 +1,16 @@
+{{define "content"}}{{with .Body}}<main class="card" id="main">
+  {{template "brand" $}}
+  <h1 class="h26">One more step</h1>
+  <p class="lead">Your signup looked automated, so we'd like to make sure you're a person. It only takes a second.</p>
+  {{with .Alert}}<div class="alert" role="alert">{{.}}</div>{{end}}
+  <form class="form" method="post" action="{{.Action}}" id="rc-challenge" data-error-url="{{.ErrorURL}}">
+    <input type="hidden" name="challenge" value="{{.ID}}">
+    <div class="cf-turnstile cf-box" data-sitekey="{{.SiteKey}}" data-error-callback="rcTurnstileError" data-response-field-name="cf-turnstile-response"></div>
+    <noscript><p class="alert">This check needs JavaScript. Turn it on for this page and reload it, or try again later.</p></noscript>
+    <button class="btn-pri" type="submit">Continue</button>
+  </form>
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  <span>This check is run by Cloudflare Turnstile.</span>
+  {{- if .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

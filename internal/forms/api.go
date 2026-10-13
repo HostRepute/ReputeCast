@@ -30,6 +30,19 @@ type wsBody[T any] struct {
 	Body T
 }
 
+type archiveListInput struct {
+	api.WorkspaceInput
+	Q    string `query:"q" maxLength:"100" doc:"Search titles, subjects and excerpts"`
+	List string `query:"list" doc:"Only issues filed under this list (id)"`
+	Page int    `query:"page" minimum:"0" maximum:"100000" doc:"Page, from 1 (25 issues a page)"`
+}
+
+type archiveIssueInput struct {
+	api.WorkspaceInput
+	Campaign string `path:"campaign" format:"uuid" doc:"The issue's campaign id"`
+	Body     ArchiveIssueInput
+}
+
 type logoInput struct {
 	api.WorkspaceInput
 	RawBody huma.MultipartFormFiles[struct {
@@ -150,6 +163,19 @@ func Register(h huma.API, s *Service) {
 		Tags:        ptags, Access: api.Workspace(authz.FormsEdit)},
 		func(ctx context.Context, in *wsBody[PublicPageInput]) (*api.Body[PublicPagesSettings], error) {
 			out, err := s.SavePage(ctx, api.WorkspaceFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "list-archive-issues", Path: "/workspaces/{workspace}/public-pages/archive/issues", Summary: "List the archive's issues, hidden ones included",
+		Description: "Sent campaigns of the archived lists are filed the first time the archive is read after they finish.",
+		Tags:        ptags, Access: api.Workspace(viewPerm)},
+		func(ctx context.Context, in *archiveListInput) (*api.Body[ArchiveIssuePage], error) {
+			out, err := s.ArchiveIssues(ctx, api.WorkspaceFrom(ctx), in.Q, in.List, in.Page)
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "update-archive-issue", Path: "/workspaces/{workspace}/public-pages/archive/issues/{campaign}", Summary: "Hide, show or retitle an archived issue",
+		Tags: ptags, Access: api.Workspace(authz.FormsEdit)},
+		func(ctx context.Context, in *archiveIssueInput) (*api.Body[ArchiveIssueItem], error) {
+			out, err := s.UpdateArchiveIssue(ctx, api.WorkspaceFrom(ctx), in.Campaign, in.Body)
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "save-public-turnstile", Path: "/workspaces/{workspace}/public-pages/turnstile", Summary: "Save the Cloudflare Turnstile keys",

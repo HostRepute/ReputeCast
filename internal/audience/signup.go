@@ -419,6 +419,26 @@ type PublicContact struct {
 	Frequency   string
 	PausedUntil *time.Time
 	Confirmed   *PublicConfirmation
+	// LastName and Attributes personalize "view online".
+	LastName   string
+	Attributes map[string]any
+}
+
+// FindPublicContact returns the contact behind an address, for "email me
+// a link to my preferences". ok is false for unknown or erased addresses.
+func (s *Service) FindPublicContact(ctx context.Context, q *store.Queries, ws *store.Workspace, email string) (uuid.UUID, bool, error) {
+	e, problem := emailaddr.Check(email)
+	if problem != "" {
+		return uuid.Nil, false, nil
+	}
+	c, err := q.GetContactByEmail(ctx, store.GetContactByEmailParams{WorkspaceID: ws.ID, Email: e})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, false, nil
+	}
+	if err != nil {
+		return uuid.Nil, false, err
+	}
+	return c.ID, true, nil
 }
 
 // Subscribed reports whether the contact gets list l.
@@ -436,7 +456,9 @@ func (s *Service) LoadPublicContact(ctx context.Context, q *store.Queries, ws *s
 	if err != nil {
 		return PublicContact{}, err
 	}
-	out := PublicContact{ID: c.ID, Email: c.Email, FirstName: c.FirstName, Status: c.Status, Consent: c.Consent, Lists: map[uuid.UUID]string{}, Frequency: "all"}
+	out := PublicContact{ID: c.ID, Email: c.Email, FirstName: c.FirstName, LastName: c.LastName, Status: c.Status, Consent: c.Consent,
+		Lists: map[uuid.UUID]string{}, Frequency: "all", Attributes: map[string]any{}}
+	_ = json.Unmarshal(c.Attributes, &out.Attributes)
 	members, err := q.SignupMemberships(ctx, c.ID)
 	if err != nil {
 		return out, err
@@ -751,4 +773,37 @@ func (s *Service) Resubscribe(ctx context.Context, tx pgx.Tx, ws *store.Workspac
 		return nil, err
 	}
 	return back, nil
+}
+
+// PreviewContact picks the subscriber the app previews the public pages for:
+// the address asked for, else whoever confirmed a subscription last, else
+// the newest active contact. ok is false for a workspace without contacts.
+func (s *Service) PreviewContact(ctx context.Context, q *store.Queries, ws *store.Workspace, email string) (uuid.UUID, bool, error) {
+	if strings.TrimSpace(email) != "" {
+		return s.FindPublicContact(ctx, q, ws, email)
+	}
+	id, err := q.SignupPreviewConfirmed(ctx, ws.ID)
+	if err == nil {
+		return id, true, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, false, err
+	}
+	id, err = q.SignupPreviewLatest(ctx, ws.ID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, false, nil
+	}
+	return id, err == nil, err
+}
+
+// SamplePublicContact is the example subscriber of previews in a workspace
+// without contacts: on every public list.
+func SamplePublicContact(lists []PublicList) PublicContact {
+	pc := PublicContact{Email: "you@example.com", Status: "active", Consent: "double", Lists: map[uuid.UUID]string{}, Frequency: "all", Attributes: map[string]any{}}
+	for _, l := range lists {
+		if l.Public {
+			pc.Lists[l.ID] = "subscribed"
+		}
+	}
+	return pc
 }

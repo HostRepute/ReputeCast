@@ -171,3 +171,24 @@ func isBot(ua string) bool {
 	}
 	return false
 }
+
+// Allow takes one request from key's bucket, which refills once every
+// interval (one preference link per address every ten minutes).
+func (s *Service) Allow(key string, every time.Duration) bool {
+	l := s.rates()
+	now := s.now()
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	b := l.buckets[key]
+	if b == nil {
+		b = &bucket{lim: rate.NewLimiter(rate.Every(every), 1)}
+		l.buckets[key] = b
+	}
+	b.seen = now
+	return b.lim.AllowN(now, 1)
+}
+
+// AllowPerMinute takes one request from key's bucket of n a minute.
+func (s *Service) AllowPerMinute(key string, n int) bool {
+	return s.rates().allow(key, n, s.now())
+}
