@@ -780,8 +780,9 @@ function WaitingDialog({ form, onClose }: { form: SignupForm; onClose: () => voi
                   {[andList(it.lists), `signed up ${ago(it.createdAt)}`].filter(Boolean).join(' · ')}
                 </span>
               </div>
-              <Button size="sm" onClick={() => void copy(it.id)} disabledReason={reason} aria-label={`Copy the confirmation link for ${it.email}`}>
+              <Button size="sm" onClick={() => void copy(it.id)} disabledReason={reason}>
                 {copied === it.id ? 'Copied' : 'Copy link'}
+                <span className="vh"> for {it.email}</span>
               </Button>
             </li>
           ))}

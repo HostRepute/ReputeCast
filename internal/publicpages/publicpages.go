@@ -186,6 +186,8 @@ type site struct {
 	links forms.PageLinks
 	// canon are the preferred links (the custom domain once verified).
 	canon forms.PageLinks
+	// preview renders a page for the app: its links carry no working token.
+	preview bool
 }
 
 var errNoSite = errors.New("publicpages: no such workspace")
@@ -242,7 +244,15 @@ func (h *Handler) claims(s *site, token string, kind linktoken.Kind) (linktoken.
 	return c, true
 }
 
+// previewToken stands in for signed links on previews: a preview shows a
+// subscriber's page to the team (Viewers included), and a working link
+// would let them change that subscriber's lists. It never verifies.
+const previewToken = "preview"
+
 func (h *Handler) sign(s *site, kind linktoken.Kind, contact, message uuid.UUID) string {
+	if s.preview {
+		return previewToken
+	}
 	return h.Tokens.Sign(linktoken.Claims{Kind: kind, WorkspaceID: s.ws.ID, ContactID: contact, MessageID: message})
 }
 

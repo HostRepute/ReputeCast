@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -484,10 +485,22 @@ func TestPublicPagePreviewAPI(t *testing.T) {
 	if pages.Pages.Subscribe.Heading != "The Acme newsletter" {
 		t.Fatalf("a preview saved the draft: %q", pages.Pages.Subscribe.Heading)
 	}
-	// The token pages are shown for the "preview as" subscriber, Sam Rivera.
+	// The token pages are shown for the "preview as" subscriber, Sam Rivera,
+	// without a working link: Viewers see previews too, and a signed link
+	// would let them change Sam's lists.
+	signed := regexp.MustCompile(`/(?:preferences|unsubscribe|confirm|view)/([A-Za-z0-9_-]+)`)
 	for _, page := range []string{"preferences", "unsubscribe", "confirm"} {
 		if p = get(page, nil); p.Contact != "sam.rivera@outlook.com" || !strings.Contains(p.HTML, "sam.rivera@outlook.com") {
 			t.Errorf("%s preview for %s", page, p.Contact)
+		}
+		links := signed.FindAllStringSubmatch(p.HTML, -1)
+		if len(links) == 0 {
+			t.Errorf("%s preview has no preference or unsubscribe link", page)
+		}
+		for _, m := range links {
+			if m[1] != "preview" {
+				t.Errorf("%s preview carries a working link: %s", page, m[0])
+			}
 		}
 	}
 	if p = get("archive", nil); !strings.Contains(p.HTML, "44 issues") {

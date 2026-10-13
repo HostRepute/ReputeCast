@@ -72,7 +72,7 @@ func (h *Handler) Preview(ctx context.Context, ws *store.Workspace, page, form, 
 	}
 	// Assets and links point at the instance, which serves them on every
 	// host; URL names the page's canonical address.
-	s := &site{ws: ws, set: set, links: forms.LinksOn(h.URLs.Base(), ws.Slug, false), canon: h.Forms.Links(ws, set)}
+	s := &site{ws: ws, set: set, links: forms.LinksOn(h.URLs.Base(), ws.Slug, false), canon: h.Forms.Links(ws, set), preview: true}
 	out := PublicPagePreview{}
 	var v *view
 	tmpl := page
