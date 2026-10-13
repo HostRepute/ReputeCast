@@ -37,35 +37,35 @@ type versionInput struct {
 	Version int `path:"version" minimum:"1"`
 }
 
-type createBody struct {
+type automationCreateBody struct {
 	Name     string `json:"name,omitempty" maxLength:"120"`
 	Template string `json:"template,omitempty" enum:"welcome-series,re-engagement,onboarding" doc:"Starter template; omit for a blank canvas"`
 }
 
 type createInput struct {
 	api.WorkspaceInput
-	Body createBody
+	Body automationCreateBody
 }
 
-type metaBody struct {
+type automationMetaBody struct {
 	Name        string `json:"name" minLength:"1" maxLength:"120"`
 	Description string `json:"description" maxLength:"200"`
 }
 
 type metaInput struct {
 	AutomationIDParam
-	Body metaBody
+	Body automationMetaBody
 }
 
-type draftBody struct {
-	Graph FlowGraph `json:"graph"`
+type automationDraftBody struct {
+	Graph AutomationGraph `json:"graph"`
 	// Revision is the draft revision the editor loaded; 0 skips the check.
 	Revision int64 `json:"revision" minimum:"0"`
 }
 
 type draftInput struct {
 	AutomationIDParam
-	Body draftBody
+	Body automationDraftBody
 }
 
 type diffInput struct {
@@ -74,26 +74,26 @@ type diffInput struct {
 	To   int `query:"to" minimum:"0" doc:"Defaults to the draft"`
 }
 
-type publishBody struct {
+type automationPublishBody struct {
 	Version   int    `json:"version" minimum:"1" doc:"The draft version reviewed in the publish dialog"`
 	Migration string `json:"migration" enum:"finish,move" doc:"finish: contacts in the flow finish on the old version; move: they move to the new one at their current step"`
 }
 
 type publishInput struct {
 	AutomationIDParam
-	Body publishBody
+	Body automationPublishBody
 }
 
-type pauseBody struct {
+type automationPauseBody struct {
 	Reason string `json:"reason,omitempty" maxLength:"200"`
 }
 
 type pauseInput struct {
 	AutomationIDParam
-	Body pauseBody
+	Body automationPauseBody
 }
 
-type secretBody struct {
+type automationSecretBody struct {
 	// Secret signs webhook calls (HMAC-SHA256). Empty clears it. Never returned.
 	Secret string `json:"secret" maxLength:"256"`
 }
@@ -101,7 +101,7 @@ type secretBody struct {
 type secretInput struct {
 	AutomationIDParam
 	Node string `path:"node" maxLength:"40"`
-	Body secretBody
+	Body automationSecretBody
 }
 
 type callsInput struct {
@@ -110,7 +110,7 @@ type callsInput struct {
 	Limit int    `query:"limit" minimum:"1" maximum:"200" default:"50"`
 }
 
-type emailCreateBody struct {
+type automationEmailCreateBody struct {
 	Name         string `json:"name" minLength:"1" maxLength:"160"`
 	Subject      string `json:"subject,omitempty" maxLength:"250"`
 	AutomationID string `json:"automationId,omitempty" maxLength:"40"`
@@ -118,7 +118,7 @@ type emailCreateBody struct {
 
 type emailCreateInput struct {
 	api.WorkspaceInput
-	Body emailCreateBody
+	Body automationEmailCreateBody
 }
 
 type emailInput struct {
@@ -127,7 +127,20 @@ type emailInput struct {
 	Version int    `query:"version" minimum:"0" doc:"Defaults to the latest version"`
 }
 
-type eventBody struct {
+type automationEmailUpdateBody struct {
+	Subject   string `json:"subject" minLength:"1" maxLength:"250"`
+	Preheader string `json:"preheader" maxLength:"250"`
+	HTML      string `json:"html" minLength:"1"`
+	Text      string `json:"text,omitempty"`
+}
+
+type emailUpdateInput struct {
+	api.WorkspaceInput
+	ID   string `path:"id" maxLength:"40"`
+	Body automationEmailUpdateBody
+}
+
+type automationEventBody struct {
 	Event      string         `json:"event" minLength:"1" maxLength:"100" example:"workspace.created"`
 	Email      string         `json:"email,omitempty" maxLength:"320" format:"email"`
 	ContactID  string         `json:"contactId,omitempty" maxLength:"40"`
@@ -136,7 +149,7 @@ type eventBody struct {
 
 type eventInput struct {
 	api.WorkspaceInput
-	Body eventBody
+	Body automationEventBody
 }
 
 // AutomationCreated is the result of a create or duplicate.
@@ -146,20 +159,20 @@ type AutomationCreated struct {
 
 // AutomationTemplates lists the starter templates.
 type AutomationTemplates struct {
-	Templates []StarterTemplate `json:"templates"`
+	Templates []AutomationStarterTemplate `json:"templates"`
 }
 
 // AutomationDiff is a version diff.
 type AutomationDiff struct {
-	From    int        `json:"from"`
-	To      int        `json:"to"`
-	Items   []DiffItem `json:"items"`
-	Changes int        `json:"changes"`
+	From    int                  `json:"from"`
+	To      int                  `json:"to"`
+	Items   []AutomationDiffItem `json:"items"`
+	Changes int                  `json:"changes"`
 }
 
-// WebhookCalls lists a webhook step's recent calls.
-type WebhookCalls struct {
-	Calls []WebhookCall `json:"calls"`
+// AutomationWebhookCalls lists a webhook step's recent calls.
+type AutomationWebhookCalls struct {
+	Calls []AutomationWebhookCall `json:"calls"`
 }
 
 func parseID(raw, what string) (uuid.UUID, error) {
@@ -226,7 +239,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(AutomationCreated{ID: id.String()}), nil
 		})
 	api.Post(h, api.Op{ID: "send-automation-event", Path: "/workspaces/{workspace}/automations/events", Summary: "Send an API event for a contact (triggers, goals and branches listen to it)", Tags: tags, Access: api.Workspace(authz.SubscribersEdit), Status: http.StatusAccepted},
-		func(ctx context.Context, in *eventInput) (*api.Body[APIEventResult], error) {
+		func(ctx context.Context, in *eventInput) (*api.Body[AutomationEventResult], error) {
 			out, err := s.SendEvent(ctx, api.WorkspaceFrom(ctx), APIEvent{Event: in.Body.Event, Email: in.Body.Email, ContactID: in.Body.ContactID, Properties: in.Body.Properties})
 			return api.OK(out), err
 		})
@@ -274,7 +287,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(AutomationCreated{ID: nid.String()}), nil
 		})
 	api.Put(h, api.Op{ID: "save-automation-draft", Path: "/workspaces/{workspace}/automations/{id}/draft", Summary: "Save the canvas as the draft", Tags: tags, Access: edit, MaxBodyBytes: 2 << 20},
-		func(ctx context.Context, in *draftInput) (*api.Body[DraftSaved], error) {
+		func(ctx context.Context, in *draftInput) (*api.Body[AutomationDraftSaved], error) {
 			id, err := parseID(in.ID, "Automation")
 			if err != nil {
 				return nil, err
@@ -318,7 +331,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "restore-automation-version", Path: "/workspaces/{workspace}/automations/{id}/versions/{version}/restore", Summary: "Make an earlier version the draft", Tags: tags, Access: edit},
-		func(ctx context.Context, in *versionInput) (*api.Body[DraftSaved], error) {
+		func(ctx context.Context, in *versionInput) (*api.Body[AutomationDraftSaved], error) {
 			id, err := parseID(in.ID, "Automation")
 			if err != nil {
 				return nil, err
@@ -336,7 +349,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "automation-publish-preview", Path: "/workspaces/{workspace}/automations/{id}/publish-preview", Summary: "What publishing the draft would change, for whom, and the pre-publish checks", Tags: tags, Access: view},
-		func(ctx context.Context, in *AutomationIDParam) (*api.Body[PublishPreview], error) {
+		func(ctx context.Context, in *AutomationIDParam) (*api.Body[AutomationPublishPreview], error) {
 			id, err := parseID(in.ID, "Automation")
 			if err != nil {
 				return nil, err
@@ -345,7 +358,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "publish-automation", Path: "/workspaces/{workspace}/automations/{id}/publish", Summary: "Publish the draft as the live version (may need approval)", Tags: tags, Access: publish},
-		func(ctx context.Context, in *publishInput) (*api.Body[PublishResult], error) {
+		func(ctx context.Context, in *publishInput) (*api.Body[AutomationPublishResult], error) {
 			id, err := parseID(in.ID, "Automation")
 			if err != nil {
 				return nil, err
@@ -388,16 +401,16 @@ func Register(h huma.API, s *Service) {
 			return api.NoContent, s.SetStepSecret(ctx, api.WorkspaceFrom(ctx), actor(ctx), id, in.Node, in.Body.Secret)
 		})
 	api.Get(h, api.Op{ID: "list-automation-webhook-calls", Path: "/workspaces/{workspace}/automations/{id}/steps/{node}/calls", Summary: "Delivery log of a webhook step", Tags: tags, Access: view},
-		func(ctx context.Context, in *callsInput) (*api.Body[WebhookCalls], error) {
+		func(ctx context.Context, in *callsInput) (*api.Body[AutomationWebhookCalls], error) {
 			id, err := parseID(in.ID, "Automation")
 			if err != nil {
 				return nil, err
 			}
 			calls, err := s.WebhookCalls(ctx, api.WorkspaceFrom(ctx), id, in.Node, in.Limit)
-			return api.OK(WebhookCalls{Calls: calls}), err
+			return api.OK(AutomationWebhookCalls{Calls: calls}), err
 		})
 	api.Post(h, api.Op{ID: "create-automation-email", Path: "/workspaces/{workspace}/automation-emails", Summary: "Create an email for a send step", Tags: tags, Access: edit, Status: http.StatusCreated},
-		func(ctx context.Context, in *emailCreateInput) (*api.Body[EmailOption], error) {
+		func(ctx context.Context, in *emailCreateInput) (*api.Body[AutomationEmailOption], error) {
 			var automation *uuid.UUID
 			if in.Body.AutomationID != "" {
 				id, err := parseID(in.Body.AutomationID, "Automation")
@@ -407,6 +420,15 @@ func Register(h huma.API, s *Service) {
 				automation = &id
 			}
 			out, err := s.CreateEmail(ctx, api.WorkspaceFrom(ctx), actor(ctx), automation, in.Body.Name, in.Body.Subject)
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "update-automation-email", Path: "/workspaces/{workspace}/automation-emails/{id}", Summary: "Save new content as the email's next version", Tags: tags, Access: edit, MaxBodyBytes: 1 << 20},
+		func(ctx context.Context, in *emailUpdateInput) (*api.Body[AutomationEmailContent], error) {
+			id, err := parseID(in.ID, "Email")
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.UpdateEmail(ctx, api.WorkspaceFrom(ctx), actor(ctx), id, EmailUpdate{Subject: in.Body.Subject, Preheader: in.Body.Preheader, HTML: in.Body.HTML, Text: in.Body.Text})
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-automation-email", Path: "/workspaces/{workspace}/automation-emails/{id}", Summary: "Get an email version (for previews)", Tags: tags, Access: view},
@@ -452,7 +474,7 @@ func (s *Service) CompareVersions(ctx context.Context, ws *store.Workspace, id u
 		return AutomationDiff{}, err
 	}
 	failures := map[string]WebhookFailure{}
-	if rows, err := s.Q.StepFailures(ctx, id); err == nil {
+	if rows, err := s.Q.AutomationStepFailures(ctx, id); err == nil {
 		for _, f := range rows {
 			failures[f.NodeID] = WebhookFailure{Since: f.FirstAt, Failures: f.Failures}
 		}

@@ -129,14 +129,14 @@ const (
 // loadRefs loads what steps can point at in a workspace.
 func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID) (*Refs, error) {
 	r := &Refs{Lists: map[string]string{}, Forms: map[string]string{}, Emails: map[string]int{}, EmailNames: map[string]string{}, Fields: map[string]string{}, Providers: map[string]string{}}
-	lists, err := q.LookupWorkspaceLists(ctx, wsID)
+	lists, err := q.AutomationLists(ctx, wsID)
 	if err != nil {
 		return nil, err
 	}
 	for _, l := range lists {
 		r.Lists[l.ID.String()] = l.Name
 	}
-	forms, err := q.WorkspaceForms(ctx, wsID)
+	forms, err := q.AutomationForms(ctx, wsID)
 	if err != nil {
 		return nil, err
 	}
@@ -151,14 +151,14 @@ func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID
 		r.Emails[e.ID.String()] = int(e.LatestVersion)
 		r.EmailNames[e.ID.String()] = e.Name
 	}
-	fields, err := q.WorkspaceDateFields(ctx, wsID)
+	fields, err := q.AutomationFields(ctx, wsID)
 	if err != nil {
 		return nil, err
 	}
 	for _, f := range fields {
 		r.Fields[f.Key] = f.Type
 	}
-	provs, err := q.WorkspaceProviders(ctx, wsID)
+	provs, err := q.AutomationProviders(ctx, wsID)
 	if err != nil {
 		return nil, err
 	}
@@ -168,8 +168,8 @@ func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID
 	return r, nil
 }
 
-// RouteProvider is a sending provider on the Automations route.
-type RouteProvider struct {
+// AutomationRouteProvider is a sending provider on the Automations route.
+type AutomationRouteProvider struct {
 	ID      string `json:"id"`
 	Name    string `json:"name" example:"Amazon SES"`
 	Short   string `json:"short" example:"SES"`
@@ -181,10 +181,10 @@ type RouteProvider struct {
 
 // AutomationRoute summarizes the Automations route: "SES, failover Postmark".
 type AutomationRoute struct {
-	Label    string          `json:"label" example:"SES, failover Postmark"`
-	Healthy  bool            `json:"healthy" doc:"A provider on the route can send right now"`
-	Primary  []RouteProvider `json:"primary"`
-	Fallback *RouteProvider  `json:"fallback,omitempty"`
+	Label    string                    `json:"label" example:"SES, failover Postmark"`
+	Healthy  bool                      `json:"healthy" doc:"A provider on the route can send right now"`
+	Primary  []AutomationRouteProvider `json:"primary"`
+	Fallback *AutomationRouteProvider  `json:"fallback,omitempty"`
 }
 
 // shortName is the badge label of a provider: "Amazon SES" → "SES".
@@ -207,17 +207,17 @@ func healthyStatus(status string) bool {
 }
 
 func (s *Service) route(ctx context.Context, q *store.Queries, wsID uuid.UUID) (AutomationRoute, error) {
-	out := AutomationRoute{Label: "not set up", Primary: []RouteProvider{}}
-	provs, err := q.WorkspaceProviders(ctx, wsID)
+	out := AutomationRoute{Label: "not set up", Primary: []AutomationRouteProvider{}}
+	provs, err := q.AutomationProviders(ctx, wsID)
 	if err != nil {
 		return out, err
 	}
-	byID := map[uuid.UUID]store.WorkspaceProvidersRow{}
+	byID := map[uuid.UUID]store.AutomationProvidersRow{}
 	for _, p := range provs {
 		byID[p.ID] = p
 	}
-	rp := func(p store.WorkspaceProvidersRow, w int) RouteProvider {
-		return RouteProvider{ID: p.ID.String(), Name: p.Name, Short: shortName(p.Name, p.Adapter), Adapter: p.Adapter, Status: p.Status, Detail: p.StatusDetail, Weight: w}
+	rp := func(p store.AutomationProvidersRow, w int) AutomationRouteProvider {
+		return AutomationRouteProvider{ID: p.ID.String(), Name: p.Name, Short: shortName(p.Name, p.Adapter), Adapter: p.Adapter, Status: p.Status, Detail: p.StatusDetail, Weight: w}
 	}
 	rule, err := q.AutomationRoute(ctx, wsID)
 	if err != nil {
@@ -269,16 +269,16 @@ func (s *Service) route(ctx context.Context, q *store.Queries, wsID uuid.UUID) (
 func itoa(n int) string { return formatCount(int64(n)) }
 
 // graphOf parses a stored graph, treating corrupt data as an empty flow.
-func (s *Service) graphOf(raw []byte) FlowGraph {
+func (s *Service) graphOf(raw []byte) AutomationGraph {
 	g, err := ParseGraph(raw)
 	if err != nil {
 		s.log().Error("automations: unreadable graph", "err", err)
-		return FlowGraph{Nodes: []FlowNode{}, Edges: []FlowEdge{}}
+		return AutomationGraph{Nodes: []AutomationNode{}, Edges: []AutomationEdge{}}
 	}
 	return g
 }
 
-func triggerOf(g FlowGraph) json.RawMessage {
+func triggerOf(g AutomationGraph) json.RawMessage {
 	t := g.Trigger()
 	if t == nil || t.Data.Trigger == nil {
 		return json.RawMessage(`{}`)

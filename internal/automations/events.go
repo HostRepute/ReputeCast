@@ -33,8 +33,8 @@ type APIEvent struct {
 	Properties map[string]any
 }
 
-// APIEventResult says which contact the event was recorded for.
-type APIEventResult struct {
+// AutomationEventResult says which contact the event was recorded for.
+type AutomationEventResult struct {
 	Accepted  bool   `json:"accepted"`
 	ContactID string `json:"contactId"`
 	// Flows lists the live automations listening to this event.
@@ -44,8 +44,8 @@ type APIEventResult struct {
 // SendEvent records an API event ("workspace.created") for a contact. Flows
 // triggered by it enroll the contact on the next engine tick (seconds), and
 // goals and branches waiting for it see it.
-func (s *Service) SendEvent(ctx context.Context, ws *store.Workspace, ev APIEvent) (APIEventResult, error) {
-	var out APIEventResult
+func (s *Service) SendEvent(ctx context.Context, ws *store.Workspace, ev APIEvent) (AutomationEventResult, error) {
+	var out AutomationEventResult
 	name := strings.TrimSpace(ev.Event)
 	if !reEvent.MatchString(name) {
 		return out, api.Invalid("body.event", "Name the event with letters, numbers and . _ : -, like workspace.created.")
@@ -67,7 +67,7 @@ func (s *Service) SendEvent(ctx context.Context, ws *store.Workspace, ev APIEven
 			if err != nil {
 				return api.Invalid("body.contactId", "That isn't a contact id.")
 			}
-			c, err := q.ContactInWorkspace(ctx, store.ContactInWorkspaceParams{WorkspaceID: ws.ID, ID: id})
+			c, err := q.AutomationContactInWorkspace(ctx, store.AutomationContactInWorkspaceParams{WorkspaceID: ws.ID, ID: id})
 			if errors.Is(err, pgx.ErrNoRows) {
 				return api.NotFound("Contact")
 			}
@@ -76,7 +76,7 @@ func (s *Service) SendEvent(ctx context.Context, ws *store.Workspace, ev APIEven
 			}
 			contactID, status = c.ID, c.Status
 		case ev.Email != "":
-			c, err := q.ContactByEmail(ctx, store.ContactByEmailParams{WorkspaceID: ws.ID, Email: strings.ToLower(strings.TrimSpace(ev.Email))})
+			c, err := q.AutomationContactByEmail(ctx, store.AutomationContactByEmailParams{WorkspaceID: ws.ID, Email: strings.ToLower(strings.TrimSpace(ev.Email))})
 			if errors.Is(err, pgx.ErrNoRows) {
 				return api.Err(404, api.CodeNotFound, "No contact with that email in this workspace. Add the contact first, then send the event.")
 			}
@@ -97,7 +97,7 @@ func (s *Service) SendEvent(ctx context.Context, ws *store.Workspace, ev APIEven
 			return err
 		}
 		for _, f := range flows {
-			var t TriggerConfig
+			var t AutomationTrigger
 			if json.Unmarshal(f.Trigger, &t) == nil && t.Event == name {
 				out.Flows++
 			}

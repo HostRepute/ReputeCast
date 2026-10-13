@@ -171,7 +171,7 @@ func (s *Service) httpClient() *http.Client {
 // flow. Transient failures (network errors, 429, 5xx) are retried by River
 // up to webhookAttempts times first.
 func (s *Service) RunWebhook(ctx context.Context, args WebhookArgs, attempt, maxAttempts int) error {
-	run, err := s.Q.GetRunForUpdate(ctx, args.RunID)
+	run, err := s.Q.GetAutomationRunForUpdate(ctx, args.RunID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
 	}
@@ -196,7 +196,7 @@ func (s *Service) RunWebhook(ctx context.Context, args WebhookArgs, attempt, max
 	if err != nil {
 		return err
 	}
-	c, err := s.Q.ContactForRun(ctx, run.ContactID)
+	c, err := s.Q.AutomationContact(ctx, run.ContactID)
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (s *Service) RunWebhook(ctx context.Context, args WebhookArgs, attempt, max
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("User-Agent", "ReputeCast-Webhooks/1.0")
 			req.Header.Set("X-ReputeCast-Event", "automation.step")
-			if enc, err := s.Q.GetStepSecret(ctx, store.GetStepSecretParams{AutomationID: a.ID, NodeID: node.ID}); err == nil {
+			if enc, err := s.Q.GetAutomationStepSecret(ctx, store.GetAutomationStepSecretParams{AutomationID: a.ID, NodeID: node.ID}); err == nil {
 				secret, err := s.Box.Open(enc, secretAD(a.ID, node.ID))
 				if err == nil {
 					req.Header.Set(SignatureHeader, Sign(secret, now, body))
@@ -250,7 +250,7 @@ func (s *Service) RunWebhook(ctx context.Context, args WebhookArgs, attempt, max
 		}
 	}
 	ok := callErr == "" && status >= 200 && status < 300
-	if err := s.Q.InsertWebhookCall(ctx, store.InsertWebhookCallParams{
+	if err := s.Q.InsertAutomationWebhookCall(ctx, store.InsertAutomationWebhookCallParams{
 		ID: uuid.Must(uuid.NewV7()), AutomationID: a.ID, Version: run.Version, NodeID: node.ID, RunID: &run.ID,
 		Url: cfg.URL, StatusCode: int32(status), Error: callErr, DurationMs: int32(dur.Milliseconds()), Attempt: int32(attempt), CalledAt: now,
 	}); err != nil {
@@ -262,10 +262,10 @@ func (s *Service) RunWebhook(ctx context.Context, args WebhookArgs, attempt, max
 	}
 	if !ok {
 		detail, _ := json.Marshal(map[string]any{"url": cfg.URL, "status": status, "error": callErr, "name": cfg.Name})
-		if err := s.Q.OpenAlert(ctx, store.OpenAlertParams{ID: uuid.Must(uuid.NewV7()), AutomationID: a.ID, Kind: "step_failing", NodeID: node.ID, Detail: detail, Failures: 1, At: now}); err != nil {
+		if err := s.Q.OpenAutomationAlert(ctx, store.OpenAutomationAlertParams{ID: uuid.Must(uuid.NewV7()), AutomationID: a.ID, Kind: "step_failing", NodeID: node.ID, Detail: detail, Failures: 1, At: now}); err != nil {
 			return err
 		}
-	} else if _, err := s.Q.ResolveAlert(ctx, store.ResolveAlertParams{AutomationID: a.ID, Kind: "step_failing", NodeID: node.ID}); err != nil {
+	} else if _, err := s.Q.ResolveAutomationAlert(ctx, store.ResolveAutomationAlertParams{AutomationID: a.ID, Kind: "step_failing", NodeID: node.ID}); err != nil {
 		return err
 	}
 	return s.finishWebhook(ctx, run.ID, args, status, callErr, ok)
@@ -297,7 +297,7 @@ func cleanErr(err error) string {
 func (s *Service) finishWebhook(ctx context.Context, runID uuid.UUID, args WebhookArgs, status int, callErr string, ok bool) error {
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		run, err := q.GetRunForUpdate(ctx, runID)
+		run, err := q.GetAutomationRunForUpdate(ctx, runID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
@@ -314,7 +314,7 @@ func (s *Service) finishWebhook(ctx context.Context, runID uuid.UUID, args Webho
 			b.at(run.AutomationID, run.Version, run.NodeID, now).Failed++
 		}
 		st.Done = true
-		if err := q.UpdateRun(ctx, store.UpdateRunParams{ID: run.ID, Version: run.Version, NodeID: run.NodeID, Status: "active", State: st.json(), NodeEnteredAt: run.NodeEnteredAt, NextAt: &now}); err != nil {
+		if err := q.UpdateAutomationRun(ctx, store.UpdateAutomationRunParams{ID: run.ID, Version: run.Version, NodeID: run.NodeID, Status: "active", State: st.json(), NodeEnteredAt: run.NodeEnteredAt, NextAt: &now}); err != nil {
 			return err
 		}
 		if err := b.flush(ctx, q); err != nil {

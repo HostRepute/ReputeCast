@@ -60,7 +60,7 @@ func TriggerKindLabel(kind string) string {
 }
 
 // TriggerRef is what a trigger points at, for "Joined list · Weekly Digest".
-func TriggerRef(t *TriggerConfig, refs *Refs) string {
+func TriggerRef(t *AutomationTrigger, refs *Refs) string {
 	if t == nil {
 		return ""
 	}
@@ -90,7 +90,7 @@ func TriggerRef(t *TriggerConfig, refs *Refs) string {
 }
 
 // TriggerLabel is the list's trigger column: "Joined list · Weekly Digest".
-func TriggerLabel(t *TriggerConfig, refs *Refs) string {
+func TriggerLabel(t *AutomationTrigger, refs *Refs) string {
 	if t == nil || t.Kind == "" {
 		return "No trigger yet"
 	}
@@ -102,7 +102,7 @@ func TriggerLabel(t *TriggerConfig, refs *Refs) string {
 }
 
 // DurationText reads "10 minutes", "1 day", "2 weeks".
-func DurationText(d *FlowDuration) string {
+func DurationText(d *AutomationDuration) string {
 	if d == nil {
 		return ""
 	}
@@ -163,7 +163,7 @@ func lowerFirst(s string) string {
 }
 
 // emailNodeName is the email's name for a send step.
-func emailNodeName(n FlowNode, refs *Refs) string {
+func emailNodeName(n AutomationNode, refs *Refs) string {
 	if n.Data.Email == nil {
 		return ""
 	}
@@ -172,7 +172,7 @@ func emailNodeName(n FlowNode, refs *Refs) string {
 
 // NodeRef is how other text refers to a step: an email by its prefix
 // ("Step 2"), anything else by its label or title.
-func NodeRef(g FlowGraph, n FlowNode, refs *Refs) string {
+func NodeRef(g AutomationGraph, n AutomationNode, refs *Refs) string {
 	if n.Data.Label != "" {
 		return n.Data.Label
 	}
@@ -190,7 +190,7 @@ func NodeRef(g FlowGraph, n FlowNode, refs *Refs) string {
 }
 
 // inlineRef is a lower-case reference for running text ("step 1").
-func inlineRef(g FlowGraph, id string, refs *Refs) string {
+func inlineRef(g AutomationGraph, id string, refs *Refs) string {
 	n := g.Node(id)
 	if n == nil {
 		return "a removed step"
@@ -204,7 +204,7 @@ func inlineRef(g FlowGraph, id string, refs *Refs) string {
 }
 
 // stepName names a step in a sentence: `Branch "Opened step 1 within 2 days?"`.
-func stepName(g FlowGraph, n FlowNode, refs *Refs) string {
+func stepName(g AutomationGraph, n AutomationNode, refs *Refs) string {
 	if n.Type == NodeTrigger {
 		return "the trigger"
 	}
@@ -212,7 +212,7 @@ func stepName(g FlowGraph, n FlowNode, refs *Refs) string {
 }
 
 // conditionPhrase reads a condition after "Only contacts …" or as a question.
-func conditionPhrase(g FlowGraph, c *FlowCondition, refs *Refs) string {
+func conditionPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs) string {
 	if c == nil {
 		return ""
 	}
@@ -259,7 +259,7 @@ func conditionPhrase(g FlowGraph, c *FlowCondition, refs *Refs) string {
 }
 
 // NodeTitle is the bold line on the canvas node.
-func NodeTitle(g FlowGraph, n FlowNode, refs *Refs) string {
+func NodeTitle(g AutomationGraph, n AutomationNode, refs *Refs) string {
 	d := n.Data
 	switch n.Type {
 	case NodeTrigger:
@@ -346,7 +346,7 @@ func NodeTitle(g FlowGraph, n FlowNode, refs *Refs) string {
 	return TypeName(n.Type)
 }
 
-func goalTitle(c *FlowCondition, refs *Refs) string {
+func goalTitle(c *AutomationCondition, refs *Refs) string {
 	if c == nil {
 		return "Reached the end of the flow"
 	}
@@ -368,13 +368,13 @@ func goalTitle(c *FlowCondition, refs *Refs) string {
 	case "event":
 		return "Sent " + c.Event
 	case "field":
-		return capFirst(conditionPhrase(FlowGraph{}, c, refs))
+		return capFirst(conditionPhrase(AutomationGraph{}, c, refs))
 	}
 	return "Goal"
 }
 
 // GoalLabel is the short goal name for the automations list.
-func GoalLabel(n FlowNode, refs *Refs) string {
+func GoalLabel(n AutomationNode, refs *Refs) string {
 	if n.Data.Label != "" {
 		return n.Data.Label
 	}

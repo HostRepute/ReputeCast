@@ -48,7 +48,7 @@ func listID(t *testing.T, env *apptest.Env, name string) string {
 }
 
 // publishFlow creates an automation with g and publishes it.
-func publishFlow(t *testing.T, c *apptest.Client, name string, g automations.FlowGraph) string {
+func publishFlow(t *testing.T, c *apptest.Client, name string, g automations.AutomationGraph) string {
 	t.Helper()
 	var created struct{ ID string }
 	c.Do("POST", wsPath, map[string]any{"name": name}).MustStatus(t, 201).JSON(t, &created)
@@ -95,12 +95,12 @@ func run(t *testing.T, env *apptest.Env, flow string, contact uuid.UUID) (node, 
 	return node, status, state
 }
 
-func node(id, typ string, d automations.FlowNodeData) automations.FlowNode {
-	return automations.FlowNode{ID: id, Type: typ, Data: d}
+func node(id, typ string, d automations.AutomationNodeData) automations.AutomationNode {
+	return automations.AutomationNode{ID: id, Type: typ, Data: d}
 }
 
-func link(src, dst, path string) automations.FlowEdge {
-	return automations.FlowEdge{ID: src + "-" + dst, Source: src, Target: dst, Data: automations.FlowEdgeData{Path: path}}
+func link(src, dst, path string) automations.AutomationEdge {
+	return automations.AutomationEdge{ID: src + "-" + dst, Source: src, Target: dst, Data: automations.AutomationEdgeData{Path: path}}
 }
 
 func TestEngineRunsAFlowEndToEnd(t *testing.T) {
@@ -110,15 +110,15 @@ func TestEngineRunsAFlowEndToEnd(t *testing.T) {
 	svc := engine(env, clk)
 	emailID := newEmail(t, c, `Test · step 1 "Hello"`)
 	product := listID(t, env, "Product Updates")
-	flow := publishFlow(t, c, "Test flow", automations.FlowGraph{
-		Nodes: []automations.FlowNode{
-			node("t", automations.NodeTrigger, automations.FlowNodeData{Trigger: &automations.TriggerConfig{Kind: automations.TriggerJoinedList, ListID: product, ConfirmedOnly: true}}),
-			node("m", automations.NodeEmail, automations.FlowNodeData{Email: &automations.EmailStepConfig{EmailID: emailID, EmailVersion: 1, Subject: "Hello"}}),
-			node("b", automations.NodeBranch, automations.FlowNodeData{Condition: &automations.FlowCondition{Kind: "opened", Step: "m", Within: &automations.FlowDuration{Amount: 1, Unit: "hours"}, HumanOnly: true}}),
-			node("g", automations.NodeGoal, automations.FlowNodeData{}),
-			node("cold", automations.NodeList, automations.FlowNodeData{Action: &automations.ListActionConfig{Kind: "add_tag", Tag: "cold"}}),
+	flow := publishFlow(t, c, "Test flow", automations.AutomationGraph{
+		Nodes: []automations.AutomationNode{
+			node("t", automations.NodeTrigger, automations.AutomationNodeData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerJoinedList, ListID: product, ConfirmedOnly: true}}),
+			node("m", automations.NodeEmail, automations.AutomationNodeData{Email: &automations.AutomationEmailStep{EmailID: emailID, EmailVersion: 1, Subject: "Hello"}}),
+			node("b", automations.NodeBranch, automations.AutomationNodeData{Condition: &automations.AutomationCondition{Kind: "opened", Step: "m", Within: &automations.AutomationDuration{Amount: 1, Unit: "hours"}, HumanOnly: true}}),
+			node("g", automations.NodeGoal, automations.AutomationNodeData{}),
+			node("cold", automations.NodeList, automations.AutomationNodeData{Action: &automations.AutomationListAction{Kind: "add_tag", Tag: "cold"}}),
 		},
-		Edges: []automations.FlowEdge{link("t", "m", ""), link("m", "b", ""), link("b", "g", "yes"), link("b", "cold", "no")},
+		Edges: []automations.AutomationEdge{link("t", "m", ""), link("m", "b", ""), link("b", "g", "yes"), link("b", "cold", "no")},
 	})
 	opener := addContact(t, env, "opener@example.com", nil)
 	quiet := addContact(t, env, "quiet@example.com", nil)
@@ -256,13 +256,13 @@ func TestWebhookStepsAreSignedLoggedAndNeverBlock(t *testing.T) {
 		w.WriteHeader(code)
 	}))
 	defer srv.Close()
-	flow := publishFlow(t, c, "Webhook flow", automations.FlowGraph{
-		Nodes: []automations.FlowNode{
-			node("t", automations.NodeTrigger, automations.FlowNodeData{Trigger: &automations.TriggerConfig{Kind: automations.TriggerAPIEvent, Event: "trial.started", Reentry: "always"}}),
-			node("w", automations.NodeWebhook, automations.FlowNodeData{Webhook: &automations.WebhookConfig{Name: "crm", URL: "https://hooks.example.com/crm", Method: "POST"}}),
-			node("x", automations.NodeExit, automations.FlowNodeData{}),
+	flow := publishFlow(t, c, "Webhook flow", automations.AutomationGraph{
+		Nodes: []automations.AutomationNode{
+			node("t", automations.NodeTrigger, automations.AutomationNodeData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerAPIEvent, Event: "trial.started", Reentry: "always"}}),
+			node("w", automations.NodeWebhook, automations.AutomationNodeData{Webhook: &automations.AutomationWebhook{Name: "crm", URL: "https://hooks.example.com/crm", Method: "POST"}}),
+			node("x", automations.NodeExit, automations.AutomationNodeData{}),
 		},
-		Edges: []automations.FlowEdge{link("t", "w", ""), link("w", "x", "")},
+		Edges: []automations.AutomationEdge{link("t", "w", ""), link("w", "x", "")},
 	})
 	const secret = "whsec_test_0123456789abcdef"
 	c.Do("PUT", wsPath+"/"+flow+"/steps/w/secret", map[string]any{"secret": secret}).MustStatus(t, 204)
@@ -387,12 +387,12 @@ func TestDateFieldTriggers(t *testing.T) {
 		t.Fatal(err)
 	}
 	emailID := newEmail(t, c, `Trial "Ends in 3 days"`)
-	flow := publishFlow(t, c, "Trial ending", automations.FlowGraph{
-		Nodes: []automations.FlowNode{
-			node("t", automations.NodeTrigger, automations.FlowNodeData{Trigger: &automations.TriggerConfig{Kind: automations.TriggerDateField, Field: "trial_ends_at", OffsetDays: -3, At: "09:00"}}),
-			node("m", automations.NodeEmail, automations.FlowNodeData{Email: &automations.EmailStepConfig{EmailID: emailID, EmailVersion: 1, Subject: "Your trial ends in 3 days"}}),
+	flow := publishFlow(t, c, "Trial ending", automations.AutomationGraph{
+		Nodes: []automations.AutomationNode{
+			node("t", automations.NodeTrigger, automations.AutomationNodeData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerDateField, Field: "trial_ends_at", OffsetDays: -3, At: "09:00"}}),
+			node("m", automations.NodeEmail, automations.AutomationNodeData{Email: &automations.AutomationEmailStep{EmailID: emailID, EmailVersion: 1, Subject: "Your trial ends in 3 days"}}),
 		},
-		Edges: []automations.FlowEdge{link("t", "m", "")},
+		Edges: []automations.AutomationEdge{link("t", "m", "")},
 	})
 	due := addContact(t, env, "due@example.com", map[string]any{"trial_ends_at": clk.now().AddDate(0, 0, 3).Format("2006-01-02")})
 	notDue := addContact(t, env, "later@example.com", map[string]any{"trial_ends_at": clk.now().AddDate(0, 0, 5).Format("2006-01-02")})

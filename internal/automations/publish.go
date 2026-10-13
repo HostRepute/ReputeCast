@@ -35,7 +35,7 @@ type PublishRequest struct {
 	Version      int
 	Migration    string
 	By           uuid.UUID
-	Changes      []DiffItem
+	Changes      []AutomationDiffItem
 }
 
 // GateDecision tells the publish whether to go ahead.
@@ -64,39 +64,39 @@ func (NoApproval) Check(context.Context, pgx.Tx, PublishRequest) (GateDecision, 
 	return GateDecision{}, nil
 }
 
-// PublishCheck is one pre-publish check badge.
-type PublishCheck struct {
+// AutomationPublishCheck is one pre-publish check badge.
+type AutomationPublishCheck struct {
 	Status string `json:"status" enum:"ok,warn,bad"`
 	Label  string `json:"label"`
 }
 
-// PublishPreview is the publish dialog: the diff, what happens to contacts
+// AutomationPublishPreview is the publish dialog: the diff, what happens to contacts
 // already in the flow, and the pre-publish checks.
-type PublishPreview struct {
-	Name            string         `json:"name"`
-	FromVersion     *int           `json:"fromVersion,omitempty"`
-	ToVersion       int            `json:"toVersion"`
-	LivePublishedAt *time.Time     `json:"livePublishedAt,omitempty"`
-	LivePublishedBy string         `json:"livePublishedBy,omitempty"`
-	Items           []DiffItem     `json:"items"`
-	Changes         int            `json:"changes"`
-	InFlow          int64          `json:"inFlow"`
-	FinishEstimate  string         `json:"finishEstimate" example:"about 9 days"`
-	MoveImpact      string         `json:"moveImpact"`
-	Checks          []PublishCheck `json:"checks"`
-	CanPublish      bool           `json:"canPublish"`
-	Blocker         string         `json:"blocker,omitempty"`
+type AutomationPublishPreview struct {
+	Name            string                   `json:"name"`
+	FromVersion     *int                     `json:"fromVersion,omitempty"`
+	ToVersion       int                      `json:"toVersion"`
+	LivePublishedAt *time.Time               `json:"livePublishedAt,omitempty"`
+	LivePublishedBy string                   `json:"livePublishedBy,omitempty"`
+	Items           []AutomationDiffItem     `json:"items"`
+	Changes         int                      `json:"changes"`
+	InFlow          int64                    `json:"inFlow"`
+	FinishEstimate  string                   `json:"finishEstimate" example:"about 9 days"`
+	MoveImpact      string                   `json:"moveImpact"`
+	Checks          []AutomationPublishCheck `json:"checks"`
+	CanPublish      bool                     `json:"canPublish"`
+	Blocker         string                   `json:"blocker,omitempty"`
 }
 
 type publishState struct {
 	a        store.Automation
 	refs     *Refs
-	draft    FlowGraph
-	live     *FlowGraph
+	draft    AutomationGraph
+	live     *AutomationGraph
 	liveV    *store.GetAutomationVersionRow
-	items    []DiffItem
-	issues   []GraphIssue
-	inflow   []store.CountInFlowByNodeRow
+	items    []AutomationDiffItem
+	issues   []AutomationGraphIssue
+	inflow   []store.CountAutomationInFlowByNodeRow
 	failures map[string]WebhookFailure
 }
 
@@ -119,7 +119,7 @@ func (s *Service) loadPublish(ctx context.Context, q *store.Queries, ws *store.W
 		g := s.graphOf(lv.Graph)
 		st.live, st.liveV = &g, &lv
 	}
-	fails, err := q.StepFailures(ctx, a.ID)
+	fails, err := q.AutomationStepFailures(ctx, a.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (s *Service) loadPublish(ctx context.Context, q *store.Queries, ws *store.W
 		_ = json.Unmarshal(f.Detail, &d)
 		st.failures[f.NodeID] = WebhookFailure{URL: d.URL, Status: d.Status, Since: f.FirstAt, Failures: f.Failures}
 	}
-	from := FlowGraph{Nodes: []FlowNode{}, Edges: []FlowEdge{}}
+	from := AutomationGraph{Nodes: []AutomationNode{}, Edges: []AutomationEdge{}}
 	if st.live != nil {
 		from = *st.live
 	}
@@ -140,7 +140,7 @@ func (s *Service) loadPublish(ctx context.Context, q *store.Queries, ws *store.W
 		Check: func(emailID string, version int) string { return s.checkEmail(ctx, q, ws.ID, emailID, version) },
 	})
 	st.issues = Validate(st.draft, st.refs)
-	if st.inflow, err = q.CountInFlowByNode(ctx, a.ID); err != nil {
+	if st.inflow, err = q.CountAutomationInFlowByNode(ctx, a.ID); err != nil {
 		return nil, err
 	}
 	return st, nil
@@ -158,17 +158,17 @@ func (s *Service) checkEmail(ctx context.Context, q *store.Queries, wsID uuid.UU
 	return s.checks().Check(EmailContent{Subject: e.Subject, Preheader: e.Preheader, MJML: e.Mjml, HTML: e.Html, Text: e.PlainText})
 }
 
-// PublishPreview prepares the publish dialog.
-func (s *Service) PublishPreview(ctx context.Context, ws *store.Workspace, id uuid.UUID) (PublishPreview, error) {
+// AutomationPublishPreview prepares the publish dialog.
+func (s *Service) PublishPreview(ctx context.Context, ws *store.Workspace, id uuid.UUID) (AutomationPublishPreview, error) {
 	a, err := s.Q.GetAutomation(ctx, store.GetAutomationParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return PublishPreview{}, api.MapError(err, "Automation")
+		return AutomationPublishPreview{}, api.MapError(err, "Automation")
 	}
 	st, err := s.loadPublish(ctx, s.Q, ws, automationOf(a))
 	if err != nil {
-		return PublishPreview{}, err
+		return AutomationPublishPreview{}, err
 	}
-	out := PublishPreview{Name: a.Name, ToVersion: int(a.DraftVersion), Items: st.items, Changes: Changes(st.items), Checks: []PublishCheck{}}
+	out := AutomationPublishPreview{Name: a.Name, ToVersion: int(a.DraftVersion), Items: st.items, Changes: Changes(st.items), Checks: []AutomationPublishCheck{}}
 	if st.liveV != nil {
 		v := int(*a.LiveVersion)
 		out.FromVersion = &v
@@ -212,8 +212,8 @@ func automationOf(a store.GetAutomationRow) store.Automation {
 }
 
 // publishChecks are the badges at the bottom of the publish dialog.
-func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *publishState, route AutomationRoute) []PublishCheck {
-	var out []PublishCheck
+func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *publishState, route AutomationRoute) []AutomationPublishCheck {
+	var out []AutomationPublishCheck
 	// Route health.
 	primaryOK := false
 	var primary []string
@@ -225,11 +225,11 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 	}
 	switch {
 	case primaryOK:
-		out = append(out, PublishCheck{Status: "ok", Label: "Automations route healthy · " + strings.Join(primary, ", ")})
+		out = append(out, AutomationPublishCheck{Status: "ok", Label: "Automations route healthy · " + strings.Join(primary, ", ")})
 	case route.Fallback != nil && healthyStatus(route.Fallback.Status):
-		out = append(out, PublishCheck{Status: "warn", Label: "Automations route on its fallback · " + route.Fallback.Short})
+		out = append(out, AutomationPublishCheck{Status: "warn", Label: "Automations route on its fallback · " + route.Fallback.Short})
 	default:
-		out = append(out, PublishCheck{Status: "warn", Label: "No healthy provider on the Automations route: emails wait until one is"})
+		out = append(out, AutomationPublishCheck{Status: "warn", Label: "No healthy provider on the Automations route: emails wait until one is"})
 	}
 	// Email content.
 	emails, failing := 0, 0
@@ -246,11 +246,11 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 	switch {
 	case emails == 0:
 	case failing > 0:
-		out = append(out, PublishCheck{Status: "bad", Label: fmt.Sprintf("%d of %d emails fail content checks", failing, emails)})
+		out = append(out, AutomationPublishCheck{Status: "bad", Label: fmt.Sprintf("%d of %d emails fail content checks", failing, emails)})
 	case emails == 1:
-		out = append(out, PublishCheck{Status: "ok", Label: "1 email passes content checks"})
+		out = append(out, AutomationPublishCheck{Status: "ok", Label: "1 email passes content checks"})
 	default:
-		out = append(out, PublishCheck{Status: "ok", Label: fmt.Sprintf("%d emails pass content checks", emails)})
+		out = append(out, AutomationPublishCheck{Status: "ok", Label: fmt.Sprintf("%d emails pass content checks", emails)})
 	}
 	// References, forks, then anything else structural.
 	var refIssue, pathIssue, other string
@@ -271,9 +271,9 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 		}
 	}
 	if refIssue != "" {
-		out = append(out, PublishCheck{Status: "bad", Label: refIssue})
+		out = append(out, AutomationPublishCheck{Status: "bad", Label: refIssue})
 	} else {
-		out = append(out, PublishCheck{Status: "ok", Label: "No step references a deleted list or tag"})
+		out = append(out, AutomationPublishCheck{Status: "ok", Label: "No step references a deleted list or tag"})
 	}
 	forks, branches := 0, 0
 	for _, n := range st.draft.Nodes {
@@ -286,23 +286,23 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 	}
 	switch {
 	case pathIssue != "":
-		out = append(out, PublishCheck{Status: "bad", Label: pathIssue})
+		out = append(out, AutomationPublishCheck{Status: "bad", Label: pathIssue})
 	case branches == 1:
-		out = append(out, PublishCheck{Status: "ok", Label: "Branch has both paths connected"})
+		out = append(out, AutomationPublishCheck{Status: "ok", Label: "Branch has both paths connected"})
 	case branches > 1:
-		out = append(out, PublishCheck{Status: "ok", Label: "Branches have both paths connected"})
+		out = append(out, AutomationPublishCheck{Status: "ok", Label: "Branches have both paths connected"})
 	case forks > 0:
-		out = append(out, PublishCheck{Status: "ok", Label: "A/B split has every path connected"})
+		out = append(out, AutomationPublishCheck{Status: "ok", Label: "A/B split has every path connected"})
 	}
 	if other != "" {
-		out = append(out, PublishCheck{Status: "bad", Label: other})
+		out = append(out, AutomationPublishCheck{Status: "bad", Label: other})
 	}
 	return out
 }
 
 // remaining is the longest time a contact can still spend in the flow from
 // a step: delays and branch windows along the slowest path.
-func remaining(g FlowGraph, id string, memo map[string]time.Duration) time.Duration {
+func remaining(g AutomationGraph, id string, memo map[string]time.Duration) time.Duration {
 	if d, ok := memo[id]; ok {
 		return d
 	}
@@ -331,7 +331,7 @@ func remaining(g FlowGraph, id string, memo map[string]time.Duration) time.Durat
 }
 
 // finishEstimate says how long until the last contact leaves the live version.
-func finishEstimate(g FlowGraph, inflow []store.CountInFlowByNodeRow) string {
+func finishEstimate(g AutomationGraph, inflow []store.CountAutomationInFlowByNodeRow) string {
 	memo := map[string]time.Duration{}
 	var longest time.Duration
 	for _, n := range inflow {
@@ -357,7 +357,7 @@ func finishEstimate(g FlowGraph, inflow []store.CountInFlowByNodeRow) string {
 }
 
 // durationAdjective reads "2-day", "10-minute".
-func durationAdjective(d *FlowDuration) string {
+func durationAdjective(d *AutomationDuration) string {
 	if d == nil {
 		return ""
 	}
@@ -365,7 +365,7 @@ func durationAdjective(d *FlowDuration) string {
 }
 
 // moveImpact says what moving contacts to the new version would do.
-func moveImpact(live, draft FlowGraph, items []DiffItem, inflow []store.CountInFlowByNodeRow, refs *Refs) string {
+func moveImpact(live, draft AutomationGraph, items []AutomationDiffItem, inflow []store.CountAutomationInFlowByNodeRow, refs *Refs) string {
 	at := map[string]int64{}
 	for _, n := range inflow {
 		at[n.NodeID] += n.N
@@ -417,8 +417,8 @@ func contacts(n int64) string {
 	return formatCount(n) + " contacts"
 }
 
-// PublishResult says whether the version went live or is waiting for approval.
-type PublishResult struct {
+// AutomationPublishResult says whether the version went live or is waiting for approval.
+type AutomationPublishResult struct {
 	Status     string `json:"status" enum:"published,approval_required"`
 	Version    int    `json:"version"`
 	ApprovalID string `json:"approvalId,omitempty"`
@@ -426,11 +426,11 @@ type PublishResult struct {
 }
 
 // Publish makes the draft the live version, after the approval gate.
-func (s *Service) Publish(ctx context.Context, ws *store.Workspace, by uuid.UUID, id uuid.UUID, version int, migration string) (PublishResult, error) {
+func (s *Service) Publish(ctx context.Context, ws *store.Workspace, by uuid.UUID, id uuid.UUID, version int, migration string) (AutomationPublishResult, error) {
 	if migration == "" {
 		migration = MigrationFinish
 	}
-	var out PublishResult
+	var out AutomationPublishResult
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		a, err := q.LockAutomation(ctx, store.LockAutomationParams{WorkspaceID: ws.ID, ID: id})
@@ -457,14 +457,14 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, by uuid.UUID
 		}
 		wsID := ws.ID
 		if dec.Required {
-			out = PublishResult{Status: "approval_required", Version: version, ApprovalID: dec.ApprovalID.String(), Message: dec.Message}
+			out = AutomationPublishResult{Status: "approval_required", Version: version, ApprovalID: dec.ApprovalID.String(), Message: dec.Message}
 			return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "automation.publish_requested", TargetType: "automation", TargetID: id.String(), TargetName: a.Name,
 				Metadata: map[string]any{"version": version, "migration": migration, "approval_id": dec.ApprovalID.String()}})
 		}
 		if err := s.publishTx(ctx, tx, ws, a, st, by, migration); err != nil {
 			return err
 		}
-		out = PublishResult{Status: "published", Version: version}
+		out = AutomationPublishResult{Status: "published", Version: version}
 		return nil
 	})
 	if err == nil && out.Status == "published" {
@@ -525,7 +525,7 @@ func (s *Service) publishTx(ctx context.Context, tx pgx.Tx, ws *store.Workspace,
 	// Alerts about steps the new version removed are over.
 	for node := range st.failures {
 		if st.draft.Node(node) == nil {
-			if _, err := q.ResolveAlert(ctx, store.ResolveAlertParams{AutomationID: a.ID, Kind: "step_failing", NodeID: node}); err != nil {
+			if _, err := q.ResolveAutomationAlert(ctx, store.ResolveAutomationAlertParams{AutomationID: a.ID, Kind: "step_failing", NodeID: node}); err != nil {
 				return err
 			}
 		}
@@ -544,7 +544,7 @@ func (s *Service) publishTx(ctx context.Context, tx pgx.Tx, ws *store.Workspace,
 }
 
 func retireEmpty(ctx context.Context, q *store.Queries, automationID uuid.UUID) error {
-	rows, err := q.ListRetiringVersions(ctx)
+	rows, err := q.ListRetiringAutomationVersions(ctx)
 	if err != nil {
 		return err
 	}
@@ -560,7 +560,7 @@ func retireEmpty(ctx context.Context, q *store.Queries, automationID uuid.UUID) 
 }
 
 // versionSummary is the version history's line: what this version changed.
-func versionSummary(items []DiffItem, first bool) string {
+func versionSummary(items []AutomationDiffItem, first bool) string {
 	if first {
 		return "first published version"
 	}
@@ -590,12 +590,12 @@ func versionSummary(items []DiffItem, first bool) string {
 // migrateRuns moves contacts on older versions to the new one at their
 // current step. Steps that no longer exist hand the contact to the next step
 // that does; a changed delay restarts from when the contact reached it.
-func (s *Service) migrateRuns(ctx context.Context, q *store.Queries, a store.Automation, version int32, g FlowGraph) (int64, error) {
-	runs, err := q.ListActiveRunsForMigration(ctx, store.ListActiveRunsForMigrationParams{AutomationID: a.ID, Version: version})
+func (s *Service) migrateRuns(ctx context.Context, q *store.Queries, a store.Automation, version int32, g AutomationGraph) (int64, error) {
+	runs, err := q.ListAutomationRunsForMigration(ctx, store.ListAutomationRunsForMigrationParams{AutomationID: a.ID, Version: version})
 	if err != nil {
 		return 0, err
 	}
-	graphs := map[int32]FlowGraph{}
+	graphs := map[int32]AutomationGraph{}
 	now := s.now()
 	var moved int64
 	for _, r := range runs {
@@ -625,12 +625,12 @@ func (s *Service) migrateRuns(ctx context.Context, q *store.Queries, a store.Aut
 			state = json.RawMessage(fmt.Sprintf(`{"wait":"delay","until":%q}`, until.UTC().Format(time.RFC3339Nano)))
 		}
 		if node == "" {
-			if err := q.UpdateRun(ctx, store.UpdateRunParams{ID: r.ID, Version: version, NodeID: r.NodeID, Status: "completed", State: state, NodeEnteredAt: enteredAt, FinishedAt: &now, ExitReason: "migrated"}); err != nil {
+			if err := q.UpdateAutomationRun(ctx, store.UpdateAutomationRunParams{ID: r.ID, Version: version, NodeID: r.NodeID, Status: "completed", State: state, NodeEnteredAt: enteredAt, FinishedAt: &now, ExitReason: "migrated"}); err != nil {
 				return moved, err
 			}
 			continue
 		}
-		if err := q.UpdateRun(ctx, store.UpdateRunParams{ID: r.ID, Version: version, NodeID: node, Status: status, State: state, NodeEnteredAt: enteredAt, NextAt: nextAt}); err != nil {
+		if err := q.UpdateAutomationRun(ctx, store.UpdateAutomationRunParams{ID: r.ID, Version: version, NodeID: node, Status: status, State: state, NodeEnteredAt: enteredAt, NextAt: nextAt}); err != nil {
 			return moved, err
 		}
 		moved++
@@ -640,7 +640,7 @@ func (s *Service) migrateRuns(ctx context.Context, q *store.Queries, a store.Aut
 
 // forwardTo walks from a removed step to the first following step that still
 // exists in the new graph ("" when the path ends).
-func forwardTo(old, g FlowGraph, from string) string {
+func forwardTo(old, g AutomationGraph, from string) string {
 	seen := map[string]bool{}
 	queue := []string{from}
 	for len(queue) > 0 {

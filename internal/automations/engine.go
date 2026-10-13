@@ -61,14 +61,14 @@ type statKey struct {
 }
 
 // statsBuf accumulates counter changes during a batch and writes them once.
-type statsBuf map[statKey]*store.BumpStepStatsParams
+type statsBuf map[statKey]*store.BumpAutomationStepStatsParams
 
-func (b statsBuf) at(a uuid.UUID, v int32, node string, now time.Time) *store.BumpStepStatsParams {
+func (b statsBuf) at(a uuid.UUID, v int32, node string, now time.Time) *store.BumpAutomationStepStatsParams {
 	day := time.Date(now.UTC().Year(), now.UTC().Month(), now.UTC().Day(), 0, 0, 0, 0, time.UTC)
 	k := statKey{a, v, node, day}
 	p, ok := b[k]
 	if !ok {
-		p = &store.BumpStepStatsParams{AutomationID: a, Version: v, NodeID: node, Day: day, Paths: json.RawMessage(`{}`), Providers: json.RawMessage(`{}`)}
+		p = &store.BumpAutomationStepStatsParams{AutomationID: a, Version: v, NodeID: node, Day: day, Paths: json.RawMessage(`{}`), Providers: json.RawMessage(`{}`)}
 		b[k] = p
 	}
 	return p
@@ -84,7 +84,7 @@ func addKey(raw json.RawMessage, key string, n int64) json.RawMessage {
 
 func (b statsBuf) flush(ctx context.Context, q *store.Queries) error {
 	for _, p := range b {
-		if err := q.BumpStepStats(ctx, *p); err != nil {
+		if err := q.BumpAutomationStepStats(ctx, *p); err != nil {
 			return err
 		}
 	}
@@ -96,17 +96,17 @@ func (b statsBuf) flush(ctx context.Context, q *store.Queries) error {
 type graphCache struct {
 	s *Service
 	q *store.Queries
-	m map[string]FlowGraph
+	m map[string]AutomationGraph
 }
 
-func (c *graphCache) get(ctx context.Context, automation uuid.UUID, version int32) (FlowGraph, error) {
+func (c *graphCache) get(ctx context.Context, automation uuid.UUID, version int32) (AutomationGraph, error) {
 	key := fmt.Sprintf("%s/%d", automation, version)
 	if g, ok := c.m[key]; ok {
 		return g, nil
 	}
 	v, err := c.q.GetAutomationVersion(ctx, store.GetAutomationVersionParams{AutomationID: automation, Version: version})
 	if err != nil {
-		return FlowGraph{}, err
+		return AutomationGraph{}, err
 	}
 	g := c.s.graphOf(v.Graph)
 	c.m[key] = g
@@ -131,7 +131,7 @@ func (s *Service) Dispatch(ctx context.Context) (int, error) {
 func (s *Service) dispatchBatch(ctx context.Context, limit int32) (started int, more bool, err error) {
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		events, err := q.ClaimPendingEvents(ctx, limit)
+		events, err := q.ClaimAutomationEvents(ctx, limit)
 		if err != nil {
 			return err
 		}
@@ -157,7 +157,7 @@ func (s *Service) dispatchBatch(ctx context.Context, limit int32) (started int, 
 			}
 			enrolled := 0
 			if len(flows) > 0 {
-				c, err := q.ContactForRun(ctx, ev.ContactID)
+				c, err := q.AutomationContact(ctx, ev.ContactID)
 				if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 					return err
 				}
@@ -173,7 +173,7 @@ func (s *Service) dispatchBatch(ctx context.Context, limit int32) (started int, 
 					}
 				}
 			}
-			if err := q.MarkEventProcessed(ctx, store.MarkEventProcessedParams{ID: ev.ID, Enrolled: int32(enrolled)}); err != nil {
+			if err := q.MarkAutomationEventProcessed(ctx, store.MarkAutomationEventProcessedParams{ID: ev.ID, Enrolled: int32(enrolled)}); err != nil {
 				return err
 			}
 			started += enrolled
@@ -184,7 +184,7 @@ func (s *Service) dispatchBatch(ctx context.Context, limit int32) (started int, 
 }
 
 // triggerMatches decides whether an event starts a flow.
-func triggerMatches(t TriggerConfig, ev store.ClaimPendingEventsRow) bool {
+func triggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool {
 	switch ev.Kind {
 	case TriggerJoinedList:
 		if t.ListID != ev.Ref {
@@ -214,13 +214,13 @@ func triggerMatches(t TriggerConfig, ev store.ClaimPendingEventsRow) bool {
 	return false
 }
 
-func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, f store.LiveAutomationsForTriggerRow, ev store.ClaimPendingEventsRow, now time.Time) (bool, error) {
-	var t TriggerConfig
+func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, f store.LiveAutomationsForTriggerRow, ev store.ClaimAutomationEventsRow, now time.Time) (bool, error) {
+	var t AutomationTrigger
 	if json.Unmarshal(f.Trigger, &t) != nil || !triggerMatches(t, ev) || f.LiveVersion == nil {
 		return false, nil
 	}
 	if t.Reentry != "always" {
-		exists, err := q.RunExistsForContact(ctx, store.RunExistsForContactParams{AutomationID: f.ID, ContactID: ev.ContactID})
+		exists, err := q.AutomationRunExists(ctx, store.AutomationRunExistsParams{AutomationID: f.ID, ContactID: ev.ContactID})
 		if err != nil || exists {
 			return false, err
 		}
@@ -230,7 +230,7 @@ func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, 
 	if trig == nil {
 		return false, nil
 	}
-	n, err := q.InsertRun(ctx, store.InsertRunParams{
+	n, err := q.InsertAutomationRun(ctx, store.InsertAutomationRunParams{
 		ID: uuid.Must(uuid.NewV7()), AutomationID: f.ID, Version: *f.LiveVersion, ContactID: ev.ContactID,
 		NodeID: trig.ID, State: runState{Event: ev.ID}.json(), EnteredAt: now,
 	})
@@ -261,13 +261,13 @@ func (s *Service) tickBatch(ctx context.Context, limit int32) (int, error) {
 	ctx = withClock(ctx, now)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		runs, err := q.ClaimDueRuns(ctx, store.ClaimDueRunsParams{Now: &now, Lim: limit})
+		runs, err := q.ClaimDueAutomationRuns(ctx, store.ClaimDueAutomationRunsParams{Now: &now, Lim: limit})
 		if err != nil {
 			return err
 		}
 		count = len(runs)
 		stats := statsBuf{}
-		cache := &graphCache{s: s, q: q, m: map[string]FlowGraph{}}
+		cache := &graphCache{s: s, q: q, m: map[string]AutomationGraph{}}
 		for _, r := range runs {
 			g, err := cache.get(ctx, r.AutomationID, r.Version)
 			if err != nil {
@@ -289,22 +289,22 @@ type executor struct {
 	tx    pgx.Tx
 	q     *store.Queries
 	stats statsBuf
-	g     FlowGraph
+	g     AutomationGraph
 	now   time.Time
-	run   store.ClaimDueRunsRow
+	run   store.ClaimDueAutomationRunsRow
 	st    runState
-	c     *store.ContactForRunRow
+	c     *store.AutomationContactRow
 }
 
-func (e *executor) stat(node string) *store.BumpStepStatsParams {
+func (e *executor) stat(node string) *store.BumpAutomationStepStatsParams {
 	return e.stats.at(e.run.AutomationID, e.run.Version, node, e.now)
 }
 
-func (e *executor) contact(ctx context.Context) (*store.ContactForRunRow, error) {
+func (e *executor) contact(ctx context.Context) (*store.AutomationContactRow, error) {
 	if e.c != nil {
 		return e.c, nil
 	}
-	c, err := e.q.ContactForRun(ctx, e.run.ContactID)
+	c, err := e.q.AutomationContact(ctx, e.run.ContactID)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +338,7 @@ func (e *executor) advance(ctx context.Context) error {
 
 // step runs the current step. It returns the next node (or "" with the path
 // to follow), or stop when the run waits or ended.
-func (e *executor) step(ctx context.Context, n FlowNode) (next, path string, stop bool, err error) {
+func (e *executor) step(ctx context.Context, n AutomationNode) (next, path string, stop bool, err error) {
 	switch n.Type {
 	case NodeTrigger:
 		return e.g.Next(n.ID), "", false, nil
@@ -407,7 +407,7 @@ func (e *executor) step(ctx context.Context, n FlowNode) (next, path string, sto
 }
 
 // moveOn leaves a step for the next one; with no next step the flow ends here.
-func (e *executor) moveOn(ctx context.Context, from FlowNode, next, path string) error {
+func (e *executor) moveOn(ctx context.Context, from AutomationNode, next, path string) error {
 	e.stat(from.ID).Completed++
 	if next == "" || e.g.Node(next) == nil {
 		// The path ends without an exit step: the contact finished the flow.
@@ -431,7 +431,7 @@ func (e *executor) wait(ctx context.Context, kind string, until time.Time) error
 }
 
 func (e *executor) save(ctx context.Context, next *time.Time) error {
-	return e.q.UpdateRun(ctx, store.UpdateRunParams{
+	return e.q.UpdateAutomationRun(ctx, store.UpdateAutomationRunParams{
 		ID: e.run.ID, Version: e.run.Version, NodeID: e.run.NodeID, Status: e.run.Status, State: e.st.json(),
 		NodeEnteredAt: e.run.NodeEnteredAt, NextAt: next,
 	})
@@ -440,14 +440,14 @@ func (e *executor) save(ctx context.Context, next *time.Time) error {
 func (e *executor) finish(ctx context.Context, status, reason string) error {
 	e.run.Status = status
 	now := e.now
-	return e.q.UpdateRun(ctx, store.UpdateRunParams{
+	return e.q.UpdateAutomationRun(ctx, store.UpdateAutomationRunParams{
 		ID: e.run.ID, Version: e.run.Version, NodeID: e.run.NodeID, Status: status, State: e.st.json(),
 		NodeEnteredAt: e.run.NodeEnteredAt, FinishedAt: &now, ExitReason: reason,
 	})
 }
 
 // email runs a "Send email" step: the send window, skip rules, then the mailer.
-func (e *executor) email(ctx context.Context, n FlowNode) (string, string, bool, error) {
+func (e *executor) email(ctx context.Context, n AutomationNode) (string, string, bool, error) {
 	cfg := n.Data.Email
 	next := e.g.Next(n.ID)
 	if cfg == nil || cfg.EmailID == "" {
@@ -462,7 +462,7 @@ func (e *executor) email(ctx context.Context, n FlowNode) (string, string, bool,
 		e.stat(n.ID).Dropped++
 		return "", "", true, e.finish(ctx, "exited", "contact is "+c.Status)
 	}
-	suppressed, err := e.q.ContactSuppressed(ctx, store.ContactSuppressedParams{WorkspaceID: e.run.WorkspaceID, Email: c.Email})
+	suppressed, err := e.q.AutomationContactSuppressed(ctx, store.AutomationContactSuppressedParams{WorkspaceID: e.run.WorkspaceID, Email: c.Email})
 	if err != nil {
 		return "", "", true, err
 	}
@@ -479,7 +479,7 @@ func (e *executor) email(ctx context.Context, n FlowNode) (string, string, bool,
 		}
 	}
 	if cfg.SkipRecentHours > 0 {
-		got, err := e.q.ContactGotEmailSince(ctx, store.ContactGotEmailSinceParams{ContactID: &e.run.ContactID, Since: e.now.Add(-time.Duration(cfg.SkipRecentHours) * time.Hour)})
+		got, err := e.q.AutomationContactEmailedSince(ctx, store.AutomationContactEmailedSinceParams{ContactID: &e.run.ContactID, Since: e.now.Add(-time.Duration(cfg.SkipRecentHours) * time.Hour)})
 		if err != nil {
 			return "", "", true, err
 		}
@@ -490,7 +490,7 @@ func (e *executor) email(ctx context.Context, n FlowNode) (string, string, bool,
 	}
 	if cfg.SkipListID != "" {
 		if lid, err := uuid.Parse(cfg.SkipListID); err == nil {
-			in, err := e.q.ContactInList(ctx, store.ContactInListParams{ListID: lid, ContactID: e.run.ContactID})
+			in, err := e.q.AutomationContactInList(ctx, store.AutomationContactInListParams{ListID: lid, ContactID: e.run.ContactID})
 			if err != nil {
 				return "", "", true, err
 			}
@@ -532,7 +532,7 @@ func (e *executor) email(ctx context.Context, n FlowNode) (string, string, bool,
 
 // branch evaluates a condition. Engagement conditions (opened / clicked)
 // wait until the email is opened or clicked, or the window closes.
-func (e *executor) branch(ctx context.Context, n FlowNode) (string, string, bool, error) {
+func (e *executor) branch(ctx context.Context, n AutomationNode) (string, string, bool, error) {
 	c := n.Data.Condition
 	path := PathNo
 	if c != nil && (c.Kind == "opened" || c.Kind == "clicked") {
@@ -580,11 +580,11 @@ func (e *executor) branch(ctx context.Context, n FlowNode) (string, string, bool
 
 // engaged reports whether the contact opened or clicked the email the
 // condition is about (any email of the flow when Step is empty).
-func (e *executor) engaged(ctx context.Context, c *FlowCondition) (met bool, msg string, sentAt time.Time, err error) {
+func (e *executor) engaged(ctx context.Context, c *AutomationCondition) (met bool, msg string, sentAt time.Time, err error) {
 	if c.Step != "" {
 		if id, ok := e.st.Messages[c.Step]; ok {
 			msg = id
-		} else if m, err := e.q.RunMessage(ctx, store.RunMessageParams{AutomationID: &e.run.AutomationID, NodeID: &c.Step, ContactID: &e.run.ContactID}); err == nil {
+		} else if m, err := e.q.AutomationRunMessage(ctx, store.AutomationRunMessageParams{AutomationID: &e.run.AutomationID, NodeID: &c.Step, ContactID: &e.run.ContactID}); err == nil {
 			msg = m.ID.String()
 			sentAt = m.QueuedAt
 		} else if !errors.Is(err, pgx.ErrNoRows) {
@@ -597,7 +597,7 @@ func (e *executor) engaged(ctx context.Context, c *FlowCondition) (met bool, msg
 		if err != nil {
 			return false, "", sentAt, nil
 		}
-		met, err = e.q.MessageEngaged(ctx, store.MessageEngagedParams{MessageID: &mid, Want: c.Kind, HumanOnly: c.HumanOnly, UrlContains: c.URLContains})
+		met, err = e.q.AutomationMessageEngaged(ctx, store.AutomationMessageEngagedParams{MessageID: &mid, Want: c.Kind, HumanOnly: c.HumanOnly, UrlContains: c.URLContains})
 		return met, msg, sentAt, err
 	}
 	met, err = e.q.AutomationEngaged(ctx, store.AutomationEngagedParams{ContactID: &e.run.ContactID, AutomationID: &e.run.AutomationID, Since: e.run.EnteredAt, Want: c.Kind, HumanOnly: c.HumanOnly, UrlContains: c.URLContains})
@@ -605,7 +605,7 @@ func (e *executor) engaged(ctx context.Context, c *FlowCondition) (met bool, msg
 }
 
 // eval checks a condition right now.
-func (e *executor) eval(ctx context.Context, c *FlowCondition) (bool, error) {
+func (e *executor) eval(ctx context.Context, c *AutomationCondition) (bool, error) {
 	if c == nil {
 		return false, nil
 	}
@@ -624,9 +624,9 @@ func (e *executor) eval(ctx context.Context, c *FlowCondition) (bool, error) {
 		if err != nil {
 			return false, nil
 		}
-		return e.q.ContactInList(ctx, store.ContactInListParams{ListID: lid, ContactID: e.run.ContactID})
+		return e.q.AutomationContactInList(ctx, store.AutomationContactInListParams{ListID: lid, ContactID: e.run.ContactID})
 	case "event":
-		return e.q.ContactSentEvent(ctx, store.ContactSentEventParams{WorkspaceID: e.run.WorkspaceID, ContactID: e.run.ContactID, Event: c.Event, Since: e.run.EnteredAt})
+		return e.q.AutomationContactSentEvent(ctx, store.AutomationContactSentEventParams{WorkspaceID: e.run.WorkspaceID, ContactID: e.run.ContactID, Event: c.Event, Since: e.run.EnteredAt})
 	case "field":
 		ct, err := e.contact(ctx)
 		if err != nil {
@@ -638,7 +638,7 @@ func (e *executor) eval(ctx context.Context, c *FlowCondition) (bool, error) {
 }
 
 // fieldMatches compares a contact field.
-func fieldMatches(c *store.ContactForRunRow, cond *FlowCondition) bool {
+func fieldMatches(c *store.AutomationContactRow, cond *AutomationCondition) bool {
 	var v string
 	switch cond.Field {
 	case "email":
@@ -671,7 +671,7 @@ func fieldMatches(c *store.ContactForRunRow, cond *FlowCondition) bool {
 
 // pickVariant assigns a contact to a split variant: stable for the run,
 // weighted by the split.
-func pickVariant(n FlowNode, run uuid.UUID) string {
+func pickVariant(n AutomationNode, run uuid.UUID) string {
 	total := 0
 	for _, v := range n.Data.Variants {
 		total += v.Weight
@@ -692,7 +692,7 @@ func pickVariant(n FlowNode, run uuid.UUID) string {
 	return n.Data.Variants[len(n.Data.Variants)-1].Key
 }
 
-func (e *executor) listAction(ctx context.Context, a *ListActionConfig) error {
+func (e *executor) listAction(ctx context.Context, a *AutomationListAction) error {
 	if a == nil {
 		return nil
 	}
@@ -704,22 +704,22 @@ func (e *executor) listAction(ctx context.Context, a *ListActionConfig) error {
 			return nil
 		}
 		if a.Kind == "add_list" {
-			return e.q.AddListMembership(ctx, store.AddListMembershipParams{ListID: lid, ContactID: e.run.ContactID, Source: source})
+			return e.q.AutomationAddListMembership(ctx, store.AutomationAddListMembershipParams{ListID: lid, ContactID: e.run.ContactID, Source: source})
 		}
-		return e.q.RemoveListMembership(ctx, store.RemoveListMembershipParams{ListID: lid, ContactID: e.run.ContactID})
+		return e.q.AutomationRemoveListMembership(ctx, store.AutomationRemoveListMembershipParams{ListID: lid, ContactID: e.run.ContactID})
 	case "add_tag":
-		return e.q.AddContactTag(ctx, store.AddContactTagParams{ID: e.run.ContactID, Tag: a.Tag})
+		return e.q.AutomationAddContactTag(ctx, store.AutomationAddContactTagParams{ID: e.run.ContactID, Tag: a.Tag})
 	case "remove_tag":
-		return e.q.RemoveContactTag(ctx, store.RemoveContactTagParams{ID: e.run.ContactID, Tag: a.Tag})
+		return e.q.AutomationRemoveContactTag(ctx, store.AutomationRemoveContactTagParams{ID: e.run.ContactID, Tag: a.Tag})
 	case "unsubscribe_all":
-		return e.q.UnsubscribeAllLists(ctx, e.run.ContactID)
+		return e.q.AutomationUnsubscribeAll(ctx, e.run.ContactID)
 	}
 	return nil
 }
 
 // callWebhook hands the call to a job (network I/O never runs inside the
 // transaction) and waits for it.
-func (e *executor) callWebhook(ctx context.Context, n FlowNode) error {
+func (e *executor) callWebhook(ctx context.Context, n AutomationNode) error {
 	e.st.Wait = "webhook"
 	e.st.Done = false
 	e.run.Status = "waiting"
@@ -736,12 +736,12 @@ func (e *executor) callWebhook(ctx context.Context, n FlowNode) error {
 
 // noteHeld records that a flow's email is held for want of a healthy provider.
 func (s *Service) noteHeld(ctx context.Context, q *store.Queries, automation uuid.UUID, now time.Time) error {
-	n, err := q.CountHeldMessages(ctx, &automation)
+	n, err := q.CountAutomationHeldMessages(ctx, &automation)
 	if err != nil {
 		return err
 	}
 	detail, _ := json.Marshal(map[string]any{"queued": n})
-	return q.OpenAlert(ctx, store.OpenAlertParams{ID: uuid.Must(uuid.NewV7()), AutomationID: automation, Kind: "sending_held", Detail: detail, Failures: 1, At: now})
+	return q.OpenAutomationAlert(ctx, store.OpenAutomationAlertParams{ID: uuid.Must(uuid.NewV7()), AutomationID: automation, Kind: "sending_held", Detail: detail, Failures: 1, At: now})
 }
 
 func (s *Service) workspaceTZ(ctx context.Context, q *store.Queries, ws uuid.UUID) string {
@@ -799,7 +799,7 @@ func hhmm(s string) (int, int, bool) {
 // recovers, retires empty versions and trims old rows.
 func (s *Service) Scan(ctx context.Context) error {
 	now := s.now()
-	if _, err := s.Q.WakeEngagedBranchRuns(ctx, &now); err != nil {
+	if _, err := s.Q.WakeAutomationBranchRuns(ctx, &now); err != nil {
 		return fmt.Errorf("wake branches: %w", err)
 	}
 	if err := s.detectGoals(ctx, now); err != nil {
@@ -816,7 +816,7 @@ func (s *Service) Scan(ctx context.Context) error {
 	}
 	if err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		rows, err := q.ListRetiringVersions(ctx)
+		rows, err := q.ListRetiringAutomationVersions(ctx)
 		if err != nil {
 			return err
 		}
@@ -830,16 +830,16 @@ func (s *Service) Scan(ctx context.Context) error {
 		return fmt.Errorf("retire versions: %w", err)
 	}
 	week := now.Add(-7 * 24 * time.Hour)
-	if _, err := s.Q.PurgeProcessedEvents(ctx, &week); err != nil {
+	if _, err := s.Q.PurgeAutomationEvents(ctx, &week); err != nil {
 		return err
 	}
-	_, err := s.Q.PurgeWebhookCalls(ctx, now.Add(-90*24*time.Hour))
+	_, err := s.Q.PurgeAutomationWebhookCalls(ctx, now.Add(-90*24*time.Hour))
 	return err
 }
 
 // detectGoals moves contacts who met a goal anywhere in the flow to that goal.
 func (s *Service) detectGoals(ctx context.Context, now time.Time) error {
-	versions, err := s.Q.ActiveRunVersions(ctx)
+	versions, err := s.Q.AutomationActiveRunVersions(ctx)
 	if err != nil {
 		return err
 	}
@@ -856,7 +856,7 @@ func (s *Service) detectGoals(ctx context.Context, now time.Time) error {
 				c := goal.Data.Condition
 				switch c.Kind {
 				case "opened", "clicked":
-					rows, err := q.GoalRunsEngaged(ctx, store.GoalRunsEngagedParams{AutomationID: v.AutomationID, Version: v.Version, Want: c.Kind, HumanOnly: c.HumanOnly, UrlContains: c.URLContains})
+					rows, err := q.AutomationGoalRunsEngaged(ctx, store.AutomationGoalRunsEngagedParams{AutomationID: v.AutomationID, Version: v.Version, Want: c.Kind, HumanOnly: c.HumanOnly, UrlContains: c.URLContains})
 					if err != nil {
 						return err
 					}
@@ -864,7 +864,7 @@ func (s *Service) detectGoals(ctx context.Context, now time.Time) error {
 						ids = append(ids, r.ID)
 					}
 				case "tag":
-					rows, err := q.GoalRunsTagged(ctx, store.GoalRunsTaggedParams{AutomationID: v.AutomationID, Version: v.Version, Tag: c.Tag})
+					rows, err := q.AutomationGoalRunsTagged(ctx, store.AutomationGoalRunsTaggedParams{AutomationID: v.AutomationID, Version: v.Version, Tag: c.Tag})
 					if err != nil {
 						return err
 					}
@@ -876,7 +876,7 @@ func (s *Service) detectGoals(ctx context.Context, now time.Time) error {
 					if err != nil {
 						return nil
 					}
-					rows, err := q.GoalRunsInList(ctx, store.GoalRunsInListParams{AutomationID: v.AutomationID, Version: v.Version, ListID: lid})
+					rows, err := q.AutomationGoalRunsInList(ctx, store.AutomationGoalRunsInListParams{AutomationID: v.AutomationID, Version: v.Version, ListID: lid})
 					if err != nil {
 						return err
 					}
@@ -884,7 +884,7 @@ func (s *Service) detectGoals(ctx context.Context, now time.Time) error {
 						ids = append(ids, r.ID)
 					}
 				case "event":
-					rows, err := q.GoalRunsEvent(ctx, store.GoalRunsEventParams{AutomationID: v.AutomationID, Version: v.Version, Event: c.Event})
+					rows, err := q.AutomationGoalRunsEvent(ctx, store.AutomationGoalRunsEventParams{AutomationID: v.AutomationID, Version: v.Version, Event: c.Event})
 					if err != nil {
 						return err
 					}
@@ -898,7 +898,7 @@ func (s *Service) detectGoals(ctx context.Context, now time.Time) error {
 				stats := statsBuf{}
 				for _, id := range ids {
 					fin := now
-					if err := q.UpdateRun(ctx, store.UpdateRunParams{ID: id, Version: v.Version, NodeID: goal.ID, Status: "goal", State: json.RawMessage(`{}`), NodeEnteredAt: now, FinishedAt: &fin}); err != nil {
+					if err := q.UpdateAutomationRun(ctx, store.UpdateAutomationRunParams{ID: id, Version: v.Version, NodeID: goal.ID, Status: "goal", State: json.RawMessage(`{}`), NodeEnteredAt: now, FinishedAt: &fin}); err != nil {
 						return err
 					}
 					p := stats.at(v.AutomationID, v.Version, goal.ID, now)
@@ -918,12 +918,12 @@ func (s *Service) detectGoals(ctx context.Context, now time.Time) error {
 // fireDateTriggers queues date-field events once the trigger's local time
 // has passed today.
 func (s *Service) fireDateTriggers(ctx context.Context, now time.Time) error {
-	rows, err := s.Q.LiveDateTriggers(ctx)
+	rows, err := s.Q.AutomationDateTriggers(ctx)
 	if err != nil {
 		return err
 	}
 	for _, r := range rows {
-		var t TriggerConfig
+		var t AutomationTrigger
 		if json.Unmarshal(r.Trigger, &t) != nil || t.Field == "" {
 			continue
 		}
@@ -937,7 +937,7 @@ func (s *Service) fireDateTriggers(ctx context.Context, now time.Time) error {
 			continue
 		}
 		today := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.UTC)
-		ids, err := s.Q.DateFieldMatches(ctx, store.DateFieldMatchesParams{WorkspaceID: r.WorkspaceID, Field: t.Field, Tz: loc.String(), Yearly: t.Yearly, OffsetDays: int32(t.OffsetDays), Today: today})
+		ids, err := s.Q.AutomationDateFieldMatches(ctx, store.AutomationDateFieldMatchesParams{WorkspaceID: r.WorkspaceID, Field: t.Field, Tz: loc.String(), Yearly: t.Yearly, OffsetDays: int32(t.OffsetDays), Today: today})
 		if err != nil {
 			return err
 		}
@@ -951,7 +951,7 @@ func (s *Service) fireDateTriggers(ctx context.Context, now time.Time) error {
 }
 
 func (s *Service) requeueWebhooks(ctx context.Context, now time.Time) error {
-	rows, err := s.Q.LostWebhookRuns(ctx, now.Add(-15*time.Minute))
+	rows, err := s.Q.AutomationLostWebhookRuns(ctx, now.Add(-15*time.Minute))
 	if err != nil {
 		return err
 	}
@@ -965,7 +965,7 @@ func (s *Service) requeueWebhooks(ctx context.Context, now time.Time) error {
 		}
 		t := now.Add(time.Hour)
 		// Mark it so the next scan doesn't enqueue it again right away.
-		if err := s.Q.TouchRunNextAt(ctx, store.TouchRunNextAtParams{ID: r.ID, NextAt: &t}); err != nil {
+		if err := s.Q.TouchAutomationRunNextAt(ctx, store.TouchAutomationRunNextAtParams{ID: r.ID, NextAt: &t}); err != nil {
 			return err
 		}
 	}
@@ -974,7 +974,7 @@ func (s *Service) requeueWebhooks(ctx context.Context, now time.Time) error {
 
 // releaseHeld sends held automation email once the route can send again.
 func (s *Service) releaseHeld(ctx context.Context) error {
-	rows, err := s.Q.OpenSendingHeldAlerts(ctx)
+	rows, err := s.Q.ListAutomationHeldAlerts(ctx)
 	if err != nil {
 		return err
 	}
@@ -985,10 +985,10 @@ func (s *Service) releaseHeld(ctx context.Context) error {
 			if err != nil || pid == uuid.Nil {
 				return err
 			}
-			if _, err := q.ReleaseHeldMessages(ctx, store.ReleaseHeldMessagesParams{AutomationID: &r.AutomationID, ProviderID: &pid}); err != nil {
+			if _, err := q.ReleaseAutomationHeldMessages(ctx, store.ReleaseAutomationHeldMessagesParams{AutomationID: &r.AutomationID, ProviderID: &pid}); err != nil {
 				return err
 			}
-			_, err = q.ResolveAlert(ctx, store.ResolveAlertParams{AutomationID: r.AutomationID, Kind: "sending_held", NodeID: ""})
+			_, err = q.ResolveAutomationAlert(ctx, store.ResolveAutomationAlertParams{AutomationID: r.AutomationID, Kind: "sending_held", NodeID: ""})
 			return err
 		})
 		if err != nil {
@@ -1014,7 +1014,7 @@ type MessageEvent struct {
 // complained and unsubscribed, and only for the first open and first click
 // (stats count unique opens and clicks).
 func (s *Service) RecordMessageEvent(ctx context.Context, q *store.Queries, ev MessageEvent) error {
-	m, err := q.MessageForStats(ctx, ev.MessageID)
+	m, err := q.AutomationMessageForStats(ctx, ev.MessageID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
 	}

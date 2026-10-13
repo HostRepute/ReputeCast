@@ -137,7 +137,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, status string) 
 		return out, err
 	}
 	inflow := map[uuid.UUID]int64{}
-	counts, err := s.Q.CountInFlow(ctx, ids)
+	counts, err := s.Q.CountAutomationInFlow(ctx, ids)
 	if err != nil {
 		return out, err
 	}
@@ -160,7 +160,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, status string) 
 			PausedAt: r.PausedAt, PausedBy: r.PausedByName, PauseReason: r.PauseReason,
 			Steps: len(shown.Nodes),
 		}
-		var trig *TriggerConfig
+		var trig *AutomationTrigger
 		if t := shown.Trigger(); t != nil {
 			trig = t.Data.Trigger
 		}
@@ -178,8 +178,8 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, status string) 
 			it.Entered = &entered
 			it.InFlow = &n
 			it.Completed = pct(st.finished(shown), entered)
-			it.HumanOpens = pct(st.total(func(x store.StepStatsSinceRow) int64 { return x.OpenedHuman }),
-				st.total(func(x store.StepStatsSinceRow) int64 { return x.Delivered }))
+			it.HumanOpens = pct(st.total(func(x store.AutomationStepStatsSinceRow) int64 { return x.OpenedHuman }),
+				st.total(func(x store.AutomationStepStatsSinceRow) int64 { return x.Delivered }))
 			if it.Goal != nil {
 				it.Goal.Percent = pct(st.goals(shown), entered)
 			}
@@ -206,7 +206,7 @@ func matchesFilter(status, filter string) bool {
 	return true
 }
 
-func firstGoal(g FlowGraph) *FlowNode {
+func firstGoal(g AutomationGraph) *AutomationNode {
 	for _, id := range g.Order() {
 		if n := g.Node(id); n != nil && n.Type == NodeGoal {
 			return n
@@ -216,9 +216,9 @@ func firstGoal(g FlowGraph) *FlowNode {
 }
 
 // flowStats holds one flow's per-step totals over a window.
-type flowStats map[string]store.StepStatsSinceRow
+type flowStats map[string]store.AutomationStepStatsSinceRow
 
-func (f flowStats) total(field func(store.StepStatsSinceRow) int64) int64 {
+func (f flowStats) total(field func(store.AutomationStepStatsSinceRow) int64) int64 {
 	var n int64
 	for _, r := range f {
 		n += field(r)
@@ -227,7 +227,7 @@ func (f flowStats) total(field func(store.StepStatsSinceRow) int64) int64 {
 }
 
 // entered counts contacts who entered through the trigger.
-func (f flowStats) entered(g FlowGraph) int64 {
+func (f flowStats) entered(g AutomationGraph) int64 {
 	if t := g.Trigger(); t != nil {
 		return f[t.ID].Entered
 	}
@@ -235,7 +235,7 @@ func (f flowStats) entered(g FlowGraph) int64 {
 }
 
 // goals counts goals reached at any goal step.
-func (f flowStats) goals(g FlowGraph) int64 {
+func (f flowStats) goals(g AutomationGraph) int64 {
 	var n int64
 	for _, r := range f {
 		n += r.GoalReached
@@ -245,7 +245,7 @@ func (f flowStats) goals(g FlowGraph) int64 {
 }
 
 // finished counts contacts who reached a goal or the end of the flow.
-func (f flowStats) finished(g FlowGraph) int64 {
+func (f flowStats) finished(g AutomationGraph) int64 {
 	var n int64
 	for _, r := range f {
 		n += r.GoalReached + r.Exited
@@ -259,7 +259,7 @@ func (s *Service) statsByAutomation(ctx context.Context, ids []uuid.UUID, days i
 	if len(ids) == 0 {
 		return out, nil
 	}
-	rows, err := s.Q.StepStatsSince(ctx, store.StepStatsSinceParams{AutomationIds: ids, Since: s.since(days)})
+	rows, err := s.Q.AutomationStepStatsSince(ctx, store.AutomationStepStatsSinceParams{AutomationIds: ids, Since: s.since(days)})
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +276,7 @@ func (s *Service) statsByAutomation(ctx context.Context, ids []uuid.UUID, days i
 // isn't shown: the fix is waiting to be published.
 func (s *Service) alerts(ctx context.Context, ws *store.Workspace, refs *Refs, route AutomationRoute) ([]AutomationAlert, error) {
 	out := []AutomationAlert{}
-	rows, err := s.Q.ListOpenAlerts(ctx, ws.ID)
+	rows, err := s.Q.ListAutomationAlerts(ctx, ws.ID)
 	if err != nil {
 		return out, err
 	}
@@ -321,7 +321,7 @@ func (s *Service) alerts(ctx context.Context, ws *store.Workspace, refs *Refs, r
 		case "sending_held":
 			al.Title = fmt.Sprintf(`"%s" paused: no healthy provider on the Automations route`, a.AutomationName)
 			al.Detail = heldDetail(route, d.Queued, loc)
-			for _, p := range append(append([]RouteProvider{}, route.Primary...), derefRoute(route.Fallback)...) {
+			for _, p := range append(append([]AutomationRouteProvider{}, route.Primary...), derefRoute(route.Fallback)...) {
 				if !healthyStatus(p.Status) {
 					al.Actions = append(al.Actions, AutomationAlertAction{Label: "Fix " + p.Short, Kind: "providers"})
 					break
@@ -337,11 +337,11 @@ func (s *Service) alerts(ctx context.Context, ws *store.Workspace, refs *Refs, r
 	return out, nil
 }
 
-func derefRoute(p *RouteProvider) []RouteProvider {
+func derefRoute(p *AutomationRouteProvider) []AutomationRouteProvider {
 	if p == nil {
 		return nil
 	}
-	return []RouteProvider{*p}
+	return []AutomationRouteProvider{*p}
 }
 
 // heldDetail explains why automation email is held and what happens next.
@@ -380,7 +380,7 @@ func heldDetail(route AutomationRoute, queued int64, loc *time.Location) string 
 
 // spareProvider names a healthy provider that isn't on the Automations route.
 func spareProvider(ctx context.Context, s *Service, ws *store.Workspace, route AutomationRoute) string {
-	provs, err := s.Q.WorkspaceProviders(ctx, ws.ID)
+	provs, err := s.Q.AutomationProviders(ctx, ws.ID)
 	if err != nil {
 		return ""
 	}
@@ -408,8 +408,8 @@ func workspaceLoc(ws *store.Workspace) *time.Location {
 	return time.UTC
 }
 
-// ProviderSends is how many automation emails a provider sent.
-type ProviderSends struct {
+// AutomationProviderSends is how many automation emails a provider sent.
+type AutomationProviderSends struct {
 	ProviderID string `json:"providerId"`
 	Provider   string `json:"provider"`
 	Short      string `json:"short"`
@@ -420,28 +420,28 @@ type ProviderSends struct {
 	LastDay *time.Time `json:"lastDay,omitempty"`
 }
 
-// GoalCount is goals reached by one flow.
-type GoalCount struct {
+// AutomationGoalCount is goals reached by one flow.
+type AutomationGoalCount struct {
 	Name  string `json:"name" example:"welcome"`
 	Count int64  `json:"count"`
 }
 
 // AutomationSummary is the KPI row above the list.
 type AutomationSummary struct {
-	Days       int             `json:"days"`
-	InFlow     int64           `json:"inFlow"`
-	LiveCount  int64           `json:"liveCount"`
-	Sent       int64           `json:"sent"`
-	SentBy     []ProviderSends `json:"sentBy"`
-	HumanOpens *float64        `json:"humanOpens,omitempty"`
-	Clicks     *float64        `json:"clicks,omitempty"`
-	Goals      int64           `json:"goals"`
-	GoalsBy    []GoalCount     `json:"goalsBy"`
+	Days       int                       `json:"days"`
+	InFlow     int64                     `json:"inFlow"`
+	LiveCount  int64                     `json:"liveCount"`
+	Sent       int64                     `json:"sent"`
+	SentBy     []AutomationProviderSends `json:"sentBy"`
+	HumanOpens *float64                  `json:"humanOpens,omitempty"`
+	Clicks     *float64                  `json:"clicks,omitempty"`
+	Goals      int64                     `json:"goals"`
+	GoalsBy    []AutomationGoalCount     `json:"goalsBy"`
 }
 
 // Summary returns the KPI row: contacts in flows now and the last N days.
 func (s *Service) Summary(ctx context.Context, ws *store.Workspace, days int) (AutomationSummary, error) {
-	out := AutomationSummary{Days: days, SentBy: []ProviderSends{}, GoalsBy: []GoalCount{}}
+	out := AutomationSummary{Days: days, SentBy: []AutomationProviderSends{}, GoalsBy: []AutomationGoalCount{}}
 	rows, err := s.Q.ListAutomations(ctx, ws.ID)
 	if err != nil {
 		return out, err
@@ -455,7 +455,7 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace, days int) (A
 			out.LiveCount++
 		}
 	}
-	counts, err := s.Q.CountInFlow(ctx, ids)
+	counts, err := s.Q.CountAutomationInFlow(ctx, ids)
 	if err != nil {
 		return out, err
 	}
@@ -463,7 +463,7 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace, days int) (A
 		out.InFlow += c.N
 	}
 	since := s.since(days)
-	totals, err := s.Q.WorkspaceStatsSince(ctx, store.WorkspaceStatsSinceParams{WorkspaceID: ws.ID, Since: since})
+	totals, err := s.Q.AutomationWorkspaceStatsSince(ctx, store.AutomationWorkspaceStatsSinceParams{WorkspaceID: ws.ID, Since: since})
 	if err != nil {
 		return out, err
 	}
@@ -474,7 +474,7 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace, days int) (A
 		clicked += t.Clicked
 		out.Goals += t.GoalReached
 		if t.GoalReached > 0 {
-			out.GoalsBy = append(out.GoalsBy, GoalCount{Name: shortFlowName(names[t.AutomationID]), Count: t.GoalReached})
+			out.GoalsBy = append(out.GoalsBy, AutomationGoalCount{Name: shortFlowName(names[t.AutomationID]), Count: t.GoalReached})
 		}
 	}
 	sort.SliceStable(out.GoalsBy, func(i, j int) bool { return out.GoalsBy[i].Count > out.GoalsBy[j].Count })
@@ -484,20 +484,20 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace, days int) (A
 	if err != nil {
 		return out, err
 	}
-	sends, err := s.Q.WorkspaceProviderSends(ctx, store.WorkspaceProviderSendsParams{WorkspaceID: ws.ID, Since: since})
+	sends, err := s.Q.AutomationProviderSendsSince(ctx, store.AutomationProviderSendsSinceParams{WorkspaceID: ws.ID, Since: since})
 	if err != nil {
 		return out, err
 	}
-	provs, err := s.Q.WorkspaceProviders(ctx, ws.ID)
+	provs, err := s.Q.AutomationProviders(ctx, ws.ID)
 	if err != nil {
 		return out, err
 	}
-	byID := map[string]store.WorkspaceProvidersRow{}
+	byID := map[string]store.AutomationProvidersRow{}
 	for _, p := range provs {
 		byID[p.ID.String()] = p
 	}
 	for _, sd := range sends {
-		ps := ProviderSends{ProviderID: sd.ProviderID, Sent: sd.N}
+		ps := AutomationProviderSends{ProviderID: sd.ProviderID, Sent: sd.N}
 		if p, ok := byID[sd.ProviderID]; ok {
 			ps.Provider, ps.Short = p.Name, shortName(p.Name, p.Adapter)
 		} else {

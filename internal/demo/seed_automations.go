@@ -21,13 +21,13 @@ func init() { seedAutomations = seedAutomationsImpl }
 // Re-engagement live, the Re-permission draft and the paused Beta invite,
 // with 30 days of per-step stats and the contacts in each flow right now.
 
-type demoEmail struct {
+type autoEmailSeed struct {
 	key, name, subject, preheader, heading, cta string
 	versions                                    int
 	body                                        []string
 }
 
-var demoEmails = []demoEmail{
+var autoEmails = []autoEmailSeed{
 	{key: "w1", name: `Welcome · step 1 "You're in"`, subject: "You're in. Here's what to expect from Acme", preheader: "One email a week, and how to make the most of it.", heading: "You're in", cta: "Read the getting-started guide", versions: 5,
 		body: []string{"Thanks for subscribing to the Weekly Digest. Every Tuesday: product news, a guide worth your time and the changelog.", "Start with the guide most people find useful first."}},
 	{key: "w2", name: `Step 2 "Three things to try first"`, subject: "Three things to try first", preheader: "Small wins for your first week.", heading: "Three things to try first", cta: "Try feature flags", versions: 2,
@@ -54,19 +54,19 @@ var demoEmails = []demoEmail{
 		body: []string{"Your beta spot is held until tomorrow."}},
 }
 
-type flowNode = automations.FlowNode
-type flowData = automations.FlowNodeData
+type autoFlowNode = automations.AutomationNode
+type autoFlowData = automations.AutomationNodeData
 
-func fnode(id, typ string, x, y float64, d flowData) flowNode {
-	return flowNode{ID: id, Type: typ, Position: automations.FlowPosition{X: x, Y: y}, Data: d}
+func autoNode(id, typ string, x, y float64, d autoFlowData) autoFlowNode {
+	return autoFlowNode{ID: id, Type: typ, Position: automations.AutomationNodePosition{X: x, Y: y}, Data: d}
 }
 
-func fedge(src, dst, path string) automations.FlowEdge {
-	return automations.FlowEdge{ID: "e-" + src + "-" + dst, Source: src, Target: dst, Data: automations.FlowEdgeData{Path: path}}
+func autoEdge(src, dst, path string) automations.AutomationEdge {
+	return automations.AutomationEdge{ID: "e-" + src + "-" + dst, Source: src, Target: dst, Data: automations.AutomationEdgeData{Path: path}}
 }
 
-func fdur(n int, unit string) *automations.FlowDuration {
-	return &automations.FlowDuration{Amount: n, Unit: unit}
+func autoDur(n int, unit string) *automations.AutomationDuration {
+	return &automations.AutomationDuration{Amount: n, Unit: unit}
 }
 
 func seedAutomationsImpl(ctx context.Context, s *Seeder) error {
@@ -77,7 +77,7 @@ func seedAutomationsImpl(ctx context.Context, s *Seeder) error {
 	// Emails used by the send steps, each with its version history.
 	emails := map[string]uuid.UUID{}
 	emailVersion := map[string]int{}
-	for i, e := range demoEmails {
+	for i, e := range autoEmails {
 		id := ID()
 		emails[e.key] = id
 		emailVersion[e.key] = e.versions
@@ -94,74 +94,74 @@ func seedAutomationsImpl(ctx context.Context, s *Seeder) error {
 			}
 		}
 	}
-	email := func(key, subject string) *automations.EmailStepConfig {
-		return &automations.EmailStepConfig{EmailID: emails[key].String(), EmailVersion: emailVersion[key], Subject: subject,
-			SendWindow: &automations.SendWindow{Enabled: true, Start: "07:00", End: "21:00"}, SkipRecentHours: 4}
+	email := func(key, subject string) *automations.AutomationEmailStep {
+		return &automations.AutomationEmailStep{EmailID: emails[key].String(), EmailVersion: emailVersion[key], Subject: subject,
+			SendWindow: &automations.AutomationSendWindow{Enabled: true, Start: "07:00", End: "21:00"}, SkipRecentHours: 4}
 	}
 
 	// Welcome series: v4 is the draft on the AutomationFlow board.
-	welcomeV4 := automations.FlowGraph{
-		Nodes: []flowNode{
-			fnode("n1", automations.NodeTrigger, 370, 24, flowData{Trigger: &automations.TriggerConfig{Kind: automations.TriggerJoinedList, ListID: digest.String(), ConfirmedOnly: true, Reentry: "once"}}),
-			fnode("n2", automations.NodeDelay, 370, 144, flowData{Delay: fdur(10, "minutes")}),
-			fnode("n3", automations.NodeEmail, 370, 215, flowData{Email: email("w1", "You're in. Here's what to expect from Acme")}),
-			fnode("n4", automations.NodeBranch, 370, 399, flowData{Condition: &automations.FlowCondition{Kind: "opened", Step: "n3", Within: fdur(2, "days"), HumanOnly: true}}),
-			fnode("n5", automations.NodeDelay, 150, 531, flowData{Delay: fdur(2, "days")}),
-			fnode("n6", automations.NodeEmail, 150, 623, flowData{Email: email("w2", "Three things to try first")}),
-			fnode("n7", automations.NodeSplit, 150, 719, flowData{Variants: []automations.SplitVariant{{Key: "A", Weight: 50}, {Key: "B", Weight: 50}}}),
-			fnode("n8", automations.NodeEmail, 30, 816, flowData{Email: email("w3a", "Set up your first flag in 3 minutes")}),
-			fnode("n9", automations.NodeEmail, 270, 816, flowData{Email: email("w3b", "A 5-minute walkthrough")}),
-			fnode("n10", automations.NodeGoal, 150, 932, flowData{Label: "Clicked docs", Condition: &automations.FlowCondition{Kind: "clicked", URLContains: "docs"}}),
-			fnode("n11", automations.NodeDelay, 590, 531, flowData{Delay: fdur(3, "days")}),
-			fnode("n12", automations.NodeEmail, 590, 623, flowData{Email: email("wpt", "Did you get our welcome?")}),
-			fnode("n13", automations.NodeExit, 590, 735, flowData{}),
+	welcomeV4 := automations.AutomationGraph{
+		Nodes: []autoFlowNode{
+			autoNode("n1", automations.NodeTrigger, 370, 24, autoFlowData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerJoinedList, ListID: digest.String(), ConfirmedOnly: true, Reentry: "once"}}),
+			autoNode("n2", automations.NodeDelay, 370, 144, autoFlowData{Delay: autoDur(10, "minutes")}),
+			autoNode("n3", automations.NodeEmail, 370, 215, autoFlowData{Email: email("w1", "You're in. Here's what to expect from Acme")}),
+			autoNode("n4", automations.NodeBranch, 370, 399, autoFlowData{Condition: &automations.AutomationCondition{Kind: "opened", Step: "n3", Within: autoDur(2, "days"), HumanOnly: true}}),
+			autoNode("n5", automations.NodeDelay, 150, 531, autoFlowData{Delay: autoDur(2, "days")}),
+			autoNode("n6", automations.NodeEmail, 150, 623, autoFlowData{Email: email("w2", "Three things to try first")}),
+			autoNode("n7", automations.NodeSplit, 150, 719, autoFlowData{Variants: []automations.AutomationSplitVariant{{Key: "A", Weight: 50}, {Key: "B", Weight: 50}}}),
+			autoNode("n8", automations.NodeEmail, 30, 816, autoFlowData{Email: email("w3a", "Set up your first flag in 3 minutes")}),
+			autoNode("n9", automations.NodeEmail, 270, 816, autoFlowData{Email: email("w3b", "A 5-minute walkthrough")}),
+			autoNode("n10", automations.NodeGoal, 150, 932, autoFlowData{Label: "Clicked docs", Condition: &automations.AutomationCondition{Kind: "clicked", URLContains: "docs"}}),
+			autoNode("n11", automations.NodeDelay, 590, 531, autoFlowData{Delay: autoDur(3, "days")}),
+			autoNode("n12", automations.NodeEmail, 590, 623, autoFlowData{Email: email("wpt", "Did you get our welcome?")}),
+			autoNode("n13", automations.NodeExit, 590, 735, autoFlowData{}),
 		},
-		Edges: []automations.FlowEdge{
-			fedge("n1", "n2", ""), fedge("n2", "n3", ""), fedge("n3", "n4", ""),
-			fedge("n4", "n5", automations.PathYes), fedge("n4", "n11", automations.PathNo),
-			fedge("n5", "n6", ""), fedge("n6", "n7", ""),
-			fedge("n7", "n8", "A"), fedge("n7", "n9", "B"),
-			fedge("n8", "n10", ""), fedge("n9", "n10", ""),
-			fedge("n11", "n12", ""), fedge("n12", "n13", ""),
+		Edges: []automations.AutomationEdge{
+			autoEdge("n1", "n2", ""), autoEdge("n2", "n3", ""), autoEdge("n3", "n4", ""),
+			autoEdge("n4", "n5", automations.PathYes), autoEdge("n4", "n11", automations.PathNo),
+			autoEdge("n5", "n6", ""), autoEdge("n6", "n7", ""),
+			autoEdge("n7", "n8", "A"), autoEdge("n7", "n9", "B"),
+			autoEdge("n8", "n10", ""), autoEdge("n9", "n10", ""),
+			autoEdge("n11", "n12", ""), autoEdge("n12", "n13", ""),
 		},
 	}
-	webhook := fnode("w1", automations.NodeWebhook, 370, 144, flowData{Webhook: &automations.WebhookConfig{Name: "notify-slack", URL: "https://hooks.slack.com/services/T024BE7LD/B05ACME01/notify-signups", Method: "POST"}})
-	welcomeV3 := withoutNodes(welcomeV4, "n7", "n8", "n9")
+	webhook := autoNode("w1", automations.NodeWebhook, 370, 144, autoFlowData{Webhook: &automations.AutomationWebhook{Name: "notify-slack", URL: "https://hooks.slack.com/services/T024BE7LD/B05ACME01/notify-signups", Method: "POST"}})
+	welcomeV3 := autoWithout(welcomeV4, "n7", "n8", "n9")
 	for i := range welcomeV3.Nodes {
 		if welcomeV3.Nodes[i].ID == "n5" {
-			welcomeV3.Nodes[i].Data.Delay = fdur(1, "days")
+			welcomeV3.Nodes[i].Data.Delay = autoDur(1, "days")
 		}
 	}
 	welcomeV3.Nodes = append(welcomeV3.Nodes, webhook)
-	welcomeV3.Edges = []automations.FlowEdge{
-		fedge("n1", "w1", ""), fedge("w1", "n2", ""), fedge("n2", "n3", ""), fedge("n3", "n4", ""),
-		fedge("n4", "n5", automations.PathYes), fedge("n4", "n11", automations.PathNo),
-		fedge("n5", "n6", ""), fedge("n6", "n10", ""), fedge("n11", "n12", ""), fedge("n12", "n13", ""),
+	welcomeV3.Edges = []automations.AutomationEdge{
+		autoEdge("n1", "w1", ""), autoEdge("w1", "n2", ""), autoEdge("n2", "n3", ""), autoEdge("n3", "n4", ""),
+		autoEdge("n4", "n5", automations.PathYes), autoEdge("n4", "n11", automations.PathNo),
+		autoEdge("n5", "n6", ""), autoEdge("n6", "n10", ""), autoEdge("n11", "n12", ""), autoEdge("n12", "n13", ""),
 	}
 	welcomeV3 = automations.Layout(welcomeV3)
-	welcomeV2 := withoutNodes(welcomeV3, "n11", "n12")
-	welcomeV2.Edges = []automations.FlowEdge{
-		fedge("n1", "w1", ""), fedge("w1", "n2", ""), fedge("n2", "n3", ""), fedge("n3", "n4", ""),
-		fedge("n4", "n5", automations.PathYes), fedge("n4", "n13", automations.PathNo),
-		fedge("n5", "n6", ""), fedge("n6", "n10", ""),
+	welcomeV2 := autoWithout(welcomeV3, "n11", "n12")
+	welcomeV2.Edges = []automations.AutomationEdge{
+		autoEdge("n1", "w1", ""), autoEdge("w1", "n2", ""), autoEdge("n2", "n3", ""), autoEdge("n3", "n4", ""),
+		autoEdge("n4", "n5", automations.PathYes), autoEdge("n4", "n13", automations.PathNo),
+		autoEdge("n5", "n6", ""), autoEdge("n6", "n10", ""),
 	}
 	welcomeV2 = automations.Layout(welcomeV2)
-	welcomeV1 := withoutNodes(welcomeV2, "n2")
-	welcomeV1.Edges = []automations.FlowEdge{
-		fedge("n1", "w1", ""), fedge("w1", "n3", ""), fedge("n3", "n4", ""),
-		fedge("n4", "n5", automations.PathYes), fedge("n4", "n13", automations.PathNo),
-		fedge("n5", "n6", ""), fedge("n6", "n10", ""),
+	welcomeV1 := autoWithout(welcomeV2, "n2")
+	welcomeV1.Edges = []automations.AutomationEdge{
+		autoEdge("n1", "w1", ""), autoEdge("w1", "n3", ""), autoEdge("n3", "n4", ""),
+		autoEdge("n4", "n5", automations.PathYes), autoEdge("n4", "n13", automations.PathNo),
+		autoEdge("n5", "n6", ""), autoEdge("n6", "n10", ""),
 	}
 	welcomeV1 = automations.Layout(welcomeV1)
 
 	welcome := ID()
-	if err := insertFlow(ctx, s, flowSeed{
+	if err := autoInsertFlow(ctx, s, autoFlowSeed{
 		id: welcome, name: "Welcome series", description: "4 emails over 9 days", status: "live", template: "welcome-series",
 		live: 3, created: s.designDay(24, 10, 4), createdBy: linh.ID, updated: s.Ago(47 * time.Minute),
-		versions: []versionSeed{
-			{graph: welcomeV1, by: linh.ID, created: s.designDay(24, 10, 4), published: ptrTime(s.designDay(24, 10, 20)), retired: ptrTime(s.designDay(24, 16, 2)), summary: "created from the Welcome series template"},
-			{graph: welcomeV2, by: linh.ID, created: s.designDay(24, 15, 40), published: ptrTime(s.designDay(24, 16, 2)), retired: ptrTime(s.designDay(1, 9, 30)), summary: "delay 10 min before step 1", migration: "finish"},
-			{graph: welcomeV3, by: marcus.ID, created: s.designDay(10, 11, 5), published: ptrTime(s.designDay(10, 11, 32)), summary: `added "No" path with plain-text follow-up`, migration: "finish"},
+		versions: []autoVersionSeed{
+			{graph: welcomeV1, by: linh.ID, created: s.designDay(24, 10, 4), published: autoPtrTime(s.designDay(24, 10, 20)), retired: autoPtrTime(s.designDay(24, 16, 2)), summary: "created from the Welcome series template"},
+			{graph: welcomeV2, by: linh.ID, created: s.designDay(24, 15, 40), published: autoPtrTime(s.designDay(24, 16, 2)), retired: autoPtrTime(s.designDay(1, 9, 30)), summary: "delay 10 min before step 1", migration: "finish"},
+			{graph: welcomeV3, by: marcus.ID, created: s.designDay(10, 11, 5), published: autoPtrTime(s.designDay(10, 11, 32)), summary: `added "No" path with plain-text follow-up`, migration: "finish"},
 			{graph: welcomeV4, by: linh.ID, created: s.Ago(3 * time.Hour)},
 		},
 	}); err != nil {
@@ -169,42 +169,42 @@ func seedAutomationsImpl(ctx context.Context, s *Seeder) error {
 	}
 
 	// Onboarding · new workspace: v7 live since 28 Sep.
-	onboarding := automations.FlowGraph{
-		Nodes: []flowNode{
-			fnode("n1", automations.NodeTrigger, 0, 0, flowData{Trigger: &automations.TriggerConfig{Kind: automations.TriggerAPIEvent, Event: "workspace.created", Reentry: "once"}}),
-			fnode("n2", automations.NodeEmail, 0, 0, flowData{Email: email("o1", "Welcome to Acme")}),
-			fnode("n3", automations.NodeDelay, 0, 0, flowData{Delay: fdur(1, "days")}),
-			fnode("n4", automations.NodeEmail, 0, 0, flowData{Email: email("o2", "Create your first flag")}),
-			fnode("n5", automations.NodeWebhook, 0, 0, flowData{Webhook: &automations.WebhookConfig{Name: "Sync to HubSpot", URL: "https://api.hubapi.com/automation/v4/webhook-triggers/2463510/acme-signup", Method: "POST"}}),
-			fnode("n6", automations.NodeBranch, 0, 0, flowData{Condition: &automations.FlowCondition{Kind: "opened", Step: "n4", Within: fdur(3, "days"), HumanOnly: true}}),
-			fnode("n7", automations.NodeEmail, 0, 0, flowData{Email: email("o3", "Nice work. Next: environments")}),
-			fnode("n8", automations.NodeEmail, 0, 0, flowData{Email: email("o4", "Need a hand with your first flag?")}),
-			fnode("n9", automations.NodeDelay, 0, 0, flowData{Delay: fdur(2, "days")}),
-			fnode("n10", automations.NodeEmail, 0, 0, flowData{Email: email("o5", "Invite your team")}),
-			fnode("n11", automations.NodeWebhook, 0, 0, flowData{Webhook: &automations.WebhookConfig{Name: "Update CRM stage", URL: "https://api.hubapi.com/crm/v3/objects/deals/acme-stage", Method: "POST"}}),
-			fnode("n12", automations.NodeDelay, 0, 0, flowData{Delay: fdur(3, "days")}),
-			fnode("n13", automations.NodeEmail, 0, 0, flowData{Email: email("o6", "Your first week with Acme")}),
-			fnode("n14", automations.NodeGoal, 0, 0, flowData{Label: "Invited a teammate", Condition: &automations.FlowCondition{Kind: "event", Event: "teammate.invited"}}),
+	onboarding := automations.AutomationGraph{
+		Nodes: []autoFlowNode{
+			autoNode("n1", automations.NodeTrigger, 0, 0, autoFlowData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerAPIEvent, Event: "workspace.created", Reentry: "once"}}),
+			autoNode("n2", automations.NodeEmail, 0, 0, autoFlowData{Email: email("o1", "Welcome to Acme")}),
+			autoNode("n3", automations.NodeDelay, 0, 0, autoFlowData{Delay: autoDur(1, "days")}),
+			autoNode("n4", automations.NodeEmail, 0, 0, autoFlowData{Email: email("o2", "Create your first flag")}),
+			autoNode("n5", automations.NodeWebhook, 0, 0, autoFlowData{Webhook: &automations.AutomationWebhook{Name: "Sync to HubSpot", URL: "https://api.hubapi.com/automation/v4/webhook-triggers/2463510/acme-signup", Method: "POST"}}),
+			autoNode("n6", automations.NodeBranch, 0, 0, autoFlowData{Condition: &automations.AutomationCondition{Kind: "opened", Step: "n4", Within: autoDur(3, "days"), HumanOnly: true}}),
+			autoNode("n7", automations.NodeEmail, 0, 0, autoFlowData{Email: email("o3", "Nice work. Next: environments")}),
+			autoNode("n8", automations.NodeEmail, 0, 0, autoFlowData{Email: email("o4", "Need a hand with your first flag?")}),
+			autoNode("n9", automations.NodeDelay, 0, 0, autoFlowData{Delay: autoDur(2, "days")}),
+			autoNode("n10", automations.NodeEmail, 0, 0, autoFlowData{Email: email("o5", "Invite your team")}),
+			autoNode("n11", automations.NodeWebhook, 0, 0, autoFlowData{Webhook: &automations.AutomationWebhook{Name: "Update CRM stage", URL: "https://api.hubapi.com/crm/v3/objects/deals/acme-stage", Method: "POST"}}),
+			autoNode("n12", automations.NodeDelay, 0, 0, autoFlowData{Delay: autoDur(3, "days")}),
+			autoNode("n13", automations.NodeEmail, 0, 0, autoFlowData{Email: email("o6", "Your first week with Acme")}),
+			autoNode("n14", automations.NodeGoal, 0, 0, autoFlowData{Label: "Invited a teammate", Condition: &automations.AutomationCondition{Kind: "event", Event: "teammate.invited"}}),
 		},
-		Edges: []automations.FlowEdge{
-			fedge("n1", "n2", ""), fedge("n2", "n3", ""), fedge("n3", "n4", ""), fedge("n4", "n5", ""), fedge("n5", "n6", ""),
-			fedge("n6", "n7", automations.PathYes), fedge("n6", "n8", automations.PathNo),
-			fedge("n7", "n9", ""), fedge("n8", "n9", ""), fedge("n9", "n10", ""), fedge("n10", "n11", ""),
-			fedge("n11", "n12", ""), fedge("n12", "n13", ""), fedge("n13", "n14", ""),
+		Edges: []automations.AutomationEdge{
+			autoEdge("n1", "n2", ""), autoEdge("n2", "n3", ""), autoEdge("n3", "n4", ""), autoEdge("n4", "n5", ""), autoEdge("n5", "n6", ""),
+			autoEdge("n6", "n7", automations.PathYes), autoEdge("n6", "n8", automations.PathNo),
+			autoEdge("n7", "n9", ""), autoEdge("n8", "n9", ""), autoEdge("n9", "n10", ""), autoEdge("n10", "n11", ""),
+			autoEdge("n11", "n12", ""), autoEdge("n12", "n13", ""), autoEdge("n13", "n14", ""),
 		},
 	}
 	onboarding = automations.Layout(onboarding)
 	onboardingID := ID()
-	var obVersions []versionSeed
+	var obVersions []autoVersionSeed
 	for v := 1; v <= 7; v++ {
 		created := s.designDay(14+(7-v)*6, 10, 0)
-		vs := versionSeed{graph: onboarding, by: marcus.ID, created: created, published: ptrTime(created.Add(40 * time.Minute)), summary: onboardingNotes[v-1], migration: "finish"}
+		vs := autoVersionSeed{graph: onboarding, by: marcus.ID, created: created, published: autoPtrTime(created.Add(40 * time.Minute)), summary: autoOnboardingNotes[v-1], migration: "finish"}
 		if v < 7 {
-			vs.retired = ptrTime(s.designDay(14+(6-v)*6, 12, 0))
+			vs.retired = autoPtrTime(s.designDay(14+(6-v)*6, 12, 0))
 		}
 		obVersions = append(obVersions, vs)
 	}
-	if err := insertFlow(ctx, s, flowSeed{
+	if err := autoInsertFlow(ctx, s, autoFlowSeed{
 		id: onboardingID, name: "Onboarding · new workspace", description: "6 emails, 2 webhooks", status: "live", template: "onboarding",
 		live: 7, created: s.designDay(50, 10, 0), createdBy: marcus.ID, updated: s.designDay(14, 10, 40), versions: obVersions,
 	}); err != nil {
@@ -212,103 +212,103 @@ func seedAutomationsImpl(ctx context.Context, s *Seeder) error {
 	}
 
 	// Re-engagement: v2 live since 1 Sep.
-	reengagement := automations.Layout(automations.FlowGraph{
-		Nodes: []flowNode{
-			fnode("n1", automations.NodeTrigger, 0, 0, flowData{Trigger: &automations.TriggerConfig{Kind: automations.TriggerTagAdded, Tag: "sunset-entered", Reentry: "once"}}),
-			fnode("n2", automations.NodeEmail, 0, 0, flowData{Email: email("r1", "Still want these?")}),
-			fnode("n3", automations.NodeBranch, 0, 0, flowData{Condition: &automations.FlowCondition{Kind: "opened", Step: "n2", Within: fdur(14, "days"), HumanOnly: true}}),
-			fnode("n4", automations.NodeGoal, 0, 0, flowData{Label: "Opened within 14 d", Condition: &automations.FlowCondition{Kind: "opened", HumanOnly: true}}),
-			fnode("n5", automations.NodeList, 0, 0, flowData{Label: "Stop broadcasts", Action: &automations.ListActionConfig{Kind: "unsubscribe_all"}}),
+	reengagement := automations.Layout(automations.AutomationGraph{
+		Nodes: []autoFlowNode{
+			autoNode("n1", automations.NodeTrigger, 0, 0, autoFlowData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerTagAdded, Tag: "sunset-entered", Reentry: "once"}}),
+			autoNode("n2", automations.NodeEmail, 0, 0, autoFlowData{Email: email("r1", "Still want these?")}),
+			autoNode("n3", automations.NodeBranch, 0, 0, autoFlowData{Condition: &automations.AutomationCondition{Kind: "opened", Step: "n2", Within: autoDur(14, "days"), HumanOnly: true}}),
+			autoNode("n4", automations.NodeGoal, 0, 0, autoFlowData{Label: "Opened within 14 d", Condition: &automations.AutomationCondition{Kind: "opened", HumanOnly: true}}),
+			autoNode("n5", automations.NodeList, 0, 0, autoFlowData{Label: "Stop broadcasts", Action: &automations.AutomationListAction{Kind: "unsubscribe_all"}}),
 		},
-		Edges: []automations.FlowEdge{
-			fedge("n1", "n2", ""), fedge("n2", "n3", ""),
-			fedge("n3", "n4", automations.PathYes), fedge("n3", "n5", automations.PathNo),
+		Edges: []automations.AutomationEdge{
+			autoEdge("n1", "n2", ""), autoEdge("n2", "n3", ""),
+			autoEdge("n3", "n4", automations.PathYes), autoEdge("n3", "n5", automations.PathNo),
 		},
 	})
 	reengagementID := ID()
-	if err := insertFlow(ctx, s, flowSeed{
+	if err := autoInsertFlow(ctx, s, autoFlowSeed{
 		id: reengagementID, name: "Re-engagement", description: "1 email, then sunset", status: "live", template: "re-engagement",
 		live: 2, created: s.designDay(80, 9, 0), createdBy: linh.ID, updated: s.designDay(41, 9, 30),
-		versions: []versionSeed{
-			{graph: reengagement, by: linh.ID, created: s.designDay(80, 9, 0), published: ptrTime(s.designDay(80, 9, 20)), retired: ptrTime(s.designDay(26, 8, 0)), summary: "first published version"},
-			{graph: reengagement, by: linh.ID, created: s.designDay(41, 9, 0), published: ptrTime(s.designDay(41, 9, 30)), summary: `window before "Stop broadcasts" 7 days → 14 days`, migration: "finish"},
+		versions: []autoVersionSeed{
+			{graph: reengagement, by: linh.ID, created: s.designDay(80, 9, 0), published: autoPtrTime(s.designDay(80, 9, 20)), retired: autoPtrTime(s.designDay(26, 8, 0)), summary: "first published version"},
+			{graph: reengagement, by: linh.ID, created: s.designDay(41, 9, 0), published: autoPtrTime(s.designDay(41, 9, 30)), summary: `window before "Stop broadcasts" 7 days → 14 days`, migration: "finish"},
 		},
 	}); err != nil {
 		return err
 	}
 
 	// Re-permission · Mailchimp import: a draft, never published.
-	repermission := automations.Layout(automations.FlowGraph{
-		Nodes: []flowNode{
-			fnode("n1", automations.NodeTrigger, 0, 0, flowData{Trigger: &automations.TriggerConfig{Kind: automations.TriggerTagAdded, Tag: "mailchimp-pending", Reentry: "once"}}),
-			fnode("n2", automations.NodeEmail, 0, 0, flowData{Email: email("p1", "Still want to hear from Acme?")}),
-			fnode("n3", automations.NodeBranch, 0, 0, flowData{Condition: &automations.FlowCondition{Kind: "clicked", Step: "n2", URLContains: "confirm", Within: fdur(14, "days")}}),
-			fnode("n4", automations.NodeGoal, 0, 0, flowData{Label: "Confirmed opt-in", Condition: &automations.FlowCondition{Kind: "clicked", URLContains: "confirm"}}),
-			fnode("n5", automations.NodeList, 0, 0, flowData{Label: "Suppress non-responders", Action: &automations.ListActionConfig{Kind: "unsubscribe_all"}}),
+	repermission := automations.Layout(automations.AutomationGraph{
+		Nodes: []autoFlowNode{
+			autoNode("n1", automations.NodeTrigger, 0, 0, autoFlowData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerTagAdded, Tag: "mailchimp-pending", Reentry: "once"}}),
+			autoNode("n2", automations.NodeEmail, 0, 0, autoFlowData{Email: email("p1", "Still want to hear from Acme?")}),
+			autoNode("n3", automations.NodeBranch, 0, 0, autoFlowData{Condition: &automations.AutomationCondition{Kind: "clicked", Step: "n2", URLContains: "confirm", Within: autoDur(14, "days")}}),
+			autoNode("n4", automations.NodeGoal, 0, 0, autoFlowData{Label: "Confirmed opt-in", Condition: &automations.AutomationCondition{Kind: "clicked", URLContains: "confirm"}}),
+			autoNode("n5", automations.NodeList, 0, 0, autoFlowData{Label: "Suppress non-responders", Action: &automations.AutomationListAction{Kind: "unsubscribe_all"}}),
 		},
-		Edges: []automations.FlowEdge{
-			fedge("n1", "n2", ""), fedge("n2", "n3", ""),
-			fedge("n3", "n4", automations.PathYes), fedge("n3", "n5", automations.PathNo),
+		Edges: []automations.AutomationEdge{
+			autoEdge("n1", "n2", ""), autoEdge("n2", "n3", ""),
+			autoEdge("n3", "n4", automations.PathYes), autoEdge("n3", "n5", automations.PathNo),
 		},
 	})
-	if err := insertFlow(ctx, s, flowSeed{
+	if err := autoInsertFlow(ctx, s, autoFlowSeed{
 		id: ID(), name: "Re-permission · Mailchimp import", description: "1 email, suppress non-responders after 14 d", status: "draft",
 		created: s.designDay(5, 14, 0), createdBy: linh.ID, updated: s.designDay(2, 16, 10),
-		versions: []versionSeed{{graph: repermission, by: linh.ID, created: s.designDay(5, 14, 0), summary: "created from a blank canvas"}},
+		versions: []autoVersionSeed{{graph: repermission, by: linh.ID, created: s.designDay(5, 14, 0), summary: "created from a blank canvas"}},
 	}); err != nil {
 		return err
 	}
 
 	// Beta invite: paused 5 Oct by Marcus Chen; the form is linked once the
 	// forms seeder has run.
-	beta := automations.Layout(automations.FlowGraph{
-		Nodes: []flowNode{
-			fnode("n1", automations.NodeTrigger, 0, 0, flowData{Trigger: &automations.TriggerConfig{Kind: automations.TriggerFormSubmitted, Reentry: "once"}}),
-			fnode("n2", automations.NodeEmail, 0, 0, flowData{Email: email("b1", "You're in the beta")}),
-			fnode("n3", automations.NodeBranch, 0, 0, flowData{Condition: &automations.FlowCondition{Kind: "clicked", Step: "n2", URLContains: "accept", Within: fdur(3, "days")}}),
-			fnode("n4", automations.NodeGoal, 0, 0, flowData{Label: "Accepted invite", Condition: &automations.FlowCondition{Kind: "clicked", URLContains: "accept"}}),
-			fnode("n5", automations.NodeEmail, 0, 0, flowData{Email: email("b2", "Your beta invite expires tomorrow")}),
-			fnode("n6", automations.NodeExit, 0, 0, flowData{}),
+	beta := automations.Layout(automations.AutomationGraph{
+		Nodes: []autoFlowNode{
+			autoNode("n1", automations.NodeTrigger, 0, 0, autoFlowData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerFormSubmitted, Reentry: "once"}}),
+			autoNode("n2", automations.NodeEmail, 0, 0, autoFlowData{Email: email("b1", "You're in the beta")}),
+			autoNode("n3", automations.NodeBranch, 0, 0, autoFlowData{Condition: &automations.AutomationCondition{Kind: "clicked", Step: "n2", URLContains: "accept", Within: autoDur(3, "days")}}),
+			autoNode("n4", automations.NodeGoal, 0, 0, autoFlowData{Label: "Accepted invite", Condition: &automations.AutomationCondition{Kind: "clicked", URLContains: "accept"}}),
+			autoNode("n5", automations.NodeEmail, 0, 0, autoFlowData{Email: email("b2", "Your beta invite expires tomorrow")}),
+			autoNode("n6", automations.NodeExit, 0, 0, autoFlowData{}),
 		},
-		Edges: []automations.FlowEdge{
-			fedge("n1", "n2", ""), fedge("n2", "n3", ""),
-			fedge("n3", "n4", automations.PathYes), fedge("n3", "n5", automations.PathNo), fedge("n5", "n6", ""),
+		Edges: []automations.AutomationEdge{
+			autoEdge("n1", "n2", ""), autoEdge("n2", "n3", ""),
+			autoEdge("n3", "n4", automations.PathYes), autoEdge("n3", "n5", automations.PathNo), autoEdge("n5", "n6", ""),
 		},
 	})
 	betaID := ID()
-	if err := insertFlow(ctx, s, flowSeed{
+	if err := autoInsertFlow(ctx, s, autoFlowSeed{
 		id: betaID, name: "Beta invite", description: "2 emails, goal on accept", status: "paused",
 		live: 1, created: s.designDay(34, 13, 0), createdBy: marcus.ID, updated: s.designDay(7, 17, 12),
-		paused: ptrTime(s.designDay(7, 17, 12)), pausedBy: &marcus.ID, pauseReason: "beta is full",
-		versions: []versionSeed{{graph: beta, by: marcus.ID, created: s.designDay(34, 13, 0), published: ptrTime(s.designDay(34, 13, 30)), summary: "first published version"}},
+		paused: autoPtrTime(s.designDay(7, 17, 12)), pausedBy: &marcus.ID, pauseReason: "beta is full",
+		versions: []autoVersionSeed{{graph: beta, by: marcus.ID, created: s.designDay(34, 13, 0), published: autoPtrTime(s.designDay(34, 13, 30)), summary: "first published version"}},
 	}); err != nil {
 		return err
 	}
-	s.After(func(ctx context.Context, s *Seeder) error { return linkBetaForm(ctx, s, betaID, beta) })
+	s.After(func(ctx context.Context, s *Seeder) error { return autoLinkBetaForm(ctx, s, betaID, beta) })
 
 	// Thirty days of per-step stats.
 	ses, postmark := s.Providers["ses"].String(), s.Providers["postmark"].String()
-	stats := []nodeStats{
+	stats := []autoNodeStats{
 		// Welcome series (entries all since 29 Sep, when the Slack webhook started failing).
-		{a: welcome, v: 3, node: "n1", from: 12, c: counters{"entered": 1284, "completed": 1284}},
-		{a: welcome, v: 3, node: "w1", from: 12, c: counters{"entered": 1284, "completed": 1284, "failed": 1284}},
-		{a: welcome, v: 3, node: "n2", from: 12, c: counters{"entered": 1284, "completed": 1284, "waiting": 1284}},
-		{a: welcome, v: 3, node: "n3", from: 12, c: counters{"entered": 1284, "completed": 1284, "sent": 1276, "skipped": 8, "delivered": 1267, "bounced": 6, "opened": 958, "opened_human": 775, "clicked": 177},
-			providers: map[string]int64{ses: 1266}, extraProviders: []dayProvider{{provider: postmark, n: 10, day: 10}}},
-		{a: welcome, v: 3, node: "n4", from: 12, c: counters{"entered": 1284, "completed": 1276, "waiting": 1284, "branch_yes": 778, "branch_no": 498}, paths: map[string]int64{"yes": 778, "no": 498}},
-		{a: welcome, v: 3, node: "n5", from: 11, c: counters{"entered": 778, "completed": 778, "waiting": 778}},
-		{a: welcome, v: 3, node: "n6", from: 10, c: counters{"entered": 778, "completed": 778, "sent": 778, "delivered": 773, "bounced": 3, "opened": 560, "opened_human": 441, "clicked": 147},
+		{a: welcome, v: 3, node: "n1", from: 12, c: autoCounters{"entered": 1284, "completed": 1284}},
+		{a: welcome, v: 3, node: "w1", from: 12, c: autoCounters{"entered": 1284, "completed": 1284, "failed": 1284}},
+		{a: welcome, v: 3, node: "n2", from: 12, c: autoCounters{"entered": 1284, "completed": 1284, "waiting": 1284}},
+		{a: welcome, v: 3, node: "n3", from: 12, c: autoCounters{"entered": 1284, "completed": 1284, "sent": 1276, "skipped": 8, "delivered": 1267, "bounced": 6, "opened": 958, "opened_human": 775, "clicked": 177},
+			providers: map[string]int64{ses: 1266}, extraProviders: []autoDayProvider{{provider: postmark, n: 10, day: 10}}},
+		{a: welcome, v: 3, node: "n4", from: 12, c: autoCounters{"entered": 1284, "completed": 1276, "waiting": 1284, "branch_yes": 778, "branch_no": 498}, paths: map[string]int64{"yes": 778, "no": 498}},
+		{a: welcome, v: 3, node: "n5", from: 11, c: autoCounters{"entered": 778, "completed": 778, "waiting": 778}},
+		{a: welcome, v: 3, node: "n6", from: 10, c: autoCounters{"entered": 778, "completed": 778, "sent": 778, "delivered": 773, "bounced": 3, "opened": 560, "opened_human": 441, "clicked": 147},
 			providers: map[string]int64{ses: 778}},
-		{a: welcome, v: 3, node: "n10", from: 6, c: counters{"entered": 360, "goal_reached": 312, "exited": 48}},
-		{a: welcome, v: 3, node: "n11", from: 10, c: counters{"entered": 498, "completed": 498, "waiting": 498}},
-		{a: welcome, v: 3, node: "n12", from: 9, c: counters{"entered": 498, "completed": 498, "sent": 498, "delivered": 495, "bounced": 2, "opened": 240, "opened_human": 188, "clicked": 30},
+		{a: welcome, v: 3, node: "n10", from: 6, c: autoCounters{"entered": 360, "goal_reached": 312, "exited": 48}},
+		{a: welcome, v: 3, node: "n11", from: 10, c: autoCounters{"entered": 498, "completed": 498, "waiting": 498}},
+		{a: welcome, v: 3, node: "n12", from: 9, c: autoCounters{"entered": 498, "completed": 498, "sent": 498, "delivered": 495, "bounced": 2, "opened": 240, "opened_human": 188, "clicked": 30},
 			providers: map[string]int64{ses: 498}},
-		{a: welcome, v: 3, node: "n13", from: 9, c: counters{"entered": 436, "exited": 436}},
+		{a: welcome, v: 3, node: "n13", from: 9, c: autoCounters{"entered": 436, "exited": 436}},
 	}
-	stats = append(stats, onboardingStats(onboardingID, ses)...)
-	stats = append(stats, reengagementStats(reengagementID, ses)...)
-	stats = append(stats, betaStats(betaID, ses)...)
-	if err := insertStats(ctx, s, stats); err != nil {
+	stats = append(stats, autoOnboardingStats(onboardingID, ses)...)
+	stats = append(stats, autoReengagementStats(reengagementID, ses)...)
+	stats = append(stats, autoBetaStats(betaID, ses)...)
+	if err := autoInsertStats(ctx, s, stats); err != nil {
 		return err
 	}
 
@@ -328,30 +328,30 @@ func seedAutomationsImpl(ctx context.Context, s *Seeder) error {
 	}
 
 	// Contacts in each flow right now.
-	contacts, err := demoContacts(ctx, s, 900)
+	contacts, err := autoContacts(ctx, s, 900)
 	if err != nil {
 		return err
 	}
-	return seedRuns(ctx, s, contacts, []flowRuns{
-		{a: welcome, v: 3, at: []runsAt{
+	return autoSeedRuns(ctx, s, contacts, []autoFlowRuns{
+		{a: welcome, v: 3, at: []autoRunsAt{
 			{node: "n2", n: 4, wait: "delay", span: 10 * time.Minute, delay: 10 * time.Minute},
 			{node: "n4", n: 168, wait: "branch", span: 2 * 24 * time.Hour, delay: 2 * 24 * time.Hour},
 			{node: "n5", n: 203, wait: "delay", span: 24 * time.Hour, delay: 24 * time.Hour},
 			{node: "n11", n: 237, wait: "delay", span: 3 * 24 * time.Hour, delay: 3 * 24 * time.Hour},
 		}},
-		{a: onboardingID, v: 7, at: []runsAt{
+		{a: onboardingID, v: 7, at: []autoRunsAt{
 			{node: "n3", n: 96, wait: "delay", span: 24 * time.Hour, delay: 24 * time.Hour},
 			{node: "n6", n: 143, wait: "branch", span: 3 * 24 * time.Hour, delay: 3 * 24 * time.Hour},
 			{node: "n9", n: 121, wait: "delay", span: 2 * 24 * time.Hour, delay: 2 * 24 * time.Hour},
 			{node: "n12", n: 128, wait: "delay", span: 3 * 24 * time.Hour, delay: 3 * 24 * time.Hour},
 		}},
-		{a: reengagementID, v: 2, at: []runsAt{
+		{a: reengagementID, v: 2, at: []autoRunsAt{
 			{node: "n3", n: 832, wait: "branch", span: 14 * 24 * time.Hour, delay: 14 * 24 * time.Hour},
 		}},
 	})
 }
 
-var onboardingNotes = []string{
+var autoOnboardingNotes = []string{
 	"first published version",
 	`added webhook "Sync to HubSpot"`,
 	`delay before "Step 2": 2 days → 1 day`,
@@ -361,14 +361,14 @@ var onboardingNotes = []string{
 	`goal: "Created a project" → "Invited a teammate"`,
 }
 
-func ptrTime(t time.Time) *time.Time { return &t }
+func autoPtrTime(t time.Time) *time.Time { return &t }
 
-func withoutNodes(g automations.FlowGraph, ids ...string) automations.FlowGraph {
+func autoWithout(g automations.AutomationGraph, ids ...string) automations.AutomationGraph {
 	drop := map[string]bool{}
 	for _, id := range ids {
 		drop[id] = true
 	}
-	out := automations.FlowGraph{Nodes: []flowNode{}, Edges: []automations.FlowEdge{}}
+	out := automations.AutomationGraph{Nodes: []autoFlowNode{}, Edges: []automations.AutomationEdge{}}
 	for _, n := range g.Nodes {
 		if !drop[n.ID] {
 			out.Nodes = append(out.Nodes, n)
@@ -382,15 +382,15 @@ func withoutNodes(g automations.FlowGraph, ids ...string) automations.FlowGraph 
 	return out
 }
 
-type versionSeed struct {
-	graph              automations.FlowGraph
+type autoVersionSeed struct {
+	graph              automations.AutomationGraph
 	by                 uuid.UUID
 	created            time.Time
 	published, retired *time.Time
 	summary, migration string
 }
 
-type flowSeed struct {
+type autoFlowSeed struct {
 	id                                  uuid.UUID
 	name, description, status, template string
 	live                                int
@@ -399,10 +399,10 @@ type flowSeed struct {
 	paused                              *time.Time
 	pausedBy                            *uuid.UUID
 	pauseReason                         string
-	versions                            []versionSeed
+	versions                            []autoVersionSeed
 }
 
-func insertFlow(ctx context.Context, s *Seeder, f flowSeed) error {
+func autoInsertFlow(ctx context.Context, s *Seeder, f autoFlowSeed) error {
 	draft := len(f.versions)
 	var live any
 	shown := f.versions[draft-1].graph
@@ -434,9 +434,9 @@ func insertFlow(ctx context.Context, s *Seeder, f flowSeed) error {
 	return nil
 }
 
-// linkBetaForm points the Beta invite trigger at the beta-apply form,
+// autoLinkBetaForm points the Beta invite trigger at the beta-apply form,
 // creating the form when the forms seeder didn't.
-func linkBetaForm(ctx context.Context, s *Seeder, flow uuid.UUID, g automations.FlowGraph) error {
+func autoLinkBetaForm(ctx context.Context, s *Seeder, flow uuid.UUID, g automations.AutomationGraph) error {
 	ws := s.WS()
 	var form uuid.UUID
 	err := s.Tx.QueryRow(ctx, `SELECT id FROM forms WHERE workspace_id = $1 AND slug = 'beta-apply'`, ws.ID).Scan(&form)
@@ -463,35 +463,35 @@ func linkBetaForm(ctx context.Context, s *Seeder, flow uuid.UUID, g automations.
 	return err
 }
 
-type counters map[string]int64
+type autoCounters map[string]int64
 
-type dayProvider struct {
+type autoDayProvider struct {
 	provider string
 	n        int64
 	day      int
 }
 
-// nodeStats spreads one step's counters over days [from … to] before today
+// autoNodeStats spreads one step's autoCounters over days [from … to] before today
 // (to defaults to 0, today). goal_reached is kept to the last 7 days when
 // goalFrom is set.
-type nodeStats struct {
+type autoNodeStats struct {
 	a              uuid.UUID
 	v              int32
 	node           string
 	from, to       int
-	c              counters
+	c              autoCounters
 	paths          map[string]int64
 	providers      map[string]int64
-	extraProviders []dayProvider
+	extraProviders []autoDayProvider
 	split          map[string][2]int // counter → own day range
 }
 
-var statColumns = []string{"entered", "completed", "waiting", "exited", "dropped", "goal_reached", "skipped", "failed", "sent",
+var autoStatColumns = []string{"entered", "completed", "waiting", "exited", "dropped", "goal_reached", "skipped", "failed", "sent",
 	"delivered", "bounced", "complained", "opened", "opened_human", "clicked", "unsubscribed", "branch_yes", "branch_no"}
 
-// dayWeights gives each day of a range a slightly different volume so the
+// autoDayWeights gives each day of a range a slightly different volume so the
 // numbers look like real traffic; the parts always add up (Split).
-func dayWeights(n int) []float64 {
+func autoDayWeights(n int) []float64 {
 	w := make([]float64, n)
 	for i := range w {
 		w[i] = 1 + 0.35*math.Sin(float64(i)*1.7) + 0.15*math.Cos(float64(i)*0.9)
@@ -499,7 +499,7 @@ func dayWeights(n int) []float64 {
 	return w
 }
 
-func insertStats(ctx context.Context, s *Seeder, all []nodeStats) error {
+func autoInsertStats(ctx context.Context, s *Seeder, all []autoNodeStats) error {
 	type row struct {
 		vals      map[string]int64
 		paths     map[string]int64
@@ -530,7 +530,7 @@ func insertStats(ctx context.Context, s *Seeder, all []nodeStats) error {
 			if days <= 0 {
 				days = 1
 			}
-			parts := Split(total, dayWeights(days))
+			parts := Split(total, autoDayWeights(days))
 			for i, n := range parts {
 				put(get(to+i), n)
 			}
@@ -561,84 +561,84 @@ func insertStats(ctx context.Context, s *Seeder, all []nodeStats) error {
 		paths, _ := json.Marshal(r.paths)
 		provs, _ := json.Marshal(r.providers)
 		vals := []any{k.a, k.v, k.node, today.AddDate(0, 0, -k.day)}
-		for _, c := range statColumns {
+		for _, c := range autoStatColumns {
 			vals = append(vals, r.vals[c])
 		}
 		vals = append(vals, json.RawMessage(paths), json.RawMessage(provs))
 		rows = append(rows, vals)
 	}
-	cols := append(append([]string{"automation_id", "version", "node_id", "day"}, statColumns...), "paths", "providers")
+	cols := append(append([]string{"automation_id", "version", "node_id", "day"}, autoStatColumns...), "paths", "providers")
 	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"automation_step_stats"}, cols, pgx.CopyFromRows(rows))
 	return err
 }
 
-func emailCounters(entered, sent int64, openRate, clickRate float64) counters {
+func autoEmailCounters(entered, sent int64, openRate, clickRate float64) autoCounters {
 	delivered := int64(math.Round(float64(sent) * 0.993))
 	human := int64(math.Round(float64(delivered) * openRate))
-	return counters{"entered": entered, "completed": entered, "sent": sent, "skipped": entered - sent, "delivered": delivered,
+	return autoCounters{"entered": entered, "completed": entered, "sent": sent, "skipped": entered - sent, "delivered": delivered,
 		"bounced": sent - delivered, "opened": human + human/4, "opened_human": human, "clicked": int64(math.Round(float64(delivered) * clickRate))}
 }
 
-func onboardingStats(a uuid.UUID, ses string) []nodeStats {
+func autoOnboardingStats(a uuid.UUID, ses string) []autoNodeStats {
 	const v = 7
-	mk := func(node string, from int, c counters, sent int64) nodeStats {
-		ns := nodeStats{a: a, v: v, node: node, from: from, c: c}
+	mk := func(node string, from int, c autoCounters, sent int64) autoNodeStats {
+		ns := autoNodeStats{a: a, v: v, node: node, from: from, c: c}
 		if sent > 0 {
 			ns.providers = map[string]int64{ses: sent}
 		}
 		return ns
 	}
-	return []nodeStats{
-		mk("n1", 29, counters{"entered": 906, "completed": 906}, 0),
-		mk("n2", 29, emailCounters(906, 902, 0.62, 0.21), 902),
-		mk("n3", 28, counters{"entered": 902, "completed": 806, "waiting": 902}, 0),
-		mk("n4", 28, emailCounters(806, 801, 0.58, 0.19), 801),
-		mk("n5", 28, counters{"entered": 806, "completed": 806, "failed": 4}, 0),
-		{a: a, v: v, node: "n6", from: 27, c: counters{"entered": 806, "completed": 663, "waiting": 806, "branch_yes": 452, "branch_no": 211}, paths: map[string]int64{"yes": 452, "no": 211}},
-		mk("n7", 26, emailCounters(452, 449, 0.57, 0.18), 449),
-		mk("n8", 25, emailCounters(211, 210, 0.41, 0.09), 210),
-		mk("n9", 25, counters{"entered": 663, "completed": 542, "waiting": 663}, 0),
-		mk("n10", 24, emailCounters(542, 539, 0.52, 0.31), 539),
-		mk("n11", 24, counters{"entered": 542, "completed": 542, "failed": 2}, 0),
-		mk("n12", 24, counters{"entered": 542, "completed": 461, "waiting": 542}, 0),
-		mk("n13", 22, emailCounters(461, 458, 0.49, 0.12), 458),
-		{a: a, v: v, node: "n14", from: 29, c: counters{"entered": 643, "goal_reached": 123, "exited": 299},
+	return []autoNodeStats{
+		mk("n1", 29, autoCounters{"entered": 906, "completed": 906}, 0),
+		mk("n2", 29, autoEmailCounters(906, 902, 0.62, 0.21), 902),
+		mk("n3", 28, autoCounters{"entered": 902, "completed": 806, "waiting": 902}, 0),
+		mk("n4", 28, autoEmailCounters(806, 801, 0.58, 0.19), 801),
+		mk("n5", 28, autoCounters{"entered": 806, "completed": 806, "failed": 4}, 0),
+		{a: a, v: v, node: "n6", from: 27, c: autoCounters{"entered": 806, "completed": 663, "waiting": 806, "branch_yes": 452, "branch_no": 211}, paths: map[string]int64{"yes": 452, "no": 211}},
+		mk("n7", 26, autoEmailCounters(452, 449, 0.57, 0.18), 449),
+		mk("n8", 25, autoEmailCounters(211, 210, 0.41, 0.09), 210),
+		mk("n9", 25, autoCounters{"entered": 663, "completed": 542, "waiting": 663}, 0),
+		mk("n10", 24, autoEmailCounters(542, 539, 0.52, 0.31), 539),
+		mk("n11", 24, autoCounters{"entered": 542, "completed": 542, "failed": 2}, 0),
+		mk("n12", 24, autoCounters{"entered": 542, "completed": 461, "waiting": 542}, 0),
+		mk("n13", 22, autoEmailCounters(461, 458, 0.49, 0.12), 458),
+		{a: a, v: v, node: "n14", from: 29, c: autoCounters{"entered": 643, "goal_reached": 123, "exited": 299},
 			split: map[string][2]int{"goal_reached": {29, 7}}},
 		// The last week's goals, on top of the earlier ones (KPI "onboarding 221").
-		{a: a, v: v, node: "n14", from: 6, c: counters{"goal_reached": 221}},
+		{a: a, v: v, node: "n14", from: 6, c: autoCounters{"goal_reached": 221}},
 	}
 }
 
-func reengagementStats(a uuid.UUID, ses string) []nodeStats {
+func autoReengagementStats(a uuid.UUID, ses string) []autoNodeStats {
 	const v = 2
-	return []nodeStats{
-		{a: a, v: v, node: "n1", from: 29, c: counters{"entered": 4811, "completed": 4811}},
-		{a: a, v: v, node: "n2", from: 29, c: emailCounters(4811, 4797, 0.142, 0.031), providers: map[string]int64{ses: 4797}},
-		{a: a, v: v, node: "n3", from: 29, c: counters{"entered": 4811, "completed": 3993, "waiting": 4811, "branch_yes": 885, "branch_no": 3108}, paths: map[string]int64{"yes": 885, "no": 3108}},
-		{a: a, v: v, node: "n4", from: 29, c: counters{"entered": 885, "goal_reached": 814}, split: map[string][2]int{"goal_reached": {29, 7}}},
-		{a: a, v: v, node: "n4", from: 6, c: counters{"goal_reached": 71}},
-		{a: a, v: v, node: "n5", from: 29, c: counters{"entered": 3108, "completed": 3108, "exited": 3108}},
+	return []autoNodeStats{
+		{a: a, v: v, node: "n1", from: 29, c: autoCounters{"entered": 4811, "completed": 4811}},
+		{a: a, v: v, node: "n2", from: 29, c: autoEmailCounters(4811, 4797, 0.142, 0.031), providers: map[string]int64{ses: 4797}},
+		{a: a, v: v, node: "n3", from: 29, c: autoCounters{"entered": 4811, "completed": 3993, "waiting": 4811, "branch_yes": 885, "branch_no": 3108}, paths: map[string]int64{"yes": 885, "no": 3108}},
+		{a: a, v: v, node: "n4", from: 29, c: autoCounters{"entered": 885, "goal_reached": 814}, split: map[string][2]int{"goal_reached": {29, 7}}},
+		{a: a, v: v, node: "n4", from: 6, c: autoCounters{"goal_reached": 71}},
+		{a: a, v: v, node: "n5", from: 29, c: autoCounters{"entered": 3108, "completed": 3108, "exited": 3108}},
 	}
 }
 
-func betaStats(a uuid.UUID, ses string) []nodeStats {
+func autoBetaStats(a uuid.UUID, ses string) []autoNodeStats {
 	const v = 1
-	return []nodeStats{
-		{a: a, v: v, node: "n1", from: 29, to: 8, c: counters{"entered": 214, "completed": 214}},
-		{a: a, v: v, node: "n2", from: 29, to: 8, c: counters{"entered": 214, "completed": 214, "sent": 213, "skipped": 1, "delivered": 213, "opened": 160, "opened_human": 134, "clicked": 117}, providers: map[string]int64{ses: 213}},
-		{a: a, v: v, node: "n3", from: 28, to: 8, c: counters{"entered": 214, "completed": 188, "waiting": 214, "branch_yes": 111, "branch_no": 77}, paths: map[string]int64{"yes": 111, "no": 77}},
-		{a: a, v: v, node: "n4", from: 28, to: 8, c: counters{"entered": 111, "goal_reached": 111}},
-		{a: a, v: v, node: "n5", from: 26, to: 7, c: counters{"entered": 77, "completed": 77, "sent": 77, "delivered": 77, "opened": 58, "opened_human": 49, "clicked": 17}, providers: map[string]int64{ses: 77}},
-		{a: a, v: v, node: "n6", from: 26, to: 7, c: counters{"entered": 77, "exited": 77}},
+	return []autoNodeStats{
+		{a: a, v: v, node: "n1", from: 29, to: 8, c: autoCounters{"entered": 214, "completed": 214}},
+		{a: a, v: v, node: "n2", from: 29, to: 8, c: autoCounters{"entered": 214, "completed": 214, "sent": 213, "skipped": 1, "delivered": 213, "opened": 160, "opened_human": 134, "clicked": 117}, providers: map[string]int64{ses: 213}},
+		{a: a, v: v, node: "n3", from: 28, to: 8, c: autoCounters{"entered": 214, "completed": 188, "waiting": 214, "branch_yes": 111, "branch_no": 77}, paths: map[string]int64{"yes": 111, "no": 77}},
+		{a: a, v: v, node: "n4", from: 28, to: 8, c: autoCounters{"entered": 111, "goal_reached": 111}},
+		{a: a, v: v, node: "n5", from: 26, to: 7, c: autoCounters{"entered": 77, "completed": 77, "sent": 77, "delivered": 77, "opened": 58, "opened_human": 49, "clicked": 17}, providers: map[string]int64{ses: 77}},
+		{a: a, v: v, node: "n6", from: 26, to: 7, c: autoCounters{"entered": 77, "exited": 77}},
 	}
 }
 
-var demoFirst = []string{"Maya", "Leo", "Priya", "Jonas", "Amara", "Ethan", "Sofia", "Kenji", "Lucia", "Omar", "Hana", "Mateo", "Zoe", "Ravi", "Ines", "Felix", "Nora", "Tariq", "Elena", "Sam"}
-var demoLast = []string{"Chen", "Garcia", "Patel", "Müller", "Okafor", "Brooks", "Rossi", "Tanaka", "Silva", "Haddad", "Kim", "Lopez", "Novak", "Iyer", "Costa", "Weber", "Berg", "Aziz", "Petrova", "Reed"}
+var autoFirstNames = []string{"Maya", "Leo", "Priya", "Jonas", "Amara", "Ethan", "Sofia", "Kenji", "Lucia", "Omar", "Hana", "Mateo", "Zoe", "Ravi", "Ines", "Felix", "Nora", "Tariq", "Elena", "Sam"}
+var autoLastNames = []string{"Chen", "Garcia", "Patel", "Müller", "Okafor", "Brooks", "Rossi", "Tanaka", "Silva", "Haddad", "Kim", "Lopez", "Novak", "Iyer", "Costa", "Weber", "Berg", "Aziz", "Petrova", "Reed"}
 
-// demoContacts returns n contacts of the workspace for runs, creating
+// autoContacts returns n contacts of the workspace for runs, creating
 // placeholder contacts only when the audience seeder hasn't made enough.
-func demoContacts(ctx context.Context, s *Seeder, n int) ([]uuid.UUID, error) {
+func autoContacts(ctx context.Context, s *Seeder, n int) ([]uuid.UUID, error) {
 	ws := s.WS()
 	rows, err := s.Tx.Query(ctx, `SELECT id FROM contacts WHERE workspace_id = $1 AND status = 'active' AND erased_at IS NULL ORDER BY created_at, id LIMIT $2`, ws.ID, n)
 	if err != nil {
@@ -655,8 +655,8 @@ func demoContacts(ctx context.Context, s *Seeder, n int) ([]uuid.UUID, error) {
 	var copyRows [][]any
 	for i := len(ids); i < n; i++ {
 		id := ID()
-		first, last := demoFirst[i%len(demoFirst)], demoLast[(i/len(demoFirst))%len(demoLast)]
-		email := fmt.Sprintf("%s.%s%d@example.com", toLowerASCII(first), toLowerASCII(last), i)
+		first, last := autoFirstNames[i%len(autoFirstNames)], autoLastNames[(i/len(autoFirstNames))%len(autoLastNames)]
+		email := fmt.Sprintf("%s.%s%d@example.com", autoLowerASCII(first), autoLowerASCII(last), i)
 		created := s.Ago(time.Duration(30+i%300) * 24 * time.Hour)
 		copyRows = append(copyRows, []any{id, ws.ID, email, first, last, "active", "demo", "America/New_York", providers[i%len(providers)], created, created})
 		ids = append(ids, id)
@@ -665,7 +665,7 @@ func demoContacts(ctx context.Context, s *Seeder, n int) ([]uuid.UUID, error) {
 	return ids, err
 }
 
-func toLowerASCII(s string) string {
+func autoLowerASCII(s string) string {
 	out := []rune{}
 	for _, r := range s {
 		switch {
@@ -680,7 +680,7 @@ func toLowerASCII(s string) string {
 	return string(out)
 }
 
-type runsAt struct {
+type autoRunsAt struct {
 	node  string
 	n     int
 	wait  string
@@ -688,15 +688,15 @@ type runsAt struct {
 	delay time.Duration
 }
 
-type flowRuns struct {
+type autoFlowRuns struct {
 	a  uuid.UUID
 	v  int32
-	at []runsAt
+	at []autoRunsAt
 }
 
-// seedRuns places contacts in flows: each waits at a step, with its timer
+// autoSeedRuns places contacts in flows: each waits at a step, with its timer
 // somewhere in the step's window so they move on over the coming days.
-func seedRuns(ctx context.Context, s *Seeder, contacts []uuid.UUID, flows []flowRuns) error {
+func autoSeedRuns(ctx context.Context, s *Seeder, contacts []uuid.UUID, flows []autoFlowRuns) error {
 	var rows [][]any
 	for _, f := range flows {
 		i := 0

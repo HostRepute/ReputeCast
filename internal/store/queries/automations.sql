@@ -73,7 +73,7 @@ GROUP BY status;
 INSERT INTO automation_versions (automation_id, version, graph, created_by, summary)
 VALUES (@automation_id, @version, @graph, @created_by, @summary);
 
--- name: UpdateDraftGraph :execrows
+-- name: UpdateAutomationDraftGraph :execrows
 UPDATE automation_versions SET graph = @graph
 WHERE automation_id = @automation_id AND version = @version AND published_at IS NULL;
 
@@ -93,7 +93,7 @@ LEFT JOIN users pu ON pu.id = v.published_by
 WHERE v.automation_id = @automation_id
 ORDER BY v.version DESC;
 
--- name: ListPublishedGraphs :many
+-- name: ListAutomationPublishedGraphs :many
 SELECT version, graph FROM automation_versions
 WHERE automation_id = @automation_id AND published_at IS NOT NULL
 ORDER BY version;
@@ -106,7 +106,7 @@ WHERE automation_id = @automation_id AND version = @version;
 UPDATE automation_versions SET retired_at = now()
 WHERE automation_id = @automation_id AND version = @version AND retired_at IS NULL;
 
--- name: ListRetiringVersions :many
+-- name: ListRetiringAutomationVersions :many
 -- Published versions that are no longer live but not yet retired: they
 -- retire once their last contact leaves.
 SELECT v.automation_id, v.version
@@ -115,19 +115,19 @@ JOIN automations a ON a.id = v.automation_id
 WHERE v.published_at IS NOT NULL AND v.retired_at IS NULL AND v.version <> coalesce(a.live_version, 0)
   AND NOT EXISTS (SELECT 1 FROM automation_runs r WHERE r.automation_id = v.automation_id AND r.version = v.version AND r.status IN ('active', 'waiting'));
 
--- name: CountInFlow :many
+-- name: CountAutomationInFlow :many
 SELECT automation_id, count(*)::bigint AS n
 FROM automation_runs
 WHERE automation_id = ANY(@automation_ids::uuid[]) AND status IN ('active', 'waiting')
 GROUP BY automation_id;
 
--- name: CountInFlowByNode :many
+-- name: CountAutomationInFlowByNode :many
 SELECT version, node_id, count(*)::bigint AS n
 FROM automation_runs
 WHERE automation_id = @automation_id AND status IN ('active', 'waiting')
 GROUP BY version, node_id;
 
--- name: StepStatsSince :many
+-- name: AutomationStepStatsSince :many
 -- Per-step totals since a day, across versions (steps keep their ids).
 SELECT automation_id, node_id,
        sum(entered)::bigint AS entered, sum(completed)::bigint AS completed, sum(waiting)::bigint AS waiting,
@@ -141,21 +141,21 @@ FROM automation_step_stats
 WHERE automation_id = ANY(@automation_ids::uuid[]) AND day >= @since::date
 GROUP BY automation_id, node_id;
 
--- name: StepPathsSince :many
+-- name: AutomationStepPathsSince :many
 -- Paths taken out of branches and splits.
 SELECT s.automation_id, s.node_id, p.k::text AS path, sum(p.v::bigint)::bigint AS n
 FROM automation_step_stats s, jsonb_each_text(s.paths) AS p(k, v)
 WHERE s.automation_id = ANY(@automation_ids::uuid[]) AND s.day >= @since::date
 GROUP BY s.automation_id, s.node_id, p.k;
 
--- name: StepProvidersSince :many
+-- name: AutomationStepProvidersSince :many
 -- Emails per sending provider, per step.
 SELECT s.automation_id, s.node_id, p.k::text AS provider_id, sum(p.v::bigint)::bigint AS n, max(s.day)::date AS last_day
 FROM automation_step_stats s, jsonb_each_text(s.providers) AS p(k, v)
 WHERE s.automation_id = ANY(@automation_ids::uuid[]) AND s.day >= @since::date
 GROUP BY s.automation_id, s.node_id, p.k;
 
--- name: WorkspaceProviderSends :many
+-- name: AutomationProviderSendsSince :many
 -- Automation emails per sending provider since a day, and the last day each sent.
 SELECT p.k::text AS provider_id, sum(p.v::bigint)::bigint AS n, max(s.day)::date AS last_day
 FROM automation_step_stats s
@@ -164,7 +164,7 @@ CROSS JOIN LATERAL jsonb_each_text(s.providers) AS p(k, v)
 WHERE a.workspace_id = @workspace_id AND a.deleted_at IS NULL AND s.day >= @since::date
 GROUP BY p.k;
 
--- name: WorkspaceStatsSince :many
+-- name: AutomationWorkspaceStatsSince :many
 -- Totals per automation since a day, for the KPI row.
 SELECT s.automation_id,
        sum(s.sent)::bigint AS sent, sum(s.delivered)::bigint AS delivered,
@@ -175,7 +175,7 @@ JOIN automations a ON a.id = s.automation_id
 WHERE a.workspace_id = @workspace_id AND a.deleted_at IS NULL AND s.day >= @since::date
 GROUP BY s.automation_id;
 
--- name: BumpStepStats :exec
+-- name: BumpAutomationStepStats :exec
 -- Adds to one step's counters for a day. Path and provider counts are merged
 -- key by key.
 INSERT INTO automation_step_stats AS s (automation_id, version, node_id, day,
@@ -219,24 +219,24 @@ SELECT splits, fallback_provider_id FROM routing_rules
 WHERE workspace_id = @workspace_id AND stream = 'automation' AND enabled AND conditions = '{}'::jsonb
 ORDER BY priority LIMIT 1;
 
--- name: WorkspaceProviders :many
+-- name: AutomationProviders :many
 SELECT id, name, adapter, status, status_detail, connected_at FROM providers
 WHERE workspace_id = @workspace_id AND disconnected_at IS NULL
 ORDER BY connected_at;
 
--- name: WorkspaceForms :many
+-- name: AutomationForms :many
 SELECT id, name, slug FROM forms WHERE workspace_id = @workspace_id ORDER BY created_at;
 
--- name: WorkspaceDateFields :many
+-- name: AutomationFields :many
 SELECT key, label, type FROM custom_fields WHERE workspace_id = @workspace_id ORDER BY label;
 
--- name: WorkspaceTopTags :many
+-- name: AutomationTopTags :many
 SELECT t::text AS tag, count(*)::bigint AS n
 FROM contacts c, unnest(c.tags) t
 WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL
 GROUP BY t ORDER BY n DESC, t LIMIT 50;
 
--- name: WorkspaceEventNames :many
+-- name: AutomationEventNames :many
 SELECT DISTINCT ref::text AS event FROM automation_events
 WHERE workspace_id = @workspace_id AND kind = 'api_event' AND occurred_at > now() - interval '90 days'
 ORDER BY 1 LIMIT 50;
@@ -266,7 +266,7 @@ WHERE e.workspace_id = @workspace_id AND e.id = @id AND v.version = @version;
 INSERT INTO automation_events (workspace_id, kind, contact_id, ref, payload, occurred_at)
 VALUES (@workspace_id, @kind, @contact_id, @ref, @payload, @occurred_at);
 
--- name: ClaimPendingEvents :many
+-- name: ClaimAutomationEvents :many
 SELECT id, workspace_id, kind, contact_id, ref, payload, occurred_at
 FROM automation_events
 WHERE processed_at IS NULL
@@ -274,10 +274,10 @@ ORDER BY id
 LIMIT @lim
 FOR UPDATE SKIP LOCKED;
 
--- name: MarkEventProcessed :exec
+-- name: MarkAutomationEventProcessed :exec
 UPDATE automation_events SET processed_at = now(), enrolled = @enrolled WHERE id = @id;
 
--- name: PurgeProcessedEvents :execrows
+-- name: PurgeAutomationEvents :execrows
 DELETE FROM automation_events WHERE processed_at < @before;
 
 -- name: LiveAutomationsForTrigger :many
@@ -288,15 +288,15 @@ JOIN automation_versions v ON v.automation_id = a.id AND v.version = a.live_vers
 WHERE a.workspace_id = @workspace_id AND a.status = 'live' AND a.deleted_at IS NULL
   AND a.trigger ->> 'kind' = @kind::text;
 
--- name: RunExistsForContact :one
+-- name: AutomationRunExists :one
 SELECT EXISTS (SELECT 1 FROM automation_runs WHERE automation_id = @automation_id AND contact_id = @contact_id);
 
--- name: InsertRun :execrows
+-- name: InsertAutomationRun :execrows
 INSERT INTO automation_runs (id, automation_id, version, contact_id, node_id, status, state, entered_at, node_entered_at, next_at)
 VALUES (@id, @automation_id, @version, @contact_id, @node_id, 'active', @state, @entered_at, @entered_at, @entered_at)
 ON CONFLICT DO NOTHING;
 
--- name: ClaimDueRuns :many
+-- name: ClaimDueAutomationRuns :many
 -- Runs ready to move on, in flows that are live (paused flows hold their runs).
 SELECT r.id, r.automation_id, r.version, r.contact_id, r.node_id, r.status, r.state, r.entered_at, r.node_entered_at, r.next_at,
        a.workspace_id
@@ -307,7 +307,7 @@ ORDER BY r.next_at
 LIMIT @lim
 FOR UPDATE OF r SKIP LOCKED;
 
--- name: GetRunForUpdate :one
+-- name: GetAutomationRunForUpdate :one
 SELECT r.id, r.automation_id, r.version, r.contact_id, r.node_id, r.status, r.state, r.entered_at, r.node_entered_at, r.next_at,
        a.workspace_id
 FROM automation_runs r
@@ -315,23 +315,23 @@ JOIN automations a ON a.id = r.automation_id
 WHERE r.id = @id
 FOR UPDATE OF r;
 
--- name: UpdateRun :exec
+-- name: UpdateAutomationRun :exec
 UPDATE automation_runs
 SET version = @version, node_id = @node_id, status = @status, state = @state, node_entered_at = @node_entered_at,
     next_at = sqlc.narg(next_at), finished_at = sqlc.narg(finished_at), exit_reason = @exit_reason
 WHERE id = @id;
 
--- name: ListActiveRunsForMigration :many
+-- name: ListAutomationRunsForMigration :many
 SELECT id, version, node_id, status, state, node_entered_at, next_at
 FROM automation_runs
 WHERE automation_id = @automation_id AND status IN ('active', 'waiting') AND version <> @version
 FOR UPDATE;
 
--- name: ExitActiveRuns :execrows
+-- name: ExitAutomationRuns :execrows
 UPDATE automation_runs SET status = 'exited', finished_at = now(), next_at = NULL, exit_reason = @exit_reason
 WHERE automation_id = @automation_id AND status IN ('active', 'waiting');
 
--- name: WakeEngagedBranchRuns :execrows
+-- name: WakeAutomationBranchRuns :execrows
 -- Runs waiting at a branch for an open or click: wake them as soon as the
 -- email they wait on has one, instead of at the end of the window.
 UPDATE automation_runs r SET next_at = @now
@@ -343,26 +343,26 @@ WHERE r.status = 'waiting' AND r.next_at > @now AND r.state ->> 'wait' = 'branch
       AND ((r.state ->> 'want' = 'opened' AND de.type = 'open' AND (NOT coalesce((r.state ->> 'human')::boolean, false) OR NOT de.machine))
         OR (r.state ->> 'want' = 'clicked' AND de.type = 'click')));
 
--- name: ContactForRun :one
+-- name: AutomationContact :one
 SELECT id, email, first_name, last_name, status, timezone, tags, attributes, erased_at
 FROM contacts WHERE id = @id;
 
--- name: ContactInList :one
+-- name: AutomationContactInList :one
 SELECT EXISTS (SELECT 1 FROM list_memberships WHERE list_id = @list_id AND contact_id = @contact_id AND status = 'subscribed');
 
--- name: ContactGotEmailSince :one
+-- name: AutomationContactEmailedSince :one
 SELECT EXISTS (SELECT 1 FROM messages WHERE contact_id = @contact_id AND queued_at >= @since);
 
--- name: ContactSuppressed :one
+-- name: AutomationContactSuppressed :one
 SELECT EXISTS (SELECT 1 FROM suppressions WHERE workspace_id = @workspace_id AND email = @email);
 
--- name: RunMessage :one
+-- name: AutomationRunMessage :one
 -- The message a run's email step queued (for branch checks).
 SELECT id, queued_at, status FROM messages
 WHERE automation_id = @automation_id AND automation_node = @node_id AND contact_id = @contact_id
 ORDER BY queued_at DESC LIMIT 1;
 
--- name: MessageEngaged :one
+-- name: AutomationMessageEngaged :one
 SELECT EXISTS (
     SELECT 1 FROM delivery_events de
     WHERE de.message_id = @message_id
@@ -378,7 +378,7 @@ SELECT EXISTS (
       AND ((@want::text = 'opened' AND de.type = 'open' AND (NOT @human_only::boolean OR NOT de.machine))
         OR (@want::text = 'clicked' AND de.type = 'click' AND (@url_contains::text = '' OR de.url ILIKE '%' || @url_contains::text || '%'))));
 
--- name: ContactSentEvent :one
+-- name: AutomationContactSentEvent :one
 SELECT EXISTS (
     SELECT 1 FROM automation_events
     WHERE workspace_id = @workspace_id AND contact_id = @contact_id AND kind = 'api_event' AND ref = @event AND occurred_at >= @since);
@@ -388,75 +388,75 @@ INSERT INTO messages (id, workspace_id, stream, automation_id, automation_node, 
 VALUES (@id, @workspace_id, 'automation', @automation_id, @automation_node, @contact_id, @email, @provider_id, @mailbox_provider, @status, @queued_at, @error)
 RETURNING id;
 
--- name: CountHeldMessages :one
+-- name: CountAutomationHeldMessages :one
 SELECT count(*)::bigint FROM messages WHERE automation_id = @automation_id AND status = 'held';
 
--- name: ReleaseHeldMessages :execrows
+-- name: ReleaseAutomationHeldMessages :execrows
 UPDATE messages SET status = 'queued', provider_id = @provider_id, error = ''
 WHERE automation_id = @automation_id AND status = 'held';
 
--- name: AddListMembership :exec
+-- name: AutomationAddListMembership :exec
 INSERT INTO list_memberships (list_id, contact_id, status, source, subscribed_at)
 VALUES (@list_id, @contact_id, 'subscribed', @source, now())
 ON CONFLICT (list_id, contact_id) DO UPDATE SET status = 'subscribed', source = EXCLUDED.source, subscribed_at = now(), unsubscribed_at = NULL
 WHERE list_memberships.status <> 'subscribed';
 
--- name: RemoveListMembership :exec
+-- name: AutomationRemoveListMembership :exec
 UPDATE list_memberships SET status = 'unsubscribed', unsubscribed_at = now()
 WHERE list_id = @list_id AND contact_id = @contact_id AND status <> 'unsubscribed';
 
--- name: UnsubscribeAllLists :exec
+-- name: AutomationUnsubscribeAll :exec
 UPDATE list_memberships SET status = 'unsubscribed', unsubscribed_at = now()
 WHERE contact_id = @contact_id AND status <> 'unsubscribed';
 
--- name: AddContactTag :exec
+-- name: AutomationAddContactTag :exec
 UPDATE contacts SET tags = array_append(tags, @tag::text), updated_at = now()
 WHERE id = @id AND NOT (@tag::text = ANY (tags));
 
--- name: RemoveContactTag :exec
+-- name: AutomationRemoveContactTag :exec
 UPDATE contacts SET tags = array_remove(tags, @tag::text), updated_at = now()
 WHERE id = @id AND @tag::text = ANY (tags);
 
--- name: GetStepSecret :one
+-- name: GetAutomationStepSecret :one
 SELECT secret_enc FROM automation_step_secrets WHERE automation_id = @automation_id AND node_id = @node_id;
 
--- name: UpsertStepSecret :exec
+-- name: UpsertAutomationStepSecret :exec
 INSERT INTO automation_step_secrets (automation_id, node_id, secret_enc, updated_by)
 VALUES (@automation_id, @node_id, @secret_enc, @updated_by)
 ON CONFLICT (automation_id, node_id) DO UPDATE SET secret_enc = EXCLUDED.secret_enc, updated_by = EXCLUDED.updated_by, updated_at = now();
 
--- name: DeleteStepSecret :execrows
+-- name: DeleteAutomationStepSecret :execrows
 DELETE FROM automation_step_secrets WHERE automation_id = @automation_id AND node_id = @node_id;
 
--- name: StepSecretNodes :many
+-- name: AutomationStepSecretNodes :many
 SELECT node_id FROM automation_step_secrets WHERE automation_id = @automation_id;
 
--- name: InsertWebhookCall :exec
+-- name: InsertAutomationWebhookCall :exec
 INSERT INTO automation_webhook_calls (id, automation_id, version, node_id, run_id, url, status_code, error, duration_ms, attempt, called_at)
 VALUES (@id, @automation_id, @version, @node_id, @run_id, @url, @status_code, @error, @duration_ms, @attempt, @called_at);
 
--- name: ListWebhookCalls :many
+-- name: ListAutomationWebhookCalls :many
 SELECT id, version, run_id, url, status_code, error, duration_ms, attempt, called_at
 FROM automation_webhook_calls
 WHERE automation_id = @automation_id AND node_id = @node_id
 ORDER BY called_at DESC, id DESC
 LIMIT @lim;
 
--- name: PurgeWebhookCalls :execrows
+-- name: PurgeAutomationWebhookCalls :execrows
 DELETE FROM automation_webhook_calls WHERE called_at < @before;
 
--- name: OpenAlert :exec
+-- name: OpenAutomationAlert :exec
 -- Records a failure: opens the alert or adds to the open one.
 INSERT INTO automation_alerts (id, automation_id, kind, node_id, detail, failures, first_at, last_at)
 VALUES (@id, @automation_id, @kind, @node_id, @detail, @failures, @at, @at)
 ON CONFLICT (automation_id, kind, node_id) WHERE resolved_at IS NULL
 DO UPDATE SET failures = automation_alerts.failures + EXCLUDED.failures, detail = EXCLUDED.detail, last_at = EXCLUDED.last_at;
 
--- name: ResolveAlert :execrows
+-- name: ResolveAutomationAlert :execrows
 UPDATE automation_alerts SET resolved_at = now()
 WHERE automation_id = @automation_id AND kind = @kind AND node_id = @node_id AND resolved_at IS NULL;
 
--- name: ListOpenAlerts :many
+-- name: ListAutomationAlerts :many
 SELECT al.id, al.automation_id, al.kind, al.node_id, al.detail, al.failures, al.first_at, al.last_at,
        a.name AS automation_name, a.draft_version, a.live_version
 FROM automation_alerts al
@@ -464,19 +464,19 @@ JOIN automations a ON a.id = al.automation_id
 WHERE a.workspace_id = @workspace_id AND a.deleted_at IS NULL AND al.resolved_at IS NULL
 ORDER BY al.kind DESC, al.first_at;
 
--- name: StepFailures :many
+-- name: AutomationStepFailures :many
 -- The latest alert per webhook step, open or resolved (for the publish diff).
 SELECT DISTINCT ON (node_id) node_id, detail, failures, first_at, last_at, resolved_at
 FROM automation_alerts
 WHERE automation_id = @automation_id AND kind = 'step_failing'
 ORDER BY node_id, first_at DESC;
 
--- name: OpenSendingHeldAlerts :many
+-- name: ListAutomationHeldAlerts :many
 SELECT al.automation_id, a.workspace_id FROM automation_alerts al
 JOIN automations a ON a.id = al.automation_id
 WHERE al.kind = 'sending_held' AND al.resolved_at IS NULL;
 
--- name: DateFieldMatches :many
+-- name: AutomationDateFieldMatches :many
 -- Contacts whose date field (plus the offset) is today in the workspace's
 -- timezone; yearly triggers match the day and month every year.
 SELECT c.id FROM contacts c
@@ -496,23 +496,23 @@ WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS 
                     AND e.ref = @field::text AND e.occurred_at >= @today::date)
 LIMIT 5000;
 
--- name: ContactByEmail :one
+-- name: AutomationContactByEmail :one
 SELECT id, status FROM contacts WHERE workspace_id = @workspace_id AND email = @email AND erased_at IS NULL;
 
--- name: ContactInWorkspace :one
+-- name: AutomationContactInWorkspace :one
 SELECT id, status FROM contacts WHERE workspace_id = @workspace_id AND id = @id AND erased_at IS NULL;
 
--- name: LookupWorkspaceLists :many
+-- name: AutomationLists :many
 SELECT id, name FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at;
 
--- name: ActiveRunNodes :many
+-- name: AutomationActiveRunNodes :many
 -- Where contacts are, per version and step (publish impact).
 SELECT r.version, r.node_id, r.status, r.state, count(*)::bigint AS n
 FROM automation_runs r
 WHERE r.automation_id = @automation_id AND r.status IN ('active', 'waiting')
 GROUP BY r.version, r.node_id, r.status, r.state;
 
--- name: ActiveRunVersions :many
+-- name: AutomationActiveRunVersions :many
 -- Live flows' versions that still have contacts in them (goal detection).
 SELECT DISTINCT r.automation_id, r.version, a.workspace_id, v.graph
 FROM automation_runs r
@@ -520,7 +520,7 @@ JOIN automations a ON a.id = r.automation_id
 JOIN automation_versions v ON v.automation_id = r.automation_id AND v.version = r.version
 WHERE r.status IN ('active', 'waiting') AND a.status = 'live' AND a.deleted_at IS NULL;
 
--- name: GoalRunsEngaged :many
+-- name: AutomationGoalRunsEngaged :many
 -- Runs whose contact opened or clicked an email of this flow since entering.
 SELECT r.id, r.node_id FROM automation_runs r
 WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN ('active', 'waiting')
@@ -533,7 +533,7 @@ WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN 
 LIMIT 1000
 FOR UPDATE OF r SKIP LOCKED;
 
--- name: GoalRunsTagged :many
+-- name: AutomationGoalRunsTagged :many
 SELECT r.id, r.node_id FROM automation_runs r
 JOIN contacts c ON c.id = r.contact_id
 WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN ('active', 'waiting')
@@ -541,14 +541,14 @@ WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN 
 LIMIT 1000
 FOR UPDATE OF r SKIP LOCKED;
 
--- name: GoalRunsInList :many
+-- name: AutomationGoalRunsInList :many
 SELECT r.id, r.node_id FROM automation_runs r
 WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN ('active', 'waiting')
   AND EXISTS (SELECT 1 FROM list_memberships lm WHERE lm.list_id = @list_id AND lm.contact_id = r.contact_id AND lm.status = 'subscribed')
 LIMIT 1000
 FOR UPDATE OF r SKIP LOCKED;
 
--- name: GoalRunsEvent :many
+-- name: AutomationGoalRunsEvent :many
 SELECT r.id, r.node_id FROM automation_runs r
 JOIN automations a ON a.id = r.automation_id
 WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN ('active', 'waiting')
@@ -558,22 +558,22 @@ WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN 
 LIMIT 1000
 FOR UPDATE OF r SKIP LOCKED;
 
--- name: LiveDateTriggers :many
+-- name: AutomationDateTriggers :many
 SELECT a.id, a.workspace_id, a.trigger, w.timezone
 FROM automations a
 JOIN workspaces w ON w.id = a.workspace_id
 WHERE a.status = 'live' AND a.deleted_at IS NULL AND a.trigger ->> 'kind' = 'date_field';
 
--- name: LostWebhookRuns :many
+-- name: AutomationLostWebhookRuns :many
 -- Runs waiting on a webhook call whose job never ran (lost or not enqueued).
 SELECT id, automation_id, version, node_id FROM automation_runs
 WHERE status = 'waiting' AND next_at IS NULL AND state ->> 'wait' = 'webhook' AND node_entered_at < @before
 LIMIT 500;
 
--- name: TouchRunNextAt :exec
+-- name: TouchAutomationRunNextAt :exec
 UPDATE automation_runs SET next_at = @next_at WHERE id = @id;
 
--- name: MessageForStats :one
+-- name: AutomationMessageForStats :one
 SELECT m.automation_id, m.automation_node, a.live_version, a.draft_version
 FROM messages m
 JOIN automations a ON a.id = m.automation_id

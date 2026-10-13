@@ -22,24 +22,24 @@ type AutomationDetail struct {
 	LiveVersion *int   `json:"liveVersion,omitempty"`
 	// DraftVersion is the version the canvas edits; Revision guards
 	// concurrent edits (send it back with each save).
-	DraftVersion int        `json:"draftVersion"`
-	Revision     int64      `json:"revision"`
-	PublishedAt  *time.Time `json:"publishedAt,omitempty"`
-	PublishedBy  string     `json:"publishedBy,omitempty"`
-	PausedAt     *time.Time `json:"pausedAt,omitempty"`
-	PausedBy     string     `json:"pausedBy,omitempty"`
-	PauseReason  string     `json:"pauseReason,omitempty"`
-	Graph        FlowGraph  `json:"graph"`
+	DraftVersion int             `json:"draftVersion"`
+	Revision     int64           `json:"revision"`
+	PublishedAt  *time.Time      `json:"publishedAt,omitempty"`
+	PublishedBy  string          `json:"publishedBy,omitempty"`
+	PausedAt     *time.Time      `json:"pausedAt,omitempty"`
+	PausedBy     string          `json:"pausedBy,omitempty"`
+	PauseReason  string          `json:"pauseReason,omitempty"`
+	Graph        AutomationGraph `json:"graph"`
 	// LiveNodeIDs are the steps of the live version (others are "new in vN").
 	LiveNodeIDs []string `json:"liveNodeIds"`
 	// PublishedNodeIDs are steps that were in any published version (others
 	// have "no stats until published").
-	PublishedNodeIDs []string        `json:"publishedNodeIds"`
-	Changes          int             `json:"changes" doc:"Unpublished changes, as counted by the version diff"`
-	Issues           []GraphIssue    `json:"issues"`
-	Route            AutomationRoute `json:"route"`
-	InFlow           int64           `json:"inFlow"`
-	UpdatedAt        time.Time       `json:"updatedAt"`
+	PublishedNodeIDs []string               `json:"publishedNodeIds"`
+	Changes          int                    `json:"changes" doc:"Unpublished changes, as counted by the version diff"`
+	Issues           []AutomationGraphIssue `json:"issues"`
+	Route            AutomationRoute        `json:"route"`
+	InFlow           int64                  `json:"inFlow"`
+	UpdatedAt        time.Time              `json:"updatedAt"`
 }
 
 // Get returns a flow for the editor.
@@ -67,7 +67,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (A
 		Graph: draft, LiveNodeIDs: []string{}, PublishedNodeIDs: []string{}, UpdatedAt: a.UpdatedAt,
 	}
 	out.Issues = Validate(draft, refs)
-	published, err := s.Q.ListPublishedGraphs(ctx, a.ID)
+	published, err := s.Q.ListAutomationPublishedGraphs(ctx, a.ID)
 	if err != nil {
 		return out, err
 	}
@@ -92,7 +92,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (A
 			out.Changes = Changes(Diff(live, draft, DiffContext{FromRefs: refs, ToVersion: int(a.DraftVersion)}))
 		}
 	}
-	counts, err := s.Q.CountInFlow(ctx, []uuid.UUID{a.ID})
+	counts, err := s.Q.CountAutomationInFlow(ctx, []uuid.UUID{a.ID})
 	if err != nil {
 		return out, err
 	}
@@ -104,8 +104,8 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (A
 }
 
 // markSecrets sets HasSecret on webhook steps whose signing secret is stored.
-func (s *Service) markSecrets(ctx context.Context, q *store.Queries, automationID uuid.UUID, g *FlowGraph) error {
-	nodes, err := q.StepSecretNodes(ctx, automationID)
+func (s *Service) markSecrets(ctx context.Context, q *store.Queries, automationID uuid.UUID, g *AutomationGraph) error {
+	nodes, err := q.AutomationStepSecretNodes(ctx, automationID)
 	if err != nil {
 		return err
 	}
@@ -118,34 +118,34 @@ func (s *Service) markSecrets(ctx context.Context, q *store.Queries, automationI
 	return nil
 }
 
-// PathCount is how many contacts took one path out of a branch or split.
-type PathCount struct {
+// AutomationPathCount is how many contacts took one path out of a branch or split.
+type AutomationPathCount struct {
 	Path  string `json:"path" example:"yes"`
 	Count int64  `json:"count"`
 }
 
-// StepStats is one step's numbers over the stats window.
-type StepStats struct {
+// AutomationStepStats is one step's numbers over the stats window.
+type AutomationStepStats struct {
 	NodeID string `json:"nodeId"`
 	// Entered counts arrivals; InFlowNow counts contacts at the step right now.
-	Entered      int64           `json:"entered"`
-	InFlowNow    int64           `json:"inFlowNow"`
-	Completed    int64           `json:"completed" doc:"Moved on to the next step"`
-	Exited       int64           `json:"exited" doc:"Finished the flow at this step"`
-	Dropped      int64           `json:"dropped" doc:"Left early: filtered out, unsubscribed or removed"`
-	GoalReached  int64           `json:"goalReached"`
-	Skipped      int64           `json:"skipped" doc:"Emails skipped by a rule"`
-	Failed       int64           `json:"failed" doc:"Webhook calls that failed"`
-	Sent         int64           `json:"sent"`
-	Delivered    int64           `json:"delivered"`
-	Bounced      int64           `json:"bounced"`
-	Complained   int64           `json:"complained"`
-	Opened       int64           `json:"opened"`
-	OpenedHuman  int64           `json:"openedHuman"`
-	Clicked      int64           `json:"clicked"`
-	Unsubscribed int64           `json:"unsubscribed"`
-	Paths        []PathCount     `json:"paths"`
-	Providers    []ProviderSends `json:"providers"`
+	Entered      int64                     `json:"entered"`
+	InFlowNow    int64                     `json:"inFlowNow"`
+	Completed    int64                     `json:"completed" doc:"Moved on to the next step"`
+	Exited       int64                     `json:"exited" doc:"Finished the flow at this step"`
+	Dropped      int64                     `json:"dropped" doc:"Left early: filtered out, unsubscribed or removed"`
+	GoalReached  int64                     `json:"goalReached"`
+	Skipped      int64                     `json:"skipped" doc:"Emails skipped by a rule"`
+	Failed       int64                     `json:"failed" doc:"Webhook calls that failed"`
+	Sent         int64                     `json:"sent"`
+	Delivered    int64                     `json:"delivered"`
+	Bounced      int64                     `json:"bounced"`
+	Complained   int64                     `json:"complained"`
+	Opened       int64                     `json:"opened"`
+	OpenedHuman  int64                     `json:"openedHuman"`
+	Clicked      int64                     `json:"clicked"`
+	Unsubscribed int64                     `json:"unsubscribed"`
+	Paths        []AutomationPathCount     `json:"paths"`
+	Providers    []AutomationProviderSends `json:"providers"`
 }
 
 // AutomationStats is the live stats of a flow, per step.
@@ -153,9 +153,9 @@ type AutomationStats struct {
 	Days  int       `json:"days"`
 	Since time.Time `json:"since"`
 	// Entered counts contacts who entered through the trigger in the window.
-	Entered int64       `json:"entered"`
-	InFlow  int64       `json:"inFlow"`
-	Steps   []StepStats `json:"steps"`
+	Entered int64                 `json:"entered"`
+	InFlow  int64                 `json:"inFlow"`
+	Steps   []AutomationStepStats `json:"steps"`
 }
 
 // Stats returns per-step stats for the last N days, across versions (steps
@@ -167,21 +167,21 @@ func (s *Service) Stats(ctx context.Context, ws *store.Workspace, id uuid.UUID, 
 		return AutomationStats{}, api.MapError(err, "Automation")
 	}
 	since := s.since(days)
-	out := AutomationStats{Days: days, Since: since, Steps: []StepStats{}}
+	out := AutomationStats{Days: days, Since: since, Steps: []AutomationStepStats{}}
 	ids := []uuid.UUID{a.ID}
-	rows, err := s.Q.StepStatsSince(ctx, store.StepStatsSinceParams{AutomationIds: ids, Since: since})
+	rows, err := s.Q.AutomationStepStatsSince(ctx, store.AutomationStepStatsSinceParams{AutomationIds: ids, Since: since})
 	if err != nil {
 		return out, err
 	}
-	paths, err := s.Q.StepPathsSince(ctx, store.StepPathsSinceParams{AutomationIds: ids, Since: since})
+	paths, err := s.Q.AutomationStepPathsSince(ctx, store.AutomationStepPathsSinceParams{AutomationIds: ids, Since: since})
 	if err != nil {
 		return out, err
 	}
-	provRows, err := s.Q.StepProvidersSince(ctx, store.StepProvidersSinceParams{AutomationIds: ids, Since: since})
+	provRows, err := s.Q.AutomationStepProvidersSince(ctx, store.AutomationStepProvidersSinceParams{AutomationIds: ids, Since: since})
 	if err != nil {
 		return out, err
 	}
-	now, err := s.Q.CountInFlowByNode(ctx, a.ID)
+	now, err := s.Q.CountAutomationInFlowByNode(ctx, a.ID)
 	if err != nil {
 		return out, err
 	}
@@ -189,20 +189,20 @@ func (s *Service) Stats(ctx context.Context, ws *store.Workspace, id uuid.UUID, 
 	if err != nil {
 		return out, err
 	}
-	provs, err := s.Q.WorkspaceProviders(ctx, ws.ID)
+	provs, err := s.Q.AutomationProviders(ctx, ws.ID)
 	if err != nil {
 		return out, err
 	}
-	names := map[string]store.WorkspaceProvidersRow{}
+	names := map[string]store.AutomationProvidersRow{}
 	for _, p := range provs {
 		names[p.ID.String()] = p
 	}
-	byNode := map[string]*StepStats{}
-	get := func(node string) *StepStats {
+	byNode := map[string]*AutomationStepStats{}
+	get := func(node string) *AutomationStepStats {
 		if st, ok := byNode[node]; ok {
 			return st
 		}
-		st := &StepStats{NodeID: node, Paths: []PathCount{}, Providers: []ProviderSends{}}
+		st := &AutomationStepStats{NodeID: node, Paths: []AutomationPathCount{}, Providers: []AutomationProviderSends{}}
 		byNode[node] = st
 		return st
 	}
@@ -215,11 +215,11 @@ func (s *Service) Stats(ctx context.Context, ws *store.Workspace, id uuid.UUID, 
 	}
 	for _, p := range paths {
 		st := get(p.NodeID)
-		st.Paths = append(st.Paths, PathCount{Path: p.Path, Count: p.N})
+		st.Paths = append(st.Paths, AutomationPathCount{Path: p.Path, Count: p.N})
 	}
 	for _, p := range provRows {
 		st := get(p.NodeID)
-		ps := ProviderSends{ProviderID: p.ProviderID, Sent: p.N}
+		ps := AutomationProviderSends{ProviderID: p.ProviderID, Sent: p.N}
 		if pr, ok := names[p.ProviderID]; ok {
 			ps.Provider, ps.Short = pr.Name, shortName(pr.Name, pr.Adapter)
 		} else {
@@ -252,28 +252,28 @@ func (s *Service) Stats(ctx context.Context, ws *store.Workspace, id uuid.UUID, 
 	return out, nil
 }
 
-// OptionItem is a choice in a step's settings.
-type OptionItem struct {
+// AutomationOptionItem is a choice in a step's settings.
+type AutomationOptionItem struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
-// FormOption is a signup form a trigger can listen to.
-type FormOption struct {
+// AutomationFormOption is a signup form a trigger can listen to.
+type AutomationFormOption struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Slug string `json:"slug"`
 }
 
-// FieldOption is a contact field a condition or date trigger can use.
-type FieldOption struct {
+// AutomationFieldOption is a contact field a condition or date trigger can use.
+type AutomationFieldOption struct {
 	Key   string `json:"key"`
 	Label string `json:"label"`
 	Type  string `json:"type"`
 }
 
-// EmailOption is an email a send step can use.
-type EmailOption struct {
+// AutomationEmailOption is an email a send step can use.
+type AutomationEmailOption struct {
 	ID            string    `json:"id"`
 	Name          string    `json:"name"`
 	LatestVersion int       `json:"latestVersion"`
@@ -283,61 +283,61 @@ type EmailOption struct {
 
 // AutomationOptions are the choices the step settings offer.
 type AutomationOptions struct {
-	Lists     []OptionItem    `json:"lists"`
-	Forms     []FormOption    `json:"forms"`
-	Fields    []FieldOption   `json:"fields"`
-	Emails    []EmailOption   `json:"emails"`
-	Providers []RouteProvider `json:"providers"`
-	Tags      []string        `json:"tags"`
-	Events    []string        `json:"events"`
+	Lists     []AutomationOptionItem    `json:"lists"`
+	Forms     []AutomationFormOption    `json:"forms"`
+	Fields    []AutomationFieldOption   `json:"fields"`
+	Emails    []AutomationEmailOption   `json:"emails"`
+	Providers []AutomationRouteProvider `json:"providers"`
+	Tags      []string                  `json:"tags"`
+	Events    []string                  `json:"events"`
 }
 
 // Options lists lists, forms, fields, emails, providers, tags and API events.
 func (s *Service) Options(ctx context.Context, ws *store.Workspace) (AutomationOptions, error) {
-	out := AutomationOptions{Lists: []OptionItem{}, Forms: []FormOption{}, Fields: []FieldOption{}, Emails: []EmailOption{}, Providers: []RouteProvider{}, Tags: []string{}, Events: []string{}}
-	lists, err := s.Q.LookupWorkspaceLists(ctx, ws.ID)
+	out := AutomationOptions{Lists: []AutomationOptionItem{}, Forms: []AutomationFormOption{}, Fields: []AutomationFieldOption{}, Emails: []AutomationEmailOption{}, Providers: []AutomationRouteProvider{}, Tags: []string{}, Events: []string{}}
+	lists, err := s.Q.AutomationLists(ctx, ws.ID)
 	if err != nil {
 		return out, err
 	}
 	for _, l := range lists {
-		out.Lists = append(out.Lists, OptionItem{ID: l.ID.String(), Name: l.Name})
+		out.Lists = append(out.Lists, AutomationOptionItem{ID: l.ID.String(), Name: l.Name})
 	}
-	forms, err := s.Q.WorkspaceForms(ctx, ws.ID)
+	forms, err := s.Q.AutomationForms(ctx, ws.ID)
 	if err != nil {
 		return out, err
 	}
 	for _, f := range forms {
-		out.Forms = append(out.Forms, FormOption{ID: f.ID.String(), Name: f.Name, Slug: f.Slug})
+		out.Forms = append(out.Forms, AutomationFormOption{ID: f.ID.String(), Name: f.Name, Slug: f.Slug})
 	}
-	fields, err := s.Q.WorkspaceDateFields(ctx, ws.ID)
+	fields, err := s.Q.AutomationFields(ctx, ws.ID)
 	if err != nil {
 		return out, err
 	}
 	for _, f := range fields {
-		out.Fields = append(out.Fields, FieldOption{Key: f.Key, Label: f.Label, Type: f.Type})
+		out.Fields = append(out.Fields, AutomationFieldOption{Key: f.Key, Label: f.Label, Type: f.Type})
 	}
 	emails, err := s.Q.ListAutomationEmails(ctx, ws.ID)
 	if err != nil {
 		return out, err
 	}
 	for _, e := range emails {
-		out.Emails = append(out.Emails, EmailOption{ID: e.ID.String(), Name: e.Name, LatestVersion: int(e.LatestVersion), Subject: e.Subject, UpdatedAt: e.UpdatedAt})
+		out.Emails = append(out.Emails, AutomationEmailOption{ID: e.ID.String(), Name: e.Name, LatestVersion: int(e.LatestVersion), Subject: e.Subject, UpdatedAt: e.UpdatedAt})
 	}
-	provs, err := s.Q.WorkspaceProviders(ctx, ws.ID)
+	provs, err := s.Q.AutomationProviders(ctx, ws.ID)
 	if err != nil {
 		return out, err
 	}
 	for _, p := range provs {
-		out.Providers = append(out.Providers, RouteProvider{ID: p.ID.String(), Name: p.Name, Short: shortName(p.Name, p.Adapter), Adapter: p.Adapter, Status: p.Status, Detail: p.StatusDetail})
+		out.Providers = append(out.Providers, AutomationRouteProvider{ID: p.ID.String(), Name: p.Name, Short: shortName(p.Name, p.Adapter), Adapter: p.Adapter, Status: p.Status, Detail: p.StatusDetail})
 	}
-	tags, err := s.Q.WorkspaceTopTags(ctx, ws.ID)
+	tags, err := s.Q.AutomationTopTags(ctx, ws.ID)
 	if err != nil {
 		return out, err
 	}
 	for _, t := range tags {
 		out.Tags = append(out.Tags, t.Tag)
 	}
-	events, err := s.Q.WorkspaceEventNames(ctx, ws.ID)
+	events, err := s.Q.AutomationEventNames(ctx, ws.ID)
 	if err != nil {
 		return out, err
 	}
@@ -375,7 +375,7 @@ func (s *Service) Versions(ctx context.Context, ws *store.Workspace, id uuid.UUI
 	if err != nil {
 		return out, err
 	}
-	nodes, err := s.Q.CountInFlowByNode(ctx, a.ID)
+	nodes, err := s.Q.CountAutomationInFlowByNode(ctx, a.ID)
 	if err != nil {
 		return out, err
 	}
@@ -406,8 +406,8 @@ func (s *Service) Versions(ctx context.Context, ws *store.Workspace, id uuid.UUI
 
 // AutomationVersionGraph is one version's graph (read-only).
 type AutomationVersionGraph struct {
-	Version int       `json:"version"`
-	Graph   FlowGraph `json:"graph"`
+	Version int             `json:"version"`
+	Graph   AutomationGraph `json:"graph"`
 }
 
 // Version returns the graph of one version.
@@ -427,8 +427,8 @@ func (s *Service) Version(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	return AutomationVersionGraph{Version: version, Graph: g}, nil
 }
 
-// WebhookCall is one entry of a webhook step's delivery log.
-type WebhookCall struct {
+// AutomationWebhookCall is one entry of a webhook step's delivery log.
+type AutomationWebhookCall struct {
 	ID         string    `json:"id"`
 	Version    int       `json:"version"`
 	URL        string    `json:"url"`
@@ -439,19 +439,19 @@ type WebhookCall struct {
 	CalledAt   time.Time `json:"calledAt"`
 }
 
-// WebhookCalls returns the latest calls of a webhook step.
-func (s *Service) WebhookCalls(ctx context.Context, ws *store.Workspace, id uuid.UUID, node string, limit int) ([]WebhookCall, error) {
+// AutomationWebhookCalls returns the latest calls of a webhook step.
+func (s *Service) WebhookCalls(ctx context.Context, ws *store.Workspace, id uuid.UUID, node string, limit int) ([]AutomationWebhookCall, error) {
 	a, err := s.Q.GetAutomation(ctx, store.GetAutomationParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
 		return nil, api.MapError(err, "Automation")
 	}
-	rows, err := s.Q.ListWebhookCalls(ctx, store.ListWebhookCallsParams{AutomationID: a.ID, NodeID: node, Lim: int32(limit)})
+	rows, err := s.Q.ListAutomationWebhookCalls(ctx, store.ListAutomationWebhookCallsParams{AutomationID: a.ID, NodeID: node, Lim: int32(limit)})
 	if err != nil {
 		return nil, err
 	}
-	out := make([]WebhookCall, 0, len(rows))
+	out := make([]AutomationWebhookCall, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, WebhookCall{ID: r.ID.String(), Version: int(r.Version), URL: r.Url, StatusCode: int(r.StatusCode), Error: r.Error, DurationMs: int(r.DurationMs), Attempt: int(r.Attempt), CalledAt: r.CalledAt})
+		out = append(out, AutomationWebhookCall{ID: r.ID.String(), Version: int(r.Version), URL: r.Url, StatusCode: int(r.StatusCode), Error: r.Error, DurationMs: int(r.DurationMs), Attempt: int(r.Attempt), CalledAt: r.CalledAt})
 	}
 	return out, nil
 }

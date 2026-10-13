@@ -32,7 +32,7 @@ type CreateParams struct {
 func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID, p CreateParams) (uuid.UUID, error) {
 	id := uuid.Must(uuid.NewV7())
 	name := strings.TrimSpace(p.Name)
-	graph := FlowGraph{Nodes: []FlowNode{}, Edges: []FlowEdge{}}
+	graph := AutomationGraph{Nodes: []AutomationNode{}, Edges: []AutomationEdge{}}
 	description, summary := "", "created from a blank canvas"
 	var tpl templateDef
 	if p.Template != "" {
@@ -53,7 +53,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if tpl.Key != "" {
-			lists, err := q.LookupWorkspaceLists(ctx, ws.ID)
+			lists, err := q.AutomationLists(ctx, ws.ID)
 			if err != nil {
 				return err
 			}
@@ -125,12 +125,12 @@ func (s *Service) UpdateMeta(ctx context.Context, ws *store.Workspace, by *uuid.
 	})
 }
 
-// DraftSaved is the result of a save.
-type DraftSaved struct {
-	DraftVersion int          `json:"draftVersion"`
-	Revision     int64        `json:"revision"`
-	Changes      int          `json:"changes" doc:"Unpublished changes compared with the live version"`
-	Issues       []GraphIssue `json:"issues"`
+// AutomationDraftSaved is the result of a save.
+type AutomationDraftSaved struct {
+	DraftVersion int                    `json:"draftVersion"`
+	Revision     int64                  `json:"revision"`
+	Changes      int                    `json:"changes" doc:"Unpublished changes compared with the live version"`
+	Issues       []AutomationGraphIssue `json:"issues"`
 }
 
 // ErrRevisionConflict means someone saved the draft since the editor loaded it.
@@ -139,8 +139,8 @@ var ErrRevisionConflict = errors.New("revision conflict")
 // SaveDraft stores the canvas. The first change to a published flow starts a
 // new draft version; later saves update it. Positions alone don't count as a
 // change for the audit log.
-func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, by *uuid.UUID, id uuid.UUID, g FlowGraph, revision int64) (DraftSaved, error) {
-	var out DraftSaved
+func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, by *uuid.UUID, id uuid.UUID, g AutomationGraph, revision int64) (AutomationDraftSaved, error) {
+	var out AutomationDraftSaved
 	if len(g.Nodes) > maxNodes || len(g.Edges) > maxEdges {
 		return out, api.Invalid("body.graph", fmt.Sprintf("A flow can have up to %d steps and %d connections.", maxNodes, maxEdges))
 	}
@@ -173,7 +173,7 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, by *uuid.U
 			if err := q.InsertAutomationVersion(ctx, store.InsertAutomationVersionParams{AutomationID: id, Version: version, Graph: g.MustJSON(), CreatedBy: by}); err != nil {
 				return err
 			}
-		} else if _, err := q.UpdateDraftGraph(ctx, store.UpdateDraftGraphParams{AutomationID: id, Version: version, Graph: g.MustJSON()}); err != nil {
+		} else if _, err := q.UpdateAutomationDraftGraph(ctx, store.UpdateAutomationDraftGraphParams{AutomationID: id, Version: version, Graph: g.MustJSON()}); err != nil {
 			return err
 		}
 		if err := q.SetAutomationDraft(ctx, store.SetAutomationDraftParams{ID: id, DraftVersion: version, UpdatedBy: by, Trigger: triggerOf(g)}); err != nil {
@@ -207,12 +207,12 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, by *uuid.U
 }
 
 // normalizeGraph drops read-only fields and fills empty slices.
-func normalizeGraph(g FlowGraph) FlowGraph {
+func normalizeGraph(g AutomationGraph) AutomationGraph {
 	if g.Nodes == nil {
-		g.Nodes = []FlowNode{}
+		g.Nodes = []AutomationNode{}
 	}
 	if g.Edges == nil {
-		g.Edges = []FlowEdge{}
+		g.Edges = []AutomationEdge{}
 	}
 	for i := range g.Nodes {
 		if w := g.Nodes[i].Data.Webhook; w != nil {
@@ -250,8 +250,8 @@ func (s *Service) DiscardDraft(ctx context.Context, ws *store.Workspace, by *uui
 }
 
 // RestoreVersion makes an earlier version the draft.
-func (s *Service) RestoreVersion(ctx context.Context, ws *store.Workspace, by *uuid.UUID, id uuid.UUID, version int) (DraftSaved, error) {
-	var out DraftSaved
+func (s *Service) RestoreVersion(ctx context.Context, ws *store.Workspace, by *uuid.UUID, id uuid.UUID, version int) (AutomationDraftSaved, error) {
+	var out AutomationDraftSaved
 	a, err := s.Q.GetAutomation(ctx, store.GetAutomationParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
 		return out, api.MapError(err, "Automation")
@@ -309,7 +309,7 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 		if a.LiveVersion != nil && !canPublish {
 			return api.Forbidden("automations:publish", nil)
 		}
-		exited, err := q.ExitActiveRuns(ctx, store.ExitActiveRunsParams{AutomationID: id, ExitReason: "deleted"})
+		exited, err := q.ExitAutomationRuns(ctx, store.ExitAutomationRunsParams{AutomationID: id, ExitReason: "deleted"})
 		if err != nil {
 			return err
 		}
@@ -346,7 +346,7 @@ func (s *Service) SetStepSecret(ctx context.Context, ws *store.Workspace, by *uu
 		wsID := ws.ID
 		ev := audit.Event{WorkspaceID: &wsID, TargetType: "automation", TargetID: id.String(), TargetName: a.Name, Metadata: map[string]any{"step": node}}
 		if secret == "" {
-			if _, err := q.DeleteStepSecret(ctx, store.DeleteStepSecretParams{AutomationID: id, NodeID: node}); err != nil {
+			if _, err := q.DeleteAutomationStepSecret(ctx, store.DeleteAutomationStepSecretParams{AutomationID: id, NodeID: node}); err != nil {
 				return err
 			}
 			ev.Action = "automation.step_secret_clear"
@@ -356,7 +356,7 @@ func (s *Service) SetStepSecret(ctx context.Context, ws *store.Workspace, by *uu
 		if err != nil {
 			return err
 		}
-		if err := q.UpsertStepSecret(ctx, store.UpsertStepSecretParams{AutomationID: id, NodeID: node, SecretEnc: sealed, UpdatedBy: by}); err != nil {
+		if err := q.UpsertAutomationStepSecret(ctx, store.UpsertAutomationStepSecretParams{AutomationID: id, NodeID: node, SecretEnc: sealed, UpdatedBy: by}); err != nil {
 			return err
 		}
 		ev.Action = "automation.step_secret_set"
@@ -369,10 +369,10 @@ func secretAD(automation uuid.UUID, node string) string {
 }
 
 // CreateEmail makes a new email for a send step.
-func (s *Service) CreateEmail(ctx context.Context, ws *store.Workspace, by *uuid.UUID, automation *uuid.UUID, name, subject string) (EmailOption, error) {
+func (s *Service) CreateEmail(ctx context.Context, ws *store.Workspace, by *uuid.UUID, automation *uuid.UUID, name, subject string) (AutomationEmailOption, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return EmailOption{}, api.Invalid("body.name", "Name the email.")
+		return AutomationEmailOption{}, api.Invalid("body.name", "Name the email.")
 	}
 	id := uuid.Must(uuid.NewV7())
 	c := BlankEmail(name, subject)
@@ -392,7 +392,54 @@ func (s *Service) CreateEmail(ctx context.Context, ws *store.Workspace, by *uuid
 		wsID := ws.ID
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "automation_email.create", TargetType: "automation_email", TargetID: id.String(), TargetName: name})
 	})
-	return EmailOption{ID: id.String(), Name: name, LatestVersion: 1, Subject: c.Subject, UpdatedAt: s.now()}, err
+	return AutomationEmailOption{ID: id.String(), Name: name, LatestVersion: 1, Subject: c.Subject, UpdatedAt: s.now()}, err
+}
+
+// EmailUpdate is new content for an email; it becomes the next version.
+type EmailUpdate struct {
+	Subject   string
+	Preheader string
+	HTML      string
+	Text      string
+}
+
+// UpdateEmail saves new content as the email's next version. Steps keep the
+// version they point at until someone picks the new one, so a live flow
+// never changes what it sends without a publish. Content edited as HTML
+// drops the MJML source (the composer reopens it in HTML mode).
+func (s *Service) UpdateEmail(ctx context.Context, ws *store.Workspace, by *uuid.UUID, id uuid.UUID, u EmailUpdate) (AutomationEmailContent, error) {
+	if strings.TrimSpace(u.Subject) == "" {
+		return AutomationEmailContent{}, api.Invalid("body.subject", "Write a subject line.")
+	}
+	if strings.TrimSpace(u.HTML) == "" {
+		return AutomationEmailContent{}, api.Invalid("body.html", "The email is empty. Write its HTML.")
+	}
+	if len(u.HTML) > 512<<10 {
+		return AutomationEmailContent{}, api.Invalid("body.html", "Keep the email under 512 KB; Gmail clips anything over 102 KB anyway.")
+	}
+	var version int32
+	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		var name string
+		var latest int32
+		if err := tx.QueryRow(ctx, `SELECT name, latest_version FROM automation_emails WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR UPDATE`, ws.ID, id).Scan(&name, &latest); err != nil {
+			return api.MapError(err, "Email")
+		}
+		version = latest + 1
+		q := store.New(tx)
+		if err := q.InsertAutomationEmailVersion(ctx, store.InsertAutomationEmailVersionParams{EmailID: id, Version: version, Subject: u.Subject, Preheader: u.Preheader, Html: u.HTML, PlainText: u.Text, CreatedBy: by}); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE automation_emails SET latest_version = $2, updated_at = now() WHERE id = $1`, id, version); err != nil {
+			return err
+		}
+		wsID := ws.ID
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "automation_email.update", TargetType: "automation_email", TargetID: id.String(), TargetName: name,
+			Metadata: map[string]any{"version": version}})
+	})
+	if err != nil {
+		return AutomationEmailContent{}, err
+	}
+	return s.Email(ctx, ws, id, int(version))
 }
 
 // AutomationEmailContent is one version of an email, for previews.

@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-// DiffItem is one line of a version diff: what was added, changed or removed,
+// AutomationDiffItem is one line of a version diff: what was added, changed or removed,
 // and a last line listing what stayed the same.
-type DiffItem struct {
+type AutomationDiffItem struct {
 	Kind    string   `json:"kind" enum:"added,changed,removed,unchanged"`
 	Title   string   `json:"title"`
 	Detail  string   `json:"detail,omitempty"`
@@ -41,7 +41,7 @@ type DiffContext struct {
 }
 
 // Changes counts the diff items that are changes (not the unchanged line).
-func Changes(items []DiffItem) int {
+func Changes(items []AutomationDiffItem) int {
 	n := 0
 	for _, it := range items {
 		if it.Kind != "unchanged" {
@@ -55,7 +55,7 @@ func Changes(items []DiffItem) int {
 // across versions, so a step is changed when its settings differ, added or
 // removed when its id appears or disappears, and rewired when it now leads
 // somewhere else. Positions on the canvas don't count as changes.
-func Diff(from, to FlowGraph, dc DiffContext) []DiffItem {
+func Diff(from, to AutomationGraph, dc DiffContext) []AutomationDiffItem {
 	if dc.ToRefs == nil {
 		dc.ToRefs = dc.FromRefs
 	}
@@ -65,11 +65,11 @@ func Diff(from, to FlowGraph, dc DiffContext) []DiffItem {
 	if dc.Loc == nil {
 		dc.Loc = time.UTC
 	}
-	inFrom := map[string]FlowNode{}
+	inFrom := map[string]AutomationNode{}
 	for _, n := range from.Nodes {
 		inFrom[n.ID] = n
 	}
-	inTo := map[string]FlowNode{}
+	inTo := map[string]AutomationNode{}
 	for _, n := range to.Nodes {
 		inTo[n.ID] = n
 	}
@@ -84,7 +84,7 @@ func Diff(from, to FlowGraph, dc DiffContext) []DiffItem {
 			removed[id] = true
 		}
 	}
-	var items []DiffItem
+	var items []AutomationDiffItem
 	changedNodes := map[string]bool{}
 
 	// Added steps, grouped into connected clusters.
@@ -126,21 +126,21 @@ func Diff(from, to FlowGraph, dc DiffContext) []DiffItem {
 		items = append(items, u)
 	}
 	if items == nil {
-		items = []DiffItem{}
+		items = []AutomationDiffItem{}
 	}
 	return items
 }
 
 // sameStep compares type and settings, ignoring the canvas position and
 // read-only fields.
-func sameStep(a, b FlowNode) bool {
+func sameStep(a, b AutomationNode) bool {
 	if a.Type != b.Type {
 		return false
 	}
 	return bytes.Equal(normData(a.Data), normData(b.Data))
 }
 
-func normData(d FlowNodeData) []byte {
+func normData(d AutomationNodeData) []byte {
 	if d.Webhook != nil {
 		w := *d.Webhook
 		w.HasSecret = false
@@ -152,7 +152,7 @@ func normData(d FlowNodeData) []byte {
 
 // successors lists "path→target" for each edge out of id, following edges
 // through skipped steps until a kept step (or the end of the flow).
-func successors(g FlowGraph, id string, skip map[string]bool) []string {
+func successors(g AutomationGraph, id string, skip map[string]bool) []string {
 	var out []string
 	seen := map[string]bool{}
 	var follow func(path, node string)
@@ -182,7 +182,7 @@ func successors(g FlowGraph, id string, skip map[string]bool) []string {
 
 // clusters groups the given steps into connected components, each ordered
 // from the step closest to the trigger.
-func clusters(g FlowGraph, set map[string]bool) [][]string {
+func clusters(g AutomationGraph, set map[string]bool) [][]string {
 	depth := g.Depths()
 	parent := map[string]string{}
 	var find func(string) string
@@ -227,7 +227,7 @@ func clusters(g FlowGraph, set map[string]bool) [][]string {
 }
 
 // quotedRef names a step for a diff line: "the trigger" or "Step 2" in quotes.
-func quotedRef(g FlowGraph, id string, refs *Refs) string {
+func quotedRef(g AutomationGraph, id string, refs *Refs) string {
 	n := g.Node(id)
 	if n == nil {
 		return "a removed step"
@@ -238,7 +238,7 @@ func quotedRef(g FlowGraph, id string, refs *Refs) string {
 	return `"` + NodeRef(g, *n, refs) + `"`
 }
 
-func weights(n FlowNode) string {
+func weights(n AutomationNode) string {
 	parts := make([]string, 0, len(n.Data.Variants))
 	for _, v := range n.Data.Variants {
 		parts = append(parts, fmt.Sprint(v.Weight))
@@ -247,7 +247,7 @@ func weights(n FlowNode) string {
 }
 
 // headline describes a step on its own ("A/B split", `Webhook "notify-slack"`).
-func headline(g FlowGraph, n FlowNode, refs *Refs) string {
+func headline(g AutomationGraph, n AutomationNode, refs *Refs) string {
 	switch n.Type {
 	case NodeTrigger:
 		return "Trigger: " + TriggerLabel(n.Data.Trigger, refs)
@@ -270,7 +270,7 @@ func headline(g FlowGraph, n FlowNode, refs *Refs) string {
 }
 
 // emailItemRef is how a new email reads in a list: `3A "Set up your first flag"`.
-func emailItemRef(g FlowGraph, n FlowNode, refs *Refs) string {
+func emailItemRef(g AutomationGraph, n AutomationNode, refs *Refs) string {
 	name := emailNodeName(n, refs)
 	ref := NodeRef(g, n, refs)
 	if n.Data.Label == "" {
@@ -329,9 +329,9 @@ func dayMonth(t time.Time, loc *time.Location) string {
 	return t.In(loc).Format("2 Jan")
 }
 
-func describeCluster(g FlowGraph, ids []string, kind string, dc DiffContext, refs *Refs) DiffItem {
+func describeCluster(g AutomationGraph, ids []string, kind string, dc DiffContext, refs *Refs) AutomationDiffItem {
 	root := g.Node(ids[0])
-	item := DiffItem{Kind: kind, NodeIDs: ids}
+	item := AutomationDiffItem{Kind: kind, NodeIDs: ids}
 	title := headline(g, *root, refs)
 	if root.Type != NodeTrigger {
 		if prev := g.Prev(root.ID); prev != "" {
@@ -344,7 +344,7 @@ func describeCluster(g FlowGraph, ids []string, kind string, dc DiffContext, ref
 	item.Title = title
 
 	var details []string
-	var emails []FlowNode
+	var emails []AutomationNode
 	var others []string
 	for _, id := range ids {
 		n := g.Node(id)
@@ -404,7 +404,7 @@ func describeCluster(g FlowGraph, ids []string, kind string, dc DiffContext, ref
 }
 
 // checkSentence reports Send Readiness content checks of new emails.
-func checkSentence(g FlowGraph, emails []FlowNode, dc DiffContext, refs *Refs) string {
+func checkSentence(g AutomationGraph, emails []AutomationNode, dc DiffContext, refs *Refs) string {
 	if dc.Check == nil || len(emails) == 0 {
 		return ""
 	}
@@ -430,8 +430,8 @@ func checkSentence(g FlowGraph, emails []FlowNode, dc DiffContext, refs *Refs) s
 	return fmt.Sprintf("All %d pass Send Readiness content checks.", len(emails))
 }
 
-func describeChange(from, to FlowGraph, a, b FlowNode, dc DiffContext) DiffItem {
-	item := DiffItem{Kind: "changed", NodeIDs: []string{b.ID}}
+func describeChange(from, to AutomationGraph, a, b AutomationNode, dc DiffContext) AutomationDiffItem {
+	item := AutomationDiffItem{Kind: "changed", NodeIDs: []string{b.ID}}
 	refsA, refsB := dc.FromRefs, dc.ToRefs
 	ref := quotedRef(to, b.ID, refsB)
 	switch b.Type {
@@ -447,10 +447,10 @@ func describeChange(from, to FlowGraph, a, b FlowNode, dc DiffContext) DiffItem 
 	case NodeEmail:
 		ea, eb := a.Data.Email, b.Data.Email
 		if ea == nil {
-			ea = &EmailStepConfig{}
+			ea = &AutomationEmailStep{}
 		}
 		if eb == nil {
-			eb = &EmailStepConfig{}
+			eb = &AutomationEmailStep{}
 		}
 		switch {
 		case ea.EmailID != eb.EmailID:
@@ -503,9 +503,9 @@ func describeChange(from, to FlowGraph, a, b FlowNode, dc DiffContext) DiffItem 
 	return item
 }
 
-func describeRewire(to FlowGraph, n FlowNode, after []string, dc DiffContext) DiffItem {
+func describeRewire(to AutomationGraph, n AutomationNode, after []string, dc DiffContext) AutomationDiffItem {
 	refs := dc.ToRefs
-	item := DiffItem{Kind: "changed", NodeIDs: []string{n.ID}}
+	item := AutomationDiffItem{Kind: "changed", NodeIDs: []string{n.ID}}
 	var parts []string
 	for _, s := range after {
 		path, target, _ := strings.Cut(s, "→")
@@ -530,12 +530,12 @@ func describeRewire(to FlowGraph, n FlowNode, after []string, dc DiffContext) Di
 // steps before the first fork, every branch path with no change at all (as
 // `"No" path`), then goals and exits. Delays and steps on changed paths are
 // left out; they're covered by the lines above.
-func unchangedLine(g FlowGraph, added, changed map[string]bool, refs *Refs) DiffItem {
-	item := DiffItem{Kind: "unchanged", NodeIDs: []string{}}
+func unchangedLine(g AutomationGraph, added, changed map[string]bool, refs *Refs) AutomationDiffItem {
+	item := AutomationDiffItem{Kind: "unchanged", NodeIDs: []string{}}
 	untouched := func(id string) bool { return !added[id] && !changed[id] }
 	var parts []string
 	var ids []string
-	var terminals []FlowNode
+	var terminals []AutomationNode
 	listed := map[string]bool{}
 	var visitPath func(start string) (members []string, clean bool)
 	visitPath = func(start string) ([]string, bool) {
@@ -607,7 +607,7 @@ func unchangedLine(g FlowGraph, added, changed map[string]bool, refs *Refs) Diff
 	}
 	for _, id := range g.Order() {
 		n := g.Node(id)
-		if n.Terminal() && !slices.ContainsFunc(terminals, func(x FlowNode) bool { return x.ID == id }) {
+		if n.Terminal() && !slices.ContainsFunc(terminals, func(x AutomationNode) bool { return x.ID == id }) {
 			terminals = append(terminals, *n)
 		}
 	}
@@ -633,7 +633,7 @@ func unchangedLine(g FlowGraph, added, changed map[string]bool, refs *Refs) Diff
 	return item
 }
 
-func unchangedName(g FlowGraph, n FlowNode, refs *Refs) string {
+func unchangedName(g AutomationGraph, n AutomationNode, refs *Refs) string {
 	switch n.Type {
 	case NodeTrigger:
 		return "trigger"

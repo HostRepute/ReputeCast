@@ -5,9 +5,9 @@ import (
 	"strings"
 )
 
-// StarterTemplate is one of the starter flows offered on the automations
+// AutomationStarterTemplate is one of the starter flows offered on the automations
 // list and in the empty state. Each opens as a draft; every step is editable.
-type StarterTemplate struct {
+type AutomationStarterTemplate struct {
 	Key  string `json:"key" enum:"welcome-series,re-engagement,onboarding"`
 	Name string `json:"name"`
 	// Summary is the card text in the list's "Starter templates" section.
@@ -27,28 +27,30 @@ type templateEmail struct {
 }
 
 type templateDef struct {
-	StarterTemplate
+	AutomationStarterTemplate
 	description string
 	emails      []templateEmail
-	build       func(listID string) FlowGraph
+	build       func(listID string) AutomationGraph
 }
 
-func fork(id, typ string, d FlowNodeData) FlowNode { return FlowNode{ID: id, Type: typ, Data: d} }
-
-func link(src, dst, path string) FlowEdge {
-	return FlowEdge{ID: "e-" + src + "-" + dst, Source: src, Target: dst, Data: FlowEdgeData{Path: path}}
+func fork(id, typ string, d AutomationNodeData) AutomationNode {
+	return AutomationNode{ID: id, Type: typ, Data: d}
 }
 
-func emailNode(id, emailKey, subject string) FlowNode {
-	return fork(id, NodeEmail, FlowNodeData{Email: &EmailStepConfig{
+func link(src, dst, path string) AutomationEdge {
+	return AutomationEdge{ID: "e-" + src + "-" + dst, Source: src, Target: dst, Data: AutomationEdgeData{Path: path}}
+}
+
+func emailNode(id, emailKey, subject string) AutomationNode {
+	return fork(id, NodeEmail, AutomationNodeData{Email: &AutomationEmailStep{
 		EmailID: "tpl:" + emailKey, EmailVersion: 1, Subject: subject,
-		SendWindow: &SendWindow{Enabled: true, Start: "07:00", End: "21:00"}, SkipRecentHours: 4,
+		SendWindow: &AutomationSendWindow{Enabled: true, Start: "07:00", End: "21:00"}, SkipRecentHours: 4,
 	}})
 }
 
 var templates = []templateDef{
 	{
-		StarterTemplate: StarterTemplate{
+		AutomationStarterTemplate: AutomationStarterTemplate{
 			Key: "welcome-series", Name: "Welcome series",
 			Summary: "Trigger on list join, 3 emails over a week, branch on first open, goal on first click.",
 			Outline: "Joined list → wait 10 min → email 1 → branch on open → emails 2 and 3 → goal: first click",
@@ -63,18 +65,18 @@ var templates = []templateDef{
 			{key: "w3", name: `Step 3 "Did you get our welcome?"`, subject: "Did you get our welcome?", preheader: "A plain-text note in case the first one got buried.",
 				heading: "Did you get our welcome?", cta: "Open the guide", body: []string{"Our first email may have landed in another tab. Here's the short version."}},
 		},
-		build: func(listID string) FlowGraph {
-			return FlowGraph{
-				Nodes: []FlowNode{
-					fork("n1", NodeTrigger, FlowNodeData{Trigger: &TriggerConfig{Kind: TriggerJoinedList, ListID: listID, ConfirmedOnly: true, Reentry: "once"}}),
-					fork("n2", NodeDelay, FlowNodeData{Delay: &FlowDuration{Amount: 10, Unit: "minutes"}}),
+		build: func(listID string) AutomationGraph {
+			return AutomationGraph{
+				Nodes: []AutomationNode{
+					fork("n1", NodeTrigger, AutomationNodeData{Trigger: &AutomationTrigger{Kind: TriggerJoinedList, ListID: listID, ConfirmedOnly: true, Reentry: "once"}}),
+					fork("n2", NodeDelay, AutomationNodeData{Delay: &AutomationDuration{Amount: 10, Unit: "minutes"}}),
 					emailNode("n3", "w1", "You're in. Here's what to expect"),
-					fork("n4", NodeBranch, FlowNodeData{Condition: &FlowCondition{Kind: "opened", Step: "n3", Within: &FlowDuration{Amount: 2, Unit: "days"}, HumanOnly: true}}),
+					fork("n4", NodeBranch, AutomationNodeData{Condition: &AutomationCondition{Kind: "opened", Step: "n3", Within: &AutomationDuration{Amount: 2, Unit: "days"}, HumanOnly: true}}),
 					emailNode("n5", "w2", "Three things to try first"),
 					emailNode("n6", "w3", "Did you get our welcome?"),
-					fork("n7", NodeGoal, FlowNodeData{Label: "First click", Condition: &FlowCondition{Kind: "clicked"}}),
+					fork("n7", NodeGoal, AutomationNodeData{Label: "First click", Condition: &AutomationCondition{Kind: "clicked"}}),
 				},
-				Edges: []FlowEdge{
+				Edges: []AutomationEdge{
 					link("n1", "n2", ""), link("n2", "n3", ""), link("n3", "n4", ""),
 					link("n4", "n5", PathYes), link("n4", "n6", PathNo),
 					link("n5", "n7", ""), link("n6", "n7", ""),
@@ -83,7 +85,7 @@ var templates = []templateDef{
 		},
 	},
 	{
-		StarterTemplate: StarterTemplate{
+		AutomationStarterTemplate: AutomationStarterTemplate{
 			Key: "re-engagement", Name: "Re-engagement",
 			Summary: `Trigger when a contact enters the Sunset tier, one "still want these?" email, exit or stop broadcasts.`,
 			Outline: `Tag "sunset-entered" → "still want these?" email → wait 14 d → branch on open → exit or stop broadcasts`,
@@ -94,16 +96,16 @@ var templates = []templateDef{
 			{key: "r1", name: `Re-engagement "Still want these?"`, subject: "Still want these?", preheader: "One click keeps you on the list.",
 				heading: "Still want these?", cta: "Yes, keep me subscribed", body: []string{"We haven't seen you open our emails in a while. If you'd like to keep getting them, tell us with one click.", "If not, we'll stop sending; you can come back any time."}},
 		},
-		build: func(string) FlowGraph {
-			return FlowGraph{
-				Nodes: []FlowNode{
-					fork("n1", NodeTrigger, FlowNodeData{Trigger: &TriggerConfig{Kind: TriggerTagAdded, Tag: "sunset-entered", Reentry: "once"}}),
+		build: func(string) AutomationGraph {
+			return AutomationGraph{
+				Nodes: []AutomationNode{
+					fork("n1", NodeTrigger, AutomationNodeData{Trigger: &AutomationTrigger{Kind: TriggerTagAdded, Tag: "sunset-entered", Reentry: "once"}}),
 					emailNode("n2", "r1", "Still want these?"),
-					fork("n3", NodeBranch, FlowNodeData{Condition: &FlowCondition{Kind: "opened", Step: "n2", Within: &FlowDuration{Amount: 14, Unit: "days"}, HumanOnly: true}}),
-					fork("n4", NodeExit, FlowNodeData{Label: "Stays subscribed"}),
-					fork("n5", NodeList, FlowNodeData{Label: "Stop broadcasts", Action: &ListActionConfig{Kind: "unsubscribe_all"}}),
+					fork("n3", NodeBranch, AutomationNodeData{Condition: &AutomationCondition{Kind: "opened", Step: "n2", Within: &AutomationDuration{Amount: 14, Unit: "days"}, HumanOnly: true}}),
+					fork("n4", NodeExit, AutomationNodeData{Label: "Stays subscribed"}),
+					fork("n5", NodeList, AutomationNodeData{Label: "Stop broadcasts", Action: &AutomationListAction{Kind: "unsubscribe_all"}}),
 				},
-				Edges: []FlowEdge{
+				Edges: []AutomationEdge{
 					link("n1", "n2", ""), link("n2", "n3", ""),
 					link("n3", "n4", PathYes), link("n3", "n5", PathNo),
 				},
@@ -111,7 +113,7 @@ var templates = []templateDef{
 		},
 	},
 	{
-		StarterTemplate: StarterTemplate{
+		AutomationStarterTemplate: AutomationStarterTemplate{
 			Key: "onboarding", Name: "Onboarding",
 			Summary: "Trigger on an API event, 5 emails tied to product milestones, webhook to your CRM, goal on activation.",
 			Outline: "API event → 5 milestone emails → webhook to your CRM → goal: activated",
@@ -125,23 +127,23 @@ var templates = []templateDef{
 			{key: "o4", name: `Step 4 "Connect your tools"`, subject: "Connect your tools", preheader: "Bring in the data you already have.", heading: "Connect your tools", cta: "See integrations", body: []string{"Connect the tools you already use so nothing lives in two places."}},
 			{key: "o5", name: `Step 5 "Your first month"`, subject: "Your first month", preheader: "What people do next.", heading: "Your first month", cta: "Read the guide", body: []string{"A month in, here's what teams like yours do next."}},
 		},
-		build: func(string) FlowGraph {
-			return FlowGraph{
-				Nodes: []FlowNode{
-					fork("n1", NodeTrigger, FlowNodeData{Trigger: &TriggerConfig{Kind: TriggerAPIEvent, Event: "user.signed_up", Reentry: "once"}}),
+		build: func(string) AutomationGraph {
+			return AutomationGraph{
+				Nodes: []AutomationNode{
+					fork("n1", NodeTrigger, AutomationNodeData{Trigger: &AutomationTrigger{Kind: TriggerAPIEvent, Event: "user.signed_up", Reentry: "once"}}),
 					emailNode("n2", "o1", "Welcome aboard"),
-					fork("n3", NodeDelay, FlowNodeData{Delay: &FlowDuration{Amount: 1, Unit: "days"}}),
+					fork("n3", NodeDelay, AutomationNodeData{Delay: &AutomationDuration{Amount: 1, Unit: "days"}}),
 					emailNode("n4", "o2", "Create your first project"),
-					fork("n5", NodeDelay, FlowNodeData{Delay: &FlowDuration{Amount: 2, Unit: "days"}}),
+					fork("n5", NodeDelay, AutomationNodeData{Delay: &AutomationDuration{Amount: 2, Unit: "days"}}),
 					emailNode("n6", "o3", "Invite your team"),
-					fork("n7", NodeWebhook, FlowNodeData{Webhook: &WebhookConfig{Name: "Sync to CRM", Method: "POST"}}),
-					fork("n8", NodeDelay, FlowNodeData{Delay: &FlowDuration{Amount: 3, Unit: "days"}}),
+					fork("n7", NodeWebhook, AutomationNodeData{Webhook: &AutomationWebhook{Name: "Sync to CRM", Method: "POST"}}),
+					fork("n8", NodeDelay, AutomationNodeData{Delay: &AutomationDuration{Amount: 3, Unit: "days"}}),
 					emailNode("n9", "o4", "Connect your tools"),
-					fork("n10", NodeDelay, FlowNodeData{Delay: &FlowDuration{Amount: 7, Unit: "days"}}),
+					fork("n10", NodeDelay, AutomationNodeData{Delay: &AutomationDuration{Amount: 7, Unit: "days"}}),
 					emailNode("n11", "o5", "Your first month"),
-					fork("n12", NodeGoal, FlowNodeData{Label: "Activated", Condition: &FlowCondition{Kind: "event", Event: "account.activated"}}),
+					fork("n12", NodeGoal, AutomationNodeData{Label: "Activated", Condition: &AutomationCondition{Kind: "event", Event: "account.activated"}}),
 				},
-				Edges: []FlowEdge{
+				Edges: []AutomationEdge{
 					link("n1", "n2", ""), link("n2", "n3", ""), link("n3", "n4", ""), link("n4", "n5", ""),
 					link("n5", "n6", ""), link("n6", "n7", ""), link("n7", "n8", ""), link("n8", "n9", ""),
 					link("n9", "n10", ""), link("n10", "n11", ""), link("n11", "n12", ""),
@@ -152,10 +154,10 @@ var templates = []templateDef{
 }
 
 // Templates lists the starter templates.
-func Templates() []StarterTemplate {
-	out := make([]StarterTemplate, len(templates))
+func Templates() []AutomationStarterTemplate {
+	out := make([]AutomationStarterTemplate, len(templates))
 	for i, t := range templates {
-		out[i] = t.StarterTemplate
+		out[i] = t.AutomationStarterTemplate
 	}
 	return out
 }

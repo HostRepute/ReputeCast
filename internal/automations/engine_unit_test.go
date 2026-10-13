@@ -34,7 +34,7 @@ func TestSendWindow(t *testing.T) {
 }
 
 func TestSplitAssignmentIsStableAndWeighted(t *testing.T) {
-	n := FlowNode{ID: "s", Type: NodeSplit, Data: FlowNodeData{Variants: []SplitVariant{{Key: "A", Weight: 80}, {Key: "B", Weight: 20}}}}
+	n := AutomationNode{ID: "s", Type: NodeSplit, Data: AutomationNodeData{Variants: []AutomationSplitVariant{{Key: "A", Weight: 80}, {Key: "B", Weight: 20}}}}
 	counts := map[string]int{}
 	for i := 0; i < 5000; i++ {
 		id := uuid.Must(uuid.NewV7())
@@ -50,17 +50,17 @@ func TestSplitAssignmentIsStableAndWeighted(t *testing.T) {
 }
 
 func TestFieldConditions(t *testing.T) {
-	c := &store.ContactForRunRow{Email: "a@b.co", FirstName: "Ana", Attributes: []byte(`{"plan":"Pro","seats":12}`)}
+	c := &store.AutomationContactRow{Email: "a@b.co", FirstName: "Ana", Attributes: []byte(`{"plan":"Pro","seats":12}`)}
 	for _, tc := range []struct {
-		cond FlowCondition
+		cond AutomationCondition
 		want bool
 	}{
-		{FlowCondition{Field: "plan", Op: "equals", Value: "pro"}, true},
-		{FlowCondition{Field: "plan", Op: "not_equals", Value: "pro"}, false},
-		{FlowCondition{Field: "seats", Op: "equals", Value: "12"}, true},
-		{FlowCondition{Field: "first_name", Op: "contains", Value: "an"}, true},
-		{FlowCondition{Field: "company", Op: "is_set"}, false},
-		{FlowCondition{Field: "company", Op: "is_not_set"}, true},
+		{AutomationCondition{Field: "plan", Op: "equals", Value: "pro"}, true},
+		{AutomationCondition{Field: "plan", Op: "not_equals", Value: "pro"}, false},
+		{AutomationCondition{Field: "seats", Op: "equals", Value: "12"}, true},
+		{AutomationCondition{Field: "first_name", Op: "contains", Value: "an"}, true},
+		{AutomationCondition{Field: "company", Op: "is_set"}, false},
+		{AutomationCondition{Field: "company", Op: "is_not_set"}, true},
 	} {
 		if got := fieldMatches(c, &tc.cond); got != tc.want {
 			t.Errorf("%+v: %v", tc.cond, got)
@@ -70,7 +70,7 @@ func TestFieldConditions(t *testing.T) {
 
 func TestFinishEstimateAndMoveImpact(t *testing.T) {
 	v3 := welcomeV3()
-	inflow := []store.CountInFlowByNodeRow{{Version: 3, NodeID: "n4", N: 168}, {Version: 3, NodeID: "n5", N: 203}, {Version: 3, NodeID: "n11", N: 237}}
+	inflow := []store.CountAutomationInFlowByNodeRow{{Version: 3, NodeID: "n4", N: 168}, {Version: 3, NodeID: "n5", N: 203}, {Version: 3, NodeID: "n11", N: 237}}
 	if got := finishEstimate(v3, inflow); got != "about 5 days" {
 		t.Fatalf("estimate %q", got)
 	}
@@ -82,7 +82,7 @@ func TestFinishEstimateAndMoveImpact(t *testing.T) {
 
 func TestLayoutKeepsBranchesApart(t *testing.T) {
 	g := Layout(welcomeV4())
-	pos := map[string]FlowPosition{}
+	pos := map[string]AutomationNodePosition{}
 	for _, n := range g.Nodes {
 		pos[n.ID] = n.Position
 	}

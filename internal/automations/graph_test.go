@@ -12,7 +12,7 @@ func TestDiffWelcomeSeriesMatchesThePublishBoard(t *testing.T) {
 		Failures: map[string]WebhookFailure{"w1": {URL: "https://hooks.slack.com/services/T000/B000/XXXX", Status: 404, Since: sep29, Failures: 1284}},
 		Check:    func(string, int) string { return "" },
 	})
-	want := []DiffItem{
+	want := []AutomationDiffItem{
 		{Kind: "added", Title: `A/B split after "Step 2", 50 / 50`, Detail: `Two new email steps: 3A "Set up your first flag" and 3B "A 5-minute walkthrough". Both pass Send Readiness content checks.`},
 		{Kind: "changed", Title: `Delay before "Step 2": 1 day → 2 days`, Detail: `Contacts already waiting keep their original timer unless you move them to v4 below.`},
 		{Kind: "removed", Title: `Webhook "notify-slack" after the trigger`, Detail: `Endpoint https://hooks.slack.com/… was returning 404 since 29 Sep. 1,284 failed calls are in the webhook log.`},
@@ -64,7 +64,7 @@ func TestValidateWelcome(t *testing.T) {
 	}
 	g := welcomeV4()
 	// Disconnect the "No" path and orphan its steps.
-	g.Edges = slices.DeleteFunc(g.Edges, func(e FlowEdge) bool { return e.Source == "n4" && e.Data.Path == PathNo })
+	g.Edges = slices.DeleteFunc(g.Edges, func(e AutomationEdge) bool { return e.Source == "n4" && e.Data.Path == PathNo })
 	codes := map[string]bool{}
 	for _, i := range Validate(g, welcomeRefs()) {
 		codes[i.Code] = true
@@ -87,7 +87,7 @@ func TestValidateWelcome(t *testing.T) {
 	// References to deleted lists and private webhook URLs.
 	g = welcomeV4()
 	g.Nodes[0].Data.Trigger.ListID = "gone"
-	g.Nodes = append(g.Nodes, node("w", NodeWebhook, 0, 0, FlowNodeData{Webhook: &WebhookConfig{URL: "http://169.254.169.254/latest/meta-data"}}))
+	g.Nodes = append(g.Nodes, node("w", NodeWebhook, 0, 0, AutomationNodeData{Webhook: &AutomationWebhook{URL: "http://169.254.169.254/latest/meta-data"}}))
 	g.Edges = append(g.Edges, edge("n13", "w", ""))
 	var msgs []string
 	for _, i := range Validate(g, welcomeRefs()) {

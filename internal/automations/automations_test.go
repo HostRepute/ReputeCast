@@ -142,7 +142,7 @@ type detail struct {
 	LiveNodeIDs      []string
 	PublishedNodeIDs []string
 	Issues           []struct{ Code, NodeID string }
-	Graph            automations.FlowGraph
+	Graph            automations.AutomationGraph
 }
 
 func welcomeID(t *testing.T, c *apptest.Client) string {
@@ -311,7 +311,7 @@ func TestCreateEditValidateAndConflicts(t *testing.T) {
 	}
 	// Remove the "No" path: saved, but reported.
 	g := d.Graph
-	var edges []automations.FlowEdge
+	var edges []automations.AutomationEdge
 	for _, e := range g.Edges {
 		if e.Data.Path != automations.PathNo {
 			edges = append(edges, e)

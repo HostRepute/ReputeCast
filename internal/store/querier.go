@@ -15,42 +15,80 @@ import (
 type Querier interface {
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) error
 	// Where contacts are, per version and step (publish impact).
-	ActiveRunNodes(ctx context.Context, automationID uuid.UUID) ([]ActiveRunNodesRow, error)
+	AutomationActiveRunNodes(ctx context.Context, automationID uuid.UUID) ([]AutomationActiveRunNodesRow, error)
 	// Live flows' versions that still have contacts in them (goal detection).
-	ActiveRunVersions(ctx context.Context) ([]ActiveRunVersionsRow, error)
-	AddContactTag(ctx context.Context, arg AddContactTagParams) error
-	AddListMembership(ctx context.Context, arg AddListMembershipParams) error
+	AutomationActiveRunVersions(ctx context.Context) ([]AutomationActiveRunVersionsRow, error)
+	AutomationAddContactTag(ctx context.Context, arg AutomationAddContactTagParams) error
+	AutomationAddListMembership(ctx context.Context, arg AutomationAddListMembershipParams) error
+	AutomationContact(ctx context.Context, id uuid.UUID) (AutomationContactRow, error)
+	AutomationContactByEmail(ctx context.Context, arg AutomationContactByEmailParams) (AutomationContactByEmailRow, error)
+	AutomationContactEmailedSince(ctx context.Context, arg AutomationContactEmailedSinceParams) (bool, error)
+	AutomationContactInList(ctx context.Context, arg AutomationContactInListParams) (bool, error)
+	AutomationContactInWorkspace(ctx context.Context, arg AutomationContactInWorkspaceParams) (AutomationContactInWorkspaceRow, error)
+	AutomationContactSentEvent(ctx context.Context, arg AutomationContactSentEventParams) (bool, error)
+	AutomationContactSuppressed(ctx context.Context, arg AutomationContactSuppressedParams) (bool, error)
+	// Contacts whose date field (plus the offset) is today in the workspace's
+	// timezone; yearly triggers match the day and month every year.
+	AutomationDateFieldMatches(ctx context.Context, arg AutomationDateFieldMatchesParams) ([]uuid.UUID, error)
+	AutomationDateTriggers(ctx context.Context) ([]AutomationDateTriggersRow, error)
 	// Whether the contact opened or clicked any email of this flow since a time.
 	AutomationEngaged(ctx context.Context, arg AutomationEngagedParams) (bool, error)
+	AutomationEventNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	AutomationFields(ctx context.Context, workspaceID uuid.UUID) ([]AutomationFieldsRow, error)
+	AutomationForms(ctx context.Context, workspaceID uuid.UUID) ([]AutomationFormsRow, error)
+	// Runs whose contact opened or clicked an email of this flow since entering.
+	AutomationGoalRunsEngaged(ctx context.Context, arg AutomationGoalRunsEngagedParams) ([]AutomationGoalRunsEngagedRow, error)
+	AutomationGoalRunsEvent(ctx context.Context, arg AutomationGoalRunsEventParams) ([]AutomationGoalRunsEventRow, error)
+	AutomationGoalRunsInList(ctx context.Context, arg AutomationGoalRunsInListParams) ([]AutomationGoalRunsInListRow, error)
+	AutomationGoalRunsTagged(ctx context.Context, arg AutomationGoalRunsTaggedParams) ([]AutomationGoalRunsTaggedRow, error)
+	AutomationLists(ctx context.Context, workspaceID uuid.UUID) ([]AutomationListsRow, error)
+	// Runs waiting on a webhook call whose job never ran (lost or not enqueued).
+	AutomationLostWebhookRuns(ctx context.Context, before time.Time) ([]AutomationLostWebhookRunsRow, error)
+	AutomationMessageEngaged(ctx context.Context, arg AutomationMessageEngagedParams) (bool, error)
+	AutomationMessageForStats(ctx context.Context, id uuid.UUID) (AutomationMessageForStatsRow, error)
+	// Automation emails per sending provider since a day, and the last day each sent.
+	AutomationProviderSendsSince(ctx context.Context, arg AutomationProviderSendsSinceParams) ([]AutomationProviderSendsSinceRow, error)
+	AutomationProviders(ctx context.Context, workspaceID uuid.UUID) ([]AutomationProvidersRow, error)
+	AutomationRemoveContactTag(ctx context.Context, arg AutomationRemoveContactTagParams) error
+	AutomationRemoveListMembership(ctx context.Context, arg AutomationRemoveListMembershipParams) error
 	// The default Automations route: the weighted split and the fallback.
 	AutomationRoute(ctx context.Context, workspaceID uuid.UUID) (AutomationRouteRow, error)
+	AutomationRunExists(ctx context.Context, arg AutomationRunExistsParams) (bool, error)
+	// The message a run's email step queued (for branch checks).
+	AutomationRunMessage(ctx context.Context, arg AutomationRunMessageParams) (AutomationRunMessageRow, error)
+	// The latest alert per webhook step, open or resolved (for the publish diff).
+	AutomationStepFailures(ctx context.Context, automationID uuid.UUID) ([]AutomationStepFailuresRow, error)
+	// Paths taken out of branches and splits.
+	AutomationStepPathsSince(ctx context.Context, arg AutomationStepPathsSinceParams) ([]AutomationStepPathsSinceRow, error)
+	// Emails per sending provider, per step.
+	AutomationStepProvidersSince(ctx context.Context, arg AutomationStepProvidersSinceParams) ([]AutomationStepProvidersSinceRow, error)
+	AutomationStepSecretNodes(ctx context.Context, automationID uuid.UUID) ([]string, error)
+	// Per-step totals since a day, across versions (steps keep their ids).
+	AutomationStepStatsSince(ctx context.Context, arg AutomationStepStatsSinceParams) ([]AutomationStepStatsSinceRow, error)
+	AutomationTopTags(ctx context.Context, workspaceID uuid.UUID) ([]AutomationTopTagsRow, error)
+	AutomationUnsubscribeAll(ctx context.Context, contactID uuid.UUID) error
+	// Totals per automation since a day, for the KPI row.
+	AutomationWorkspaceStatsSince(ctx context.Context, arg AutomationWorkspaceStatsSinceParams) ([]AutomationWorkspaceStatsSinceRow, error)
 	BroadcastDefaultSplit(ctx context.Context, workspaceID uuid.UUID) (json.RawMessage, error)
-	BumpChallengeAttempts(ctx context.Context, id uuid.UUID) (int32, error)
 	// Adds to one step's counters for a day. Path and provider counts are merged
 	// key by key.
-	BumpStepStats(ctx context.Context, arg BumpStepStatsParams) error
+	BumpAutomationStepStats(ctx context.Context, arg BumpAutomationStepStatsParams) error
+	BumpChallengeAttempts(ctx context.Context, id uuid.UUID) (int32, error)
 	CampaignCostSince(ctx context.Context, arg CampaignCostSinceParams) ([]CampaignCostSinceRow, error)
 	CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSinceParams) (CampaignTotalsSinceRow, error)
+	ClaimAutomationEvents(ctx context.Context, lim int32) ([]ClaimAutomationEventsRow, error)
 	// Runs ready to move on, in flows that are live (paused flows hold their runs).
-	ClaimDueRuns(ctx context.Context, arg ClaimDueRunsParams) ([]ClaimDueRunsRow, error)
-	ClaimPendingEvents(ctx context.Context, lim int32) ([]ClaimPendingEventsRow, error)
+	ClaimDueAutomationRuns(ctx context.Context, arg ClaimDueAutomationRunsParams) ([]ClaimDueAutomationRunsRow, error)
 	ClearSignInThrottle(ctx context.Context, email string) error
 	CompleteInstanceSetup(ctx context.Context, arg CompleteInstanceSetupParams) (InstanceSetting, error)
 	ConsumePasswordReset(ctx context.Context, tokenHash []byte) (PasswordReset, error)
-	ContactByEmail(ctx context.Context, arg ContactByEmailParams) (ContactByEmailRow, error)
-	ContactForRun(ctx context.Context, id uuid.UUID) (ContactForRunRow, error)
-	ContactGotEmailSince(ctx context.Context, arg ContactGotEmailSinceParams) (bool, error)
-	ContactInList(ctx context.Context, arg ContactInListParams) (bool, error)
-	ContactInWorkspace(ctx context.Context, arg ContactInWorkspaceParams) (ContactInWorkspaceRow, error)
-	ContactSentEvent(ctx context.Context, arg ContactSentEventParams) (bool, error)
-	ContactSuppressed(ctx context.Context, arg ContactSuppressedParams) (bool, error)
 	CountActiveOwners(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	CountAutomationHeldMessages(ctx context.Context, automationID *uuid.UUID) (int64, error)
+	CountAutomationInFlow(ctx context.Context, automationIds []uuid.UUID) ([]CountAutomationInFlowRow, error)
+	CountAutomationInFlowByNode(ctx context.Context, automationID uuid.UUID) ([]CountAutomationInFlowByNodeRow, error)
 	CountAutomationsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountAutomationsByStatusRow, error)
 	CountCampaigns(ctx context.Context, arg CountCampaignsParams) (int64, error)
 	CountCampaignsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountCampaignsByStatusRow, error)
-	CountHeldMessages(ctx context.Context, automationID *uuid.UUID) (int64, error)
-	CountInFlow(ctx context.Context, automationIds []uuid.UUID) ([]CountInFlowRow, error)
-	CountInFlowByNode(ctx context.Context, automationID uuid.UUID) ([]CountInFlowByNodeRow, error)
 	CountUnusedRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountUsers(ctx context.Context) (int64, error)
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
@@ -67,9 +105,7 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
-	// Contacts whose date field (plus the offset) is today in the workspace's
-	// timezone; yearly triggers match the day and month every year.
-	DateFieldMatches(ctx context.Context, arg DateFieldMatchesParams) ([]uuid.UUID, error)
+	DeleteAutomationStepSecret(ctx context.Context, arg DeleteAutomationStepSecretParams) (int64, error)
 	DeleteChallenge(ctx context.Context, id uuid.UUID) error
 	DeleteExpiredChallenges(ctx context.Context) (int64, error)
 	DeleteExpiredSessions(ctx context.Context) (int64, error)
@@ -79,15 +115,16 @@ type Querier interface {
 	DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) error
 	DeleteRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	DeleteStaleThrottle(ctx context.Context) (int64, error)
-	DeleteStepSecret(ctx context.Context, arg DeleteStepSecretParams) (int64, error)
 	// Must run inside the same transaction as PurgeAuditEvents (retention job only).
 	EnableAuditPurge(ctx context.Context) error
-	ExitActiveRuns(ctx context.Context, arg ExitActiveRunsParams) (int64, error)
+	ExitAutomationRuns(ctx context.Context, arg ExitAutomationRunsParams) (int64, error)
 	GetAPIKey(ctx context.Context, arg GetAPIKeyParams) (ApiKey, error)
 	GetAPIKeyByToken(ctx context.Context, tokenHash []byte) (GetAPIKeyByTokenRow, error)
 	GetAuditEvent(ctx context.Context, id uuid.UUID) (AuditEvent, error)
 	GetAutomation(ctx context.Context, arg GetAutomationParams) (GetAutomationRow, error)
 	GetAutomationEmailVersion(ctx context.Context, arg GetAutomationEmailVersionParams) (GetAutomationEmailVersionRow, error)
+	GetAutomationRunForUpdate(ctx context.Context, id uuid.UUID) (GetAutomationRunForUpdateRow, error)
+	GetAutomationStepSecret(ctx context.Context, arg GetAutomationStepSecretParams) ([]byte, error)
 	GetAutomationVersion(ctx context.Context, arg GetAutomationVersionParams) (GetAutomationVersionRow, error)
 	GetChallenge(ctx context.Context, arg GetChallengeParams) (AuthChallenge, error)
 	GetIdentity(ctx context.Context, arg GetIdentityParams) (UserIdentity, error)
@@ -99,31 +136,28 @@ type Querier interface {
 	GetPasswordReset(ctx context.Context, tokenHash []byte) (PasswordReset, error)
 	GetRole(ctx context.Context, id uuid.UUID) (Role, error)
 	GetRoleByKey(ctx context.Context, arg GetRoleByKeyParams) (Role, error)
-	GetRunForUpdate(ctx context.Context, id uuid.UUID) (GetRunForUpdateRow, error)
 	GetSessionByToken(ctx context.Context, tokenHash []byte) (Session, error)
 	GetSignInThrottle(ctx context.Context, email string) (SignInThrottle, error)
-	GetStepSecret(ctx context.Context, arg GetStepSecretParams) ([]byte, error)
 	GetUser(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
-	// Runs whose contact opened or clicked an email of this flow since entering.
-	GoalRunsEngaged(ctx context.Context, arg GoalRunsEngagedParams) ([]GoalRunsEngagedRow, error)
-	GoalRunsEvent(ctx context.Context, arg GoalRunsEventParams) ([]GoalRunsEventRow, error)
-	GoalRunsInList(ctx context.Context, arg GoalRunsInListParams) ([]GoalRunsInListRow, error)
-	GoalRunsTagged(ctx context.Context, arg GoalRunsTaggedParams) ([]GoalRunsTaggedRow, error)
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
 	InsertAutomationEmailVersion(ctx context.Context, arg InsertAutomationEmailVersionParams) error
 	InsertAutomationEvent(ctx context.Context, arg InsertAutomationEventParams) error
 	InsertAutomationMessage(ctx context.Context, arg InsertAutomationMessageParams) (uuid.UUID, error)
+	InsertAutomationRun(ctx context.Context, arg InsertAutomationRunParams) (int64, error)
 	InsertAutomationVersion(ctx context.Context, arg InsertAutomationVersionParams) error
-	InsertRun(ctx context.Context, arg InsertRunParams) (int64, error)
-	InsertWebhookCall(ctx context.Context, arg InsertWebhookCallParams) error
+	InsertAutomationWebhookCall(ctx context.Context, arg InsertAutomationWebhookCallParams) error
 	ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error)
-	ListActiveRunsForMigration(ctx context.Context, arg ListActiveRunsForMigrationParams) ([]ListActiveRunsForMigrationRow, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
+	ListAutomationAlerts(ctx context.Context, workspaceID uuid.UUID) ([]ListAutomationAlertsRow, error)
 	ListAutomationEmails(ctx context.Context, workspaceID uuid.UUID) ([]ListAutomationEmailsRow, error)
+	ListAutomationHeldAlerts(ctx context.Context) ([]ListAutomationHeldAlertsRow, error)
+	ListAutomationPublishedGraphs(ctx context.Context, automationID uuid.UUID) ([]ListAutomationPublishedGraphsRow, error)
+	ListAutomationRunsForMigration(ctx context.Context, arg ListAutomationRunsForMigrationParams) ([]ListAutomationRunsForMigrationRow, error)
 	ListAutomationVersions(ctx context.Context, automationID uuid.UUID) ([]ListAutomationVersionsRow, error)
+	ListAutomationWebhookCalls(ctx context.Context, arg ListAutomationWebhookCallsParams) ([]ListAutomationWebhookCallsRow, error)
 	// Automations (W06): flows, versions, runs, step stats, emails, trigger
 	// events, webhook calls, step secrets and alerts.
 	// Every flow of a workspace with its live and draft graphs: live first, then
@@ -139,49 +173,37 @@ type Querier interface {
 	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]ListMembersRow, error)
 	// Used to name who can help when a permission is missing.
 	ListMembersWithRoles(ctx context.Context, workspaceID uuid.UUID) ([]ListMembersWithRolesRow, error)
-	ListOpenAlerts(ctx context.Context, workspaceID uuid.UUID) ([]ListOpenAlertsRow, error)
 	ListPasskeys(ctx context.Context, userID uuid.UUID) ([]UserPasskey, error)
 	ListPendingInvitations(ctx context.Context, workspaceID uuid.UUID) ([]ListPendingInvitationsRow, error)
-	ListPublishedGraphs(ctx context.Context, automationID uuid.UUID) ([]ListPublishedGraphsRow, error)
 	// Published versions that are no longer live but not yet retired: they
 	// retire once their last contact leaves.
-	ListRetiringVersions(ctx context.Context) ([]ListRetiringVersionsRow, error)
+	ListRetiringAutomationVersions(ctx context.Context) ([]ListRetiringAutomationVersionsRow, error)
 	ListRoles(ctx context.Context, workspaceID uuid.UUID) ([]ListRolesRow, error)
 	ListUserSessions(ctx context.Context, userID uuid.UUID) ([]Session, error)
 	ListUserWorkspaces(ctx context.Context, userID uuid.UUID) ([]ListUserWorkspacesRow, error)
 	ListUsers(ctx context.Context) ([]User, error)
-	ListWebhookCalls(ctx context.Context, arg ListWebhookCallsParams) ([]ListWebhookCallsRow, error)
 	ListWorkspaceLists(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceListsRow, error)
 	ListWorkspaces(ctx context.Context) ([]Workspace, error)
 	// Live flows a trigger event enrolls into.
 	LiveAutomationsForTrigger(ctx context.Context, arg LiveAutomationsForTriggerParams) ([]LiveAutomationsForTriggerRow, error)
-	LiveDateTriggers(ctx context.Context) ([]LiveDateTriggersRow, error)
 	LockAutomation(ctx context.Context, arg LockAutomationParams) (Automation, error)
-	LookupWorkspaceLists(ctx context.Context, workspaceID uuid.UUID) ([]LookupWorkspaceListsRow, error)
-	// Runs waiting on a webhook call whose job never ran (lost or not enqueued).
-	LostWebhookRuns(ctx context.Context, before time.Time) ([]LostWebhookRunsRow, error)
-	MarkEventProcessed(ctx context.Context, arg MarkEventProcessedParams) error
-	MessageEngaged(ctx context.Context, arg MessageEngagedParams) (bool, error)
-	MessageForStats(ctx context.Context, id uuid.UUID) (MessageForStatsRow, error)
+	MarkAutomationEventProcessed(ctx context.Context, arg MarkAutomationEventProcessedParams) error
 	// Records a failure: opens the alert or adds to the open one.
-	OpenAlert(ctx context.Context, arg OpenAlertParams) error
-	OpenSendingHeldAlerts(ctx context.Context) ([]OpenSendingHeldAlertsRow, error)
+	OpenAutomationAlert(ctx context.Context, arg OpenAutomationAlertParams) error
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
 	ProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]ProviderNamesRow, error)
 	PublishAutomationVersion(ctx context.Context, arg PublishAutomationVersionParams) error
 	PurgeAuditEvents(ctx context.Context, arg PurgeAuditEventsParams) (int64, error)
-	PurgeProcessedEvents(ctx context.Context, before *time.Time) (int64, error)
-	PurgeWebhookCalls(ctx context.Context, before time.Time) (int64, error)
+	PurgeAutomationEvents(ctx context.Context, before *time.Time) (int64, error)
+	PurgeAutomationWebhookCalls(ctx context.Context, before time.Time) (int64, error)
 	RecordSignInFailure(ctx context.Context, arg RecordSignInFailureParams) (RecordSignInFailureRow, error)
 	RecordSignInSuccess(ctx context.Context, id uuid.UUID) error
 	RecordSignInThrottleFailure(ctx context.Context, arg RecordSignInThrottleFailureParams) (SignInThrottle, error)
 	RefreshInvitation(ctx context.Context, arg RefreshInvitationParams) (Invitation, error)
-	ReleaseHeldMessages(ctx context.Context, arg ReleaseHeldMessagesParams) (int64, error)
-	RemoveContactTag(ctx context.Context, arg RemoveContactTagParams) error
-	RemoveListMembership(ctx context.Context, arg RemoveListMembershipParams) error
+	ReleaseAutomationHeldMessages(ctx context.Context, arg ReleaseAutomationHeldMessagesParams) (int64, error)
 	RenamePasskey(ctx context.Context, arg RenamePasskeyParams) error
 	ResetUserTwoFactor(ctx context.Context, id uuid.UUID) error
-	ResolveAlert(ctx context.Context, arg ResolveAlertParams) (int64, error)
+	ResolveAutomationAlert(ctx context.Context, arg ResolveAutomationAlertParams) (int64, error)
 	ResumeAutomation(ctx context.Context, arg ResumeAutomationParams) error
 	RetireAutomationVersion(ctx context.Context, arg RetireAutomationVersionParams) error
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error)
@@ -190,9 +212,6 @@ type Querier interface {
 	RevokeInvitation(ctx context.Context, arg RevokeInvitationParams) (int64, error)
 	RevokeOtherSessions(ctx context.Context, arg RevokeOtherSessionsParams) (int64, error)
 	RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error)
-	RunExistsForContact(ctx context.Context, arg RunExistsForContactParams) (bool, error)
-	// The message a run's email step queued (for branch checks).
-	RunMessage(ctx context.Context, arg RunMessageParams) (RunMessageRow, error)
 	// A draft was saved: bump the revision and remember the trigger of a flow
 	// that was never published (live flows keep the live trigger).
 	SetAutomationDraft(ctx context.Context, arg SetAutomationDraftParams) error
@@ -209,49 +228,30 @@ type Querier interface {
 	SlugTaken(ctx context.Context, slug string) (bool, error)
 	SoftDeleteAutomation(ctx context.Context, arg SoftDeleteAutomationParams) error
 	SoftDeleteWorkspace(ctx context.Context, id uuid.UUID) error
-	// The latest alert per webhook step, open or resolved (for the publish diff).
-	StepFailures(ctx context.Context, automationID uuid.UUID) ([]StepFailuresRow, error)
-	// Paths taken out of branches and splits.
-	StepPathsSince(ctx context.Context, arg StepPathsSinceParams) ([]StepPathsSinceRow, error)
-	// Emails per sending provider, per step.
-	StepProvidersSince(ctx context.Context, arg StepProvidersSinceParams) ([]StepProvidersSinceRow, error)
-	StepSecretNodes(ctx context.Context, automationID uuid.UUID) ([]string, error)
-	// Per-step totals since a day, across versions (steps keep their ids).
-	StepStatsSince(ctx context.Context, arg StepStatsSinceParams) ([]StepStatsSinceRow, error)
 	TouchAPIKey(ctx context.Context, arg TouchAPIKeyParams) error
+	TouchAutomationRunNextAt(ctx context.Context, arg TouchAutomationRunNextAtParams) error
 	TouchIdentity(ctx context.Context, id uuid.UUID) error
 	TouchMemberActive(ctx context.Context, arg TouchMemberActiveParams) error
 	TouchPasskey(ctx context.Context, arg TouchPasskeyParams) error
-	TouchRunNextAt(ctx context.Context, arg TouchRunNextAtParams) error
 	TouchSession(ctx context.Context, id uuid.UUID) error
 	TouchUserActive(ctx context.Context, id uuid.UUID) error
-	UnsubscribeAllLists(ctx context.Context, contactID uuid.UUID) error
 	UpdateAuthPolicy(ctx context.Context, arg UpdateAuthPolicyParams) (InstanceSetting, error)
+	UpdateAutomationDraftGraph(ctx context.Context, arg UpdateAutomationDraftGraphParams) (int64, error)
 	UpdateAutomationMeta(ctx context.Context, arg UpdateAutomationMetaParams) (Automation, error)
-	UpdateDraftGraph(ctx context.Context, arg UpdateDraftGraphParams) (int64, error)
+	UpdateAutomationRun(ctx context.Context, arg UpdateAutomationRunParams) error
 	UpdateInstanceBasics(ctx context.Context, arg UpdateInstanceBasicsParams) (InstanceSetting, error)
 	UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) (WorkspaceMember, error)
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)
-	UpdateRun(ctx context.Context, arg UpdateRunParams) error
 	UpdateSocialProviders(ctx context.Context, arg UpdateSocialProvidersParams) (InstanceSetting, error)
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)
 	UpdateWorkspaceApprovalPolicy(ctx context.Context, arg UpdateWorkspaceApprovalPolicyParams) (Workspace, error)
 	UpdateWorkspaceGeneral(ctx context.Context, arg UpdateWorkspaceGeneralParams) (Workspace, error)
 	UpdateWorkspaceJSON(ctx context.Context, arg UpdateWorkspaceJSONParams) (Workspace, error)
-	UpsertStepSecret(ctx context.Context, arg UpsertStepSecretParams) error
+	UpsertAutomationStepSecret(ctx context.Context, arg UpsertAutomationStepSecretParams) error
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (uuid.UUID, error)
 	// Runs waiting at a branch for an open or click: wake them as soon as the
 	// email they wait on has one, instead of at the end of the window.
-	WakeEngagedBranchRuns(ctx context.Context, now *time.Time) (int64, error)
-	WorkspaceDateFields(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceDateFieldsRow, error)
-	WorkspaceEventNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
-	WorkspaceForms(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceFormsRow, error)
-	// Automation emails per sending provider since a day, and the last day each sent.
-	WorkspaceProviderSends(ctx context.Context, arg WorkspaceProviderSendsParams) ([]WorkspaceProviderSendsRow, error)
-	WorkspaceProviders(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceProvidersRow, error)
-	// Totals per automation since a day, for the KPI row.
-	WorkspaceStatsSince(ctx context.Context, arg WorkspaceStatsSinceParams) ([]WorkspaceStatsSinceRow, error)
-	WorkspaceTopTags(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceTopTagsRow, error)
+	WakeAutomationBranchRuns(ctx context.Context, now *time.Time) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

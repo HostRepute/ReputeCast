@@ -19,7 +19,7 @@ const (
 
 // estimatedHeight is a generous height for a step card, so laid-out steps
 // never overlap once the canvas measures them.
-func estimatedHeight(n FlowNode) float64 {
+func estimatedHeight(n AutomationNode) float64 {
 	switch n.Type {
 	case NodeTrigger:
 		return 104
@@ -34,7 +34,7 @@ func estimatedHeight(n FlowNode) float64 {
 }
 
 // Layout returns g with every node positioned.
-func Layout(g FlowGraph) FlowGraph {
+func Layout(g AutomationGraph) AutomationGraph {
 	order := g.topo()
 	x := map[string]float64{}
 	y := map[string]float64{}
@@ -87,9 +87,9 @@ func Layout(g FlowGraph) FlowGraph {
 			spread[e.Target] = childSpread
 		}
 	}
-	out := FlowGraph{Nodes: make([]FlowNode, len(g.Nodes)), Edges: g.Edges}
+	out := AutomationGraph{Nodes: make([]AutomationNode, len(g.Nodes)), Edges: g.Edges}
 	for i, n := range g.Nodes {
-		n.Position = FlowPosition{X: math.Round(x[n.ID]), Y: math.Round(y[n.ID])}
+		n.Position = AutomationNodePosition{X: math.Round(x[n.ID]), Y: math.Round(y[n.ID])}
 		out.Nodes[i] = n
 	}
 	return out

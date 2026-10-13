@@ -39,57 +39,57 @@ const (
 	PathNo  = "no"
 )
 
-// FlowGraph is an automation as React Flow stores it: typed nodes with a
+// AutomationGraph is an automation as React Flow stores it: typed nodes with a
 // position and data, connected by edges. Branch and split edges name the path
 // they take ("yes"/"no", or the variant key).
-type FlowGraph struct {
-	Nodes []FlowNode `json:"nodes" maxItems:"200"`
-	Edges []FlowEdge `json:"edges" maxItems:"400"`
+type AutomationGraph struct {
+	Nodes []AutomationNode `json:"nodes" maxItems:"200"`
+	Edges []AutomationEdge `json:"edges" maxItems:"400"`
 }
 
-// FlowNode is one step of a flow.
-type FlowNode struct {
-	ID       string       `json:"id" minLength:"1" maxLength:"40" pattern:"^[A-Za-z0-9_-]+$"`
-	Type     string       `json:"type" enum:"trigger,delay,email,branch,filter,split,webhook,list,goal,exit"`
-	Position FlowPosition `json:"position"`
-	Data     FlowNodeData `json:"data"`
+// AutomationNode is one step of a flow.
+type AutomationNode struct {
+	ID       string                 `json:"id" minLength:"1" maxLength:"40" pattern:"^[A-Za-z0-9_-]+$"`
+	Type     string                 `json:"type" enum:"trigger,delay,email,branch,filter,split,webhook,list,goal,exit"`
+	Position AutomationNodePosition `json:"position"`
+	Data     AutomationNodeData     `json:"data"`
 }
 
-// FlowPosition is a node's top-left corner on the canvas.
-type FlowPosition struct {
+// AutomationNodePosition is a node's top-left corner on the canvas.
+type AutomationNodePosition struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
 }
 
-// FlowEdge connects one step to the next.
-type FlowEdge struct {
-	ID     string       `json:"id" minLength:"1" maxLength:"80"`
-	Source string       `json:"source" minLength:"1" maxLength:"40"`
-	Target string       `json:"target" minLength:"1" maxLength:"40"`
-	Data   FlowEdgeData `json:"data"`
+// AutomationEdge connects one step to the next.
+type AutomationEdge struct {
+	ID     string             `json:"id" minLength:"1" maxLength:"80"`
+	Source string             `json:"source" minLength:"1" maxLength:"40"`
+	Target string             `json:"target" minLength:"1" maxLength:"40"`
+	Data   AutomationEdgeData `json:"data"`
 }
 
-// FlowEdgeData says which path out of a branch or split the edge is.
-type FlowEdgeData struct {
+// AutomationEdgeData says which path out of a branch or split the edge is.
+type AutomationEdgeData struct {
 	// Path is "yes" or "no" after a branch, the variant key after a split.
 	Path string `json:"path,omitempty" maxLength:"16"`
 }
 
-// FlowNodeData holds a step's settings; which block is set depends on the type.
-type FlowNodeData struct {
+// AutomationNodeData holds a step's settings; which block is set depends on the type.
+type AutomationNodeData struct {
 	// Label is a short name used where the step is referenced (diffs, stats, goals).
-	Label     string            `json:"label,omitempty" maxLength:"80"`
-	Trigger   *TriggerConfig    `json:"trigger,omitempty"`
-	Delay     *FlowDuration     `json:"delay,omitempty"`
-	Email     *EmailStepConfig  `json:"email,omitempty"`
-	Condition *FlowCondition    `json:"condition,omitempty" doc:"Branch, filter and goal condition"`
-	Variants  []SplitVariant    `json:"variants,omitempty" maxItems:"5"`
-	Webhook   *WebhookConfig    `json:"webhook,omitempty"`
-	Action    *ListActionConfig `json:"action,omitempty"`
+	Label     string                   `json:"label,omitempty" maxLength:"80"`
+	Trigger   *AutomationTrigger       `json:"trigger,omitempty"`
+	Delay     *AutomationDuration      `json:"delay,omitempty"`
+	Email     *AutomationEmailStep     `json:"email,omitempty"`
+	Condition *AutomationCondition     `json:"condition,omitempty" doc:"Branch, filter and goal condition"`
+	Variants  []AutomationSplitVariant `json:"variants,omitempty" maxItems:"5"`
+	Webhook   *AutomationWebhook       `json:"webhook,omitempty"`
+	Action    *AutomationListAction    `json:"action,omitempty"`
 }
 
-// TriggerConfig says which contacts enter the flow.
-type TriggerConfig struct {
+// AutomationTrigger says which contacts enter the flow.
+type AutomationTrigger struct {
 	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field"`
 	// Joined list: the list, whether to wait for double opt-in, and whether
 	// contacts added by an import count.
@@ -110,42 +110,42 @@ type TriggerConfig struct {
 	Reentry string `json:"reentry,omitempty" maxLength:"8"`
 }
 
-// FlowDuration is a delay or a time window.
-type FlowDuration struct {
+// AutomationDuration is a delay or a time window.
+type AutomationDuration struct {
 	Amount int    `json:"amount" minimum:"0" maximum:"100000"`
 	Unit   string `json:"unit" enum:"minutes,hours,days,weeks"`
 }
 
-// EmailStepConfig is a "Send email" step.
-type EmailStepConfig struct {
+// AutomationEmailStep is a "Send email" step.
+type AutomationEmailStep struct {
 	EmailID      string `json:"emailId,omitempty" maxLength:"40"`
 	EmailVersion int    `json:"emailVersion,omitempty" minimum:"0"`
 	Subject      string `json:"subject,omitempty" maxLength:"250"`
 	// Route is empty for the Automations route, or a sending provider id to override it.
-	Route      string      `json:"route,omitempty" maxLength:"40"`
-	SendWindow *SendWindow `json:"sendWindow,omitempty"`
+	Route      string                `json:"route,omitempty" maxLength:"40"`
+	SendWindow *AutomationSendWindow `json:"sendWindow,omitempty"`
 	// SkipRecentHours skips the email when the contact got any email in the last N hours (0 = off).
 	SkipRecentHours int `json:"skipRecentHours,omitempty" minimum:"0" maximum:"720"`
 	// SkipListID skips the email for members of this list.
 	SkipListID string `json:"skipListId,omitempty" maxLength:"40"`
 }
 
-// SendWindow holds email until the recipient's local time is inside it.
-type SendWindow struct {
+// AutomationSendWindow holds email until the recipient's local time is inside it.
+type AutomationSendWindow struct {
 	Enabled bool   `json:"enabled"`
 	Start   string `json:"start" maxLength:"5" doc:"HH:MM, recipient-local"`
 	End     string `json:"end" maxLength:"5"`
 }
 
-// FlowCondition is what a branch asks, a filter keeps or a goal waits for.
-type FlowCondition struct {
+// AutomationCondition is what a branch asks, a filter keeps or a goal waits for.
+type AutomationCondition struct {
 	Kind string `json:"kind" enum:"opened,clicked,field,tag,list,event"`
 	// Opened / clicked: the email step (empty = any email in this flow), the
 	// window and whether machine opens (Apple Mail Privacy Protection) count.
-	Step        string        `json:"step,omitempty" maxLength:"40"`
-	Within      *FlowDuration `json:"within,omitempty"`
-	HumanOnly   bool          `json:"humanOnly,omitempty"`
-	URLContains string        `json:"urlContains,omitempty" maxLength:"200"`
+	Step        string              `json:"step,omitempty" maxLength:"40"`
+	Within      *AutomationDuration `json:"within,omitempty"`
+	HumanOnly   bool                `json:"humanOnly,omitempty"`
+	URLContains string              `json:"urlContains,omitempty" maxLength:"200"`
 	// Field: compare a contact field.
 	Field string `json:"field,omitempty" maxLength:"64"`
 	Op    string `json:"op,omitempty" maxLength:"16" doc:"equals, not_equals, contains, is_set, is_not_set"`
@@ -157,48 +157,48 @@ type FlowCondition struct {
 	Event string `json:"event,omitempty" maxLength:"100"`
 }
 
-// SplitVariant is one arm of an A/B split.
-type SplitVariant struct {
+// AutomationSplitVariant is one arm of an A/B split.
+type AutomationSplitVariant struct {
 	Key    string `json:"key" minLength:"1" maxLength:"4"`
 	Weight int    `json:"weight" minimum:"0" maximum:"100"`
 }
 
-// WebhookConfig is an outgoing HTTP call. The signing secret is stored
+// AutomationWebhook is an outgoing HTTP call. The signing secret is stored
 // separately and never returned; HasSecret says whether one is set.
-type WebhookConfig struct {
+type AutomationWebhook struct {
 	Name      string `json:"name,omitempty" maxLength:"80"`
 	URL       string `json:"url,omitempty" maxLength:"2000"`
 	Method    string `json:"method,omitempty" maxLength:"6"`
 	HasSecret bool   `json:"hasSecret,omitempty" readOnly:"true"`
 }
 
-// ListActionConfig adds or removes a list or tag.
-type ListActionConfig struct {
+// AutomationListAction adds or removes a list or tag.
+type AutomationListAction struct {
 	Kind   string `json:"kind" enum:"add_list,remove_list,add_tag,remove_tag,unsubscribe_all"`
 	ListID string `json:"listId,omitempty" maxLength:"40"`
 	Tag    string `json:"tag,omitempty" maxLength:"64"`
 }
 
 // ParseGraph decodes a stored graph. A null or empty document is an empty graph.
-func ParseGraph(raw []byte) (FlowGraph, error) {
-	g := FlowGraph{Nodes: []FlowNode{}, Edges: []FlowEdge{}}
+func ParseGraph(raw []byte) (AutomationGraph, error) {
+	g := AutomationGraph{Nodes: []AutomationNode{}, Edges: []AutomationEdge{}}
 	if len(raw) == 0 || string(raw) == "null" {
 		return g, nil
 	}
 	if err := json.Unmarshal(raw, &g); err != nil {
-		return FlowGraph{}, err
+		return AutomationGraph{}, err
 	}
 	if g.Nodes == nil {
-		g.Nodes = []FlowNode{}
+		g.Nodes = []AutomationNode{}
 	}
 	if g.Edges == nil {
-		g.Edges = []FlowEdge{}
+		g.Edges = []AutomationEdge{}
 	}
 	return g, nil
 }
 
 // MustJSON encodes a graph for storage.
-func (g FlowGraph) MustJSON() json.RawMessage {
+func (g AutomationGraph) MustJSON() json.RawMessage {
 	b, err := json.Marshal(g)
 	if err != nil {
 		panic(err)
@@ -207,7 +207,7 @@ func (g FlowGraph) MustJSON() json.RawMessage {
 }
 
 // Node returns the node with id, or nil.
-func (g FlowGraph) Node(id string) *FlowNode {
+func (g AutomationGraph) Node(id string) *AutomationNode {
 	for i := range g.Nodes {
 		if g.Nodes[i].ID == id {
 			return &g.Nodes[i]
@@ -217,7 +217,7 @@ func (g FlowGraph) Node(id string) *FlowNode {
 }
 
 // Trigger returns the trigger node, or nil.
-func (g FlowGraph) Trigger() *FlowNode {
+func (g AutomationGraph) Trigger() *AutomationNode {
 	for i := range g.Nodes {
 		if g.Nodes[i].Type == NodeTrigger {
 			return &g.Nodes[i]
@@ -227,8 +227,8 @@ func (g FlowGraph) Trigger() *FlowNode {
 }
 
 // Out returns the edges leaving id in the order they were drawn.
-func (g FlowGraph) Out(id string) []FlowEdge {
-	var out []FlowEdge
+func (g AutomationGraph) Out(id string) []AutomationEdge {
+	var out []AutomationEdge
 	for _, e := range g.Edges {
 		if e.Source == id {
 			out = append(out, e)
@@ -238,8 +238,8 @@ func (g FlowGraph) Out(id string) []FlowEdge {
 }
 
 // In returns the edges entering id.
-func (g FlowGraph) In(id string) []FlowEdge {
-	var out []FlowEdge
+func (g AutomationGraph) In(id string) []AutomationEdge {
+	var out []AutomationEdge
 	for _, e := range g.Edges {
 		if e.Target == id {
 			out = append(out, e)
@@ -249,7 +249,7 @@ func (g FlowGraph) In(id string) []FlowEdge {
 }
 
 // Next returns the single next node of a non-branching step ("" at the end).
-func (g FlowGraph) Next(id string) string {
+func (g AutomationGraph) Next(id string) string {
 	for _, e := range g.Edges {
 		if e.Source == id {
 			return e.Target
@@ -259,7 +259,7 @@ func (g FlowGraph) Next(id string) string {
 }
 
 // NextOnPath returns the node reached through path out of a branch or split.
-func (g FlowGraph) NextOnPath(id, path string) string {
+func (g AutomationGraph) NextOnPath(id, path string) string {
 	for _, e := range g.Edges {
 		if e.Source == id && e.Data.Path == path {
 			return e.Target
@@ -269,7 +269,7 @@ func (g FlowGraph) NextOnPath(id, path string) string {
 }
 
 // Prev returns the first node that leads to id ("" when none).
-func (g FlowGraph) Prev(id string) string {
+func (g AutomationGraph) Prev(id string) string {
 	for _, e := range g.Edges {
 		if e.Target == id {
 			return e.Source
@@ -280,7 +280,7 @@ func (g FlowGraph) Prev(id string) string {
 
 // Order returns node ids breadth-first from the trigger, then any node not
 // reachable from it, so lists read top to bottom like the canvas.
-func (g FlowGraph) Order() []string {
+func (g AutomationGraph) Order() []string {
 	seen := map[string]bool{}
 	var out []string
 	var queue []string
@@ -309,7 +309,7 @@ func (g FlowGraph) Order() []string {
 
 // Depths returns each node's distance from the trigger (longest path), used
 // to stagger the canvas entrance and to order steps.
-func (g FlowGraph) Depths() map[string]int {
+func (g AutomationGraph) Depths() map[string]int {
 	d := map[string]int{}
 	order := g.topo()
 	for _, id := range order {
@@ -326,7 +326,7 @@ func (g FlowGraph) Depths() map[string]int {
 }
 
 // topo returns a topological order (Kahn); nodes on cycles are appended last.
-func (g FlowGraph) topo() []string {
+func (g AutomationGraph) topo() []string {
 	indeg := map[string]int{}
 	for _, n := range g.Nodes {
 		indeg[n.ID] += 0
@@ -364,7 +364,7 @@ func (g FlowGraph) topo() []string {
 }
 
 // HasCycle reports whether the graph loops back on itself.
-func (g FlowGraph) HasCycle() bool {
+func (g AutomationGraph) HasCycle() bool {
 	const (
 		white = iota
 		grey
@@ -396,7 +396,7 @@ func (g FlowGraph) HasCycle() bool {
 }
 
 // Paths returns the paths a branch or split must connect.
-func (n FlowNode) Paths() []string {
+func (n AutomationNode) Paths() []string {
 	switch n.Type {
 	case NodeBranch:
 		return []string{PathYes, PathNo}
@@ -411,10 +411,10 @@ func (n FlowNode) Paths() []string {
 }
 
 // Terminal reports whether a step ends the flow.
-func (n FlowNode) Terminal() bool { return n.Type == NodeGoal || n.Type == NodeExit }
+func (n AutomationNode) Terminal() bool { return n.Type == NodeGoal || n.Type == NodeExit }
 
 // Duration converts a flow duration.
-func (d FlowDuration) Duration() time.Duration {
+func (d AutomationDuration) Duration() time.Duration {
 	n := time.Duration(d.Amount)
 	switch d.Unit {
 	case "minutes":
@@ -428,9 +428,9 @@ func (d FlowDuration) Duration() time.Duration {
 	}
 }
 
-// GraphIssue is a problem that blocks publishing (severity "error") or is
+// AutomationGraphIssue is a problem that blocks publishing (severity "error") or is
 // worth a look ("warning").
-type GraphIssue struct {
+type AutomationGraphIssue struct {
 	NodeID   string `json:"nodeId,omitempty"`
 	EdgeID   string `json:"edgeId,omitempty"`
 	Code     string `json:"code"`
@@ -458,10 +458,10 @@ var (
 // Validate checks the structure (one trigger, every step reachable, every
 // branch path connected, no loops) and each step's settings. refs may be nil
 // to skip reference checks.
-func Validate(g FlowGraph, refs *Refs) []GraphIssue {
-	issues := []GraphIssue{}
+func Validate(g AutomationGraph, refs *Refs) []AutomationGraphIssue {
+	issues := []AutomationGraphIssue{}
 	add := func(node, edge, code, sev, msg string) {
-		issues = append(issues, GraphIssue{NodeID: node, EdgeID: edge, Code: code, Severity: sev, Message: msg})
+		issues = append(issues, AutomationGraphIssue{NodeID: node, EdgeID: edge, Code: code, Severity: sev, Message: msg})
 	}
 	if len(g.Nodes) == 0 {
 		add("", "", "empty", "error", "The flow is empty. Drag a trigger onto the canvas to start.")
@@ -564,7 +564,7 @@ func Validate(g FlowGraph, refs *Refs) []GraphIssue {
 
 type configProblem struct{ code, text string }
 
-func checkConfig(n FlowNode, refs *Refs) []configProblem {
+func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 	var out []configProblem
 	bad := func(code, format string, a ...any) { out = append(out, configProblem{code, fmt.Sprintf(format, a...)}) }
 	listExists := func(id string) bool {
@@ -770,7 +770,7 @@ func isBuiltinField(f string) bool {
 	return false
 }
 
-func pathLabel(n FlowNode, p string) string {
+func pathLabel(n AutomationNode, p string) string {
 	switch p {
 	case PathYes:
 		return "Yes"
@@ -793,8 +793,8 @@ func capFirst(s string) string {
 }
 
 // Errors returns only blocking issues.
-func Errors(issues []GraphIssue) []GraphIssue {
-	out := []GraphIssue{}
+func Errors(issues []AutomationGraphIssue) []AutomationGraphIssue {
+	out := []AutomationGraphIssue{}
 	for _, i := range issues {
 		if i.Severity == "error" {
 			out = append(out, i)

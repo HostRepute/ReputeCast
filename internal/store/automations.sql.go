@@ -13,14 +13,14 @@ import (
 	"github.com/google/uuid"
 )
 
-const activeRunNodes = `-- name: ActiveRunNodes :many
+const automationActiveRunNodes = `-- name: AutomationActiveRunNodes :many
 SELECT r.version, r.node_id, r.status, r.state, count(*)::bigint AS n
 FROM automation_runs r
 WHERE r.automation_id = $1 AND r.status IN ('active', 'waiting')
 GROUP BY r.version, r.node_id, r.status, r.state
 `
 
-type ActiveRunNodesRow struct {
+type AutomationActiveRunNodesRow struct {
 	Version int32           `json:"version"`
 	NodeID  string          `json:"nodeId"`
 	Status  string          `json:"status"`
@@ -29,15 +29,15 @@ type ActiveRunNodesRow struct {
 }
 
 // Where contacts are, per version and step (publish impact).
-func (q *Queries) ActiveRunNodes(ctx context.Context, automationID uuid.UUID) ([]ActiveRunNodesRow, error) {
-	rows, err := q.db.Query(ctx, activeRunNodes, automationID)
+func (q *Queries) AutomationActiveRunNodes(ctx context.Context, automationID uuid.UUID) ([]AutomationActiveRunNodesRow, error) {
+	rows, err := q.db.Query(ctx, automationActiveRunNodes, automationID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ActiveRunNodesRow{}
+	items := []AutomationActiveRunNodesRow{}
 	for rows.Next() {
-		var i ActiveRunNodesRow
+		var i AutomationActiveRunNodesRow
 		if err := rows.Scan(
 			&i.Version,
 			&i.NodeID,
@@ -55,7 +55,7 @@ func (q *Queries) ActiveRunNodes(ctx context.Context, automationID uuid.UUID) ([
 	return items, nil
 }
 
-const activeRunVersions = `-- name: ActiveRunVersions :many
+const automationActiveRunVersions = `-- name: AutomationActiveRunVersions :many
 SELECT DISTINCT r.automation_id, r.version, a.workspace_id, v.graph
 FROM automation_runs r
 JOIN automations a ON a.id = r.automation_id
@@ -63,7 +63,7 @@ JOIN automation_versions v ON v.automation_id = r.automation_id AND v.version = 
 WHERE r.status IN ('active', 'waiting') AND a.status = 'live' AND a.deleted_at IS NULL
 `
 
-type ActiveRunVersionsRow struct {
+type AutomationActiveRunVersionsRow struct {
 	AutomationID uuid.UUID       `json:"automationId"`
 	Version      int32           `json:"version"`
 	WorkspaceID  uuid.UUID       `json:"workspaceId"`
@@ -71,15 +71,15 @@ type ActiveRunVersionsRow struct {
 }
 
 // Live flows' versions that still have contacts in them (goal detection).
-func (q *Queries) ActiveRunVersions(ctx context.Context) ([]ActiveRunVersionsRow, error) {
-	rows, err := q.db.Query(ctx, activeRunVersions)
+func (q *Queries) AutomationActiveRunVersions(ctx context.Context) ([]AutomationActiveRunVersionsRow, error) {
+	rows, err := q.db.Query(ctx, automationActiveRunVersions)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ActiveRunVersionsRow{}
+	items := []AutomationActiveRunVersionsRow{}
 	for rows.Next() {
-		var i ActiveRunVersionsRow
+		var i AutomationActiveRunVersionsRow
 		if err := rows.Scan(
 			&i.AutomationID,
 			&i.Version,
@@ -96,37 +96,282 @@ func (q *Queries) ActiveRunVersions(ctx context.Context) ([]ActiveRunVersionsRow
 	return items, nil
 }
 
-const addContactTag = `-- name: AddContactTag :exec
+const automationAddContactTag = `-- name: AutomationAddContactTag :exec
 UPDATE contacts SET tags = array_append(tags, $1::text), updated_at = now()
 WHERE id = $2 AND NOT ($1::text = ANY (tags))
 `
 
-type AddContactTagParams struct {
+type AutomationAddContactTagParams struct {
 	Tag string    `json:"tag"`
 	ID  uuid.UUID `json:"id"`
 }
 
-func (q *Queries) AddContactTag(ctx context.Context, arg AddContactTagParams) error {
-	_, err := q.db.Exec(ctx, addContactTag, arg.Tag, arg.ID)
+func (q *Queries) AutomationAddContactTag(ctx context.Context, arg AutomationAddContactTagParams) error {
+	_, err := q.db.Exec(ctx, automationAddContactTag, arg.Tag, arg.ID)
 	return err
 }
 
-const addListMembership = `-- name: AddListMembership :exec
+const automationAddListMembership = `-- name: AutomationAddListMembership :exec
 INSERT INTO list_memberships (list_id, contact_id, status, source, subscribed_at)
 VALUES ($1, $2, 'subscribed', $3, now())
 ON CONFLICT (list_id, contact_id) DO UPDATE SET status = 'subscribed', source = EXCLUDED.source, subscribed_at = now(), unsubscribed_at = NULL
 WHERE list_memberships.status <> 'subscribed'
 `
 
-type AddListMembershipParams struct {
+type AutomationAddListMembershipParams struct {
 	ListID    uuid.UUID `json:"listId"`
 	ContactID uuid.UUID `json:"contactId"`
 	Source    string    `json:"source"`
 }
 
-func (q *Queries) AddListMembership(ctx context.Context, arg AddListMembershipParams) error {
-	_, err := q.db.Exec(ctx, addListMembership, arg.ListID, arg.ContactID, arg.Source)
+func (q *Queries) AutomationAddListMembership(ctx context.Context, arg AutomationAddListMembershipParams) error {
+	_, err := q.db.Exec(ctx, automationAddListMembership, arg.ListID, arg.ContactID, arg.Source)
 	return err
+}
+
+const automationContact = `-- name: AutomationContact :one
+SELECT id, email, first_name, last_name, status, timezone, tags, attributes, erased_at
+FROM contacts WHERE id = $1
+`
+
+type AutomationContactRow struct {
+	ID         uuid.UUID       `json:"id"`
+	Email      string          `json:"email"`
+	FirstName  string          `json:"firstName"`
+	LastName   string          `json:"lastName"`
+	Status     string          `json:"status"`
+	Timezone   string          `json:"timezone"`
+	Tags       []string        `json:"tags"`
+	Attributes json.RawMessage `json:"attributes"`
+	ErasedAt   *time.Time      `json:"erasedAt"`
+}
+
+func (q *Queries) AutomationContact(ctx context.Context, id uuid.UUID) (AutomationContactRow, error) {
+	row := q.db.QueryRow(ctx, automationContact, id)
+	var i AutomationContactRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.FirstName,
+		&i.LastName,
+		&i.Status,
+		&i.Timezone,
+		&i.Tags,
+		&i.Attributes,
+		&i.ErasedAt,
+	)
+	return i, err
+}
+
+const automationContactByEmail = `-- name: AutomationContactByEmail :one
+SELECT id, status FROM contacts WHERE workspace_id = $1 AND email = $2 AND erased_at IS NULL
+`
+
+type AutomationContactByEmailParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+}
+
+type AutomationContactByEmailRow struct {
+	ID     uuid.UUID `json:"id"`
+	Status string    `json:"status"`
+}
+
+func (q *Queries) AutomationContactByEmail(ctx context.Context, arg AutomationContactByEmailParams) (AutomationContactByEmailRow, error) {
+	row := q.db.QueryRow(ctx, automationContactByEmail, arg.WorkspaceID, arg.Email)
+	var i AutomationContactByEmailRow
+	err := row.Scan(&i.ID, &i.Status)
+	return i, err
+}
+
+const automationContactEmailedSince = `-- name: AutomationContactEmailedSince :one
+SELECT EXISTS (SELECT 1 FROM messages WHERE contact_id = $1 AND queued_at >= $2)
+`
+
+type AutomationContactEmailedSinceParams struct {
+	ContactID *uuid.UUID `json:"contactId"`
+	Since     time.Time  `json:"since"`
+}
+
+func (q *Queries) AutomationContactEmailedSince(ctx context.Context, arg AutomationContactEmailedSinceParams) (bool, error) {
+	row := q.db.QueryRow(ctx, automationContactEmailedSince, arg.ContactID, arg.Since)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const automationContactInList = `-- name: AutomationContactInList :one
+SELECT EXISTS (SELECT 1 FROM list_memberships WHERE list_id = $1 AND contact_id = $2 AND status = 'subscribed')
+`
+
+type AutomationContactInListParams struct {
+	ListID    uuid.UUID `json:"listId"`
+	ContactID uuid.UUID `json:"contactId"`
+}
+
+func (q *Queries) AutomationContactInList(ctx context.Context, arg AutomationContactInListParams) (bool, error) {
+	row := q.db.QueryRow(ctx, automationContactInList, arg.ListID, arg.ContactID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const automationContactInWorkspace = `-- name: AutomationContactInWorkspace :one
+SELECT id, status FROM contacts WHERE workspace_id = $1 AND id = $2 AND erased_at IS NULL
+`
+
+type AutomationContactInWorkspaceParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type AutomationContactInWorkspaceRow struct {
+	ID     uuid.UUID `json:"id"`
+	Status string    `json:"status"`
+}
+
+func (q *Queries) AutomationContactInWorkspace(ctx context.Context, arg AutomationContactInWorkspaceParams) (AutomationContactInWorkspaceRow, error) {
+	row := q.db.QueryRow(ctx, automationContactInWorkspace, arg.WorkspaceID, arg.ID)
+	var i AutomationContactInWorkspaceRow
+	err := row.Scan(&i.ID, &i.Status)
+	return i, err
+}
+
+const automationContactSentEvent = `-- name: AutomationContactSentEvent :one
+SELECT EXISTS (
+    SELECT 1 FROM automation_events
+    WHERE workspace_id = $1 AND contact_id = $2 AND kind = 'api_event' AND ref = $3 AND occurred_at >= $4)
+`
+
+type AutomationContactSentEventParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ContactID   uuid.UUID `json:"contactId"`
+	Event       string    `json:"event"`
+	Since       time.Time `json:"since"`
+}
+
+func (q *Queries) AutomationContactSentEvent(ctx context.Context, arg AutomationContactSentEventParams) (bool, error) {
+	row := q.db.QueryRow(ctx, automationContactSentEvent,
+		arg.WorkspaceID,
+		arg.ContactID,
+		arg.Event,
+		arg.Since,
+	)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const automationContactSuppressed = `-- name: AutomationContactSuppressed :one
+SELECT EXISTS (SELECT 1 FROM suppressions WHERE workspace_id = $1 AND email = $2)
+`
+
+type AutomationContactSuppressedParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+}
+
+func (q *Queries) AutomationContactSuppressed(ctx context.Context, arg AutomationContactSuppressedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, automationContactSuppressed, arg.WorkspaceID, arg.Email)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const automationDateFieldMatches = `-- name: AutomationDateFieldMatches :many
+SELECT c.id FROM contacts c
+WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
+  AND CASE WHEN $2::text = 'created_at' THEN (c.created_at AT TIME ZONE $3::text)::date
+           ELSE CASE WHEN (c.attributes ->> $2::text) ~ '^\d{4}-\d{2}-\d{2}' THEN substr(c.attributes ->> $2::text, 1, 10)::date END
+      END IS NOT NULL
+  AND (
+    (NOT $4::boolean AND
+       CASE WHEN $2::text = 'created_at' THEN (c.created_at AT TIME ZONE $3::text)::date
+            ELSE substr(c.attributes ->> $2::text, 1, 10)::date END + $5::int = $6::date)
+    OR ($4::boolean AND to_char(
+       CASE WHEN $2::text = 'created_at' THEN (c.created_at AT TIME ZONE $3::text)::date
+            ELSE substr(c.attributes ->> $2::text, 1, 10)::date END + $5::int, 'MM-DD') = to_char($6::date, 'MM-DD')))
+  AND NOT EXISTS (SELECT 1 FROM automation_events e
+                  WHERE e.workspace_id = c.workspace_id AND e.contact_id = c.id AND e.kind = 'date_field'
+                    AND e.ref = $2::text AND e.occurred_at >= $6::date)
+LIMIT 5000
+`
+
+type AutomationDateFieldMatchesParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Field       string    `json:"field"`
+	Tz          string    `json:"tz"`
+	Yearly      bool      `json:"yearly"`
+	OffsetDays  int32     `json:"offsetDays"`
+	Today       time.Time `json:"today"`
+}
+
+// Contacts whose date field (plus the offset) is today in the workspace's
+// timezone; yearly triggers match the day and month every year.
+func (q *Queries) AutomationDateFieldMatches(ctx context.Context, arg AutomationDateFieldMatchesParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, automationDateFieldMatches,
+		arg.WorkspaceID,
+		arg.Field,
+		arg.Tz,
+		arg.Yearly,
+		arg.OffsetDays,
+		arg.Today,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationDateTriggers = `-- name: AutomationDateTriggers :many
+SELECT a.id, a.workspace_id, a.trigger, w.timezone
+FROM automations a
+JOIN workspaces w ON w.id = a.workspace_id
+WHERE a.status = 'live' AND a.deleted_at IS NULL AND a.trigger ->> 'kind' = 'date_field'
+`
+
+type AutomationDateTriggersRow struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Trigger     json.RawMessage `json:"trigger"`
+	Timezone    string          `json:"timezone"`
+}
+
+func (q *Queries) AutomationDateTriggers(ctx context.Context) ([]AutomationDateTriggersRow, error) {
+	rows, err := q.db.Query(ctx, automationDateTriggers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationDateTriggersRow{}
+	for rows.Next() {
+		var i AutomationDateTriggersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Trigger,
+			&i.Timezone,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const automationEngaged = `-- name: AutomationEngaged :one
@@ -162,6 +407,500 @@ func (q *Queries) AutomationEngaged(ctx context.Context, arg AutomationEngagedPa
 	return exists, err
 }
 
+const automationEventNames = `-- name: AutomationEventNames :many
+SELECT DISTINCT ref::text AS event FROM automation_events
+WHERE workspace_id = $1 AND kind = 'api_event' AND occurred_at > now() - interval '90 days'
+ORDER BY 1 LIMIT 50
+`
+
+func (q *Queries) AutomationEventNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, automationEventNames, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var event string
+		if err := rows.Scan(&event); err != nil {
+			return nil, err
+		}
+		items = append(items, event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationFields = `-- name: AutomationFields :many
+SELECT key, label, type FROM custom_fields WHERE workspace_id = $1 ORDER BY label
+`
+
+type AutomationFieldsRow struct {
+	Key   string `json:"key"`
+	Label string `json:"label"`
+	Type  string `json:"type"`
+}
+
+func (q *Queries) AutomationFields(ctx context.Context, workspaceID uuid.UUID) ([]AutomationFieldsRow, error) {
+	rows, err := q.db.Query(ctx, automationFields, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationFieldsRow{}
+	for rows.Next() {
+		var i AutomationFieldsRow
+		if err := rows.Scan(&i.Key, &i.Label, &i.Type); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationForms = `-- name: AutomationForms :many
+SELECT id, name, slug FROM forms WHERE workspace_id = $1 ORDER BY created_at
+`
+
+type AutomationFormsRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	Slug string    `json:"slug"`
+}
+
+func (q *Queries) AutomationForms(ctx context.Context, workspaceID uuid.UUID) ([]AutomationFormsRow, error) {
+	rows, err := q.db.Query(ctx, automationForms, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationFormsRow{}
+	for rows.Next() {
+		var i AutomationFormsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Slug); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationGoalRunsEngaged = `-- name: AutomationGoalRunsEngaged :many
+SELECT r.id, r.node_id FROM automation_runs r
+WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
+  AND EXISTS (
+    SELECT 1 FROM delivery_events de
+    JOIN messages m ON m.id = de.message_id
+    WHERE de.contact_id = r.contact_id AND m.automation_id = r.automation_id AND de.occurred_at >= r.entered_at
+      AND (($3::text = 'opened' AND de.type = 'open' AND (NOT $4::boolean OR NOT de.machine))
+        OR ($3::text = 'clicked' AND de.type = 'click' AND ($5::text = '' OR de.url ILIKE '%' || $5::text || '%'))))
+LIMIT 1000
+FOR UPDATE OF r SKIP LOCKED
+`
+
+type AutomationGoalRunsEngagedParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	Version      int32     `json:"version"`
+	Want         string    `json:"want"`
+	HumanOnly    bool      `json:"humanOnly"`
+	UrlContains  string    `json:"urlContains"`
+}
+
+type AutomationGoalRunsEngagedRow struct {
+	ID     uuid.UUID `json:"id"`
+	NodeID string    `json:"nodeId"`
+}
+
+// Runs whose contact opened or clicked an email of this flow since entering.
+func (q *Queries) AutomationGoalRunsEngaged(ctx context.Context, arg AutomationGoalRunsEngagedParams) ([]AutomationGoalRunsEngagedRow, error) {
+	rows, err := q.db.Query(ctx, automationGoalRunsEngaged,
+		arg.AutomationID,
+		arg.Version,
+		arg.Want,
+		arg.HumanOnly,
+		arg.UrlContains,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationGoalRunsEngagedRow{}
+	for rows.Next() {
+		var i AutomationGoalRunsEngagedRow
+		if err := rows.Scan(&i.ID, &i.NodeID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationGoalRunsEvent = `-- name: AutomationGoalRunsEvent :many
+SELECT r.id, r.node_id FROM automation_runs r
+JOIN automations a ON a.id = r.automation_id
+WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
+  AND EXISTS (SELECT 1 FROM automation_events e
+              WHERE e.workspace_id = a.workspace_id AND e.contact_id = r.contact_id AND e.kind = 'api_event'
+                AND e.ref = $3::text AND e.occurred_at >= r.entered_at)
+LIMIT 1000
+FOR UPDATE OF r SKIP LOCKED
+`
+
+type AutomationGoalRunsEventParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	Version      int32     `json:"version"`
+	Event        string    `json:"event"`
+}
+
+type AutomationGoalRunsEventRow struct {
+	ID     uuid.UUID `json:"id"`
+	NodeID string    `json:"nodeId"`
+}
+
+func (q *Queries) AutomationGoalRunsEvent(ctx context.Context, arg AutomationGoalRunsEventParams) ([]AutomationGoalRunsEventRow, error) {
+	rows, err := q.db.Query(ctx, automationGoalRunsEvent, arg.AutomationID, arg.Version, arg.Event)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationGoalRunsEventRow{}
+	for rows.Next() {
+		var i AutomationGoalRunsEventRow
+		if err := rows.Scan(&i.ID, &i.NodeID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationGoalRunsInList = `-- name: AutomationGoalRunsInList :many
+SELECT r.id, r.node_id FROM automation_runs r
+WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
+  AND EXISTS (SELECT 1 FROM list_memberships lm WHERE lm.list_id = $3 AND lm.contact_id = r.contact_id AND lm.status = 'subscribed')
+LIMIT 1000
+FOR UPDATE OF r SKIP LOCKED
+`
+
+type AutomationGoalRunsInListParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	Version      int32     `json:"version"`
+	ListID       uuid.UUID `json:"listId"`
+}
+
+type AutomationGoalRunsInListRow struct {
+	ID     uuid.UUID `json:"id"`
+	NodeID string    `json:"nodeId"`
+}
+
+func (q *Queries) AutomationGoalRunsInList(ctx context.Context, arg AutomationGoalRunsInListParams) ([]AutomationGoalRunsInListRow, error) {
+	rows, err := q.db.Query(ctx, automationGoalRunsInList, arg.AutomationID, arg.Version, arg.ListID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationGoalRunsInListRow{}
+	for rows.Next() {
+		var i AutomationGoalRunsInListRow
+		if err := rows.Scan(&i.ID, &i.NodeID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationGoalRunsTagged = `-- name: AutomationGoalRunsTagged :many
+SELECT r.id, r.node_id FROM automation_runs r
+JOIN contacts c ON c.id = r.contact_id
+WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
+  AND $3::text = ANY (c.tags)
+LIMIT 1000
+FOR UPDATE OF r SKIP LOCKED
+`
+
+type AutomationGoalRunsTaggedParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	Version      int32     `json:"version"`
+	Tag          string    `json:"tag"`
+}
+
+type AutomationGoalRunsTaggedRow struct {
+	ID     uuid.UUID `json:"id"`
+	NodeID string    `json:"nodeId"`
+}
+
+func (q *Queries) AutomationGoalRunsTagged(ctx context.Context, arg AutomationGoalRunsTaggedParams) ([]AutomationGoalRunsTaggedRow, error) {
+	rows, err := q.db.Query(ctx, automationGoalRunsTagged, arg.AutomationID, arg.Version, arg.Tag)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationGoalRunsTaggedRow{}
+	for rows.Next() {
+		var i AutomationGoalRunsTaggedRow
+		if err := rows.Scan(&i.ID, &i.NodeID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationLists = `-- name: AutomationLists :many
+SELECT id, name FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
+`
+
+type AutomationListsRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+func (q *Queries) AutomationLists(ctx context.Context, workspaceID uuid.UUID) ([]AutomationListsRow, error) {
+	rows, err := q.db.Query(ctx, automationLists, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationListsRow{}
+	for rows.Next() {
+		var i AutomationListsRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationLostWebhookRuns = `-- name: AutomationLostWebhookRuns :many
+SELECT id, automation_id, version, node_id FROM automation_runs
+WHERE status = 'waiting' AND next_at IS NULL AND state ->> 'wait' = 'webhook' AND node_entered_at < $1
+LIMIT 500
+`
+
+type AutomationLostWebhookRunsRow struct {
+	ID           uuid.UUID `json:"id"`
+	AutomationID uuid.UUID `json:"automationId"`
+	Version      int32     `json:"version"`
+	NodeID       string    `json:"nodeId"`
+}
+
+// Runs waiting on a webhook call whose job never ran (lost or not enqueued).
+func (q *Queries) AutomationLostWebhookRuns(ctx context.Context, before time.Time) ([]AutomationLostWebhookRunsRow, error) {
+	rows, err := q.db.Query(ctx, automationLostWebhookRuns, before)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationLostWebhookRunsRow{}
+	for rows.Next() {
+		var i AutomationLostWebhookRunsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.AutomationID,
+			&i.Version,
+			&i.NodeID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationMessageEngaged = `-- name: AutomationMessageEngaged :one
+SELECT EXISTS (
+    SELECT 1 FROM delivery_events de
+    WHERE de.message_id = $1
+      AND (($2::text = 'opened' AND de.type = 'open' AND (NOT $3::boolean OR NOT de.machine))
+        OR ($2::text = 'clicked' AND de.type = 'click' AND ($4::text = '' OR de.url ILIKE '%' || $4::text || '%'))))
+`
+
+type AutomationMessageEngagedParams struct {
+	MessageID   *uuid.UUID `json:"messageId"`
+	Want        string     `json:"want"`
+	HumanOnly   bool       `json:"humanOnly"`
+	UrlContains string     `json:"urlContains"`
+}
+
+func (q *Queries) AutomationMessageEngaged(ctx context.Context, arg AutomationMessageEngagedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, automationMessageEngaged,
+		arg.MessageID,
+		arg.Want,
+		arg.HumanOnly,
+		arg.UrlContains,
+	)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const automationMessageForStats = `-- name: AutomationMessageForStats :one
+SELECT m.automation_id, m.automation_node, a.live_version, a.draft_version
+FROM messages m
+JOIN automations a ON a.id = m.automation_id
+WHERE m.id = $1
+`
+
+type AutomationMessageForStatsRow struct {
+	AutomationID   *uuid.UUID `json:"automationId"`
+	AutomationNode *string    `json:"automationNode"`
+	LiveVersion    *int32     `json:"liveVersion"`
+	DraftVersion   int32      `json:"draftVersion"`
+}
+
+func (q *Queries) AutomationMessageForStats(ctx context.Context, id uuid.UUID) (AutomationMessageForStatsRow, error) {
+	row := q.db.QueryRow(ctx, automationMessageForStats, id)
+	var i AutomationMessageForStatsRow
+	err := row.Scan(
+		&i.AutomationID,
+		&i.AutomationNode,
+		&i.LiveVersion,
+		&i.DraftVersion,
+	)
+	return i, err
+}
+
+const automationProviderSendsSince = `-- name: AutomationProviderSendsSince :many
+SELECT p.k::text AS provider_id, sum(p.v::bigint)::bigint AS n, max(s.day)::date AS last_day
+FROM automation_step_stats s
+JOIN automations a ON a.id = s.automation_id
+CROSS JOIN LATERAL jsonb_each_text(s.providers) AS p(k, v)
+WHERE a.workspace_id = $1 AND a.deleted_at IS NULL AND s.day >= $2::date
+GROUP BY p.k
+`
+
+type AutomationProviderSendsSinceParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type AutomationProviderSendsSinceRow struct {
+	ProviderID string    `json:"providerId"`
+	N          int64     `json:"n"`
+	LastDay    time.Time `json:"lastDay"`
+}
+
+// Automation emails per sending provider since a day, and the last day each sent.
+func (q *Queries) AutomationProviderSendsSince(ctx context.Context, arg AutomationProviderSendsSinceParams) ([]AutomationProviderSendsSinceRow, error) {
+	rows, err := q.db.Query(ctx, automationProviderSendsSince, arg.WorkspaceID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationProviderSendsSinceRow{}
+	for rows.Next() {
+		var i AutomationProviderSendsSinceRow
+		if err := rows.Scan(&i.ProviderID, &i.N, &i.LastDay); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationProviders = `-- name: AutomationProviders :many
+SELECT id, name, adapter, status, status_detail, connected_at FROM providers
+WHERE workspace_id = $1 AND disconnected_at IS NULL
+ORDER BY connected_at
+`
+
+type AutomationProvidersRow struct {
+	ID           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	Adapter      string    `json:"adapter"`
+	Status       string    `json:"status"`
+	StatusDetail string    `json:"statusDetail"`
+	ConnectedAt  time.Time `json:"connectedAt"`
+}
+
+func (q *Queries) AutomationProviders(ctx context.Context, workspaceID uuid.UUID) ([]AutomationProvidersRow, error) {
+	rows, err := q.db.Query(ctx, automationProviders, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationProvidersRow{}
+	for rows.Next() {
+		var i AutomationProvidersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Adapter,
+			&i.Status,
+			&i.StatusDetail,
+			&i.ConnectedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationRemoveContactTag = `-- name: AutomationRemoveContactTag :exec
+UPDATE contacts SET tags = array_remove(tags, $1::text), updated_at = now()
+WHERE id = $2 AND $1::text = ANY (tags)
+`
+
+type AutomationRemoveContactTagParams struct {
+	Tag string    `json:"tag"`
+	ID  uuid.UUID `json:"id"`
+}
+
+func (q *Queries) AutomationRemoveContactTag(ctx context.Context, arg AutomationRemoveContactTagParams) error {
+	_, err := q.db.Exec(ctx, automationRemoveContactTag, arg.Tag, arg.ID)
+	return err
+}
+
+const automationRemoveListMembership = `-- name: AutomationRemoveListMembership :exec
+UPDATE list_memberships SET status = 'unsubscribed', unsubscribed_at = now()
+WHERE list_id = $1 AND contact_id = $2 AND status <> 'unsubscribed'
+`
+
+type AutomationRemoveListMembershipParams struct {
+	ListID    uuid.UUID `json:"listId"`
+	ContactID uuid.UUID `json:"contactId"`
+}
+
+func (q *Queries) AutomationRemoveListMembership(ctx context.Context, arg AutomationRemoveListMembershipParams) error {
+	_, err := q.db.Exec(ctx, automationRemoveListMembership, arg.ListID, arg.ContactID)
+	return err
+}
+
 const automationRoute = `-- name: AutomationRoute :one
 SELECT splits, fallback_provider_id FROM routing_rules
 WHERE workspace_id = $1 AND stream = 'automation' AND enabled AND conditions = '{}'::jsonb
@@ -181,7 +920,388 @@ func (q *Queries) AutomationRoute(ctx context.Context, workspaceID uuid.UUID) (A
 	return i, err
 }
 
-const bumpStepStats = `-- name: BumpStepStats :exec
+const automationRunExists = `-- name: AutomationRunExists :one
+SELECT EXISTS (SELECT 1 FROM automation_runs WHERE automation_id = $1 AND contact_id = $2)
+`
+
+type AutomationRunExistsParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	ContactID    uuid.UUID `json:"contactId"`
+}
+
+func (q *Queries) AutomationRunExists(ctx context.Context, arg AutomationRunExistsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, automationRunExists, arg.AutomationID, arg.ContactID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const automationRunMessage = `-- name: AutomationRunMessage :one
+SELECT id, queued_at, status FROM messages
+WHERE automation_id = $1 AND automation_node = $2 AND contact_id = $3
+ORDER BY queued_at DESC LIMIT 1
+`
+
+type AutomationRunMessageParams struct {
+	AutomationID *uuid.UUID `json:"automationId"`
+	NodeID       *string    `json:"nodeId"`
+	ContactID    *uuid.UUID `json:"contactId"`
+}
+
+type AutomationRunMessageRow struct {
+	ID       uuid.UUID `json:"id"`
+	QueuedAt time.Time `json:"queuedAt"`
+	Status   string    `json:"status"`
+}
+
+// The message a run's email step queued (for branch checks).
+func (q *Queries) AutomationRunMessage(ctx context.Context, arg AutomationRunMessageParams) (AutomationRunMessageRow, error) {
+	row := q.db.QueryRow(ctx, automationRunMessage, arg.AutomationID, arg.NodeID, arg.ContactID)
+	var i AutomationRunMessageRow
+	err := row.Scan(&i.ID, &i.QueuedAt, &i.Status)
+	return i, err
+}
+
+const automationStepFailures = `-- name: AutomationStepFailures :many
+SELECT DISTINCT ON (node_id) node_id, detail, failures, first_at, last_at, resolved_at
+FROM automation_alerts
+WHERE automation_id = $1 AND kind = 'step_failing'
+ORDER BY node_id, first_at DESC
+`
+
+type AutomationStepFailuresRow struct {
+	NodeID     string          `json:"nodeId"`
+	Detail     json.RawMessage `json:"detail"`
+	Failures   int64           `json:"failures"`
+	FirstAt    time.Time       `json:"firstAt"`
+	LastAt     time.Time       `json:"lastAt"`
+	ResolvedAt *time.Time      `json:"resolvedAt"`
+}
+
+// The latest alert per webhook step, open or resolved (for the publish diff).
+func (q *Queries) AutomationStepFailures(ctx context.Context, automationID uuid.UUID) ([]AutomationStepFailuresRow, error) {
+	rows, err := q.db.Query(ctx, automationStepFailures, automationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationStepFailuresRow{}
+	for rows.Next() {
+		var i AutomationStepFailuresRow
+		if err := rows.Scan(
+			&i.NodeID,
+			&i.Detail,
+			&i.Failures,
+			&i.FirstAt,
+			&i.LastAt,
+			&i.ResolvedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationStepPathsSince = `-- name: AutomationStepPathsSince :many
+SELECT s.automation_id, s.node_id, p.k::text AS path, sum(p.v::bigint)::bigint AS n
+FROM automation_step_stats s, jsonb_each_text(s.paths) AS p(k, v)
+WHERE s.automation_id = ANY($1::uuid[]) AND s.day >= $2::date
+GROUP BY s.automation_id, s.node_id, p.k
+`
+
+type AutomationStepPathsSinceParams struct {
+	AutomationIds []uuid.UUID `json:"automationIds"`
+	Since         time.Time   `json:"since"`
+}
+
+type AutomationStepPathsSinceRow struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	NodeID       string    `json:"nodeId"`
+	Path         string    `json:"path"`
+	N            int64     `json:"n"`
+}
+
+// Paths taken out of branches and splits.
+func (q *Queries) AutomationStepPathsSince(ctx context.Context, arg AutomationStepPathsSinceParams) ([]AutomationStepPathsSinceRow, error) {
+	rows, err := q.db.Query(ctx, automationStepPathsSince, arg.AutomationIds, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationStepPathsSinceRow{}
+	for rows.Next() {
+		var i AutomationStepPathsSinceRow
+		if err := rows.Scan(
+			&i.AutomationID,
+			&i.NodeID,
+			&i.Path,
+			&i.N,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationStepProvidersSince = `-- name: AutomationStepProvidersSince :many
+SELECT s.automation_id, s.node_id, p.k::text AS provider_id, sum(p.v::bigint)::bigint AS n, max(s.day)::date AS last_day
+FROM automation_step_stats s, jsonb_each_text(s.providers) AS p(k, v)
+WHERE s.automation_id = ANY($1::uuid[]) AND s.day >= $2::date
+GROUP BY s.automation_id, s.node_id, p.k
+`
+
+type AutomationStepProvidersSinceParams struct {
+	AutomationIds []uuid.UUID `json:"automationIds"`
+	Since         time.Time   `json:"since"`
+}
+
+type AutomationStepProvidersSinceRow struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	NodeID       string    `json:"nodeId"`
+	ProviderID   string    `json:"providerId"`
+	N            int64     `json:"n"`
+	LastDay      time.Time `json:"lastDay"`
+}
+
+// Emails per sending provider, per step.
+func (q *Queries) AutomationStepProvidersSince(ctx context.Context, arg AutomationStepProvidersSinceParams) ([]AutomationStepProvidersSinceRow, error) {
+	rows, err := q.db.Query(ctx, automationStepProvidersSince, arg.AutomationIds, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationStepProvidersSinceRow{}
+	for rows.Next() {
+		var i AutomationStepProvidersSinceRow
+		if err := rows.Scan(
+			&i.AutomationID,
+			&i.NodeID,
+			&i.ProviderID,
+			&i.N,
+			&i.LastDay,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationStepSecretNodes = `-- name: AutomationStepSecretNodes :many
+SELECT node_id FROM automation_step_secrets WHERE automation_id = $1
+`
+
+func (q *Queries) AutomationStepSecretNodes(ctx context.Context, automationID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, automationStepSecretNodes, automationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var node_id string
+		if err := rows.Scan(&node_id); err != nil {
+			return nil, err
+		}
+		items = append(items, node_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationStepStatsSince = `-- name: AutomationStepStatsSince :many
+SELECT automation_id, node_id,
+       sum(entered)::bigint AS entered, sum(completed)::bigint AS completed, sum(waiting)::bigint AS waiting,
+       sum(exited)::bigint AS exited, sum(dropped)::bigint AS dropped, sum(goal_reached)::bigint AS goal_reached,
+       sum(skipped)::bigint AS skipped, sum(failed)::bigint AS failed,
+       sum(sent)::bigint AS sent, sum(delivered)::bigint AS delivered, sum(bounced)::bigint AS bounced,
+       sum(complained)::bigint AS complained, sum(opened)::bigint AS opened, sum(opened_human)::bigint AS opened_human,
+       sum(clicked)::bigint AS clicked, sum(unsubscribed)::bigint AS unsubscribed,
+       sum(branch_yes)::bigint AS branch_yes, sum(branch_no)::bigint AS branch_no
+FROM automation_step_stats
+WHERE automation_id = ANY($1::uuid[]) AND day >= $2::date
+GROUP BY automation_id, node_id
+`
+
+type AutomationStepStatsSinceParams struct {
+	AutomationIds []uuid.UUID `json:"automationIds"`
+	Since         time.Time   `json:"since"`
+}
+
+type AutomationStepStatsSinceRow struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	NodeID       string    `json:"nodeId"`
+	Entered      int64     `json:"entered"`
+	Completed    int64     `json:"completed"`
+	Waiting      int64     `json:"waiting"`
+	Exited       int64     `json:"exited"`
+	Dropped      int64     `json:"dropped"`
+	GoalReached  int64     `json:"goalReached"`
+	Skipped      int64     `json:"skipped"`
+	Failed       int64     `json:"failed"`
+	Sent         int64     `json:"sent"`
+	Delivered    int64     `json:"delivered"`
+	Bounced      int64     `json:"bounced"`
+	Complained   int64     `json:"complained"`
+	Opened       int64     `json:"opened"`
+	OpenedHuman  int64     `json:"openedHuman"`
+	Clicked      int64     `json:"clicked"`
+	Unsubscribed int64     `json:"unsubscribed"`
+	BranchYes    int64     `json:"branchYes"`
+	BranchNo     int64     `json:"branchNo"`
+}
+
+// Per-step totals since a day, across versions (steps keep their ids).
+func (q *Queries) AutomationStepStatsSince(ctx context.Context, arg AutomationStepStatsSinceParams) ([]AutomationStepStatsSinceRow, error) {
+	rows, err := q.db.Query(ctx, automationStepStatsSince, arg.AutomationIds, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationStepStatsSinceRow{}
+	for rows.Next() {
+		var i AutomationStepStatsSinceRow
+		if err := rows.Scan(
+			&i.AutomationID,
+			&i.NodeID,
+			&i.Entered,
+			&i.Completed,
+			&i.Waiting,
+			&i.Exited,
+			&i.Dropped,
+			&i.GoalReached,
+			&i.Skipped,
+			&i.Failed,
+			&i.Sent,
+			&i.Delivered,
+			&i.Bounced,
+			&i.Complained,
+			&i.Opened,
+			&i.OpenedHuman,
+			&i.Clicked,
+			&i.Unsubscribed,
+			&i.BranchYes,
+			&i.BranchNo,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationTopTags = `-- name: AutomationTopTags :many
+SELECT t::text AS tag, count(*)::bigint AS n
+FROM contacts c, unnest(c.tags) t
+WHERE c.workspace_id = $1 AND c.erased_at IS NULL
+GROUP BY t ORDER BY n DESC, t LIMIT 50
+`
+
+type AutomationTopTagsRow struct {
+	Tag string `json:"tag"`
+	N   int64  `json:"n"`
+}
+
+func (q *Queries) AutomationTopTags(ctx context.Context, workspaceID uuid.UUID) ([]AutomationTopTagsRow, error) {
+	rows, err := q.db.Query(ctx, automationTopTags, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationTopTagsRow{}
+	for rows.Next() {
+		var i AutomationTopTagsRow
+		if err := rows.Scan(&i.Tag, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationUnsubscribeAll = `-- name: AutomationUnsubscribeAll :exec
+UPDATE list_memberships SET status = 'unsubscribed', unsubscribed_at = now()
+WHERE contact_id = $1 AND status <> 'unsubscribed'
+`
+
+func (q *Queries) AutomationUnsubscribeAll(ctx context.Context, contactID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, automationUnsubscribeAll, contactID)
+	return err
+}
+
+const automationWorkspaceStatsSince = `-- name: AutomationWorkspaceStatsSince :many
+SELECT s.automation_id,
+       sum(s.sent)::bigint AS sent, sum(s.delivered)::bigint AS delivered,
+       sum(s.opened_human)::bigint AS opened_human, sum(s.clicked)::bigint AS clicked,
+       sum(s.goal_reached)::bigint AS goal_reached
+FROM automation_step_stats s
+JOIN automations a ON a.id = s.automation_id
+WHERE a.workspace_id = $1 AND a.deleted_at IS NULL AND s.day >= $2::date
+GROUP BY s.automation_id
+`
+
+type AutomationWorkspaceStatsSinceParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type AutomationWorkspaceStatsSinceRow struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	Sent         int64     `json:"sent"`
+	Delivered    int64     `json:"delivered"`
+	OpenedHuman  int64     `json:"openedHuman"`
+	Clicked      int64     `json:"clicked"`
+	GoalReached  int64     `json:"goalReached"`
+}
+
+// Totals per automation since a day, for the KPI row.
+func (q *Queries) AutomationWorkspaceStatsSince(ctx context.Context, arg AutomationWorkspaceStatsSinceParams) ([]AutomationWorkspaceStatsSinceRow, error) {
+	rows, err := q.db.Query(ctx, automationWorkspaceStatsSince, arg.WorkspaceID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationWorkspaceStatsSinceRow{}
+	for rows.Next() {
+		var i AutomationWorkspaceStatsSinceRow
+		if err := rows.Scan(
+			&i.AutomationID,
+			&i.Sent,
+			&i.Delivered,
+			&i.OpenedHuman,
+			&i.Clicked,
+			&i.GoalReached,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const bumpAutomationStepStats = `-- name: BumpAutomationStepStats :exec
 INSERT INTO automation_step_stats AS s (automation_id, version, node_id, day,
     entered, completed, waiting, exited, dropped, goal_reached, skipped, failed, sent,
     delivered, bounced, complained, opened, opened_human, clicked, unsubscribed, branch_yes, branch_no, paths, providers)
@@ -218,7 +1338,7 @@ ON CONFLICT (automation_id, version, node_id, day) DO UPDATE SET
             UNION ALL SELECT b.k, b.v::bigint FROM jsonb_each_text(EXCLUDED.providers) AS b(k, v)) x GROUP BY k) y)
 `
 
-type BumpStepStatsParams struct {
+type BumpAutomationStepStatsParams struct {
 	AutomationID uuid.UUID       `json:"automationId"`
 	Version      int32           `json:"version"`
 	NodeID       string          `json:"nodeId"`
@@ -247,8 +1367,8 @@ type BumpStepStatsParams struct {
 
 // Adds to one step's counters for a day. Path and provider counts are merged
 // key by key.
-func (q *Queries) BumpStepStats(ctx context.Context, arg BumpStepStatsParams) error {
-	_, err := q.db.Exec(ctx, bumpStepStats,
+func (q *Queries) BumpAutomationStepStats(ctx context.Context, arg BumpAutomationStepStatsParams) error {
+	_, err := q.db.Exec(ctx, bumpAutomationStepStats,
 		arg.AutomationID,
 		arg.Version,
 		arg.NodeID,
@@ -277,7 +1397,54 @@ func (q *Queries) BumpStepStats(ctx context.Context, arg BumpStepStatsParams) er
 	return err
 }
 
-const claimDueRuns = `-- name: ClaimDueRuns :many
+const claimAutomationEvents = `-- name: ClaimAutomationEvents :many
+SELECT id, workspace_id, kind, contact_id, ref, payload, occurred_at
+FROM automation_events
+WHERE processed_at IS NULL
+ORDER BY id
+LIMIT $1
+FOR UPDATE SKIP LOCKED
+`
+
+type ClaimAutomationEventsRow struct {
+	ID          int64           `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Kind        string          `json:"kind"`
+	ContactID   uuid.UUID       `json:"contactId"`
+	Ref         string          `json:"ref"`
+	Payload     json.RawMessage `json:"payload"`
+	OccurredAt  time.Time       `json:"occurredAt"`
+}
+
+func (q *Queries) ClaimAutomationEvents(ctx context.Context, lim int32) ([]ClaimAutomationEventsRow, error) {
+	rows, err := q.db.Query(ctx, claimAutomationEvents, lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ClaimAutomationEventsRow{}
+	for rows.Next() {
+		var i ClaimAutomationEventsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Kind,
+			&i.ContactID,
+			&i.Ref,
+			&i.Payload,
+			&i.OccurredAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const claimDueAutomationRuns = `-- name: ClaimDueAutomationRuns :many
 SELECT r.id, r.automation_id, r.version, r.contact_id, r.node_id, r.status, r.state, r.entered_at, r.node_entered_at, r.next_at,
        a.workspace_id
 FROM automation_runs r
@@ -288,12 +1455,12 @@ LIMIT $2
 FOR UPDATE OF r SKIP LOCKED
 `
 
-type ClaimDueRunsParams struct {
+type ClaimDueAutomationRunsParams struct {
 	Now *time.Time `json:"now"`
 	Lim int32      `json:"lim"`
 }
 
-type ClaimDueRunsRow struct {
+type ClaimDueAutomationRunsRow struct {
 	ID            uuid.UUID       `json:"id"`
 	AutomationID  uuid.UUID       `json:"automationId"`
 	Version       int32           `json:"version"`
@@ -308,15 +1475,15 @@ type ClaimDueRunsRow struct {
 }
 
 // Runs ready to move on, in flows that are live (paused flows hold their runs).
-func (q *Queries) ClaimDueRuns(ctx context.Context, arg ClaimDueRunsParams) ([]ClaimDueRunsRow, error) {
-	rows, err := q.db.Query(ctx, claimDueRuns, arg.Now, arg.Lim)
+func (q *Queries) ClaimDueAutomationRuns(ctx context.Context, arg ClaimDueAutomationRunsParams) ([]ClaimDueAutomationRunsRow, error) {
+	rows, err := q.db.Query(ctx, claimDueAutomationRuns, arg.Now, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ClaimDueRunsRow{}
+	items := []ClaimDueAutomationRunsRow{}
 	for rows.Next() {
-		var i ClaimDueRunsRow
+		var i ClaimDueAutomationRunsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.AutomationID,
@@ -340,43 +1507,39 @@ func (q *Queries) ClaimDueRuns(ctx context.Context, arg ClaimDueRunsParams) ([]C
 	return items, nil
 }
 
-const claimPendingEvents = `-- name: ClaimPendingEvents :many
-SELECT id, workspace_id, kind, contact_id, ref, payload, occurred_at
-FROM automation_events
-WHERE processed_at IS NULL
-ORDER BY id
-LIMIT $1
-FOR UPDATE SKIP LOCKED
+const countAutomationHeldMessages = `-- name: CountAutomationHeldMessages :one
+SELECT count(*)::bigint FROM messages WHERE automation_id = $1 AND status = 'held'
 `
 
-type ClaimPendingEventsRow struct {
-	ID          int64           `json:"id"`
-	WorkspaceID uuid.UUID       `json:"workspaceId"`
-	Kind        string          `json:"kind"`
-	ContactID   uuid.UUID       `json:"contactId"`
-	Ref         string          `json:"ref"`
-	Payload     json.RawMessage `json:"payload"`
-	OccurredAt  time.Time       `json:"occurredAt"`
+func (q *Queries) CountAutomationHeldMessages(ctx context.Context, automationID *uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countAutomationHeldMessages, automationID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
-func (q *Queries) ClaimPendingEvents(ctx context.Context, lim int32) ([]ClaimPendingEventsRow, error) {
-	rows, err := q.db.Query(ctx, claimPendingEvents, lim)
+const countAutomationInFlow = `-- name: CountAutomationInFlow :many
+SELECT automation_id, count(*)::bigint AS n
+FROM automation_runs
+WHERE automation_id = ANY($1::uuid[]) AND status IN ('active', 'waiting')
+GROUP BY automation_id
+`
+
+type CountAutomationInFlowRow struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	N            int64     `json:"n"`
+}
+
+func (q *Queries) CountAutomationInFlow(ctx context.Context, automationIds []uuid.UUID) ([]CountAutomationInFlowRow, error) {
+	rows, err := q.db.Query(ctx, countAutomationInFlow, automationIds)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ClaimPendingEventsRow{}
+	items := []CountAutomationInFlowRow{}
 	for rows.Next() {
-		var i ClaimPendingEventsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.WorkspaceID,
-			&i.Kind,
-			&i.ContactID,
-			&i.Ref,
-			&i.Payload,
-			&i.OccurredAt,
-		); err != nil {
+		var i CountAutomationInFlowRow
+		if err := rows.Scan(&i.AutomationID, &i.N); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -387,153 +1550,37 @@ func (q *Queries) ClaimPendingEvents(ctx context.Context, lim int32) ([]ClaimPen
 	return items, nil
 }
 
-const contactByEmail = `-- name: ContactByEmail :one
-SELECT id, status FROM contacts WHERE workspace_id = $1 AND email = $2 AND erased_at IS NULL
+const countAutomationInFlowByNode = `-- name: CountAutomationInFlowByNode :many
+SELECT version, node_id, count(*)::bigint AS n
+FROM automation_runs
+WHERE automation_id = $1 AND status IN ('active', 'waiting')
+GROUP BY version, node_id
 `
 
-type ContactByEmailParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	Email       string    `json:"email"`
+type CountAutomationInFlowByNodeRow struct {
+	Version int32  `json:"version"`
+	NodeID  string `json:"nodeId"`
+	N       int64  `json:"n"`
 }
 
-type ContactByEmailRow struct {
-	ID     uuid.UUID `json:"id"`
-	Status string    `json:"status"`
-}
-
-func (q *Queries) ContactByEmail(ctx context.Context, arg ContactByEmailParams) (ContactByEmailRow, error) {
-	row := q.db.QueryRow(ctx, contactByEmail, arg.WorkspaceID, arg.Email)
-	var i ContactByEmailRow
-	err := row.Scan(&i.ID, &i.Status)
-	return i, err
-}
-
-const contactForRun = `-- name: ContactForRun :one
-SELECT id, email, first_name, last_name, status, timezone, tags, attributes, erased_at
-FROM contacts WHERE id = $1
-`
-
-type ContactForRunRow struct {
-	ID         uuid.UUID       `json:"id"`
-	Email      string          `json:"email"`
-	FirstName  string          `json:"firstName"`
-	LastName   string          `json:"lastName"`
-	Status     string          `json:"status"`
-	Timezone   string          `json:"timezone"`
-	Tags       []string        `json:"tags"`
-	Attributes json.RawMessage `json:"attributes"`
-	ErasedAt   *time.Time      `json:"erasedAt"`
-}
-
-func (q *Queries) ContactForRun(ctx context.Context, id uuid.UUID) (ContactForRunRow, error) {
-	row := q.db.QueryRow(ctx, contactForRun, id)
-	var i ContactForRunRow
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.FirstName,
-		&i.LastName,
-		&i.Status,
-		&i.Timezone,
-		&i.Tags,
-		&i.Attributes,
-		&i.ErasedAt,
-	)
-	return i, err
-}
-
-const contactGotEmailSince = `-- name: ContactGotEmailSince :one
-SELECT EXISTS (SELECT 1 FROM messages WHERE contact_id = $1 AND queued_at >= $2)
-`
-
-type ContactGotEmailSinceParams struct {
-	ContactID *uuid.UUID `json:"contactId"`
-	Since     time.Time  `json:"since"`
-}
-
-func (q *Queries) ContactGotEmailSince(ctx context.Context, arg ContactGotEmailSinceParams) (bool, error) {
-	row := q.db.QueryRow(ctx, contactGotEmailSince, arg.ContactID, arg.Since)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const contactInList = `-- name: ContactInList :one
-SELECT EXISTS (SELECT 1 FROM list_memberships WHERE list_id = $1 AND contact_id = $2 AND status = 'subscribed')
-`
-
-type ContactInListParams struct {
-	ListID    uuid.UUID `json:"listId"`
-	ContactID uuid.UUID `json:"contactId"`
-}
-
-func (q *Queries) ContactInList(ctx context.Context, arg ContactInListParams) (bool, error) {
-	row := q.db.QueryRow(ctx, contactInList, arg.ListID, arg.ContactID)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const contactInWorkspace = `-- name: ContactInWorkspace :one
-SELECT id, status FROM contacts WHERE workspace_id = $1 AND id = $2 AND erased_at IS NULL
-`
-
-type ContactInWorkspaceParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	ID          uuid.UUID `json:"id"`
-}
-
-type ContactInWorkspaceRow struct {
-	ID     uuid.UUID `json:"id"`
-	Status string    `json:"status"`
-}
-
-func (q *Queries) ContactInWorkspace(ctx context.Context, arg ContactInWorkspaceParams) (ContactInWorkspaceRow, error) {
-	row := q.db.QueryRow(ctx, contactInWorkspace, arg.WorkspaceID, arg.ID)
-	var i ContactInWorkspaceRow
-	err := row.Scan(&i.ID, &i.Status)
-	return i, err
-}
-
-const contactSentEvent = `-- name: ContactSentEvent :one
-SELECT EXISTS (
-    SELECT 1 FROM automation_events
-    WHERE workspace_id = $1 AND contact_id = $2 AND kind = 'api_event' AND ref = $3 AND occurred_at >= $4)
-`
-
-type ContactSentEventParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	ContactID   uuid.UUID `json:"contactId"`
-	Event       string    `json:"event"`
-	Since       time.Time `json:"since"`
-}
-
-func (q *Queries) ContactSentEvent(ctx context.Context, arg ContactSentEventParams) (bool, error) {
-	row := q.db.QueryRow(ctx, contactSentEvent,
-		arg.WorkspaceID,
-		arg.ContactID,
-		arg.Event,
-		arg.Since,
-	)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const contactSuppressed = `-- name: ContactSuppressed :one
-SELECT EXISTS (SELECT 1 FROM suppressions WHERE workspace_id = $1 AND email = $2)
-`
-
-type ContactSuppressedParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	Email       string    `json:"email"`
-}
-
-func (q *Queries) ContactSuppressed(ctx context.Context, arg ContactSuppressedParams) (bool, error) {
-	row := q.db.QueryRow(ctx, contactSuppressed, arg.WorkspaceID, arg.Email)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
+func (q *Queries) CountAutomationInFlowByNode(ctx context.Context, automationID uuid.UUID) ([]CountAutomationInFlowByNodeRow, error) {
+	rows, err := q.db.Query(ctx, countAutomationInFlowByNode, automationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CountAutomationInFlowByNodeRow{}
+	for rows.Next() {
+		var i CountAutomationInFlowByNodeRow
+		if err := rows.Scan(&i.Version, &i.NodeID, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const countAutomationsByStatus = `-- name: CountAutomationsByStatus :many
@@ -557,82 +1604,6 @@ func (q *Queries) CountAutomationsByStatus(ctx context.Context, workspaceID uuid
 	for rows.Next() {
 		var i CountAutomationsByStatusRow
 		if err := rows.Scan(&i.Status, &i.N); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const countHeldMessages = `-- name: CountHeldMessages :one
-SELECT count(*)::bigint FROM messages WHERE automation_id = $1 AND status = 'held'
-`
-
-func (q *Queries) CountHeldMessages(ctx context.Context, automationID *uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countHeldMessages, automationID)
-	var column_1 int64
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
-const countInFlow = `-- name: CountInFlow :many
-SELECT automation_id, count(*)::bigint AS n
-FROM automation_runs
-WHERE automation_id = ANY($1::uuid[]) AND status IN ('active', 'waiting')
-GROUP BY automation_id
-`
-
-type CountInFlowRow struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	N            int64     `json:"n"`
-}
-
-func (q *Queries) CountInFlow(ctx context.Context, automationIds []uuid.UUID) ([]CountInFlowRow, error) {
-	rows, err := q.db.Query(ctx, countInFlow, automationIds)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []CountInFlowRow{}
-	for rows.Next() {
-		var i CountInFlowRow
-		if err := rows.Scan(&i.AutomationID, &i.N); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const countInFlowByNode = `-- name: CountInFlowByNode :many
-SELECT version, node_id, count(*)::bigint AS n
-FROM automation_runs
-WHERE automation_id = $1 AND status IN ('active', 'waiting')
-GROUP BY version, node_id
-`
-
-type CountInFlowByNodeRow struct {
-	Version int32  `json:"version"`
-	NodeID  string `json:"nodeId"`
-	N       int64  `json:"n"`
-}
-
-func (q *Queries) CountInFlowByNode(ctx context.Context, automationID uuid.UUID) ([]CountInFlowByNodeRow, error) {
-	rows, err := q.db.Query(ctx, countInFlowByNode, automationID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []CountInFlowByNodeRow{}
-	for rows.Next() {
-		var i CountInFlowByNodeRow
-		if err := rows.Scan(&i.Version, &i.NodeID, &i.N); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -717,92 +1688,35 @@ func (q *Queries) CreateAutomationEmail(ctx context.Context, arg CreateAutomatio
 	return err
 }
 
-const dateFieldMatches = `-- name: DateFieldMatches :many
-SELECT c.id FROM contacts c
-WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
-  AND CASE WHEN $2::text = 'created_at' THEN (c.created_at AT TIME ZONE $3::text)::date
-           ELSE CASE WHEN (c.attributes ->> $2::text) ~ '^\d{4}-\d{2}-\d{2}' THEN substr(c.attributes ->> $2::text, 1, 10)::date END
-      END IS NOT NULL
-  AND (
-    (NOT $4::boolean AND
-       CASE WHEN $2::text = 'created_at' THEN (c.created_at AT TIME ZONE $3::text)::date
-            ELSE substr(c.attributes ->> $2::text, 1, 10)::date END + $5::int = $6::date)
-    OR ($4::boolean AND to_char(
-       CASE WHEN $2::text = 'created_at' THEN (c.created_at AT TIME ZONE $3::text)::date
-            ELSE substr(c.attributes ->> $2::text, 1, 10)::date END + $5::int, 'MM-DD') = to_char($6::date, 'MM-DD')))
-  AND NOT EXISTS (SELECT 1 FROM automation_events e
-                  WHERE e.workspace_id = c.workspace_id AND e.contact_id = c.id AND e.kind = 'date_field'
-                    AND e.ref = $2::text AND e.occurred_at >= $6::date)
-LIMIT 5000
-`
-
-type DateFieldMatchesParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	Field       string    `json:"field"`
-	Tz          string    `json:"tz"`
-	Yearly      bool      `json:"yearly"`
-	OffsetDays  int32     `json:"offsetDays"`
-	Today       time.Time `json:"today"`
-}
-
-// Contacts whose date field (plus the offset) is today in the workspace's
-// timezone; yearly triggers match the day and month every year.
-func (q *Queries) DateFieldMatches(ctx context.Context, arg DateFieldMatchesParams) ([]uuid.UUID, error) {
-	rows, err := q.db.Query(ctx, dateFieldMatches,
-		arg.WorkspaceID,
-		arg.Field,
-		arg.Tz,
-		arg.Yearly,
-		arg.OffsetDays,
-		arg.Today,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []uuid.UUID{}
-	for rows.Next() {
-		var id uuid.UUID
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const deleteStepSecret = `-- name: DeleteStepSecret :execrows
+const deleteAutomationStepSecret = `-- name: DeleteAutomationStepSecret :execrows
 DELETE FROM automation_step_secrets WHERE automation_id = $1 AND node_id = $2
 `
 
-type DeleteStepSecretParams struct {
+type DeleteAutomationStepSecretParams struct {
 	AutomationID uuid.UUID `json:"automationId"`
 	NodeID       string    `json:"nodeId"`
 }
 
-func (q *Queries) DeleteStepSecret(ctx context.Context, arg DeleteStepSecretParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteStepSecret, arg.AutomationID, arg.NodeID)
+func (q *Queries) DeleteAutomationStepSecret(ctx context.Context, arg DeleteAutomationStepSecretParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteAutomationStepSecret, arg.AutomationID, arg.NodeID)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
 }
 
-const exitActiveRuns = `-- name: ExitActiveRuns :execrows
+const exitAutomationRuns = `-- name: ExitAutomationRuns :execrows
 UPDATE automation_runs SET status = 'exited', finished_at = now(), next_at = NULL, exit_reason = $1
 WHERE automation_id = $2 AND status IN ('active', 'waiting')
 `
 
-type ExitActiveRunsParams struct {
+type ExitAutomationRunsParams struct {
 	ExitReason   string    `json:"exitReason"`
 	AutomationID uuid.UUID `json:"automationId"`
 }
 
-func (q *Queries) ExitActiveRuns(ctx context.Context, arg ExitActiveRunsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, exitActiveRuns, arg.ExitReason, arg.AutomationID)
+func (q *Queries) ExitAutomationRuns(ctx context.Context, arg ExitAutomationRunsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, exitAutomationRuns, arg.ExitReason, arg.AutomationID)
 	if err != nil {
 		return 0, err
 	}
@@ -914,6 +1828,64 @@ func (q *Queries) GetAutomationEmailVersion(ctx context.Context, arg GetAutomati
 	return i, err
 }
 
+const getAutomationRunForUpdate = `-- name: GetAutomationRunForUpdate :one
+SELECT r.id, r.automation_id, r.version, r.contact_id, r.node_id, r.status, r.state, r.entered_at, r.node_entered_at, r.next_at,
+       a.workspace_id
+FROM automation_runs r
+JOIN automations a ON a.id = r.automation_id
+WHERE r.id = $1
+FOR UPDATE OF r
+`
+
+type GetAutomationRunForUpdateRow struct {
+	ID            uuid.UUID       `json:"id"`
+	AutomationID  uuid.UUID       `json:"automationId"`
+	Version       int32           `json:"version"`
+	ContactID     uuid.UUID       `json:"contactId"`
+	NodeID        string          `json:"nodeId"`
+	Status        string          `json:"status"`
+	State         json.RawMessage `json:"state"`
+	EnteredAt     time.Time       `json:"enteredAt"`
+	NodeEnteredAt time.Time       `json:"nodeEnteredAt"`
+	NextAt        *time.Time      `json:"nextAt"`
+	WorkspaceID   uuid.UUID       `json:"workspaceId"`
+}
+
+func (q *Queries) GetAutomationRunForUpdate(ctx context.Context, id uuid.UUID) (GetAutomationRunForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, getAutomationRunForUpdate, id)
+	var i GetAutomationRunForUpdateRow
+	err := row.Scan(
+		&i.ID,
+		&i.AutomationID,
+		&i.Version,
+		&i.ContactID,
+		&i.NodeID,
+		&i.Status,
+		&i.State,
+		&i.EnteredAt,
+		&i.NodeEnteredAt,
+		&i.NextAt,
+		&i.WorkspaceID,
+	)
+	return i, err
+}
+
+const getAutomationStepSecret = `-- name: GetAutomationStepSecret :one
+SELECT secret_enc FROM automation_step_secrets WHERE automation_id = $1 AND node_id = $2
+`
+
+type GetAutomationStepSecretParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	NodeID       string    `json:"nodeId"`
+}
+
+func (q *Queries) GetAutomationStepSecret(ctx context.Context, arg GetAutomationStepSecretParams) ([]byte, error) {
+	row := q.db.QueryRow(ctx, getAutomationStepSecret, arg.AutomationID, arg.NodeID)
+	var secret_enc []byte
+	err := row.Scan(&secret_enc)
+	return secret_enc, err
+}
+
 const getAutomationVersion = `-- name: GetAutomationVersion :one
 SELECT v.automation_id, v.version, v.graph, v.created_by, v.created_at, v.published_by, v.published_at, v.retired_at, v.summary, v.migration, coalesce(cu.name, '')::text AS created_by_name, coalesce(pu.name, '')::text AS published_by_name
 FROM automation_versions v
@@ -960,238 +1932,6 @@ func (q *Queries) GetAutomationVersion(ctx context.Context, arg GetAutomationVer
 		&i.PublishedByName,
 	)
 	return i, err
-}
-
-const getRunForUpdate = `-- name: GetRunForUpdate :one
-SELECT r.id, r.automation_id, r.version, r.contact_id, r.node_id, r.status, r.state, r.entered_at, r.node_entered_at, r.next_at,
-       a.workspace_id
-FROM automation_runs r
-JOIN automations a ON a.id = r.automation_id
-WHERE r.id = $1
-FOR UPDATE OF r
-`
-
-type GetRunForUpdateRow struct {
-	ID            uuid.UUID       `json:"id"`
-	AutomationID  uuid.UUID       `json:"automationId"`
-	Version       int32           `json:"version"`
-	ContactID     uuid.UUID       `json:"contactId"`
-	NodeID        string          `json:"nodeId"`
-	Status        string          `json:"status"`
-	State         json.RawMessage `json:"state"`
-	EnteredAt     time.Time       `json:"enteredAt"`
-	NodeEnteredAt time.Time       `json:"nodeEnteredAt"`
-	NextAt        *time.Time      `json:"nextAt"`
-	WorkspaceID   uuid.UUID       `json:"workspaceId"`
-}
-
-func (q *Queries) GetRunForUpdate(ctx context.Context, id uuid.UUID) (GetRunForUpdateRow, error) {
-	row := q.db.QueryRow(ctx, getRunForUpdate, id)
-	var i GetRunForUpdateRow
-	err := row.Scan(
-		&i.ID,
-		&i.AutomationID,
-		&i.Version,
-		&i.ContactID,
-		&i.NodeID,
-		&i.Status,
-		&i.State,
-		&i.EnteredAt,
-		&i.NodeEnteredAt,
-		&i.NextAt,
-		&i.WorkspaceID,
-	)
-	return i, err
-}
-
-const getStepSecret = `-- name: GetStepSecret :one
-SELECT secret_enc FROM automation_step_secrets WHERE automation_id = $1 AND node_id = $2
-`
-
-type GetStepSecretParams struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	NodeID       string    `json:"nodeId"`
-}
-
-func (q *Queries) GetStepSecret(ctx context.Context, arg GetStepSecretParams) ([]byte, error) {
-	row := q.db.QueryRow(ctx, getStepSecret, arg.AutomationID, arg.NodeID)
-	var secret_enc []byte
-	err := row.Scan(&secret_enc)
-	return secret_enc, err
-}
-
-const goalRunsEngaged = `-- name: GoalRunsEngaged :many
-SELECT r.id, r.node_id FROM automation_runs r
-WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
-  AND EXISTS (
-    SELECT 1 FROM delivery_events de
-    JOIN messages m ON m.id = de.message_id
-    WHERE de.contact_id = r.contact_id AND m.automation_id = r.automation_id AND de.occurred_at >= r.entered_at
-      AND (($3::text = 'opened' AND de.type = 'open' AND (NOT $4::boolean OR NOT de.machine))
-        OR ($3::text = 'clicked' AND de.type = 'click' AND ($5::text = '' OR de.url ILIKE '%' || $5::text || '%'))))
-LIMIT 1000
-FOR UPDATE OF r SKIP LOCKED
-`
-
-type GoalRunsEngagedParams struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	Version      int32     `json:"version"`
-	Want         string    `json:"want"`
-	HumanOnly    bool      `json:"humanOnly"`
-	UrlContains  string    `json:"urlContains"`
-}
-
-type GoalRunsEngagedRow struct {
-	ID     uuid.UUID `json:"id"`
-	NodeID string    `json:"nodeId"`
-}
-
-// Runs whose contact opened or clicked an email of this flow since entering.
-func (q *Queries) GoalRunsEngaged(ctx context.Context, arg GoalRunsEngagedParams) ([]GoalRunsEngagedRow, error) {
-	rows, err := q.db.Query(ctx, goalRunsEngaged,
-		arg.AutomationID,
-		arg.Version,
-		arg.Want,
-		arg.HumanOnly,
-		arg.UrlContains,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GoalRunsEngagedRow{}
-	for rows.Next() {
-		var i GoalRunsEngagedRow
-		if err := rows.Scan(&i.ID, &i.NodeID); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const goalRunsEvent = `-- name: GoalRunsEvent :many
-SELECT r.id, r.node_id FROM automation_runs r
-JOIN automations a ON a.id = r.automation_id
-WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
-  AND EXISTS (SELECT 1 FROM automation_events e
-              WHERE e.workspace_id = a.workspace_id AND e.contact_id = r.contact_id AND e.kind = 'api_event'
-                AND e.ref = $3::text AND e.occurred_at >= r.entered_at)
-LIMIT 1000
-FOR UPDATE OF r SKIP LOCKED
-`
-
-type GoalRunsEventParams struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	Version      int32     `json:"version"`
-	Event        string    `json:"event"`
-}
-
-type GoalRunsEventRow struct {
-	ID     uuid.UUID `json:"id"`
-	NodeID string    `json:"nodeId"`
-}
-
-func (q *Queries) GoalRunsEvent(ctx context.Context, arg GoalRunsEventParams) ([]GoalRunsEventRow, error) {
-	rows, err := q.db.Query(ctx, goalRunsEvent, arg.AutomationID, arg.Version, arg.Event)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GoalRunsEventRow{}
-	for rows.Next() {
-		var i GoalRunsEventRow
-		if err := rows.Scan(&i.ID, &i.NodeID); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const goalRunsInList = `-- name: GoalRunsInList :many
-SELECT r.id, r.node_id FROM automation_runs r
-WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
-  AND EXISTS (SELECT 1 FROM list_memberships lm WHERE lm.list_id = $3 AND lm.contact_id = r.contact_id AND lm.status = 'subscribed')
-LIMIT 1000
-FOR UPDATE OF r SKIP LOCKED
-`
-
-type GoalRunsInListParams struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	Version      int32     `json:"version"`
-	ListID       uuid.UUID `json:"listId"`
-}
-
-type GoalRunsInListRow struct {
-	ID     uuid.UUID `json:"id"`
-	NodeID string    `json:"nodeId"`
-}
-
-func (q *Queries) GoalRunsInList(ctx context.Context, arg GoalRunsInListParams) ([]GoalRunsInListRow, error) {
-	rows, err := q.db.Query(ctx, goalRunsInList, arg.AutomationID, arg.Version, arg.ListID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GoalRunsInListRow{}
-	for rows.Next() {
-		var i GoalRunsInListRow
-		if err := rows.Scan(&i.ID, &i.NodeID); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const goalRunsTagged = `-- name: GoalRunsTagged :many
-SELECT r.id, r.node_id FROM automation_runs r
-JOIN contacts c ON c.id = r.contact_id
-WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
-  AND $3::text = ANY (c.tags)
-LIMIT 1000
-FOR UPDATE OF r SKIP LOCKED
-`
-
-type GoalRunsTaggedParams struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	Version      int32     `json:"version"`
-	Tag          string    `json:"tag"`
-}
-
-type GoalRunsTaggedRow struct {
-	ID     uuid.UUID `json:"id"`
-	NodeID string    `json:"nodeId"`
-}
-
-func (q *Queries) GoalRunsTagged(ctx context.Context, arg GoalRunsTaggedParams) ([]GoalRunsTaggedRow, error) {
-	rows, err := q.db.Query(ctx, goalRunsTagged, arg.AutomationID, arg.Version, arg.Tag)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GoalRunsTaggedRow{}
-	for rows.Next() {
-		var i GoalRunsTaggedRow
-		if err := rows.Scan(&i.ID, &i.NodeID); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const insertAutomationEmailVersion = `-- name: InsertAutomationEmailVersion :exec
@@ -1289,6 +2029,38 @@ func (q *Queries) InsertAutomationMessage(ctx context.Context, arg InsertAutomat
 	return id, err
 }
 
+const insertAutomationRun = `-- name: InsertAutomationRun :execrows
+INSERT INTO automation_runs (id, automation_id, version, contact_id, node_id, status, state, entered_at, node_entered_at, next_at)
+VALUES ($1, $2, $3, $4, $5, 'active', $6, $7, $7, $7)
+ON CONFLICT DO NOTHING
+`
+
+type InsertAutomationRunParams struct {
+	ID           uuid.UUID       `json:"id"`
+	AutomationID uuid.UUID       `json:"automationId"`
+	Version      int32           `json:"version"`
+	ContactID    uuid.UUID       `json:"contactId"`
+	NodeID       string          `json:"nodeId"`
+	State        json.RawMessage `json:"state"`
+	EnteredAt    time.Time       `json:"enteredAt"`
+}
+
+func (q *Queries) InsertAutomationRun(ctx context.Context, arg InsertAutomationRunParams) (int64, error) {
+	result, err := q.db.Exec(ctx, insertAutomationRun,
+		arg.ID,
+		arg.AutomationID,
+		arg.Version,
+		arg.ContactID,
+		arg.NodeID,
+		arg.State,
+		arg.EnteredAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const insertAutomationVersion = `-- name: InsertAutomationVersion :exec
 INSERT INTO automation_versions (automation_id, version, graph, created_by, summary)
 VALUES ($1, $2, $3, $4, $5)
@@ -1313,44 +2085,12 @@ func (q *Queries) InsertAutomationVersion(ctx context.Context, arg InsertAutomat
 	return err
 }
 
-const insertRun = `-- name: InsertRun :execrows
-INSERT INTO automation_runs (id, automation_id, version, contact_id, node_id, status, state, entered_at, node_entered_at, next_at)
-VALUES ($1, $2, $3, $4, $5, 'active', $6, $7, $7, $7)
-ON CONFLICT DO NOTHING
-`
-
-type InsertRunParams struct {
-	ID           uuid.UUID       `json:"id"`
-	AutomationID uuid.UUID       `json:"automationId"`
-	Version      int32           `json:"version"`
-	ContactID    uuid.UUID       `json:"contactId"`
-	NodeID       string          `json:"nodeId"`
-	State        json.RawMessage `json:"state"`
-	EnteredAt    time.Time       `json:"enteredAt"`
-}
-
-func (q *Queries) InsertRun(ctx context.Context, arg InsertRunParams) (int64, error) {
-	result, err := q.db.Exec(ctx, insertRun,
-		arg.ID,
-		arg.AutomationID,
-		arg.Version,
-		arg.ContactID,
-		arg.NodeID,
-		arg.State,
-		arg.EnteredAt,
-	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const insertWebhookCall = `-- name: InsertWebhookCall :exec
+const insertAutomationWebhookCall = `-- name: InsertAutomationWebhookCall :exec
 INSERT INTO automation_webhook_calls (id, automation_id, version, node_id, run_id, url, status_code, error, duration_ms, attempt, called_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 `
 
-type InsertWebhookCallParams struct {
+type InsertAutomationWebhookCallParams struct {
 	ID           uuid.UUID  `json:"id"`
 	AutomationID uuid.UUID  `json:"automationId"`
 	Version      int32      `json:"version"`
@@ -1364,8 +2104,8 @@ type InsertWebhookCallParams struct {
 	CalledAt     time.Time  `json:"calledAt"`
 }
 
-func (q *Queries) InsertWebhookCall(ctx context.Context, arg InsertWebhookCallParams) error {
-	_, err := q.db.Exec(ctx, insertWebhookCall,
+func (q *Queries) InsertAutomationWebhookCall(ctx context.Context, arg InsertAutomationWebhookCallParams) error {
+	_, err := q.db.Exec(ctx, insertAutomationWebhookCall,
 		arg.ID,
 		arg.AutomationID,
 		arg.Version,
@@ -1381,45 +2121,50 @@ func (q *Queries) InsertWebhookCall(ctx context.Context, arg InsertWebhookCallPa
 	return err
 }
 
-const listActiveRunsForMigration = `-- name: ListActiveRunsForMigration :many
-SELECT id, version, node_id, status, state, node_entered_at, next_at
-FROM automation_runs
-WHERE automation_id = $1 AND status IN ('active', 'waiting') AND version <> $2
-FOR UPDATE
+const listAutomationAlerts = `-- name: ListAutomationAlerts :many
+SELECT al.id, al.automation_id, al.kind, al.node_id, al.detail, al.failures, al.first_at, al.last_at,
+       a.name AS automation_name, a.draft_version, a.live_version
+FROM automation_alerts al
+JOIN automations a ON a.id = al.automation_id
+WHERE a.workspace_id = $1 AND a.deleted_at IS NULL AND al.resolved_at IS NULL
+ORDER BY al.kind DESC, al.first_at
 `
 
-type ListActiveRunsForMigrationParams struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	Version      int32     `json:"version"`
+type ListAutomationAlertsRow struct {
+	ID             uuid.UUID       `json:"id"`
+	AutomationID   uuid.UUID       `json:"automationId"`
+	Kind           string          `json:"kind"`
+	NodeID         string          `json:"nodeId"`
+	Detail         json.RawMessage `json:"detail"`
+	Failures       int64           `json:"failures"`
+	FirstAt        time.Time       `json:"firstAt"`
+	LastAt         time.Time       `json:"lastAt"`
+	AutomationName string          `json:"automationName"`
+	DraftVersion   int32           `json:"draftVersion"`
+	LiveVersion    *int32          `json:"liveVersion"`
 }
 
-type ListActiveRunsForMigrationRow struct {
-	ID            uuid.UUID       `json:"id"`
-	Version       int32           `json:"version"`
-	NodeID        string          `json:"nodeId"`
-	Status        string          `json:"status"`
-	State         json.RawMessage `json:"state"`
-	NodeEnteredAt time.Time       `json:"nodeEnteredAt"`
-	NextAt        *time.Time      `json:"nextAt"`
-}
-
-func (q *Queries) ListActiveRunsForMigration(ctx context.Context, arg ListActiveRunsForMigrationParams) ([]ListActiveRunsForMigrationRow, error) {
-	rows, err := q.db.Query(ctx, listActiveRunsForMigration, arg.AutomationID, arg.Version)
+func (q *Queries) ListAutomationAlerts(ctx context.Context, workspaceID uuid.UUID) ([]ListAutomationAlertsRow, error) {
+	rows, err := q.db.Query(ctx, listAutomationAlerts, workspaceID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListActiveRunsForMigrationRow{}
+	items := []ListAutomationAlertsRow{}
 	for rows.Next() {
-		var i ListActiveRunsForMigrationRow
+		var i ListAutomationAlertsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Version,
+			&i.AutomationID,
+			&i.Kind,
 			&i.NodeID,
-			&i.Status,
-			&i.State,
-			&i.NodeEnteredAt,
-			&i.NextAt,
+			&i.Detail,
+			&i.Failures,
+			&i.FirstAt,
+			&i.LastAt,
+			&i.AutomationName,
+			&i.DraftVersion,
+			&i.LiveVersion,
 		); err != nil {
 			return nil, err
 		}
@@ -1475,6 +2220,118 @@ func (q *Queries) ListAutomationEmails(ctx context.Context, workspaceID uuid.UUI
 	return items, nil
 }
 
+const listAutomationHeldAlerts = `-- name: ListAutomationHeldAlerts :many
+SELECT al.automation_id, a.workspace_id FROM automation_alerts al
+JOIN automations a ON a.id = al.automation_id
+WHERE al.kind = 'sending_held' AND al.resolved_at IS NULL
+`
+
+type ListAutomationHeldAlertsRow struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	WorkspaceID  uuid.UUID `json:"workspaceId"`
+}
+
+func (q *Queries) ListAutomationHeldAlerts(ctx context.Context) ([]ListAutomationHeldAlertsRow, error) {
+	rows, err := q.db.Query(ctx, listAutomationHeldAlerts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAutomationHeldAlertsRow{}
+	for rows.Next() {
+		var i ListAutomationHeldAlertsRow
+		if err := rows.Scan(&i.AutomationID, &i.WorkspaceID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAutomationPublishedGraphs = `-- name: ListAutomationPublishedGraphs :many
+SELECT version, graph FROM automation_versions
+WHERE automation_id = $1 AND published_at IS NOT NULL
+ORDER BY version
+`
+
+type ListAutomationPublishedGraphsRow struct {
+	Version int32           `json:"version"`
+	Graph   json.RawMessage `json:"graph"`
+}
+
+func (q *Queries) ListAutomationPublishedGraphs(ctx context.Context, automationID uuid.UUID) ([]ListAutomationPublishedGraphsRow, error) {
+	rows, err := q.db.Query(ctx, listAutomationPublishedGraphs, automationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAutomationPublishedGraphsRow{}
+	for rows.Next() {
+		var i ListAutomationPublishedGraphsRow
+		if err := rows.Scan(&i.Version, &i.Graph); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAutomationRunsForMigration = `-- name: ListAutomationRunsForMigration :many
+SELECT id, version, node_id, status, state, node_entered_at, next_at
+FROM automation_runs
+WHERE automation_id = $1 AND status IN ('active', 'waiting') AND version <> $2
+FOR UPDATE
+`
+
+type ListAutomationRunsForMigrationParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	Version      int32     `json:"version"`
+}
+
+type ListAutomationRunsForMigrationRow struct {
+	ID            uuid.UUID       `json:"id"`
+	Version       int32           `json:"version"`
+	NodeID        string          `json:"nodeId"`
+	Status        string          `json:"status"`
+	State         json.RawMessage `json:"state"`
+	NodeEnteredAt time.Time       `json:"nodeEnteredAt"`
+	NextAt        *time.Time      `json:"nextAt"`
+}
+
+func (q *Queries) ListAutomationRunsForMigration(ctx context.Context, arg ListAutomationRunsForMigrationParams) ([]ListAutomationRunsForMigrationRow, error) {
+	rows, err := q.db.Query(ctx, listAutomationRunsForMigration, arg.AutomationID, arg.Version)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAutomationRunsForMigrationRow{}
+	for rows.Next() {
+		var i ListAutomationRunsForMigrationRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Version,
+			&i.NodeID,
+			&i.Status,
+			&i.State,
+			&i.NodeEnteredAt,
+			&i.NextAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAutomationVersions = `-- name: ListAutomationVersions :many
 SELECT v.automation_id, v.version, v.created_at, v.published_at, v.retired_at, v.summary, v.migration,
        coalesce(cu.name, '')::text AS created_by_name, coalesce(pu.name, '')::text AS published_by_name
@@ -1516,6 +2373,62 @@ func (q *Queries) ListAutomationVersions(ctx context.Context, automationID uuid.
 			&i.Migration,
 			&i.CreatedByName,
 			&i.PublishedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAutomationWebhookCalls = `-- name: ListAutomationWebhookCalls :many
+SELECT id, version, run_id, url, status_code, error, duration_ms, attempt, called_at
+FROM automation_webhook_calls
+WHERE automation_id = $1 AND node_id = $2
+ORDER BY called_at DESC, id DESC
+LIMIT $3
+`
+
+type ListAutomationWebhookCallsParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	NodeID       string    `json:"nodeId"`
+	Lim          int32     `json:"lim"`
+}
+
+type ListAutomationWebhookCallsRow struct {
+	ID         uuid.UUID  `json:"id"`
+	Version    int32      `json:"version"`
+	RunID      *uuid.UUID `json:"runId"`
+	Url        string     `json:"url"`
+	StatusCode int32      `json:"statusCode"`
+	Error      string     `json:"error"`
+	DurationMs int32      `json:"durationMs"`
+	Attempt    int32      `json:"attempt"`
+	CalledAt   time.Time  `json:"calledAt"`
+}
+
+func (q *Queries) ListAutomationWebhookCalls(ctx context.Context, arg ListAutomationWebhookCallsParams) ([]ListAutomationWebhookCallsRow, error) {
+	rows, err := q.db.Query(ctx, listAutomationWebhookCalls, arg.AutomationID, arg.NodeID, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAutomationWebhookCallsRow{}
+	for rows.Next() {
+		var i ListAutomationWebhookCallsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Version,
+			&i.RunID,
+			&i.Url,
+			&i.StatusCode,
+			&i.Error,
+			&i.DurationMs,
+			&i.Attempt,
+			&i.CalledAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1603,93 +2516,7 @@ func (q *Queries) ListAutomations(ctx context.Context, workspaceID uuid.UUID) ([
 	return items, nil
 }
 
-const listOpenAlerts = `-- name: ListOpenAlerts :many
-SELECT al.id, al.automation_id, al.kind, al.node_id, al.detail, al.failures, al.first_at, al.last_at,
-       a.name AS automation_name, a.draft_version, a.live_version
-FROM automation_alerts al
-JOIN automations a ON a.id = al.automation_id
-WHERE a.workspace_id = $1 AND a.deleted_at IS NULL AND al.resolved_at IS NULL
-ORDER BY al.kind DESC, al.first_at
-`
-
-type ListOpenAlertsRow struct {
-	ID             uuid.UUID       `json:"id"`
-	AutomationID   uuid.UUID       `json:"automationId"`
-	Kind           string          `json:"kind"`
-	NodeID         string          `json:"nodeId"`
-	Detail         json.RawMessage `json:"detail"`
-	Failures       int64           `json:"failures"`
-	FirstAt        time.Time       `json:"firstAt"`
-	LastAt         time.Time       `json:"lastAt"`
-	AutomationName string          `json:"automationName"`
-	DraftVersion   int32           `json:"draftVersion"`
-	LiveVersion    *int32          `json:"liveVersion"`
-}
-
-func (q *Queries) ListOpenAlerts(ctx context.Context, workspaceID uuid.UUID) ([]ListOpenAlertsRow, error) {
-	rows, err := q.db.Query(ctx, listOpenAlerts, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListOpenAlertsRow{}
-	for rows.Next() {
-		var i ListOpenAlertsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.AutomationID,
-			&i.Kind,
-			&i.NodeID,
-			&i.Detail,
-			&i.Failures,
-			&i.FirstAt,
-			&i.LastAt,
-			&i.AutomationName,
-			&i.DraftVersion,
-			&i.LiveVersion,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listPublishedGraphs = `-- name: ListPublishedGraphs :many
-SELECT version, graph FROM automation_versions
-WHERE automation_id = $1 AND published_at IS NOT NULL
-ORDER BY version
-`
-
-type ListPublishedGraphsRow struct {
-	Version int32           `json:"version"`
-	Graph   json.RawMessage `json:"graph"`
-}
-
-func (q *Queries) ListPublishedGraphs(ctx context.Context, automationID uuid.UUID) ([]ListPublishedGraphsRow, error) {
-	rows, err := q.db.Query(ctx, listPublishedGraphs, automationID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListPublishedGraphsRow{}
-	for rows.Next() {
-		var i ListPublishedGraphsRow
-		if err := rows.Scan(&i.Version, &i.Graph); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listRetiringVersions = `-- name: ListRetiringVersions :many
+const listRetiringAutomationVersions = `-- name: ListRetiringAutomationVersions :many
 SELECT v.automation_id, v.version
 FROM automation_versions v
 JOIN automations a ON a.id = v.automation_id
@@ -1697,79 +2524,23 @@ WHERE v.published_at IS NOT NULL AND v.retired_at IS NULL AND v.version <> coale
   AND NOT EXISTS (SELECT 1 FROM automation_runs r WHERE r.automation_id = v.automation_id AND r.version = v.version AND r.status IN ('active', 'waiting'))
 `
 
-type ListRetiringVersionsRow struct {
+type ListRetiringAutomationVersionsRow struct {
 	AutomationID uuid.UUID `json:"automationId"`
 	Version      int32     `json:"version"`
 }
 
 // Published versions that are no longer live but not yet retired: they
 // retire once their last contact leaves.
-func (q *Queries) ListRetiringVersions(ctx context.Context) ([]ListRetiringVersionsRow, error) {
-	rows, err := q.db.Query(ctx, listRetiringVersions)
+func (q *Queries) ListRetiringAutomationVersions(ctx context.Context) ([]ListRetiringAutomationVersionsRow, error) {
+	rows, err := q.db.Query(ctx, listRetiringAutomationVersions)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListRetiringVersionsRow{}
+	items := []ListRetiringAutomationVersionsRow{}
 	for rows.Next() {
-		var i ListRetiringVersionsRow
+		var i ListRetiringAutomationVersionsRow
 		if err := rows.Scan(&i.AutomationID, &i.Version); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listWebhookCalls = `-- name: ListWebhookCalls :many
-SELECT id, version, run_id, url, status_code, error, duration_ms, attempt, called_at
-FROM automation_webhook_calls
-WHERE automation_id = $1 AND node_id = $2
-ORDER BY called_at DESC, id DESC
-LIMIT $3
-`
-
-type ListWebhookCallsParams struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	NodeID       string    `json:"nodeId"`
-	Lim          int32     `json:"lim"`
-}
-
-type ListWebhookCallsRow struct {
-	ID         uuid.UUID  `json:"id"`
-	Version    int32      `json:"version"`
-	RunID      *uuid.UUID `json:"runId"`
-	Url        string     `json:"url"`
-	StatusCode int32      `json:"statusCode"`
-	Error      string     `json:"error"`
-	DurationMs int32      `json:"durationMs"`
-	Attempt    int32      `json:"attempt"`
-	CalledAt   time.Time  `json:"calledAt"`
-}
-
-func (q *Queries) ListWebhookCalls(ctx context.Context, arg ListWebhookCallsParams) ([]ListWebhookCallsRow, error) {
-	rows, err := q.db.Query(ctx, listWebhookCalls, arg.AutomationID, arg.NodeID, arg.Lim)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListWebhookCallsRow{}
-	for rows.Next() {
-		var i ListWebhookCallsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Version,
-			&i.RunID,
-			&i.Url,
-			&i.StatusCode,
-			&i.Error,
-			&i.DurationMs,
-			&i.Attempt,
-			&i.CalledAt,
-		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1828,45 +2599,6 @@ func (q *Queries) LiveAutomationsForTrigger(ctx context.Context, arg LiveAutomat
 	return items, nil
 }
 
-const liveDateTriggers = `-- name: LiveDateTriggers :many
-SELECT a.id, a.workspace_id, a.trigger, w.timezone
-FROM automations a
-JOIN workspaces w ON w.id = a.workspace_id
-WHERE a.status = 'live' AND a.deleted_at IS NULL AND a.trigger ->> 'kind' = 'date_field'
-`
-
-type LiveDateTriggersRow struct {
-	ID          uuid.UUID       `json:"id"`
-	WorkspaceID uuid.UUID       `json:"workspaceId"`
-	Trigger     json.RawMessage `json:"trigger"`
-	Timezone    string          `json:"timezone"`
-}
-
-func (q *Queries) LiveDateTriggers(ctx context.Context) ([]LiveDateTriggersRow, error) {
-	rows, err := q.db.Query(ctx, liveDateTriggers)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []LiveDateTriggersRow{}
-	for rows.Next() {
-		var i LiveDateTriggersRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.WorkspaceID,
-			&i.Trigger,
-			&i.Timezone,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const lockAutomation = `-- name: LockAutomation :one
 SELECT id, workspace_id, name, description, status, template_key, live_version, draft_version, trigger, created_by, created_at, updated_at, deleted_at, paused_at, paused_by, pause_reason, draft_revision, updated_by FROM automations WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR UPDATE
 `
@@ -1902,149 +2634,28 @@ func (q *Queries) LockAutomation(ctx context.Context, arg LockAutomationParams) 
 	return i, err
 }
 
-const lookupWorkspaceLists = `-- name: LookupWorkspaceLists :many
-SELECT id, name FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
-`
-
-type LookupWorkspaceListsRow struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-}
-
-func (q *Queries) LookupWorkspaceLists(ctx context.Context, workspaceID uuid.UUID) ([]LookupWorkspaceListsRow, error) {
-	rows, err := q.db.Query(ctx, lookupWorkspaceLists, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []LookupWorkspaceListsRow{}
-	for rows.Next() {
-		var i LookupWorkspaceListsRow
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const lostWebhookRuns = `-- name: LostWebhookRuns :many
-SELECT id, automation_id, version, node_id FROM automation_runs
-WHERE status = 'waiting' AND next_at IS NULL AND state ->> 'wait' = 'webhook' AND node_entered_at < $1
-LIMIT 500
-`
-
-type LostWebhookRunsRow struct {
-	ID           uuid.UUID `json:"id"`
-	AutomationID uuid.UUID `json:"automationId"`
-	Version      int32     `json:"version"`
-	NodeID       string    `json:"nodeId"`
-}
-
-// Runs waiting on a webhook call whose job never ran (lost or not enqueued).
-func (q *Queries) LostWebhookRuns(ctx context.Context, before time.Time) ([]LostWebhookRunsRow, error) {
-	rows, err := q.db.Query(ctx, lostWebhookRuns, before)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []LostWebhookRunsRow{}
-	for rows.Next() {
-		var i LostWebhookRunsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.AutomationID,
-			&i.Version,
-			&i.NodeID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const markEventProcessed = `-- name: MarkEventProcessed :exec
+const markAutomationEventProcessed = `-- name: MarkAutomationEventProcessed :exec
 UPDATE automation_events SET processed_at = now(), enrolled = $1 WHERE id = $2
 `
 
-type MarkEventProcessedParams struct {
+type MarkAutomationEventProcessedParams struct {
 	Enrolled int32 `json:"enrolled"`
 	ID       int64 `json:"id"`
 }
 
-func (q *Queries) MarkEventProcessed(ctx context.Context, arg MarkEventProcessedParams) error {
-	_, err := q.db.Exec(ctx, markEventProcessed, arg.Enrolled, arg.ID)
+func (q *Queries) MarkAutomationEventProcessed(ctx context.Context, arg MarkAutomationEventProcessedParams) error {
+	_, err := q.db.Exec(ctx, markAutomationEventProcessed, arg.Enrolled, arg.ID)
 	return err
 }
 
-const messageEngaged = `-- name: MessageEngaged :one
-SELECT EXISTS (
-    SELECT 1 FROM delivery_events de
-    WHERE de.message_id = $1
-      AND (($2::text = 'opened' AND de.type = 'open' AND (NOT $3::boolean OR NOT de.machine))
-        OR ($2::text = 'clicked' AND de.type = 'click' AND ($4::text = '' OR de.url ILIKE '%' || $4::text || '%'))))
-`
-
-type MessageEngagedParams struct {
-	MessageID   *uuid.UUID `json:"messageId"`
-	Want        string     `json:"want"`
-	HumanOnly   bool       `json:"humanOnly"`
-	UrlContains string     `json:"urlContains"`
-}
-
-func (q *Queries) MessageEngaged(ctx context.Context, arg MessageEngagedParams) (bool, error) {
-	row := q.db.QueryRow(ctx, messageEngaged,
-		arg.MessageID,
-		arg.Want,
-		arg.HumanOnly,
-		arg.UrlContains,
-	)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const messageForStats = `-- name: MessageForStats :one
-SELECT m.automation_id, m.automation_node, a.live_version, a.draft_version
-FROM messages m
-JOIN automations a ON a.id = m.automation_id
-WHERE m.id = $1
-`
-
-type MessageForStatsRow struct {
-	AutomationID   *uuid.UUID `json:"automationId"`
-	AutomationNode *string    `json:"automationNode"`
-	LiveVersion    *int32     `json:"liveVersion"`
-	DraftVersion   int32      `json:"draftVersion"`
-}
-
-func (q *Queries) MessageForStats(ctx context.Context, id uuid.UUID) (MessageForStatsRow, error) {
-	row := q.db.QueryRow(ctx, messageForStats, id)
-	var i MessageForStatsRow
-	err := row.Scan(
-		&i.AutomationID,
-		&i.AutomationNode,
-		&i.LiveVersion,
-		&i.DraftVersion,
-	)
-	return i, err
-}
-
-const openAlert = `-- name: OpenAlert :exec
+const openAutomationAlert = `-- name: OpenAutomationAlert :exec
 INSERT INTO automation_alerts (id, automation_id, kind, node_id, detail, failures, first_at, last_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
 ON CONFLICT (automation_id, kind, node_id) WHERE resolved_at IS NULL
 DO UPDATE SET failures = automation_alerts.failures + EXCLUDED.failures, detail = EXCLUDED.detail, last_at = EXCLUDED.last_at
 `
 
-type OpenAlertParams struct {
+type OpenAutomationAlertParams struct {
 	ID           uuid.UUID       `json:"id"`
 	AutomationID uuid.UUID       `json:"automationId"`
 	Kind         string          `json:"kind"`
@@ -2055,8 +2666,8 @@ type OpenAlertParams struct {
 }
 
 // Records a failure: opens the alert or adds to the open one.
-func (q *Queries) OpenAlert(ctx context.Context, arg OpenAlertParams) error {
-	_, err := q.db.Exec(ctx, openAlert,
+func (q *Queries) OpenAutomationAlert(ctx context.Context, arg OpenAutomationAlertParams) error {
+	_, err := q.db.Exec(ctx, openAutomationAlert,
 		arg.ID,
 		arg.AutomationID,
 		arg.Kind,
@@ -2066,37 +2677,6 @@ func (q *Queries) OpenAlert(ctx context.Context, arg OpenAlertParams) error {
 		arg.At,
 	)
 	return err
-}
-
-const openSendingHeldAlerts = `-- name: OpenSendingHeldAlerts :many
-SELECT al.automation_id, a.workspace_id FROM automation_alerts al
-JOIN automations a ON a.id = al.automation_id
-WHERE al.kind = 'sending_held' AND al.resolved_at IS NULL
-`
-
-type OpenSendingHeldAlertsRow struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	WorkspaceID  uuid.UUID `json:"workspaceId"`
-}
-
-func (q *Queries) OpenSendingHeldAlerts(ctx context.Context) ([]OpenSendingHeldAlertsRow, error) {
-	rows, err := q.db.Query(ctx, openSendingHeldAlerts)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []OpenSendingHeldAlertsRow{}
-	for rows.Next() {
-		var i OpenSendingHeldAlertsRow
-		if err := rows.Scan(&i.AutomationID, &i.WorkspaceID); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const pauseAutomation = `-- name: PauseAutomation :exec
@@ -2140,91 +2720,61 @@ func (q *Queries) PublishAutomationVersion(ctx context.Context, arg PublishAutom
 	return err
 }
 
-const purgeProcessedEvents = `-- name: PurgeProcessedEvents :execrows
+const purgeAutomationEvents = `-- name: PurgeAutomationEvents :execrows
 DELETE FROM automation_events WHERE processed_at < $1
 `
 
-func (q *Queries) PurgeProcessedEvents(ctx context.Context, before *time.Time) (int64, error) {
-	result, err := q.db.Exec(ctx, purgeProcessedEvents, before)
+func (q *Queries) PurgeAutomationEvents(ctx context.Context, before *time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeAutomationEvents, before)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
 }
 
-const purgeWebhookCalls = `-- name: PurgeWebhookCalls :execrows
+const purgeAutomationWebhookCalls = `-- name: PurgeAutomationWebhookCalls :execrows
 DELETE FROM automation_webhook_calls WHERE called_at < $1
 `
 
-func (q *Queries) PurgeWebhookCalls(ctx context.Context, before time.Time) (int64, error) {
-	result, err := q.db.Exec(ctx, purgeWebhookCalls, before)
+func (q *Queries) PurgeAutomationWebhookCalls(ctx context.Context, before time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeAutomationWebhookCalls, before)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
 }
 
-const releaseHeldMessages = `-- name: ReleaseHeldMessages :execrows
+const releaseAutomationHeldMessages = `-- name: ReleaseAutomationHeldMessages :execrows
 UPDATE messages SET status = 'queued', provider_id = $1, error = ''
 WHERE automation_id = $2 AND status = 'held'
 `
 
-type ReleaseHeldMessagesParams struct {
+type ReleaseAutomationHeldMessagesParams struct {
 	ProviderID   *uuid.UUID `json:"providerId"`
 	AutomationID *uuid.UUID `json:"automationId"`
 }
 
-func (q *Queries) ReleaseHeldMessages(ctx context.Context, arg ReleaseHeldMessagesParams) (int64, error) {
-	result, err := q.db.Exec(ctx, releaseHeldMessages, arg.ProviderID, arg.AutomationID)
+func (q *Queries) ReleaseAutomationHeldMessages(ctx context.Context, arg ReleaseAutomationHeldMessagesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, releaseAutomationHeldMessages, arg.ProviderID, arg.AutomationID)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
 }
 
-const removeContactTag = `-- name: RemoveContactTag :exec
-UPDATE contacts SET tags = array_remove(tags, $1::text), updated_at = now()
-WHERE id = $2 AND $1::text = ANY (tags)
-`
-
-type RemoveContactTagParams struct {
-	Tag string    `json:"tag"`
-	ID  uuid.UUID `json:"id"`
-}
-
-func (q *Queries) RemoveContactTag(ctx context.Context, arg RemoveContactTagParams) error {
-	_, err := q.db.Exec(ctx, removeContactTag, arg.Tag, arg.ID)
-	return err
-}
-
-const removeListMembership = `-- name: RemoveListMembership :exec
-UPDATE list_memberships SET status = 'unsubscribed', unsubscribed_at = now()
-WHERE list_id = $1 AND contact_id = $2 AND status <> 'unsubscribed'
-`
-
-type RemoveListMembershipParams struct {
-	ListID    uuid.UUID `json:"listId"`
-	ContactID uuid.UUID `json:"contactId"`
-}
-
-func (q *Queries) RemoveListMembership(ctx context.Context, arg RemoveListMembershipParams) error {
-	_, err := q.db.Exec(ctx, removeListMembership, arg.ListID, arg.ContactID)
-	return err
-}
-
-const resolveAlert = `-- name: ResolveAlert :execrows
+const resolveAutomationAlert = `-- name: ResolveAutomationAlert :execrows
 UPDATE automation_alerts SET resolved_at = now()
 WHERE automation_id = $1 AND kind = $2 AND node_id = $3 AND resolved_at IS NULL
 `
 
-type ResolveAlertParams struct {
+type ResolveAutomationAlertParams struct {
 	AutomationID uuid.UUID `json:"automationId"`
 	Kind         string    `json:"kind"`
 	NodeID       string    `json:"nodeId"`
 }
 
-func (q *Queries) ResolveAlert(ctx context.Context, arg ResolveAlertParams) (int64, error) {
-	result, err := q.db.Exec(ctx, resolveAlert, arg.AutomationID, arg.Kind, arg.NodeID)
+func (q *Queries) ResolveAutomationAlert(ctx context.Context, arg ResolveAutomationAlertParams) (int64, error) {
+	result, err := q.db.Exec(ctx, resolveAutomationAlert, arg.AutomationID, arg.Kind, arg.NodeID)
 	if err != nil {
 		return 0, err
 	}
@@ -2259,48 +2809,6 @@ type RetireAutomationVersionParams struct {
 func (q *Queries) RetireAutomationVersion(ctx context.Context, arg RetireAutomationVersionParams) error {
 	_, err := q.db.Exec(ctx, retireAutomationVersion, arg.AutomationID, arg.Version)
 	return err
-}
-
-const runExistsForContact = `-- name: RunExistsForContact :one
-SELECT EXISTS (SELECT 1 FROM automation_runs WHERE automation_id = $1 AND contact_id = $2)
-`
-
-type RunExistsForContactParams struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	ContactID    uuid.UUID `json:"contactId"`
-}
-
-func (q *Queries) RunExistsForContact(ctx context.Context, arg RunExistsForContactParams) (bool, error) {
-	row := q.db.QueryRow(ctx, runExistsForContact, arg.AutomationID, arg.ContactID)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const runMessage = `-- name: RunMessage :one
-SELECT id, queued_at, status FROM messages
-WHERE automation_id = $1 AND automation_node = $2 AND contact_id = $3
-ORDER BY queued_at DESC LIMIT 1
-`
-
-type RunMessageParams struct {
-	AutomationID *uuid.UUID `json:"automationId"`
-	NodeID       *string    `json:"nodeId"`
-	ContactID    *uuid.UUID `json:"contactId"`
-}
-
-type RunMessageRow struct {
-	ID       uuid.UUID `json:"id"`
-	QueuedAt time.Time `json:"queuedAt"`
-	Status   string    `json:"status"`
-}
-
-// The message a run's email step queued (for branch checks).
-func (q *Queries) RunMessage(ctx context.Context, arg RunMessageParams) (RunMessageRow, error) {
-	row := q.db.QueryRow(ctx, runMessage, arg.AutomationID, arg.NodeID, arg.ContactID)
-	var i RunMessageRow
-	err := row.Scan(&i.ID, &i.QueuedAt, &i.Status)
-	return i, err
 }
 
 const setAutomationDraft = `-- name: SetAutomationDraft :exec
@@ -2369,272 +2877,37 @@ func (q *Queries) SoftDeleteAutomation(ctx context.Context, arg SoftDeleteAutoma
 	return err
 }
 
-const stepFailures = `-- name: StepFailures :many
-SELECT DISTINCT ON (node_id) node_id, detail, failures, first_at, last_at, resolved_at
-FROM automation_alerts
-WHERE automation_id = $1 AND kind = 'step_failing'
-ORDER BY node_id, first_at DESC
-`
-
-type StepFailuresRow struct {
-	NodeID     string          `json:"nodeId"`
-	Detail     json.RawMessage `json:"detail"`
-	Failures   int64           `json:"failures"`
-	FirstAt    time.Time       `json:"firstAt"`
-	LastAt     time.Time       `json:"lastAt"`
-	ResolvedAt *time.Time      `json:"resolvedAt"`
-}
-
-// The latest alert per webhook step, open or resolved (for the publish diff).
-func (q *Queries) StepFailures(ctx context.Context, automationID uuid.UUID) ([]StepFailuresRow, error) {
-	rows, err := q.db.Query(ctx, stepFailures, automationID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []StepFailuresRow{}
-	for rows.Next() {
-		var i StepFailuresRow
-		if err := rows.Scan(
-			&i.NodeID,
-			&i.Detail,
-			&i.Failures,
-			&i.FirstAt,
-			&i.LastAt,
-			&i.ResolvedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const stepPathsSince = `-- name: StepPathsSince :many
-SELECT s.automation_id, s.node_id, p.k::text AS path, sum(p.v::bigint)::bigint AS n
-FROM automation_step_stats s, jsonb_each_text(s.paths) AS p(k, v)
-WHERE s.automation_id = ANY($1::uuid[]) AND s.day >= $2::date
-GROUP BY s.automation_id, s.node_id, p.k
-`
-
-type StepPathsSinceParams struct {
-	AutomationIds []uuid.UUID `json:"automationIds"`
-	Since         time.Time   `json:"since"`
-}
-
-type StepPathsSinceRow struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	NodeID       string    `json:"nodeId"`
-	Path         string    `json:"path"`
-	N            int64     `json:"n"`
-}
-
-// Paths taken out of branches and splits.
-func (q *Queries) StepPathsSince(ctx context.Context, arg StepPathsSinceParams) ([]StepPathsSinceRow, error) {
-	rows, err := q.db.Query(ctx, stepPathsSince, arg.AutomationIds, arg.Since)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []StepPathsSinceRow{}
-	for rows.Next() {
-		var i StepPathsSinceRow
-		if err := rows.Scan(
-			&i.AutomationID,
-			&i.NodeID,
-			&i.Path,
-			&i.N,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const stepProvidersSince = `-- name: StepProvidersSince :many
-SELECT s.automation_id, s.node_id, p.k::text AS provider_id, sum(p.v::bigint)::bigint AS n, max(s.day)::date AS last_day
-FROM automation_step_stats s, jsonb_each_text(s.providers) AS p(k, v)
-WHERE s.automation_id = ANY($1::uuid[]) AND s.day >= $2::date
-GROUP BY s.automation_id, s.node_id, p.k
-`
-
-type StepProvidersSinceParams struct {
-	AutomationIds []uuid.UUID `json:"automationIds"`
-	Since         time.Time   `json:"since"`
-}
-
-type StepProvidersSinceRow struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	NodeID       string    `json:"nodeId"`
-	ProviderID   string    `json:"providerId"`
-	N            int64     `json:"n"`
-	LastDay      time.Time `json:"lastDay"`
-}
-
-// Emails per sending provider, per step.
-func (q *Queries) StepProvidersSince(ctx context.Context, arg StepProvidersSinceParams) ([]StepProvidersSinceRow, error) {
-	rows, err := q.db.Query(ctx, stepProvidersSince, arg.AutomationIds, arg.Since)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []StepProvidersSinceRow{}
-	for rows.Next() {
-		var i StepProvidersSinceRow
-		if err := rows.Scan(
-			&i.AutomationID,
-			&i.NodeID,
-			&i.ProviderID,
-			&i.N,
-			&i.LastDay,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const stepSecretNodes = `-- name: StepSecretNodes :many
-SELECT node_id FROM automation_step_secrets WHERE automation_id = $1
-`
-
-func (q *Queries) StepSecretNodes(ctx context.Context, automationID uuid.UUID) ([]string, error) {
-	rows, err := q.db.Query(ctx, stepSecretNodes, automationID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []string{}
-	for rows.Next() {
-		var node_id string
-		if err := rows.Scan(&node_id); err != nil {
-			return nil, err
-		}
-		items = append(items, node_id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const stepStatsSince = `-- name: StepStatsSince :many
-SELECT automation_id, node_id,
-       sum(entered)::bigint AS entered, sum(completed)::bigint AS completed, sum(waiting)::bigint AS waiting,
-       sum(exited)::bigint AS exited, sum(dropped)::bigint AS dropped, sum(goal_reached)::bigint AS goal_reached,
-       sum(skipped)::bigint AS skipped, sum(failed)::bigint AS failed,
-       sum(sent)::bigint AS sent, sum(delivered)::bigint AS delivered, sum(bounced)::bigint AS bounced,
-       sum(complained)::bigint AS complained, sum(opened)::bigint AS opened, sum(opened_human)::bigint AS opened_human,
-       sum(clicked)::bigint AS clicked, sum(unsubscribed)::bigint AS unsubscribed,
-       sum(branch_yes)::bigint AS branch_yes, sum(branch_no)::bigint AS branch_no
-FROM automation_step_stats
-WHERE automation_id = ANY($1::uuid[]) AND day >= $2::date
-GROUP BY automation_id, node_id
-`
-
-type StepStatsSinceParams struct {
-	AutomationIds []uuid.UUID `json:"automationIds"`
-	Since         time.Time   `json:"since"`
-}
-
-type StepStatsSinceRow struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	NodeID       string    `json:"nodeId"`
-	Entered      int64     `json:"entered"`
-	Completed    int64     `json:"completed"`
-	Waiting      int64     `json:"waiting"`
-	Exited       int64     `json:"exited"`
-	Dropped      int64     `json:"dropped"`
-	GoalReached  int64     `json:"goalReached"`
-	Skipped      int64     `json:"skipped"`
-	Failed       int64     `json:"failed"`
-	Sent         int64     `json:"sent"`
-	Delivered    int64     `json:"delivered"`
-	Bounced      int64     `json:"bounced"`
-	Complained   int64     `json:"complained"`
-	Opened       int64     `json:"opened"`
-	OpenedHuman  int64     `json:"openedHuman"`
-	Clicked      int64     `json:"clicked"`
-	Unsubscribed int64     `json:"unsubscribed"`
-	BranchYes    int64     `json:"branchYes"`
-	BranchNo     int64     `json:"branchNo"`
-}
-
-// Per-step totals since a day, across versions (steps keep their ids).
-func (q *Queries) StepStatsSince(ctx context.Context, arg StepStatsSinceParams) ([]StepStatsSinceRow, error) {
-	rows, err := q.db.Query(ctx, stepStatsSince, arg.AutomationIds, arg.Since)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []StepStatsSinceRow{}
-	for rows.Next() {
-		var i StepStatsSinceRow
-		if err := rows.Scan(
-			&i.AutomationID,
-			&i.NodeID,
-			&i.Entered,
-			&i.Completed,
-			&i.Waiting,
-			&i.Exited,
-			&i.Dropped,
-			&i.GoalReached,
-			&i.Skipped,
-			&i.Failed,
-			&i.Sent,
-			&i.Delivered,
-			&i.Bounced,
-			&i.Complained,
-			&i.Opened,
-			&i.OpenedHuman,
-			&i.Clicked,
-			&i.Unsubscribed,
-			&i.BranchYes,
-			&i.BranchNo,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const touchRunNextAt = `-- name: TouchRunNextAt :exec
+const touchAutomationRunNextAt = `-- name: TouchAutomationRunNextAt :exec
 UPDATE automation_runs SET next_at = $1 WHERE id = $2
 `
 
-type TouchRunNextAtParams struct {
+type TouchAutomationRunNextAtParams struct {
 	NextAt *time.Time `json:"nextAt"`
 	ID     uuid.UUID  `json:"id"`
 }
 
-func (q *Queries) TouchRunNextAt(ctx context.Context, arg TouchRunNextAtParams) error {
-	_, err := q.db.Exec(ctx, touchRunNextAt, arg.NextAt, arg.ID)
+func (q *Queries) TouchAutomationRunNextAt(ctx context.Context, arg TouchAutomationRunNextAtParams) error {
+	_, err := q.db.Exec(ctx, touchAutomationRunNextAt, arg.NextAt, arg.ID)
 	return err
 }
 
-const unsubscribeAllLists = `-- name: UnsubscribeAllLists :exec
-UPDATE list_memberships SET status = 'unsubscribed', unsubscribed_at = now()
-WHERE contact_id = $1 AND status <> 'unsubscribed'
+const updateAutomationDraftGraph = `-- name: UpdateAutomationDraftGraph :execrows
+UPDATE automation_versions SET graph = $1
+WHERE automation_id = $2 AND version = $3 AND published_at IS NULL
 `
 
-func (q *Queries) UnsubscribeAllLists(ctx context.Context, contactID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, unsubscribeAllLists, contactID)
-	return err
+type UpdateAutomationDraftGraphParams struct {
+	Graph        json.RawMessage `json:"graph"`
+	AutomationID uuid.UUID       `json:"automationId"`
+	Version      int32           `json:"version"`
+}
+
+func (q *Queries) UpdateAutomationDraftGraph(ctx context.Context, arg UpdateAutomationDraftGraphParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateAutomationDraftGraph, arg.Graph, arg.AutomationID, arg.Version)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateAutomationMeta = `-- name: UpdateAutomationMeta :one
@@ -2681,33 +2954,14 @@ func (q *Queries) UpdateAutomationMeta(ctx context.Context, arg UpdateAutomation
 	return i, err
 }
 
-const updateDraftGraph = `-- name: UpdateDraftGraph :execrows
-UPDATE automation_versions SET graph = $1
-WHERE automation_id = $2 AND version = $3 AND published_at IS NULL
-`
-
-type UpdateDraftGraphParams struct {
-	Graph        json.RawMessage `json:"graph"`
-	AutomationID uuid.UUID       `json:"automationId"`
-	Version      int32           `json:"version"`
-}
-
-func (q *Queries) UpdateDraftGraph(ctx context.Context, arg UpdateDraftGraphParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateDraftGraph, arg.Graph, arg.AutomationID, arg.Version)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const updateRun = `-- name: UpdateRun :exec
+const updateAutomationRun = `-- name: UpdateAutomationRun :exec
 UPDATE automation_runs
 SET version = $1, node_id = $2, status = $3, state = $4, node_entered_at = $5,
     next_at = $6, finished_at = $7, exit_reason = $8
 WHERE id = $9
 `
 
-type UpdateRunParams struct {
+type UpdateAutomationRunParams struct {
 	Version       int32           `json:"version"`
 	NodeID        string          `json:"nodeId"`
 	Status        string          `json:"status"`
@@ -2719,8 +2973,8 @@ type UpdateRunParams struct {
 	ID            uuid.UUID       `json:"id"`
 }
 
-func (q *Queries) UpdateRun(ctx context.Context, arg UpdateRunParams) error {
-	_, err := q.db.Exec(ctx, updateRun,
+func (q *Queries) UpdateAutomationRun(ctx context.Context, arg UpdateAutomationRunParams) error {
+	_, err := q.db.Exec(ctx, updateAutomationRun,
 		arg.Version,
 		arg.NodeID,
 		arg.Status,
@@ -2734,21 +2988,21 @@ func (q *Queries) UpdateRun(ctx context.Context, arg UpdateRunParams) error {
 	return err
 }
 
-const upsertStepSecret = `-- name: UpsertStepSecret :exec
+const upsertAutomationStepSecret = `-- name: UpsertAutomationStepSecret :exec
 INSERT INTO automation_step_secrets (automation_id, node_id, secret_enc, updated_by)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (automation_id, node_id) DO UPDATE SET secret_enc = EXCLUDED.secret_enc, updated_by = EXCLUDED.updated_by, updated_at = now()
 `
 
-type UpsertStepSecretParams struct {
+type UpsertAutomationStepSecretParams struct {
 	AutomationID uuid.UUID  `json:"automationId"`
 	NodeID       string     `json:"nodeId"`
 	SecretEnc    []byte     `json:"secretEnc"`
 	UpdatedBy    *uuid.UUID `json:"updatedBy"`
 }
 
-func (q *Queries) UpsertStepSecret(ctx context.Context, arg UpsertStepSecretParams) error {
-	_, err := q.db.Exec(ctx, upsertStepSecret,
+func (q *Queries) UpsertAutomationStepSecret(ctx context.Context, arg UpsertAutomationStepSecretParams) error {
+	_, err := q.db.Exec(ctx, upsertAutomationStepSecret,
 		arg.AutomationID,
 		arg.NodeID,
 		arg.SecretEnc,
@@ -2757,7 +3011,7 @@ func (q *Queries) UpsertStepSecret(ctx context.Context, arg UpsertStepSecretPara
 	return err
 }
 
-const wakeEngagedBranchRuns = `-- name: WakeEngagedBranchRuns :execrows
+const wakeAutomationBranchRuns = `-- name: WakeAutomationBranchRuns :execrows
 UPDATE automation_runs r SET next_at = $1
 WHERE r.status = 'waiting' AND r.next_at > $1 AND r.state ->> 'wait' = 'branch'
   AND (r.state ->> 'message') IS NOT NULL
@@ -2770,264 +3024,10 @@ WHERE r.status = 'waiting' AND r.next_at > $1 AND r.state ->> 'wait' = 'branch'
 
 // Runs waiting at a branch for an open or click: wake them as soon as the
 // email they wait on has one, instead of at the end of the window.
-func (q *Queries) WakeEngagedBranchRuns(ctx context.Context, now *time.Time) (int64, error) {
-	result, err := q.db.Exec(ctx, wakeEngagedBranchRuns, now)
+func (q *Queries) WakeAutomationBranchRuns(ctx context.Context, now *time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, wakeAutomationBranchRuns, now)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
-}
-
-const workspaceDateFields = `-- name: WorkspaceDateFields :many
-SELECT key, label, type FROM custom_fields WHERE workspace_id = $1 ORDER BY label
-`
-
-type WorkspaceDateFieldsRow struct {
-	Key   string `json:"key"`
-	Label string `json:"label"`
-	Type  string `json:"type"`
-}
-
-func (q *Queries) WorkspaceDateFields(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceDateFieldsRow, error) {
-	rows, err := q.db.Query(ctx, workspaceDateFields, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []WorkspaceDateFieldsRow{}
-	for rows.Next() {
-		var i WorkspaceDateFieldsRow
-		if err := rows.Scan(&i.Key, &i.Label, &i.Type); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const workspaceEventNames = `-- name: WorkspaceEventNames :many
-SELECT DISTINCT ref::text AS event FROM automation_events
-WHERE workspace_id = $1 AND kind = 'api_event' AND occurred_at > now() - interval '90 days'
-ORDER BY 1 LIMIT 50
-`
-
-func (q *Queries) WorkspaceEventNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error) {
-	rows, err := q.db.Query(ctx, workspaceEventNames, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []string{}
-	for rows.Next() {
-		var event string
-		if err := rows.Scan(&event); err != nil {
-			return nil, err
-		}
-		items = append(items, event)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const workspaceForms = `-- name: WorkspaceForms :many
-SELECT id, name, slug FROM forms WHERE workspace_id = $1 ORDER BY created_at
-`
-
-type WorkspaceFormsRow struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-	Slug string    `json:"slug"`
-}
-
-func (q *Queries) WorkspaceForms(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceFormsRow, error) {
-	rows, err := q.db.Query(ctx, workspaceForms, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []WorkspaceFormsRow{}
-	for rows.Next() {
-		var i WorkspaceFormsRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.Slug); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const workspaceProviderSends = `-- name: WorkspaceProviderSends :many
-SELECT p.k::text AS provider_id, sum(p.v::bigint)::bigint AS n, max(s.day)::date AS last_day
-FROM automation_step_stats s
-JOIN automations a ON a.id = s.automation_id
-CROSS JOIN LATERAL jsonb_each_text(s.providers) AS p(k, v)
-WHERE a.workspace_id = $1 AND a.deleted_at IS NULL AND s.day >= $2::date
-GROUP BY p.k
-`
-
-type WorkspaceProviderSendsParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	Since       time.Time `json:"since"`
-}
-
-type WorkspaceProviderSendsRow struct {
-	ProviderID string    `json:"providerId"`
-	N          int64     `json:"n"`
-	LastDay    time.Time `json:"lastDay"`
-}
-
-// Automation emails per sending provider since a day, and the last day each sent.
-func (q *Queries) WorkspaceProviderSends(ctx context.Context, arg WorkspaceProviderSendsParams) ([]WorkspaceProviderSendsRow, error) {
-	rows, err := q.db.Query(ctx, workspaceProviderSends, arg.WorkspaceID, arg.Since)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []WorkspaceProviderSendsRow{}
-	for rows.Next() {
-		var i WorkspaceProviderSendsRow
-		if err := rows.Scan(&i.ProviderID, &i.N, &i.LastDay); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const workspaceProviders = `-- name: WorkspaceProviders :many
-SELECT id, name, adapter, status, status_detail, connected_at FROM providers
-WHERE workspace_id = $1 AND disconnected_at IS NULL
-ORDER BY connected_at
-`
-
-type WorkspaceProvidersRow struct {
-	ID           uuid.UUID `json:"id"`
-	Name         string    `json:"name"`
-	Adapter      string    `json:"adapter"`
-	Status       string    `json:"status"`
-	StatusDetail string    `json:"statusDetail"`
-	ConnectedAt  time.Time `json:"connectedAt"`
-}
-
-func (q *Queries) WorkspaceProviders(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceProvidersRow, error) {
-	rows, err := q.db.Query(ctx, workspaceProviders, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []WorkspaceProvidersRow{}
-	for rows.Next() {
-		var i WorkspaceProvidersRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Adapter,
-			&i.Status,
-			&i.StatusDetail,
-			&i.ConnectedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const workspaceStatsSince = `-- name: WorkspaceStatsSince :many
-SELECT s.automation_id,
-       sum(s.sent)::bigint AS sent, sum(s.delivered)::bigint AS delivered,
-       sum(s.opened_human)::bigint AS opened_human, sum(s.clicked)::bigint AS clicked,
-       sum(s.goal_reached)::bigint AS goal_reached
-FROM automation_step_stats s
-JOIN automations a ON a.id = s.automation_id
-WHERE a.workspace_id = $1 AND a.deleted_at IS NULL AND s.day >= $2::date
-GROUP BY s.automation_id
-`
-
-type WorkspaceStatsSinceParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	Since       time.Time `json:"since"`
-}
-
-type WorkspaceStatsSinceRow struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	Sent         int64     `json:"sent"`
-	Delivered    int64     `json:"delivered"`
-	OpenedHuman  int64     `json:"openedHuman"`
-	Clicked      int64     `json:"clicked"`
-	GoalReached  int64     `json:"goalReached"`
-}
-
-// Totals per automation since a day, for the KPI row.
-func (q *Queries) WorkspaceStatsSince(ctx context.Context, arg WorkspaceStatsSinceParams) ([]WorkspaceStatsSinceRow, error) {
-	rows, err := q.db.Query(ctx, workspaceStatsSince, arg.WorkspaceID, arg.Since)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []WorkspaceStatsSinceRow{}
-	for rows.Next() {
-		var i WorkspaceStatsSinceRow
-		if err := rows.Scan(
-			&i.AutomationID,
-			&i.Sent,
-			&i.Delivered,
-			&i.OpenedHuman,
-			&i.Clicked,
-			&i.GoalReached,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const workspaceTopTags = `-- name: WorkspaceTopTags :many
-SELECT t::text AS tag, count(*)::bigint AS n
-FROM contacts c, unnest(c.tags) t
-WHERE c.workspace_id = $1 AND c.erased_at IS NULL
-GROUP BY t ORDER BY n DESC, t LIMIT 50
-`
-
-type WorkspaceTopTagsRow struct {
-	Tag string `json:"tag"`
-	N   int64  `json:"n"`
-}
-
-func (q *Queries) WorkspaceTopTags(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceTopTagsRow, error) {
-	rows, err := q.db.Query(ctx, workspaceTopTags, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []WorkspaceTopTagsRow{}
-	for rows.Next() {
-		var i WorkspaceTopTagsRow
-		if err := rows.Scan(&i.Tag, &i.N); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }

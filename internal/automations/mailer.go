@@ -108,7 +108,7 @@ func nowUTC(ctx context.Context) time.Time {
 // weighted pick on the Automations route, otherwise its fallback; uuid.Nil
 // when nobody can send.
 func pickProvider(ctx context.Context, q *store.Queries, wsID uuid.UUID, override string, key uuid.UUID) (uuid.UUID, error) {
-	provs, err := q.WorkspaceProviders(ctx, wsID)
+	provs, err := q.AutomationProviders(ctx, wsID)
 	if err != nil {
 		return uuid.Nil, err
 	}
