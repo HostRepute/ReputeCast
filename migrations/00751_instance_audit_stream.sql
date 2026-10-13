@@ -10,11 +10,7 @@ ALTER TABLE instance_settings
     ADD COLUMN audit_stream_cursor_id  uuid,
     ADD COLUMN audit_stream_status     jsonb       NOT NULL DEFAULT '{}';
 
--- The instance view filters by request id and sign-in reference.
-CREATE INDEX audit_events_reference_idx ON audit_events ((metadata ->> 'reference')) WHERE metadata ? 'reference';
-
 -- +goose Down
-DROP INDEX audit_events_reference_idx;
 ALTER TABLE instance_settings
     DROP COLUMN audit_stream_enabled,
     DROP COLUMN audit_stream_url,
