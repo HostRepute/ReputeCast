@@ -158,8 +158,8 @@ func TestOutlookComplaintsScenario(t *testing.T) {
 	lapsed := plan(t, p, n, map[string]string{simulator.TagMailbox: "outlook", simulator.TagEngaged: "true", simulator.TagTier: "sunset"})
 	active := plan(t, p, n, map[string]string{simulator.TagMailbox: "outlook", simulator.TagEngaged: "true", simulator.TagTier: "active"})
 	gmail := plan(t, p, n, map[string]string{simulator.TagMailbox: "gmail", simulator.TagEngaged: "false", simulator.TagTier: "sunset"})
-	if lapsed["complaint"] < 1.0 || lapsed["complaint"] > 1.8 {
-		t.Errorf("lapsed Outlook recipients complain %.2f%%, want about 1.4%%", lapsed["complaint"])
+	if lapsed["complaint"] < 2.4 || lapsed["complaint"] > 3.6 {
+		t.Errorf("lapsed Outlook recipients complain %.2f%%, want about 3%%", lapsed["complaint"])
 	}
 	if active["complaint"] > 0.1 {
 		t.Errorf("active Outlook recipients complain %.2f%%, want about 0.03%%", active["complaint"])

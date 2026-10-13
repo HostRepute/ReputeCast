@@ -209,6 +209,8 @@ describe('LiveMonitor', () => {
       ['Outlook complaints (highest mailbox provider)', '0.05% of 0.10%', 50, 'var(--warn-bar)'],
       ['Provider API errors, 3 min', '0.2% of 5%', 4, 'var(--ok-bar)'],
     ])
+    const failing = thresholdRows({ ...live, thresholds: [{ key: 'api_errors', value: 100, limit: 5 }] })[0]!
+    expect([failing.value, failing.color]).toEqual(['100% of 5%', 'var(--bad-strong)'])
   })
 
   it('describes each sending provider', () => {

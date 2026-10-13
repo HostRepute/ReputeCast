@@ -197,19 +197,19 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 		}
 	}
 	if len(trips) == 0 {
+		// A sending provider is held for its bounces (its IP or domain
+		// reputation, addresses it rejects). Complaints come from a mailbox
+		// provider's readers, whoever delivered the mail: they are watched
+		// per mailbox provider and campaign-wide, never per route, which
+		// would hold a whole provider for one mailbox provider's readers.
 		for _, pid := range rs.order {
 			r := rs.routes[pid]
 			p := ts.provider[pid]
 			if p == nil || !(r.status == "pending" || r.status == "sending") {
 				continue
 			}
-			switch {
-			case p.sent >= minSampleScoped && over(p.bounced(), p.sent, th.Bounce, minEvents):
+			if p.sent >= minSampleScoped && over(p.bounced(), p.sent, th.Bounce, minEvents) {
 				trips = append(trips, trip{scope: "route", provider: pid, metric: "bounce", value: rate(p.bounced(), p.sent), limit: th.Bounce, events: p.bounced(), base: p.sent})
-			case p.delivered >= minSampleScoped && over(p.complained, p.delivered, th.Complaint, minEvents):
-				trips = append(trips, trip{scope: "route", provider: pid, metric: "complaint", value: rate(p.complained, p.delivered), limit: th.Complaint, events: p.complained, base: p.delivered})
-			}
-			if len(trips) > 0 {
 				break
 			}
 		}
@@ -373,6 +373,11 @@ func (e *Engine) checkOutage(ctx context.Context, rs *runState, r *runRoute, now
 	e.mu.Lock()
 	first, failures, lastOK := l.firstFailure, l.failures, l.lastSuccess
 	e.mu.Unlock()
+	if !first.IsZero() && !rs.started.IsZero() && first.Before(rs.started) {
+		// Failures of an earlier send of this campaign (started again).
+		e.resetCalls(key)
+		first, failures, lastOK = time.Time{}, 0, time.Time{}
+	}
 	if r.status == "held" {
 		return e.probeHeld(ctx, rs, r, now)
 	}

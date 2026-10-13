@@ -83,15 +83,23 @@ func (e *Engine) DemoSend(ctx context.Context, o DemoSendOptions) (DemoSendResul
 			return DemoSendResult{}, fmt.Errorf("%s is a real provider; demo sends only run in a workspace whose providers are all demo providers", p.Name)
 		}
 	}
+	reset := false
 	switch c.Status {
 	case "draft", "approval", "approved", "scheduled":
 	default:
 		if !o.Reset {
 			return DemoSendResult{}, fmt.Errorf("%q is %s; pass --reset to clear that send and start again", c.Name, c.Status)
 		}
-		if err := e.resetDemo(ctx, c.ID); err != nil {
+		// Stop the earlier send before clearing it: the server's send loop
+		// sees the campaign isn't sending and lets go of it (below), and
+		// the demo transport has nothing more to report for it.
+		if _, err := e.Pool.Exec(ctx, `UPDATE campaigns SET status = 'cancelled' WHERE id = $1`, c.ID); err != nil {
 			return DemoSendResult{}, err
 		}
+		if _, err := e.Pool.Exec(ctx, `DELETE FROM sending_sim_events WHERE campaign_id = $1`, c.ID); err != nil {
+			return DemoSendResult{}, err
+		}
+		reset = true
 	}
 	people := map[string]uuid.UUID{}
 	rows, err := e.Pool.Query(ctx, `SELECT email, id FROM users WHERE email IN ('sofia@acme.io', 'marcus@acme.io', 'linh@acme.io')`)
@@ -120,11 +128,11 @@ func (e *Engine) DemoSend(ctx context.Context, o DemoSendOptions) (DemoSendResul
 		}
 	}
 	start := now.Add(-o.Elapsed)
-	// The command builds the audience and fast-forwards the send itself, on
-	// the virtual clock: it holds the send's lock throughout, so the
-	// server's worker (woken by the start) waits until it's done.
-	// A worker still running an earlier send of it (just reset) lets go
-	// within seconds.
+	// The command clears an earlier send, builds the audience and
+	// fast-forwards the send itself, on the virtual clock: it holds the
+	// send's lock throughout, so the server's worker (woken by the start)
+	// waits until it's done. A worker still running an earlier send of it
+	// lets go within seconds of seeing it stopped.
 	var unlock func()
 	for wait := time.Now().Add(90 * time.Second); ; {
 		if unlock, err = e.lockSend(ctx, c.ID); err == nil {
@@ -137,6 +145,21 @@ func (e *Engine) DemoSend(ctx context.Context, o DemoSendOptions) (DemoSendResul
 		case <-ctx.Done():
 			return DemoSendResult{}, ctx.Err()
 		case <-time.After(500 * time.Millisecond):
+		}
+	}
+	if reset {
+		// Opens and clicks the demo transport handed to the tracker just
+		// before it stopped are written in the background: let them land,
+		// then clear everything.
+		select {
+		case <-ctx.Done():
+			unlock()
+			return DemoSendResult{}, ctx.Err()
+		case <-time.After(2 * time.Second):
+		}
+		if err := e.resetDemo(ctx, c.ID); err != nil {
+			unlock()
+			return DemoSendResult{}, err
 		}
 	}
 	prev := e.Now

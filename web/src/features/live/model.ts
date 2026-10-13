@@ -266,7 +266,7 @@ export function thresholdRows(s: Snapshot): ThresholdRow[] {
       case 'mailbox_complaint':
         return row(t, `${mb} complaints (highest mailbox provider)`, `${mb} complaint`, `${t.value.toFixed(2)}% of ${t.limit.toFixed(2)}%`)
       default:
-        return row(t, 'Provider API errors, 3 min', 'Provider errors', `${t.value.toFixed(1)}% of ${trimPct(t.limit)}`)
+        return row(t, 'Provider API errors, 3 min', 'Provider errors', `${errorRate(t.value)} of ${trimPct(t.limit)}`)
     }
   })
 }

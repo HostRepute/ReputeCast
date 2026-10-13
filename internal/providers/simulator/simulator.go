@@ -328,11 +328,11 @@ func (p *Provider) Plan(m providers.Message) []Event {
 	if p.s.Scenario == ScenarioOutlookComplaints && mbp == "outlook" {
 		// Never-engaged or long-unengaged Outlook recipients mark the
 		// email as spam far more often.
-		// About 0.2% of Outlook overall: enough for the auto-pause to be
-		// sure, 2,000 to 4,000 Outlook deliveries in (LiveMonitorPaused
-		// trips at 7 of 3,980).
+		// About 0.4% of Outlook overall: the auto-pause is sure of it 7 to
+		// 14 minutes into a send in 9 runs out of 10 (simulated), so
+		// --elapsed 20m reliably opens on LiveMonitorPaused.
 		if !engaged || tier == "at_risk" || tier == "sunset" {
-			complaint = 1.4
+			complaint = 3.0
 		} else {
 			complaint = 0.03
 		}

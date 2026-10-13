@@ -514,7 +514,9 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			day, days, cp, sent := pr.WarmupDay, pr.WarmupDays, pr.Cap, pr.SentToday
 			lp.WarmupDay, lp.WarmupDays, lp.WarmupCap, lp.WarmupSent = &day, &days, &cp, &sent
 		}
-		if lp.APIErrorRate != nil && (maxAPI == nil || *lp.APIErrorRate > *maxAPI) {
+		// The API error threshold watches the routes this send still uses (a
+		// share moved away or finished doesn't count).
+		if lp.APIErrorRate != nil && (r.Status == "pending" || r.Status == "sending" || r.Status == "held") && (maxAPI == nil || *lp.APIErrorRate > *maxAPI) {
 			v := *lp.APIErrorRate
 			maxAPI = &v
 		}
