@@ -3,6 +3,8 @@ package remote_test
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"testing"
 	"time"
@@ -12,6 +14,9 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/remote"
 	"github.com/hostrepute/reputecast/internal/providers/remote/remotetest"
 )
+
+// quiet drops the warnings the runtime logs for the failures tests provoke.
+var quiet = slog.New(slog.NewTextHandler(io.Discard, nil))
 
 const (
 	testSecret  = "rcas_test-secret-for-the-contract-suite"
@@ -37,7 +42,7 @@ func open(t *testing.T, m remote.Manifest, url string, secrets ...string) provid
 	if len(secrets) == 0 {
 		secrets = []string{testSecret}
 	}
-	in, err := remote.NewInstallation(remote.Options{Manifest: m, Endpoint: url, Secrets: secrets, AllowPrivate: true, PublicURL: "https://reputecast.acme.io"})
+	in, err := remote.NewInstallation(remote.Options{Manifest: m, Endpoint: url, Secrets: secrets, AllowPrivate: true, PublicURL: "https://reputecast.acme.io", Log: quiet})
 	if err != nil {
 		t.Fatal(err)
 	}

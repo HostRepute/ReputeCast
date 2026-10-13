@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/providers/contracttest"
@@ -75,8 +76,9 @@ type Adapter struct {
 	Mode func() string
 	Now  func() time.Time
 
-	// Misbehaviour for tests.
-	Delay    time.Duration
+	// Misbehaviour for tests (set before requests are made, except the
+	// delay: SetDelay).
+	delay    atomic.Int64
 	Unsigned bool
 	// AnswerSecret signs answers with another secret.
 	AnswerSecret string
@@ -109,6 +111,9 @@ func (a *Adapter) mode() string {
 	}
 	return ""
 }
+
+// SetDelay makes the adapter wait before answering (a hanging process).
+func (a *Adapter) SetDelay(d time.Duration) { a.delay.Store(int64(d)) }
 
 // Calls returns the accepted requests.
 func (a *Adapter) Calls() []Call {
@@ -158,9 +163,9 @@ func (a *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, `{"ok":true}`)
 		return
 	}
-	if a.Delay > 0 {
+	if d := time.Duration(a.delay.Load()); d > 0 {
 		select {
-		case <-time.After(a.Delay):
+		case <-time.After(d):
 		case <-r.Context().Done():
 			return
 		}
