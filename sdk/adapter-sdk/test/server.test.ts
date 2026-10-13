@@ -236,8 +236,12 @@ describe("serve", () => {
     const adapter = defineAdapter({ id: "fake-esp", capabilities: {}, send: async () => ({ providerMessageId: "x" }) });
     const s = await serve(adapter, { port: 0, host: "127.0.0.1", secret: newSecret(), logger: false, maxBodyBytes: 1024 });
     servers.push(s);
-    const r = await fetch(s.url + "/v1/send", { method: "POST", body: "x".repeat(4096) });
+    const signed = { "x-reputecast-timestamp": String(Math.floor(Date.now() / 1000)), "x-reputecast-signature": "v1=00" };
+    const r = await fetch(s.url + "/v1/send", { method: "POST", headers: signed, body: "x".repeat(4096) });
     expect(r.status).toBe(413);
     expect(((await r.json()) as { error: { code: string } }).error.code).toBe("too_large");
+    // Without a signature the body isn't even read.
+    const unsigned = await fetch(s.url + "/v1/send", { method: "POST", body: "x".repeat(4096) });
+    expect(unsigned.status).toBe(401);
   });
 });

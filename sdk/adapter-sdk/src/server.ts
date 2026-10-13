@@ -15,7 +15,7 @@ import type { Manifest } from "./manifest.ts";
 import { ManifestError, capabilityDifferences, operationsFor, validateManifest } from "./manifest.ts";
 import type { Connection, Envelope, Operation, ResponseEnvelope, WireError } from "./protocol.ts";
 import { HEADERS, PROTOCOL_VERSION, TIMEOUTS, isOperation } from "./protocol.ts";
-import { secretsFromEnv, sign, verifySignature } from "./signing.ts";
+import { MAX_SKEW_SECONDS, secretsFromEnv, sign, verifySignature } from "./signing.ts";
 
 export interface ServeOptions {
   /** PORT, default 4600 (0 picks a free port). */
@@ -164,6 +164,14 @@ export function createHandler(adapter: Adapter, opts: ServeOptions = {}): Handle
       return;
     }
     const op = path.startsWith("/v1/") ? path.slice(4) : "";
+    // Refuse requests that can't be signed in time before reading their body.
+    const ts = Number(header(req, HEADERS.timestamp) ?? NaN);
+    if (!header(req, HEADERS.signature) || !Number.isFinite(ts) || Math.abs(s.now() / 1000 - ts) > MAX_SKEW_SECONDS) {
+      s.log.warn("refused an unauthenticated request", { op, reason: "missing or stale signature" });
+      res.setHeader("connection", "close");
+      reply(res, errorAnswer("", { code: "unauthenticated", message: "Refused: the request is not signed, or its timestamp is more than 5 minutes off." }));
+      return;
+    }
     let body: Buffer;
     try {
       body = await readBody(req, s.maxBody);
