@@ -250,8 +250,8 @@ function Filters({ list, search }: { list: Schemas['TeamMemberList']; search: Te
       <label className="vh" htmlFor="team-q">
         Search members
       </label>
-      <input id="team-q" className="in w-[240px] max-md:w-0 max-md:min-w-full" placeholder="Search name or email" value={q} onChange={(e) => setQ(e.target.value)} />
-      <select className="in w-[150px] max-md:w-0 max-md:min-w-full" aria-label="Filter by role" value={search.role ?? ''} onChange={(e) => set({ role: e.target.value || undefined })}>
+      <input id="team-q" className="in w-[240px] max-md:min-w-full" placeholder="Search name or email" value={q} onChange={(e) => setQ(e.target.value)} />
+      <select className="in w-[150px] max-md:min-w-full" aria-label="Filter by role" value={search.role ?? ''} onChange={(e) => set({ role: e.target.value || undefined })}>
         <option value="">Any role</option>
         {list.roles.map((r) => (
           <option key={r.id} value={r.key}>
@@ -260,7 +260,7 @@ function Filters({ list, search }: { list: Schemas['TeamMemberList']; search: Te
         ))}
       </select>
       <select
-        className="in w-[140px] max-md:w-0 max-md:min-w-full"
+        className="in w-[140px] max-md:min-w-full"
         aria-label="Filter by status"
         value={search.status ?? ''}
         onChange={(e) => set({ status: (e.target.value || undefined) as TeamSearch['status'] })}
@@ -271,7 +271,7 @@ function Filters({ list, search }: { list: Schemas['TeamMemberList']; search: Te
         <option value="deactivated">Deactivated</option>
       </select>
       <select
-        className="in w-[120px] max-md:w-0 max-md:min-w-full"
+        className="in w-[120px] max-md:min-w-full"
         aria-label="Filter by two-factor status"
         value={search.twofa ?? ''}
         onChange={(e) => set({ twofa: (e.target.value || undefined) as TeamSearch['twofa'] })}
@@ -341,7 +341,7 @@ function BulkBar({ list, selected, setSelected }: { list: Schemas['TeamMemberLis
         {selected.length} selected
       </label>
       <span className="k">Bulk:</span>
-      <select className="in w-[160px] max-md:w-0 max-md:min-w-full" aria-label="New role for the selected members" value={roleKey} onChange={(e) => setRoleKey(e.target.value)}>
+      <select className="in w-[160px] max-md:min-w-full" aria-label="New role for the selected members" value={roleKey} onChange={(e) => setRoleKey(e.target.value)}>
         {roles.map((r) => (
           <option key={r.id} value={r.key}>
             {r.name}

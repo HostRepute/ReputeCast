@@ -276,7 +276,7 @@ function Filters({
       <input
         id="contacts-q"
         type="search"
-        className={`in w-[260px] ${phone}`}
+        className="in w-[260px] max-md:min-w-full"
         placeholder="Search email, name or tag"
         value={q}
         onChange={(e) => setQ(e.target.value)}
