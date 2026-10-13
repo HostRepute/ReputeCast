@@ -183,8 +183,10 @@ export function PasswordResetDialog({ user, onClose }: { user: User; onClose: ()
         )
       ) : (
         <Note tone="warn" label="No System provider">
-          No sending provider is connected to the System stream yet{d?.provider ? ` (${d.provider} is routed but can't send system mail)` : ''}, so the email can&apos;t
-          go out. Run the command below on the server instead.
+          {d?.provider
+            ? `${d.provider} is on the System stream but can't send system mail right now, so the email can't go out.`
+            : "No sending provider is connected to the System stream yet, so the email can't go out."}{' '}
+          Run the command below on the server instead.
         </Note>
       )}
       {d?.deactivatedNotice ? <Note tone="warn">{d.deactivatedNotice}</Note> : null}
