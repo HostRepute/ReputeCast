@@ -328,3 +328,28 @@ export const severityOrder = ['compliance', 'links', 'content', 'authentication'
 export function bySeverity(a: Check, b: Check): number {
   return severityOrder.indexOf(a.group) - severityOrder.indexOf(b.group)
 }
+
+/** "just now", "12 minutes ago", "2 hours ago", "yesterday", "3 days ago". */
+export function agoWords(d: string | number | Date, now: Date = new Date()): string {
+  const m = Math.round((now.getTime() - new Date(d).getTime()) / 60_000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m} ${plural(m, 'minute', 'minutes')} ago`
+  const h = Math.round(m / 60)
+  if (h < 24) return `${h} ${plural(h, 'hour', 'hours')} ago`
+  const days = Math.round(h / 24)
+  return days === 1 ? 'yesterday' : `${days} days ago`
+}
+
+/** Splits text so web addresses ("bit.ly/3xK9tQ", "acme.io/blog/…") can be set in mono. */
+export function linkParts(text: string): { text: string; link: boolean }[] {
+  const out: { text: string; link: boolean }[] = []
+  const re = /\b(?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s,;)]*[^\s,;.)]/gi
+  let last = 0
+  for (const m of text.matchAll(re)) {
+    if (m.index! > last) out.push({ text: text.slice(last, m.index), link: false })
+    out.push({ text: m[0], link: true })
+    last = m.index! + m[0].length
+  }
+  if (last < text.length) out.push({ text: text.slice(last), link: false })
+  return out
+}

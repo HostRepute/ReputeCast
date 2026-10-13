@@ -1142,7 +1142,7 @@ func (b *builder) audience() {
 		un.Detail = fmt.Sprintf("Everyone opened or clicked in the last %d days", days)
 		un.Short = "0 unengaged"
 	}
-	un.Label = "Unengaged contacts"
+	// No label: "Audience quality" names it in compact tables (ApprovalReview).
 	b.add(un)
 	if a.RecentlyBounced == 0 {
 		b.add(ReadinessCheck{Key: "audience.bounced", Group: GroupAudience, Status: Pass, Title: "No contacts that bounced in the last 30 days",

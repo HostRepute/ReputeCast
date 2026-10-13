@@ -16,7 +16,7 @@ import { useNow } from '@/lib/hooks'
 import { useMe, usePermissionReason, useWorkspace } from '@/lib/session'
 import { AccessTable } from '@/features/access/parts'
 import { HeldCard, HeldActions } from '@/features/review/ApprovalCard'
-import { countsShort, groupTitles, groupWords, minutes, providerColor, verdictTitle, zonedWhen } from '@/features/review/logic'
+import { agoWords, countsShort, groupTitles, groupWords, linkParts, minutes, providerColor, verdictTitle, zonedWhen } from '@/features/review/logic'
 import { AppHref, CheckBadge, whenText } from '@/features/review/parts'
 import { ApprovalStatusBadge, approverNames, decidedText, DiffLines, requestTone, unchangedText, type Change } from './parts'
 import '@/features/review/review.css'
@@ -232,7 +232,7 @@ function HeaderCard({ detail: d, me }: { detail: Detail; me?: string }) {
           <ApprovalStatusBadge status={d.status} long />
         </div>
         <span className="k">
-          Requested by {d.requestedBy.name} · {ago(d.requestedAt, now)} · {d.needed} {d.needed === 1 ? 'approval' : 'approvals'} needed from {orList(d.approvers.filter((p) => p.id !== d.requestedBy.id).map((p) => p.name))} · {role}
+          Requested by {d.requestedBy.name} · {agoWords(d.requestedAt, now)} · {d.needed} {d.needed === 1 ? 'approval' : 'approvals'} needed from {orList(d.approvers.filter((p) => p.id !== d.requestedBy.id).map((p) => p.name))} · {role}
         </span>
       </div>
       {d.rules.length ? (
@@ -489,7 +489,17 @@ function ReadinessCard({ detail: d, busy, onFix }: { detail: Detail; busy?: stri
                     </span>
                   </Td>
                   <Td>
-                    <span className="wrap">{x.evidence || x.title}</span>
+                    <span className="wrap">
+                      {linkParts(x.evidence || x.title).map((p, i) =>
+                        p.link ? (
+                          <span key={i} className="mono">
+                            {p.text}
+                          </span>
+                        ) : (
+                          p.text
+                        ),
+                      )}
+                    </span>
                   </Td>
                   <Td>
                     {!f ? null : f.kind === 'link' ? (

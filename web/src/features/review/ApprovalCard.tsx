@@ -8,7 +8,7 @@ import { count } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useMe, useWorkspace } from '@/lib/session'
 import { approverNames, DiffLines, MiniBanner, PersonLine, unchangedSentence } from '@/features/approvals/parts'
-import { acknowledgements, countsShort, plural, scheduleShort, verdictTitle, waitWords, type Review, type Run } from './logic'
+import { acknowledgements, agoWords, countsShort, plural, scheduleShort, verdictTitle, waitWords, type Review, type Run } from './logic'
 import { AppHref, whenText } from './parts'
 
 export type ApprovalMode = 'none' | 'required' | 'waiting' | 'approved' | 'invalidated'
@@ -177,7 +177,7 @@ export function WaitingCard({
         <div className="row gap-2.5!">
           <Badge tone="warn">Pending</Badge>
           <span className="font-semibold">
-            Requested {ago(req.requestedAt, now)} · {req.given} of {req.needed} approvals
+            Requested {agoWords(req.requestedAt, now)} · {req.given} of {req.needed} approvals
             {mine ? '' : ` · by ${req.requestedBy.name}`}
           </span>
         </div>
@@ -579,13 +579,4 @@ export function BypassDialog({
   )
 }
 
-function ago(d: string, now: Date): string {
-  const m = Math.round((now.getTime() - new Date(d).getTime()) / 60_000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m} ${plural(m, 'minute', 'minutes')} ago`
-  const h = Math.round(m / 60)
-  if (h < 24) return `${h} ${plural(h, 'hour', 'hours')} ago`
-  const days = Math.round(h / 24)
-  return days === 1 ? 'yesterday' : `${days} days ago`
-}
 

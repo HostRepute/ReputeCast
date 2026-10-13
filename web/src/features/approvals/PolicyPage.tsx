@@ -125,7 +125,7 @@ function PolicyForm({ view }: { view: View }) {
                 extra={
                   <span className="row flex-nowrap! gap-1.5!">
                     <input
-                      className="in mono w-[110px]"
+                      className="in mono w-[110px] max-md:min-w-0 max-md:flex-[1_1_120px]"
                       inputMode="numeric"
                       aria-label="Minimum recipients"
                       aria-invalid={nError ? true : undefined}
@@ -280,9 +280,7 @@ function PolicyForm({ view }: { view: View }) {
       </div>
       {read ? null : (
         <div className="row justify-end gap-2.5!">
-          <Button onClick={discard} disabledReason={dirty ? undefined : 'Nothing to discard.'}>
-            Discard
-          </Button>
+          <Button onClick={discard}>Discard</Button>
           <Button variant="primary" loading={busy} onClick={() => void save()}>
             Save policy
           </Button>
