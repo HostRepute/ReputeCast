@@ -721,13 +721,13 @@ func (s *Service) reachable(ctx context.Context, url string, p store.Provider) S
 	if s.Reachable != nil {
 		return s.Reachable(ctx, url, p)
 	}
-	return SelfTest(ctx, url, p.WebhookToken, s.now())
+	return SelfTest(ctx, url, p.WebhookToken, s.now(), s.AllowPrivateURL)
 }
 
 // SelfTest checks that a webhook URL can be reached from the internet:
 // localhost and private addresses fail up front (no provider can reach
 // them), then the endpoint must answer a signed self-test with 200.
-func SelfTest(ctx context.Context, rawURL, token string, now time.Time) SelfTestState {
+func SelfTest(ctx context.Context, rawURL, token string, now time.Time, allowPrivate bool) SelfTestState {
 	out := SelfTestState{At: now}
 	u, err := url.Parse(rawURL)
 	if err != nil || u.Host == "" {
@@ -735,6 +735,9 @@ func SelfTest(ctx context.Context, rawURL, token string, now time.Time) SelfTest
 		return out
 	}
 	host := strings.ToLower(u.Hostname())
+	if allowPrivate {
+		return selfTestPost(ctx, out, u, rawURL, token, now)
+	}
 	if host == "localhost" || strings.HasSuffix(host, ".localhost") || strings.HasSuffix(host, ".local") || strings.HasSuffix(host, ".internal") || strings.HasSuffix(host, ".lan") {
 		out.Code, out.Reason, out.Private = "ECONNREFUSED", host+" only works on this machine", true
 		return out
@@ -763,6 +766,11 @@ func SelfTest(ctx context.Context, rawURL, token string, now time.Time) SelfTest
 			return out
 		}
 	}
+	return selfTestPost(ctx, out, u, rawURL, token, now)
+}
+
+// selfTestPost posts a signed self-test to the endpoint and expects 200.
+func selfTestPost(ctx context.Context, out SelfTestState, u *url.URL, rawURL, token string, now time.Time) SelfTestState {
 	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(cctx, http.MethodPost, rawURL, strings.NewReader(`{"selfTest":true}`))

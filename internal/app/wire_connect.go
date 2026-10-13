@@ -33,6 +33,9 @@ func (a *App) connectService() *connect.Service {
 		Jobs:         func() *jobs.Client { return a.Jobs },
 		PublicURL:    func() string { return cfg.HTTP.PublicURL },
 		TemplateURL:  cfg.Connect.SESTemplateURL,
+		// Integration tests run on 127.0.0.1: let the webhook self-test
+		// reach it instead of stopping at "private address".
+		AllowPrivateURL: cfg.Env == "test",
 		OnRoutingChange: func() {
 			a.forgetSystemAvailability()
 		},

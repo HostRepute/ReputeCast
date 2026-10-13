@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/connect"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/domains"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -156,7 +157,92 @@ func seedSendersRecords(ctx context.Context, s *Seeder) error {
 			return err
 		}
 	}
-	return nil
+	return seedSendersSetup(ctx, s)
+}
+
+// seedSendersSetup is the setup that connected Amazon SES (SetupSES to
+// SetupDone): CloudFormation access in us-east-1, provisioning, the domain,
+// the test message and its delivery events, the three streams and the
+// suppression import.
+func seedSendersSetup(ctx context.Context, s *Seeder) error {
+	ws := s.WS()
+	ses := s.Providers["ses"]
+	linh := s.Users["linh@acme.io"]
+	var webhookToken string
+	if err := s.Tx.QueryRow(ctx, `SELECT webhook_token FROM providers WHERE id = $1`, ses).Scan(&webhookToken); err != nil {
+		return err
+	}
+	at := func(h, m, sec, ms int) time.Time {
+		d := s.designDay(210, h, m)
+		return d.Add(time.Duration(sec)*time.Second + time.Duration(ms)*time.Millisecond)
+	}
+	hook := strings.TrimRight(s.Cfg.HTTP.PublicURL, "/") + "/hooks/ses/" + webhookToken
+	done := func(key, label, text string, t time.Time) connect.ProvisionState {
+		return connect.ProvisionState{Key: key, Label: label, Text: text, Status: "done", At: &t}
+	}
+	connected := at(9, 13, 20, 0)
+	state := connect.State{
+		Connection: connect.Connection{
+			Status: "connected", At: &connected, Account: "Production · no enforcement", AccountID: "123456789012", Summary: "us-east-1 · production",
+			Access: "role", ExternalID: "rc-6Hd2kQx9Lm4Vp7Rs1Tz0", RoleARN: "arn:aws:iam::123456789012:role/ReputeCastSES", Region: "us-east-1",
+			Settings: map[string]string{"region": "us-east-1", "access": "role"},
+			Regions: []connect.RegionState{
+				{Region: "us-east-1", Name: "N. Virginia", Production: true, Max24h: 50000, MaxRate: 14},
+				{Region: "eu-west-1", Name: "Ireland", Max24h: 200, MaxRate: 1},
+				{Region: "us-west-2", Name: "Oregon", Max24h: 200, MaxRate: 1},
+			},
+			Provisioning: []connect.ProvisionState{
+				done("verify", "Verify credentials and permissions", "Verified credentials and permissions", at(9, 13, 20, 0)),
+				done("account", "Read the account", "Read account: production access, 50,000 per 24 h, 14 per second", at(9, 13, 21, 0)),
+				done("sns_topic", "Create SNS topic `reputecast-events` and subscribe `"+hook+"`", "Created SNS topic `reputecast-events` and subscribed `"+hook+"`", at(9, 13, 23, 0)),
+				done("sns_confirm", "Confirm SNS subscription (handshake)", "Confirmed SNS subscription (handshake received)", at(9, 13, 24, 0)),
+				done("config_set:broadcast", "Create configuration set `rc-broadcasts`", "Created configuration set `rc-broadcasts` with event destination, tracking off", at(9, 13, 26, 0)),
+				done("config_set:automation", "Create configuration set `rc-automations`", "Created configuration set `rc-automations` with event destination, tracking off", at(9, 13, 27, 0)),
+				done("config_set:system", "Create configuration set `rc-system`", "Created configuration set `rc-system` with event destination, tracking off", at(9, 13, 28, 0)),
+			},
+		},
+	}
+	checked := at(9, 19, 40, 0)
+	state.Domain = &connect.DomainStep{DomainID: s.Domains["news.acme.io"].String(), Name: "news.acme.io", Verified: 7, Total: 7, At: &checked}
+	// The test message: queued, accepted by SES, the SNS "Send" event, the delivery.
+	msgID := ID()
+	queued, sent, event, delivered := at(9, 21, 4, 112), at(9, 21, 4, 380), at(9, 21, 5, 16), at(9, 21, 6, 471)
+	pmid := "010001929f3a8b2e-6c1d0f4e-9a7b-4c3e-b1f2-0d9e8c7b6a5f-000000"
+	if _, err := s.Tx.Exec(ctx, `INSERT INTO messages (id, workspace_id, stream, email, provider_id, provider_message_id, mailbox_provider, status, queued_at, sent_at, delivered_at, kind)
+		VALUES ($1,$2,'system','linh@acme.io',$3,$4,'gmail','delivered',$5,$6,$7,'test')`, msgID, ws.ID, ses, pmid, queued, sent, delivered); err != nil {
+		return err
+	}
+	rawID := ID()
+	if _, err := s.Tx.Exec(ctx, `INSERT INTO provider_raw_events (id, workspace_id, provider_id, received_at, content_type, body, signature_ok, normalized_at, source, events)
+		VALUES ($1,$2,$3,$4,'text/plain',$5,true,$4,'webhook',0)`, rawID, ws.ID, ses, event, snsBody("Send")); err != nil {
+		return err
+	}
+	deliveryRaw := ID()
+	if _, err := s.Tx.Exec(ctx, `INSERT INTO provider_raw_events (id, workspace_id, provider_id, received_at, content_type, body, signature_ok, normalized_at, source, events)
+		VALUES ($1,$2,$3,$4,'text/plain',$5,true,$4,'webhook',1)`, deliveryRaw, ws.ID, ses, delivered.Add(120*time.Millisecond), snsBody("Delivery")); err != nil {
+		return err
+	}
+	if _, err := s.Tx.Exec(ctx, `INSERT INTO delivery_events (id, workspace_id, message_id, provider_id, raw_event_id, type, occurred_at, mailbox_provider, original_type, original_code, diagnostic,
+		recipient, provider_message_id, source, received_at, dedupe_key)
+		VALUES ($1,$2,$3,$4,$5,'delivered',$6,'gmail','Delivery','250','2.0.0 OK 1760260866 d2e1a72fcca58-… · smtpResponse from gmail-smtp-in.l.google.com',
+		'linh@acme.io',$7,'Test message',$8,$9)`, ID(), ws.ID, msgID, ses, deliveryRaw, delivered, pmid, delivered.Add(120*time.Millisecond), "demo-test-"+msgID.String()); err != nil {
+		return err
+	}
+	hello := s.Senders["hello@news.acme.io"]
+	state.Test = &connect.TestStep{MessageID: msgID.String(), SenderID: hello.String(), From: "hello@news.acme.io", To: "linh@acme.io", Subject: "ReputeCast test from Amazon SES",
+		QueuedAt: queued, RoundTripMs: delivered.Sub(queued).Milliseconds(), SizeBytes: 4 << 10}
+	streamsAt := at(9, 21, 30, 0)
+	state.Streams = &connect.StreamsStep{Saved: true, At: &streamsAt, Streams: map[string]connect.StreamChoice{
+		"broadcast": {Enabled: true, Role: "primary", Weight: 100}, "automation": {Enabled: true, Role: "primary"}, "system": {Enabled: true, Role: "primary"}}}
+	imported := int64(612)
+	contactsAt := at(9, 21, 50, 0)
+	state.Contacts = &connect.ContactsStep{Suppressions: &connect.SuppressionPreview{Available: true, Total: 612, Bounces: 540, Complaints: 72, At: contactsAt},
+		Choice: "empty", Pull: true, ListsCreated: []string{"Weekly Digest", "Product Updates", "Beta Program"}, Imported: &imported, At: &contactsAt}
+	stateJSON, _ := json.Marshal(state)
+	created, finished := at(9, 12, 30, 0), at(9, 21, 50, 0)
+	_, err := s.Tx.Exec(ctx, `INSERT INTO provider_setups (id, workspace_id, adapter, provider_id, step, status, state, created_by, created_at, updated_at, finished_at)
+		VALUES ($1,$2,'ses',$3,'done','finished',$4,$5,$6,$7,$7)`, ID(), ws.ID, ses, stateJSON, linh.ID, created, finished)
+	return err
 }
 
 // SendersDomainService is a domains service on the demo DNS zone, for the
@@ -208,4 +294,11 @@ func SendersNS(next func(context.Context, string) ([]string, error)) func(contex
 		}
 		return next(ctx, name)
 	}
+}
+
+// snsBody is a minimal SNS notification of an SES event, as the webhook stored it.
+func snsBody(eventType string) []byte {
+	inner, _ := json.Marshal(map[string]any{"eventType": eventType})
+	b, _ := json.Marshal(map[string]any{"Type": "Notification", "Message": string(inner)})
+	return b
 }

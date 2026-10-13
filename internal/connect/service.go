@@ -68,6 +68,9 @@ type Service struct {
 	// Reachable tests a webhook URL from outside; nil uses the HTTP
 	// self-test (tests replace it).
 	Reachable func(ctx context.Context, url string, p store.Provider) SelfTestState
+	// AllowPrivateURL lets the webhook self-test reach a private or
+	// loopback public URL (integration tests only).
+	AllowPrivateURL bool
 	// OnRoutingChange is called after the streams step saved routing (the
 	// system mailer forgets its cached availability).
 	OnRoutingChange func()

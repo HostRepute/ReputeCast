@@ -31,9 +31,15 @@ func (a *App) domainsService() *domains.Service {
 	resolver := dnscheck.NewResolver(dnscheck.Options{Servers: cfg.DNS.Servers, Timeout: cfg.DNS.Timeout})
 	ns := lookupNS(cfg)
 	target := demo.TrackingTarget(cfg.HTTP.PublicURL)
-	if cfg.IsDevelopment() {
+	switch {
+	case cfg.IsDevelopment():
 		resolver = demo.SendersDNSOverlay(demo.DeliverabilityDNSOverlay(resolver), target)
 		ns = demo.SendersNS(ns)
+	case cfg.Env == "test":
+		// Integration tests never touch real DNS: the demo zone answers,
+		// everything else doesn't exist.
+		resolver = demo.SendersDNSOverlay(demo.DeliverabilityDNSOverlay(dnscheck.NewZone()), target)
+		ns = demo.SendersNS(nil)
 	}
 	return &domains.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Factory: a.providerFactory(), DNS: resolver, NS: ns,

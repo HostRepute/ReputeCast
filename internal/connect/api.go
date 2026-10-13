@@ -24,54 +24,66 @@ type createInput struct {
 	Body ConnectSetupInput
 }
 
+// Huma only reads parameters from exported embedded structs, so every input
+// spells out its path parameters.
 type stepInput struct {
-	setupIDInput
-	Body ConnectStepInput
+	api.WorkspaceInput
+	SetupID string `path:"setupId" format:"uuid"`
+	Body    ConnectStepInput
 }
 
 type connectBody struct {
-	setupIDInput
-	Body ConnectInput
+	api.WorkspaceInput
+	SetupID string `path:"setupId" format:"uuid"`
+	Body    ConnectInput
 }
 
 type mailboxBody struct {
-	setupIDInput
-	Body ConnectMailboxInput
+	api.WorkspaceInput
+	SetupID string `path:"setupId" format:"uuid"`
+	Body    ConnectMailboxInput
 }
 
 type webhookBody struct {
-	setupIDInput
-	Body ConnectWebhookInput
+	api.WorkspaceInput
+	SetupID string `path:"setupId" format:"uuid"`
+	Body    ConnectWebhookInput
 }
 
 type regionBody struct {
-	setupIDInput
-	Body ConnectRegionInput
+	api.WorkspaceInput
+	SetupID string `path:"setupId" format:"uuid"`
+	Body    ConnectRegionInput
 }
 
 type productionBody struct {
-	setupIDInput
-	Body ConnectProductionAccessInput
+	api.WorkspaceInput
+	SetupID string `path:"setupId" format:"uuid"`
+	Body    ConnectProductionAccessInput
 }
 
 type domainBody struct {
-	setupIDInput
-	Body ConnectDomainInput
+	api.WorkspaceInput
+	SetupID string `path:"setupId" format:"uuid"`
+	Body    ConnectDomainInput
 }
 
 type testBody struct {
-	setupIDInput
-	Body ConnectTestInput
+	api.WorkspaceInput
+	SetupID string `path:"setupId" format:"uuid"`
+	Body    ConnectTestInput
 }
 
 type streamsBody struct {
-	setupIDInput
-	Body ConnectStreamsInput
+	api.WorkspaceInput
+	SetupID string `path:"setupId" format:"uuid"`
+	Body    ConnectStreamsInput
 }
 
 type finishBody struct {
-	setupIDInput
-	Body ConnectFinishInput
+	api.WorkspaceInput
+	SetupID string `path:"setupId" format:"uuid"`
+	Body    ConnectFinishInput
 }
 
 type settingsBody struct {

@@ -30,9 +30,12 @@ type senderIDInput struct {
 	SenderID string `path:"senderId" format:"uuid"`
 }
 
+// Huma only reads parameters from exported embedded structs, so every input
+// spells out its path parameters.
 type senderUpdateInput struct {
-	senderIDInput
-	Body SenderInput
+	api.WorkspaceInput
+	SenderID string `path:"senderId" format:"uuid"`
+	Body     SenderInput
 }
 
 type defaultsInput struct {
@@ -51,18 +54,21 @@ type domainIDInput struct {
 }
 
 type domainGetInput struct {
-	domainIDInput
+	api.WorkspaceInput
+	DomainID string `path:"domainId" format:"uuid"`
 	Provider string `query:"provider" doc:"Only the records this provider needs (and the domain-wide ones)"`
 	Refresh  bool   `query:"refresh" doc:"Check DNS again first when the last check is older than 20 seconds"`
 }
 
 type domainUpdateInput struct {
-	domainIDInput
-	Body UpdateDomainInput
+	api.WorkspaceInput
+	DomainID string `path:"domainId" format:"uuid"`
+	Body     UpdateDomainInput
 }
 
 type domainAttachInput struct {
-	domainIDInput
+	api.WorkspaceInput
+	DomainID   string `path:"domainId" format:"uuid"`
 	ProviderID string `path:"providerId" format:"uuid"`
 }
 
@@ -72,8 +78,9 @@ type CloudflareInput struct {
 }
 
 type cloudflareBody struct {
-	domainIDInput
-	Body CloudflareInput
+	api.WorkspaceInput
+	DomainID string `path:"domainId" format:"uuid"`
+	Body     CloudflareInput
 }
 
 // SendingDomainCreated is a new domain with what to do in providers'
