@@ -45,7 +45,7 @@ export function WorkspacesCard({ a }: { a: Account }) {
               </Td>
               <Td>{count(w.members)}</Td>
               <Td>
-                <Button size="sm" disabledReason={w.canLeave ? undefined : w.leaveReason} onClick={() => setLeave(w)} aria-label={`Leave ${w.name}`}>
+                <Button size="sm" disabledReason={w.canLeave ? undefined : w.leaveReason} onClick={() => setLeave(w)} aria-label={`Leave workspace ${w.name}`}>
                   Leave workspace
                 </Button>
               </Td>

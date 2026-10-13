@@ -2,6 +2,7 @@ import { Navigate } from '@tanstack/react-router'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel } from '@/components/ui/Feedback'
+import { TableScroll } from '@/components/ui/Table'
 import { andList, clock, count, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { ImportFrame, stepPath, currentStep, useImportDetail, type Detail } from './ImportFrame'
@@ -186,7 +187,7 @@ function Summary({ d, now }: { d: Detail; now: number }) {
             </Button>
           </div>
         </div>
-        <div className="tscroll">
+        <TableScroll label="Import report">
           <table className="tbl">
             <thead>
               <tr>
@@ -214,7 +215,7 @@ function Summary({ d, now }: { d: Detail; now: number }) {
               ) : null}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       </section>
       {d.status === 'done' ? (
         <section className="card flex flex-col gap-3 px-5 py-4.5">

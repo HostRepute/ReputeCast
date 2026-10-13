@@ -8,6 +8,7 @@ import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { EmptyRow, Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
+import { ScrollPre } from '@/components/ui/ScrollPre'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { clock, clockSeconds, count, dayMonthDate, logTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
@@ -221,12 +222,12 @@ function VerifyCard({ header }: { header: string }) {
       <span className="k">
         Every request carries <span className="mono">{header}</span> and a timestamp. Reject anything older than 5 minutes.
       </span>
-      <pre className="pre">
+      <ScrollPre className="pre" label="Signature check">
         {`const sig = createHmac("sha256", secret)
   .update(\`\${timestamp}.\${rawBody}\`)
   .digest("hex");
 if (!timingSafeEqual(sig, header)) throw 401;`}
-      </pre>
+      </ScrollPre>
       <span className="k">
         Payloads carry the normalized event plus the provider&apos;s original code:{' '}
         <span className="mono">{`{ "type": "email.bounced", "subtype": "hard", "provider": "ses", "provider_code": "550 5.1.1", … }`}</span>

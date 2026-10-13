@@ -8,6 +8,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { TableScroll } from '@/components/ui/Table'
 import { andList, clock, count, suppressedWhen } from '@/lib/format'
 import { trackJob, updateJob } from '@/lib/jobs'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
@@ -325,7 +326,7 @@ function Table({
   const last = page * d.pageSize >= d.total
   return (
     <section className="card" aria-label="Suppressed addresses">
-      <div className="tscroll">
+      <TableScroll label="Suppressed addresses">
         <table className="tbl stbl phone-wrap">
           <thead>
             <tr>
@@ -357,7 +358,7 @@ function Table({
                 <td className="k">{it.scope === 'marketing' ? 'Broadcasts, Automations' : 'All streams'}</td>
                 <td>
                   {it.group && it.importId ? (
-                    <Button size="sm" onClick={() => onGroup(it.importId!)} aria-label={`View the ${count(it.rows)} rows from ${it.address}`}>
+                    <Button size="sm" onClick={() => onGroup(it.importId!)} aria-label={`View rows: the ${count(it.rows)} rows from ${it.address}`}>
                       View rows
                     </Button>
                   ) : (
@@ -386,7 +387,7 @@ function Table({
             ) : null}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 px-4 py-2.5">
         <span className="k">
           Removing an address asks for a reason and is logged in the audit log; bounced addresses can't be re-added to a list without a new opt-in.
