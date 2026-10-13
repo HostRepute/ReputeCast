@@ -15,6 +15,9 @@ import (
 type Querier interface {
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) error
 	AcceptPendingInvitation(ctx context.Context, arg AcceptPendingInvitationParams) (int64, error)
+	// Access requests from the "403 · no permission" screen (internal/accessrequests).
+	// The member's latest request for this role in the last day (one a day).
+	AccessRequestsLatest(ctx context.Context, arg AccessRequestsLatestParams) (time.Time, error)
 	BroadcastDefaultSplit(ctx context.Context, workspaceID uuid.UUID) (json.RawMessage, error)
 	BumpChallengeAttempts(ctx context.Context, id uuid.UUID) (int32, error)
 	BumpNotificationEmailAttempts(ctx context.Context, arg BumpNotificationEmailAttemptsParams) error
@@ -293,6 +296,12 @@ type Querier interface {
 	RoutingUpsertPolicy(ctx context.Context, arg RoutingUpsertPolicyParams) error
 	// A run still in progress (runs older than ten minutes are considered dead).
 	RunningDeliverabilityCheckRun(ctx context.Context, arg RunningDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
+	// Restarts the idle clock now (the middleware only touches sessions every
+	// 30 seconds). The absolute lifetime (expires_at) never moves.
+	SessionExtRestartIdle(ctx context.Context, arg SessionExtRestartIdleParams) (SessionExtRestartIdleRow, error)
+	// Session timing for the app's "Session ending in 2 minutes" banner and its
+	// Extend action (internal/sessionext).
+	SessionExtTiming(ctx context.Context, id uuid.UUID) (SessionExtTimingRow, error)
 	SetAvatarUpdatedAt(ctx context.Context, arg SetAvatarUpdatedAtParams) error
 	SetDeliverabilityBlocklistDelisting(ctx context.Context, arg SetDeliverabilityBlocklistDelistingParams) error
 	SetHostReputeMonitored(ctx context.Context, arg SetHostReputeMonitoredParams) error

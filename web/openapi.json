@@ -1,6 +1,109 @@
 {
   "components": {
     "schemas": {
+      "AccessRequestInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "description": "Why you need it; shown to whoever decides",
+            "maxLength": 500,
+            "type": "string"
+          },
+          "permission": {
+            "description": "The missing permission",
+            "examples": [
+              "providers:manage"
+            ],
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "permission"
+        ],
+        "type": "object"
+      },
+      "AccessRequestResult": {
+        "additionalProperties": false,
+        "properties": {
+          "notified": {
+            "description": "Members who received the request",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "roleName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "roleName",
+          "notified"
+        ],
+        "type": "object"
+      },
+      "AccessSuggestion": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "description": "What the permission allows, as a sentence subject",
+            "examples": [
+              "Managing providers"
+            ],
+            "type": "string"
+          },
+          "managers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "owners": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "permission": {
+            "description": "The missing permission",
+            "type": "string"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "roleKey": {
+            "description": "Smallest built-in role that grants it",
+            "examples": [
+              "editor"
+            ],
+            "type": "string"
+          },
+          "roleName": {
+            "examples": [
+              "Editor"
+            ],
+            "type": "string"
+          },
+          "yourRole": {
+            "examples": [
+              "Viewer"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "permission",
+          "action",
+          "roleKey",
+          "roleName",
+          "yourRole",
+          "owners",
+          "managers"
+        ],
+        "type": "object"
+      },
       "AccountAvatarInput": {
         "additionalProperties": false,
         "properties": {
@@ -6703,6 +6806,74 @@
         },
         "type": "object"
       },
+      "SessionTiming": {
+        "additionalProperties": false,
+        "properties": {
+          "endsAt": {
+            "description": "The earlier of idleExpiresAt and expiresAt",
+            "format": "date-time",
+            "type": "string"
+          },
+          "endsBy": {
+            "description": "Which limit ends the session first",
+            "enum": [
+              "idle",
+              "lifetime"
+            ],
+            "type": "string"
+          },
+          "expiresAt": {
+            "description": "The session's absolute lifetime; extending never moves it",
+            "format": "date-time",
+            "type": "string"
+          },
+          "extendable": {
+            "description": "Whether extending now would end the session later",
+            "type": "boolean"
+          },
+          "extendsTo": {
+            "description": "When the session would end after extending now",
+            "format": "date-time",
+            "type": "string"
+          },
+          "idleExpiresAt": {
+            "description": "When the session ends without further activity",
+            "format": "date-time",
+            "type": "string"
+          },
+          "idleTimeoutSeconds": {
+            "description": "The instance's idle timeout, in seconds",
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastSeenAt": {
+            "description": "Last activity the server recorded; the idle clock runs from here",
+            "format": "date-time",
+            "type": "string"
+          },
+          "serverTime": {
+            "description": "The server's clock, to correct for skew in the browser",
+            "format": "date-time",
+            "type": "string"
+          },
+          "signedInAt": {
+            "description": "When this session was created",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signedInAt",
+          "lastSeenAt",
+          "idleTimeoutSeconds",
+          "expiresAt",
+          "endsAt",
+          "endsBy",
+          "extendable",
+          "serverTime"
+        ],
+        "type": "object"
+      },
       "Setup-check-urlRequest": {
         "additionalProperties": false,
         "properties": {
@@ -9071,6 +9242,82 @@
         "x-access": "user"
       }
     },
+    "/api/v1/me/session": {
+      "get": {
+        "description": "The idle deadline, the absolute lifetime and what extending would do. Like every request, reading it counts as activity.",
+        "operationId": "get-session-timing",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionTiming"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "When your session ends",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/session/extend": {
+      "post": {
+        "description": "Restarts the idle timeout now. The session's absolute lifetime never moves. Recorded in the audit log as session.extend.",
+        "operationId": "extend-session",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionTiming"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Extend your session",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
     "/api/v1/me/sessions": {
       "get": {
         "operationId": "list-sessions",
@@ -9537,6 +9784,138 @@
           "Workspaces"
         ],
         "x-access": "user"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/access-requests": {
+      "post": {
+        "description": "Notifies the members who can change roles, with your note. One request per role a day. Recorded as access.request.",
+        "operationId": "request-access",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessRequestInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequestResult"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Ask for the role that grants a missing permission",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/access-requests/suggestion": {
+      "get": {
+        "operationId": "suggest-access",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The missing permission, from a 403 problem",
+            "explode": false,
+            "in": "query",
+            "name": "permission",
+            "required": true,
+            "schema": {
+              "description": "The missing permission, from a 403 problem",
+              "examples": [
+                "providers:manage"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessSuggestion"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Which role grants a missing permission, and who can grant it",
+        "tags": [
+          "Team"
+        ],
+        "x-access": "workspace"
       }
     },
     "/api/v1/workspaces/{workspace}/adapters": {

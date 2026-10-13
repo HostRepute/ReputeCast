@@ -161,6 +161,30 @@ export function andList(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
 }
 
+/** "09:18:51" (clock with seconds, for live streams). */
+export function clockSeconds(d: string | number | Date): string {
+  return fmt('time-s', 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(toDate(d))
+}
+
+/** "12 hours", "1 hour", "45 minutes", "1 minute": a span in words, rounded down. */
+export function spanWords(ms: number): string {
+  const minutes = Math.max(0, Math.floor(ms / 60_000))
+  if (minutes >= 60) {
+    const h = Math.floor(minutes / 60)
+    return `${h} hour${h === 1 ? '' : 's'}`
+  }
+  const m = Math.max(1, minutes)
+  return `${m} minute${m === 1 ? '' : 's'}`
+}
+
+/** "in 2 minutes", "in 1 minute", "in 45 seconds": a short countdown. */
+export function countdown(ms: number): string {
+  const s = Math.max(0, Math.ceil(ms / 1000))
+  if (s >= 120) return `in ${Math.floor(s / 60)} minutes`
+  if (s >= 60) return 'in 1 minute'
+  return `in ${s} second${s === 1 ? '' : 's'}`
+}
+
 /* -- Notification center (W04) ------------------------------------------- */
 
 function dayKey(d: Date) {

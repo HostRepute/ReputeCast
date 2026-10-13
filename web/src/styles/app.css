@@ -1639,19 +1639,21 @@
 }
 
 /* Phone-width rules the prototype applies to every screen: badges and
-   buttons may wrap, long ids break, tables keep their own wrapping. */
+   buttons may wrap, long ids break, tables keep their own wrapping. Layers
+   rendered outside the shell (dialogs, toasts, the bottom-left notices)
+   follow them too, as they do on the boards. */
 @media (max-width: 767px) {
-  .rc-app {
+  :is(.rc-app, .ovl, .toasts, .corner) {
     overflow-wrap: anywhere;
   }
-  .rc-app table,
-  .rc-app td,
-  .rc-app th,
-  .rc-app .chip,
-  .rc-app .steps {
+  :is(.rc-app, .ovl, .toasts, .corner) table,
+  :is(.rc-app, .ovl, .toasts, .corner) td,
+  :is(.rc-app, .ovl, .toasts, .corner) th,
+  :is(.rc-app, .ovl, .toasts, .corner) .chip,
+  :is(.rc-app, .ovl, .toasts, .corner) .steps {
     overflow-wrap: normal;
   }
-  .rc-app .badge {
+  :is(.rc-app, .ovl, .toasts, .corner) .badge {
     white-space: normal;
     height: auto;
     min-height: 22px;
@@ -1660,23 +1662,23 @@
     padding-bottom: 2px;
     max-width: 100%;
   }
-  .rc-app .tabs .badge,
-  .rc-app .tbl td .badge {
+  :is(.rc-app, .ovl, .toasts, .corner) .tabs .badge,
+  :is(.rc-app, .ovl, .toasts, .corner) .tbl td .badge {
     white-space: nowrap;
   }
-  .rc-app .tbl.phone-wrap td .badge,
-  .rc-app .tbl.phone-wrap td .btn {
+  :is(.rc-app, .ovl, .toasts, .corner) .tbl.phone-wrap td .badge,
+  :is(.rc-app, .ovl, .toasts, .corner) .tbl.phone-wrap td .btn {
     white-space: normal;
   }
-  .rc-app .btn {
+  :is(.rc-app, .ovl, .toasts, .corner) .btn {
     white-space: normal;
     max-width: 100%;
   }
-  .rc-app .side .btn,
-  .rc-app .tbl td .btn {
+  :is(.rc-app, .ovl, .toasts, .corner) .side .btn,
+  :is(.rc-app, .ovl, .toasts, .corner) .tbl td .btn {
     white-space: nowrap;
   }
-  .rc-app .mono {
+  :is(.rc-app, .ovl, .toasts, .corner) .mono {
     overflow-wrap: anywhere;
   }
 }
@@ -1794,6 +1796,10 @@
     flex-direction: column;
     gap: 8px;
     pointer-events: none;
+    /* As on the board, a toast takes the full toast width (460 px of
+       content) rather than shrinking to its text. */
+    width: 486px;
+    max-width: calc(100vw - 32px);
   }
   .toasts > * {
     pointer-events: auto;
@@ -1818,7 +1824,6 @@
   }
   .toast .k {
     color: var(--dark-muted);
-    font-size: inherit;
   }
   .toast .btn {
     min-height: 28px;
@@ -1867,6 +1872,8 @@
       left: 12px;
       right: 12px;
       bottom: 84px;
+      width: auto;
+      max-width: none;
     }
     .toast {
       max-width: 100%;
@@ -2072,6 +2079,383 @@
       height: 46px;
       font-size: 19px;
     }
+  }
+}
+
+/* ==========================================================================
+   Cross-cutting states (W08): SystemStates, Dialogs and Feedback boards.
+   Values copied from the boards; the boards' own content-box sizing applies.
+   ========================================================================== */
+@layer components {
+  /* Banners at the top of the content column: offline, reconnecting,
+     read-only maintenance, quota reached. A banner always has an action. */
+  .sysbanner {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 14px;
+    font-size: 13px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--line);
+  }
+  .sysbanner > .msg {
+    flex: 1;
+    min-width: 200px;
+  }
+  .sysbanner.tone-warn {
+    background: var(--warn-bg);
+    border-bottom-color: #fde68a;
+  }
+  .sysbanner.tone-info {
+    background: var(--info-bg);
+    border-bottom-color: #bfdbfe;
+  }
+  .sysbanner.tone-neutral {
+    background: var(--neutral-bg);
+    border-bottom-color: var(--line);
+  }
+  .sysbanner.tone-bad {
+    background: var(--bad-tint);
+    border-bottom-color: var(--bad-line);
+  }
+
+  /* Timeouts and limits: notices that float bottom-left above the toasts
+     (session ending, API rate limit), and the background jobs tray. */
+  .corner {
+    position: fixed;
+    left: 16px;
+    bottom: calc(16px + var(--rc-toasts-h, 0px));
+    z-index: 85;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 420px;
+    max-width: calc(100vw - 32px);
+    pointer-events: none;
+  }
+  .corner > * {
+    pointer-events: auto;
+  }
+  .corner.c-notices {
+    bottom: calc(16px + var(--rc-toasts-h, 0px) + var(--rc-tray-h, 0px));
+  }
+  .notice {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: var(--shadow-lg);
+  }
+  .notice .nh {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .notice .nt {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .notice .nb {
+    color: var(--ink-2);
+    font-size: 13.5px;
+  }
+  .notice .na {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .notice .progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .notice .progress .track {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--line-2);
+    overflow: hidden;
+  }
+  .notice .progress .track > i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+  }
+  .tray {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 13px;
+    box-shadow: var(--shadow-lg);
+  }
+  .tray .th {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .tray .th button {
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    /* A 24 px target that takes the board's one-line height. */
+    min-height: 24px;
+    margin-block: calc((1.45em - 24px) / 2);
+  }
+  .tray .job {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .tray .job .jh {
+    display: flex;
+    justify-content: space-between;
+    column-gap: 10px;
+  }
+  .tray .bar > i {
+    background: var(--accent);
+  }
+  @media (max-width: 767px) {
+    /* The progress line wraps under a long title, as on the board. */
+    .tray .job .jh {
+      flex-wrap: wrap;
+    }
+    .corner {
+      left: 12px;
+      right: 12px;
+      width: auto;
+      max-width: none;
+      bottom: calc(84px + var(--rc-toasts-h, 0px));
+    }
+    .corner.c-notices {
+      bottom: calc(84px + var(--rc-toasts-h, 0px) + var(--rc-tray-h, 0px));
+    }
+  }
+
+  /* A dialog never grows past the screen because of a wide row. */
+  .ovl > .dlg {
+    min-width: 0;
+  }
+
+  /* Confirmation dialogs (Dialogs board): one padded column, the blast
+     radius first, a deliberate last step. */
+  .dlg.cdlg {
+    max-width: 376.66px;
+    padding: 20px 22px;
+    gap: 12px;
+    border: 1px solid var(--line);
+  }
+  .dlg.cdlg .ct {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .dlg.cdlg .cd {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 13.5px;
+  }
+  .drow {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 8px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .drow.first {
+    border-top: 0;
+  }
+  .dacts {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    padding-top: 4px;
+  }
+  label.dopt {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    background: #fff;
+  }
+  label.dopt:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+  }
+  /* As on the board, the control may give a few pixels to a long label. */
+  label.dopt input {
+    flex: 0 1 auto;
+  }
+  .lblc {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+
+  /* Session ended: the sign-in dialog over the page (SystemStates board). */
+  .dlg.sdlg {
+    max-width: 420px;
+    padding: 22px 24px;
+    gap: 12px;
+    box-shadow: 0 20px 50px rgba(11, 18, 32, 0.25);
+  }
+  .dlg.sdlg .ct {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .dlg.sdlg .cd {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 13.5px;
+  }
+
+  /* Form-level error summary: each link moves focus to its field. */
+  .errsum {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--bad-tint);
+    border: 1px solid var(--bad-line);
+    font-size: 13px;
+  }
+  .errsum .est {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--bad-fg);
+  }
+  .errsum ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .errsum a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* Inline validation that passed: green border and a green sentence. */
+  .in.okb {
+    border-color: var(--ok-bar);
+  }
+  .k.okmsg {
+    color: var(--ok-fg);
+  }
+
+  /* Empty search results. */
+  .noresults {
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+  .noresults .nrt {
+    margin: 0;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  /* Disabled with a reason: the bubble under the control. */
+  .tip.why {
+    position: relative;
+    padding: 6px 9px;
+    font-weight: 400;
+    line-height: 1.45;
+    max-width: none;
+    white-space: nowrap;
+  }
+  .tip.why::before {
+    content: '';
+    position: absolute;
+    left: 14px;
+    top: -5px;
+    border: 5px solid transparent;
+    border-bottom-color: var(--ink);
+    border-top: 0;
+  }
+  .tip.why[data-side='top']::before {
+    top: auto;
+    bottom: -5px;
+    border-top: 5px solid var(--ink);
+    border-bottom: 0;
+  }
+  @media (max-width: 767px) {
+    .tip.why {
+      white-space: normal;
+      max-width: calc(100vw - 24px);
+    }
+  }
+
+  /* A label that changes while busy keeps the button's width. */
+  .btn .bl {
+    display: inline-grid;
+  }
+  .btn .bl > * {
+    grid-area: 1 / 1;
+  }
+  .btn .bl > .reserve {
+    visibility: hidden;
+  }
+
+  /* Keyboard shortcuts sheet: the board's card, as a modal. */
+  .dlg.kdlg {
+    max-width: 380.66px;
+    padding: 18px 20px;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .kdh {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .kdt {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .kbgrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 16px;
+    font-size: 13px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 }
 

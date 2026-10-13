@@ -1,6 +1,9 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { ApiError } from '@/api/client'
+import { AppShell } from '@/components/shell/AppShell'
+import { WorkspaceNotFound } from '@/components/shell/SystemScreens'
+import { WorkspaceSystemLayer } from '@/components/shell/WorkspaceSystemLayer'
 import { setDisplayTimeZone } from '@/lib/format'
 import { fetchMe, fetchWorkspaceMe, meQueryKey, WorkspaceProvider, workspaceMeKey } from '@/lib/session'
 
@@ -23,6 +26,12 @@ export const Route = createFileRoute('/w/$workspace')({
     }
   },
   component: WorkspaceLayout,
+  // Unknown paths under a workspace that match no screen at all.
+  notFoundComponent: () => (
+    <AppShell>
+      <WorkspaceNotFound />
+    </AppShell>
+  ),
 })
 
 function WorkspaceLayout() {
@@ -32,7 +41,9 @@ function WorkspaceLayout() {
   setDisplayTimeZone(data.timezone)
   return (
     <WorkspaceProvider slug={workspace} me={data}>
-      <Outlet />
+      <WorkspaceSystemLayer>
+        <Outlet />
+      </WorkspaceSystemLayer>
     </WorkspaceProvider>
   )
 }
