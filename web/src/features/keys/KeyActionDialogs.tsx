@@ -4,11 +4,11 @@ import { errorMessage, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { KeyValues } from '@/components/ui/Data'
-import { ConfirmDialog, DialogRow } from '@/components/ui/ConfirmDialog'
+import { ConfirmDialog, DialogOption, DialogRow } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { count, usDate } from '@/lib/format'
+import { ago, count, usDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { keySummary, type Key } from './parts'
 
@@ -57,14 +57,17 @@ export function KeyActionDialog({
   onSecret: (c: Schemas['APIKeyCreated'], action: 'rotated' | 'replaced') => void
 }) {
   const calls = useKeyCalls(k)
+  // Revoking offers a replacement with the same scopes, checked by default (Dialogs board).
+  const [replace, setReplace] = useState(true)
   const agent = k.kind === 'mcp_agent'
   const noun = agent ? 'agent token' : 'API key'
   if (action === 'replace') return <ExpiredKeyDialog k={k} onClose={onClose} onSecret={onSecret} />
   const run = async () => {
-    if (action === 'rotate') {
+    if (action === 'rotate' || (action === 'revoke' && replace)) {
+      // Rotating revokes the key and creates its replacement in one step.
       const c = await calls.rotate()
       calls.refresh()
-      onSecret(c, 'rotated')
+      onSecret(c, action === 'rotate' ? 'rotated' : 'replaced')
       return
     }
     if (action === 'revoke') await calls.revoke()
@@ -76,23 +79,23 @@ export function KeyActionDialog({
     rotate: {
       tone: 'warn' as const,
       badge: `Rotate ${noun}`,
-      title: `Rotate “${k.name}”?`,
+      title: `Rotate "${k.name}"?`,
       text: `A new ${noun} is created with the same permissions and shown once. The current value stops working at once, so update whatever uses it right after.`,
       button: `Rotate ${noun}`,
       busy: 'Rotating…',
     },
     revoke: {
-      tone: 'bad' as const,
+      tone: 'warn' as const,
       badge: `Revoke ${noun}`,
-      title: `Revoke “${k.name}”?`,
-      text: `Calls with this ${noun} fail with 401 from now on. ${agent ? 'The agent loses access to the MCP server.' : 'Integrations that use it stop working.'} This can't be undone; create a new ${noun} to restore access.`,
-      button: `Revoke ${noun}`,
+      title: `Revoke "${k.name}"?`,
+      text: `${lastUse(k, agent ? 'token' : 'key')} Anything using it will get 401 immediately${agent ? '; the agent loses access to the MCP server' : ''}.`,
+      button: agent ? 'Revoke token' : 'Revoke key',
       busy: 'Revoking…',
     },
     delete: {
       tone: 'bad' as const,
       badge: `Delete ${noun}`,
-      title: `Delete “${k.name}”?`,
+      title: `Delete "${k.name}"?`,
       text: `The expired ${noun} is removed from this list. The audit log keeps every call it made.`,
       button: `Delete ${noun}`,
       busy: 'Deleting…',
@@ -107,14 +110,26 @@ export function KeyActionDialog({
       title={copy.title}
       description={copy.text}
       confirmLabel={copy.button}
+      confirmVariant={action === 'rotate' ? 'primary' : 'danger'}
       busyLabel={copy.busy}
       onConfirm={run}
     >
-      <DialogRow tone="neutral" label={agent ? 'Agent' : 'Key'} first>
-        {keySummary(k)}
-      </DialogRow>
+      {action === 'revoke' ? (
+        <DialogOption type="checkbox" checked={replace} onChange={setReplace} title={`Create a replacement ${agent ? 'token' : 'key'} with the same scopes and show it once`} />
+      ) : (
+        <DialogRow tone="neutral" label={agent ? 'Agent' : 'Key'} first>
+          {keySummary(k)}
+        </DialogRow>
+      )}
     </ConfirmDialog>
   )
+}
+
+/** "This key was last used 4 min ago from 198.51.100.12." */
+function lastUse(k: Key, what: string): string {
+  if (!k.lastUsedAt) return `This ${what} hasn't been used yet.`
+  const when = ago(k.lastUsedAt)
+  return `This ${what} was last used ${when === 'now' ? 'just now' : when}${k.lastUsedIp ? ` from ${k.lastUsedIp}` : ''}.`
 }
 
 /** An expired key that something still calls (SettingsKeysStates, "Expired key"). */
