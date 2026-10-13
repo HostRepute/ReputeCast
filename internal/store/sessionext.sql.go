@@ -12,18 +12,18 @@ import (
 	"github.com/google/uuid"
 )
 
-const extendSession = `-- name: ExtendSession :one
+const sessionExtRestartIdle = `-- name: SessionExtRestartIdle :one
 UPDATE sessions SET last_seen_at = now()
 WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL AND expires_at > now()
 RETURNING id, created_at, last_seen_at, expires_at
 `
 
-type ExtendSessionParams struct {
+type SessionExtRestartIdleParams struct {
 	ID     uuid.UUID `json:"id"`
 	UserID uuid.UUID `json:"userId"`
 }
 
-type ExtendSessionRow struct {
+type SessionExtRestartIdleRow struct {
 	ID         uuid.UUID `json:"id"`
 	CreatedAt  time.Time `json:"createdAt"`
 	LastSeenAt time.Time `json:"lastSeenAt"`
@@ -32,9 +32,9 @@ type ExtendSessionRow struct {
 
 // Restarts the idle clock now (the middleware only touches sessions every
 // 30 seconds). The absolute lifetime (expires_at) never moves.
-func (q *Queries) ExtendSession(ctx context.Context, arg ExtendSessionParams) (ExtendSessionRow, error) {
-	row := q.db.QueryRow(ctx, extendSession, arg.ID, arg.UserID)
-	var i ExtendSessionRow
+func (q *Queries) SessionExtRestartIdle(ctx context.Context, arg SessionExtRestartIdleParams) (SessionExtRestartIdleRow, error) {
+	row := q.db.QueryRow(ctx, sessionExtRestartIdle, arg.ID, arg.UserID)
+	var i SessionExtRestartIdleRow
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
@@ -44,14 +44,14 @@ func (q *Queries) ExtendSession(ctx context.Context, arg ExtendSessionParams) (E
 	return i, err
 }
 
-const getSessionTiming = `-- name: GetSessionTiming :one
+const sessionExtTiming = `-- name: SessionExtTiming :one
 
 SELECT id, created_at, last_seen_at, expires_at
 FROM sessions
 WHERE id = $1 AND revoked_at IS NULL AND expires_at > now()
 `
 
-type GetSessionTimingRow struct {
+type SessionExtTimingRow struct {
 	ID         uuid.UUID `json:"id"`
 	CreatedAt  time.Time `json:"createdAt"`
 	LastSeenAt time.Time `json:"lastSeenAt"`
@@ -60,9 +60,9 @@ type GetSessionTimingRow struct {
 
 // Session timing for the app's "Session ending in 2 minutes" banner and its
 // Extend action (internal/sessionext).
-func (q *Queries) GetSessionTiming(ctx context.Context, id uuid.UUID) (GetSessionTimingRow, error) {
-	row := q.db.QueryRow(ctx, getSessionTiming, id)
-	var i GetSessionTimingRow
+func (q *Queries) SessionExtTiming(ctx context.Context, id uuid.UUID) (SessionExtTimingRow, error) {
+	row := q.db.QueryRow(ctx, sessionExtTiming, id)
+	var i SessionExtTimingRow
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,

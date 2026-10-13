@@ -8,12 +8,12 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 )
 
-type suggestionInput struct {
+type accessSuggestionInput struct {
 	api.WorkspaceInput
 	Permission string `query:"permission" required:"true" maxLength:"64" doc:"The missing permission, from a 403 problem" example:"providers:manage"`
 }
 
-type requestInput struct {
+type accessRequestInput struct {
 	api.WorkspaceInput
 	Body struct {
 		Permission string `json:"permission" maxLength:"64" doc:"The missing permission" example:"providers:manage"`
@@ -21,7 +21,7 @@ type requestInput struct {
 	}
 }
 
-type requestOutput struct {
+type accessRequestOutput struct {
 	Status int
 	Body   AccessRequestResult
 }
@@ -34,7 +34,7 @@ func Register(h huma.API, s *Service) {
 	api.Get(h, api.Op{
 		ID: "suggest-access", Path: "/workspaces/{workspace}/access-requests/suggestion", Tags: tags, Access: access,
 		Summary: "Which role grants a missing permission, and who can grant it",
-	}, func(ctx context.Context, in *suggestionInput) (*api.Body[AccessSuggestion], error) {
+	}, func(ctx context.Context, in *accessSuggestionInput) (*api.Body[AccessSuggestion], error) {
 		r, err := s.Suggest(ctx, in.Permission)
 		return api.OK(r), err
 	})
@@ -43,11 +43,11 @@ func Register(h huma.API, s *Service) {
 		ID: "request-access", Path: "/workspaces/{workspace}/access-requests", Tags: tags, Access: access, Status: statusAccepted,
 		Summary:     "Ask for the role that grants a missing permission",
 		Description: "Notifies the members who can change roles, with your note. One request per role a day. Recorded as access.request.",
-	}, func(ctx context.Context, in *requestInput) (*requestOutput, error) {
+	}, func(ctx context.Context, in *accessRequestInput) (*accessRequestOutput, error) {
 		r, err := s.Request(ctx, in.Body.Permission, in.Body.Note)
 		if err != nil {
 			return nil, err
 		}
-		return &requestOutput{Status: statusAccepted, Body: r}, nil
+		return &accessRequestOutput{Status: statusAccepted, Body: r}, nil
 	})
 }

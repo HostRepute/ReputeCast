@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const lastAccessRequest = `-- name: LastAccessRequest :one
+const accessRequestsLatest = `-- name: AccessRequestsLatest :one
 
 SELECT occurred_at
 FROM audit_events
@@ -25,7 +25,7 @@ ORDER BY occurred_at DESC
 LIMIT 1
 `
 
-type LastAccessRequestParams struct {
+type AccessRequestsLatestParams struct {
 	UserID      *uuid.UUID `json:"userId"`
 	WorkspaceID *uuid.UUID `json:"workspaceId"`
 	RoleKey     string     `json:"roleKey"`
@@ -33,8 +33,8 @@ type LastAccessRequestParams struct {
 
 // Access requests from the "403 · no permission" screen (internal/accessrequests).
 // The member's latest request for this role in the last day (one a day).
-func (q *Queries) LastAccessRequest(ctx context.Context, arg LastAccessRequestParams) (time.Time, error) {
-	row := q.db.QueryRow(ctx, lastAccessRequest, arg.UserID, arg.WorkspaceID, arg.RoleKey)
+func (q *Queries) AccessRequestsLatest(ctx context.Context, arg AccessRequestsLatestParams) (time.Time, error) {
+	row := q.db.QueryRow(ctx, accessRequestsLatest, arg.UserID, arg.WorkspaceID, arg.RoleKey)
 	var occurred_at time.Time
 	err := row.Scan(&occurred_at)
 	return occurred_at, err

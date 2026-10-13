@@ -1,6 +1,28 @@
 {
   "components": {
     "schemas": {
+      "AccessRequestInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "description": "Why you need it; shown to whoever decides",
+            "maxLength": 500,
+            "type": "string"
+          },
+          "permission": {
+            "description": "The missing permission",
+            "examples": [
+              "providers:manage"
+            ],
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "permission"
+        ],
+        "type": "object"
+      },
       "AccessRequestResult": {
         "additionalProperties": false,
         "properties": {
@@ -871,28 +893,6 @@
         },
         "required": [
           "codes"
-        ],
-        "type": "object"
-      },
-      "RequestInputBody": {
-        "additionalProperties": false,
-        "properties": {
-          "note": {
-            "description": "Why you need it; shown to whoever decides",
-            "maxLength": 500,
-            "type": "string"
-          },
-          "permission": {
-            "description": "The missing permission",
-            "examples": [
-              "providers:manage"
-            ],
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "permission"
         ],
         "type": "object"
       },
@@ -1951,7 +1951,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RequestInputBody"
+                "$ref": "#/components/schemas/AccessRequestInputBody"
               }
             }
           },

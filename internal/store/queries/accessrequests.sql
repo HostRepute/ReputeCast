@@ -1,6 +1,6 @@
 -- Access requests from the "403 · no permission" screen (internal/accessrequests).
 
--- name: LastAccessRequest :one
+-- name: AccessRequestsLatest :one
 -- The member's latest request for this role in the last day (one a day).
 SELECT occurred_at
 FROM audit_events

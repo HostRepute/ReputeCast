@@ -14,6 +14,9 @@ import (
 
 type Querier interface {
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) error
+	// Access requests from the "403 · no permission" screen (internal/accessrequests).
+	// The member's latest request for this role in the last day (one a day).
+	AccessRequestsLatest(ctx context.Context, arg AccessRequestsLatestParams) (time.Time, error)
 	BroadcastDefaultSplit(ctx context.Context, workspaceID uuid.UUID) (json.RawMessage, error)
 	BumpChallengeAttempts(ctx context.Context, id uuid.UUID) (int32, error)
 	CampaignCostSince(ctx context.Context, arg CampaignCostSinceParams) ([]CampaignCostSinceRow, error)
@@ -49,9 +52,6 @@ type Querier interface {
 	DeleteStaleThrottle(ctx context.Context) (int64, error)
 	// Must run inside the same transaction as PurgeAuditEvents (retention job only).
 	EnableAuditPurge(ctx context.Context) error
-	// Restarts the idle clock now (the middleware only touches sessions every
-	// 30 seconds). The absolute lifetime (expires_at) never moves.
-	ExtendSession(ctx context.Context, arg ExtendSessionParams) (ExtendSessionRow, error)
 	GetAPIKey(ctx context.Context, arg GetAPIKeyParams) (ApiKey, error)
 	GetAPIKeyByToken(ctx context.Context, tokenHash []byte) (GetAPIKeyByTokenRow, error)
 	GetAuditEvent(ctx context.Context, id uuid.UUID) (AuditEvent, error)
@@ -66,18 +66,12 @@ type Querier interface {
 	GetRole(ctx context.Context, id uuid.UUID) (Role, error)
 	GetRoleByKey(ctx context.Context, arg GetRoleByKeyParams) (Role, error)
 	GetSessionByToken(ctx context.Context, tokenHash []byte) (Session, error)
-	// Session timing for the app's "Session ending in 2 minutes" banner and its
-	// Extend action (internal/sessionext).
-	GetSessionTiming(ctx context.Context, id uuid.UUID) (GetSessionTimingRow, error)
 	GetSignInThrottle(ctx context.Context, email string) (SignInThrottle, error)
 	GetUser(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
-	// Access requests from the "403 · no permission" screen (internal/accessrequests).
-	// The member's latest request for this role in the last day (one a day).
-	LastAccessRequest(ctx context.Context, arg LastAccessRequestParams) (time.Time, error)
 	ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
 	ListCampaignIncidentSummaries(ctx context.Context, campaignIds []uuid.UUID) ([]ListCampaignIncidentSummariesRow, error)
@@ -112,6 +106,12 @@ type Querier interface {
 	RevokeInvitation(ctx context.Context, arg RevokeInvitationParams) (int64, error)
 	RevokeOtherSessions(ctx context.Context, arg RevokeOtherSessionsParams) (int64, error)
 	RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error)
+	// Restarts the idle clock now (the middleware only touches sessions every
+	// 30 seconds). The absolute lifetime (expires_at) never moves.
+	SessionExtRestartIdle(ctx context.Context, arg SessionExtRestartIdleParams) (SessionExtRestartIdleRow, error)
+	// Session timing for the app's "Session ending in 2 minutes" banner and its
+	// Extend action (internal/sessionext).
+	SessionExtTiming(ctx context.Context, id uuid.UUID) (SessionExtTimingRow, error)
 	SetLatestRelease(ctx context.Context, latestRelease json.RawMessage) error
 	SetMemberStatus(ctx context.Context, arg SetMemberStatusParams) error
 	SetUserBreakGlass(ctx context.Context, arg SetUserBreakGlassParams) error

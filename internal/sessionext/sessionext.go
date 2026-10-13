@@ -112,7 +112,7 @@ func (s *Service) Timing(ctx context.Context) (SessionTiming, error) {
 		return SessionTiming{}, err
 	}
 	// Re-read: the middleware may have just recorded this request as activity.
-	row, err := s.Q.GetSessionTiming(ctx, sess.ID)
+	row, err := s.Q.SessionExtTiming(ctx, sess.ID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return SessionTiming{}, api.Err(http.StatusUnauthorized, api.CodeSessionExpired, "Your session ended. Sign in again; unsaved work in this tab is kept.")
 	}
@@ -133,7 +133,7 @@ func (s *Service) Extend(ctx context.Context) (SessionTiming, error) {
 	var t SessionTiming
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		row, err := q.ExtendSession(ctx, store.ExtendSessionParams{ID: sess.ID, UserID: sess.UserID})
+		row, err := q.SessionExtRestartIdle(ctx, store.SessionExtRestartIdleParams{ID: sess.ID, UserID: sess.UserID})
 		if err != nil {
 			return err
 		}

@@ -357,6 +357,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccessRequestInputBody: {
+            /** @description Why you need it; shown to whoever decides */
+            note?: string;
+            /**
+             * @description The missing permission
+             * @example providers:manage
+             */
+            permission: string;
+        };
         AccessRequestResult: {
             /** @description Members who received the request */
             notified: string[];
@@ -637,15 +646,6 @@ export interface components {
         };
         RecoveryCodes: {
             codes: string[];
-        };
-        RequestInputBody: {
-            /** @description Why you need it; shown to whoever decides */
-            note?: string;
-            /**
-             * @description The missing permission
-             * @example providers:manage
-             */
-            permission: string;
         };
         RouteShare: {
             /** @example ses */
@@ -1268,7 +1268,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RequestInputBody"];
+                "application/json": components["schemas"]["AccessRequestInputBody"];
             };
         };
         responses: {

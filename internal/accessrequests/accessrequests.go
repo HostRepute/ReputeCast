@@ -100,7 +100,7 @@ func (s *Service) people(ctx context.Context, ws *store.Workspace) (people, erro
 }
 
 func (s *Service) lastRequest(ctx context.Context, q *store.Queries, p *authz.Principal, ws *store.Workspace, roleKey string) (*time.Time, error) {
-	at, err := q.LastAccessRequest(ctx, store.LastAccessRequestParams{UserID: &p.UserID, WorkspaceID: &ws.ID, RoleKey: roleKey})
+	at, err := q.AccessRequestsLatest(ctx, store.AccessRequestsLatestParams{UserID: &p.UserID, WorkspaceID: &ws.ID, RoleKey: roleKey})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
