@@ -222,6 +222,7 @@ describe('LiveMonitor', () => {
   it('rates mailbox providers OK until they near the limit', () => {
     expect(mailboxStatus(mailbox({ key: 'outlook', name: 'Outlook', delivered: 4049, complaintRate: 0.05 }), live, false)).toEqual({ tone: 'ok', text: 'OK' })
     expect(mailboxStatus(mailbox({ key: 'outlook', name: 'Outlook', delivered: 4049, complaintRate: 0.09 }), live, false)).toEqual({ tone: 'warn', text: 'Near limit' })
+    expect(mailboxStatus(mailbox({ key: 'outlook', name: 'Outlook', delivered: 1923, complaintRate: 0.16 }), live, false)).toEqual({ tone: 'warn', text: 'Over limit' })
   })
 
   it('rounds the delivered mix to whole percents that add up to 100', () => {

@@ -185,11 +185,11 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 			return !ok || n > base
 		}
 		switch {
-		case m.delivered >= minSampleScoped && m.complained >= minEvents && rate(m.complained, m.delivered) > th.MailboxComplaint && armed("complaint", m.complained):
+		case m.delivered >= minSampleScoped && over(m.complained, m.delivered, th.MailboxComplaint, minEvents) && armed("complaint", m.complained):
 			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "complaint", value: rate(m.complained, m.delivered), limit: th.MailboxComplaint, events: m.complained, base: m.delivered})
-		case m.sent >= minSampleScoped && m.bounced() >= minEvents && rate(m.bounced(), m.sent) > th.Bounce && armed("bounce", m.bounced()):
+		case m.sent >= minSampleScoped && over(m.bounced(), m.sent, th.Bounce, minEvents) && armed("bounce", m.bounced()):
 			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "bounce", value: rate(m.bounced(), m.sent), limit: th.Bounce, events: m.bounced(), base: m.sent})
-		case m.sent >= minSampleScoped && m.deferred >= minDeferrals && rate(m.deferred, m.sent) > th.Deferral && armed("deferral", m.deferred):
+		case m.sent >= minSampleScoped && over(m.deferred, m.sent, th.Deferral, minDeferrals) && armed("deferral", m.deferred):
 			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "deferral", value: rate(m.deferred, m.sent), limit: th.Deferral, events: m.deferred, base: m.sent})
 		}
 		if len(trips) > 0 {
@@ -204,9 +204,9 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 				continue
 			}
 			switch {
-			case p.sent >= minSampleScoped && p.bounced() >= minEvents && rate(p.bounced(), p.sent) > th.Bounce:
+			case p.sent >= minSampleScoped && over(p.bounced(), p.sent, th.Bounce, minEvents):
 				trips = append(trips, trip{scope: "route", provider: pid, metric: "bounce", value: rate(p.bounced(), p.sent), limit: th.Bounce, events: p.bounced(), base: p.sent})
-			case p.delivered >= minSampleScoped && p.complained >= minEvents && rate(p.complained, p.delivered) > th.Complaint:
+			case p.delivered >= minSampleScoped && over(p.complained, p.delivered, th.Complaint, minEvents):
 				trips = append(trips, trip{scope: "route", provider: pid, metric: "complaint", value: rate(p.complained, p.delivered), limit: th.Complaint, events: p.complained, base: p.delivered})
 			}
 			if len(trips) > 0 {
@@ -232,10 +232,10 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 				t.complained -= p.complained
 			}
 		}
-		if t.sent >= minSampleCampaign && t.bounced() >= minEvents && rate(t.bounced(), t.sent) > th.Bounce {
+		if t.sent >= minSampleCampaign && over(t.bounced(), t.sent, th.Bounce, minEvents) {
 			trips = append(trips, trip{scope: "campaign", metric: "bounce", value: rate(t.bounced(), t.sent), limit: th.Bounce, events: t.bounced(), base: t.sent})
 		}
-		if t.delivered >= minSampleCampaign && t.complained >= minEvents && rate(t.complained, t.delivered) > th.Complaint {
+		if t.delivered >= minSampleCampaign && over(t.complained, t.delivered, th.Complaint, minEvents) {
 			trips = append(trips, trip{scope: "campaign", metric: "complaint", value: rate(t.complained, t.delivered), limit: th.Complaint, events: t.complained, base: t.delivered})
 		}
 	}

@@ -289,6 +289,9 @@ export function mailboxStatus(m: Mailbox, s: Snapshot, decision: boolean): { ton
     return { tone: 'neutral', text: 'Done' }
   }
   const limit = s.thresholds.find((t) => t.key === 'mailbox_complaint')?.limit ?? 0.1
+  // Over the limit without a pause yet: the engine pauses once there are
+  // enough complaints to be sure it isn't chance.
+  if (m.complaintRate !== undefined && m.complaintRate > limit && m.delivered >= 500) return { tone: 'warn', text: 'Over limit' }
   if (m.complaintRate !== undefined && m.complaintRate >= limit * 0.8 && m.delivered >= 500) return { tone: 'warn', text: 'Near limit' }
   return { tone: 'ok', text: 'OK' }
 }

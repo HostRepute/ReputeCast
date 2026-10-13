@@ -175,6 +175,29 @@ const (
 	minDeferrals      = 5
 )
 
+// zTrip is how sure a trip must be that the rate is really over its limit:
+// about 90% (one-sided, Poisson approximation).
+const zTrip = 1.28
+
+// over reports whether events out of base put a rate over its limit (a
+// percentage) with enough evidence: at least minEv events, the observed
+// rate above the limit, and the count high enough that chance alone is
+// unlikely, (events − expected) / √expected ≥ zTrip where expected is what
+// the limit allows. Three complaints among 1,900 delivered (0.16%) don't
+// pause a send whose true rate is 0.05%; 7 among 3,980 (0.18%, the
+// LiveMonitorPaused board) do. On large samples it comes down to "over the
+// limit".
+func over(events, base int64, limit float64, minEv int64) bool {
+	if events < minEv || base <= 0 || limit <= 0 {
+		return false
+	}
+	expected := float64(base) * limit / 100
+	if float64(events) <= expected {
+		return false
+	}
+	return (float64(events)-expected)/math.Sqrt(expected) >= zTrip
+}
+
 // Retry back-off for temporary errors: 5 s doubling to 60 s, at most
 // maxAttempts provider calls per message.
 const (

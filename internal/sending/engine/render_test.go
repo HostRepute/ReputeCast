@@ -181,3 +181,25 @@ func TestAssignVariant(t *testing.T) {
 		t.Fatal("assignment must be stable for a contact")
 	}
 }
+
+func TestOverNeedsEvidence(t *testing.T) {
+	for _, tc := range []struct {
+		events, base int64
+		limit        float64
+		want         bool
+	}{
+		{3, 1923, 0.1, false},   // 0.16% on a small sample: chance
+		{7, 3980, 0.1, true},    // LiveMonitorPaused: 0.18%
+		{4, 2000, 0.1, true},    // 0.20%
+		{2, 500, 0.1, false},    // under the least number of events
+		{55, 50000, 0.1, false}, // 0.11% on a large sample: not sure yet
+		{60, 50000, 0.1, true},  // 0.12%
+		{25, 1000, 2.0, false},  // bounces: 2.5%
+		{27, 1000, 2.0, true},   // 2.7%
+		{9, 10000, 0.1, false},  // under the limit
+	} {
+		if got := over(tc.events, tc.base, tc.limit, minEvents); got != tc.want {
+			t.Errorf("over(%d, %d, %.1f%%) = %v, want %v", tc.events, tc.base, tc.limit, got, tc.want)
+		}
+	}
+}
