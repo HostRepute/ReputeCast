@@ -105,6 +105,13 @@ WHERE user_id = @user_id AND source = 'email'
 ORDER BY created_at DESC
 LIMIT 1;
 
+-- name: LastAuditAt :one
+-- When an action was last recorded for a target (throttles repeated emails).
+SELECT occurred_at FROM audit_events
+WHERE action = @action AND target_id = @target_id
+ORDER BY occurred_at DESC
+LIMIT 1;
+
 -- name: GetUsablePasswordReset :one
 SELECT r.*, u.email, u.status AS user_status
 FROM password_resets r JOIN users u ON u.id = r.user_id
