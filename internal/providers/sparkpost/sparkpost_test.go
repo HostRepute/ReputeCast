@@ -172,7 +172,7 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 			_, _ = io.WriteString(w, `{"results":[{"recipient":"Hard@Example.com","source":"Bounce Rule","type":"transactional","created":"2026-10-11T01:01:01+00:00"},{"recipient":"hard@example.com","source":"Bounce Rule","type":"non_transactional","created":"2026-10-11T01:01:01+00:00"},{"recipient":"angry@example.com","source":"Spam Complaint","type":"non_transactional","created":"2026-10-12T01:01:01+00:00"}],"links":[{"href":"/api/v1/suppression-list?cursor=WycyMDE4","rel":"next"}],"total_count":5}`)
 			return
 		}
-		_, _ = io.WriteString(w, `{"results":[{"recipient":"gone@example.com","source":"List Unsubscribe","type":"non_transactional","created":"2026-10-12T02:01:01+00:00"},{"recipient":"admin@example.com","source":"Manually Added","type":"transactional","created":"2026-10-12T03:01:01+00:00"}],"links":[],"total_count":5}`)
+		_, _ = io.WriteString(w, `{"results":[{"recipient":"gone@example.com","source":"List Unsubscribe","type":"non_transactional","created":"2026-10-12T02:01:01+00:00"},{"recipient":"no-tracking@example.com","source":"Tracking Consent Revoked","type":"open_tracking","created":"2026-10-12T02:30:01+00:00"},{"recipient":"admin@example.com","source":"Manually Added","type":"transactional","created":"2026-10-12T03:01:01+00:00"}],"links":[],"total_count":6}`)
 	}))
 	mux.HandleFunc("PUT /api/v1/suppression-list/", guard(func(w http.ResponseWriter, r *http.Request) {
 		var in struct {

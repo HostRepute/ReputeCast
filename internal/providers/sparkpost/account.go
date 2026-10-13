@@ -320,6 +320,7 @@ func (p *Provider) ListSuppressions(ctx context.Context, since time.Time) ([]pro
 		var page struct {
 			Results []struct {
 				Recipient string `json:"recipient"`
+				Type      string `json:"type"`
 				Source    string `json:"source"`
 				Created   string `json:"created"`
 			} `json:"results"`
@@ -333,7 +334,8 @@ func (p *Provider) ListSuppressions(ctx context.Context, since time.Time) ([]pro
 		}
 		for _, s := range page.Results {
 			email := strings.ToLower(strings.TrimSpace(s.Recipient))
-			if email == "" || seen[email] {
+			// open_tracking entries only stop tracking, never sending.
+			if email == "" || seen[email] || s.Type == "open_tracking" {
 				continue
 			}
 			seen[email] = true

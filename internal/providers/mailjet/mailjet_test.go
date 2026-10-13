@@ -173,9 +173,10 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 			return
 		}
 		envelope(w, []map[string]any{
-			{"Email": "Angry@Example.com", "IsSpamComplaining": true, "ExclusionFromCampaignsUpdatedAt": "2026-10-12T10:00:00Z"},
-			{"Email": "gone@example.com", "UnsubscribedAt": "2026-10-11T09:00:00Z", "ExclusionFromCampaignsUpdatedAt": "2026-10-11T09:00:00Z"},
-			{"Email": "old@example.com", "ExclusionFromCampaignsUpdatedAt": "2025-01-02T09:00:00Z"},
+			{"Email": "Angry@Example.com", "IsExcludedFromCampaigns": true, "IsSpamComplaining": true, "ExclusionFromCampaignsUpdatedAt": "2026-10-12T10:00:00Z"},
+			{"Email": "subscribed@example.com", "IsExcludedFromCampaigns": false, "ExclusionFromCampaignsUpdatedAt": "2026-10-12T11:00:00Z"},
+			{"Email": "gone@example.com", "IsExcludedFromCampaigns": true, "UnsubscribedAt": "2026-10-11T09:00:00Z", "ExclusionFromCampaignsUpdatedAt": "2026-10-11T09:00:00Z"},
+			{"Email": "old@example.com", "IsExcludedFromCampaigns": true, "ExclusionFromCampaignsUpdatedAt": "2025-01-02T09:00:00Z"},
 		})
 	}))
 	mux.HandleFunc("POST /v3/REST/contact/managemanycontacts", guard(func(w http.ResponseWriter, r *http.Request) {

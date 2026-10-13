@@ -345,6 +345,7 @@ func (p *Provider) ListSuppressions(ctx context.Context, since time.Time) ([]pro
 	for offset := 0; offset < 1_000_000; offset += 1000 {
 		var contacts []struct {
 			Email              string `json:"Email"`
+			IsExcluded         bool   `json:"IsExcludedFromCampaigns"`
 			IsSpamComplaining  bool   `json:"IsSpamComplaining"`
 			UnsubscribedAt     string `json:"UnsubscribedAt"`
 			ExclusionUpdatedAt string `json:"ExclusionFromCampaignsUpdatedAt"`
@@ -354,6 +355,11 @@ func (p *Provider) ListSuppressions(ctx context.Context, since time.Time) ([]pro
 			return nil, err
 		}
 		for _, c := range contacts {
+			// Checked again here: a contact that isn't excluded must never
+			// reach the shared suppression list.
+			if !c.IsExcluded {
+				continue
+			}
 			at := parseTime(c.ExclusionUpdatedAt)
 			if !since.IsZero() && !at.IsZero() && at.Before(since) {
 				continue
