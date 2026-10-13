@@ -739,20 +739,6 @@ func (q *Queries) ReportShareRevoke(ctx context.Context, arg ReportShareRevokePa
 	return i, err
 }
 
-const reportShareSetSealed = `-- name: ReportShareSetSealed :exec
-UPDATE report_shares SET token_sealed = $1 WHERE id = $2
-`
-
-type ReportShareSetSealedParams struct {
-	TokenSealed []byte    `json:"tokenSealed"`
-	ID          uuid.UUID `json:"id"`
-}
-
-func (q *Queries) ReportShareSetSealed(ctx context.Context, arg ReportShareSetSealedParams) error {
-	_, err := q.db.Exec(ctx, reportShareSetSealed, arg.TokenSealed, arg.ID)
-	return err
-}
-
 const reportShareTouch = `-- name: ReportShareTouch :exec
 UPDATE report_shares SET views = views + 1, last_viewed_at = $1 WHERE id = $2
 `

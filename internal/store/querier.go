@@ -312,6 +312,19 @@ type Querier interface {
 	MarkReinviteRequested(ctx context.Context, id uuid.UUID) (int64, error)
 	// Records a failure: opens the alert or adds to the open one.
 	OpenAutomationAlert(ctx context.Context, arg OpenAutomationAlertParams) error
+	// Contacts (not erased) by engagement tier.
+	OverviewAudienceTotals(ctx context.Context, workspaceID uuid.UUID) (OverviewAudienceTotalsRow, error)
+	OverviewCampaignRoutes(ctx context.Context, campaignID uuid.UUID) ([]OverviewCampaignRoutesRow, error)
+	// Contacts that existed at the end of each day of the period (created by
+	// then and not erased before then).
+	OverviewContactsByDay(ctx context.Context, arg OverviewContactsByDayParams) ([]OverviewContactsByDayRow, error)
+	OverviewDraftCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	OverviewLatestReadiness(ctx context.Context, campaignID uuid.UUID) (OverviewLatestReadinessRow, error)
+	// Each list's subscribers and its joins and departures since a date.
+	OverviewListGrowth(ctx context.Context, arg OverviewListGrowthParams) ([]OverviewListGrowthRow, error)
+	// W09 · Overview (spec 7.1).
+	// The next campaign due to go out.
+	OverviewNextScheduled(ctx context.Context, arg OverviewNextScheduledParams) (OverviewNextScheduledRow, error)
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
@@ -422,7 +435,6 @@ type Querier interface {
 	// Active links of a campaign, newest first, with who made them.
 	ReportShareList(ctx context.Context, arg ReportShareListParams) ([]ReportShareListRow, error)
 	ReportShareRevoke(ctx context.Context, arg ReportShareRevokeParams) (ReportShare, error)
-	ReportShareSetSealed(ctx context.Context, arg ReportShareSetSealedParams) error
 	ReportShareTouch(ctx context.Context, arg ReportShareTouchParams) error
 	ReportUnsubscribeReasons(ctx context.Context, arg ReportUnsubscribeReasonsParams) ([]ReportUnsubscribeReasonsRow, error)
 	// Warm-up plans of the campaign's providers (the day each was on when the
