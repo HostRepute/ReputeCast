@@ -10,7 +10,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 |---|---|---|---|
 | **M0 Skeleton** | Repo layout, Makefile, docker compose (Postgres 18 + Mailpit), goose, sqlc, River, chi + Huma (`/healthz`, `/readyz`, `/metrics`, OpenAPI 3.1), embedded SPA, openapi-typescript, CI (Go 1.26/1.27 × PG 16/17/18, web lint/typecheck/test/build), GoReleaser, Dockerfile. Design system foundation in the web app (tokens, components, shell). | core | ✅ |
 | **M1 Install and first sign-in** | `reputecast install`, identifier-first sign-in, argon2id, throttling and lockout, TOTP + recovery codes, sessions, first sign-in setup API; passkeys, password reset, invite accept, Account & security screens | core, W04 | 🚧 |
-| **M2 Workspaces, team, roles, audit** | `internal/authz`, built-in and custom roles, escalation guard, invitations, member management, API keys and MCP agents, audit log views | core, W03 | 🚧 |
+| **M2 Workspaces, team, roles, audit** | `internal/authz`, built-in and custom roles, escalation guard, invitations, member management, API keys and MCP agents, audit log views | core, W03 | ✅ |
 | **M3 Sending providers** | Provider contract and contract tests, SES, SMTP, Postmark, Postal adapters, webhook ingest and normalization, shared suppression list and sync, streams and routing, failover, warm-up | W01 | 🚧 |
 | **M4 Senders, domains, Send Readiness** | DNS checks, sending domains and senders, connect-a-provider wizard, Send Readiness engine | W10, W11 | ⏳ |
 | **M5 Audience** | Contacts, lists, custom fields, tiers and sunset policy, segments (builder and SQL), suppressions, importer | W02 | 🚧 |
@@ -19,7 +19,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 | **M8 Reports** | Campaign report, honest analytics (human vs machine opens), click map, provider comparisons, A/B, share links; Overview | W09 | ⏳ (campaigns list ✅) |
 | **M9 Automations** | React Flow editor, triggers and steps, runs engine, live stats, versions and publish diff, templates | W06 | 🚧 |
 | **M10 Forms and public pages** | Signup forms, double opt-in, preference center, unsubscribe (RFC 8058), archive | W13 | ⏳ |
-| **M11 SSO, social sign-in, API keys, MCP, webhooks** | OIDC SSO with JIT and group mapping, social sign-in, instance admin, API keys & MCP server, outgoing webhooks | W14, W03 | ⏳ |
+| **M11 SSO, social sign-in, API keys, MCP, webhooks** | OIDC SSO with JIT and group mapping, social sign-in, instance admin, API keys & MCP server, outgoing webhooks | W14, W03 | 🚧 (API keys, MCP server, webhooks ✅) |
 | **M12 Remaining adapters** | Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, generic HTTP | W01 (follow-up) | ⏳ |
 | **M13 Deliverability and HostRepute** | Domain/IP health, provider account health, blocklists, Postmaster, SNDS, DMARC, incidents, Connect HostRepute | W07 | 🚧 |
 | **M14 Migration, landing, docs, v1.0** | Importers from Brevo, Mailchimp, MailerLite, listmonk, Keila; landing page and README banner; documentation; release | W02, W08 | 🚧 (landing page ✅, README banner ✅) |
@@ -42,3 +42,13 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 - Session: a warning two minutes before the idle timeout with "Extend 12 hours" (`GET /me/session`, `POST /me/session/extend`), and a sign-in dialog over the page that keeps unsaved work when the session has ended.
 - Offline/unreachable and read-only maintenance banners and the API rate-limit notice, wired for every screen; reconnecting and quota-reached banners for the screens that own those states.
 - Confirmation dialogs (typed name, reason, options, bulk results, unsaved changes), toasts with Undo, Retry and Hide, a form-level error summary, empty search results, disabled controls that say why, keyboard shortcuts with a `?` sheet, and the background jobs tray (job list behind `JobsSource` until the import/export API lands).
+
+## Done so far (W03: workspace settings, team, roles, keys & MCP, webhooks, audit log)
+
+- Settings › General: name, timezone and default sender, approvals and members summaries, Owner-only transfer (re-authentication, two-factor candidates) and delete (typed name, export ZIP first, 7-day restore, hourly purge job).
+- Team: members with role, scope, sign-in, two-factor and status; filters, bulk change role / require two-factor / deactivate; invitations with scope, expiry and the copy-link fallback; member page with effective permissions and their source, recent activity, keys, approvals, sessions; change role or scope, deactivate (keep or revoke keys), remove, last-Owner guard.
+- Roles: list and compare matrix; role editor with included and locked permissions, live impact preview and confirmation before adding a sensitive permission or removing access; duplicate and delete.
+- Keys & MCP: API keys and MCP agents (escalation guard, list scope, expiry, shown once, rotate, revoke, replace an expired key with what still calls it); MCP server at `/mcp` (Streamable HTTP, 18 tools, resources, prompts, per-agent rate limit, proposals instead of sends, audit with the agent as actor).
+- Webhooks: endpoints with event groups, HMAC-SHA256 signatures, write-only secrets, SSRF guard, River delivery with backoff over 6 hours, dead-letter queue, held deliveries while paused, retry and replay, payload view.
+- Audit log: filters (actor type, action category, result, range), keyset paging, entry detail with before/after and related entries, CSV/JSON export, signed stream to a webhook, retention.
+
