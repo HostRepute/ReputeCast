@@ -43,16 +43,16 @@ func (s *Service) now() time.Time {
 	return time.Now()
 }
 
-// TierCounts are contacts per engagement tier.
-type TierCounts struct {
+// AudienceTierCounts are contacts per engagement tier.
+type AudienceTierCounts struct {
 	Active  int64 `json:"active"`
 	Cooling int64 `json:"cooling"`
 	AtRisk  int64 `json:"atRisk"`
 	Sunset  int64 `json:"sunset"`
 }
 
-// ListSummary is a list with its size.
-type ListSummary struct {
+// AudienceListSummary is a list with its size.
+type AudienceListSummary struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -69,9 +69,9 @@ type AudienceSummary struct {
 	Contacts        int64         `json:"contacts"`
 	Segments        int64         `json:"segments"`
 	Suppressions    int64         `json:"suppressions"`
-	Tiers           TierCounts    `json:"tiers"`
+	Tiers           AudienceTierCounts    `json:"tiers"`
 	TiersComputedAt *time.Time    `json:"tiersComputedAt,omitempty"`
-	Lists           []ListSummary `json:"lists"`
+	Lists           []AudienceListSummary `json:"lists"`
 }
 
 // Summary returns the counts shown in the Audience header.
@@ -80,7 +80,7 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace) (AudienceSum
 	if err != nil {
 		return AudienceSummary{}, err
 	}
-	out := AudienceSummary{Contacts: c.Contacts, Tiers: TierCounts{c.Active, c.Cooling, c.AtRisk, c.Sunset}, Lists: []ListSummary{}}
+	out := AudienceSummary{Contacts: c.Contacts, Tiers: AudienceTierCounts{c.Active, c.Cooling, c.AtRisk, c.Sunset}, Lists: []AudienceListSummary{}}
 	if out.Segments, err = s.Q.CountWorkspaceSegments(ctx, ws.ID); err != nil {
 		return out, err
 	}
@@ -95,7 +95,7 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace) (AudienceSum
 		return out, err
 	}
 	for _, l := range lists {
-		out.Lists = append(out.Lists, ListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, Subscribed: l.Subscribed, Pending: l.Pending, CreatedAt: l.CreatedAt})
+		out.Lists = append(out.Lists, AudienceListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, Subscribed: l.Subscribed, Pending: l.Pending, CreatedAt: l.CreatedAt})
 	}
 	return out, nil
 }

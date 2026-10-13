@@ -33,7 +33,7 @@ type FileSource struct {
 	parsed bool
 	header []string
 	rows   []fileRow
-	bad    []BadRow
+	bad    []ImportBadRow
 }
 
 type fileRow struct {
@@ -41,8 +41,8 @@ type fileRow struct {
 	values []string
 }
 
-// BadRow is a row whose column count doesn't match the header.
-type BadRow struct {
+// ImportBadRow is a row whose column count doesn't match the header.
+type ImportBadRow struct {
 	Line    int    `json:"line"`
 	Columns int    `json:"columns"`
 	Raw     string `json:"raw"`
@@ -53,7 +53,7 @@ type FileError struct {
 	Message string
 	// BadRows are rows with the wrong number of columns ("row 1,204 has 9
 	// columns, the header has 8"); they can be skipped.
-	BadRows []BadRow
+	BadRows []ImportBadRow
 	Header  int
 }
 
@@ -130,7 +130,7 @@ func (f *FileSource) parse() error {
 		}
 		if f.Kind != "xlsx" && len(rec) != len(f.header) {
 			if !f.SkipRows[lines[i]] {
-				f.bad = append(f.bad, BadRow{Line: lines[i], Columns: len(rec), Raw: strings.Join(rec, ",")})
+				f.bad = append(f.bad, ImportBadRow{Line: lines[i], Columns: len(rec), Raw: strings.Join(rec, ",")})
 			}
 			continue
 		}
@@ -202,11 +202,11 @@ func (f *FileSource) Header() ([]string, error) {
 func (f *FileSource) Rows() int { return len(f.rows) }
 
 // Connect implements Source.
-func (f *FileSource) Connect(context.Context) (Connection, error) {
+func (f *FileSource) Connect(context.Context) (ImportConnection, error) {
 	if err := f.parse(); err != nil {
-		return Connection{}, err
+		return ImportConnection{}, err
 	}
-	return Connection{Account: f.Name, CheckedAt: time.Now(), Lists: []SourceList{{ID: FileListID, Name: f.Name, Subscribed: int64(len(f.rows)), Fields: len(f.header), TagExamples: []string{}}}}, nil
+	return ImportConnection{Account: f.Name, CheckedAt: time.Now(), Lists: []ImportSourceList{{ID: FileListID, Name: f.Name, Subscribed: int64(len(f.rows)), Fields: len(f.header), TagExamples: []string{}}}}, nil
 }
 
 var (

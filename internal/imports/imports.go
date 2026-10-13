@@ -89,11 +89,11 @@ func SourceName(src string) string {
 
 func isFile(src string) bool { return src == "csv" || src == "xlsx" }
 
-// Options are the choices made across the wizard.
-type Options struct {
+// ImportOptions are the choices made across the wizard.
+type ImportOptions struct {
 	// Lists are the source lists to import and where each goes: a list id
 	// or "new:<name>" to create one.
-	Lists            []ListChoice `json:"lists"`
+	Lists            []ImportListChoice `json:"lists"`
 	ImportTags       bool         `json:"importTags"`
 	ImportEngagement bool         `json:"importEngagement"`
 	PullSuppressions bool         `json:"pullSuppressions"`
@@ -104,19 +104,19 @@ type Options struct {
 	// OnConflict for contacts that already exist: fill (empty fields only),
 	// overwrite, or keep (ReputeCast values win).
 	OnConflict string       `json:"onConflict" enum:"fill,overwrite,keep"`
-	Risky      RiskyActions `json:"risky"`
+	Risky      ImportRiskyActions `json:"risky"`
 	// SkipRows are file lines left out (rows with the wrong column count).
 	SkipRows []int `json:"skipRows"`
 }
 
-// ListChoice maps a source list to a ReputeCast list.
-type ListChoice struct {
+// ImportListChoice maps a source list to a ReputeCast list.
+type ImportListChoice struct {
 	SourceID string `json:"sourceId"`
 	Target   string `json:"target" doc:"List id, or new:<name>"`
 }
 
-// RiskyActions say what happens to each risky group.
-type RiskyActions struct {
+// ImportRiskyActions say what happens to each risky group.
+type ImportRiskyActions struct {
 	Role       string `json:"role" enum:"exclude_broadcasts,skip,import"`
 	Disposable string `json:"disposable" enum:"skip,import"`
 	Typo       string `json:"typo" enum:"fix,skip,import"`
@@ -124,17 +124,17 @@ type RiskyActions struct {
 	Trap       string `json:"trap" enum:"skip,import"`
 }
 
-func defaultOptions() Options {
-	return Options{Lists: []ListChoice{}, ImportTags: true, ImportEngagement: true, PullSuppressions: true, RecordHistory: true,
+func defaultOptions() ImportOptions {
+	return ImportOptions{Lists: []ImportListChoice{}, ImportTags: true, ImportEngagement: true, PullSuppressions: true, RecordHistory: true,
 		Evidence: "trust", OnConflict: "fill", SkipRows: []int{},
-		Risky: RiskyActions{Role: "exclude_broadcasts", Disposable: "skip", Typo: "fix", Stale: "pending", Trap: "skip"}}
+		Risky: ImportRiskyActions{Role: "exclude_broadcasts", Disposable: "skip", Typo: "fix", Stale: "pending", Trap: "skip"}}
 }
 
-func parseOptions(raw json.RawMessage) Options {
+func parseOptions(raw json.RawMessage) ImportOptions {
 	o := defaultOptions()
 	_ = json.Unmarshal(raw, &o)
 	if o.Lists == nil {
-		o.Lists = []ListChoice{}
+		o.Lists = []ImportListChoice{}
 	}
 	if o.SkipRows == nil {
 		o.SkipRows = []int{}
@@ -166,10 +166,10 @@ func parseOptions(raw json.RawMessage) Options {
 
 // storedConnection is imports.connection.
 type storedConnection struct {
-	Connection
+	ImportConnection
 	Fields []SourceField `json:"fields"`
 	// BadRows are file rows with the wrong column count.
-	BadRows []BadRow `json:"badRows,omitempty"`
+	BadRows []ImportBadRow `json:"badRows,omitempty"`
 	Header  int      `json:"header,omitempty"`
 	// Staged remembers which lists the staged rows came from.
 	StagedLists []string `json:"stagedLists,omitempty"`
@@ -181,7 +181,7 @@ func parseConnection(raw json.RawMessage) storedConnection {
 	var c storedConnection
 	_ = json.Unmarshal(raw, &c)
 	if c.Lists == nil {
-		c.Lists = []SourceList{}
+		c.Lists = []ImportSourceList{}
 	}
 	if c.Fields == nil {
 		c.Fields = []SourceField{}
@@ -203,22 +203,22 @@ type ImportError struct {
 	Code    string     `json:"code" doc:"source_auth_failed, source_rate_limited, source_unavailable, file_columns, file_unreadable"`
 	Message string     `json:"message"`
 	Status  int        `json:"status,omitempty" doc:"HTTP status from the source (401, 429)"`
-	BadRows []BadRow   `json:"badRows,omitempty"`
+	BadRows []ImportBadRow   `json:"badRows,omitempty"`
 	Header  int        `json:"header,omitempty"`
 	RetryAt *time.Time `json:"retryAt,omitempty"`
 	// Row is where a paused import stopped.
 	Row int64 `json:"row,omitempty"`
 }
 
-// LogEntry is one line of the live log.
-type LogEntry struct {
+// ImportLogEntry is one line of the live log.
+type ImportLogEntry struct {
 	At      time.Time `json:"at"`
 	Kind    string    `json:"kind" enum:"start,running,done,sync,retry,error,info"`
 	Message string    `json:"message"`
 }
 
-// Progress is the state of a running import.
-type Progress struct {
+// ImportProgress is the state of a running import.
+type ImportProgress struct {
 	Total      int64 `json:"total"`
 	Processed  int64 `json:"processed"`
 	Batch      int   `json:"batch"`
@@ -231,8 +231,8 @@ type Progress struct {
 	Skipped    int64 `json:"skipped"`
 }
 
-// Stats is the summary of a finished import.
-type Stats struct {
+// ImportStats is the summary of a finished import.
+type ImportStats struct {
 	Rows         int64            `json:"rows"`
 	Imported     int64            `json:"imported"`
 	Merged       int64            `json:"merged"`
@@ -244,14 +244,14 @@ type Stats struct {
 	// already_suppressed, typo_fixed, role.
 	Reasons map[string]int64 `json:"reasons"`
 	// Lists are the target lists and their size after the import.
-	Lists        []ListAfter `json:"lists"`
+	Lists        []ImportListAfter `json:"lists"`
 	DurationMs   int64       `json:"durationMs"`
 	PushedTo     []string    `json:"pushedTo" doc:"Providers the new suppressions were pushed to"`
 	ConfirmsSent int64       `json:"confirmsSent" doc:"Re-permission emails sent through the System stream"`
 }
 
-// ListAfter is a target list and its size after the import.
-type ListAfter struct {
+// ImportListAfter is a target list and its size after the import.
+type ImportListAfter struct {
 	Name     string `json:"name"`
 	Contacts int64  `json:"contacts"`
 }
@@ -265,14 +265,14 @@ type ImportDetail struct {
 	Step           string       `json:"step" enum:"source,fields,consent,preview,import,done"`
 	FileName       string       `json:"fileName"`
 	HasCredentials bool         `json:"hasCredentials" doc:"An API key is stored (it is never returned)"`
-	Connection     *Connection  `json:"connection,omitempty"`
-	Options        Options      `json:"options"`
+	Connection     *ImportConnection  `json:"connection,omitempty"`
+	Options        ImportOptions      `json:"options"`
 	StagedRows     int64        `json:"stagedRows"`
 	StagedAt       *time.Time   `json:"stagedAt,omitempty"`
-	Progress       Progress     `json:"progress"`
-	Stats          *Stats       `json:"stats,omitempty"`
+	Progress       ImportProgress     `json:"progress"`
+	Stats          *ImportStats       `json:"stats,omitempty"`
 	Error          *ImportError `json:"error,omitempty"`
-	Log            []LogEntry   `json:"log"`
+	Log            []ImportLogEntry   `json:"log"`
 	CreatedAt      time.Time    `json:"createdAt"`
 	StartedAt      *time.Time   `json:"startedAt,omitempty"`
 	FinishedAt     *time.Time   `json:"finishedAt,omitempty"`
@@ -283,11 +283,11 @@ type ImportDetail struct {
 	Previous *ImportSummary `json:"previous,omitempty"`
 	// ProviderSync summarizes suppressions already pulled from providers
 	// ("SES 612, Postmark 188, Postal 41").
-	ProviderSync []ProviderPulled `json:"providerSync"`
+	ProviderSync []ImportProviderPulled `json:"providerSync"`
 }
 
-// ProviderPulled is a provider and how many suppressions came from it.
-type ProviderPulled struct {
+// ImportProviderPulled is a provider and how many suppressions came from it.
+type ImportProviderPulled struct {
 	Name   string `json:"name"`
 	Short  string `json:"short"`
 	Pulled int64  `json:"pulled"`
@@ -322,7 +322,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace) (ImportList, er
 	}
 	out := ImportList{Items: make([]ImportSummary, 0, len(rows))}
 	for _, r := range rows {
-		var st Stats
+		var st ImportStats
 		_ = json.Unmarshal(r.Stats, &st)
 		out.Items = append(out.Items, ImportSummary{ID: r.ID.String(), Source: r.Source, SourceName: SourceName(r.Source), Status: r.Status, Step: r.Step,
 			FileName: r.FileName, Contacts: st.Imported + st.Merged, CreatedAt: r.CreatedAt, FinishedAt: r.FinishedAt, CreatedBy: r.CreatedByName})
@@ -352,15 +352,15 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, imp store.Imp
 	conn := parseConnection(imp.Connection)
 	out := ImportDetail{ID: imp.ID.String(), Source: imp.Source, SourceName: SourceName(imp.Source), Status: imp.Status, Step: imp.Step,
 		FileName: imp.FileName, HasCredentials: len(imp.CredentialsEnc) > 0, Options: parseOptions(imp.Options), StagedAt: imp.StagedAt,
-		CreatedAt: imp.CreatedAt, StartedAt: imp.StartedAt, FinishedAt: imp.FinishedAt, Log: []LogEntry{}, ProviderSync: []ProviderPulled{},
+		CreatedAt: imp.CreatedAt, StartedAt: imp.StartedAt, FinishedAt: imp.FinishedAt, Log: []ImportLogEntry{}, ProviderSync: []ImportProviderPulled{},
 		FieldCount: len(conn.Fields), Error: conn.Error}
 	if conn.Account != "" || len(conn.Lists) > 0 {
-		c := conn.Connection
+		c := conn.ImportConnection
 		out.Connection = &c
 	}
 	_ = json.Unmarshal(imp.Progress, &out.Progress)
 	if len(imp.Stats) > 2 {
-		var st Stats
+		var st ImportStats
 		if json.Unmarshal(imp.Stats, &st) == nil {
 			out.Stats = &st
 		}
@@ -380,7 +380,7 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, imp store.Imp
 		return out, err
 	}
 	for _, l := range logs {
-		out.Log = append(out.Log, LogEntry{At: l.OccurredAt, Kind: l.Kind, Message: l.Message})
+		out.Log = append(out.Log, ImportLogEntry{At: l.OccurredAt, Kind: l.Kind, Message: l.Message})
 	}
 	if imp.CreatedBy != nil {
 		if u, err := s.Q.GetUser(ctx, *imp.CreatedBy); err == nil {
@@ -388,7 +388,7 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, imp store.Imp
 		}
 	}
 	if prev, err := s.Q.LatestFinishedImport(ctx, ws.ID); err == nil && prev.ID != imp.ID {
-		var st Stats
+		var st ImportStats
 		_ = json.Unmarshal(prev.Stats, &st)
 		out.Previous = &ImportSummary{ID: prev.ID.String(), Source: prev.Source, SourceName: SourceName(prev.Source), Status: prev.Status,
 			Step: prev.Step, FileName: prev.FileName, Contacts: st.Imported + st.Merged, CreatedAt: prev.CreatedAt, FinishedAt: prev.FinishedAt}
@@ -399,7 +399,7 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, imp store.Imp
 	}
 	for _, p := range syncs {
 		if p.Pulled > 0 {
-			out.ProviderSync = append(out.ProviderSync, ProviderPulled{Name: p.Name, Short: shortProvider(p.Name, p.Adapter), Pulled: p.Pulled})
+			out.ProviderSync = append(out.ProviderSync, ImportProviderPulled{Name: p.Name, Short: shortProvider(p.Name, p.Adapter), Pulled: p.Pulled})
 		}
 	}
 	return out, nil
@@ -415,13 +415,13 @@ func shortProvider(name, adapter string) string {
 	return name
 }
 
-// CreateInput starts an import.
-type CreateInput struct {
+// ImportCreateInput starts an import.
+type ImportCreateInput struct {
 	Source string `json:"source" enum:"brevo,mailchimp,mailerlite,listmonk,keila,csv,xlsx"`
 }
 
 // Create makes a draft import.
-func (s *Service) Create(ctx context.Context, ws *store.Workspace, in CreateInput) (ImportDetail, error) {
+func (s *Service) Create(ctx context.Context, ws *store.Workspace, in ImportCreateInput) (ImportDetail, error) {
 	opts, _ := json.Marshal(defaultOptions())
 	var imp store.Import
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -458,16 +458,16 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	})
 }
 
-// UpdateInput changes the draft: its source (before connecting), options
+// ImportUpdateInput changes the draft: its source (before connecting), options
 // and the step the person is on.
-type UpdateInput struct {
+type ImportUpdateInput struct {
 	Source  string   `json:"source,omitempty" enum:"brevo,mailchimp,mailerlite,listmonk,keila,csv,xlsx,"`
-	Options *Options `json:"options,omitempty"`
+	Options *ImportOptions `json:"options,omitempty"`
 	Step    string   `json:"step,omitempty" enum:"source,fields,consent,preview,"`
 }
 
 // Update saves changes to a draft.
-func (s *Service) Update(ctx context.Context, ws *store.Workspace, id uuid.UUID, in UpdateInput) (ImportDetail, error) {
+func (s *Service) Update(ctx context.Context, ws *store.Workspace, id uuid.UUID, in ImportUpdateInput) (ImportDetail, error) {
 	imp, err := s.get(ctx, ws, id)
 	if err != nil {
 		return ImportDetail{}, err
@@ -519,7 +519,7 @@ func editable(imp store.Import) error {
 	return nil
 }
 
-func validateOptions(ctx context.Context, q *store.Queries, ws *store.Workspace, o *Options) error {
+func validateOptions(ctx context.Context, q *store.Queries, ws *store.Workspace, o *ImportOptions) error {
 	seen := map[string]bool{}
 	for i, l := range o.Lists {
 		if seen[l.SourceID] {

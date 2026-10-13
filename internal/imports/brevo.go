@@ -26,21 +26,21 @@ func NewBrevo(apiKey, base string, hc *http.Client) (*Brevo, error) {
 }
 
 // Connect implements Source.
-func (b *Brevo) Connect(ctx context.Context) (Connection, error) {
+func (b *Brevo) Connect(ctx context.Context) (ImportConnection, error) {
 	var acct struct {
 		CompanyName string `json:"companyName"`
 		Email       string `json:"email"`
 	}
 	if err := b.c.get(ctx, "/account", &acct); err != nil {
-		return Connection{}, err
+		return ImportConnection{}, err
 	}
-	out := Connection{Account: acct.CompanyName, Lists: []SourceList{}, CheckedAt: time.Now()}
+	out := ImportConnection{Account: acct.CompanyName, Lists: []ImportSourceList{}, CheckedAt: time.Now()}
 	if out.Account == "" {
 		out.Account = acct.Email
 	}
 	fields, err := b.Fields(ctx, nil)
 	if err != nil {
-		return Connection{}, err
+		return ImportConnection{}, err
 	}
 	for offset := 0; ; offset += 50 {
 		var page struct {
@@ -54,14 +54,14 @@ func (b *Brevo) Connect(ctx context.Context) (Connection, error) {
 			Count int `json:"count"`
 		}
 		if err := b.c.get(ctx, fmt.Sprintf("/contacts/lists?limit=50&offset=%d", offset), &page); err != nil {
-			return Connection{}, err
+			return ImportConnection{}, err
 		}
 		for _, l := range page.Lists {
 			total := l.UniqueSubscribers
 			if total == 0 {
 				total = l.TotalSubscribers
 			}
-			out.Lists = append(out.Lists, SourceList{ID: strconv.FormatInt(l.ID, 10), Name: l.Name, Subscribed: max(total-l.TotalBlacklisted, 0),
+			out.Lists = append(out.Lists, ImportSourceList{ID: strconv.FormatInt(l.ID, 10), Name: l.Name, Subscribed: max(total-l.TotalBlacklisted, 0),
 				Unsubscribed: l.TotalBlacklisted, Fields: len(fields), TagExamples: []string{}})
 		}
 		if offset+50 >= page.Count || len(page.Lists) == 0 {

@@ -27,11 +27,11 @@ func NewMailerLite(token, base string, hc *http.Client) (*MailerLite, error) {
 }
 
 // Connect implements Source.
-func (m *MailerLite) Connect(ctx context.Context) (Connection, error) {
-	out := Connection{Account: "MailerLite account", Lists: []SourceList{}, CheckedAt: time.Now()}
+func (m *MailerLite) Connect(ctx context.Context) (ImportConnection, error) {
+	out := ImportConnection{Account: "MailerLite account", Lists: []ImportSourceList{}, CheckedAt: time.Now()}
 	fields, err := m.Fields(ctx, nil)
 	if err != nil {
-		return Connection{}, err
+		return ImportConnection{}, err
 	}
 	for page := 1; ; page++ {
 		var res struct {
@@ -51,10 +51,10 @@ func (m *MailerLite) Connect(ctx context.Context) (Connection, error) {
 			} `json:"meta"`
 		}
 		if err := m.c.get(ctx, fmt.Sprintf("/groups?limit=100&page=%d", page), &res); err != nil {
-			return Connection{}, err
+			return ImportConnection{}, err
 		}
 		for _, g := range res.Data {
-			sl := SourceList{ID: valueString(g.ID), Name: g.Name, Subscribed: g.ActiveCount, Unsubscribed: g.UnsubscribedCount,
+			sl := ImportSourceList{ID: valueString(g.ID), Name: g.Name, Subscribed: g.ActiveCount, Unsubscribed: g.UnsubscribedCount,
 				Pending: g.UnconfirmedCount, Cleaned: g.BouncedCount, Complained: g.JunkCount, Fields: len(fields), TagExamples: []string{}}
 			if t := parseTime(g.CreatedAt); t != nil {
 				sl.Since = strconv.Itoa(t.Year())

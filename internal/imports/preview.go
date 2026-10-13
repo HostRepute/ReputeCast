@@ -16,19 +16,19 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// RiskyGroup is one group of risky addresses with the chosen action.
-type RiskyGroup struct {
+// ImportRiskyGroup is one group of risky addresses with the chosen action.
+type ImportRiskyGroup struct {
 	Key      string        `json:"key" enum:"role,disposable,typo,stale,trap"`
 	Label    string        `json:"label"`
 	Rows     int64         `json:"rows"`
 	Why      string        `json:"why"`
 	Examples string        `json:"examples"`
 	Action   string        `json:"action"`
-	Actions  []FieldOption `json:"actions"`
+	Actions  []ImportFieldOption `json:"actions"`
 }
 
-// DuplicateExample is one address that is already in ReputeCast.
-type DuplicateExample struct {
+// ImportDuplicateExample is one address that is already in ReputeCast.
+type ImportDuplicateExample struct {
 	Email        string `json:"email"`
 	InReputeCast string `json:"inReputeCast"`
 	// Suppressed rows read as a problem in the "In ReputeCast" column.
@@ -38,15 +38,15 @@ type DuplicateExample struct {
 	ResultTone string `json:"resultTone" enum:"ok,bad"`
 }
 
-// InvalidGroup is a kind of invalid address and how many rows have it.
-type InvalidGroup struct {
+// ImportInvalidGroup is a kind of invalid address and how many rows have it.
+type ImportInvalidGroup struct {
 	Problem string `json:"problem"`
 	Example string `json:"example,omitempty"`
 	Rows    int64  `json:"rows"`
 }
 
-// Preview is the dry run: what would happen to every row.
-type Preview struct {
+// ImportPreview is the dry run: what would happen to every row.
+type ImportPreview struct {
 	Rows        int64 `json:"rows"`
 	WillImport  int64 `json:"willImport" doc:"New contacts, subscribed"`
 	Merged      int64 `json:"merged" doc:"Already in ReputeCast"`
@@ -57,25 +57,25 @@ type Preview struct {
 	// ImportCount and SuppressCount label the import button.
 	ImportCount   int64              `json:"importCount"`
 	SuppressCount int64              `json:"suppressCount"`
-	RiskyGroups   []RiskyGroup       `json:"riskyGroups"`
-	Duplicates    []DuplicateExample `json:"duplicates"`
-	InvalidGroups []InvalidGroup     `json:"invalidGroups"`
+	RiskyGroups   []ImportRiskyGroup       `json:"riskyGroups"`
+	Duplicates    []ImportDuplicateExample `json:"duplicates"`
+	InvalidGroups []ImportInvalidGroup     `json:"invalidGroups"`
 	OnConflict    string             `json:"onConflict" enum:"fill,overwrite,keep"`
 	ComputedAt    time.Time          `json:"computedAt"`
 }
 
 var riskyMeta = []struct {
 	key, label, why string
-	actions         []FieldOption
+	actions         []ImportFieldOption
 }{
-	{classRole, "Role addresses", "info@, sales@, support@ are shared inboxes; high complaint rates", []FieldOption{
+	{classRole, "Role addresses", "info@, sales@, support@ are shared inboxes; high complaint rates", []ImportFieldOption{
 		{"exclude_broadcasts", "Import, excluded from Broadcasts automatically"}, {"skip", "Skip"}, {"import", "Import normally"}}},
-	{classDisposable, "Disposable domains", "temporary inboxes that expire and bounce", []FieldOption{{"skip", "Skip"}, {"import", "Import normally"}}},
-	{classTypo, "Likely typos", "domain within one character of a major provider", []FieldOption{
+	{classDisposable, "Disposable domains", "temporary inboxes that expire and bounce", []ImportFieldOption{{"skip", "Skip"}, {"import", "Import normally"}}},
+	{classTypo, "Likely typos", "domain within one character of a major provider", []ImportFieldOption{
 		{"fix", "Fix the domain and import, flagged for review"}, {"skip", "Skip"}, {"import", "Import as is"}}},
-	{classStale, "Never engaged, 2+ years old", "", []FieldOption{
+	{classStale, "Never engaged, 2+ years old", "", []ImportFieldOption{
 		{"pending", "Import as pending, send re-permission"}, {"skip", "Skip"}, {"import", "Import normally"}}},
-	{classTrap, "Known spam-trap patterns", "domains and local parts HostRepute associates with trap networks", []FieldOption{
+	{classTrap, "Known spam-trap patterns", "domains and local parts HostRepute associates with trap networks", []ImportFieldOption{
 		{"skip", "Skip (recommended)"}, {"import", "Import normally"}}},
 }
 
@@ -86,7 +86,7 @@ type mergeChange struct {
 	addTags []string
 }
 
-func analyzeMerge(r mappedRow, c *existingContact, fm FieldMap, opts Options) mergeChange {
+func analyzeMerge(r mappedRow, c *existingContact, fm FieldMap, opts ImportOptions) mergeChange {
 	var ch mergeChange
 	for _, f := range fm.Fields {
 		v := strings.TrimSpace(r.Data[f.Source])
@@ -218,15 +218,15 @@ func sourceShort(src string) string {
 }
 
 // duplicateExample explains one duplicate in words.
-func (s *Service) duplicateExample(r mappedRow, v verdict, ch mergeChange, fm FieldMap, conn storedConnection, loc *time.Location) DuplicateExample {
+func (s *Service) duplicateExample(r mappedRow, v verdict, ch mergeChange, fm FieldMap, conn storedConnection, loc *time.Location) ImportDuplicateExample {
 	day := func(t time.Time) string { return t.In(loc).Format("2 Jan") }
 	if v.Supp != nil {
-		return DuplicateExample{Email: emailaddr.Mask(r.Email), Suppressed: true,
+		return ImportDuplicateExample{Email: emailaddr.Mask(r.Email), Suppressed: true,
 			InReputeCast: fmt.Sprintf("On suppression list · %s %s", reasonWord(v.Supp.Reason), day(v.Supp.At)),
 			InSource:     r.Status, Result: "Stays suppressed", ResultTone: "bad"}
 	}
 	c := v.Contact
-	ex := DuplicateExample{Email: r.Email, Result: ch.result(), ResultTone: "ok"}
+	ex := ImportDuplicateExample{Email: r.Email, Result: ch.result(), ResultTone: "ok"}
 	parts := []string{listSummary(c.Lists)}
 	srcParts := []string{}
 	switch ch.kind {
@@ -286,17 +286,17 @@ func listName(conn storedConnection, id string) string {
 
 // Preview runs the dry run over every staged row. Nothing is written
 // except the stored preview.
-func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID) (Preview, error) {
+func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID) (ImportPreview, error) {
 	imp, err := s.get(ctx, ws, id)
 	if err != nil {
-		return Preview{}, err
+		return ImportPreview{}, err
 	}
 	if imp.StagedAt == nil {
-		return Preview{}, api.Conflict("The rows aren't read from the source yet. Wait for the field mapping to load, then try again.")
+		return ImportPreview{}, api.Conflict("The rows aren't read from the source yet. Wait for the field mapping to load, then try again.")
 	}
 	custom, err := s.customFields(ctx, ws.ID)
 	if err != nil {
-		return Preview{}, err
+		return ImportPreview{}, err
 	}
 	fm := s.effectiveMap(imp, custom)
 	opts := parseOptions(imp.Options)
@@ -304,7 +304,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	conn := parseConnection(imp.Connection)
 	loc := location(ws)
 	now := s.now()
-	p := Preview{RiskyGroups: []RiskyGroup{}, Duplicates: []DuplicateExample{}, InvalidGroups: []InvalidGroup{}, OnConflict: opts.OnConflict, ComputedAt: now}
+	p := ImportPreview{RiskyGroups: []ImportRiskyGroup{}, Duplicates: []ImportDuplicateExample{}, InvalidGroups: []ImportInvalidGroup{}, OnConflict: opts.OnConflict, ComputedAt: now}
 	riskyCount := map[string]int64{}
 	riskyExamples := map[string][]string{}
 	var staleExample string
@@ -388,7 +388,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		if n == 0 {
 			continue
 		}
-		g := RiskyGroup{Key: m.key, Label: m.label, Rows: n, Why: m.why, Actions: m.actions, Action: riskyAction(opts.Risky, m.key)}
+		g := ImportRiskyGroup{Key: m.key, Label: m.label, Rows: n, Why: m.why, Actions: m.actions, Action: riskyAction(opts.Risky, m.key)}
 		switch m.key {
 		case classStale:
 			g.Why = fmt.Sprintf("no open or click since %d in %s; most likely to be stale or recycled into spam traps", now.AddDate(-2, 0, 0).Year(), SourceName(imp.Source))
@@ -402,7 +402,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	}
 	for _, prob := range []string{emailaddr.ProblemNoDomain, emailaddr.ProblemDoubleDot, emailaddr.ProblemNotAnAddress, emailaddr.ProblemTooLong, ProblemNoMX} {
 		if n := invalidCount[prob]; n > 0 {
-			p.InvalidGroups = append(p.InvalidGroups, InvalidGroup{Problem: prob, Example: invalidExample[prob], Rows: n})
+			p.InvalidGroups = append(p.InvalidGroups, ImportInvalidGroup{Problem: prob, Example: invalidExample[prob], Rows: n})
 		}
 	}
 	p.ImportCount = p.WillImport + p.Merged

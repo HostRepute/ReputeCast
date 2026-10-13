@@ -17,15 +17,15 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// ListInput creates or renames a list.
-type ListInput struct {
+// AudienceListInput creates or renames a list.
+type AudienceListInput struct {
 	Name        string `json:"name" minLength:"1" maxLength:"100"`
 	Description string `json:"description,omitempty" maxLength:"500"`
 	DoubleOptIn *bool  `json:"doubleOptIn,omitempty" doc:"New signups confirm by email first (default true)"`
 }
 
 // CreateList adds a list.
-func (s *Service) CreateList(ctx context.Context, ws *store.Workspace, in ListInput) (ListSummary, error) {
+func (s *Service) CreateList(ctx context.Context, ws *store.Workspace, in AudienceListInput) (AudienceListSummary, error) {
 	return s.createList(ctx, s.Pool, ws, in)
 }
 
@@ -33,10 +33,10 @@ type beginner interface {
 	Begin(context.Context) (pgx.Tx, error)
 }
 
-func (s *Service) createList(ctx context.Context, conn beginner, ws *store.Workspace, in ListInput) (ListSummary, error) {
+func (s *Service) createList(ctx context.Context, conn beginner, ws *store.Workspace, in AudienceListInput) (AudienceListSummary, error) {
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return ListSummary{}, api.Invalid("body.name", "Give the list a name.")
+		return AudienceListSummary{}, api.Invalid("body.name", "Give the list a name.")
 	}
 	double := true
 	if in.DoubleOptIn != nil {
@@ -45,33 +45,33 @@ func (s *Service) createList(ctx context.Context, conn beginner, ws *store.Works
 	var l store.List
 	tx, err := conn.Begin(ctx)
 	if err != nil {
-		return ListSummary{}, err
+		return AudienceListSummary{}, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 	q := store.New(tx)
 	taken, err := q.ListNameTaken(ctx, store.ListNameTakenParams{WorkspaceID: ws.ID, Name: name, ExceptID: uuid.Nil})
 	if err != nil {
-		return ListSummary{}, err
+		return AudienceListSummary{}, err
 	}
 	if taken {
-		return ListSummary{}, api.Conflict(fmt.Sprintf("A list called %q already exists.", name))
+		return AudienceListSummary{}, api.Conflict(fmt.Sprintf("A list called %q already exists.", name))
 	}
 	l, err = q.CreateList(ctx, store.CreateListParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, Name: name, Description: strings.TrimSpace(in.Description), DoubleOptIn: double})
 	if err != nil {
-		return ListSummary{}, err
+		return AudienceListSummary{}, err
 	}
 	if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "list.create", TargetType: "list", TargetID: l.ID.String(), TargetName: l.Name, After: in}); err != nil {
-		return ListSummary{}, err
+		return AudienceListSummary{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return ListSummary{}, err
+		return AudienceListSummary{}, err
 	}
-	return ListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, CreatedAt: l.CreatedAt}, nil
+	return AudienceListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, CreatedAt: l.CreatedAt}, nil
 }
 
 // UpdateList renames a list or changes its opt-in setting.
-func (s *Service) UpdateList(ctx context.Context, ws *store.Workspace, id uuid.UUID, in ListInput) (ListSummary, error) {
-	var out ListSummary
+func (s *Service) UpdateList(ctx context.Context, ws *store.Workspace, id uuid.UUID, in AudienceListInput) (AudienceListSummary, error) {
+	var out AudienceListSummary
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		before, err := q.GetList(ctx, store.GetListParams{WorkspaceID: ws.ID, ID: id})
@@ -97,7 +97,7 @@ func (s *Service) UpdateList(ctx context.Context, ws *store.Workspace, id uuid.U
 		if err != nil {
 			return err
 		}
-		out = ListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, CreatedAt: l.CreatedAt}
+		out = AudienceListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, CreatedAt: l.CreatedAt}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "list.update", TargetType: "list", TargetID: id.String(), TargetName: l.Name,
 			Before: map[string]any{"name": before.Name, "description": before.Description, "doubleOptIn": before.DoubleOptIn},
 			After:  map[string]any{"name": l.Name, "description": l.Description, "doubleOptIn": l.DoubleOptIn}})
@@ -126,8 +126,8 @@ func (s *Service) DeleteList(ctx context.Context, ws *store.Workspace, id uuid.U
 	})
 }
 
-// FieldDef is a custom field definition.
-type FieldDef struct {
+// CustomFieldDef is a custom field definition.
+type CustomFieldDef struct {
 	ID        string    `json:"id"`
 	Key       string    `json:"key"`
 	Label     string    `json:"label"`
@@ -137,13 +137,13 @@ type FieldDef struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-// FieldList is the custom fields of a workspace.
-type FieldList struct {
-	Items []FieldDef `json:"items"`
+// CustomFieldList is the custom fields of a workspace.
+type CustomFieldList struct {
+	Items []CustomFieldDef `json:"items"`
 }
 
-func fieldDef(f store.CustomField) FieldDef {
-	d := FieldDef{ID: f.ID.String(), Key: f.Key, Label: f.Label, Type: f.Type, Display: f.Display, CreatedAt: f.CreatedAt, Options: []string{}}
+func fieldDef(f store.CustomField) CustomFieldDef {
+	d := CustomFieldDef{ID: f.ID.String(), Key: f.Key, Label: f.Label, Type: f.Type, Display: f.Display, CreatedAt: f.CreatedAt, Options: []string{}}
 	_ = json.Unmarshal(f.Options, &d.Options)
 	if d.Options == nil {
 		d.Options = []string{}
@@ -152,20 +152,20 @@ func fieldDef(f store.CustomField) FieldDef {
 }
 
 // Fields lists the custom fields.
-func (s *Service) Fields(ctx context.Context, ws *store.Workspace) (FieldList, error) {
+func (s *Service) Fields(ctx context.Context, ws *store.Workspace) (CustomFieldList, error) {
 	rows, err := s.Q.ListCustomFields(ctx, ws.ID)
 	if err != nil {
-		return FieldList{}, err
+		return CustomFieldList{}, err
 	}
-	out := FieldList{Items: make([]FieldDef, 0, len(rows))}
+	out := CustomFieldList{Items: make([]CustomFieldDef, 0, len(rows))}
 	for _, f := range rows {
 		out.Items = append(out.Items, fieldDef(f))
 	}
 	return out, nil
 }
 
-// FieldInput creates or changes a custom field.
-type FieldInput struct {
+// CustomFieldInput creates or changes a custom field.
+type CustomFieldInput struct {
 	Key     string   `json:"key,omitempty" maxLength:"63" doc:"Lowercase letters, digits and _; fixed after creation"`
 	Label   string   `json:"label" minLength:"1" maxLength:"80"`
 	Type    string   `json:"type,omitempty" enum:"text,number,date,boolean,select"`
@@ -180,19 +180,19 @@ var reservedKeys = map[string]bool{"email": true, "first_name": true, "last_name
 	"timezone": true, "language": true, "tags": true, "tier": true, "consent": true, "source": true, "id": true}
 
 // CreateField adds a custom field.
-func (s *Service) CreateField(ctx context.Context, ws *store.Workspace, in FieldInput) (FieldDef, error) {
+func (s *Service) CreateField(ctx context.Context, ws *store.Workspace, in CustomFieldInput) (CustomFieldDef, error) {
 	key := strings.TrimSpace(in.Key)
 	if !fieldKeyRe.MatchString(key) {
-		return FieldDef{}, api.Invalid("body.key", "Keys use lowercase letters, digits and _, and start with a letter (for example signup_source).")
+		return CustomFieldDef{}, api.Invalid("body.key", "Keys use lowercase letters, digits and _, and start with a letter (for example signup_source).")
 	}
 	if reservedKeys[key] {
-		return FieldDef{}, api.Invalid("body.key", fmt.Sprintf("%s is a built-in field.", key))
+		return CustomFieldDef{}, api.Invalid("body.key", fmt.Sprintf("%s is a built-in field.", key))
 	}
 	if in.Type == "" {
 		in.Type = "text"
 	}
 	if in.Display == "currency" && in.Type != "number" {
-		return FieldDef{}, api.Invalid("body.display", "Only number fields can show as money.")
+		return CustomFieldDef{}, api.Invalid("body.display", "Only number fields can show as money.")
 	}
 	opts, _ := json.Marshal(nonNil(in.Options))
 	var f store.CustomField
@@ -214,7 +214,7 @@ func (s *Service) CreateField(ctx context.Context, ws *store.Workspace, in Field
 
 // UpdateField changes a field's label, options or display. Its key and
 // type are fixed: changing them would change what stored values mean.
-func (s *Service) UpdateField(ctx context.Context, ws *store.Workspace, id uuid.UUID, in FieldInput) (FieldDef, error) {
+func (s *Service) UpdateField(ctx context.Context, ws *store.Workspace, id uuid.UUID, in CustomFieldInput) (CustomFieldDef, error) {
 	var f store.CustomField
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)

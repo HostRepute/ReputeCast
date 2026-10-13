@@ -107,8 +107,8 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 	return out, nil
 }
 
-// SavedViewItem is a chip above the contacts table.
-type SavedViewItem struct {
+// ContactSavedView is a chip above the contacts table.
+type ContactSavedView struct {
 	ID      string        `json:"id"`
 	Name    string        `json:"name"`
 	Filters ContactFilter `json:"filters"`
@@ -117,23 +117,23 @@ type SavedViewItem struct {
 	Shared bool `json:"shared"`
 }
 
-// SavedViews is the views row: "All contacts" plus the saved views.
-type SavedViews struct {
+// ContactSavedViews is the views row: "All contacts" plus the saved views.
+type ContactSavedViews struct {
 	All   int64           `json:"all"`
-	Items []SavedViewItem `json:"items"`
+	Items []ContactSavedView `json:"items"`
 }
 
 // Views returns the saved views with their counts, counted in one scan.
-func (s *Service) Views(ctx context.Context, ws *store.Workspace) (SavedViews, error) {
+func (s *Service) Views(ctx context.Context, ws *store.Workspace) (ContactSavedViews, error) {
 	var uid uuid.UUID
 	if u := api.UserFrom(ctx); u != nil {
 		uid = u.ID
 	}
 	views, err := s.Q.ListSavedViews(ctx, store.ListSavedViewsParams{WorkspaceID: ws.ID, UserID: &uid})
 	if err != nil {
-		return SavedViews{}, err
+		return ContactSavedViews{}, err
 	}
-	out := SavedViews{Items: make([]SavedViewItem, 0, len(views))}
+	out := ContactSavedViews{Items: make([]ContactSavedView, 0, len(views))}
 	base, err := s.filterSQL(ctx, ws.ID, ContactFilter{})
 	if err != nil {
 		return out, err
@@ -144,7 +144,7 @@ func (s *Service) Views(ctx context.Context, ws *store.Workspace) (SavedViews, e
 	for _, v := range views {
 		var f ContactFilter
 		_ = json.Unmarshal(v.Filters, &f)
-		out.Items = append(out.Items, SavedViewItem{ID: v.ID.String(), Name: v.Name, Filters: f, Shared: v.UserID == nil})
+		out.Items = append(out.Items, ContactSavedView{ID: v.ID.String(), Name: v.Name, Filters: f, Shared: v.UserID == nil})
 		sub := filterSQL{where: "true", args: base.args}
 		if err := s.applyFilter(ctx, ws.ID, &sub, f); err != nil {
 			sel = append(sel, "0")
@@ -169,8 +169,8 @@ func (s *Service) Views(ctx context.Context, ws *store.Workspace) (SavedViews, e
 	return out, nil
 }
 
-// ViewInput saves the current filters as a view.
-type ViewInput struct {
+// ContactViewInput saves the current filters as a view.
+type ContactViewInput struct {
 	Name    string        `json:"name" minLength:"1" maxLength:"80"`
 	Filters ContactFilter `json:"filters"`
 	// Personal views are only visible to their creator.
@@ -178,13 +178,13 @@ type ViewInput struct {
 }
 
 // CreateView saves a view.
-func (s *Service) CreateView(ctx context.Context, ws *store.Workspace, in ViewInput) (SavedViewItem, error) {
+func (s *Service) CreateView(ctx context.Context, ws *store.Workspace, in ContactViewInput) (ContactSavedView, error) {
 	in.Name = strings.TrimSpace(in.Name)
 	if in.Name == "" {
-		return SavedViewItem{}, api.Invalid("body.name", "Give the view a name.")
+		return ContactSavedView{}, api.Invalid("body.name", "Give the view a name.")
 	}
 	if _, err := s.filterSQL(ctx, ws.ID, in.Filters); err != nil {
-		return SavedViewItem{}, err
+		return ContactSavedView{}, err
 	}
 	filters, _ := json.Marshal(in.Filters)
 	var user *uuid.UUID
@@ -202,9 +202,9 @@ func (s *Service) CreateView(ctx context.Context, ws *store.Workspace, in ViewIn
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "contact_view.create", TargetType: "saved_view", TargetID: v.ID.String(), TargetName: v.Name, After: in})
 	})
 	if err != nil {
-		return SavedViewItem{}, err
+		return ContactSavedView{}, err
 	}
-	return SavedViewItem{ID: v.ID.String(), Name: v.Name, Filters: in.Filters, Shared: user == nil}, nil
+	return ContactSavedView{ID: v.ID.String(), Name: v.Name, Filters: in.Filters, Shared: user == nil}, nil
 }
 
 // DeleteView removes a view.

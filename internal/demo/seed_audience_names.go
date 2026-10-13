@@ -4,7 +4,7 @@ import "strings"
 
 // Names for generated contacts: a mix of the regions a newsletter like
 // Acme's reaches. Only ASCII is used in addresses.
-var firstNames = strings.Fields(`
+var audFirstNames = strings.Fields(`
 	Aaron Abigail Adaeze Adam Adrian Ahmed Aiko Alejandro Alex Alice Alicia Amara Amelia Amir Ana Andre Andrea Anna Anton Arjun
 	Ava Ayumi Beatriz Ben Benjamin Bianca Bilal Brian Bruno Camila Carla Carlos Caroline Chen Chiara Chloe Chris Claire Clara Daniel
 	Daria David Diana Dmitri Elena Elif Elijah Elisa Emeka Emily Emma Erik Ethan Eva Fatima Felix Fernando Fiona Francesca Gabriel Grace
@@ -14,7 +14,7 @@ var firstNames = strings.Fields(`
 	Paula Pedro Priya Rafael Rahul Ravi Rosa Ryan Sara Sebastian Sofia Sophie Stefan Sven Tariq Theo Thomas Tomas Valentina Victor
 	Wei Yara Yasmin Yuki Yusuf Zainab Zoe`)
 
-var lastNames = strings.Fields(`
+var audLastNames = strings.Fields(`
 	Abbott Adeyemi Aguilar Ahmed Akhtar Alvarez Andersen Bakker Banerjee Barros Becker Bennett Bergstrom Bianchi Brooks Castillo
 	Chandra Chen Costa Cruz Dahl Das Diaz Dubois Edwards Eriksen Esposito Evans Fernandes Fischer Fontaine Garcia Gomez Gonzalez
 	Grant Gupta Hansen Hartmann Herrera Hoffmann Hughes Ibrahim Ito Ivanova Jensen Johansson Johnson Jung Kamau Kaur Keller Khan Kim
@@ -23,9 +23,9 @@ var lastNames = strings.Fields(`
 	Reyes Ricci Rodriguez Romano Rossi Sanchez Santos Sato Schmidt Schneider Shah Silva Singh Smith Sokolov Souza Suzuki Tanaka
 	Taylor Thompson Torres Tran Vargas Vasquez Vogel Wagner Walker Wang Weber Williams Wilson Wong Yamamoto Yilmaz Young Zhang Zimmermann`)
 
-// companyDomains are fictional businesses behind "Other" mailboxes, with
+// audCompanyDomains are fictional businesses behind "Other" mailboxes, with
 // the hosting their MX records point to.
-var companyDomains = []struct{ domain, hosting string }{
+var audCompanyDomains = []struct{ domain, hosting string }{
 	{"northwind-labs.com", "Google Workspace"}, {"bergconsulting.de", "Google Workspace"}, {"rahmanlabs.io", "Fastmail"},
 	{"lattice-labs.io", "Google Workspace"}, {"haddadstudio.com", "Google Workspace"}, {"brightpath.co", "Microsoft 365"},
 	{"kestrel.dev", "Google Workspace"}, {"meridian-analytics.com", "Microsoft 365"}, {"bluefin.io", "Google Workspace"},
@@ -45,12 +45,12 @@ var companyDomains = []struct{ domain, hosting string }{
 }
 
 var (
-	outlookDomains = []string{"outlook.com", "outlook.com", "outlook.com", "outlook.com", "outlook.com", "outlook.com", "hotmail.com", "hotmail.com", "hotmail.com", "live.com"}
-	yahooDomains   = []string{"yahoo.com", "yahoo.com", "yahoo.com", "yahoo.com", "yahoo.com", "yahoo.com", "yahoo.com", "yahoo.com", "aol.com", "ymail.com"}
-	icloudDomains  = []string{"icloud.com", "icloud.com", "icloud.com", "icloud.com", "me.com"}
+	audOutlookDomains = []string{"outlook.com", "outlook.com", "outlook.com", "outlook.com", "outlook.com", "outlook.com", "hotmail.com", "hotmail.com", "hotmail.com", "live.com"}
+	audYahooDomains   = []string{"yahoo.com", "yahoo.com", "yahoo.com", "yahoo.com", "yahoo.com", "yahoo.com", "yahoo.com", "yahoo.com", "aol.com", "ymail.com"}
+	audICloudDomains  = []string{"icloud.com", "icloud.com", "icloud.com", "icloud.com", "me.com"}
 )
 
-var countries = []struct{ code, tz string }{
+var audCountries = []struct{ code, tz string }{
 	{"US", "America/New_York"}, {"US", "America/Chicago"}, {"US", "America/Los_Angeles"}, {"US", "America/Denver"},
 	{"GB", "Europe/London"}, {"DE", "Europe/Berlin"}, {"FR", "Europe/Paris"}, {"NL", "Europe/Amsterdam"}, {"ES", "Europe/Madrid"},
 	{"IT", "Europe/Rome"}, {"SE", "Europe/Stockholm"}, {"PL", "Europe/Warsaw"}, {"CA", "America/Toronto"}, {"BR", "America/Sao_Paulo"},

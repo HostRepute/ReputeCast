@@ -38,7 +38,7 @@ func NewMailchimp(apiKey, base string, hc *http.Client) (*Mailchimp, error) {
 }
 
 // Connect implements Source.
-func (m *Mailchimp) Connect(ctx context.Context) (Connection, error) {
+func (m *Mailchimp) Connect(ctx context.Context) (ImportConnection, error) {
 	var acct struct {
 		AccountName string `json:"account_name"`
 	}
@@ -46,7 +46,7 @@ func (m *Mailchimp) Connect(ctx context.Context) (Connection, error) {
 		if se, ok := err.(*SourceError); ok && se.Code == CodeAuthFailed {
 			se.Message = fmt.Sprintf(`Mailchimp rejected the API key from the %s data center. Keys look like xxxxxxxx-%s; the suffix must match the data center the account lives in.`, m.DC, m.DC)
 		}
-		return Connection{}, err
+		return ImportConnection{}, err
 	}
 	var lists struct {
 		Lists []struct {
@@ -63,11 +63,11 @@ func (m *Mailchimp) Connect(ctx context.Context) (Connection, error) {
 		} `json:"lists"`
 	}
 	if err := m.c.get(ctx, "/lists?count=1000&fields=lists.id,lists.name,lists.stats,lists.double_optin,lists.date_created", &lists); err != nil {
-		return Connection{}, err
+		return ImportConnection{}, err
 	}
-	out := Connection{Account: acct.AccountName, DataCenter: m.DC, Lists: []SourceList{}, CheckedAt: time.Now()}
+	out := ImportConnection{Account: acct.AccountName, DataCenter: m.DC, Lists: []ImportSourceList{}, CheckedAt: time.Now()}
 	for _, l := range lists.Lists {
-		sl := SourceList{ID: l.ID, Name: l.Name, Subscribed: l.Stats.MemberCount, Unsubscribed: l.Stats.UnsubscribeCount,
+		sl := ImportSourceList{ID: l.ID, Name: l.Name, Subscribed: l.Stats.MemberCount, Unsubscribed: l.Stats.UnsubscribeCount,
 			Cleaned: l.Stats.CleanedCount, DoubleOptIn: l.DoubleOptin, TagExamples: []string{}}
 		if t := parseTime(l.DateCreated); t != nil {
 			sl.Since = strconv.Itoa(t.Year())
@@ -77,7 +77,7 @@ func (m *Mailchimp) Connect(ctx context.Context) (Connection, error) {
 				TotalItems int64 `json:"total_items"`
 			}
 			if err := m.c.get(ctx, "/lists/"+url.PathEscape(l.ID)+"/members?status="+st+"&count=1&fields=total_items", &n); err != nil {
-				return Connection{}, err
+				return ImportConnection{}, err
 			}
 			if st == "pending" {
 				sl.Pending = n.TotalItems
@@ -89,17 +89,17 @@ func (m *Mailchimp) Connect(ctx context.Context) (Connection, error) {
 			TotalItems int64 `json:"total_items"`
 		}
 		if err := m.c.get(ctx, "/lists/"+url.PathEscape(l.ID)+"/abuse-reports?count=1&fields=total_items", &abuse); err != nil {
-			return Connection{}, err
+			return ImportConnection{}, err
 		}
 		sl.Complained = abuse.TotalItems
 		fields, err := m.Fields(ctx, []string{l.ID})
 		if err != nil {
-			return Connection{}, err
+			return ImportConnection{}, err
 		}
 		sl.Fields = len(fields)
 		tags, err := m.tags(ctx, l.ID)
 		if err != nil {
-			return Connection{}, err
+			return ImportConnection{}, err
 		}
 		sl.Tags = len(tags)
 		sl.TagExamples = tags

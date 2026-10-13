@@ -16,24 +16,24 @@ import (
 type Source interface {
 	// Connect checks access and returns the account and its lists with
 	// counts per consent status.
-	Connect(ctx context.Context) (Connection, error)
+	Connect(ctx context.Context) (ImportConnection, error)
 	// Fields returns the source's fields for the selected lists.
 	Fields(ctx context.Context, lists []string) ([]SourceField, error)
 	// Fetch streams every contact of the selected lists, with its status.
 	Fetch(ctx context.Context, lists []string, emit func(Row) error) error
 }
 
-// Connection describes the source account.
-type Connection struct {
+// ImportConnection describes the source account.
+type ImportConnection struct {
 	Account    string       `json:"account"`
 	DataCenter string       `json:"dataCenter,omitempty"`
 	BaseURL    string       `json:"baseUrl,omitempty"`
-	Lists      []SourceList `json:"lists"`
+	Lists      []ImportSourceList `json:"lists"`
 	CheckedAt  time.Time    `json:"checkedAt"`
 }
 
-// SourceList is an audience, list or group in the source.
-type SourceList struct {
+// ImportSourceList is an audience, list or group in the source.
+type ImportSourceList struct {
 	ID            string   `json:"id"`
 	Name          string   `json:"name"`
 	Subscribed    int64    `json:"subscribed"`

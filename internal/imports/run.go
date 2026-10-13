@@ -85,7 +85,7 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, id uuid.UUID) 
 	conn := parseConnection(imp.Connection)
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if err := q.StartImport(ctx, store.StartImportParams{ID: imp.ID, Progress: mustJSON(Progress{Total: total, Batches: batches, BatchSize: BatchSize})}); err != nil {
+		if err := q.StartImport(ctx, store.StartImportParams{ID: imp.ID, Progress: mustJSON(ImportProgress{Total: total, Batches: batches, BatchSize: BatchSize})}); err != nil {
 			return err
 		}
 		if err := s.log(ctx, q, imp.ID, "start", s.startLine(ctx, ws, imp, conn, opts, cm, total)); err != nil {
@@ -106,7 +106,7 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, id uuid.UUID) 
 // startLine is the first line of the live log: "Import started · 13,739
 // rows · audience "Acme Customers" → list Product Updates · consent: trust
 // double opt-in".
-func (s *Service) startLine(ctx context.Context, ws *store.Workspace, imp store.Import, conn storedConnection, opts Options, cm ConsentMap, total int64) string {
+func (s *Service) startLine(ctx context.Context, ws *store.Workspace, imp store.Import, conn storedConnection, opts ImportOptions, cm ImportConsentMap, total int64) string {
 	parts := []string{"Import started", thousands(int(total)) + " rows"}
 	noun := map[string]string{"mailchimp": "audience", "mailerlite": "group"}[imp.Source]
 	if noun == "" {
@@ -174,13 +174,13 @@ type runState struct {
 	ws        store.Workspace
 	imp       store.Import
 	fm        FieldMap
-	opts      Options
-	cm        ConsentMap
+	opts      ImportOptions
+	cm        ImportConsentMap
 	conn      storedConnection
 	targets   map[string]uuid.UUID // source list → ReputeCast list
 	policy    audience.SunsetPolicy
-	stats     Stats
-	progress  Progress
+	stats     ImportStats
+	progress  ImportProgress
 	newSupp   []string
 	pending   []uuid.UUID
 	report    *csv.Writer
@@ -208,7 +208,7 @@ func (s *Service) Run(ctx context.Context, id uuid.UUID) error {
 	st := &runState{ws: ws, imp: imp, opts: parseOptions(imp.Options), conn: parseConnection(imp.Connection), targets: map[string]uuid.UUID{},
 		policy: audience.ParsePolicy(ws.SunsetPolicy), actor: imp.CreatedBy, hosting: map[string]string{}}
 	st.cm = parseConsentMap(imp.ConsentMap, st.opts)
-	st.stats = Stats{SuppressedBy: map[string]int64{}, Reasons: map[string]int64{}, Lists: []ListAfter{}, PushedTo: []string{}}
+	st.stats = ImportStats{SuppressedBy: map[string]int64{}, Reasons: map[string]int64{}, Lists: []ImportListAfter{}, PushedTo: []string{}}
 	_ = json.Unmarshal(imp.Progress, &st.progress)
 	st.report = csv.NewWriter(&st.reportBuf)
 	st.skipped = csv.NewWriter(&st.skipBuf)
@@ -290,7 +290,7 @@ func (s *Service) Run(ctx context.Context, id uuid.UUID) error {
 func (s *Service) prepareTargets(ctx context.Context, st *runState) error {
 	for _, l := range st.opts.Lists {
 		if name, ok := strings.CutPrefix(l.Target, "new:"); ok {
-			created, err := s.Audience.CreateList(ctx, &st.ws, audience.ListInput{Name: strings.TrimSpace(name), Description: "Imported from " + SourceName(st.imp.Source) + "."})
+			created, err := s.Audience.CreateList(ctx, &st.ws, audience.AudienceListInput{Name: strings.TrimSpace(name), Description: "Imported from " + SourceName(st.imp.Source) + "."})
 			if err != nil {
 				var p *api.Problem
 				if errors.As(err, &p) && p.Code == api.CodeConflict {
@@ -331,7 +331,7 @@ func (s *Service) createNewFields(ctx context.Context, st *runState) error {
 		if typ == "" {
 			typ = "text"
 		}
-		if _, err := s.Audience.CreateField(ctx, &st.ws, audience.FieldInput{Key: key, Label: key, Type: typ}); err != nil {
+		if _, err := s.Audience.CreateField(ctx, &st.ws, audience.CustomFieldInput{Key: key, Label: key, Type: typ}); err != nil {
 			var p *api.Problem
 			if !errors.As(err, &p) || p.Code != api.CodeConflict {
 				return err
@@ -867,7 +867,7 @@ func (s *Service) finish(ctx context.Context, st *runState, status string, start
 		if l, err := s.Q.GetList(ctx, store.GetListParams{WorkspaceID: st.ws.ID, ID: id}); err == nil {
 			var n int64
 			_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM list_memberships WHERE list_id = $1 AND status = 'subscribed'`, id).Scan(&n)
-			st.stats.Lists = append(st.stats.Lists, ListAfter{Name: l.Name, Contacts: n})
+			st.stats.Lists = append(st.stats.Lists, ImportListAfter{Name: l.Name, Contacts: n})
 		}
 	}
 	st.report.Flush()

@@ -20,14 +20,14 @@ var (
 )
 
 // The board's example: Engaged Outlook users on paid plans.
-func boardDefinition() Definition {
-	return Definition{Groups: []Group{
-		{Match: "all", Conditions: []Condition{
+func boardDefinition() SegmentDefinition {
+	return SegmentDefinition{Groups: []SegmentGroup{
+		{Match: "all", Conditions: []SegmentCondition{
 			{Field: "mailbox_provider", Op: "is", Value: "outlook"},
 			{Field: "opened", Op: "in_last", Amount: 30, Unit: "days"},
 			{Field: "list", Op: "includes", Value: digest.String()},
 		}},
-		{Match: "any", Conditions: []Condition{
+		{Match: "any", Conditions: []SegmentCondition{
 			{Field: "custom:plan", Op: "equals", Value: "team"},
 			{Field: "custom:plan", Op: "equals", Value: "business"},
 		}},
@@ -58,7 +58,7 @@ WHERE c.workspace_id = '0199c0de-7f1a-7c3e-9b2a-1f2e3d4c5b6a'
 
 func TestCompileQueryBindsValues(t *testing.T) {
 	d := boardDefinition()
-	d.Groups = append(d.Groups, Group{Match: "all", Conditions: []Condition{
+	d.Groups = append(d.Groups, SegmentGroup{Match: "all", Conditions: []SegmentCondition{
 		{Field: "tag", Op: "has_not", Value: "churned'; DROP TABLE contacts; --"},
 		{Field: "custom:mrr", Op: "gt", Value: "50"},
 		{Field: "custom:trial_end", Op: "before", Value: "2026-11-01"},
@@ -87,16 +87,16 @@ func TestCompileQueryBindsValues(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
-	bad := []Definition{
-		{Groups: []Group{{Match: "some", Conditions: []Condition{{Field: "tier", Op: "is", Value: "active"}}}}},
-		{Groups: []Group{{Match: "all"}}},
-		{Groups: []Group{{Match: "all", Conditions: []Condition{{Field: "nope", Op: "is", Value: "x"}}}}},
-		{Groups: []Group{{Match: "all", Conditions: []Condition{{Field: "tier", Op: "gt", Value: "active"}}}}},
-		{Groups: []Group{{Match: "all", Conditions: []Condition{{Field: "tier", Op: "is", Value: "gold"}}}}},
-		{Groups: []Group{{Match: "all", Conditions: []Condition{{Field: "opened", Op: "in_last", Amount: 0, Unit: "days"}}}}},
-		{Groups: []Group{{Match: "all", Conditions: []Condition{{Field: "list", Op: "includes", Value: uuid.NewString()}}}}},
-		{Groups: []Group{{Match: "all", Conditions: []Condition{{Field: "custom:mrr", Op: "gt", Value: "lots"}}}}},
-		{Groups: []Group{{Match: "all", Conditions: []Condition{{Field: "custom:evil'key", Op: "equals", Value: "x"}}}}},
+	bad := []SegmentDefinition{
+		{Groups: []SegmentGroup{{Match: "some", Conditions: []SegmentCondition{{Field: "tier", Op: "is", Value: "active"}}}}},
+		{Groups: []SegmentGroup{{Match: "all"}}},
+		{Groups: []SegmentGroup{{Match: "all", Conditions: []SegmentCondition{{Field: "nope", Op: "is", Value: "x"}}}}},
+		{Groups: []SegmentGroup{{Match: "all", Conditions: []SegmentCondition{{Field: "tier", Op: "gt", Value: "active"}}}}},
+		{Groups: []SegmentGroup{{Match: "all", Conditions: []SegmentCondition{{Field: "tier", Op: "is", Value: "gold"}}}}},
+		{Groups: []SegmentGroup{{Match: "all", Conditions: []SegmentCondition{{Field: "opened", Op: "in_last", Amount: 0, Unit: "days"}}}}},
+		{Groups: []SegmentGroup{{Match: "all", Conditions: []SegmentCondition{{Field: "list", Op: "includes", Value: uuid.NewString()}}}}},
+		{Groups: []SegmentGroup{{Match: "all", Conditions: []SegmentCondition{{Field: "custom:mrr", Op: "gt", Value: "lots"}}}}},
+		{Groups: []SegmentGroup{{Match: "all", Conditions: []SegmentCondition{{Field: "custom:evil'key", Op: "equals", Value: "x"}}}}},
 	}
 	for i, d := range bad {
 		var ve *ValidationError
@@ -104,7 +104,7 @@ func TestValidate(t *testing.T) {
 			t.Errorf("case %d: want a validation error, got %v", i, err)
 		}
 	}
-	if err := (Definition{}).Validate(custom, lists); err != nil {
+	if err := (SegmentDefinition{}).Validate(custom, lists); err != nil {
 		t.Fatalf("an empty definition matches everyone: %v", err)
 	}
 }

@@ -188,7 +188,7 @@ func (s *Service) loadBatch(ctx context.Context, ws uuid.UUID, imp store.Import,
 }
 
 // classify decides what happens to one row.
-func classify(r mappedRow, b batch, cm ConsentMap, now time.Time) verdict {
+func classify(r mappedRow, b batch, cm ImportConsentMap, now time.Time) verdict {
 	handling := cm.handling(r.Status)
 	if r.Email == "" {
 		_, problem := emailaddr.Check(r.Raw)
@@ -254,7 +254,7 @@ func isRisky(class string) bool {
 }
 
 // riskyAction is what the person chose for a risky class.
-func riskyAction(o RiskyActions, class string) string {
+func riskyAction(o ImportRiskyActions, class string) string {
 	switch class {
 	case classRole:
 		return o.Role

@@ -25,16 +25,16 @@ const (
 	HandleSuppressComplaint = "suppress_complaint"
 )
 
-// ConsentMap is imports.consent_map: what each source status becomes.
+// ImportConsentMap is imports.consent_map: what each source status becomes.
 // Unsubscribed, cleaned and complained are locked to suppressions.
-type ConsentMap struct {
+type ImportConsentMap struct {
 	Subscribed    string `json:"subscribed" enum:"confirmed,pending,skip"`
 	Pending       string `json:"pending" enum:"pending,skip"`
 	Transactional string `json:"transactional" enum:"skip,pending"`
 }
 
-func parseConsentMap(raw json.RawMessage, opts Options) ConsentMap {
-	m := ConsentMap{Subscribed: HandleConfirmed, Pending: HandlePending, Transactional: HandleSkip}
+func parseConsentMap(raw json.RawMessage, opts ImportOptions) ImportConsentMap {
+	m := ImportConsentMap{Subscribed: HandleConfirmed, Pending: HandlePending, Transactional: HandleSkip}
 	if opts.Evidence == "repermission" {
 		m.Subscribed = HandlePending
 	}
@@ -52,7 +52,7 @@ func parseConsentMap(raw json.RawMessage, opts Options) ConsentMap {
 }
 
 // handling returns what happens to a row with this source status.
-func (m ConsentMap) handling(status string) string {
+func (m ImportConsentMap) handling(status string) string {
 	switch status {
 	case StatusSubscribed:
 		return m.Subscribed
@@ -68,22 +68,22 @@ func (m ConsentMap) handling(status string) string {
 	return HandleSuppressUnsub
 }
 
-// ConsentStatus is one row of the consent table.
-type ConsentStatus struct {
+// ImportConsentStatus is one row of the consent table.
+type ImportConsentStatus struct {
 	Status   string        `json:"status"`
 	Label    string        `json:"label" doc:"The source's own word: subscribed, cleaned, archived with \"abuse\" complaint"`
 	Note     string        `json:"note,omitempty"`
 	Tone     string        `json:"tone" enum:"ok,warn,bad,neutral"`
 	Contacts int64         `json:"contacts"`
 	Handling string        `json:"handling"`
-	Options  []FieldOption `json:"options"`
+	Options  []ImportFieldOption `json:"options"`
 	Locked   bool          `json:"locked"`
 	Effect   string        `json:"effect"`
 }
 
-// ConsentMapping is the "Consent" step.
-type ConsentMapping struct {
-	Statuses      []ConsentStatus `json:"statuses"`
+// ImportConsentMapping is the "Consent" step.
+type ImportConsentMapping struct {
+	Statuses      []ImportConsentStatus `json:"statuses"`
 	SuppressCount int64           `json:"suppressCount"`
 	Evidence      string          `json:"evidence" enum:"trust,repermission"`
 	// EvidenceSource names what the source's opt-in proof is ("OPTIN_TIME and OPTIN_IP").
@@ -99,7 +99,7 @@ type ConsentMapping struct {
 	InSync int64 `json:"inSync"`
 }
 
-var subscribedOptions = []FieldOption{
+var subscribedOptions = []ImportFieldOption{
 	{HandleConfirmed, "Subscribed · confirmed, keep opt-in date and IP as evidence"},
 	{HandlePending, "Subscribed · pending, send a re-permission email"},
 	{HandleSkip, "Skip"},
@@ -107,17 +107,17 @@ var subscribedOptions = []FieldOption{
 
 // Consent returns the consent step: counts per source status and the
 // handling of each.
-func (s *Service) Consent(ctx context.Context, ws *store.Workspace, id uuid.UUID) (ConsentMapping, error) {
+func (s *Service) Consent(ctx context.Context, ws *store.Workspace, id uuid.UUID) (ImportConsentMapping, error) {
 	imp, err := s.get(ctx, ws, id)
 	if err != nil {
-		return ConsentMapping{}, err
+		return ImportConsentMapping{}, err
 	}
 	opts := parseOptions(imp.Options)
 	m := parseConsentMap(imp.ConsentMap, opts)
 	counts := map[string]int64{}
 	rows, err := s.Q.ImportStatusCounts(ctx, imp.ID)
 	if err != nil {
-		return ConsentMapping{}, err
+		return ImportConsentMapping{}, err
 	}
 	for _, r := range rows {
 		counts[r.Status] += r.N
@@ -126,9 +126,9 @@ func (s *Service) Consent(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	name := SourceName(imp.Source)
 	providers, inSync, err := s.providerNames(ctx, ws)
 	if err != nil {
-		return ConsentMapping{}, err
+		return ImportConsentMapping{}, err
 	}
-	out := ConsentMapping{Statuses: []ConsentStatus{}, Evidence: opts.Evidence, PullSuppressions: opts.PullSuppressions, RecordHistory: opts.RecordHistory,
+	out := ImportConsentMapping{Statuses: []ImportConsentStatus{}, Evidence: opts.Evidence, PullSuppressions: opts.PullSuppressions, RecordHistory: opts.RecordHistory,
 		Providers: providers, InSync: inSync}
 	if m.Subscribed == HandlePending {
 		out.Evidence = "repermission"
@@ -158,7 +158,7 @@ func (s *Service) Consent(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		if n == 0 && isFile(imp.Source) && st != StatusSubscribed {
 			continue
 		}
-		row := ConsentStatus{Status: st, Label: st, Contacts: n, Handling: m.handling(st)}
+		row := ImportConsentStatus{Status: st, Label: st, Contacts: n, Handling: m.handling(st)}
 		switch st {
 		case StatusSubscribed:
 			row.Tone, row.Options = "ok", subscribedOptions
@@ -173,25 +173,25 @@ func (s *Service) Consent(ctx context.Context, ws *store.Workspace, id uuid.UUID
 			}
 		case StatusUnsubscribed:
 			row.Tone, row.Locked = "bad", true
-			row.Options = []FieldOption{{HandleSuppressUnsub, "Suppressed · unsubscribed (locked)"}}
+			row.Options = []ImportFieldOption{{HandleSuppressUnsub, "Suppressed · unsubscribed (locked)"}}
 			row.Effect = "Broadcasts and Automations blocked; System mail allowed. Can't be changed by an import."
 		case StatusCleaned:
 			row.Tone, row.Locked = "bad", true
 			row.Note = "hard bounced in " + name
-			row.Options = []FieldOption{{HandleSuppressBounce, "Suppressed · hard bounce (locked)"}}
+			row.Options = []ImportFieldOption{{HandleSuppressBounce, "Suppressed · hard bounce (locked)"}}
 			row.Effect = "All streams blocked" + push
 		case StatusPending:
 			row.Tone, row.Note = "warn", "never confirmed double opt-in"
-			row.Options = []FieldOption{{HandlePending, "Subscribed · pending, send a re-permission email"}, {HandleSkip, "Skip"}}
+			row.Options = []ImportFieldOption{{HandlePending, "Subscribed · pending, send a re-permission email"}, {HandleSkip, "Skip"}}
 		case StatusTransactional:
 			row.Tone = "neutral"
-			row.Options = []FieldOption{{HandleSkip, "Skip"}, {HandlePending, "Subscribed · pending"}}
+			row.Options = []ImportFieldOption{{HandleSkip, "Skip"}, {HandlePending, "Subscribed · pending"}}
 		case StatusComplained:
 			row.Tone, row.Locked = "bad", true
 			if imp.Source == "mailchimp" {
 				row.Label = `archived with "abuse" complaint`
 			}
-			row.Options = []FieldOption{{HandleSuppressComplaint, "Suppressed · complaint (locked)"}}
+			row.Options = []ImportFieldOption{{HandleSuppressComplaint, "Suppressed · complaint (locked)"}}
 			row.Effect = "All streams blocked"
 		}
 		if row.Effect == "" {
@@ -249,7 +249,7 @@ func (s *Service) providerNames(ctx context.Context, ws *store.Workspace) ([]str
 // historyExample is how the consent history entry of the first row reads:
 // "Imported from Mailchimp by Linh Nguyen, 12 Oct 2026, status subscribed,
 // evidence OPTIN_TIME 2025-03-02".
-func (s *Service) historyExample(ctx context.Context, ws *store.Workspace, imp store.Import, m ConsentMap) (string, error) {
+func (s *Service) historyExample(ctx context.Context, ws *store.Workspace, imp store.Import, m ImportConsentMap) (string, error) {
 	rows, err := s.Q.ImportRowsAfter(ctx, store.ImportRowsAfterParams{ImportID: imp.ID, After: 0, Lim: 50})
 	if err != nil {
 		return "", err
@@ -274,22 +274,22 @@ func (s *Service) historyExample(ctx context.Context, ws *store.Workspace, imp s
 	return fmt.Sprintf("Imported from %s%s, %s", SourceName(imp.Source), who, day), nil
 }
 
-// SaveConsentInput is the consent step's choices.
-type SaveConsentInput struct {
-	Map              ConsentMap `json:"map"`
+// ImportSaveConsentInput is the consent step's choices.
+type ImportSaveConsentInput struct {
+	Map              ImportConsentMap `json:"map"`
 	Evidence         string     `json:"evidence" enum:"trust,repermission"`
 	PullSuppressions bool       `json:"pullSuppressions"`
 	RecordHistory    bool       `json:"recordHistory"`
 }
 
 // SaveConsent stores the consent mapping and moves on to the preview.
-func (s *Service) SaveConsent(ctx context.Context, ws *store.Workspace, id uuid.UUID, in SaveConsentInput) (ConsentMapping, error) {
+func (s *Service) SaveConsent(ctx context.Context, ws *store.Workspace, id uuid.UUID, in ImportSaveConsentInput) (ImportConsentMapping, error) {
 	imp, err := s.get(ctx, ws, id)
 	if err != nil {
-		return ConsentMapping{}, err
+		return ImportConsentMapping{}, err
 	}
 	if err := editable(imp); err != nil {
-		return ConsentMapping{}, err
+		return ImportConsentMapping{}, err
 	}
 	m := in.Map
 	if in.Evidence == "repermission" && m.Subscribed == HandleConfirmed {
@@ -312,7 +312,7 @@ func (s *Service) SaveConsent(ctx context.Context, ws *store.Workspace, id uuid.
 			TargetName: SourceName(imp.Source), After: in})
 	})
 	if err != nil {
-		return ConsentMapping{}, err
+		return ImportConsentMapping{}, err
 	}
 	return s.Consent(ctx, ws, id)
 }

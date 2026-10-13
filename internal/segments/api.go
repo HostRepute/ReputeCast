@@ -20,12 +20,12 @@ type segmentPath struct {
 
 type segmentBody struct {
 	api.WorkspaceInput
-	Body Input
+	Body SegmentInput
 }
 
 type segmentUpdate struct {
 	segmentPath
-	Body Input
+	Body SegmentInput
 }
 
 // Problem codes of this package.
@@ -71,13 +71,13 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), Problem(err)
 		})
 	api.Get(h, api.Op{ID: "segment-catalog", Path: base + "/catalog", Summary: "Fields, operators and values the builder can use", Tags: tags, Access: view},
-		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[Catalog], error) {
+		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[SegmentCatalog], error) {
 			out, err := s.Catalog(ctx, api.WorkspaceFrom(ctx))
 			return api.OK(out), Problem(err)
 		})
 	api.Post(h, api.Op{ID: "preview-segment", Path: base + "/preview", Summary: "Count an unsaved segment (live count while editing)",
 		Description: "Counts contacts matching a builder definition or, with segments:sql, a SQL segment. Nothing is saved.", Tags: tags, Access: view},
-		func(ctx context.Context, in *segmentBody) (*api.Body[CountResult], error) {
+		func(ctx context.Context, in *segmentBody) (*api.Body[SegmentCountResult], error) {
 			ws := api.WorkspaceFrom(ctx)
 			if in.Body.Mode == "sql" {
 				if err := permcheck.Require(ctx, s.Q, s.Audit, ws.ID, authz.SegmentsSQL, "segment.sql_preview"); err != nil {
@@ -125,7 +125,7 @@ func Register(h huma.API, s *Service) {
 			return api.NoContent, Problem(s.Delete(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID)))
 		})
 	api.Post(h, api.Op{ID: "count-segment", Path: base + "/{segment}/count", Summary: "Count a saved segment again and store the result", Tags: tags, Access: view},
-		func(ctx context.Context, in *segmentPath) (*api.Body[CountResult], error) {
+		func(ctx context.Context, in *segmentPath) (*api.Body[SegmentCountResult], error) {
 			ws := api.WorkspaceFrom(ctx)
 			id := uuid.MustParse(in.ID)
 			out, err := s.Recount(ctx, ws, id)

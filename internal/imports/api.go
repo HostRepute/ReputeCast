@@ -41,7 +41,7 @@ type importBody[T any] struct {
 
 type createBody struct {
 	api.WorkspaceInput
-	Body CreateInput
+	Body ImportCreateInput
 }
 
 type uploadBody struct {
@@ -78,7 +78,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Patch(h, api.Op{ID: "update-import", Path: base + "/{id}", Summary: "Change a draft's source, options or step", Tags: tags, Access: imp},
-		func(ctx context.Context, in *importBody[UpdateInput]) (*api.Body[ImportDetail], error) {
+		func(ctx context.Context, in *importBody[ImportUpdateInput]) (*api.Body[ImportDetail], error) {
 			out, err := s.Update(ctx, api.WorkspaceFrom(ctx), id(in.importPath), in.Body)
 			return api.OK(out), err
 		})
@@ -88,7 +88,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "connect-import", Path: base + "/{id}/connect", Summary: "Check an API key and list the source's audiences",
 		Description: "The key is stored encrypted and never returned. Nothing is written to the source.", Tags: tags, Access: imp},
-		func(ctx context.Context, in *importBody[ConnectInput]) (*api.Body[ImportDetail], error) {
+		func(ctx context.Context, in *importBody[ImportConnectInput]) (*api.Body[ImportDetail], error) {
 			out, err := s.Connect(ctx, api.WorkspaceFrom(ctx), id(in.importPath), in.Body)
 			return api.OK(out), err
 		})
@@ -114,27 +114,27 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-import-fields", Path: base + "/{id}/fields", Summary: "Source fields with sample values and their mapping", Tags: tags, Access: imp},
-		func(ctx context.Context, in *importPath) (*api.Body[FieldMapping], error) {
+		func(ctx context.Context, in *importPath) (*api.Body[ImportFieldMapping], error) {
 			out, err := s.Fields(ctx, api.WorkspaceFrom(ctx), id(*in))
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "save-import-fields", Path: base + "/{id}/fields", Summary: "Save the field mapping", Tags: tags, Access: imp},
-		func(ctx context.Context, in *importBody[SaveFieldsInput]) (*api.Body[FieldMapping], error) {
+		func(ctx context.Context, in *importBody[ImportSaveFieldsInput]) (*api.Body[ImportFieldMapping], error) {
 			out, err := s.SaveFields(ctx, api.WorkspaceFrom(ctx), id(in.importPath), in.Body)
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-import-consent", Path: base + "/{id}/consent", Summary: "Contacts per source status and what each becomes", Tags: tags, Access: imp},
-		func(ctx context.Context, in *importPath) (*api.Body[ConsentMapping], error) {
+		func(ctx context.Context, in *importPath) (*api.Body[ImportConsentMapping], error) {
 			out, err := s.Consent(ctx, api.WorkspaceFrom(ctx), id(*in))
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "save-import-consent", Path: base + "/{id}/consent", Summary: "Save the consent mapping", Tags: tags, Access: imp},
-		func(ctx context.Context, in *importBody[SaveConsentInput]) (*api.Body[ConsentMapping], error) {
+		func(ctx context.Context, in *importBody[ImportSaveConsentInput]) (*api.Body[ImportConsentMapping], error) {
 			out, err := s.SaveConsent(ctx, api.WorkspaceFrom(ctx), id(in.importPath), in.Body)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "preview-import", Path: base + "/{id}/preview", Summary: "Dry run: duplicates, invalid and risky addresses", Tags: tags, Access: imp},
-		func(ctx context.Context, in *importPath) (*api.Body[Preview], error) {
+		func(ctx context.Context, in *importPath) (*api.Body[ImportPreview], error) {
 			out, err := s.Preview(ctx, api.WorkspaceFrom(ctx), id(*in))
 			return api.OK(out), err
 		})

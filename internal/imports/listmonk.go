@@ -31,7 +31,7 @@ func NewListmonk(baseURL, user, token string, hc *http.Client) (*Listmonk, error
 }
 
 // Connect implements Source.
-func (l *Listmonk) Connect(ctx context.Context) (Connection, error) {
+func (l *Listmonk) Connect(ctx context.Context) (ImportConnection, error) {
 	var res struct {
 		Data struct {
 			Results []struct {
@@ -44,11 +44,11 @@ func (l *Listmonk) Connect(ctx context.Context) (Connection, error) {
 		} `json:"data"`
 	}
 	if err := l.c.get(ctx, "/lists?per_page=all", &res); err != nil {
-		return Connection{}, err
+		return ImportConnection{}, err
 	}
-	out := Connection{Account: "listmonk", BaseURL: strings.TrimSuffix(l.c.base, "/api"), Lists: []SourceList{}, CheckedAt: time.Now()}
+	out := ImportConnection{Account: "listmonk", BaseURL: strings.TrimSuffix(l.c.base, "/api"), Lists: []ImportSourceList{}, CheckedAt: time.Now()}
 	for _, r := range res.Data.Results {
-		sl := SourceList{ID: strconv.FormatInt(r.ID, 10), Name: r.Name, DoubleOptIn: r.Optin == "double", TagExamples: []string{},
+		sl := ImportSourceList{ID: strconv.FormatInt(r.ID, 10), Name: r.Name, DoubleOptIn: r.Optin == "double", TagExamples: []string{},
 			Unsubscribed: r.SubscriberStatuses["unsubscribed"]}
 		if sl.DoubleOptIn {
 			sl.Subscribed, sl.Pending = r.SubscriberStatuses["confirmed"], r.SubscriberStatuses["unconfirmed"]

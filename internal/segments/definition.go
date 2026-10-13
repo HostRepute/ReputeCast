@@ -9,20 +9,20 @@ import (
 	"github.com/google/uuid"
 )
 
-// Definition is a builder segment: groups combine with AND; inside a group
+// SegmentDefinition is a builder segment: groups combine with AND; inside a group
 // the conditions match ALL or ANY.
-type Definition struct {
-	Groups []Group `json:"groups"`
+type SegmentDefinition struct {
+	Groups []SegmentGroup `json:"groups"`
 }
 
-// Group is one box of conditions in the builder.
-type Group struct {
+// SegmentGroup is one box of conditions in the builder.
+type SegmentGroup struct {
 	Match      string      `json:"match" enum:"all,any" doc:"all = every condition, any = at least one"`
-	Conditions []Condition `json:"conditions"`
+	Conditions []SegmentCondition `json:"conditions"`
 }
 
-// Condition is one row of the builder: field, operator and value.
-type Condition struct {
+// SegmentCondition is one row of the builder: field, operator and value.
+type SegmentCondition struct {
 	// Field is a key from the catalog: mailbox_provider, email_domain, list,
 	// tier, consent, source, tag, country, last_open, opened, clicked,
 	// opened_campaign, joined or custom:<key>.
@@ -129,7 +129,7 @@ func (e *ValidationError) Error() string { return e.Message }
 
 // Validate checks every condition against the catalog. custom maps custom
 // field keys to their definition; lists holds the workspace's list ids.
-func (d Definition) Validate(custom map[string]CustomField, lists map[uuid.UUID]string) error {
+func (d SegmentDefinition) Validate(custom map[string]CustomField, lists map[uuid.UUID]string) error {
 	if len(d.Groups) > 20 {
 		return &ValidationError{"body.definition.groups", "A segment can have at most 20 groups."}
 	}
@@ -154,7 +154,7 @@ func (d Definition) Validate(custom map[string]CustomField, lists map[uuid.UUID]
 	return nil
 }
 
-func (c Condition) validate(custom map[string]CustomField, lists map[uuid.UUID]string) error {
+func (c SegmentCondition) validate(custom map[string]CustomField, lists map[uuid.UUID]string) error {
 	ops, kind, label := c.spec(custom)
 	if ops == nil {
 		return fmt.Errorf("%q is not a field you can filter on.", c.Field)
@@ -213,7 +213,7 @@ func (c Condition) validate(custom map[string]CustomField, lists map[uuid.UUID]s
 var dateRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 
 // spec returns the operators, kind and label of the condition's field.
-func (c Condition) spec(custom map[string]CustomField) ([]string, FieldKind, string) {
+func (c SegmentCondition) spec(custom map[string]CustomField) ([]string, FieldKind, string) {
 	if key, ok := strings.CutPrefix(c.Field, "custom:"); ok {
 		f, found := custom[key]
 		if !found || !fieldKeyRe.MatchString(key) {

@@ -14,16 +14,16 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// ActivityProvider is the sending provider that delivered an email.
-type ActivityProvider struct {
+// ContactActivityProvider is the sending provider that delivered an email.
+type ContactActivityProvider struct {
 	Name    string `json:"name"`
 	Adapter string `json:"adapter"`
 }
 
-// ActivityItem is one event on a contact's timeline: a delivery event (with
+// ContactActivityItem is one event on a contact's timeline: a delivery event (with
 // the sending provider that handled it), an engagement event or a consent
 // change.
-type ActivityItem struct {
+type ContactActivityItem struct {
 	ID       string    `json:"id"`
 	Category string    `json:"category" enum:"delivery,engagement,consent"`
 	Type     string    `json:"type" doc:"delivered, soft_bounce, open, click… or a consent action"`
@@ -31,7 +31,7 @@ type ActivityItem struct {
 	// Subject is the email: "Weekly Digest #141", "Welcome series · step 2".
 	Subject  string            `json:"subject"`
 	Variant  string            `json:"variant,omitempty"`
-	Provider *ActivityProvider `json:"provider,omitempty"`
+	Provider *ContactActivityProvider `json:"provider,omitempty"`
 	// Imported names the tool that sent the email before the migration ("Brevo").
 	Imported   string `json:"imported,omitempty"`
 	Failover   bool   `json:"failover"`
@@ -56,9 +56,9 @@ type ActivityItem struct {
 	ConsentVersion string `json:"consentVersion,omitempty"`
 }
 
-// ActivityPage is one page of the timeline, newest first.
-type ActivityPage struct {
-	Items      []ActivityItem `json:"items"`
+// ContactActivityPage is one page of the timeline, newest first.
+type ContactActivityPage struct {
+	Items      []ContactActivityItem `json:"items"`
 	Total      int64          `json:"total" doc:"Events matching the filter"`
 	NextCursor string         `json:"nextCursor,omitempty"`
 }
@@ -68,9 +68,9 @@ var engagementTypes = []string{"open", "click", "unsubscribe"}
 
 // Activity returns a contact's timeline. filter is all, deliveries,
 // engagement or consent.
-func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, filter, cursor string, limit int) (ActivityPage, error) {
+func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, filter, cursor string, limit int) (ContactActivityPage, error) {
 	if _, err := s.getContact(ctx, s.Q, ws, contactID); err != nil {
-		return ActivityPage{}, err
+		return ContactActivityPage{}, err
 	}
 	if limit <= 0 || limit > 100 {
 		limit = 8
@@ -90,7 +90,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 	if cursor != "" {
 		at, id, err := decodeCursor(cursor)
 		if err != nil {
-			return ActivityPage{}, api.Invalid("cursor", "This page link expired. Reload the timeline.")
+			return ContactActivityPage{}, api.Invalid("cursor", "This page link expired. Reload the timeline.")
 		}
 		args = append(args, at, id)
 		cur = " WHERE (ev.occurred_at, ev.id) < ($4, $5)"
@@ -116,8 +116,8 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 		LEFT JOIN lists l ON l.id = ce.list_id
 		LEFT JOIN users u ON u.id = ce.actor_id
 		WHERE ce.contact_id = $1 AND $3`
-	var out ActivityPage
-	out.Items = []ActivityItem{}
+	var out ContactActivityPage
+	out.Items = []ContactActivityItem{}
 	if err := s.Pool.QueryRow(ctx, "SELECT count(*) FROM ("+union+") ev", contactID, types, withConsent).Scan(&out.Total); err != nil {
 		return out, err
 	}
@@ -128,7 +128,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var it ActivityItem
+		var it ContactActivityItem
 		var id uuid.UUID
 		var src, campaign, origin, automation, node, provider, adapter, userAgent, url string
 		var delivered *time.Time
@@ -167,7 +167,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 				it.Subject = "an email"
 			}
 			if provider != "" {
-				it.Provider = &ActivityProvider{Name: provider, Adapter: adapter}
+				it.Provider = &ContactActivityProvider{Name: provider, Adapter: adapter}
 			} else if origin != "" {
 				it.Imported = importerLabel(origin)
 			}

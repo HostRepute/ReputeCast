@@ -47,8 +47,8 @@ func (s *Service) countTimeout() time.Duration {
 	return 10 * time.Second
 }
 
-// TierMix splits a count by engagement tier.
-type TierMix struct {
+// SegmentTierMix splits a count by engagement tier.
+type SegmentTierMix struct {
 	Active  int64 `json:"active"`
 	Cooling int64 `json:"cooling"`
 	AtRisk  int64 `json:"atRisk"`
@@ -91,7 +91,7 @@ type SegmentDetail struct {
 	Description string     `json:"description"`
 	Mode        string     `json:"mode" enum:"builder,sql"`
 	Refresh     string     `json:"refresh" enum:"dynamic,static"`
-	Definition  Definition `json:"definition"`
+	Definition  SegmentDefinition `json:"definition"`
 	// SQL is the person's own SQL (SQL mode).
 	SQL string `json:"sql"`
 	// GeneratedSQL is the builder's SQL with values inlined.
@@ -99,7 +99,7 @@ type SegmentDetail struct {
 	Count        *int64     `json:"count,omitempty"`
 	CountedAt    *time.Time `json:"countedAt,omitempty"`
 	CountMs      *int32     `json:"countMs,omitempty"`
-	Tiers        TierMix    `json:"tiers"`
+	Tiers        SegmentTierMix    `json:"tiers"`
 	UpdatedAt    time.Time  `json:"updatedAt"`
 	UpdatedBy    string     `json:"updatedBy"`
 }
@@ -117,15 +117,15 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, seg store.Seg
 	out := SegmentDetail{
 		ID: seg.ID.String(), Name: seg.Name, Description: seg.Description, Mode: seg.Mode, Refresh: seg.Refresh,
 		SQL: seg.Sql, Count: seg.CachedCount, CountedAt: seg.CountedAt, CountMs: seg.CountMs, UpdatedAt: seg.UpdatedAt,
-		Definition: Definition{Groups: []Group{}},
+		Definition: SegmentDefinition{Groups: []SegmentGroup{}},
 	}
 	_ = json.Unmarshal(seg.Definition, &out.Definition)
 	if out.Definition.Groups == nil {
-		out.Definition.Groups = []Group{}
+		out.Definition.Groups = []SegmentGroup{}
 	}
 	for i := range out.Definition.Groups {
 		if out.Definition.Groups[i].Conditions == nil {
-			out.Definition.Groups[i].Conditions = []Condition{}
+			out.Definition.Groups[i].Conditions = []SegmentCondition{}
 		}
 	}
 	_ = json.Unmarshal(seg.TierCounts, &out.Tiers)
@@ -168,19 +168,19 @@ func (s *Service) lists(ctx context.Context, ws uuid.UUID) (map[uuid.UUID]string
 	return out, nil
 }
 
-// Input is what the builder saves or counts.
-type Input struct {
+// SegmentInput is what the builder saves or counts.
+type SegmentInput struct {
 	Name        string     `json:"name" maxLength:"120"`
 	Description string     `json:"description,omitempty" maxLength:"500"`
 	Mode        string     `json:"mode" enum:"builder,sql"`
 	Refresh     string     `json:"refresh,omitempty" enum:"dynamic,static"`
-	Definition  Definition `json:"definition"`
+	Definition  SegmentDefinition `json:"definition"`
 	SQL         string     `json:"sql,omitempty" maxLength:"20000"`
 }
 
 // validate checks the input and returns the compiled builder SQL or the
 // checked user SQL.
-func (s *Service) validate(ctx context.Context, ws *store.Workspace, in *Input, needName bool) (*Compiled, string, error) {
+func (s *Service) validate(ctx context.Context, ws *store.Workspace, in *SegmentInput, needName bool) (*Compiled, string, error) {
 	in.Name = strings.TrimSpace(in.Name)
 	if needName && in.Name == "" {
 		return nil, "", &ValidationError{"body.name", "Give the segment a name."}
@@ -205,7 +205,7 @@ func (s *Service) validate(ctx context.Context, ws *store.Workspace, in *Input, 
 		return nil, "", err
 	}
 	if in.Definition.Groups == nil {
-		in.Definition.Groups = []Group{}
+		in.Definition.Groups = []SegmentGroup{}
 	}
 	if err := in.Definition.Validate(custom, lists); err != nil {
 		return nil, "", err
@@ -214,27 +214,27 @@ func (s *Service) validate(ctx context.Context, ws *store.Workspace, in *Input, 
 	return &c, "", nil
 }
 
-// CountResult is a live count.
-type CountResult struct {
+// SegmentCountResult is a live count.
+type SegmentCountResult struct {
 	Count int64   `json:"count"`
 	Total int64   `json:"total" doc:"Contacts in the workspace"`
-	Tiers TierMix `json:"tiers"`
+	Tiers SegmentTierMix `json:"tiers"`
 	Ms    int64   `json:"ms" doc:"How long the count took"`
 	// GeneratedSQL is the builder's SQL with values inlined (builder mode).
 	GeneratedSQL string `json:"generatedSql"`
 }
 
 // Preview counts an unsaved definition or SQL.
-func (s *Service) Preview(ctx context.Context, ws *store.Workspace, in Input) (CountResult, error) {
+func (s *Service) Preview(ctx context.Context, ws *store.Workspace, in SegmentInput) (SegmentCountResult, error) {
 	compiled, sql, err := s.validate(ctx, ws, &in, false)
 	if err != nil {
-		return CountResult{}, err
+		return SegmentCountResult{}, err
 	}
 	return s.count(ctx, ws, compiled, sql)
 }
 
-func (s *Service) count(ctx context.Context, ws *store.Workspace, compiled *Compiled, userSQL string) (CountResult, error) {
-	var out CountResult
+func (s *Service) count(ctx context.Context, ws *store.Workspace, compiled *Compiled, userSQL string) (SegmentCountResult, error) {
+	var out SegmentCountResult
 	total, err := s.Q.AudienceCounts(ctx, ws.ID)
 	if err != nil {
 		return out, err
@@ -270,7 +270,7 @@ func (s *Service) count(ctx context.Context, ws *store.Workspace, compiled *Comp
 }
 
 // Create saves a new segment and counts it.
-func (s *Service) Create(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, in Input) (SegmentDetail, error) {
+func (s *Service) Create(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, in SegmentInput) (SegmentDetail, error) {
 	compiled, userSQL, err := s.validate(ctx, ws, &in, true)
 	if err != nil {
 		return SegmentDetail{}, err
@@ -309,7 +309,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, actor *uuid.U
 }
 
 // Update changes a segment and recounts it.
-func (s *Service) Update(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, id uuid.UUID, in Input) (SegmentDetail, error) {
+func (s *Service) Update(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, id uuid.UUID, in SegmentInput) (SegmentDetail, error) {
 	before, err := s.Q.GetSegment(ctx, store.GetSegmentParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
 		return SegmentDetail{}, err
@@ -352,14 +352,14 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, actor *uuid.U
 }
 
 // snapshot returns the matching contact ids of a static segment.
-func (s *Service) snapshot(ctx context.Context, ws *store.Workspace, in Input, compiled *Compiled, userSQL string) ([]uuid.UUID, error) {
+func (s *Service) snapshot(ctx context.Context, ws *store.Workspace, in SegmentInput, compiled *Compiled, userSQL string) ([]uuid.UUID, error) {
 	if in.Refresh != "static" {
 		return nil, nil
 	}
 	return s.ids(ctx, ws.ID, compiled, userSQL)
 }
 
-func (s *Service) storeCount(ctx context.Context, q *store.Queries, id uuid.UUID, res CountResult, countErr error, ids []uuid.UUID) error {
+func (s *Service) storeCount(ctx context.Context, q *store.Queries, id uuid.UUID, res SegmentCountResult, countErr error, ids []uuid.UUID) error {
 	if ids != nil {
 		if err := q.ClearSegmentMembers(ctx, id); err != nil {
 			return err
@@ -379,16 +379,16 @@ func (s *Service) storeCount(ctx context.Context, q *store.Queries, id uuid.UUID
 }
 
 // Recount counts a saved segment and stores the result.
-func (s *Service) Recount(ctx context.Context, ws *store.Workspace, id uuid.UUID) (CountResult, error) {
+func (s *Service) Recount(ctx context.Context, ws *store.Workspace, id uuid.UUID) (SegmentCountResult, error) {
 	seg, err := s.Q.GetSegment(ctx, store.GetSegmentParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return CountResult{}, err
+		return SegmentCountResult{}, err
 	}
-	in := Input{Name: seg.Name, Mode: seg.Mode, Refresh: seg.Refresh, SQL: seg.Sql}
+	in := SegmentInput{Name: seg.Name, Mode: seg.Mode, Refresh: seg.Refresh, SQL: seg.Sql}
 	_ = json.Unmarshal(seg.Definition, &in.Definition)
 	compiled, userSQL, err := s.validate(ctx, ws, &in, false)
 	if err != nil {
-		return CountResult{}, err
+		return SegmentCountResult{}, err
 	}
 	res, err := s.count(ctx, ws, compiled, userSQL)
 	if err != nil {
@@ -429,7 +429,7 @@ func (s *Service) ContactIDs(ctx context.Context, workspaceID, segmentID uuid.UU
 	if seg.Mode == "sql" {
 		return s.ids(ctx, workspaceID, nil, seg.Sql)
 	}
-	var def Definition
+	var def SegmentDefinition
 	_ = json.Unmarshal(seg.Definition, &def)
 	custom, err := s.customFields(ctx, workspaceID)
 	if err != nil {

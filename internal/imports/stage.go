@@ -117,7 +117,7 @@ func (s *Service) enqueue(ctx context.Context, args river.JobArgs, opts *river.I
 	return err
 }
 
-func sourceIDs(ls []ListChoice) []string {
+func sourceIDs(ls []ImportListChoice) []string {
 	out := make([]string, 0, len(ls))
 	for _, l := range ls {
 		out = append(out, l.SourceID)

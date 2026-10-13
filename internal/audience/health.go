@@ -14,8 +14,8 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// TierCard is one of the four tier cards.
-type TierCard struct {
+// HealthTierCard is one of the four tier cards.
+type HealthTierCard struct {
 	Tier  string  `json:"tier" enum:"active,cooling,at_risk,sunset"`
 	Count int64   `json:"count"`
 	Pct   float64 `json:"pct" doc:"Share of all contacts, percent"`
@@ -25,8 +25,8 @@ type TierCard struct {
 	Good bool `json:"good"`
 }
 
-// TrendWeek is one column of the tier trend: shares of the list (0–1).
-type TrendWeek struct {
+// HealthTrendWeek is one column of the tier trend: shares of the list (0–1).
+type HealthTrendWeek struct {
 	Day     time.Time `json:"day"`
 	Active  float64   `json:"active"`
 	Cooling float64   `json:"cooling"`
@@ -34,13 +34,13 @@ type TrendWeek struct {
 	Sunset  float64   `json:"sunset"`
 }
 
-// HealthRow is one row of "Health per list": a list or a followed view.
-type HealthRow struct {
+// ListHealthRow is one row of "Health per list": a list or a followed view.
+type ListHealthRow struct {
 	Kind     string     `json:"kind" enum:"list,view"`
 	ID       string     `json:"id"`
 	Name     string     `json:"name"`
 	Contacts int64      `json:"contacts"`
-	Tiers    TierCounts `json:"tiers"`
+	Tiers    AudienceTierCounts `json:"tiers"`
 	// NetGrowth is joins minus departures over 30 days.
 	NetGrowth int64 `json:"netGrowth"`
 	// Rates over 30 days, in percent; nil when nothing was sent.
@@ -54,8 +54,8 @@ type HealthRow struct {
 	HealthTone    string `json:"healthTone" enum:"ok,warn,bad"`
 }
 
-// ThisWeek projects the sunset policy over the next 7 days.
-type ThisWeek struct {
+// SunsetThisWeek projects the sunset policy over the next 7 days.
+type SunsetThisWeek struct {
 	Entering int64 `json:"entering" doc:"Contacts entering Sunset"`
 	// EnterDay names the day most of them enter, when most fall on one day.
 	EnterDay string `json:"enterDay,omitempty"`
@@ -63,8 +63,8 @@ type ThisWeek struct {
 	StopDay  string `json:"stopDay,omitempty"`
 }
 
-// HealthInsight is the sentence under the per-list table.
-type HealthInsight struct {
+// ListHealthInsight is the sentence under the per-list table.
+type ListHealthInsight struct {
 	Text string `json:"text"`
 }
 
@@ -72,22 +72,22 @@ type HealthInsight struct {
 type ListHealth struct {
 	ComputedAt *time.Time   `json:"computedAt,omitempty"`
 	Total      int64        `json:"total"`
-	Tiers      []TierCard   `json:"tiers"`
-	Trend      []TrendWeek  `json:"trend"`
+	Tiers      []HealthTierCard   `json:"tiers"`
+	Trend      []HealthTrendWeek  `json:"trend"`
 	PolicyWeek int          `json:"policyWeek" doc:"Index of the trend column when the policy started, -1 if none"`
 	Policy     SunsetPolicy `json:"policy"`
 	// WinBackRate is the share of re-engaged contacts who came back, percent.
 	WinBackRate *float64       `json:"winBackRate,omitempty"`
-	ThisWeek    ThisWeek       `json:"thisWeek"`
-	Rows        []HealthRow    `json:"rows"`
-	Insight     *HealthInsight `json:"insight,omitempty"`
+	ThisWeek    SunsetThisWeek       `json:"thisWeek"`
+	Rows        []ListHealthRow    `json:"rows"`
+	Insight     *ListHealthInsight `json:"insight,omitempty"`
 }
 
 // Health returns tiers, the 12-week trend, the policy and health per list.
 func (s *Service) Health(ctx context.Context, ws *store.Workspace) (ListHealth, error) {
 	p := ParsePolicy(ws.SunsetPolicy)
 	now := s.now()
-	out := ListHealth{Policy: p, PolicyWeek: -1, Tiers: []TierCard{}, Trend: []TrendWeek{}, Rows: []HealthRow{}}
+	out := ListHealth{Policy: p, PolicyWeek: -1, Tiers: []HealthTierCard{}, Trend: []HealthTrendWeek{}, Rows: []ListHealthRow{}}
 	c, err := s.Q.AudienceCounts(ctx, ws.ID)
 	if err != nil {
 		return out, err
@@ -108,7 +108,7 @@ func (s *Service) Health(ctx context.Context, ws *store.Workspace) (ListHealth, 
 	monthAgo := snapshotAt(history, now.AddDate(0, 0, -30))
 	tiers := []string{"active", "cooling", "at_risk", "sunset"}
 	for i, t := range tiers {
-		card := TierCard{Tier: t, Count: current[i], Pct: share(current[i], c.Contacts)}
+		card := HealthTierCard{Tier: t, Count: current[i], Pct: share(current[i], c.Contacts)}
 		if monthAgo != nil && monthAgo.Contacts > 0 {
 			before := []int64{monthAgo.Active, monthAgo.Cooling, monthAgo.AtRisk, monthAgo.Sunset}[i]
 			d := math.Round((card.Pct-share(before, monthAgo.Contacts))*10) / 10
@@ -121,9 +121,9 @@ func (s *Service) Health(ctx context.Context, ws *store.Workspace) (ListHealth, 
 	loc := workspaceLocation(ws)
 	for w := 11; w >= 0; w-- {
 		day := now.AddDate(0, 0, -7*w)
-		var tw TrendWeek
+		var tw HealthTrendWeek
 		if w == 0 {
-			tw = TrendWeek{Day: day}
+			tw = HealthTrendWeek{Day: day}
 			if c.Contacts > 0 {
 				tw.Active, tw.Cooling, tw.AtRisk, tw.Sunset = frac(c.Active, c.Contacts), frac(c.Cooling, c.Contacts), frac(c.AtRisk, c.Contacts), frac(c.Sunset, c.Contacts)
 			}
@@ -132,7 +132,7 @@ func (s *Service) Health(ctx context.Context, ws *store.Workspace) (ListHealth, 
 			if snap == nil || snap.Contacts == 0 {
 				continue
 			}
-			tw = TrendWeek{Day: snap.Day, Active: frac(snap.Active, snap.Contacts), Cooling: frac(snap.Cooling, snap.Contacts),
+			tw = HealthTrendWeek{Day: snap.Day, Active: frac(snap.Active, snap.Contacts), Cooling: frac(snap.Cooling, snap.Contacts),
 				AtRisk: frac(snap.AtRisk, snap.Contacts), Sunset: frac(snap.Sunset, snap.Contacts)}
 		}
 		out.Trend = append(out.Trend, tw)
@@ -186,8 +186,8 @@ func snapshotAt(rows []store.WorkspaceTierHistoryRow, t time.Time) *store.Worksp
 
 // thisWeek counts contacts entering Sunset and Broadcasts stopping in the
 // next 7 days, and the weekday most of them fall on.
-func (s *Service) thisWeek(ctx context.Context, ws *store.Workspace, p SunsetPolicy) (ThisWeek, error) {
-	var out ThisWeek
+func (s *Service) thisWeek(ctx context.Context, ws *store.Workspace, p SunsetPolicy) (SunsetThisWeek, error) {
+	var out SunsetThisWeek
 	if !p.Enabled {
 		return out, nil
 	}
@@ -246,7 +246,7 @@ func (s *Service) byDay(ctx context.Context, q string, ws uuid.UUID, now time.Ti
 }
 
 // healthRows builds a row per list and per followed view.
-func (s *Service) healthRows(ctx context.Context, ws *store.Workspace) ([]HealthRow, error) {
+func (s *Service) healthRows(ctx context.Context, ws *store.Workspace) ([]ListHealthRow, error) {
 	since := s.now().AddDate(0, 0, -30)
 	lists, err := s.Q.ListListsWithCounts(ctx, ws.ID)
 	if err != nil {
@@ -276,12 +276,12 @@ func (s *Service) healthRows(ctx context.Context, ws *store.Workspace) ([]Health
 	for _, t := range totals {
 		totalsBy[t.Scope+":"+t.ScopeID.String()] = t
 	}
-	out := []HealthRow{}
+	out := []ListHealthRow{}
 	for _, l := range lists {
 		m := mixBy[l.ID]
 		g := growthBy[l.ID]
-		row := HealthRow{Kind: "list", ID: l.ID.String(), Name: l.Name, Contacts: l.Subscribed,
-			Tiers: TierCounts{m.Active, m.Cooling, m.AtRisk, m.Sunset}, NetGrowth: g.Joined - g.Departed}
+		row := ListHealthRow{Kind: "list", ID: l.ID.String(), Name: l.Name, Contacts: l.Subscribed,
+			Tiers: AudienceTierCounts{m.Active, m.Cooling, m.AtRisk, m.Sunset}, NetGrowth: g.Joined - g.Departed}
 		applyRates(&row, totalsBy["list:"+l.ID.String()], 0)
 		out = append(out, row)
 	}
@@ -296,7 +296,7 @@ func (s *Service) healthRows(ctx context.Context, ws *store.Workspace) ([]Health
 		if err != nil {
 			continue
 		}
-		var row HealthRow
+		var row ListHealthRow
 		var pending int64
 		if err := s.Pool.QueryRow(ctx, `SELECT count(*), count(*) FILTER (WHERE c.tier = 'active'), count(*) FILTER (WHERE c.tier = 'cooling'),
 			count(*) FILTER (WHERE c.tier = 'at_risk'), count(*) FILTER (WHERE c.tier = 'sunset'), count(*) FILTER (WHERE c.consent = 'pending')
@@ -321,7 +321,7 @@ func rate(n, d int64, digits float64) *float64 {
 }
 
 // applyRates fills the 30-day rates and the health verdict.
-func applyRates(r *HealthRow, t store.ScopeTotalsSinceRow, pendingShare float64) {
+func applyRates(r *ListHealthRow, t store.ScopeTotalsSinceRow, pendingShare float64) {
 	r.HumanOpens = rate(t.OpenedHuman, t.Delivered, 10)
 	r.UnsubRate = rate(t.Unsubscribed, t.Delivered, 100)
 	r.ComplaintRate = rate(t.Complained, t.Delivered, 100)
@@ -347,8 +347,8 @@ func applyRates(r *HealthRow, t store.ScopeTotalsSinceRow, pendingShare float64)
 
 // insight explains the worst row, naming the mailbox provider most of its
 // contacts use ("The Mailchimp import drives most of the Outlook complaints").
-func (s *Service) insight(ctx context.Context, ws *store.Workspace, rows []HealthRow) (*HealthInsight, error) {
-	var worst *HealthRow
+func (s *Service) insight(ctx context.Context, ws *store.Workspace, rows []ListHealthRow) (*ListHealthInsight, error) {
+	var worst *ListHealthRow
 	for i := range rows {
 		r := &rows[i]
 		if r.HealthTone == "ok" {
@@ -379,7 +379,7 @@ func (s *Service) insight(ctx context.Context, ws *store.Workspace, rows []Healt
 		subject = "the " + emailaddr.MailboxName(mailbox)
 	}
 	if worst.Health == "Re-permission needed" {
-		return &HealthInsight{Text: fmt.Sprintf("The %s drives most of %s complaints. Sending them a re-permission email, then suppressing non-responders, usually fixes it within two sends.", name, subject)}, nil
+		return &ListHealthInsight{Text: fmt.Sprintf("The %s drives most of %s complaints. Sending them a re-permission email, then suppressing non-responders, usually fixes it within two sends.", name, subject)}, nil
 	}
-	return &HealthInsight{Text: fmt.Sprintf("%s needs attention: check its bounce and complaint rates and what changed in recent sends to it.", name)}, nil
+	return &ListHealthInsight{Text: fmt.Sprintf("%s needs attention: check its bounce and complaint rates and what changed in recent sends to it.", name)}, nil
 }

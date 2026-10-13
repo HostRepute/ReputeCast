@@ -81,7 +81,7 @@ type Compiled struct {
 
 // Compile turns a validated definition into SQL over the segment views.
 // The workspace is always the first bound value.
-func Compile(d Definition, workspaceID uuid.UUID, custom map[string]CustomField) Compiled {
+func Compile(d SegmentDefinition, workspaceID uuid.UUID, custom map[string]CustomField) Compiled {
 	var t sqlText
 	t.raw("SELECT c.id, c.email\nFROM contacts c\nWHERE c.workspace_id = ")
 	t.bind(uid(workspaceID))
@@ -119,7 +119,7 @@ func (c Compiled) Query(first int) (string, []any) {
 
 const indent = "\n               "
 
-func interval(c Condition) string {
+func interval(c SegmentCondition) string {
 	unit := c.Unit
 	if unit == "" {
 		unit = "days"
@@ -133,7 +133,7 @@ func interval(c Condition) string {
 
 // condition renders one condition. Field keys of custom fields are checked
 // against ^[a-z][a-z0-9_]*$ by Validate, so they're safe to inline.
-func condition(t *sqlText, c Condition, custom map[string]CustomField) {
+func condition(t *sqlText, c SegmentCondition, custom map[string]CustomField) {
 	switch c.Field {
 	case "mailbox_provider", "tier", "consent", "source", "country":
 		op := " = "
@@ -208,7 +208,7 @@ func condition(t *sqlText, c Condition, custom map[string]CustomField) {
 	}
 }
 
-func customCondition(t *sqlText, key string, f CustomField, c Condition) {
+func customCondition(t *sqlText, key string, f CustomField, c SegmentCondition) {
 	text := "c.fields->>'" + key + "'"
 	jsonv := "c.fields->'" + key + "'"
 	switch c.Op {

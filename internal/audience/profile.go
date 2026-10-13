@@ -24,8 +24,8 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// ProfileStats is the headline row of the profile (last 90 days).
-type ProfileStats struct {
+// ContactProfileStats is the headline row of the profile (last 90 days).
+type ContactProfileStats struct {
 	Emails90d  int64 `json:"emails90d"`
 	HumanOpens int64 `json:"humanOpens" doc:"Emails opened by a person"`
 	// HumanOpenRate is in percent of emails.
@@ -35,8 +35,8 @@ type ProfileStats struct {
 	LastOpenMachine bool       `json:"lastOpenMachine"`
 }
 
-// ProfileField is one row of the Fields card.
-type ProfileField struct {
+// ContactProfileField is one row of the Fields card.
+type ContactProfileField struct {
 	Key   string `json:"key"`
 	Label string `json:"label"`
 	Value string `json:"value"`
@@ -46,8 +46,8 @@ type ProfileField struct {
 	Display string `json:"display" enum:",currency"`
 }
 
-// ConsentEventView is one consent event of a list.
-type ConsentEventView struct {
+// ContactConsentEvent is one consent event of a list.
+type ContactConsentEvent struct {
 	Action         string    `json:"action"`
 	Source         string    `json:"source"`
 	SourceLabel    string    `json:"sourceLabel"`
@@ -59,24 +59,24 @@ type ConsentEventView struct {
 	At             time.Time `json:"at"`
 }
 
-// ListConsent is the consent state and history of one list.
-type ListConsent struct {
+// ContactListConsent is the consent state and history of one list.
+type ContactListConsent struct {
 	ListID      string             `json:"listId"`
 	Name        string             `json:"name"`
 	Status      string             `json:"status" enum:"subscribed,pending,unsubscribed,none"`
 	DoubleOptIn bool               `json:"doubleOptIn"`
-	Events      []ConsentEventView `json:"events"`
+	Events      []ContactConsentEvent `json:"events"`
 }
 
-// ProfilePreferences is what the subscriber chose in the preference center.
-type ProfilePreferences struct {
+// ContactProfilePreferences is what the subscriber chose in the preference center.
+type ContactProfilePreferences struct {
 	Frequency   string     `json:"frequency" enum:"all,weekly,monthly"`
 	PausedUntil *time.Time `json:"pausedUntil,omitempty"`
 	FewerEmails bool       `json:"fewerEmails"`
 }
 
-// ProfileSuppression says the address is on the suppression list.
-type ProfileSuppression struct {
+// ContactProfileSuppression says the address is on the suppression list.
+type ContactProfileSuppression struct {
 	ID     string    `json:"id"`
 	Reason string    `json:"reason"`
 	Scope  string    `json:"scope" enum:"all,marketing"`
@@ -98,12 +98,12 @@ type ContactProfile struct {
 	Source          string              `json:"source"`
 	SourceLabel     string              `json:"sourceLabel"`
 	RoleAddress     bool                `json:"roleAddress"`
-	Suppression     *ProfileSuppression `json:"suppression,omitempty"`
-	Stats           ProfileStats        `json:"stats"`
-	Fields          []ProfileField      `json:"fields"`
+	Suppression     *ContactProfileSuppression `json:"suppression,omitempty"`
+	Stats           ContactProfileStats        `json:"stats"`
+	Fields          []ContactProfileField      `json:"fields"`
 	Tags            []string            `json:"tags"`
-	Lists           []ListConsent       `json:"lists"`
-	Preferences     ProfilePreferences  `json:"preferences"`
+	Lists           []ContactListConsent       `json:"lists"`
+	Preferences     ContactProfilePreferences  `json:"preferences"`
 	ActivityTotal   int64               `json:"activityTotal"`
 }
 
@@ -133,19 +133,19 @@ func (s *Service) Profile(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		ID: c.ID.String(), Email: c.Email, FirstName: c.FirstName, LastName: c.LastName, Name: strings.TrimSpace(c.FirstName + " " + c.LastName),
 		Tier: c.Tier, Consent: c.Consent, MailboxProvider: c.MailboxProvider, MailboxLabel: MailboxLabel(c.MailboxProvider, c.MailboxDetail),
 		JoinedAt: c.CreatedAt, Source: c.Source, SourceLabel: segments.SourceLabel(c.Source), RoleAddress: c.RoleAddress,
-		Tags: c.Tags, Fields: []ProfileField{}, Lists: []ListConsent{}, Preferences: ProfilePreferences{Frequency: "all"},
+		Tags: c.Tags, Fields: []ContactProfileField{}, Lists: []ContactListConsent{}, Preferences: ContactProfilePreferences{Frequency: "all"},
 	}
 	if out.Tags == nil {
 		out.Tags = []string{}
 	}
 	if sup, err := s.Q.GetSuppressionByEmail(ctx, store.GetSuppressionByEmailParams{WorkspaceID: ws.ID, Email: c.Email}); err == nil {
-		out.Suppression = &ProfileSuppression{ID: sup.ID.String(), Reason: sup.Reason, Scope: sup.Scope, At: sup.CreatedAt}
+		out.Suppression = &ContactProfileSuppression{ID: sup.ID.String(), Reason: sup.Reason, Scope: sup.Scope, At: sup.CreatedAt}
 	}
 	eng, err := s.Q.ContactEngagementSince(ctx, store.ContactEngagementSinceParams{ContactID: &c.ID, Since: s.now().AddDate(0, 0, -90)})
 	if err != nil {
 		return out, err
 	}
-	out.Stats = ProfileStats{Emails90d: eng.Emails, HumanOpens: eng.HumanOpened, Clicks: eng.Clicked, LastOpenAt: c.LastOpenAt, LastOpenMachine: c.LastOpenMachine}
+	out.Stats = ContactProfileStats{Emails90d: eng.Emails, HumanOpens: eng.HumanOpened, Clicks: eng.Clicked, LastOpenAt: c.LastOpenAt, LastOpenMachine: c.LastOpenMachine}
 	if eng.Emails > 0 {
 		r := math.Round(float64(eng.HumanOpened)/float64(eng.Emails)*1000) / 10
 		out.Stats.HumanOpenRate = &r
@@ -174,8 +174,8 @@ func (s *Service) Profile(ctx context.Context, ws *store.Workspace, id uuid.UUID
 }
 
 // profileFields lists built-in fields, then custom fields, then language.
-func profileFields(c store.Contact, custom []store.CustomField) []ProfileField {
-	out := []ProfileField{
+func profileFields(c store.Contact, custom []store.CustomField) []ContactProfileField {
+	out := []ContactProfileField{
 		{Key: "first_name", Label: "First name", Value: c.FirstName, Type: "builtin"},
 		{Key: "last_name", Label: "Last name", Value: c.LastName, Type: "builtin"},
 		{Key: "company", Label: "Company", Value: c.Company, Type: "builtin"},
@@ -187,13 +187,13 @@ func profileFields(c store.Contact, custom []store.CustomField) []ProfileField {
 	if c.Timezone != "" {
 		loc = append(loc, c.Timezone)
 	}
-	out = append(out, ProfileField{Key: "country_timezone", Label: "Country · timezone", Value: strings.Join(loc, " · "), Type: "builtin"})
+	out = append(out, ContactProfileField{Key: "country_timezone", Label: "Country · timezone", Value: strings.Join(loc, " · "), Type: "builtin"})
 	var attrs map[string]any
 	_ = json.Unmarshal(c.Attributes, &attrs)
 	for _, f := range custom {
-		out = append(out, ProfileField{Key: f.Key, Label: f.Key, Value: attrString(attrs[f.Key]), Custom: true, Type: f.Type, Display: f.Display})
+		out = append(out, ContactProfileField{Key: f.Key, Label: f.Key, Value: attrString(attrs[f.Key]), Custom: true, Type: f.Type, Display: f.Display})
 	}
-	return append(out, ProfileField{Key: "language", Label: "Language", Value: c.Language, Type: "builtin"})
+	return append(out, ContactProfileField{Key: "language", Label: "Language", Value: c.Language, Type: "builtin"})
 }
 
 func attrString(v any) string {
@@ -230,12 +230,12 @@ func (s *Service) listConsent(ctx context.Context, ws *store.Workspace, c store.
 	for _, m := range members {
 		status[m.ListID] = m.Status
 	}
-	byList := map[uuid.UUID][]ConsentEventView{}
+	byList := map[uuid.UUID][]ContactConsentEvent{}
 	for _, e := range events {
 		if e.ListID == nil {
 			continue
 		}
-		v := ConsentEventView{Action: e.Action, Source: e.Source, SourceLabel: consentSourceLabel(e.Source), Detail: e.Detail, Note: e.Note,
+		v := ContactConsentEvent{Action: e.Action, Source: e.Source, SourceLabel: consentSourceLabel(e.Source), Detail: e.Detail, Note: e.Note,
 			Actor: e.ActorName, ConsentVersion: e.ConsentVersion, At: e.OccurredAt}
 		if e.Ip != nil {
 			v.IP = e.Ip.String()
@@ -249,9 +249,9 @@ func (s *Service) listConsent(ctx context.Context, ws *store.Workspace, c store.
 		}
 		ev := byList[l.ID]
 		if ev == nil {
-			ev = []ConsentEventView{}
+			ev = []ContactConsentEvent{}
 		}
-		out.Lists = append(out.Lists, ListConsent{ListID: l.ID.String(), Name: l.Name, Status: st, DoubleOptIn: l.DoubleOptIn, Events: ev})
+		out.Lists = append(out.Lists, ContactListConsent{ListID: l.ID.String(), Name: l.Name, Status: st, DoubleOptIn: l.DoubleOptIn, Events: ev})
 	}
 	return nil
 }
@@ -594,20 +594,20 @@ func (s *Service) SendConfirmations(ctx context.Context, ws *store.Workspace, id
 	return sent, nil
 }
 
-// ResendResult is the outcome of resending the opt-in email.
-type ResendResult struct {
+// OptInResendResult is the outcome of resending the opt-in email.
+type OptInResendResult struct {
 	Sent       bool   `json:"sent"`
 	ConfirmURL string `json:"confirmUrl,omitempty"`
 }
 
 // ResendOptIn sends the confirmation email again and records it.
-func (s *Service) ResendOptIn(ctx context.Context, ws *store.Workspace, id uuid.UUID) (ResendResult, error) {
+func (s *Service) ResendOptIn(ctx context.Context, ws *store.Workspace, id uuid.UUID) (OptInResendResult, error) {
 	c, err := s.getContact(ctx, s.Q, ws, id)
 	if err != nil {
-		return ResendResult{}, err
+		return OptInResendResult{}, err
 	}
 	if _, err := s.Q.GetSuppressionByEmail(ctx, store.GetSuppressionByEmailParams{WorkspaceID: ws.ID, Email: c.Email}); err == nil {
-		return ResendResult{}, api.Conflict(c.Email + " is on the suppression list, so no opt-in email can be sent.")
+		return OptInResendResult{}, api.Conflict(c.Email + " is on the suppression list, so no opt-in email can be sent.")
 	}
 	sent, url := s.sendConfirmation(ctx, ws, c)
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -622,9 +622,9 @@ func (s *Service) ResendOptIn(ctx context.Context, ws *store.Workspace, id uuid.
 			Metadata: map[string]any{"sent": sent}})
 	})
 	if err != nil {
-		return ResendResult{}, err
+		return OptInResendResult{}, err
 	}
-	out := ResendResult{Sent: sent}
+	out := OptInResendResult{Sent: sent}
 	if !sent {
 		out.ConfirmURL = url
 	}
@@ -646,13 +646,13 @@ func (s *Service) PreferenceLink(ctx context.Context, ws *store.Workspace, id uu
 	return url, err
 }
 
-// SuppressInput adds a contact to the suppression list by hand.
-type SuppressInput struct {
+// ContactSuppressInput adds a contact to the suppression list by hand.
+type ContactSuppressInput struct {
 	Reason string `json:"reason" minLength:"1" maxLength:"300" doc:"Why, for the audit log and the list"`
 }
 
 // SuppressContact puts a contact's address on the shared suppression list.
-func (s *Service) SuppressContact(ctx context.Context, ws *store.Workspace, id uuid.UUID, in SuppressInput) error {
+func (s *Service) SuppressContact(ctx context.Context, ws *store.Workspace, id uuid.UUID, in ContactSuppressInput) error {
 	c, err := s.getContact(ctx, s.Q, ws, id)
 	if err != nil {
 		return err

@@ -20,8 +20,8 @@ type contactExport struct {
 	Attributes  json.RawMessage     `json:"customFields"`
 	Evidence    json.RawMessage     `json:"consentEvidence"`
 	Messages    []exportMessage     `json:"messages"`
-	Events      []ActivityItem      `json:"events"`
-	Suppression *ProfileSuppression `json:"suppression,omitempty"`
+	Events      []ContactActivityItem      `json:"events"`
+	Suppression *ContactProfileSuppression `json:"suppression,omitempty"`
 }
 
 type exportMessage struct {
@@ -48,7 +48,7 @@ func (s *Service) ExportContact(ctx context.Context, ws *store.Workspace, id uui
 		return nil, "", err
 	}
 	out := contactExport{ExportedAt: s.now().UTC(), Workspace: ws.Name, Contact: prof, Attributes: c.Attributes, Evidence: c.ConsentEvidence,
-		Messages: []exportMessage{}, Events: []ActivityItem{}, Suppression: prof.Suppression}
+		Messages: []exportMessage{}, Events: []ContactActivityItem{}, Suppression: prof.Suppression}
 	rows, err := s.Pool.Query(ctx, `SELECT m.stream, m.email, coalesce(cp.name, a.name, ''), coalesce(p.name, ''), m.status, m.queued_at,
 		m.delivered_at, m.opened_at, m.clicked_at
 		FROM messages m LEFT JOIN campaigns cp ON cp.id = m.campaign_id LEFT JOIN automations a ON a.id = m.automation_id

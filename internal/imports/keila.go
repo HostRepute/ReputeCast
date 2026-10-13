@@ -49,10 +49,10 @@ type keilaPage struct {
 }
 
 // Connect implements Source.
-func (k *Keila) Connect(ctx context.Context) (Connection, error) {
+func (k *Keila) Connect(ctx context.Context) (ImportConnection, error) {
 	var page keilaPage
 	if err := k.c.get(ctx, "/contacts?paginate[page]=0&paginate[page_size]=1", &page); err != nil {
-		return Connection{}, err
+		return ImportConnection{}, err
 	}
 	var segs struct {
 		Data []struct {
@@ -60,7 +60,7 @@ func (k *Keila) Connect(ctx context.Context) (Connection, error) {
 		} `json:"data"`
 	}
 	if err := k.c.get(ctx, "/segments", &segs); err != nil {
-		return Connection{}, err
+		return ImportConnection{}, err
 	}
 	examples := []string{}
 	for _, s := range segs.Data {
@@ -68,9 +68,9 @@ func (k *Keila) Connect(ctx context.Context) (Connection, error) {
 	}
 	fields, err := k.Fields(ctx, nil)
 	if err != nil {
-		return Connection{}, err
+		return ImportConnection{}, err
 	}
-	return Connection{Account: "Keila project", BaseURL: strings.TrimSuffix(k.c.base, "/api/v1"), CheckedAt: time.Now(), Lists: []SourceList{{
+	return ImportConnection{Account: "Keila project", BaseURL: strings.TrimSuffix(k.c.base, "/api/v1"), CheckedAt: time.Now(), Lists: []ImportSourceList{{
 		ID: KeilaAllContacts, Name: "All contacts", Subscribed: int64(page.Meta.PageCount), Fields: len(fields), Tags: len(examples), TagExamples: examples,
 	}}}, nil
 }

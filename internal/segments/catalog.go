@@ -7,31 +7,31 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// Option is a value a condition can take.
-type Option struct {
+// SegmentOption is a value a condition can take.
+type SegmentOption struct {
 	Value string `json:"value"`
 	Label string `json:"label"`
 }
 
-// Operator is an operator a field supports.
-type Operator struct {
+// SegmentOperator is an operator a field supports.
+type SegmentOperator struct {
 	Key   string `json:"key"`
 	Label string `json:"label"`
 }
 
-// CatalogField is a field the builder can filter on.
-type CatalogField struct {
+// SegmentCatalogField is a field the builder can filter on.
+type SegmentCatalogField struct {
 	Key   string     `json:"key"`
 	Label string     `json:"label"`
 	Kind  string     `json:"kind" enum:"enum,list,campaign,text,number,date,boolean,period"`
-	Ops   []Operator `json:"ops"`
+	Ops   []SegmentOperator `json:"ops"`
 	// Options are the values of enum, list and campaign fields.
-	Options []Option `json:"options"`
+	Options []SegmentOption `json:"options"`
 }
 
-// Catalog describes everything the builder can offer.
-type Catalog struct {
-	Fields []CatalogField `json:"fields"`
+// SegmentCatalog describes everything the builder can offer.
+type SegmentCatalog struct {
+	Fields []SegmentCatalogField `json:"fields"`
 	// SQLEnabled is false when the database can't run SQL segments.
 	SQLEnabled bool `json:"sqlEnabled"`
 	// Views documents what SQL segments can read.
@@ -39,50 +39,50 @@ type Catalog struct {
 }
 
 // Catalog returns the fields, operators and values for the builder.
-func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (Catalog, error) {
+func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (SegmentCatalog, error) {
 	lists, err := s.Q.ListWorkspaceLists(ctx, ws.ID)
 	if err != nil {
-		return Catalog{}, err
+		return SegmentCatalog{}, err
 	}
 	campaigns, err := s.Q.RecentSentCampaigns(ctx, ws.ID)
 	if err != nil {
-		return Catalog{}, err
+		return SegmentCatalog{}, err
 	}
 	sources, err := s.Q.ContactSources(ctx, ws.ID)
 	if err != nil {
-		return Catalog{}, err
+		return SegmentCatalog{}, err
 	}
 	custom, err := s.Q.ListCustomFields(ctx, ws.ID)
 	if err != nil {
-		return Catalog{}, err
+		return SegmentCatalog{}, err
 	}
-	out := Catalog{Fields: []CatalogField{}, SQLEnabled: s.SQL.Available(ctx), Views: ViewNames}
-	ops := func(keys []string) []Operator {
-		o := make([]Operator, 0, len(keys))
+	out := SegmentCatalog{Fields: []SegmentCatalogField{}, SQLEnabled: s.SQL.Available(ctx), Views: ViewNames}
+	ops := func(keys []string) []SegmentOperator {
+		o := make([]SegmentOperator, 0, len(keys))
 		for _, k := range keys {
-			o = append(o, Operator{Key: k, Label: opLabels[k]})
+			o = append(o, SegmentOperator{Key: k, Label: opLabels[k]})
 		}
 		return o
 	}
 	for _, key := range builtinOrder {
 		spec := builtinFields[key]
-		f := CatalogField{Key: key, Label: spec.Label, Kind: string(spec.Kind), Ops: ops(spec.Ops), Options: []Option{}}
+		f := SegmentCatalogField{Key: key, Label: spec.Label, Kind: string(spec.Kind), Ops: ops(spec.Ops), Options: []SegmentOption{}}
 		switch key {
 		case "list":
 			for _, l := range lists {
-				f.Options = append(f.Options, Option{Value: l.ID.String(), Label: l.Name})
+				f.Options = append(f.Options, SegmentOption{Value: l.ID.String(), Label: l.Name})
 			}
 		case "opened_campaign":
 			for _, c := range campaigns {
-				f.Options = append(f.Options, Option{Value: c.ID.String(), Label: c.Name})
+				f.Options = append(f.Options, SegmentOption{Value: c.ID.String(), Label: c.Name})
 			}
 		case "source":
 			for _, src := range sources {
-				f.Options = append(f.Options, Option{Value: src.Source, Label: SourceLabel(src.Source)})
+				f.Options = append(f.Options, SegmentOption{Value: src.Source, Label: SourceLabel(src.Source)})
 			}
 		default:
 			for _, v := range enumValues[key] {
-				f.Options = append(f.Options, Option{Value: v[0], Label: v[1]})
+				f.Options = append(f.Options, SegmentOption{Value: v[0], Label: v[1]})
 			}
 		}
 		out.Fields = append(out.Fields, f)
@@ -97,7 +97,7 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (Catalog, er
 		case "boolean":
 			kind = KindBoolean
 		}
-		out.Fields = append(out.Fields, CatalogField{Key: "custom:" + c.Key, Label: "Custom field · " + c.Key, Kind: string(kind), Ops: ops(customOps(c.Type)), Options: []Option{}})
+		out.Fields = append(out.Fields, SegmentCatalogField{Key: "custom:" + c.Key, Label: "Custom field · " + c.Key, Kind: string(kind), Ops: ops(customOps(c.Type)), Options: []SegmentOption{}})
 	}
 	return out, nil
 }

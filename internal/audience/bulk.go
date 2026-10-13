@@ -30,8 +30,8 @@ type Selection struct {
 	Filter      ContactFilter `json:"filter,omitempty"`
 }
 
-// BulkInput is a bulk action on contacts.
-type BulkInput struct {
+// ContactBulkInput is a bulk action on contacts.
+type ContactBulkInput struct {
 	Selection
 	Action string `json:"action" enum:"add_to_list,add_tag,resend_optin,suppress"`
 	ListID string `json:"listId,omitempty" doc:"For add_to_list"`
@@ -39,20 +39,20 @@ type BulkInput struct {
 	Reason string `json:"reason,omitempty" maxLength:"300" doc:"For suppress"`
 }
 
-// BulkFailure is one contact the action couldn't apply to.
-type BulkFailure struct {
+// ContactBulkFailure is one contact the action couldn't apply to.
+type ContactBulkFailure struct {
 	Email  string `json:"email"`
 	Reason string `json:"reason"`
 }
 
-// BulkResult reports a bulk action ("Added 2,116 of 2,118 contacts to
+// ContactBulkResult reports a bulk action ("Added 2,116 of 2,118 contacts to
 // 'Re-permission'; 2 failed").
-type BulkResult struct {
+type ContactBulkResult struct {
 	Action   string        `json:"action"`
 	Matched  int64         `json:"matched"`
 	Done     int64         `json:"done"`
 	Failed   int64         `json:"failed"`
-	Failures []BulkFailure `json:"failures" doc:"Up to 20 examples"`
+	Failures []ContactBulkFailure `json:"failures" doc:"Up to 20 examples"`
 	// Target names the list or tag ("Re-permission").
 	Target string `json:"target,omitempty"`
 	// ConfirmURL is set when one opt-in email couldn't be sent and the link can be shared instead.
@@ -91,8 +91,8 @@ func (s *Service) selectIDs(ctx context.Context, ws *store.Workspace, sel Select
 }
 
 // Bulk applies an action to a selection of contacts.
-func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in BulkInput) (BulkResult, error) {
-	out := BulkResult{Action: in.Action, Failures: []BulkFailure{}}
+func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkInput) (ContactBulkResult, error) {
+	out := ContactBulkResult{Action: in.Action, Failures: []ContactBulkFailure{}}
 	ids, err := s.selectIDs(ctx, ws, in.Selection)
 	if err != nil {
 		return out, err
@@ -208,8 +208,8 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in BulkInput) (
 	return out, err
 }
 
-// EraseInput erases contacts' personal data.
-type EraseInput struct {
+// ContactEraseInput erases contacts' personal data.
+type ContactEraseInput struct {
 	Selection
 	// Confirm must be the number of contacts selected, typed by the person.
 	Confirm int64 `json:"confirm" doc:"The number of contacts, typed to confirm"`
@@ -218,8 +218,8 @@ type EraseInput struct {
 // Erase removes personal data of the selected contacts: names, fields,
 // tags, list memberships, consent history and preferences go; the address
 // is replaced. Suppressions stay, so an erased address is never mailed again.
-func (s *Service) Erase(ctx context.Context, ws *store.Workspace, in EraseInput) (BulkResult, error) {
-	out := BulkResult{Action: "erase", Failures: []BulkFailure{}}
+func (s *Service) Erase(ctx context.Context, ws *store.Workspace, in ContactEraseInput) (ContactBulkResult, error) {
+	out := ContactBulkResult{Action: "erase", Failures: []ContactBulkFailure{}}
 	ids, err := s.selectIDs(ctx, ws, in.Selection)
 	if err != nil {
 		return out, err
@@ -293,11 +293,11 @@ func (s *Service) idsWithout(ctx context.Context, tx pgx.Tx, ids []uuid.UUID, bl
 	return pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
 }
 
-func appendFailure(fs []BulkFailure, email, reason string) []BulkFailure {
+func appendFailure(fs []ContactBulkFailure, email, reason string) []ContactBulkFailure {
 	if len(fs) >= 20 {
 		return fs
 	}
-	return append(fs, BulkFailure{Email: email, Reason: reason})
+	return append(fs, ContactBulkFailure{Email: email, Reason: reason})
 }
 
 // insertConsentEvents records one consent event per contact.
@@ -334,14 +334,14 @@ func selectionMeta(sel Selection) map[string]any {
 	return map[string]any{"ids": len(sel.IDs)}
 }
 
-// ExportInput selects the contacts to export.
-type ExportInput struct {
+// ContactExportInput selects the contacts to export.
+type ContactExportInput struct {
 	Selection
 }
 
 // Export writes the selected contacts as CSV: built-in columns, lists and
 // every custom field. Every export is logged with its size and filter.
-func (s *Service) Export(ctx context.Context, ws *store.Workspace, in ExportInput) ([]byte, int, error) {
+func (s *Service) Export(ctx context.Context, ws *store.Workspace, in ContactExportInput) ([]byte, int, error) {
 	ids, err := s.selectIDs(ctx, ws, in.Selection)
 	if err != nil {
 		return nil, 0, err

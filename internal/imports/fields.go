@@ -42,8 +42,8 @@ var builtinTargets = []struct{ key, label, typ string }{
 	{TargetStatus, "Consent status", "status"},
 }
 
-// FieldChoice is one source field and where it goes.
-type FieldChoice struct {
+// ImportFieldChoice is one source field and where it goes.
+type ImportFieldChoice struct {
 	Source string `json:"source"`
 	// Target: a built-in field, custom:<key>, new:<key> or skip.
 	Target string `json:"target" maxLength:"80"`
@@ -53,29 +53,29 @@ type FieldChoice struct {
 
 // FieldMap is imports.field_map.
 type FieldMap struct {
-	Fields []FieldChoice `json:"fields"`
+	Fields []ImportFieldChoice `json:"fields"`
 }
 
-// FieldOption is a choice in a mapping select.
-type FieldOption struct {
+// ImportFieldOption is a choice in a mapping select.
+type ImportFieldOption struct {
 	Value string `json:"value"`
 	Label string `json:"label"`
 }
 
-// FieldRow is one row of the mapping table.
-type FieldRow struct {
+// ImportFieldRow is one row of the mapping table.
+type ImportFieldRow struct {
 	Source  string        `json:"source"`
 	Label   string        `json:"label"`
 	Samples []string      `json:"samples"`
 	Target  string        `json:"target"`
 	Type    string        `json:"type" doc:"What ReputeCast stores: email, text, number, date, timezone, consent, tags, or – when skipped"`
 	Status  string        `json:"status" enum:"mapped,new,skipped"`
-	Options []FieldOption `json:"options"`
+	Options []ImportFieldOption `json:"options"`
 }
 
-// FieldMapping is the "Map fields" step.
-type FieldMapping struct {
-	Fields  []FieldRow `json:"fields"`
+// ImportFieldMapping is the "Map fields" step.
+type ImportFieldMapping struct {
+	Fields  []ImportFieldRow `json:"fields"`
 	Mapped  int        `json:"mapped"`
 	New     int        `json:"new"`
 	Skipped int        `json:"skipped"`
@@ -87,7 +87,7 @@ func parseFieldMap(raw json.RawMessage) FieldMap {
 	var m FieldMap
 	_ = json.Unmarshal(raw, &m)
 	if m.Fields == nil {
-		m.Fields = []FieldChoice{}
+		m.Fields = []ImportFieldChoice{}
 	}
 	return m
 }
@@ -134,8 +134,8 @@ var aliases = map[string]string{
 }
 
 // guessTarget picks where a source field most likely goes.
-func guessTarget(f SourceField, custom map[string]store.CustomField) FieldChoice {
-	c := FieldChoice{Source: f.Key}
+func guessTarget(f SourceField, custom map[string]store.CustomField) ImportFieldChoice {
+	c := ImportFieldChoice{Source: f.Key}
 	n := norm(f.Key)
 	n = strings.TrimPrefix(strings.TrimPrefix(n, "attribs"), "data")
 	switch {
@@ -196,12 +196,12 @@ func newFieldType(f SourceField, samples []string) string {
 
 // Fields returns the mapping step: each source field with sample values,
 // its current or guessed target and the choices.
-func (s *Service) Fields(ctx context.Context, ws *store.Workspace, id uuid.UUID) (FieldMapping, error) {
+func (s *Service) Fields(ctx context.Context, ws *store.Workspace, id uuid.UUID) (ImportFieldMapping, error) {
 	imp, err := s.get(ctx, ws, id)
 	if err != nil {
-		return FieldMapping{}, err
+		return ImportFieldMapping{}, err
 	}
-	out := FieldMapping{Fields: []FieldRow{}}
+	out := ImportFieldMapping{Fields: []ImportFieldRow{}}
 	if imp.StagedAt == nil || imp.Status == "staging" {
 		return out, nil
 	}
@@ -215,7 +215,7 @@ func (s *Service) Fields(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	if err != nil {
 		return out, err
 	}
-	saved := map[string]FieldChoice{}
+	saved := map[string]ImportFieldChoice{}
 	for _, c := range parseFieldMap(imp.FieldMap).Fields {
 		saved[c.Source] = c
 	}
@@ -224,7 +224,7 @@ func (s *Service) Fields(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 		if !ok {
 			choice = guessTarget(f, custom)
 		}
-		row := FieldRow{Source: f.Key, Label: f.Label, Samples: samples[f.Key], Target: choice.Target, Options: targetOptions(f, custom)}
+		row := ImportFieldRow{Source: f.Key, Label: f.Label, Samples: samples[f.Key], Target: choice.Target, Options: targetOptions(f, custom)}
 		if row.Samples == nil {
 			row.Samples = []string{}
 		}
@@ -267,22 +267,22 @@ func targetType(target string, custom map[string]store.CustomField) string {
 }
 
 // targetOptions are the choices for one source field.
-func targetOptions(f SourceField, custom map[string]store.CustomField) []FieldOption {
+func targetOptions(f SourceField, custom map[string]store.CustomField) []ImportFieldOption {
 	if f.Type == "email" {
-		return []FieldOption{{TargetEmail, "email · required"}}
+		return []ImportFieldOption{{TargetEmail, "email · required"}}
 	}
-	out := []FieldOption{}
+	out := []ImportFieldOption{}
 	for _, b := range builtinTargets[1:] {
-		out = append(out, FieldOption{b.key, b.label})
+		out = append(out, ImportFieldOption{b.key, b.label})
 	}
 	for _, c := range sortedCustom(custom) {
-		out = append(out, FieldOption{"custom:" + c.Key, c.Key + " · custom, exists"})
+		out = append(out, ImportFieldOption{"custom:" + c.Key, c.Key + " · custom, exists"})
 	}
 	key := snakeKey(strings.TrimPrefix(strings.TrimPrefix(f.Key, "attribs."), "data."))
 	if _, exists := custom[key]; !exists {
-		out = append(out, FieldOption{"new:" + key, fmt.Sprintf("Create new field %q", key)})
+		out = append(out, ImportFieldOption{"new:" + key, fmt.Sprintf("Create new field %q", key)})
 	}
-	return append(out, FieldOption{TargetSkip, "Skip"})
+	return append(out, ImportFieldOption{TargetSkip, "Skip"})
 }
 
 func sortedCustom(m map[string]store.CustomField) []store.CustomField {
@@ -384,19 +384,19 @@ func firstNonEmpty(vs ...string) string {
 	return ""
 }
 
-// SaveFieldsInput is the mapping chosen by the person.
-type SaveFieldsInput struct {
-	Fields []FieldChoice `json:"fields" maxItems:"500"`
+// ImportSaveFieldsInput is the mapping chosen by the person.
+type ImportSaveFieldsInput struct {
+	Fields []ImportFieldChoice `json:"fields" maxItems:"500"`
 }
 
 // SaveFields stores the mapping and moves on to consent.
-func (s *Service) SaveFields(ctx context.Context, ws *store.Workspace, id uuid.UUID, in SaveFieldsInput) (FieldMapping, error) {
+func (s *Service) SaveFields(ctx context.Context, ws *store.Workspace, id uuid.UUID, in ImportSaveFieldsInput) (ImportFieldMapping, error) {
 	imp, err := s.get(ctx, ws, id)
 	if err != nil {
-		return FieldMapping{}, err
+		return ImportFieldMapping{}, err
 	}
 	if err := editable(imp); err != nil {
-		return FieldMapping{}, err
+		return ImportFieldMapping{}, err
 	}
 	conn := parseConnection(imp.Connection)
 	known := map[string]bool{}
@@ -405,32 +405,32 @@ func (s *Service) SaveFields(ctx context.Context, ws *store.Workspace, id uuid.U
 	}
 	custom, err := s.customFields(ctx, ws.ID)
 	if err != nil {
-		return FieldMapping{}, err
+		return ImportFieldMapping{}, err
 	}
 	emails := 0
 	newKeys := map[string]bool{}
 	for i, c := range in.Fields {
 		loc := fmt.Sprintf("body.fields[%d]", i)
 		if !known[c.Source] {
-			return FieldMapping{}, api.Invalid(loc+".source", fmt.Sprintf("%s isn't a field of this source.", c.Source))
+			return ImportFieldMapping{}, api.Invalid(loc+".source", fmt.Sprintf("%s isn't a field of this source.", c.Source))
 		}
 		switch {
 		case c.Target == TargetEmail:
 			emails++
 		case strings.HasPrefix(c.Target, "custom:"):
 			if _, ok := custom[strings.TrimPrefix(c.Target, "custom:")]; !ok {
-				return FieldMapping{}, api.Invalid(loc+".target", "That custom field doesn't exist any more.")
+				return ImportFieldMapping{}, api.Invalid(loc+".target", "That custom field doesn't exist any more.")
 			}
 		case strings.HasPrefix(c.Target, "new:"):
 			key := strings.TrimPrefix(c.Target, "new:")
 			if !regexp.MustCompile(`^[a-z][a-z0-9_]{0,62}$`).MatchString(key) {
-				return FieldMapping{}, api.Invalid(loc+".target", "New field keys use lowercase letters, digits and _.")
+				return ImportFieldMapping{}, api.Invalid(loc+".target", "New field keys use lowercase letters, digits and _.")
 			}
 			if _, ok := custom[key]; ok {
 				in.Fields[i].Target = "custom:" + key
 			}
 			if newKeys[key] {
-				return FieldMapping{}, api.Invalid(loc+".target", fmt.Sprintf("Two fields would both create %q.", key))
+				return ImportFieldMapping{}, api.Invalid(loc+".target", fmt.Sprintf("Two fields would both create %q.", key))
 			}
 			newKeys[key] = true
 			if c.Type == "" {
@@ -445,12 +445,12 @@ func (s *Service) SaveFields(ctx context.Context, ws *store.Workspace, id uuid.U
 				}
 			}
 			if !ok {
-				return FieldMapping{}, api.Invalid(loc+".target", "Pick a field from the list.")
+				return ImportFieldMapping{}, api.Invalid(loc+".target", "Pick a field from the list.")
 			}
 		}
 	}
 	if emails != 1 {
-		return FieldMapping{}, api.Invalid("body.fields", "Map exactly one field to email.")
+		return ImportFieldMapping{}, api.Invalid("body.fields", "Map exactly one field to email.")
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -464,7 +464,7 @@ func (s *Service) SaveFields(ctx context.Context, ws *store.Workspace, id uuid.U
 			TargetName: SourceName(imp.Source), After: in})
 	})
 	if err != nil {
-		return FieldMapping{}, err
+		return ImportFieldMapping{}, err
 	}
 	return s.Fields(ctx, ws, id)
 }

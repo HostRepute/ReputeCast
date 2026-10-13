@@ -99,9 +99,9 @@ type SuppressionCountsView struct {
 	Other       int64 `json:"other"`
 }
 
-// ProviderSync is a sending provider's suppression sync state (kept by the
+// SuppressionProviderSync is a sending provider's suppression sync state (kept by the
 // providers domain; shown here).
-type ProviderSync struct {
+type SuppressionProviderSync struct {
 	ProviderID string     `json:"providerId"`
 	Name       string     `json:"name"`
 	Adapter    string     `json:"adapter"`
@@ -114,8 +114,8 @@ type ProviderSync struct {
 	Detail     string `json:"detail"`
 }
 
-// FilterOption is a value of a filter select.
-type FilterOption struct {
+// SuppressionFilterOption is a value of a filter select.
+type SuppressionFilterOption struct {
 	Value string `json:"value"`
 	Label string `json:"label"`
 }
@@ -128,8 +128,8 @@ type SuppressionList struct {
 	Page     int                   `json:"page"`
 	PageSize int                   `json:"pageSize"`
 	Counts   SuppressionCountsView `json:"counts"`
-	Sync     []ProviderSync        `json:"sync"`
-	Sources  []FilterOption        `json:"sources"`
+	Sync     []SuppressionProviderSync        `json:"sync"`
+	Sources  []SuppressionFilterOption        `json:"sources"`
 }
 
 // SuppressionFilter narrows the list.
@@ -151,7 +151,7 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 	if page <= 0 {
 		page = 1
 	}
-	out := SuppressionList{Items: []SuppressionItem{}, Page: page, PageSize: pageSize, Sync: []ProviderSync{}, Sources: []FilterOption{}}
+	out := SuppressionList{Items: []SuppressionItem{}, Page: page, PageSize: pageSize, Sync: []SuppressionProviderSync{}, Sources: []SuppressionFilterOption{}}
 	fs := filterSQL{where: "s.workspace_id = $1", args: []any{ws.ID}}
 	if q := strings.TrimSpace(strings.ToLower(f.Q)); q != "" {
 		fs.add("s.email LIKE ?", "%"+escapeLike(q)+"%")
@@ -335,14 +335,14 @@ func suppressionSource(source, provider, adapter, user, importSource string) Sup
 	return SuppressionSource{Kind: source, Label: source}
 }
 
-func (s *Service) syncStates(ctx context.Context, ws *store.Workspace) ([]ProviderSync, error) {
+func (s *Service) syncStates(ctx context.Context, ws *store.Workspace) ([]SuppressionProviderSync, error) {
 	rows, err := s.Q.SuppressionSyncStates(ctx, ws.ID)
 	if err != nil {
 		return nil, err
 	}
-	out := make([]ProviderSync, 0, len(rows))
+	out := make([]SuppressionProviderSync, 0, len(rows))
 	for _, r := range rows {
-		ps := ProviderSync{ProviderID: r.ID.String(), Name: r.Name, Adapter: r.Adapter, Pulled: r.Pulled, Pushed: r.Pushed, Detail: r.StatusDetail}
+		ps := SuppressionProviderSync{ProviderID: r.ID.String(), Name: r.Name, Adapter: r.Adapter, Pulled: r.Pulled, Pushed: r.Pushed, Detail: r.StatusDetail}
 		switch r.Adapter {
 		case "ses":
 			ps.PulledNote = "pulled from the account-level list"
@@ -371,14 +371,14 @@ func (s *Service) syncStates(ctx context.Context, ws *store.Workspace) ([]Provid
 	return out, nil
 }
 
-func (s *Service) suppressionSources(ctx context.Context, ws *store.Workspace) ([]FilterOption, error) {
-	out := []FilterOption{}
+func (s *Service) suppressionSources(ctx context.Context, ws *store.Workspace) ([]SuppressionFilterOption, error) {
+	out := []SuppressionFilterOption{}
 	provs, err := s.Q.WorkspaceProviders(ctx, ws.ID)
 	if err != nil {
 		return out, err
 	}
 	for _, p := range provs {
-		out = append(out, FilterOption{Value: "provider:" + p.ID.String(), Label: p.Name})
+		out = append(out, SuppressionFilterOption{Value: "provider:" + p.ID.String(), Label: p.Name})
 	}
 	rows, err := s.Pool.Query(ctx, `SELECT DISTINCT i.id, i.source, i.created_at FROM suppressions s JOIN imports i ON i.id = s.import_id
 		WHERE s.workspace_id = $1 ORDER BY i.created_at DESC LIMIT 10`, ws.ID)
@@ -393,15 +393,15 @@ func (s *Service) suppressionSources(ctx context.Context, ws *store.Workspace) (
 		if err := rows.Scan(&id, &src, &at); err != nil {
 			return out, err
 		}
-		out = append(out, FilterOption{Value: "import:" + id.String(), Label: importerLabel(src) + " import"})
+		out = append(out, SuppressionFilterOption{Value: "import:" + id.String(), Label: importerLabel(src) + " import"})
 	}
-	out = append(out, FilterOption{Value: "manual", Label: "Manual"}, FilterOption{Value: "preference_center", Label: "Preference center"},
-		FilterOption{Value: "one_click", Label: "List-Unsubscribe one-click"})
+	out = append(out, SuppressionFilterOption{Value: "manual", Label: "Manual"}, SuppressionFilterOption{Value: "preference_center", Label: "Preference center"},
+		SuppressionFilterOption{Value: "one_click", Label: "List-Unsubscribe one-click"})
 	return out, rows.Err()
 }
 
-// AddResult reports how many addresses were added.
-type AddResult struct {
+// SuppressionAddResult reports how many addresses were added.
+type SuppressionAddResult struct {
 	Added   int      `json:"added"`
 	Already int      `json:"already" doc:"Already on the list"`
 	Invalid []string `json:"invalid" doc:"Values that aren't addresses"`
@@ -414,12 +414,12 @@ type AddSuppressionsInput struct {
 }
 
 // AddSuppressions adds addresses to the shared suppression list by hand.
-func (s *Service) AddSuppressions(ctx context.Context, ws *store.Workspace, in AddSuppressionsInput) (AddResult, error) {
+func (s *Service) AddSuppressions(ctx context.Context, ws *store.Workspace, in AddSuppressionsInput) (SuppressionAddResult, error) {
 	return s.addSuppressions(ctx, ws, in.Emails, "manual", strings.TrimSpace(in.Note))
 }
 
-func (s *Service) addSuppressions(ctx context.Context, ws *store.Workspace, emails []string, source, note string) (AddResult, error) {
-	res := AddResult{Invalid: []string{}}
+func (s *Service) addSuppressions(ctx context.Context, ws *store.Workspace, emails []string, source, note string) (SuppressionAddResult, error) {
+	res := SuppressionAddResult{Invalid: []string{}}
 	valid := []string{}
 	seen := map[string]bool{}
 	for _, raw := range emails {
@@ -567,15 +567,15 @@ func csvSafe(vals ...string) []string {
 	return out
 }
 
-// UploadResult reports a CSV upload of addresses.
-type UploadResult struct {
-	AddResult
+// SuppressionUploadResult reports a CSV upload of addresses.
+type SuppressionUploadResult struct {
+	SuppressionAddResult
 	Rows int `json:"rows"`
 }
 
 // UploadSuppressions reads addresses from a CSV (an "email" column, or the
 // first column) and adds them with the given reason.
-func (s *Service) UploadSuppressions(ctx context.Context, ws *store.Workspace, body []byte, fileName, reason, note string) (UploadResult, error) {
+func (s *Service) UploadSuppressions(ctx context.Context, ws *store.Workspace, body []byte, fileName, reason, note string) (SuppressionUploadResult, error) {
 	r := csv.NewReader(bytes.NewReader(bytes.TrimPrefix(body, []byte("\xef\xbb\xbf"))))
 	r.FieldsPerRecord = -1
 	r.LazyQuotes = true
@@ -589,7 +589,7 @@ func (s *Service) UploadSuppressions(ctx context.Context, ws *store.Workspace, b
 			break
 		}
 		if err != nil {
-			return UploadResult{}, api.Invalid("body", fmt.Sprintf("%s isn't a readable CSV: %v.", fileName, err))
+			return SuppressionUploadResult{}, api.Invalid("body", fmt.Sprintf("%s isn't a readable CSV: %v.", fileName, err))
 		}
 		if header {
 			header = false
@@ -608,21 +608,21 @@ func (s *Service) UploadSuppressions(ctx context.Context, ws *store.Workspace, b
 			rows++
 		}
 		if rows > 100000 {
-			return UploadResult{}, api.Invalid("body", "Upload at most 100,000 addresses at a time.")
+			return SuppressionUploadResult{}, api.Invalid("body", "Upload at most 100,000 addresses at a time.")
 		}
 	}
 	if len(emails) == 0 {
-		return UploadResult{}, api.Invalid("body", "The file has no addresses. Put them in a column named email.")
+		return SuppressionUploadResult{}, api.Invalid("body", "The file has no addresses. Put them in a column named email.")
 	}
 	if reason == "" {
 		reason = "manual"
 	}
 	res, err := s.addUploaded(ctx, ws, emails, reason, note, fileName)
-	return UploadResult{AddResult: res, Rows: rows}, err
+	return SuppressionUploadResult{SuppressionAddResult: res, Rows: rows}, err
 }
 
-func (s *Service) addUploaded(ctx context.Context, ws *store.Workspace, emails []string, reason, note, fileName string) (AddResult, error) {
-	res := AddResult{Invalid: []string{}}
+func (s *Service) addUploaded(ctx context.Context, ws *store.Workspace, emails []string, reason, note, fileName string) (SuppressionAddResult, error) {
+	res := SuppressionAddResult{Invalid: []string{}}
 	actor := actorID(ctx)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -653,14 +653,14 @@ func (s *Service) addUploaded(ctx context.Context, ws *store.Workspace, emails [
 	return res, err
 }
 
-// PullResult reports suppressions pulled from sending providers.
-type PullResult struct {
-	Providers []PullProvider `json:"providers"`
+// SuppressionPullResult reports suppressions pulled from sending providers.
+type SuppressionPullResult struct {
+	Providers []SuppressionPullProvider `json:"providers"`
 	Added     int            `json:"added"`
 }
 
-// PullProvider is one provider's part of a pull.
-type PullProvider struct {
+// SuppressionPullProvider is one provider's part of a pull.
+type SuppressionPullProvider struct {
 	Name    string `json:"name"`
 	Pulled  int    `json:"pulled"`
 	Added   int    `json:"added"`
@@ -677,8 +677,8 @@ type Box interface {
 // shared list doesn't have yet. Regular two-way sync is the providers
 // domain's job; this is the one-off pull offered by the importer and the
 // suppression list.
-func (s *Service) PullFromProviders(ctx context.Context, ws *store.Workspace, box Box) (PullResult, error) {
-	out := PullResult{Providers: []PullProvider{}}
+func (s *Service) PullFromProviders(ctx context.Context, ws *store.Workspace, box Box) (SuppressionPullResult, error) {
+	out := SuppressionPullResult{Providers: []SuppressionPullProvider{}}
 	rows, err := s.Pool.Query(ctx, `SELECT id, name, adapter, config, credentials_enc FROM providers WHERE workspace_id = $1 AND disconnected_at IS NULL ORDER BY connected_at`, ws.ID)
 	if err != nil {
 		return out, err
@@ -701,7 +701,7 @@ func (s *Service) PullFromProviders(ctx context.Context, ws *store.Workspace, bo
 	}
 	rows.Close()
 	for _, p := range provs {
-		pp := PullProvider{Name: p.name}
+		pp := SuppressionPullProvider{Name: p.name}
 		desc, ok := providers.Lookup(p.adapter)
 		if !ok || desc.New == nil {
 			pp.Skipped = "adapter not installed"

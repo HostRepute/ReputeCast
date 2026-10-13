@@ -63,8 +63,8 @@ func (s *Service) newSource(src string, c credentials) (Source, error) {
 	return nil, fmt.Errorf("unknown source %q", src)
 }
 
-// ConnectInput is the API key (and server for self-hosted tools).
-type ConnectInput struct {
+// ImportConnectInput is the API key (and server for self-hosted tools).
+type ImportConnectInput struct {
 	APIKey  string `json:"apiKey" minLength:"1" maxLength:"500" doc:"Write-only: stored encrypted, never returned"`
 	User    string `json:"user,omitempty" maxLength:"200" doc:"listmonk API user"`
 	BaseURL string `json:"baseUrl,omitempty" maxLength:"500" format:"uri" doc:"listmonk or Keila server address"`
@@ -72,7 +72,7 @@ type ConnectInput struct {
 
 // Connect checks the key against the source, stores it encrypted and
 // returns the account and its lists.
-func (s *Service) Connect(ctx context.Context, ws *store.Workspace, id uuid.UUID, in ConnectInput) (ImportDetail, error) {
+func (s *Service) Connect(ctx context.Context, ws *store.Workspace, id uuid.UUID, in ImportConnectInput) (ImportDetail, error) {
 	imp, err := s.get(ctx, ws, id)
 	if err != nil {
 		return ImportDetail{}, err
@@ -102,15 +102,15 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	if err != nil {
 		return ImportDetail{}, err
 	}
-	stored := storedConnection{Connection: conn}
+	stored := storedConnection{ImportConnection: conn}
 	if prev := parseConnection(imp.Connection); len(prev.Fields) > 0 {
 		stored.Fields, stored.StagedLists = prev.Fields, prev.StagedLists
 	}
 	opts := parseOptions(imp.Options)
 	if len(opts.Lists) == 0 && len(conn.Lists) > 0 {
-		opts.Lists = []ListChoice{}
+		opts.Lists = []ImportListChoice{}
 		for _, l := range conn.Lists {
-			opts.Lists = append(opts.Lists, ListChoice{SourceID: l.ID})
+			opts.Lists = append(opts.Lists, ImportListChoice{SourceID: l.ID})
 		}
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -205,7 +205,7 @@ func (s *Service) Upload(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	}
 	f := &FileSource{Name: name, Kind: kind, Data: data}
 	conn, cerr := f.Connect(ctx)
-	stored := storedConnection{Connection: conn}
+	stored := storedConnection{ImportConnection: conn}
 	if cerr != nil {
 		var fe *FileError
 		if !errors.As(cerr, &fe) {
@@ -215,13 +215,13 @@ func (s *Service) Upload(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 		stored.BadRows, stored.Header = fe.BadRows, fe.Header
 		stored.Account = name
 		if stored.Lists == nil {
-			stored.Lists = []SourceList{}
+			stored.Lists = []ImportSourceList{}
 		}
 	} else if fields, err := f.Fields(ctx, nil); err == nil {
 		stored.Fields = fields
 	}
 	opts := parseOptions(imp.Options)
-	opts.Lists = []ListChoice{{SourceID: FileListID, Target: firstTarget(opts.Lists)}}
+	opts.Lists = []ImportListChoice{{SourceID: FileListID, Target: firstTarget(opts.Lists)}}
 	opts.SkipRows = []int{}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -248,7 +248,7 @@ func (s *Service) Upload(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 
 func isZip(b []byte) bool { return len(b) > 4 && b[0] == 'P' && b[1] == 'K' && b[2] == 3 && b[3] == 4 }
 
-func firstTarget(ls []ListChoice) string {
+func firstTarget(ls []ImportListChoice) string {
 	for _, l := range ls {
 		if l.Target != "" {
 			return l.Target
@@ -281,7 +281,7 @@ func (s *Service) SkipBadRows(ctx context.Context, ws *store.Workspace, id uuid.
 		return ImportDetail{}, sourceProblem(err)
 	}
 	fields, _ := f.Fields(ctx, nil)
-	stored := storedConnection{Connection: c, Fields: fields}
+	stored := storedConnection{ImportConnection: c, Fields: fields}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if _, err := tx.Exec(ctx, `UPDATE imports SET connection = $2, options = $3, updated_at = now() WHERE id = $1`, imp.ID, mustJSON(stored), mustJSON(opts)); err != nil {
