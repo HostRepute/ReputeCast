@@ -84,7 +84,8 @@ export function unchangedText(changes: Change[], snapshot: Schemas['ApprovalSnap
   const parts: string[] = []
   if (!fields.has('audience')) {
     const pct = audience ? ` (${audience.changePct >= 0 ? '+' : '−'}${Math.abs(audience.changePct).toFixed(1)}%)` : ''
-    parts.push(`Audience ${(audience?.current ?? snapshot.audienceCount).toLocaleString('en-US')}${pct}`)
+    // The approved count, with how far it moved since (ApprovalStates: "Audience 47,912 (+0.3%)").
+    parts.push(`Audience ${snapshot.audienceCount.toLocaleString('en-US')}${pct}`)
   }
   if (!fields.has('route')) parts.push('route')
   if (!fields.has('schedule')) parts.push(snapshot.scheduleMode === 'now' ? 'schedule: send now' : `schedule ${snapshot.scheduleText}`)
@@ -114,6 +115,12 @@ export function PersonLine({ person, line, size = 28 }: { person: Person; line?:
 }
 
 /** "Linh Nguyen or Marcus Chen". */
+/** The approver who decided first, then the others (who was told, in the boards' order). */
+export function deciderFirst(people: Person[], decidedBy?: string | null): Person[] {
+  const i = decidedBy ? people.findIndex((p) => p.name === decidedBy) : -1
+  return i > 0 ? [people[i]!, ...people.slice(0, i), ...people.slice(i + 1)] : people
+}
+
 export function approverNames(people: Person[], join: 'or' | 'and' | 'comma' = 'or'): string {
   const names = people.map((p) => p.name || p.email)
   return join === 'or' ? orList(names) : join === 'and' ? andList(names) : names.join(', ')

@@ -13,7 +13,7 @@ import { count, monthDayTime, shortDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { deniedReason, useMe, useWorkspace } from '@/lib/session'
 import { statusWord as campaignWord } from '@/features/composer/format'
-import { approverNames } from '@/features/approvals/parts'
+import { approverNames, deciderFirst } from '@/features/approvals/parts'
 import { approvalMode, ApprovedCard, BypassDialog, canRestore, HeldActions, HeldCard, InvalidatedCard, RequiredCard, WaitingCard } from './ApprovalCard'
 import { AudienceCard, finalCount, RouteCard, ScheduleNote, SchedulingCard, TestSendsCard, ThresholdsCard, ThrottlingCard } from './Aside'
 import { Checklist, RunningList, UnknownList } from './Checklist'
@@ -379,7 +379,10 @@ function ReviewBody({
   let top: ReactNode
   if (d.held) {
     const req = d.approval.request
-    const people = [req ? `${req.requestedBy.name} (author)` : '', d.approval.approvers.length ? `${approverNames(d.approval.approvers, 'and')} (approvers)` : '']
+    const people = [
+      req ? `${req.requestedBy.name} (author)` : '',
+      d.approval.approvers.length ? `${approverNames(deciderFirst(d.approval.approvers, req?.decidedBy), 'and')} (approvers)` : '',
+    ]
       .filter(Boolean)
       .join(', ')
     top = (

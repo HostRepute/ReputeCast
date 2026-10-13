@@ -1,4 +1,4 @@
-import { approvalMode, heldNote } from './ApprovalCard'
+import { approvalMode, heldNote, heldSentence } from './ApprovalCard'
 import {
   acknowledgements,
   agoWords,
@@ -79,7 +79,7 @@ describe('schedule and time words', () => {
 })
 
 describe('thresholds', () => {
-  const t: Thresholds = { bounce: 2, complaint: 0.1, mailboxComplaint: 0.1, providerErrors: 5, action: 'route' } as Thresholds
+  const t: Thresholds = { bounce: 2, complaint: 0.1, mailboxComplaint: 0.1, providerErrors: 5, scope: 'route' }
   it('reads what people type', () => {
     expect(parsePercent('2,5 %')).toBe(2.5)
     expect(parsePercent('0.10%')).toBe(0.1)
@@ -147,6 +147,13 @@ describe('approval states', () => {
     expect(approvalMode(review('scheduled', { status: 'rejected' }, scheduled))).toBe('none')
     expect(approvalMode(review('scheduled', { status: 'rejected', requestedAt: '2026-10-12T11:00:00Z' }, scheduled))).toBe('required')
     expect(approvalMode(review('sending', { status: 'invalidated' }))).toBe('none')
+  })
+
+  it('says why a send was held in one sentence', () => {
+    expect(heldSentence('Sending would hurt inbox placement for every recipient.')).toBe(
+      'Sending would hurt inbox placement for every recipient, so the approved send was held.',
+    )
+    expect(heldSentence('')).toBe('The approved send was held.')
   })
 
   it('says what fixing a held send does to the approval', () => {

@@ -18,7 +18,7 @@ import { AccessTable } from '@/features/access/parts'
 import { HeldCard, HeldActions } from '@/features/review/ApprovalCard'
 import { agoWords, countsShort, groupTitles, groupWords, linkParts, minutes, providerColor, verdictTitle, zonedWhen } from '@/features/review/logic'
 import { AppHref, CheckBadge, whenText } from '@/features/review/parts'
-import { ApprovalStatusBadge, approverNames, decidedText, DiffLines, requestTone, unchangedText, type Change } from './parts'
+import { ApprovalStatusBadge, approverNames, decidedText, deciderFirst, DiffLines, requestTone, unchangedText, type Change } from './parts'
 import '@/features/review/review.css'
 
 type Detail = Schemas['ApprovalDetail']
@@ -180,7 +180,7 @@ function DetailBody({ detail: d }: { detail: Detail }) {
               held={d.held}
               scheduledAt={d.campaign?.scheduledAt}
               approved={d.status === 'approved' && d.decidedAt ? `v${d.version} by ${d.decidedBy}, ${monthDayTime(d.decidedAt)} · still valid: nothing in the snapshot changed` : undefined}
-              notified={`${d.author.name} (author), ${approverNames(d.approvers, 'and')} (approvers) · in-app and email at ${whenText(d.held.since)}`}
+              notified={`${d.author.name} (author), ${approverNames(deciderFirst(d.approvers, d.decidedBy), 'and')} (approvers) · in-app and email at ${whenText(d.held.since)}`}
             >
               <HeldActions held={d.held} busy={busy} onApply={(b, f) => void applyFix(b, f)} onCancel={canEdit ? () => void unschedule() : undefined} />
             </HeldCard>
@@ -256,7 +256,9 @@ function InvalidatedCard({ detail: d, busy, onApprove, onChanges }: { detail: De
   const approved = d.decisions.filter((x) => x.decision === 'approve')
   const last = approved[approved.length - 1]
   const next = d.campaign?.currentVersion || d.version
-  const notified = d.approvers.map((p) => p.name.split(' ')[0]).join(' and ')
+  const notified = deciderFirst(d.approvers, last?.approver.name)
+    .map((p) => p.name.split(' ')[0])
+    .join(' and ')
   const scheduled = d.campaign?.scheduledAt ? 'the send stays scheduled but won’t start without a new approval' : 'the send won’t start without a new approval'
   return (
     <section className="card" aria-labelledby="ap-inval">

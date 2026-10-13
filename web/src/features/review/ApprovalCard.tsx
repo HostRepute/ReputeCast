@@ -405,8 +405,7 @@ export function HeldCard({
                   ) : (
                     <Mono text={`${b.title}.`} />
                   )}{' '}
-                  {b.detail ? `${b.detail} ` : ''}
-                  The approved send was held.
+                  {heldSentence(b.detail)}
                 </span>
               </div>
             )
@@ -440,6 +439,12 @@ export function HeldCard({
       </div>
     </section>
   )
+}
+
+/** "Sending would hurt inbox placement for every recipient, so the approved send was held." */
+export function heldSentence(detail?: string): string {
+  const d = detail?.trim().replace(/[.\s]+$/, '')
+  return d ? `${d}, so the approved send was held.` : 'The approved send was held.'
 }
 
 /** What fixing the blocks does to the approval, for the held card. */

@@ -309,9 +309,11 @@ const novemberPreheader = "Plus: the new team permissions and what changed in ap
 // is the short teaser the approval review previews (ApprovalReview board):
 // a header (its name and date stay side by side on phones), a teal banner,
 // the headline with an excerpt and a button, and the footer, sized so the
-// review's preview (the email at 70%) draws it as the board does. Its button goes through bit.ly (the URL-shortener warning of the
-// sample data). The banner is a coloured block, not an image, so the short
-// email stays under the image-to-text warning.
+// review's preview (the email at 70%) draws it as the board does. Its third
+// link, the button, goes through bit.ly (the URL-shortener warning of the
+// sample data; ApprovalStates replaces "Link 3"). The banner is a coloured
+// block, not an image, so the short email stays under the image-to-text
+// warning.
 func novemberMJML(stage int) string {
 	date := ""
 	if stage >= 2 {
@@ -372,7 +374,7 @@ func novemberMJML(stage int) string {
     <!-- rc:article -->
     <mj-section background-color="#ffffff" padding="17.1px 20px">
       <mj-column>
-        <mj-text font-size="20px" line-height="29px" font-weight="700" color="#0B1220" padding="0px 0px 8.6px">` + headline + `</mj-text>
+        <mj-text font-size="20px" line-height="29px" font-weight="700" color="#0B1220" padding="0px 0px 8.6px"><a href="https://acme.io/blog/november-2026-update" style="color:#0B1220;text-decoration:none">` + headline + `</a></mj-text>
         <mj-text padding="0px 0px 8.6px">` + excerpt + `</mj-text>
         <mj-button href="` + button + `" align="left" background-color="#0F766E" color="#ffffff" font-size="15.7px" font-weight="600" line-height="22.8px" border-radius="8.6px" inner-padding="8.6px 14.3px" padding="0px">Read the update</mj-button>
       </mj-column>
