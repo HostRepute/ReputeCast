@@ -16,6 +16,7 @@ import { useWorkspace } from '@/lib/session'
 import { AdminPage } from '../AdminPage'
 import { useInvalidateSSO } from '../queries'
 import { EnforcementDialog } from './EnforcementDialog'
+import { richHint, shortURL } from './hints'
 import { finishTestPopup, onTestDone, openTestPopup } from './testSignIn'
 
 type Detail = Schemas['SSOProviderDetail']
@@ -334,47 +335,6 @@ function presetIssuer(presets: Preset[], key: string) {
 /** A date without a time ("Apr 10, 2027"), the same in every timezone. */
 function dateOnly(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-/**
- * A preset hint as on the boards: the IdP's menu path in bold ("open
- * Token configuration → Add groups claim") and URLs in mono.
- */
-function richHint(text: string): ReactNode {
-  const parts: ReactNode[] = []
-  let key = 0
-  const pushText = (s: string) => {
-    const m = /open ((?:[^.→]+ → )+[^.→]+?)(?= and | to |,|\.)/.exec(s)
-    if (!m) {
-      parts.push(s)
-      return
-    }
-    const start = m.index + 'open '.length
-    parts.push(s.slice(0, start), <b key={key++}>{m[1]}</b>, s.slice(start + m[1]!.length))
-  }
-  let last = 0
-  for (const m of text.matchAll(/https?:\/\/[^\s,]+[^\s,.]/g)) {
-    pushText(text.slice(last, m.index))
-    parts.push(
-      <span key={key++} className="mono">
-        {m[0]}
-      </span>,
-    )
-    last = m.index + m[0].length
-  }
-  pushText(text.slice(last))
-  return <>{parts}</>
-}
-
-/** "…/acme/v2.0/.well-known/openid-configuration" */
-function shortURL(u?: string) {
-  if (!u) return ''
-  try {
-    const x = new URL(u)
-    return `…${x.pathname}`
-  } catch {
-    return u
-  }
 }
 
 function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { preset: Preset; onDiscovered: (d: Detail) => void }) {
