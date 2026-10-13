@@ -30,7 +30,7 @@ type ExternalSignIn struct {
 	// MFA: the IdP asserted a second factor (amr) or is trusted to enforce it.
 	MFA      bool
 	Remember bool
-	// Metadata is added to the auth.sign_in audit entry (provider, amr…).
+	// Metadata is added to the signin.succeeded audit entry (provider, amr…).
 	Metadata map[string]any
 }
 

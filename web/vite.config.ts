@@ -58,6 +58,7 @@ export default defineConfig({
       '/api': { target: backend, changeOrigin: false },
       '/hooks': { target: backend, changeOrigin: false },
       '/p/': { target: backend, changeOrigin: false },
+      '/media/': { target: backend, changeOrigin: false },
       // SSO and social sign-in callbacks (their URLs are registered at the IdP).
       '/auth/': { target: backend, changeOrigin: false },
     },

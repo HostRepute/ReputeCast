@@ -204,6 +204,16 @@ func (s *Service) SyncProvider(ctx context.Context, p store.Provider) error {
 			cctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 			err = syncer.AddSuppressions(cctx, emails)
 			cancel()
+			if errors.Is(err, providers.ErrNotSupported) {
+				// The provider lists its suppressions but takes none over
+				// its API (Brevo): a two-way sync pulls only from now on,
+				// and a push-only one has nothing left to do.
+				next.Mode = "pull"
+				if cur.Mode == "push" {
+					next.Mode = "off"
+				}
+				break
+			}
 			if err != nil {
 				return fail("push", err)
 			}
