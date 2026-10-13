@@ -4,6 +4,75 @@
  */
 
 export interface paths {
+    "/api/v1/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every audit entry on the instance, newest first */
+        get: operations["list-instance-audit-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit/events/{eventId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One audit entry of any workspace or of the instance */
+        get: operations["get-instance-audit-event"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export matching entries as CSV or JSON (streamed) */
+        get: operations["export-instance-audit-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Retention and stream of the instance-level entries */
+        get: operations["get-instance-audit-settings"];
+        /** Change the instance retention or stream instance events to a webhook */
+        put: operations["update-instance-audit-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/instance": {
         parameters: {
             query?: never;
@@ -3618,6 +3687,10 @@ export interface components {
             lastOkAt?: string;
             url?: string;
         };
+        AuditWorkspaceRef: {
+            name: string;
+            slug: string;
+        };
         "Auth-identifyRequest": {
             /** Format: email */
             email: string;
@@ -4890,6 +4963,64 @@ export interface components {
         InstanceAdminInput: {
             admin: boolean;
         };
+        InstanceAuditDetail: {
+            adminPath?: string;
+            after?: unknown;
+            before?: unknown;
+            client?: string;
+            diff: components["schemas"]["AuditDiffLine"][];
+            event: components["schemas"]["AuditEventItem"];
+            ip?: string;
+            json: unknown;
+            link?: string;
+            linkLabel?: string;
+            permission?: string;
+            related: string[];
+            userAgent?: string;
+            what: string;
+            workspace: string;
+            workspaceSlug?: string;
+        };
+        InstanceAuditItem: {
+            action: string;
+            actor: components["schemas"]["AuditActor"];
+            changes: boolean;
+            id: string;
+            /** Format: date-time */
+            occurredAt: string;
+            reason?: string;
+            requestId?: string;
+            /** @enum {string} */
+            result: "allowed" | "denied" | "error";
+            source: components["schemas"]["AuditSource"];
+            summary: string;
+            target: string;
+            targetId: string;
+            targetName: string;
+            targetType: string;
+            workspace?: string;
+            workspaceSlug?: string;
+        };
+        InstanceAuditList: {
+            items: components["schemas"]["InstanceAuditItem"][];
+            nextCursor?: string;
+            /** Format: int32 */
+            retentionDays: number;
+            workspaces: components["schemas"]["AuditWorkspaceRef"][];
+        };
+        InstanceAuditSettings: {
+            /** Format: int32 */
+            retentionDays: number;
+            stream: components["schemas"]["AuditStreamStatus"];
+            /** Format: int64 */
+            total: number;
+            workspaceStreams: components["schemas"]["InstanceWorkspaceStream"][];
+        };
+        InstanceAuditSettingsResult: {
+            /** @description New signing secret, shown only in this response */
+            secret?: string;
+            settings: components["schemas"]["InstanceAuditSettings"];
+        };
         InstanceBasics: {
             name: string;
             /** Format: uri */
@@ -5183,6 +5314,12 @@ export interface components {
             live: number;
         };
         InstanceWorkspaceRef: {
+            name: string;
+            slug: string;
+        };
+        InstanceWorkspaceStream: {
+            failing: boolean;
+            host: string;
             name: string;
             slug: string;
         };
@@ -7451,6 +7588,180 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "list-instance-audit-events": {
+        parameters: {
+            query?: {
+                /** @description Account, target, request id or sign-in reference */
+                q?: string;
+                /** @description Workspace slug, or instance for instance-level entries only */
+                workspace?: string;
+                actorType?: "user" | "api_key" | "mcp_agent" | "system";
+                result?: "allowed" | "denied" | "error";
+                range?: "24h" | "7d" | "30d" | "90d" | "all";
+                /** @description Overrides range */
+                since?: string;
+                until?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceAuditList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-instance-audit-event": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceAuditDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-instance-audit-events": {
+        parameters: {
+            query?: {
+                /** @description Account, target, request id or sign-in reference */
+                q?: string;
+                /** @description Workspace slug, or instance for instance-level entries only */
+                workspace?: string;
+                actorType?: "user" | "api_key" | "mcp_agent" | "system";
+                result?: "allowed" | "denied" | "error";
+                range?: "24h" | "7d" | "30d" | "90d" | "all";
+                /** @description Overrides range */
+                since?: string;
+                until?: string;
+                format?: "csv" | "json";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-instance-audit-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceAuditSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-instance-audit-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceAuditSettingsResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-instance-settings": {
         parameters: {
             query?: never;

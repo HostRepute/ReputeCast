@@ -146,6 +146,6 @@ WHERE i.token_hash = @token_hash;
 -- Recent sign-in rejections for a provider (setup page "sign-ins rejected").
 SELECT id, occurred_at, target_name, reason, metadata
 FROM audit_events
-WHERE workspace_id IS NULL AND action = 'auth.sign_in' AND result = 'denied' AND metadata ->> 'provider_id' = @provider_id::text
+WHERE workspace_id IS NULL AND action = 'signin.rejected' AND result = 'denied' AND metadata ->> 'provider_id' = @provider_id::text
 ORDER BY occurred_at DESC
 LIMIT 5;

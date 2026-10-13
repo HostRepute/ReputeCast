@@ -141,7 +141,7 @@ func TestSignInCreatesAccountJustInTime(t *testing.T) {
 	if n := count(t, env, `SELECT count(*) FROM sessions s JOIN users u ON u.id = s.user_id WHERE u.email = 'new.person@acme-labs.io' AND s.auth_method = 'sso' AND s.mfa_verified`); n != 1 {
 		t.Fatal("no two-factor SSO session")
 	}
-	for _, action := range []string{"user.create", "member.join", "auth.sign_in"} {
+	for _, action := range []string{"user.created", "member.joined", "signin.succeeded"} {
 		if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = $1 AND (target_name = 'new.person@acme-labs.io' OR target_name = 'New Person') AND result = 'allowed'`, action); n != 1 {
 			t.Fatalf("%d %s audit entries", n, action)
 		}
@@ -254,7 +254,7 @@ func TestGroupMappings(t *testing.T) {
 	if got := role("marcus@acme.io", "acme-newsletter"); got != "editor/sso_group" {
 		t.Fatalf("marcus: %s", got)
 	}
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'member.role_change' AND metadata->>'source' = 'sso_group' AND reason LIKE 'Test IdP group “Marketing” maps to Editor'`); n != 2 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'member.role_changed' AND metadata->>'source' = 'sso_group' AND reason LIKE 'Test IdP group “Marketing” maps to Editor'`); n != 2 {
 		t.Fatalf("%d role change audit entries", n)
 	}
 	// Kenji, an Owner, keeps Owner even when a group maps him lower.
@@ -343,7 +343,7 @@ func TestSignInFailures(t *testing.T) {
 		t.Fatalf("disabled: %v", q)
 	}
 	// Every failure is in the audit log with a reference.
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'auth.sign_in' AND result = 'denied' AND metadata->>'reference' LIKE 'auth_%'`); n < 6 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'signin.rejected' AND result = 'denied' AND metadata->>'reference' LIKE 'auth_%'`); n < 6 {
 		t.Fatalf("%d denied sign-ins audited", n)
 	}
 	if n := count(t, env, `SELECT count(*) FROM users WHERE email IN ('state@acme-labs.io', 'kim@gmail.com')`); n != 0 {
@@ -373,7 +373,7 @@ func TestSignInAsksForOwnSecondFactor(t *testing.T) {
 	if b.me() != "linh@acme.io" {
 		t.Fatal("not signed in after the second factor")
 	}
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'auth.sign_in' AND target_name = 'linh@acme.io' AND metadata->>'method' = 'sso+recovery' AND metadata->>'provider' = 'Test IdP'`); n != 1 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'signin.succeeded' AND target_name = 'linh@acme.io' AND metadata->>'method' = 'sso+recovery' AND metadata->>'provider' = 'Test IdP'`); n != 1 {
 		t.Fatalf("%d sso+recovery sign-ins audited", n)
 	}
 	// With the IdP trusted for two-factor, no second step.
@@ -460,10 +460,10 @@ func TestTestSignIn(t *testing.T) {
 	if count(t, env, `SELECT count(*) FROM users`) != users || count(t, env, `SELECT count(*) FROM user_identities WHERE sso_provider_id = $1`, d.ID) != 0 {
 		t.Fatal("a test sign-in created an account or an identity")
 	}
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'sso.test_sign_in' AND target_id = $1`, d.ID); n != 3 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'sso.provider.tested' AND target_id = $1`, d.ID); n != 3 {
 		t.Fatalf("%d test sign-ins audited", n)
 	}
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'sso.test_sign_in' AND result = 'error'`); n != 1 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'sso.provider.tested' AND result = 'error'`); n != 1 {
 		t.Fatalf("%d failed test sign-ins audited", n)
 	}
 }
@@ -506,7 +506,7 @@ func TestDomainEnforcement(t *testing.T) {
 	if strings.Join(got.Enforced, ",") != "acme.io" {
 		t.Fatalf("enforced: %v", got.Enforced)
 	}
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'sso.enforcement_enable' AND target_id = $1`, d.ID); n != 1 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'sso.enforcement.enabled' AND target_id = $1`, d.ID); n != 1 {
 		t.Fatal("enforcement not audited")
 	}
 
@@ -528,7 +528,7 @@ func TestDomainEnforcement(t *testing.T) {
 		t.Fatalf("break-glass password: %+v", step)
 	}
 	c.Do("POST", "/auth/two-factor", map[string]any{"challenge": step.Challenge, "method": "recovery", "code": demo.DemoRecoveryCodes[0]}).MustStatus(t, 200)
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'auth.sign_in' AND target_name = 'linh@acme.io' AND metadata->>'break_glass' = 'true' AND metadata->>'enforced_by' = 'Test IdP'`); n != 1 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'signin.succeeded' AND target_name = 'linh@acme.io' AND metadata->>'break_glass' = 'true' AND metadata->>'enforced_by' = 'Test IdP'`); n != 1 {
 		t.Fatalf("%d break-glass sign-ins logged", n)
 	}
 

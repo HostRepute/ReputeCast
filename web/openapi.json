@@ -1539,6 +1539,22 @@
         ],
         "type": "object"
       },
+      "AuditWorkspaceRef": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name"
+        ],
+        "type": "object"
+      },
       "Auth-identifyRequest": {
         "additionalProperties": false,
         "properties": {
@@ -5843,6 +5859,217 @@
         ],
         "type": "object"
       },
+      "InstanceAuditDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "adminPath": {
+            "type": "string"
+          },
+          "after": {},
+          "before": {},
+          "client": {
+            "type": "string"
+          },
+          "diff": {
+            "items": {
+              "$ref": "#/components/schemas/AuditDiffLine"
+            },
+            "type": "array"
+          },
+          "event": {
+            "$ref": "#/components/schemas/AuditEventItem"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "json": {},
+          "link": {
+            "type": "string"
+          },
+          "linkLabel": {
+            "type": "string"
+          },
+          "permission": {
+            "type": "string"
+          },
+          "related": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "userAgent": {
+            "type": "string"
+          },
+          "what": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "workspaceSlug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "what",
+          "workspace",
+          "diff",
+          "related",
+          "json"
+        ],
+        "type": "object"
+      },
+      "InstanceAuditItem": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/AuditActor"
+          },
+          "changes": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "allowed",
+              "denied",
+              "error"
+            ],
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/AuditSource"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "targetName": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "workspaceSlug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "occurredAt",
+          "actor",
+          "action",
+          "targetType",
+          "targetId",
+          "targetName",
+          "target",
+          "summary",
+          "source",
+          "result",
+          "changes"
+        ],
+        "type": "object"
+      },
+      "InstanceAuditList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InstanceAuditItem"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "type": "string"
+          },
+          "retentionDays": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "workspaces": {
+            "items": {
+              "$ref": "#/components/schemas/AuditWorkspaceRef"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "workspaces",
+          "retentionDays"
+        ],
+        "type": "object"
+      },
+      "InstanceAuditSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "retentionDays": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "stream": {
+            "$ref": "#/components/schemas/AuditStreamStatus"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "workspaceStreams": {
+            "items": {
+              "$ref": "#/components/schemas/InstanceWorkspaceStream"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "retentionDays",
+          "stream",
+          "total",
+          "workspaceStreams"
+        ],
+        "type": "object"
+      },
+      "InstanceAuditSettingsResult": {
+        "additionalProperties": false,
+        "properties": {
+          "secret": {
+            "description": "New signing secret, shown only in this response",
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/InstanceAuditSettings"
+          }
+        },
+        "required": [
+          "settings"
+        ],
+        "type": "object"
+      },
       "InstanceBasics": {
         "additionalProperties": false,
         "properties": {
@@ -6902,6 +7129,30 @@
         "required": [
           "slug",
           "name"
+        ],
+        "type": "object"
+      },
+      "InstanceWorkspaceStream": {
+        "additionalProperties": false,
+        "properties": {
+          "failing": {
+            "type": "boolean"
+          },
+          "host": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "host",
+          "failing"
         ],
         "type": "object"
       },
@@ -15100,6 +15351,411 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/audit": {
+      "get": {
+        "operationId": "list-instance-audit-events",
+        "parameters": [
+          {
+            "description": "Account, target, request id or sign-in reference",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Account, target, request id or sign-in reference",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Workspace slug, or instance for instance-level entries only",
+            "explode": false,
+            "in": "query",
+            "name": "workspace",
+            "schema": {
+              "description": "Workspace slug, or instance for instance-level entries only",
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "actorType",
+            "schema": {
+              "enum": [
+                "user",
+                "api_key",
+                "mcp_agent",
+                "system"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "result",
+            "schema": {
+              "enum": [
+                "allowed",
+                "denied",
+                "error"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "24h",
+                "7d",
+                "30d",
+                "90d",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Overrides range",
+            "explode": false,
+            "in": "query",
+            "name": "since",
+            "schema": {
+              "description": "Overrides range",
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "until",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "format": "int64",
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceAuditList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Every audit entry on the instance, newest first",
+        "tags": [
+          "Instance admin · Audit log"
+        ],
+        "x-access": "instance_admin"
+      }
+    },
+    "/api/v1/admin/audit/events/{eventId}": {
+      "get": {
+        "operationId": "get-instance-audit-event",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceAuditDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "One audit entry of any workspace or of the instance",
+        "tags": [
+          "Instance admin · Audit log"
+        ],
+        "x-access": "instance_admin"
+      }
+    },
+    "/api/v1/admin/audit/export": {
+      "get": {
+        "operationId": "export-instance-audit-events",
+        "parameters": [
+          {
+            "description": "Account, target, request id or sign-in reference",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Account, target, request id or sign-in reference",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Workspace slug, or instance for instance-level entries only",
+            "explode": false,
+            "in": "query",
+            "name": "workspace",
+            "schema": {
+              "description": "Workspace slug, or instance for instance-level entries only",
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "actorType",
+            "schema": {
+              "enum": [
+                "user",
+                "api_key",
+                "mcp_agent",
+                "system"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "result",
+            "schema": {
+              "enum": [
+                "allowed",
+                "denied",
+                "error"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "24h",
+                "7d",
+                "30d",
+                "90d",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Overrides range",
+            "explode": false,
+            "in": "query",
+            "name": "since",
+            "schema": {
+              "description": "Overrides range",
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "until",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "default": "csv",
+              "enum": [
+                "csv",
+                "json"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Export matching entries as CSV or JSON (streamed)",
+        "tags": [
+          "Instance admin · Audit log"
+        ],
+        "x-access": "instance_admin"
+      }
+    },
+    "/api/v1/admin/audit/settings": {
+      "get": {
+        "operationId": "get-instance-audit-settings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceAuditSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Retention and stream of the instance-level entries",
+        "tags": [
+          "Instance admin · Audit log"
+        ],
+        "x-access": "instance_admin"
+      },
+      "put": {
+        "operationId": "update-instance-audit-settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceAuditSettingsResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change the instance retention or stream instance events to a webhook",
+        "tags": [
+          "Instance admin · Audit log"
+        ],
+        "x-access": "instance_admin"
+      }
+    },
     "/api/v1/admin/instance": {
       "get": {
         "operationId": "get-instance-settings",

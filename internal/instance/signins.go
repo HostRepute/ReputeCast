@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hostrepute/reputecast/internal/auditlog"
 )
 
 // InstanceSignInEvent is one row of Users › Recent sign-in events.
@@ -72,7 +74,7 @@ func (s *Service) SignIns(ctx context.Context, limit int) (InstanceSignInList, e
 		if len(out.Items) >= limit {
 			continue
 		}
-		ev := InstanceSignInEvent{ID: r.ID.String(), At: r.OccurredAt, Event: methodLabel(m.Method, m.Provider), Account: account, Result: "denied"}
+		ev := InstanceSignInEvent{ID: r.ID.String(), At: r.OccurredAt, Event: auditlog.SignInMethod(m.Method, m.Provider), Account: account, Result: "denied"}
 		if allowed {
 			ev.Result = "allowed"
 			if m.FailedBefore > 0 {
@@ -81,7 +83,7 @@ func (s *Service) SignIns(ctx context.Context, limit int) (InstanceSignInList, e
 			}
 			lastAllowed[account] = folded{idx: len(out.Items), at: r.OccurredAt}
 		} else {
-			ev.Detail = rejectionDetail(m.Code, r.Reason)
+			ev.Detail = auditlog.SignInRejection(m.Code, r.Reason)
 		}
 		out.Items = append(out.Items, ev)
 	}
@@ -99,75 +101,4 @@ func foldFailures(event string) string {
 		return event
 	}
 	return base + " · " + strconv.Itoa(n+1) + " failed"
-}
-
-// methodLabel names a sign-in method like the design: "Password + TOTP",
-// "Google Workspace SSO", "Passkey".
-func methodLabel(method, provider string) string {
-	parts := strings.Split(method, "+")
-	names := make([]string, 0, len(parts))
-	for i, p := range parts {
-		switch p {
-		case "password":
-			names = append(names, "Password")
-		case "totp":
-			names = append(names, "TOTP")
-		case "passkey":
-			if i == 0 {
-				names = append(names, "Passkey")
-			} else {
-				names = append(names, "passkey")
-			}
-		case "recovery":
-			names = append(names, "recovery code")
-		case "sso":
-			if provider == "" {
-				provider = "Single sign-on"
-			}
-			names = append(names, provider+" SSO")
-		case "google":
-			names = append(names, "Google")
-		case "microsoft":
-			names = append(names, "Microsoft")
-		case "github":
-			names = append(names, "GitHub")
-		case "":
-		default:
-			names = append(names, p)
-		}
-	}
-	if len(names) == 0 {
-		return "Sign-in"
-	}
-	return strings.Join(names, " + ")
-}
-
-func rejectionDetail(code, reason string) string {
-	switch code {
-	case "domain_not_allowed":
-		return "domain not allowed"
-	case "no_account":
-		return "no account"
-	case "account_deactivated":
-		return "deactivated"
-	case "not_in_org":
-		return "not in the organization"
-	case "email_not_verified":
-		return "email not verified"
-	case "":
-	default:
-		return strings.ReplaceAll(code, "_", " ")
-	}
-	switch {
-	case strings.Contains(reason, "wrong password"):
-		return "wrong password"
-	case strings.Contains(reason, "domain not allowed"):
-		return "domain not allowed"
-	case strings.Contains(reason, "passkey"):
-		return "passkey failed"
-	}
-	if len(reason) > 40 {
-		return reason[:40] + "…"
-	}
-	return reason
 }

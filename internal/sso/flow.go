@@ -168,7 +168,7 @@ func (s *Service) errorRedirect(ctx context.Context, providerName string, provid
 	if target == "" {
 		target = "unknown account"
 	}
-	_ = s.Audit.Log(ctx, audit.Event{Action: "auth.sign_in", Result: audit.Denied, Reason: fe.Detail, TargetType: "user", TargetName: target,
+	_ = s.Audit.Log(ctx, audit.Event{Action: "signin.rejected", Result: audit.Denied, Reason: fe.Detail, TargetType: "user", TargetName: target,
 		Actor: &audit.Actor{Type: "system", Name: "System"}, Metadata: meta})
 	q := url.Values{}
 	if fe.NoAccount && email != "" {

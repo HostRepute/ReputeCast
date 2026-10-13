@@ -105,7 +105,7 @@ SELECT
 -- The latest sign-in attempts at instance level (Users › Recent sign-in events).
 SELECT e.id, e.occurred_at, e.action, e.actor_type, e.actor_name, e.target_name, e.result, e.reason, e.metadata
 FROM audit_events e
-WHERE e.workspace_id IS NULL AND (e.action LIKE 'auth.sign_in%' OR e.action LIKE 'signin.%')
+WHERE e.workspace_id IS NULL AND e.action LIKE 'signin.%'
 ORDER BY e.occurred_at DESC, e.id DESC
 LIMIT @lim;
 

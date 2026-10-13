@@ -330,6 +330,24 @@ type Querier interface {
 	// Workspaces ---------------------------------------------------------------
 	// Live workspaces and the ones deleted within the 7-day restore hold.
 	InstanceAdminWorkspaces(ctx context.Context) ([]InstanceAdminWorkspacesRow, error)
+	InstanceAuditCount(ctx context.Context) (int64, error)
+	// Same filters as InstanceAuditList, with before/after for exports.
+	InstanceAuditExport(ctx context.Context, arg InstanceAuditExportParams) ([]InstanceAuditExportRow, error)
+	InstanceAuditGet(ctx context.Context, id uuid.UUID) (InstanceAuditGetRow, error)
+	// Instance admin › Audit log (W14): every workspace's entries and the
+	// instance-level ones (workspace_id IS NULL), with the same filters as the
+	// workspace view plus a workspace filter.
+	InstanceAuditList(ctx context.Context, arg InstanceAuditListParams) ([]InstanceAuditListRow, error)
+	// Other entries about the same target close in time, for "Related:".
+	InstanceAuditRelated(ctx context.Context, arg InstanceAuditRelatedParams) ([]InstanceAuditRelatedRow, error)
+	InstanceAuditSetRetention(ctx context.Context, days int32) error
+	InstanceAuditStreamAdvance(ctx context.Context, arg InstanceAuditStreamAdvanceParams) error
+	InstanceAuditStreamBatch(ctx context.Context, arg InstanceAuditStreamBatchParams) ([]AuditEvent, error)
+	InstanceAuditStreamConfigure(ctx context.Context, arg InstanceAuditStreamConfigureParams) error
+	InstanceAuditStreamSetStatus(ctx context.Context, status json.RawMessage) error
+	InstanceAuditStreamState(ctx context.Context) (InstanceAuditStreamStateRow, error)
+	// Workspaces that stream their own log, for "Streaming" on the instance view.
+	InstanceAuditWorkspaceStreams(ctx context.Context) ([]InstanceAuditWorkspaceStreamsRow, error)
 	InvalidatePasswordResets(ctx context.Context, userID uuid.UUID) error
 	KeysAgentActions(ctx context.Context, arg KeysAgentActionsParams) ([]KeysAgentActionsRow, error)
 	KeysByToken(ctx context.Context, tokenHash []byte) (KeysByTokenRow, error)
@@ -512,6 +530,8 @@ type Querier interface {
 	PurgeAuditEvents(ctx context.Context, arg PurgeAuditEventsParams) (int64, error)
 	PurgeAutomationEvents(ctx context.Context, before *time.Time) (int64, error)
 	PurgeAutomationWebhookCalls(ctx context.Context, before time.Time) (int64, error)
+	// Retention of the instance-level entries (inside the purge transaction).
+	PurgeInstanceAuditEvents(ctx context.Context, before time.Time) (int64, error)
 	RecordHostReputeSyncError(ctx context.Context, arg RecordHostReputeSyncErrorParams) error
 	RecordSignInFailure(ctx context.Context, arg RecordSignInFailureParams) (RecordSignInFailureRow, error)
 	RecordSignInSuccess(ctx context.Context, id uuid.UUID) error

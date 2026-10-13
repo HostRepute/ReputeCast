@@ -114,7 +114,7 @@ func (s *Service) Policy(ctx context.Context) (InstancePolicy, error) {
 	var email string
 	var at time.Time
 	err = s.Pool.QueryRow(ctx, `SELECT target_name, occurred_at FROM audit_events
-		WHERE workspace_id IS NULL AND result = 'denied' AND (action = 'signin.rejected' OR action = 'auth.sign_in')
+		WHERE workspace_id IS NULL AND result = 'denied' AND action = 'signin.rejected'
 		  AND (metadata ->> 'code' = 'domain_not_allowed' OR reason LIKE '%domain not allowed%')
 		ORDER BY occurred_at DESC LIMIT 1`).Scan(&email, &at)
 	if err == nil {
@@ -231,7 +231,7 @@ func (s *Service) SavePolicy(ctx context.Context, in InstancePolicyInput) (Insta
 		if len(changes) == 0 {
 			return nil
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "policy.update", TargetType: "instance_policy", TargetName: target,
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "policy.updated", TargetType: "instance_policy", TargetName: target,
 			Before: policyAuditView(before), After: policyAuditView(inputView(in, domains)), Metadata: map[string]any{"summary": strings.Join(changes, " · ")}})
 	})
 	if err != nil {

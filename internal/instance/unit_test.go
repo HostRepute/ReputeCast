@@ -8,6 +8,8 @@ import (
 	"image/png"
 	"strings"
 	"testing"
+
+	"github.com/hostrepute/reputecast/internal/auditlog"
 )
 
 func TestVersions(t *testing.T) {
@@ -89,7 +91,7 @@ func TestSignInLabels(t *testing.T) {
 		{"password+passkey", "", "Password + passkey"},
 		{"github", "", "GitHub"},
 	} {
-		if got := methodLabel(c.method, c.provider); got != c.want {
+		if got := auditlog.SignInMethod(c.method, c.provider); got != c.want {
 			t.Errorf("methodLabel(%s) = %s", c.method, got)
 		}
 	}

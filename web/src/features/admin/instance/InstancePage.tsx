@@ -341,6 +341,7 @@ function Version({ v }: { v: Schemas['InstanceVersion'] }) {
           image to {v.release ? v.installed : 'the version you ran before'} and restart.
         </span>
       </div>
+      {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its control; the title and description inside are its text */}
       <label className="row flex-nowrap gap-3 border-t border-line-2 pt-1.5">
         <input
           type="checkbox"

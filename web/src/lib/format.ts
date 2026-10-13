@@ -317,3 +317,13 @@ export function monthName(d: string | number | Date, style: 'short' | 'long' = '
 export function weekdayName(d: string | number | Date): string {
   return fmt('weekday-long', 'en-US', { weekday: 'long' }).format(toDate(d))
 }
+
+/* ---- W14 · Instance admin (appended) ---- */
+
+/** Instance audit log time: "09:12:03" today, "Sat 11 Oct 14:02" this week, else "Sep 30 17:10". */
+export function instanceAuditTime(d: string | number | Date, now: Date = new Date()): string {
+  const t = toDate(d)
+  if (sameDay(t, now)) return clockSeconds(t)
+  if (now.getTime() - t.getTime() < 7 * 86_400_000) return `${shortDate(t)} ${clock(t)}`
+  return `${monthDay(t)} ${clock(t)}`
+}

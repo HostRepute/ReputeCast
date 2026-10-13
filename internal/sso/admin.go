@@ -658,7 +658,7 @@ func (s *Service) Create(ctx context.Context, in SSOCreateInput) (SSOProviderDet
 		if err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "sso.provider_create", TargetType: "sso_provider", TargetID: created.ID.String(), TargetName: created.Name,
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "sso.provider.created", TargetType: "sso_provider", TargetID: created.ID.String(), TargetName: created.Name,
 			After: map[string]any{"preset": pre.Key, "name": name}})
 	})
 	if err != nil {
@@ -760,7 +760,7 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in SSOProviderInput)
 		if len(changes) > 0 {
 			summary += " · " + strings.Join(changes, " · ")
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "sso.provider_update", TargetType: "sso_provider", TargetID: id.String(), TargetName: after.Name,
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "sso.provider.updated", TargetType: "sso_provider", TargetID: id.String(), TargetName: after.Name,
 			Before: providerAuditView(before), After: providerAuditView(after), Metadata: map[string]any{"summary": summary, "secret_replaced": secret != nil}})
 	})
 	if err != nil {

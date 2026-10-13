@@ -183,7 +183,7 @@ func (s *Service) SaveSocial(ctx context.Context, kind string, in SSOSocialInput
 		if err := q.InstanceAdminSaveSocial(ctx, store.InstanceAdminSaveSocialParams{SocialProviders: mustJSON(cfgs), SocialSecretsEnc: enc}); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "social.provider_update", TargetType: "social_provider", TargetID: kind, TargetName: socialName(kind),
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "social.provider.updated", TargetType: "social_provider", TargetID: kind, TargetName: socialName(kind),
 			Before: socialAuditView(before), After: socialAuditView(c), Metadata: map[string]any{"secret_replaced": replaced}})
 	})
 	if err != nil {

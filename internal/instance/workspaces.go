@@ -143,7 +143,7 @@ func (s *Service) CreateWorkspace(ctx context.Context, in InstanceWorkspaceInput
 			return err
 		}
 		id := ws.ID
-		return s.Audit.LogWith(ctx, store.New(tx), audit.Event{WorkspaceID: &id, Action: "workspace.create", TargetType: "workspace", TargetID: ws.ID.String(), TargetName: ws.Name,
+		return s.Audit.LogWith(ctx, store.New(tx), audit.Event{WorkspaceID: &id, Action: "workspace.created", TargetType: "workspace", TargetID: ws.ID.String(), TargetName: ws.Name,
 			After: map[string]any{"name": ws.Name, "slug": ws.Slug, "timezone": tz, "owner": owner.String()}, Metadata: map[string]any{"by": "instance admin"}})
 	})
 	if err != nil {
@@ -206,7 +206,7 @@ func (s *Service) DeleteWorkspace(ctx context.Context, id uuid.UUID, in Instance
 			}
 		}
 		wsID := id
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "workspace.delete", TargetType: "workspace", TargetID: id.String(), TargetName: ws.Name,
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "workspace.deleted", TargetType: "workspace", TargetID: id.String(), TargetName: ws.Name,
 			Before: map[string]any{"slug": ws.Slug}, After: map[string]any{"deleted": true, "purge_at": out.PurgeAt},
 			Metadata: map[string]any{"by": "instance admin", "summary": fmt.Sprintf("restorable until %s · %d scheduled %s stopped", out.PurgeAt.Format("Jan 2"), out.Cancelled, plural(int(out.Cancelled), "send", "sends")),
 				"permission": string(authz.WorkspaceDelete)}})
@@ -244,7 +244,7 @@ func (s *Service) RestoreWorkspace(ctx context.Context, id uuid.UUID) (InstanceW
 		}
 		ws.Slug = slug
 		wsID := id
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "workspace.restore", TargetType: "workspace", TargetID: id.String(), TargetName: ws.Name,
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "workspace.restored", TargetType: "workspace", TargetID: id.String(), TargetName: ws.Name,
 			Before: map[string]any{"deleted": true}, After: map[string]any{"deleted": false, "slug": slug}, Metadata: map[string]any{"by": "instance admin"}})
 	})
 	if err != nil {
@@ -292,7 +292,7 @@ func (w *WorkspacePurgeWorker) Work(ctx context.Context, job *river.Job[Workspac
 			return err
 		}
 		w.Log.InfoContext(ctx, "purged deleted workspace", "id", row.ID, "name", row.Name)
-		return w.Audit.LogWith(ctx, q, audit.Event{Action: "workspace.purge", TargetType: "workspace", TargetID: row.ID.String(), TargetName: row.Name,
+		return w.Audit.LogWith(ctx, q, audit.Event{Action: "workspace.purged", TargetType: "workspace", TargetID: row.ID.String(), TargetName: row.Name,
 			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Metadata: map[string]any{"summary": "deleted for good after the 7-day restore hold"}})
 	})
 }

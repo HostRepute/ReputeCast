@@ -343,7 +343,7 @@ func (s *Service) SignOut(ctx context.Context, id uuid.UUID, in InstanceUserReas
 		if n, err = q.RevokeAllUserSessions(ctx, id); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "user.sign_out_everywhere", TargetType: "user", TargetID: id.String(), TargetName: u.Email,
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "user.signed_out", TargetType: "user", TargetID: id.String(), TargetName: u.Email,
 			Reason: strings.TrimSpace(in.Reason), Metadata: map[string]any{"sessions": n, "summary": fmt.Sprintf("%d %s ended", n, plural(int(n), "session", "sessions"))}})
 	})
 	return InstanceSignOutResult{Revoked: n}, err
@@ -423,7 +423,7 @@ func (s *Service) Deactivate(ctx context.Context, id uuid.UUID, in InstanceDeact
 			parts = append(parts, fmt.Sprintf("%d API %s revoked", res.Keys, plural(int(res.Keys), "key", "keys")))
 		}
 		parts = append(parts, fmt.Sprintf("%d %s ended", res.Sessions, plural(int(res.Sessions), "session", "sessions")))
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "user.deactivate", TargetType: "user", TargetID: id.String(), TargetName: displayName(u.Name, u.Email) + " · " + u.Email,
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "user.deactivated", TargetType: "user", TargetID: id.String(), TargetName: displayName(u.Name, u.Email) + " · " + u.Email,
 			Reason: reason, Before: map[string]any{"status": "active"}, After: map[string]any{"status": "deactivated"},
 			Metadata: map[string]any{"summary": strings.Join(parts, " · "), "sessions": res.Sessions, "keys_revoked": res.Keys, "memberships": res.Memberships}})
 	})
@@ -452,7 +452,7 @@ func (s *Service) Reactivate(ctx context.Context, id uuid.UUID) error {
 				return err
 			}
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "user.reactivate", TargetType: "user", TargetID: id.String(), TargetName: displayName(u.Name, u.Email) + " · " + u.Email,
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "user.reactivated", TargetType: "user", TargetID: id.String(), TargetName: displayName(u.Name, u.Email) + " · " + u.Email,
 			Before: map[string]any{"status": "deactivated"}, After: map[string]any{"status": "active"}, Metadata: map[string]any{"memberships": n}})
 	})
 }
@@ -471,7 +471,7 @@ func (s *Service) Unlock(ctx context.Context, id uuid.UUID) error {
 		if err := q.ClearSignInThrottle(ctx, u.Email); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "user.unlock", TargetType: "user", TargetID: id.String(), TargetName: u.Email})
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "user.unlocked", TargetType: "user", TargetID: id.String(), TargetName: u.Email})
 	})
 }
 
@@ -665,7 +665,7 @@ func (s *Service) SendPasswordReset(ctx context.Context, id uuid.UUID) (Instance
 		_ = s.Q.InvalidatePasswordResets(ctx, id)
 		return InstancePasswordResetSent{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, "The reset email couldn't be sent ("+err.Error()+"). Nothing changed; use the CLI command instead.")
 	}
-	err = s.Audit.Log(ctx, audit.Event{Action: "user.password_reset_send", TargetType: "user", TargetID: id.String(), TargetName: displayName(u.Name, u.Email) + " · " + u.Email,
+	err = s.Audit.Log(ctx, audit.Event{Action: "user.password_reset_sent", TargetType: "user", TargetID: id.String(), TargetName: displayName(u.Name, u.Email) + " · " + u.Email,
 		Metadata: map[string]any{"via": via, "summary": "one-time link sent via " + via + " · expires in 15 minutes"}})
 	return InstancePasswordResetSent{Via: via, ExpiresAt: expires}, err
 }
@@ -707,9 +707,9 @@ func (s *Service) SetInstanceAdmin(ctx context.Context, id uuid.UUID, in Instanc
 		if err := q.SetUserInstanceAdmin(ctx, store.SetUserInstanceAdminParams{ID: id, IsInstanceAdmin: in.Admin}); err != nil {
 			return err
 		}
-		action := "user.instance_admin_grant"
+		action := "instance_admin.granted"
 		if !in.Admin {
-			action = "user.instance_admin_revoke"
+			action = "instance_admin.revoked"
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: action, TargetType: "user", TargetID: id.String(), TargetName: displayName(u.Name, u.Email),
 			Before: map[string]any{"instance_admin": u.IsInstanceAdmin}, After: map[string]any{"instance_admin": in.Admin}})

@@ -373,7 +373,7 @@ SET allowed_methods = $1, password_min_length = $2, password_reuse = $3,
     session_lifetime = $7, session_idle = $8, lockout_attempts = $9,
     lockout_minutes = $10, jit_domain_allowlist = $11, updated_at = now()
 WHERE id
-RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error
+RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error, audit_stream_enabled, audit_stream_url, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status
 `
 
 type InstanceAdminSavePolicyParams struct {
@@ -435,6 +435,12 @@ func (q *Queries) InstanceAdminSavePolicy(ctx context.Context, arg InstanceAdmin
 		&i.PublicUrlCheckedAt,
 		&i.UpdateCheckedAt,
 		&i.UpdateCheckError,
+		&i.AuditStreamEnabled,
+		&i.AuditStreamUrl,
+		&i.AuditStreamSecretEnc,
+		&i.AuditStreamCursorAt,
+		&i.AuditStreamCursorID,
+		&i.AuditStreamStatus,
 	)
 	return i, err
 }
@@ -444,7 +450,7 @@ const instanceAdminSaveSettings = `-- name: InstanceAdminSaveSettings :one
 UPDATE instance_settings
 SET name = $1, public_url = $2, default_timezone = $3, updated_at = now()
 WHERE id
-RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error
+RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error, audit_stream_enabled, audit_stream_url, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status
 `
 
 type InstanceAdminSaveSettingsParams struct {
@@ -487,6 +493,12 @@ func (q *Queries) InstanceAdminSaveSettings(ctx context.Context, arg InstanceAdm
 		&i.PublicUrlCheckedAt,
 		&i.UpdateCheckedAt,
 		&i.UpdateCheckError,
+		&i.AuditStreamEnabled,
+		&i.AuditStreamUrl,
+		&i.AuditStreamSecretEnc,
+		&i.AuditStreamCursorAt,
+		&i.AuditStreamCursorID,
+		&i.AuditStreamStatus,
 	)
 	return i, err
 }
@@ -537,7 +549,7 @@ func (q *Queries) InstanceAdminSetUpdateCheck(ctx context.Context, enabled bool)
 const instanceAdminSignInEvents = `-- name: InstanceAdminSignInEvents :many
 SELECT e.id, e.occurred_at, e.action, e.actor_type, e.actor_name, e.target_name, e.result, e.reason, e.metadata
 FROM audit_events e
-WHERE e.workspace_id IS NULL AND (e.action LIKE 'auth.sign_in%' OR e.action LIKE 'signin.%')
+WHERE e.workspace_id IS NULL AND e.action LIKE 'signin.%'
 ORDER BY e.occurred_at DESC, e.id DESC
 LIMIT $1
 `

@@ -768,7 +768,7 @@ func (q *Queries) SSOSetStatus(ctx context.Context, arg SSOSetStatusParams) (Sso
 const sSOSignInFailures = `-- name: SSOSignInFailures :many
 SELECT id, occurred_at, target_name, reason, metadata
 FROM audit_events
-WHERE workspace_id IS NULL AND action = 'auth.sign_in' AND result = 'denied' AND metadata ->> 'provider_id' = $1::text
+WHERE workspace_id IS NULL AND action = 'signin.rejected' AND result = 'denied' AND metadata ->> 'provider_id' = $1::text
 ORDER BY occurred_at DESC
 LIMIT 5
 `

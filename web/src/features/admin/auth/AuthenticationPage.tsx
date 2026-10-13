@@ -131,6 +131,7 @@ function MethodRow({
 }) {
   return (
     <div className="row flex-nowrap gap-3 rounded-lg border border-line px-3 py-2.5">
+      {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its control; the title and description inside are its text */}
       <label className="row min-w-0 flex-1 flex-nowrap gap-3">
         <input type="checkbox" className="tg" role="switch" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
         <span className="col min-w-0 flex-1 gap-px">
@@ -257,6 +258,7 @@ function PasswordCard({ v, set }: { v: Input; set: (x: Partial<Input>) => void }
             </select>
           </label>
         </div>
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its control; the title and description inside are its text */}
         <label className="row flex-nowrap gap-3">
           <input type="checkbox" className="tg" role="switch" checked={v.breachedCheck} onChange={(e) => set({ breachedCheck: e.target.checked })} />
           <span className="col gap-px">
@@ -290,6 +292,7 @@ function TwoFactorCard({ p, v, set }: { p: Policy; v: Input; set: (x: Partial<In
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
           <legend className="vh">Who must use two-factor</legend>
           {options.map((o) => (
+            // eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its control; the title and description inside are its text
             <label key={o.value} className="row flex-nowrap gap-2.5 rounded-lg border border-line px-2.5 py-2">
               <input type="radio" name="tfa" checked={v.twoFactor === o.value} onChange={() => set({ twoFactor: o.value })} />
               <span className="col gap-px">

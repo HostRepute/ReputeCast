@@ -8,6 +8,7 @@ import (
 	"github.com/riverqueue/river"
 
 	"github.com/hostrepute/reputecast/internal/accounts"
+	"github.com/hostrepute/reputecast/internal/auditlog"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/instance"
 	"github.com/hostrepute/reputecast/internal/jobs"
@@ -43,6 +44,7 @@ func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		sso.Register(h, a.ssoService())
 		instance.Register(h, a.instanceService())
+		auditlog.RegisterInstance(h, a.auditlog())
 	})
 	publicRegistrars = append(publicRegistrars, func(a *App, r chi.Router) {
 		a.ssoService().Routes(r)
@@ -53,5 +55,6 @@ func init() {
 		river.AddWorker(a.JobReg.Workers, &instance.WorkspacePurgeWorker{Pool: a.Pool, Audit: a.Audit, Log: a.Log})
 		// Once a day; the worker makes no request when the check is off.
 		a.JobReg.Every(24*time.Hour, func() (river.JobArgs, *river.InsertOpts) { return instance.ReleaseCheckArgs{}, nil }, true)
+		auditlog.RegisterInstanceJobs(a.JobReg, a.auditlog(), a.Log)
 	})
 }

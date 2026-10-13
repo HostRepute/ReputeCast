@@ -143,7 +143,7 @@ func (s *Service) SetUpdateCheck(ctx context.Context, in InstanceUpdateCheckInpu
 			if in.Enabled {
 				summary = "on: fetches the latest version number from github.com once a day"
 			}
-			return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.update_check", TargetType: "instance", TargetName: "Update check",
+			return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.update_check_changed", TargetType: "instance", TargetName: "Update check",
 				Before: map[string]any{"enabled": st.UpdateCheck}, After: map[string]any{"enabled": in.Enabled}, Metadata: map[string]any{"summary": summary}})
 		})
 		if err != nil {

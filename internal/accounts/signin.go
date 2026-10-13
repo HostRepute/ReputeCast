@@ -91,8 +91,12 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 		return SignInResult{}, nil, err
 	}
 	// Locked emails are refused before the password is even checked.
-	if th, err := s.Q.GetSignInThrottle(ctx, email); err == nil && th.LockedUntil != nil && th.LockedUntil.After(s.now()) {
-		return SignInResult{}, nil, lockMessage(*th.LockedUntil, th.Failures)
+	failedBefore := int32(0)
+	if th, err := s.Q.GetSignInThrottle(ctx, email); err == nil {
+		if th.LockedUntil != nil && th.LockedUntil.After(s.now()) {
+			return SignInResult{}, nil, lockMessage(*th.LockedUntil, th.Failures)
+		}
+		failedBefore = th.Failures
 	}
 	u, err := s.Q.GetUserByEmail(ctx, email)
 	exists := err == nil
@@ -135,8 +139,8 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 		if exists {
 			_, _ = s.Q.RecordSignInFailure(ctx, store.RecordSignInFailureParams{ID: u.ID, MaxAttempts: pol.LockoutAttempts, LockMinutes: pol.LockoutMinutes})
 		}
-		_ = s.Audit.Log(ctx, audit.Event{Action: "auth.sign_in", Result: audit.Denied, Reason: "wrong password or unknown email", TargetType: "user", TargetName: email, Actor: anonActor(email),
-			Metadata: map[string]any{"method": "password", "failures": th.Failures}})
+		_ = s.Audit.Log(ctx, audit.Event{Action: "signin.failed", Result: audit.Denied, Reason: "wrong password or unknown email", TargetType: "user", TargetName: email, Actor: anonActor(email),
+			Metadata: map[string]any{"method": "password", "failures": th.Failures, "max_attempts": pol.LockoutAttempts}})
 		if th.LockedUntil != nil && th.LockedUntil.After(s.now()) {
 			return SignInResult{}, nil, lockMessage(*th.LockedUntil, th.Failures)
 		}
@@ -146,6 +150,13 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 			WithMeta("attemptsLeft", left, "lockMinutes", pol.LockoutMinutes)
 	}
 	_ = s.Q.ClearSignInThrottle(ctx, email)
+	// The audit log shows "Password · after 3 failed attempts".
+	if failedBefore > 0 {
+		if extra == nil {
+			extra = map[string]any{}
+		}
+		extra["failed_before"] = failedBefore
+	}
 	if u.PasswordHash != nil && authn.NeedsRehash(*u.PasswordHash) {
 		if h, err := authn.HashPassword(password); err == nil {
 			_ = s.Q.SetUserPassword(ctx, store.SetUserPasswordParams{ID: u.ID, PasswordHash: &h, MustChangePassword: u.MustChangePassword})
@@ -235,7 +246,7 @@ func (s *Service) completeSignInWith(ctx context.Context, u store.User, method s
 		if err := q.RecordSignInSuccess(ctx, u.ID); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "auth.sign_in", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u),
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "signin.succeeded", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u),
 			Metadata: meta})
 	})
 	return cookie, err

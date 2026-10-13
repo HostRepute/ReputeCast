@@ -162,7 +162,11 @@ function SetupForm({ d }: { d: Detail }) {
   const { slug } = useWorkspace()
   const invalidate = useInvalidateSSO()
   const [f, setF] = useState<Form>(() => toForm(d))
-  const [saved, setSaved] = useState(d)
+  // What a mutation returned, until the next refetch (a finished test
+  // sign-in, discovery) brings a newer provider; the form keeps the edits
+  // that aren't saved yet either way.
+  const [returned, setReturned] = useState<{ from: Detail; value: Detail }>()
+  const setSaved = (value: Detail) => setReturned({ from: d, value })
   const [error, setError] = useState<string>()
   const save = $api.useMutation('put', '/api/v1/admin/sso/{providerId}')
   const enable = $api.useMutation('post', '/api/v1/admin/sso/{providerId}/enable')
@@ -170,12 +174,7 @@ function SetupForm({ d }: { d: Detail }) {
   const [enforcing, setEnforcing] = useState(false)
   const [unenforcing, setUnenforcing] = useState(false)
   const set = (patch: Partial<Form>) => setF((x) => ({ ...x, ...patch }))
-  // A refetch (a finished test sign-in, discovery) refreshes what is saved;
-  // the form keeps the edits that aren't saved yet.
-  useEffect(() => {
-    setSaved(d)
-  }, [d])
-  const current = saved
+  const current = returned && returned.from === d ? returned.value : d
   const dirty = JSON.stringify(toInput(current, f)) !== JSON.stringify(toInput(current, toForm(current)))
   const presetInfo = (useList().data?.presets ?? []).find((p) => p.key === f.preset) ?? current.presetInfo
   const path = { params: { path: { providerId: current.id } } }
@@ -766,6 +765,7 @@ function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & {
         </div>
       )}
       <div className="pad col gap-2.5 border-t border-line-2">
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its control; the title and description inside are its text */}
         <label className="row flex-nowrap gap-3">
           <input
             type="checkbox"

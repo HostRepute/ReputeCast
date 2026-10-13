@@ -463,7 +463,7 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, p store.SsoProvider, id 
 			Subject: id.Subject, Email: id.Email, Username: id.Username, Details: details}); err != nil {
 			return u, err
 		}
-		if err := s.Audit.LogWith(ctx, q, audit.Event{Action: "user.create", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email,
+		if err := s.Audit.LogWith(ctx, q, audit.Event{Action: "user.created", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email,
 			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: "just-in-time account from " + p.Name + " SSO",
 			After: map[string]any{"email": u.Email, "name": u.Name}, Metadata: map[string]any{"provider": p.Name, "provider_id": p.ID.String(), "source": "sso_jit"}}); err != nil {
 			return u, err
@@ -502,9 +502,9 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, p store.SsoProvider, id 
 				return u, err
 			}
 		}
-		action, before := "member.join", any(nil)
+		action, before := "member.joined", any(nil)
 		if c.MemberID != nil {
-			action, before = "member.role_change", map[string]any{"role": c.FromKey}
+			action, before = "member.role_changed", map[string]any{"role": c.FromKey}
 		}
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws, Action: action, TargetType: "member", TargetID: u.ID.String(), TargetName: displayName(u),
 			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: sourceReason(p, c),

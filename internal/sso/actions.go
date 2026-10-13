@@ -139,7 +139,7 @@ func (s *Service) finishTest(ctx context.Context, p store.SsoProvider, ch store.
 		if err := q.SSOSetLastTest(ctx, store.SSOSetLastTestParams{ID: p.ID, LastTest: mustJSON(run)}); err != nil {
 			return err
 		}
-		ev := audit.Event{Action: "sso.test_sign_in", TargetType: "sso_provider", TargetID: p.ID.String(), TargetName: p.Name, Metadata: meta}
+		ev := audit.Event{Action: "sso.provider.tested", TargetType: "sso_provider", TargetID: p.ID.String(), TargetName: p.Name, Metadata: meta}
 		if ch.UserID != nil {
 			if u, err := q.GetUser(ctx, *ch.UserID); err == nil {
 				ev.Actor = actorOf(u)
@@ -187,10 +187,10 @@ func (s *Service) setStatus(ctx context.Context, id uuid.UUID, status string) (S
 		if err != nil {
 			return err
 		}
-		action := "sso.provider_enable"
+		action := "sso.provider.enabled"
 		meta := map[string]any{}
 		if status != "enabled" {
-			action = "sso.provider_disable"
+			action = "sso.provider.disabled"
 			if len(before.EnforceDomains) > 0 {
 				meta["enforcement_ended"] = before.EnforceDomains
 			}
@@ -222,7 +222,7 @@ func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 		if _, err := q.SSODeleteProvider(ctx, id); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "sso.provider_delete", TargetType: "sso_provider", TargetID: id.String(), TargetName: p.Name,
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "sso.provider.deleted", TargetType: "sso_provider", TargetID: id.String(), TargetName: p.Name,
 			Before: providerAuditView(p)})
 	})
 }
@@ -406,10 +406,10 @@ func (s *Service) SetEnforcement(ctx context.Context, id uuid.UUID, in SSOEnforc
 				return err
 			}
 		}
-		action := "sso.enforcement_enable"
+		action := "sso.enforcement.enabled"
 		summary := "password sign-in off for " + strings.Join(ds, ", ") + " · break-glass: " + strings.Join(names, ", ")
 		if len(ds) == 0 {
-			action, summary = "sso.enforcement_disable", "password sign-in allowed again for "+strings.Join(p.EnforceDomains, ", ")
+			action, summary = "sso.enforcement.disabled", "password sign-in allowed again for "+strings.Join(p.EnforceDomains, ", ")
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: action, TargetType: "sso_provider", TargetID: id.String(), TargetName: p.Name,
 			Before: map[string]any{"enforced": p.EnforceDomains}, After: map[string]any{"enforced": ds},

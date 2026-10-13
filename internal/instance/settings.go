@@ -115,7 +115,7 @@ func (s *Service) SaveSettings(ctx context.Context, in InstanceSettingsInput) (I
 		if len(changes) == 0 {
 			return nil
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.settings_update", TargetType: "instance", TargetName: after.Name,
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.settings_updated", TargetType: "instance", TargetName: after.Name,
 			Before:   map[string]any{"name": before.Name, "public_url": before.PublicUrl, "default_timezone": before.DefaultTimezone},
 			After:    map[string]any{"name": after.Name, "public_url": after.PublicUrl, "default_timezone": after.DefaultTimezone},
 			Metadata: map[string]any{"summary": strings.Join(changes, " · ")}})
@@ -195,7 +195,7 @@ func (s *Service) SetLogo(ctx context.Context, in InstanceLogoInput) (InstanceSe
 		if err := q.InstanceAdminSetLogo(ctx, &svg); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.logo_update", TargetType: "instance", TargetName: "Logo", Metadata: map[string]any{"bytes": len(svg)}})
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.logo_updated", TargetType: "instance", TargetName: "Logo", Metadata: map[string]any{"bytes": len(svg)}})
 	})
 	if err != nil {
 		return InstanceSettings{}, err
@@ -210,7 +210,7 @@ func (s *Service) RemoveLogo(ctx context.Context) (InstanceSettings, error) {
 		if err := q.InstanceAdminSetLogo(ctx, nil); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.logo_remove", TargetType: "instance", TargetName: "Logo", Metadata: map[string]any{"summary": "uses the ReputeCast mark"}})
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.logo_removed", TargetType: "instance", TargetName: "Logo", Metadata: map[string]any{"summary": "uses the ReputeCast mark"}})
 	})
 	if err != nil {
 		return InstanceSettings{}, err

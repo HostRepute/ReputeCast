@@ -330,7 +330,7 @@ func (s *Service) PasskeySignIn(ctx context.Context, challenge string, credentia
 	}
 	_, cred, err := wa.ValidatePasskeyLogin(handler, session, parsed)
 	if err != nil {
-		ev := audit.Event{Action: "auth.sign_in", Result: audit.Denied, Reason: "passkey verification failed", TargetType: "user", Actor: &audit.Actor{Type: "user", Name: "unknown passkey"},
+		ev := audit.Event{Action: "signin.failed", Result: audit.Denied, Reason: "passkey verification failed", TargetType: "user", Actor: &audit.Actor{Type: "user", Name: "unknown passkey"},
 			Metadata: map[string]any{"method": "passkey"}}
 		if found != nil {
 			ev.Actor, ev.TargetID, ev.TargetName = actorFor(found.u), found.u.ID.String(), found.u.Email

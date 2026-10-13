@@ -202,7 +202,7 @@ func TestDeactivateSignOutReactivate(t *testing.T) {
 	}
 	aisha.Do("GET", "/me", nil).MustStatus(t, 401)
 	env.Client().Do("POST", "/auth/password", map[string]any{"email": "aisha@acme.io", "password": demo.Password}).MustStatus(t, 403)
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'user.deactivate' AND target_id = $1 AND reason = 'left the company'`, id); n != 1 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'user.deactivated' AND target_id = $1 AND reason = 'left the company'`, id); n != 1 {
 		t.Fatal("deactivation not audited with its reason")
 	}
 	admin.Do("POST", "/admin/users/"+id+"/deactivate", map[string]any{"reason": "again"}).MustStatus(t, 409)
@@ -256,7 +256,7 @@ func TestInstanceAdminGrantAndLastAdmin(t *testing.T) {
 	c.Do("GET", "/admin/users", nil).MustStatus(t, 200)
 	admin.Do("PUT", "/admin/users/"+aisha+"/instance-admin", map[string]any{"admin": false}).MustStatus(t, 204)
 	c.Do("GET", "/admin/users", nil).MustStatus(t, 403)
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action IN ('user.instance_admin_grant', 'user.instance_admin_revoke') AND target_id = $1`, aisha); n != 2 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action IN ('instance_admin.granted', 'instance_admin.revoked') AND target_id = $1`, aisha); n != 2 {
 		t.Fatalf("%d admin changes audited", n)
 	}
 }
@@ -287,7 +287,7 @@ func TestPasswordReset(t *testing.T) {
 	if sent.Via != "Postmark" || len(mail.sent) != 1 || mail.sent[0].To != "aisha@acme.io" || !strings.Contains(mail.sent[0].Text, "/reset-password/") {
 		t.Fatalf("sent: %+v %+v", sent, mail.sent)
 	}
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'user.password_reset_send' AND target_id = $1`, id); n != 1 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'user.password_reset_sent' AND target_id = $1`, id); n != 1 {
 		t.Fatal("reset email not audited")
 	}
 }
@@ -358,7 +358,7 @@ func TestWorkspacesCreateDeleteRestorePurge(t *testing.T) {
 	if n := count(t, env, `SELECT count(*) FROM workspaces WHERE id = $1`, newsletter); n != 0 {
 		t.Fatal("not purged")
 	}
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'workspace.purge' AND target_id = $1`, newsletter); n != 1 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'workspace.purged' AND target_id = $1`, newsletter); n != 1 {
 		t.Fatal("purge not audited")
 	}
 	admin.Do("POST", "/admin/workspaces/"+newsletter+"/restore", nil).MustStatus(t, 404)
@@ -377,7 +377,7 @@ func TestPolicy(t *testing.T) {
 	if p["graceDays"].(float64) != 14 || p["lockoutAttempts"].(float64) != 3 {
 		t.Fatalf("saved: %v", p)
 	}
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'policy.update' AND metadata->>'summary' LIKE '%grace 14 days%'`); n != 1 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'policy.updated' AND metadata->>'summary' LIKE '%grace 14 days%'`); n != 1 {
 		t.Fatal("policy change not audited with a summary")
 	}
 	// The new lockout applies at once (the cached policy was dropped).
@@ -417,7 +417,7 @@ func TestInstanceSettingsAndLogo(t *testing.T) {
 	if s.Name != "Acme Mail" || s.PublicURL != "https://mail.acme.io" || s.DefaultTimezone != "Europe/Berlin" {
 		t.Fatalf("saved: %+v", s)
 	}
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'instance.settings_update' AND metadata->>'summary' LIKE '%public URL https://mail.acme.io%'`); n != 1 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'instance.settings_updated' AND metadata->>'summary' LIKE '%public URL https://mail.acme.io%'`); n != 1 {
 		t.Fatal("settings change not audited")
 	}
 	// SVG logos are checked: no scripts, no external references.
@@ -493,7 +493,7 @@ func TestUpdateCheck(t *testing.T) {
 	if r.Method != http.MethodGet || r.URL.RawQuery != "" || r.ContentLength > 0 || r.Header.Get("Authorization") != "" || r.Header.Get("Cookie") != "" || r.Header.Get("User-Agent") != "ReputeCast-update-check" {
 		t.Fatalf("request: %s %s %v", r.Method, r.URL, r.Header)
 	}
-	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'instance.update_check'`); n != 2 {
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'instance.update_check_changed'`); n != 2 {
 		t.Fatalf("%d update check changes audited", n)
 	}
 }
