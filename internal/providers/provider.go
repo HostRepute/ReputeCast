@@ -12,6 +12,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
 	"net/mail"
 	"sync"
@@ -228,6 +229,9 @@ type Config struct {
 	// provider supports a shared secret.
 	WebhookSecret string
 	HTTPClient    *http.Client
+	// Dialer opens raw connections (SMTP, IMAP, POP3) through the same
+	// address guard as HTTPClient; nil dials directly.
+	Dialer *net.Dialer
 }
 
 // Descriptor describes an adapter in the catalog (setup wizard, Adapters tab).

@@ -24,7 +24,7 @@ type pop3Box struct {
 }
 
 func openPOP3(ctx context.Context, cfg Config) (Box, error) {
-	d := &net.Dialer{Timeout: cfg.Timeout}
+	d := cfg.dialer()
 	tlsCfg := &tls.Config{ServerName: cfg.Host, MinVersion: tls.VersionTLS12}
 	var conn net.Conn
 	var err error

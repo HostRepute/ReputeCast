@@ -116,10 +116,10 @@ confirmation, preference-center (lists, frequency, pause) and unsubscribe
 ("fewer emails" option) pages; a public newsletter archive with RSS.
 
 **Deliverability.** Health per sending domain and dedicated IP, account
-health per provider, blocklist status with delisting links, Google
-Postmaster Tools and Microsoft SNDS data, DMARC report summaries and an
-incident timeline. Richer with [HostRepute](https://hostrepute.com), useful
-without it.
+health per provider, blocklist status, DMARC report summaries and an
+incident timeline. Connect [HostRepute](https://hostrepute.com) to add
+80+ blocklists with delisting requests, Google Postmaster Tools and
+Microsoft SNDS data; the built-in checks work without it.
 
 **Teams, access and approvals.** Unlimited workspaces; members with
 built-in or custom roles and 30+ granular permissions (sensitive ones are

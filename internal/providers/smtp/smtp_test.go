@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/contracttest"
 	"github.com/hostrepute/reputecast/internal/providers/smtp"
@@ -169,6 +171,25 @@ func TestDialFailures(t *testing.T) {
 	_, err = p.Send(ctx, []providers.Message{contracttest.Message(0)})
 	if !errors.Is(err, providers.ErrUnavailable) {
 		t.Fatalf("connection refused must be an outage: %v", err)
+	}
+}
+
+// With the provider guard's dialer, a server on a private or loopback address
+// is refused before anything is sent, like HTTP provider calls.
+func TestGuardedDialer(t *testing.T) {
+	settings, _ := json.Marshal(map[string]any{"host": "127.0.0.1", "port": 2525, "tls": "none",
+		"bounce_mailbox": map[string]any{"host": "127.0.0.1", "port": 1143, "tls": "none", "username": "bounces"}})
+	p, err := smtp.New(providers.Config{Settings: settings, Dialer: netguard.Policy{}.Dialer(time.Second)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := p.(providers.ConnectionTester).TestConnection(ctx); err == nil || !strings.Contains(err.Error(), "not allowed") {
+		t.Fatalf("connection test to loopback: %v", err)
+	}
+	if _, err := p.(providers.BounceMailboxTester).TestBounceMailbox(ctx); err == nil || !strings.Contains(fmt.Sprint(err), "not allowed") {
+		t.Fatalf("bounce mailbox on loopback: %v", err)
 	}
 }
 
