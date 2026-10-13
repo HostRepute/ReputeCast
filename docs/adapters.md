@@ -591,6 +591,10 @@ pnpm dev                       # serves the protocol on http://127.0.0.1:4600
 pnpm test                      # unit tests + the contract suite (npx reputecast-adapter test)
 ```
 
+A copy outside this repository installs `@reputecast/adapter-sdk` from npm.
+Inside it, run `pnpm install` in `sdk/` instead: the template is linked to
+the workspace's SDK, which the install builds.
+
 Start from the template's `src/adapter.ts`:
 
 ```ts
