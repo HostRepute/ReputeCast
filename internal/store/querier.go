@@ -89,10 +89,8 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
-	// … and the connected sending providers (dedicated IPs, shared pools, server hostnames).
-	HostReputeActiveProviders(ctx context.Context, workspaceID uuid.UUID) ([]HostReputeActiveProvidersRow, error)
-	// Everything an asset list is built from: sending domains (with the records
-	// their providers require) …
+	// The sending domains an asset list is built from (with the records their
+	// providers require). Connected providers come from ProvListActive.
 	HostReputeAssetSources(ctx context.Context, workspaceID uuid.UUID) ([]HostReputeAssetSourcesRow, error)
 	HostReputeCountAgents(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	HostReputeCountWebhooks(ctx context.Context, workspaceID uuid.UUID) (HostReputeCountWebhooksRow, error)

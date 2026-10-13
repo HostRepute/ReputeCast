@@ -6,16 +6,16 @@ import "time"
 // sending domain and dedicated IP, shared pools, account health per sending
 // provider, blocklists, Postmaster, SNDS, DMARC and the incident timeline.
 type DeliverabilityOverview struct {
-	HostRepute DeliverabilityHostRepute `json:"hostRepute"`
-	Checks     DeliverabilityChecks     `json:"checks"`
-	Assets     []DeliverabilityAssetHealth            `json:"assets"`
-	Pools      []DeliverabilityPoolHealth             `json:"pools"`
-	Providers  []DeliverabilityProviderHealth  `json:"providers"`
-	Blocklists DeliverabilityBlocklistStatus          `json:"blocklists"`
-	Postmaster *DeliverabilityPostmaster         `json:"postmaster,omitempty"`
-	SNDS       *DeliverabilitySNDS               `json:"snds,omitempty"`
-	DMARC      DeliverabilityDMARCSummary             `json:"dmarc"`
-	Incidents  DeliverabilityIncidentTimeline         `json:"incidents"`
+	HostRepute DeliverabilityHostRepute       `json:"hostRepute"`
+	Checks     DeliverabilityChecks           `json:"checks"`
+	Assets     []DeliverabilityAssetHealth    `json:"assets"`
+	Pools      []DeliverabilityPoolHealth     `json:"pools"`
+	Providers  []DeliverabilityProviderHealth `json:"providers"`
+	Blocklists DeliverabilityBlocklistStatus  `json:"blocklists"`
+	Postmaster *DeliverabilityPostmaster      `json:"postmaster,omitempty"`
+	SNDS       *DeliverabilitySNDS            `json:"snds,omitempty"`
+	DMARC      DeliverabilityDMARCSummary     `json:"dmarc"`
+	Incidents  DeliverabilityIncidentTimeline `json:"incidents"`
 }
 
 // DeliverabilityHostRepute is the HostRepute part of the screen header.
@@ -74,9 +74,9 @@ type DeliverabilityAssetHealth struct {
 	// UsedBy are the providers that send for the domain ("SES", "Postmark").
 	UsedBy []string `json:"usedBy"`
 	// Provider sends from the dedicated IP ("Postal").
-	Provider       string          `json:"provider,omitempty"`
-	ProviderID     string          `json:"providerId,omitempty"`
-	ProviderStatus string          `json:"providerStatus,omitempty"`
+	Provider       string                        `json:"provider,omitempty"`
+	ProviderID     string                        `json:"providerId,omitempty"`
+	ProviderStatus string                        `json:"providerStatus,omitempty"`
 	Warmup         *DeliverabilityWarmupProgress `json:"warmup,omitempty"`
 	// Score and Verdict come from HostRepute.
 	Score   *int   `json:"score,omitempty"`
@@ -93,7 +93,7 @@ type DeliverabilityAssetHealth struct {
 	// DMARCAligned is the share of DMARC-aligned mail, last 7 days (percent).
 	DMARCAligned *float64 `json:"dmarcAligned,omitempty"`
 	// GmailReputation is Postmaster's domain reputation: high, medium, low, bad.
-	GmailReputation string      `json:"gmailReputation,omitempty"`
+	GmailReputation string                    `json:"gmailReputation,omitempty"`
 	ReverseDNS      *DeliverabilityReverseDNS `json:"reverseDns,omitempty"`
 	SNDS            *DeliverabilitySNDSBrief  `json:"snds,omitempty"`
 }
@@ -162,12 +162,12 @@ type DeliverabilityPoolHealth struct {
 // DeliverabilityProviderHealth is a sending provider's account health against its
 // own thresholds.
 type DeliverabilityProviderHealth struct {
-	ProviderID string    `json:"providerId"`
-	Name       string    `json:"name" doc:"Postal (self-hosted)"`
-	Adapter    string    `json:"adapter"`
-	Status     string    `json:"status"`
-	Badge      string    `json:"badge" doc:"Healthy · no enforcement"`
-	Tone       string    `json:"tone" enum:"ok,warn,bad,info,neutral"`
+	ProviderID string                  `json:"providerId"`
+	Name       string                  `json:"name" doc:"Postal (self-hosted)"`
+	Adapter    string                  `json:"adapter"`
+	Status     string                  `json:"status"`
+	Badge      string                  `json:"badge" doc:"Healthy · no enforcement"`
+	Tone       string                  `json:"tone" enum:"ok,warn,bad,info,neutral"`
 	Bounce     DeliverabilityRateLimit `json:"bounce"`
 	Complaint  DeliverabilityRateLimit `json:"complaint"`
 	// Note is one extra fact ("Reputation dashboard", "Stream", "Thresholds").
@@ -202,7 +202,7 @@ type DeliverabilityBlocklistStatus struct {
 	Listed    int        `json:"listed"`
 	CheckedAt *time.Time `json:"checkedAt,omitempty"`
 	// Stale is true while HostRepute data can't be refreshed.
-	Stale   bool                    `json:"stale"`
+	Stale   bool                            `json:"stale"`
 	Results []DeliverabilityBlocklistSource `json:"results"`
 }
 
@@ -284,7 +284,7 @@ type DeliverabilityDMARCSummary struct {
 	Reports  int    `json:"reports"`
 	Messages int64  `json:"messages"`
 	// PassRate is the share of messages that passed DMARC (percent).
-	PassRate *float64         `json:"passRate,omitempty"`
+	PassRate *float64                    `json:"passRate,omitempty"`
 	Sources  []DeliverabilityDMARCSource `json:"sources"`
 	// Unknown is the largest source that isn't one of the providers.
 	Unknown *DeliverabilityDMARCSource `json:"unknown,omitempty"`
@@ -306,20 +306,20 @@ type DeliverabilityDMARCSource struct {
 // DeliverabilityIncidentTimeline is the incident timeline.
 type DeliverabilityIncidentTimeline struct {
 	Items []DeliverabilityIncident `json:"items"`
-	Total int64          `json:"total"`
+	Total int64                    `json:"total"`
 	// FromHostRepute is true when HostRepute alerts are part of the timeline.
 	FromHostRepute bool `json:"fromHostRepute"`
 }
 
 // DeliverabilityIncident is one incident, linked to campaigns and providers.
 type DeliverabilityIncident struct {
-	ID         string         `json:"id"`
-	OccurredAt time.Time      `json:"occurredAt"`
-	Kind       string         `json:"kind"`
-	Severity   string         `json:"severity" enum:"info,ok,warn,bad"`
-	Title      string         `json:"title"`
-	Detail     string         `json:"detail"`
-	Source     string         `json:"source" enum:"reputecast,hostrepute,builtin"`
+	ID         string                       `json:"id"`
+	OccurredAt time.Time                    `json:"occurredAt"`
+	Kind       string                       `json:"kind"`
+	Severity   string                       `json:"severity" enum:"info,ok,warn,bad"`
+	Title      string                       `json:"title"`
+	Detail     string                       `json:"detail"`
+	Source     string                       `json:"source" enum:"reputecast,hostrepute,builtin"`
 	Links      []DeliverabilityIncidentLink `json:"links"`
 }
 

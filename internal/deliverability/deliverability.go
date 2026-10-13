@@ -13,7 +13,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"math"
 	"slices"
@@ -26,9 +25,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/audit"
-	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/hostrepute"
+	"github.com/hostrepute/reputecast/internal/providers/manage"
+	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -69,7 +69,8 @@ type state struct {
 	zone        *time.Location
 	conn        *store.HostreputeConnection
 	cands       []hostrepute.Candidate
-	providers   []store.HostReputeActiveProvidersRow
+	providers   []store.Provider
+	usage       map[uuid.UUID]manage.Usage
 	streams     []store.DeliverabilityProviderStreamsRow
 	warmups     []store.DeliverabilityWarmupPlansRow
 	blocklists  []store.BlocklistResult
@@ -101,7 +102,8 @@ func (st *state) hostReputeStale() bool {
 	return st.conn != nil && !st.connected()
 }
 
-func (s *Service) load(ctx context.Context, ws uuid.UUID, tz string) (*state, error) {
+func (s *Service) load(ctx context.Context, w *store.Workspace) (*state, error) {
+	ws, tz := w.ID, w.Timezone
 	now := s.now()
 	st := &state{ws: ws, now: now, today: dateIn(now, tz), zone: zoneOf(tz), checks: map[string]store.DeliverabilityAssetCheck{}, monitored: map[string]monitored{}}
 	q := s.Q
@@ -122,7 +124,10 @@ func (s *Service) load(ctx context.Context, ws uuid.UUID, tz string) (*state, er
 	if st.domains, err = q.HostReputeAssetSources(ctx, ws); err != nil {
 		return nil, err
 	}
-	if st.providers, err = q.HostReputeActiveProviders(ctx, ws); err != nil {
+	if st.providers, err = q.ProvListActive(ctx, ws); err != nil {
+		return nil, err
+	}
+	if st.usage, err = manage.UsageOf(ctx, q, w, st.providers, now); err != nil {
 		return nil, err
 	}
 	if st.streams, err = q.DeliverabilityProviderStreams(ctx, ws); err != nil {
@@ -165,7 +170,7 @@ const runTTL = 10 * time.Minute
 
 // Overview builds the Deliverability screen.
 func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (DeliverabilityOverview, error) {
-	st, err := s.load(ctx, ws.ID, ws.Timezone)
+	st, err := s.load(ctx, ws)
 	if err != nil {
 		return DeliverabilityOverview{}, err
 	}
@@ -313,7 +318,7 @@ func (st *state) sourcesFor(via string, builtin int) int {
 func (st *state) providerShort(id uuid.UUID) string {
 	for _, p := range st.providers {
 		if p.ID == id {
-			return campaigns.ShortName(p.Name, p.Adapter)
+			return provstate.Short(p.Name, p.Adapter)
 		}
 	}
 	return ""
@@ -436,7 +441,7 @@ func (st *state) usedBy(domain string) []string {
 	out := []string{}
 	for _, p := range st.providers {
 		if len(ids) == 0 || slices.Contains(ids, p.ID) {
-			out = append(out, campaigns.ShortName(p.Name, p.Adapter))
+			out = append(out, provstate.Short(p.Name, p.Adapter))
 		}
 	}
 	return out
@@ -447,21 +452,9 @@ func (st *state) warmup(provider uuid.UUID, ip string) *DeliverabilityWarmupProg
 		if w.ProviderID != provider || (w.Ip != "" && w.Ip != ip) {
 			continue
 		}
-		start := time.Date(w.StartDate.Year(), w.StartDate.Month(), w.StartDate.Day(), 0, 0, 0, 0, time.UTC)
-		day := int(st.today.Sub(start).Hours()/24) + 1
+		// Day numbers count on the workspace calendar, as the warm-up job does.
+		day := provstate.WarmupDay(w.StartDate, st.now, st.zone)
 		return &DeliverabilityWarmupProgress{Day: min(max(day, 1), int(w.Days)), Days: int(w.Days)}
-	}
-	// Providers without a stored plan describe it in their status ("Warming up · day 9 of 21").
-	for _, p := range st.providers {
-		if p.ID != provider || p.Status != "warming_up" {
-			continue
-		}
-		var d, n int
-		if i := strings.Index(p.StatusDetail, "day "); i >= 0 {
-			if _, err := fmt.Sscanf(p.StatusDetail[i:], "day %d of %d", &d, &n); err == nil && d > 0 && n > 0 {
-				return &DeliverabilityWarmupProgress{Day: d, Days: n}
-			}
-		}
 	}
 	return nil
 }

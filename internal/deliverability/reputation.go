@@ -26,11 +26,11 @@ type DeliverabilityReputation struct {
 	// (high-impact listing) or unknown (no current data: HostRepute rejected
 	// the token or can't be reached and no fallback ran). Unknown is never
 	// treated as a Block.
-	Status    string              `json:"status" enum:"pass,warn,block,unknown"`
-	Via       string              `json:"via" enum:"hostrepute,builtin,none"`
-	Sources   int                 `json:"sources"`
+	Status    string                            `json:"status" enum:"pass,warn,block,unknown"`
+	Via       string                            `json:"via" enum:"hostrepute,builtin,none"`
+	Sources   int                               `json:"sources"`
 	Listings  []DeliverabilityReputationListing `json:"listings"`
-	CheckedAt *time.Time          `json:"checkedAt,omitempty"`
+	CheckedAt *time.Time                        `json:"checkedAt,omitempty"`
 	// Reason explains an unknown status.
 	Reason string `json:"reason,omitempty"`
 }
@@ -46,7 +46,7 @@ type DeliverabilityReputationListing struct {
 
 // Reputation returns the blocklist verdict for Send Readiness.
 func (s *Service) Reputation(ctx context.Context, ws *store.Workspace) (DeliverabilityReputation, error) {
-	st, err := s.load(ctx, ws.ID, ws.Timezone)
+	st, err := s.load(ctx, ws)
 	if err != nil {
 		return DeliverabilityReputation{}, err
 	}
@@ -96,11 +96,11 @@ func (s *Service) Reputation(ctx context.Context, ws *store.Workspace) (Delivera
 // AssetStatuses is what Deliverability knows per asset, for Settings ›
 // Integrations (it has the signature hostrepute.Service.Status expects).
 func (s *Service) AssetStatuses(ctx context.Context, ws uuid.UUID) (map[string]hostrepute.AssetStatus, error) {
-	tz := "UTC"
-	if w, err := s.Q.GetWorkspace(ctx, ws); err == nil {
-		tz = w.Timezone
+	w, err := s.Q.GetWorkspace(ctx, ws)
+	if err != nil {
+		return nil, err
 	}
-	st, err := s.load(ctx, ws, tz)
+	st, err := s.load(ctx, &w)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func (s *Service) AssetStatuses(ctx context.Context, ws uuid.UUID) (map[string]h
 
 // DeliverabilityDelistingRequest is the result of "Request delisting".
 type DeliverabilityDelistingRequest struct {
-	Asset    string             `json:"asset"`
+	Asset    string                           `json:"asset"`
 	Requests []DeliverabilityDelistingOutcome `json:"requests"`
 }
 

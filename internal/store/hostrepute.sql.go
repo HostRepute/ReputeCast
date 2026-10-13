@@ -195,66 +195,6 @@ func (q *Queries) GetHostReputeConnectionForUpdate(ctx context.Context, workspac
 	return i, err
 }
 
-const hostReputeActiveProviders = `-- name: HostReputeActiveProviders :many
-SELECT id, adapter, name, label, config, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, connected_at
-FROM providers
-WHERE workspace_id = $1 AND disconnected_at IS NULL
-ORDER BY connected_at, name
-`
-
-type HostReputeActiveProvidersRow struct {
-	ID           uuid.UUID       `json:"id"`
-	Adapter      string          `json:"adapter"`
-	Name         string          `json:"name"`
-	Label        string          `json:"label"`
-	Config       json.RawMessage `json:"config"`
-	Status       string          `json:"status"`
-	StatusDetail string          `json:"statusDetail"`
-	IpMode       string          `json:"ipMode"`
-	Ips          []string        `json:"ips"`
-	Capabilities json.RawMessage `json:"capabilities"`
-	Limits       json.RawMessage `json:"limits"`
-	Health       json.RawMessage `json:"health"`
-	Pricing      json.RawMessage `json:"pricing"`
-	ConnectedAt  time.Time       `json:"connectedAt"`
-}
-
-// … and the connected sending providers (dedicated IPs, shared pools, server hostnames).
-func (q *Queries) HostReputeActiveProviders(ctx context.Context, workspaceID uuid.UUID) ([]HostReputeActiveProvidersRow, error) {
-	rows, err := q.db.Query(ctx, hostReputeActiveProviders, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []HostReputeActiveProvidersRow{}
-	for rows.Next() {
-		var i HostReputeActiveProvidersRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Adapter,
-			&i.Name,
-			&i.Label,
-			&i.Config,
-			&i.Status,
-			&i.StatusDetail,
-			&i.IpMode,
-			&i.Ips,
-			&i.Capabilities,
-			&i.Limits,
-			&i.Health,
-			&i.Pricing,
-			&i.ConnectedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const hostReputeAssetSources = `-- name: HostReputeAssetSources :many
 SELECT id, domain, dns_records, created_at FROM sending_domains
 WHERE workspace_id = $1 ORDER BY created_at, domain
@@ -267,8 +207,8 @@ type HostReputeAssetSourcesRow struct {
 	CreatedAt  time.Time       `json:"createdAt"`
 }
 
-// Everything an asset list is built from: sending domains (with the records
-// their providers require) …
+// The sending domains an asset list is built from (with the records their
+// providers require). Connected providers come from ProvListActive.
 func (q *Queries) HostReputeAssetSources(ctx context.Context, workspaceID uuid.UUID) ([]HostReputeAssetSourcesRow, error) {
 	rows, err := q.db.Query(ctx, hostReputeAssetSources, workspaceID)
 	if err != nil {

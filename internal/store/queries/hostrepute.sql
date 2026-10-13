@@ -135,17 +135,10 @@ WHERE workspace_id = @workspace_id AND disconnected_at IS NULL AND @ip::text = A
 ORDER BY connected_at LIMIT 1;
 
 -- name: HostReputeAssetSources :many
--- Everything an asset list is built from: sending domains (with the records
--- their providers require) …
+-- The sending domains an asset list is built from (with the records their
+-- providers require). Connected providers come from ProvListActive.
 SELECT id, domain, dns_records, created_at FROM sending_domains
 WHERE workspace_id = @workspace_id ORDER BY created_at, domain;
-
--- name: HostReputeActiveProviders :many
--- … and the connected sending providers (dedicated IPs, shared pools, server hostnames).
-SELECT id, adapter, name, label, config, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, connected_at
-FROM providers
-WHERE workspace_id = @workspace_id AND disconnected_at IS NULL
-ORDER BY connected_at, name;
 
 -- name: HostReputeWorkspaceSlug :one
 SELECT slug FROM workspaces WHERE id = @id;

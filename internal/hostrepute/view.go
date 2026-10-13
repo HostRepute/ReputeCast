@@ -88,9 +88,9 @@ type HostReputeShared struct {
 
 // HostReputeIntegrationsOverview is Settings › Integrations.
 type HostReputeIntegrationsOverview struct {
-	HostRepute HostReputeConnection `json:"hostRepute"`
-	Webhooks   HostReputeIntegrationsWebhooks      `json:"webhooks"`
-	MCP        HostReputeIntegrationsMCP           `json:"mcp"`
+	HostRepute HostReputeConnection           `json:"hostRepute"`
+	Webhooks   HostReputeIntegrationsWebhooks `json:"webhooks"`
+	MCP        HostReputeIntegrationsMCP      `json:"mcp"`
 	// Postmaster and SNDS say where that data comes from.
 	Postmaster HostReputeDataSource `json:"postmaster"`
 	SNDS       HostReputeDataSource `json:"snds"`

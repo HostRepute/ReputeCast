@@ -20,10 +20,10 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
-	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/hostrepute"
+	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -51,7 +51,7 @@ type sourceKey struct {
 
 // attribute names the provider that sent from ip: a dedicated IP of a
 // connected provider, else a provider whose PTR domain matches.
-func (st *state) attribute(ip, ptr string) (store.HostReputeActiveProvidersRow, bool) {
+func (st *state) attribute(ip, ptr string) (store.Provider, bool) {
 	for _, p := range st.providers {
 		for _, a := range p.Ips {
 			if a == ip {
@@ -61,7 +61,7 @@ func (st *state) attribute(ip, ptr string) (store.HostReputeActiveProvidersRow, 
 	}
 	ptr = strings.ToLower(strings.TrimSuffix(ptr, "."))
 	if ptr == "" {
-		return store.HostReputeActiveProvidersRow{}, false
+		return store.Provider{}, false
 	}
 	for _, p := range st.providers {
 		for _, suf := range ptrSuffixes[p.Adapter] {
@@ -70,7 +70,7 @@ func (st *state) attribute(ip, ptr string) (store.HostReputeActiveProvidersRow, 
 			}
 		}
 	}
-	return store.HostReputeActiveProvidersRow{}, false
+	return store.Provider{}, false
 }
 
 // ownedDomain reports whether a From domain belongs to the workspace.
@@ -145,7 +145,7 @@ func (st *state) dmarcSummary() DeliverabilityDMARCSummary {
 					a.row.ProviderID, a.row.Adapter = p.ID.String(), p.Adapter
 					a.row.Label = p.Name
 					if p.IpMode == "dedicated" {
-						a.row.Label = campaigns.ShortName(p.Name, p.Adapter) + " · " + r.SourceIP
+						a.row.Label = provstate.Short(p.Name, p.Adapter) + " · " + r.SourceIP
 					} else {
 						a.row.IP = ""
 					}
@@ -296,7 +296,7 @@ func (s *Service) DMARCSource(ctx context.Context, ws *store.Workspace, ip strin
 		return DeliverabilityDMARCSourceDetail{}, api.Invalid("path.ip", "Give an IPv4 or IPv6 address.")
 	}
 	ip = addr.String()
-	st, err := s.load(ctx, ws.ID, ws.Timezone)
+	st, err := s.load(ctx, ws)
 	if err != nil {
 		return DeliverabilityDMARCSourceDetail{}, err
 	}
@@ -525,7 +525,7 @@ func (s *Service) UploadReport(ctx context.Context, ws *store.Workspace, data []
 	if err != nil {
 		return DeliverabilityDMARCUpload{}, api.Invalid("body", strings.ToUpper(err.Error()[:1])+err.Error()[1:]+".")
 	}
-	st, err := s.load(ctx, ws.ID, ws.Timezone)
+	st, err := s.load(ctx, ws)
 	if err != nil {
 		return DeliverabilityDMARCUpload{}, err
 	}

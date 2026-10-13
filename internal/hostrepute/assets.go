@@ -45,7 +45,7 @@ func Candidates(ctx context.Context, q *store.Queries, workspaceID uuid.UUID) ([
 	if err != nil {
 		return nil, err
 	}
-	providers, err := q.HostReputeActiveProviders(ctx, workspaceID)
+	providers, err := q.ProvListActive(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}
