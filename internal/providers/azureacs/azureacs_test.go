@@ -252,6 +252,25 @@ func TestVerifyAndEntraID(t *testing.T) {
 	if _, err := azureacs.New(providers.Config{Credentials: json.RawMessage(`{"connection_string":"accesskey=abc"}`)}); err == nil {
 		t.Fatal("a connection string without an endpoint is refused")
 	}
+	// Credentials only go over https, or plain http on this machine.
+	for endpoint, ok := range map[string]bool{
+		"https://acme.communication.azure.com": true,
+		"http://127.0.0.1:8080":                true,
+		"http://[::1]:8080":                    true,
+		"http://localhost:8080":                true,
+		"http://acme.communication.azure.com":  false,
+		"http://127.0.0.1.attacker.example":    false,
+		"ftp://acme.communication.azure.com":   false,
+	} {
+		s, _ := json.Marshal(azureacs.Settings{Endpoint: endpoint})
+		if _, err := azureacs.New(providers.Config{Settings: s}); (err == nil) != ok {
+			t.Fatalf("endpoint %s: %v", endpoint, err)
+		}
+		s, _ = json.Marshal(azureacs.Settings{Endpoint: "https://acme.communication.azure.com", AuthorityURL: endpoint})
+		if _, err := azureacs.New(providers.Config{Settings: s}); (err == nil) != ok {
+			t.Fatalf("authority %s: %v", endpoint, err)
+		}
+	}
 }
 
 func TestSign(t *testing.T) {

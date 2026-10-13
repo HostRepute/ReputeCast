@@ -21,13 +21,13 @@ This guide covers three things:
 | Amazon SES | `ses` | 50, in parallel | SNS signature (RSA, signing certificate) | API | Two-way |
 | Postmark | `postmark` | 500 | Basic auth | API (account token) | Two-way, per stream |
 | Postal (self-hosted) | `postal` | 1 | RSA signature (server JWKS) | Manual DNS | Local only |
-| Mailgun | `mailgun` | 1 | HMAC-SHA256 over timestamp + token, account signing key | API | Two-way |
-| SendGrid | `sendgrid` | 1 | ECDSA P-256 signed Event Webhook | API | Two-way |
+| Mailgun | `mailgun` | 1 | HMAC-SHA256 over timestamp + token, account signing key; 12-hour window, each token bound to its event | API | Two-way |
+| SendGrid | `sendgrid` | 1 | ECDSA P-256 signed Event Webhook; 26-hour window | API | Two-way |
 | Resend | `resend` | 100 | Standard Webhooks (Svix) | API | Two-way |
 | SparkPost | `sparkpost` | 1 | Basic auth (SparkPost doesn't sign) | API | Two-way |
 | Mailjet | `mailjet` | 50 | Basic auth in the callback URL (Mailjet doesn't sign) | API | Two-way (campaign exclusions) |
 | Brevo | `brevo` | 1 | Bearer token (Brevo doesn't sign) | API | Pull only |
-| Azure Communication Services | `azureacs` | 1 | Entra ID token (protected webhook) or shared secret delivery header; Event Grid validation handshake | Manual DNS | Local only |
+| Azure Communication Services | `azureacs` | 1 | Entra ID token (protected webhook) or shared secret delivery header (`Authorization: Bearer`); Event Grid validation handshake; Event Grid event schema only | Manual DNS | Local only |
 | Generic SMTP | `smtp` | 25 per connection | Bounce mailbox (IMAP/POP3) | Manual DNS | Local only |
 | Generic HTTP adapter | `httpgeneric` | 1 | Configurable: HMAC, Standard Webhooks, basic auth, header secret | Manual DNS | Local only |
 
@@ -67,6 +67,7 @@ itself"):
 | `DomainManager` | DNS records with live status for the domain step and Deliverability. |
 | `WebhookRegistrar`, `WebhookInspector`, `WebhookTester` | "Register webhooks", the webhooks-silent diagnosis, "Send test event". |
 | `WebhookVerifier`, `WebhookHandshaker` | Ingest verifies before storing. Handshakes (SNS subscriptions, Event Grid validation) are answered and not stored. |
+| `WebhookSecrets` | Names the headers that carry a shared webhook secret as it is. Ingest leaves them out of the stored raw event, as it does `Authorization`. |
 | `SuppressionSyncer` | Two-way sync with the shared suppression list. If the provider can list suppressions but not add them, return `providers.ErrNotSupported` from `AddSuppressions` and the sync switches to pull only. |
 | `TrackingManager` | The provider-side tracking check (no double tracking). |
 | `EventBackfiller` | Fetches message status when webhooks went silent. |
@@ -150,8 +151,12 @@ key looks secret (`password`, `token`, `secret`, `…api_key`) but isn't marked
 `New` must not do network I/O, and it must not fail because an optional
 value is missing. Report missing credentials from the first call instead.
 The factory builds an adapter per request, so anything worth keeping between
-requests (signing keys, OAuth tokens) goes in a package-level cache keyed by
-the account. See `resend.signingSecret` and `azureacs.token`.
+requests goes in a package-level cache keyed by the account. Signing
+material read from the provider's API (a webhook secret, a public key, a key
+set) goes in a `webhookauth.Material`. It reads the material again when a
+signature fails (at most once a minute) and every hour, so a key the
+provider rotated out stops verifying. See `resend.secrets`. For OAuth tokens,
+see `azureacs.token`.
 
 ### Sending
 
@@ -164,7 +169,8 @@ the account. See `resend.signingSecret` and `azureacs.token`.
   and response headers. 401 and 403 become rejected credentials, 429
   throttling, 408 and 5xx outages. Adjust that where the provider means
   something else. SendGrid answers 401 when you're out of credits, which is
-  a quota, not a bad key.
+  a quota, not a bad key. `apiclient.MessageError` turns the remaining 4xx
+  answers into the message's permanent `SendError`.
 - **One call per message:** use `apiclient.Fanout`. It keeps results in
   order. After an account-level failure it starts no new call, and the
   messages it didn't send get a temporary error so the engine retries them.
@@ -177,7 +183,9 @@ the account. See `resend.signingSecret` and `azureacs.token`.
 - **Tracking:** turn the provider's open and click tracking off on every
   message. ReputeCast tracks itself.
 - **Never mark an accepted message as failed.** If the provider accepts it
-  but returns no id, use the ReputeCast id as the provider id.
+  but returns no id, use the ReputeCast id as the provider id. The same goes
+  for an accepted batch whose answer can't be matched to its messages:
+  sending it again could deliver it twice.
 
 ### Webhooks
 
@@ -190,11 +198,17 @@ the account. See `resend.signingSecret` and `azureacs.token`.
 - Use the scheme the provider signs with. `internal/providers/webhookauth`
   has Standard Webhooks (Svix), HMAC helpers and constant-time shared-secret
   checks. Where the provider doesn't sign (SparkPost, Mailjet, Brevo, Event
-  Grid), register the webhook with basic auth, a bearer token or a secret
-  header carrying the provider's webhook secret (`Config.WebhookSecret`).
-- Apply a timestamp window only where the provider re-signs retries
-  (Standard Webhooks). SendGrid and Mailgun retry for hours with the original
-  signature. There, ingest's dedupe drops redeliveries.
+  Grid), register the webhook with basic auth or a bearer token carrying the
+  provider's webhook secret (`Config.WebhookSecret`). Both travel in
+  `Authorization`, which ingest never stores. A secret in any other header
+  must be named through `WebhookSecrets`.
+- Bound the signed timestamp. Standard Webhooks re-signs every attempt, so
+  five minutes is enough (`webhookauth.Fresh`). Where retries may carry the
+  first attempt's signature for hours, the window spans the retries
+  (`webhookauth.Within`): 26 hours for SendGrid, 12 for Mailgun. Mailgun
+  signs a token, not the event, so `webhookauth.Replay` also ties each token
+  to the event it came with. A redelivery of the same event passes, and
+  ingest's dedupe drops it.
 - **Normalize:**
   - Map every delivery-relevant event to `delivered`, `deferred`,
     `hard_bounce`, `soft_bounce`, `complaint`, `rejected` or `unsubscribe`.
@@ -407,6 +421,11 @@ request:
 - **In the URL**, values are path-escaped, or query-escaped after `?`.
 - **In headers**, line breaks are removed.
 
+To send a literal `{{` inside a JSON string (an API's own placeholders),
+write `\{{`. The backslash only marks it and is dropped, so
+`"Hi \{{first_name}}"` sends `"Hi {{first_name}}"`. `{{ '{{' }}` does the
+same anywhere.
+
 **Test with a sample message** renders the request with secrets shown as
 `••••` (`Provider.Preview`).
 
@@ -428,7 +447,7 @@ Filters and recursive descent aren't supported.
 | `hmac` (default) | `signature_header` (default `X-Signature`) holds the HMAC of `signed_payload` (default `{body}`, or `{timestamp}.{body}` when `timestamp_header` is set). `algorithm` is `sha256` (default), `sha1` or `sha512`. `encoding` is `hex` (default) or `base64`, and `signature_prefix` (`sha256=`) is stripped. With a timestamp, requests older than five minutes are refused. |
 | `standard` | It carries a valid Standard Webhooks / Svix signature (`webhook-id`, `webhook-timestamp`, `webhook-signature`) made with a `whsec_` secret. |
 | `basic` | Its basic-auth user is `username` (default `reputecast`) and its password is the secret. |
-| `header` | `token_header` holds the secret. |
+| `header` | `token_header` holds the secret. That header is never stored with the raw event. |
 | `none` | Nothing but the provider's unguessable webhook URL. Use it only when the provider offers none of the above. |
 
 The secret is the `secret` template when set. Otherwise it is the
@@ -449,18 +468,26 @@ With `webhook_mapping: "status"`, each event has these fields:
 | `recipient` (or `email`) | The recipient |
 | `message_id` | The provider's message id |
 | `reputecast_id` | The echoed ReputeCast id |
-| `code` | The SMTP reply |
+| `code` | The SMTP reply, or the provider's own code (`invalid_recipient`) |
 | `reason` | The diagnostic |
 | `timestamp` | Unix seconds or milliseconds, or RFC 3339 |
 | `url`, `user_agent` | For clicks |
 
-A plain `bounced` is a hard bounce unless its code is a 4xx.
+A plain `bounced` is a hard bounce unless its code says otherwise:
+
+- An SMTP reply decides by its class: 5xx is hard and 4xx is soft.
+- A provider's own code is hard when its words name an unknown mailbox or
+  domain (`invalid_recipient`, `user-unknown`, `domain_not_found`) or say
+  `hard` or `permanent`. Any other code is soft, so nothing is suppressed on
+  a guess.
+- A block caused by the sender (spam, reputation, policy) is always soft,
+  whatever the code or the mapped type.
 
 With `webhook_mapping: "jsonpath"`, give each path, and map the provider's
 types in `types` to:
 
 - `delivered`, `deferred`, `hard_bounce`, `soft_bounce`;
-- `bounce` (hard, or soft for a 4xx code);
+- `bounce` (decided by its code, as above);
 - `complaint`, `rejected`, `open`, `click`, `unsubscribe`;
 - `ignore`.
 

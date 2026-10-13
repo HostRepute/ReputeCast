@@ -15,11 +15,11 @@ import (
 	"net/url"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
+	"github.com/hostrepute/reputecast/internal/providers/webhookauth"
 )
 
 // EventGridRole is the app role Event Grid's service principal holds on a
@@ -33,7 +33,9 @@ const skew = 5 * time.Minute
 // protected with Microsoft Entra ID: an RS256 JWT signed with one of the
 // tenant's keys, issued by the tenant (v1 or v2 issuer), for the webhook
 // application (audience), with the Event Grid subscriber role, not
-// expired. Keys are fetched from the tenant's discovery endpoint and cached.
+// expired. The tenant's key set is read from its discovery endpoint and
+// cached (read again for a key not seen yet, and every webhookauth.MaxAge,
+// so keys Microsoft retired stop being trusted).
 func (p *Provider) verifyEntraToken(ctx context.Context, token string) error {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
@@ -51,13 +53,25 @@ func (p *Provider) verifyEntraToken(ctx context.Context, token string) error {
 		return fmt.Errorf("%w: bad token signature", providers.ErrBadSignature)
 	}
 	tenant := p.eventGridTenant()
-	key, err := p.signingKey(ctx, tenant, head.Kid)
-	if err != nil {
-		return fmt.Errorf("%w: %w", providers.ErrBadSignature, err)
+	if tenant == "" {
+		return fmt.Errorf("%w: no Entra ID tenant is configured for Event Grid", providers.ErrBadSignature)
 	}
+	authority := strings.TrimRight(cmp.Or(p.s.AuthorityURL, DefaultAuthority), "/")
 	sum := sha256.Sum256([]byte(parts[0] + "." + parts[1]))
-	if rsa.VerifyPKCS1v15(key, crypto.SHA256, sum[:], sig) != nil {
-		return fmt.Errorf("%w: the token signature doesn't match", providers.ErrBadSignature)
+	err = keySets.Verify(ctx, webhookauth.Key(authority, tenant), func(ctx context.Context) (string, error) {
+		return p.fetchKeySet(ctx, authority, tenant)
+	}, func(set string) error {
+		key, err := findKey(set, head.Kid)
+		if err != nil {
+			return err
+		}
+		if rsa.VerifyPKCS1v15(key, crypto.SHA256, sum[:], sig) != nil {
+			return fmt.Errorf("%w: the token signature doesn't match", providers.ErrBadSignature)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 	var claims struct {
 		Iss   string   `json:"iss"`
@@ -111,66 +125,50 @@ func decodeSegment(seg string, v any) error {
 	return json.Unmarshal(b, v)
 }
 
-// keySet caches one tenant's signing keys, fetched at most once a minute
-// when a token names a key not seen yet.
-type keySet struct {
-	mu      sync.Mutex
-	keys    map[string]*rsa.PublicKey
-	fetched time.Time
+// keySets caches each tenant's key set (the JSON Web Key Set document),
+// shared by every adapter instance.
+var keySets webhookauth.Material
+
+// jwks is a JSON Web Key Set.
+type jwks struct {
+	Keys []struct {
+		Kty string `json:"kty"`
+		Kid string `json:"kid"`
+		N   string `json:"n"`
+		E   string `json:"e"`
+	} `json:"keys"`
 }
 
-var (
-	keySetsMu sync.Mutex
-	keySets   = map[string]*keySet{}
-)
+// fetchKeySet reads the tenant's signing keys from its discovery endpoint.
+func (p *Provider) fetchKeySet(ctx context.Context, authority, tenant string) (string, error) {
+	res, err := apiclient.New(authority, p.http).Exec(ctx, apiclient.Request{Op: "GET /discovery/v2.0/keys", Method: http.MethodGet,
+		Path: "/" + url.PathEscape(tenant) + "/discovery/v2.0/keys"})
+	if err != nil {
+		return "", err
+	}
+	var set jwks
+	if err := json.Unmarshal(res.Body, &set); err != nil || len(set.Keys) == 0 {
+		return "", errors.New("the tenant's key set is empty or unreadable")
+	}
+	return string(res.Body), nil
+}
 
-func (p *Provider) signingKey(ctx context.Context, tenant, kid string) (*rsa.PublicKey, error) {
-	if tenant == "" {
-		return nil, errors.New("no Entra ID tenant is configured for Event Grid")
+// findKey returns the RSA key kid of a key set.
+func findKey(set, kid string) (*rsa.PublicKey, error) {
+	var ks jwks
+	if err := json.Unmarshal([]byte(set), &ks); err != nil {
+		return nil, fmt.Errorf("%w: unreadable key set", providers.ErrBadSignature)
 	}
-	authority := strings.TrimRight(cmp.Or(p.s.AuthorityURL, DefaultAuthority), "/")
-	id := authority + "|" + tenant
-	keySetsMu.Lock()
-	ks, ok := keySets[id]
-	if !ok {
-		ks = &keySet{keys: map[string]*rsa.PublicKey{}}
-		keySets[id] = ks
-	}
-	keySetsMu.Unlock()
-	ks.mu.Lock()
-	defer ks.mu.Unlock()
-	if k, ok := ks.keys[kid]; ok {
-		return k, nil
-	}
-	if time.Since(ks.fetched) < time.Minute {
-		return nil, fmt.Errorf("unknown signing key %q", kid)
-	}
-	ks.fetched = time.Now()
-	c := apiclient.New(authority, p.http)
-	var set struct {
-		Keys []struct {
-			Kty string `json:"kty"`
-			Kid string `json:"kid"`
-			N   string `json:"n"`
-			E   string `json:"e"`
-		} `json:"keys"`
-	}
-	if err := c.Do(ctx, "GET /discovery/v2.0/keys", http.MethodGet, "/"+url.PathEscape(tenant)+"/discovery/v2.0/keys", nil, &set); err != nil {
-		return nil, err
-	}
-	for _, k := range set.Keys {
-		if k.Kty != "RSA" || k.Kid == "" {
+	for _, k := range ks.Keys {
+		if k.Kty != "RSA" || k.Kid != kid {
 			continue
 		}
 		n, err1 := base64.RawURLEncoding.DecodeString(strings.TrimRight(k.N, "="))
 		e, err2 := base64.RawURLEncoding.DecodeString(strings.TrimRight(k.E, "="))
-		if err1 != nil || err2 != nil || len(e) > 4 {
-			continue
+		if err1 != nil || err2 != nil || len(n) == 0 || len(e) == 0 || len(e) > 4 {
+			break
 		}
-		ks.keys[k.Kid] = &rsa.PublicKey{N: new(big.Int).SetBytes(n), E: int(new(big.Int).SetBytes(e).Int64())}
+		return &rsa.PublicKey{N: new(big.Int).SetBytes(n), E: int(new(big.Int).SetBytes(e).Int64())}, nil
 	}
-	if k, ok := ks.keys[kid]; ok {
-		return k, nil
-	}
-	return nil, fmt.Errorf("unknown signing key %q", kid)
+	return nil, fmt.Errorf("%w: unknown signing key %q", providers.ErrBadSignature, kid)
 }

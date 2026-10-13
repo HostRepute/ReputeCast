@@ -51,7 +51,7 @@ func (p *Provider) domain(ctx context.Context, name string) (domainResponse, err
 	var d domainResponse
 	err := p.api.Do(ctx, "GET /v4/domains/{name}", http.MethodGet, apiclient.Path("/v4/domains/%s", name), nil, &d)
 	if err != nil {
-		return d, p.classify(err)
+		return d, p.classify(err, name)
 	}
 	return d, nil
 }
@@ -142,7 +142,7 @@ func (p *Provider) AddDomain(ctx context.Context, domain string) ([]providers.DN
 		if errors.As(err, &ce) && ce.Status == http.StatusBadRequest && strings.Contains(strings.ToLower(ce.Message), "already") {
 			return p.DomainStatus(ctx, domain)
 		}
-		return nil, p.classify(err)
+		return nil, p.classify(err, domain)
 	}
 	var d domainResponse
 	if err := json.Unmarshal(res.Body, &d); err != nil {
@@ -221,7 +221,7 @@ func (p *Provider) webhooks(ctx context.Context) (map[string][]string, error) {
 		} `json:"webhooks"`
 	}
 	if err := p.api.Do(ctx, "GET /v3/domains/{domain}/webhooks", http.MethodGet, apiclient.Path("/v3/domains/%s/webhooks", p.s.Domain), nil, &out); err != nil {
-		return nil, p.classify(err)
+		return nil, p.classify(err, p.s.Domain)
 	}
 	hooks := map[string][]string{}
 	for id, h := range out.Webhooks {
@@ -273,7 +273,7 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 		}
 		ct, body := form(fields)
 		if _, err := p.api.Exec(ctx, apiclient.Request{Op: op, Method: method, Path: path, ContentType: ct, Body: body}); err != nil {
-			return p.classify(err)
+			return p.classify(err, p.s.Domain)
 		}
 	}
 	return nil
@@ -329,7 +329,7 @@ func (p *Provider) ListSuppressions(ctx context.Context, since time.Time) ([]pro
 			// Paging links are absolute URLs on the API host.
 			res, err := p.api.Exec(ctx, apiclient.Request{Op: "GET /v3/{domain}/" + t.table, Method: http.MethodGet, Path: next})
 			if err != nil {
-				return nil, p.classify(err)
+				return nil, p.classify(err, p.s.Domain)
 			}
 			if err := json.Unmarshal(res.Body, &page); err != nil {
 				return nil, &providers.CallError{Op: "GET /v3/{domain}/" + t.table, Status: res.Status, Temporary: true, Message: "unexpected response: " + err.Error()}
@@ -363,7 +363,7 @@ func (p *Provider) AddSuppressions(ctx context.Context, emails []string) error {
 			items[i] = map[string]any{"address": e, "tags": []string{"*"}}
 		}
 		if err := p.api.Do(ctx, "POST /v3/{domain}/unsubscribes", http.MethodPost, apiclient.Path("/v3/%s/unsubscribes", p.s.Domain), items, nil); err != nil {
-			return p.classify(err)
+			return p.classify(err, p.s.Domain)
 		}
 	}
 	return nil
@@ -382,7 +382,7 @@ func (p *Provider) Tracking(ctx context.Context) (providers.Tracking, error) {
 		} `json:"tracking"`
 	}
 	if err := p.api.Do(ctx, "GET /v3/domains/{domain}/tracking", http.MethodGet, apiclient.Path("/v3/domains/%s/tracking", p.s.Domain), nil, &out); err != nil {
-		return providers.Tracking{}, p.classify(err)
+		return providers.Tracking{}, p.classify(err, p.s.Domain)
 	}
 	t := providers.Tracking{Scope: "Domain " + p.s.Domain}
 	opens, clicks, unsub := active(out.Tracking.Open.Active), active(out.Tracking.Click.Active), active(out.Tracking.Unsubscribe.Active)
@@ -423,7 +423,7 @@ func (p *Provider) DisableTracking(ctx context.Context) error {
 		ct, body := form([][2]string{{"active", "false"}})
 		if _, err := p.api.Exec(ctx, apiclient.Request{Op: "PUT /v3/domains/{domain}/tracking/" + kind, Method: http.MethodPut,
 			Path: apiclient.Path("/v3/domains/%s/tracking/", p.s.Domain) + kind, ContentType: ct, Body: body}); err != nil {
-			return p.classify(err)
+			return p.classify(err, p.s.Domain)
 		}
 	}
 	return nil
@@ -439,7 +439,7 @@ func (p *Provider) Backfill(ctx context.Context, ids []string) ([]providers.Even
 			Items []json.RawMessage `json:"items"`
 		}
 		if err := p.api.Do(ctx, "GET /v3/{domain}/events", http.MethodGet, apiclient.Path("/v3/%s/events", p.s.Domain)+"?"+q.Encode(), nil, &page); err != nil {
-			return out, p.classify(err)
+			return out, p.classify(err, p.s.Domain)
 		}
 		for _, raw := range page.Items {
 			var ed eventData

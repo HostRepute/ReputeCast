@@ -41,6 +41,8 @@ type fake struct {
 	patchedDomain map[string]any
 	suppressed    [][]string
 	n             atomic.Int64
+	// unmatched makes the batch endpoint answer without ids.
+	unmatched bool
 }
 
 func newFake() *fake {
@@ -113,6 +115,11 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 			}
 			out = append(out, map[string]string{"id": "re-" + strconv.FormatInt(f.n.Add(1), 10)})
 		}
+		f.mu.Lock()
+		if f.unmatched {
+			out = out[:0]
+		}
+		f.mu.Unlock()
 		_ = json.NewEncoder(w).Encode(map[string]any{"data": out})
 	}, true))
 	mux.HandleFunc("GET /domains", guard(func(w http.ResponseWriter, _ *http.Request) {
@@ -367,6 +374,23 @@ func TestBatchWithAnInvalidMessageSendsTheRestOneByOne(t *testing.T) {
 	for _, m := range msgs {
 		if !keys["rc-"+m.ID.String()] {
 			t.Fatalf("single sends are keyed by the message id: %v", keys)
+		}
+	}
+}
+
+func TestAcceptedBatchWithoutIDs(t *testing.T) {
+	f := newFake()
+	f.unmatched = true
+	env := contracttest.NewEnv(t, f.handler)
+	msgs := []providers.Message{contracttest.Message(0), contracttest.Message(1)}
+	res, err := newProvider(t, env, nil).Send(context.Background(), msgs)
+	if err != nil || len(res) != 2 {
+		t.Fatalf("an accepted batch is not an error: %+v, %v", res, err)
+	}
+	for i, r := range res {
+		// Sending again could deliver the batch twice.
+		if r.MessageID != msgs[i].ID || r.Err != nil || r.ProviderMessageID != msgs[i].ID.String() {
+			t.Fatalf("result %d: %+v", i, r)
 		}
 	}
 }

@@ -186,12 +186,6 @@ func classify(err error) error {
 	return ce
 }
 
-// messageLevel reports whether a failed call concerns the message rather
-// than the account or the service.
-func messageLevel(ce *providers.CallError) bool {
-	return !ce.Auth && !ce.Temporary && ce.Status >= 400 && ce.Status < 500
-}
-
 type tag struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
@@ -268,17 +262,17 @@ func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]provid
 		Header: http.Header{"Idempotency-Key": {batchKey(msgs)}, "X-Batch-Validation": {"strict"}}})
 	if err != nil {
 		err = classify(err)
-		var ce *providers.CallError
-		if errors.As(err, &ce) && messageLevel(ce) {
+		if se := apiclient.MessageError(err); se != nil {
 			// The resend.dev testing sender only reaches the account
 			// owner: that refusal is per recipient, so it falls through to
 			// sending one by one.
-			if ce.Status == http.StatusForbidden && sameSender(msgs) && !strings.Contains(ce.Message, "testing emails") {
+			var ce *providers.CallError
+			if errors.As(err, &ce) && ce.Status == http.StatusForbidden && sameSender(msgs) && !strings.Contains(ce.Message, "testing emails") {
 				// The sender itself is refused (unverified domain): every
 				// message of the batch fails the same way.
 				out := make([]providers.SendResult, len(msgs))
 				for i, m := range msgs {
-					out[i] = providers.SendResult{MessageID: m.ID, Err: &providers.SendError{Code: ce.Code, Message: ce.Message}}
+					out[i] = providers.SendResult{MessageID: m.ID, Err: se}
 				}
 				return out, nil
 			}
@@ -291,13 +285,16 @@ func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]provid
 			ID string `json:"id"`
 		} `json:"data"`
 	}
-	if err := json.Unmarshal(res.Body, &out); err != nil || len(out.Data) != len(msgs) {
-		return nil, &providers.CallError{Op: "POST /emails/batch", Status: res.Status, Temporary: true,
-			Message: fmt.Sprintf("Resend answered %d ids for %d messages", len(out.Data), len(msgs))}
-	}
+	matched := json.Unmarshal(res.Body, &out) == nil && len(out.Data) == len(msgs)
 	results := make([]providers.SendResult, len(msgs))
 	for i, m := range msgs {
-		results[i] = providers.SendResult{MessageID: m.ID, ProviderMessageID: out.Data[i].ID}
+		// An accepted batch whose ids can't be matched to its messages
+		// still counts as sent (sending again could deliver it twice);
+		// events find the messages by their rc_message tag.
+		results[i] = providers.SendResult{MessageID: m.ID, ProviderMessageID: m.ID.String()}
+		if matched && out.Data[i].ID != "" {
+			results[i].ProviderMessageID = out.Data[i].ID
+		}
 	}
 	return results, nil
 }
@@ -310,17 +307,14 @@ func (p *Provider) sendOne(ctx context.Context, m providers.Message) (providers.
 		Header: http.Header{"Idempotency-Key": {"rc-" + m.ID.String()}}})
 	if err != nil {
 		err = classify(err)
-		var ce *providers.CallError
-		if errors.As(err, &ce) && messageLevel(ce) {
-			return providers.SendResult{MessageID: m.ID, Err: &providers.SendError{Code: ce.Code, Message: ce.Message}}, nil
-		}
-		return providers.SendResult{}, err
+		return apiclient.Failed(m, err)
 	}
 	var out struct {
 		ID string `json:"id"`
 	}
-	if err := json.Unmarshal(res.Body, &out); err != nil || out.ID == "" {
-		return providers.SendResult{}, &providers.CallError{Op: "POST /emails", Status: res.Status, Temporary: true, Message: "Resend answered without an email id"}
+	if json.Unmarshal(res.Body, &out) != nil || out.ID == "" {
+		// Accepted all the same: events find it by its rc_message tag.
+		out.ID = m.ID.String()
 	}
 	return providers.SendResult{MessageID: m.ID, ProviderMessageID: out.ID}, nil
 }

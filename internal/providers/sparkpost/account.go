@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/publicsuffix"
+
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
 )
@@ -130,8 +132,8 @@ type sendingDomain struct {
 
 // AddDomain implements providers.DomainManager: a sending domain with a
 // 2048-bit DKIM key, which also serves as bounce domain (a CNAME to
-// SparkPost), as SparkPost recommends. A domain already in the account is
-// read instead.
+// SparkPost) when it is a subdomain, as SparkPost recommends. A domain
+// already in the account is read instead.
 func (p *Provider) AddDomain(ctx context.Context, domain string) ([]providers.DNSRecord, error) {
 	body := map[string]any{"domain": domain, "generate_dkim": true, "dkim_key_length": 2048}
 	var created struct {
@@ -159,18 +161,27 @@ func (p *Provider) DomainStatus(ctx context.Context, domain string) ([]providers
 		return nil, classify(err)
 	}
 	d := got.Results
-	if d.Status.DKIMStatus != "valid" || d.Status.CNAMEStatus != "valid" {
+	bounceDomain := !apex(domain)
+	if d.Status.DKIMStatus != "valid" || (bounceDomain && d.Status.CNAMEStatus != "valid") {
 		var v struct {
 			Results struct {
 				DKIMStatus  string `json:"dkim_status"`
 				CNAMEStatus string `json:"cname_status"`
 			} `json:"results"`
 		}
-		if err := p.api.Do(ctx, "POST /api/v1/sending-domains/{domain}/verify", http.MethodPost, path+"/verify", map[string]bool{"dkim_verify": true, "cname_verify": true}, &v); err == nil {
+		if err := p.api.Do(ctx, "POST /api/v1/sending-domains/{domain}/verify", http.MethodPost, path+"/verify", map[string]bool{"dkim_verify": true, "cname_verify": bounceDomain}, &v); err == nil {
 			d.Status.DKIMStatus, d.Status.CNAMEStatus = cmp.Or(v.Results.DKIMStatus, d.Status.DKIMStatus), cmp.Or(v.Results.CNAMEStatus, d.Status.CNAMEStatus)
 		}
 	}
 	return p.records(d, domain), nil
+}
+
+// apex reports a registrable domain (acme.io, acme.co.uk), whose zone apex
+// can't hold a CNAME next to its SOA, NS and MX records.
+func apex(domain string) bool {
+	d := strings.ToLower(strings.TrimSuffix(strings.TrimSpace(domain), "."))
+	org, err := publicsuffix.EffectiveTLDPlusOne(d)
+	return err == nil && org == d
 }
 
 func (p *Provider) records(d sendingDomain, domain string) []providers.DNSRecord {
@@ -179,6 +190,12 @@ func (p *Provider) records(d sendingDomain, domain string) []providers.DNSRecord
 		signing := cmp.Or(d.DKIM.SigningDomain, domain)
 		out = append(out, providers.DNSRecord{Purpose: "dkim", Type: "TXT", Name: d.DKIM.Selector + "._domainkey." + signing,
 			Value: "v=DKIM1; k=rsa; h=sha256; p=" + d.DKIM.Public, Status: domainStatus(d.Status.DKIMStatus)})
+	}
+	if apex(domain) {
+		// The bounce CNAME goes on the sending domain itself, which an
+		// apex can't take: mail keeps SparkPost's bounce domain and DMARC
+		// aligns through DKIM. A subdomain (news.acme.io) gets both.
+		return out
 	}
 	target := "sparkpostmail.com"
 	if strings.Contains(p.api.BaseURL, ".eu.") || strings.EqualFold(p.s.Region, "eu") {

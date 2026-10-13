@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"strconv"
@@ -14,6 +15,27 @@ import (
 // failed for a reason that concerns the account or the service: rejected
 // credentials, an outage, throttling.
 type SendOne func(ctx context.Context, m providers.Message) (providers.SendResult, error)
+
+// MessageError is the permanent SendError for a send call refused because
+// of the message itself (a 4xx that is neither rejected credentials nor
+// throttling), or nil when err concerns the account or the service.
+func MessageError(err error) *providers.SendError {
+	var ce *providers.CallError
+	if !errors.As(err, &ce) || ce.Auth || ce.Temporary || ce.Status < 400 || ce.Status >= 500 {
+		return nil
+	}
+	return &providers.SendError{Code: cmp.Or(ce.Code, "HTTP "+strconv.Itoa(ce.Status)), Message: ce.Message}
+}
+
+// Failed is what a SendOne returns when the call for m failed with err:
+// the message's own permanent error (see MessageError), or err for the
+// account or the service.
+func Failed(m providers.Message, err error) (providers.SendResult, error) {
+	if se := MessageError(err); se != nil {
+		return providers.SendResult{MessageID: m.ID, Err: se}, nil //nolint:nilerr // the refusal is reported on the message's result
+	}
+	return providers.SendResult{}, err
+}
 
 // Fanout sends msgs with one API call each, at most parallel at a time,
 // for providers whose API takes one personalized message per call. Results
@@ -37,9 +59,13 @@ func Fanout(ctx context.Context, msgs []providers.Message, parallel int, send Se
 		stopped bool
 		wg      sync.WaitGroup
 	)
-	sem := make(chan struct{}, parallel)
+	// Every result names its message, including the ones never attempted
+	// after a stop: the caller matches results to messages by MessageID.
 	for i := range msgs {
 		results[i].MessageID = msgs[i].ID
+	}
+	sem := make(chan struct{}, parallel)
+	for i := range msgs {
 		sem <- struct{}{}
 		mu.Lock()
 		stop := stopped || ctx.Err() != nil

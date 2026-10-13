@@ -34,6 +34,13 @@ type fake struct {
 	excluded  []int
 	dkimOK    bool
 	n         atomic.Int64
+	// answer, when set, replaces the send endpoint's answer.
+	answer *cannedAnswer
+}
+
+type cannedAnswer struct {
+	status int
+	body   string
 }
 
 func (f *fake) with(fn func()) {
@@ -72,6 +79,14 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		}
 	}
 	mux.HandleFunc("POST /v3.1/send", guard(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		canned := f.answer
+		f.mu.Unlock()
+		if canned != nil {
+			w.WriteHeader(canned.status)
+			_, _ = io.WriteString(w, canned.body)
+			return
+		}
 		var in struct {
 			Messages []struct {
 				To          []struct{ Email string } `json:"To"`
@@ -325,6 +340,39 @@ func TestPartialBatch(t *testing.T) {
 	_ = json.Unmarshal(env.Requests()[0].Body, &sent)
 	if sent.Messages[0].Priority != 2 || sent.Messages[2].Priority != 0 {
 		t.Fatalf("priority: transactional 2, marketing 0: %+v", sent.Messages)
+	}
+}
+
+func TestUnmatchedAnswers(t *testing.T) {
+	f := &fake{}
+	env := contracttest.NewEnv(t, f.handler)
+	p := newProvider(t, env)
+	msgs := []providers.Message{contracttest.Message(0), contracttest.Message(1)}
+	// A request-level error that only mentions "Messages" is not a batch
+	// of per-message results.
+	f.with(func() {
+		f.answer = &cannedAnswer{http.StatusBadRequest, `{"ErrorIdentifier":"1f2e","ErrorCode":"mj-0003","StatusCode":400,"ErrorMessage":"Missing mandatory property: \"Messages\"."}`}
+	})
+	res, err := p.Send(context.Background(), msgs)
+	if err != nil || len(res) != 2 {
+		t.Fatalf("request-level error: %+v, %v", res, err)
+	}
+	for i, r := range res {
+		if r.MessageID != msgs[i].ID || r.Err == nil || r.Err.Temporary || r.Err.Code != "mj-0003" {
+			t.Fatalf("every message fails with the request's error: %+v", r)
+		}
+	}
+	// Accepted, with an answer that can't be matched to the messages:
+	// sending them again could deliver them twice.
+	f.with(func() { f.answer = &cannedAnswer{http.StatusOK, `{"Messages":[]}`} })
+	res, err = p.Send(context.Background(), msgs)
+	if err != nil || len(res) != 2 {
+		t.Fatalf("unmatched answer: %+v, %v", res, err)
+	}
+	for i, r := range res {
+		if r.MessageID != msgs[i].ID || r.Err != nil || r.ProviderMessageID != msgs[i].ID.String() {
+			t.Fatalf("an accepted batch counts as sent: %+v", r)
+		}
 	}
 }
 

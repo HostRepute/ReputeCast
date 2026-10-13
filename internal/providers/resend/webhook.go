@@ -2,15 +2,12 @@ package resend
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -33,57 +30,28 @@ var now = time.Now
 // webhook's whsec_ signing secret. The secret is the one entered at connect
 // time, or read from Resend's API for the webhook pointing at this URL.
 func (p *Provider) VerifyWebhook(ctx context.Context, r *http.Request, body []byte) error {
-	secret, cached, err := p.signingSecret(ctx, r.URL.Path, false)
-	if err != nil {
-		return fmt.Errorf("%w: %w", providers.ErrBadSignature, err)
-	}
-	err = webhookauth.Standard(secret, r.Header, body, now())
-	if err == nil || !cached || errors.Is(err, webhookauth.ErrStale) {
-		return err
-	}
-	// The secret may have been rotated: read it again (at most once a minute).
-	fresh, _, ferr := p.signingSecret(ctx, r.URL.Path, true)
-	if ferr != nil || fresh == secret {
-		return err
-	}
-	return webhookauth.Standard(fresh, r.Header, body, now())
-}
-
-// secretEntry caches one webhook's signing secret, shared by every adapter
-// instance (the factory builds one per request).
-type secretEntry struct {
-	mu      sync.Mutex
-	secret  string
-	fetched time.Time
-}
-
-var (
-	secretsMu sync.Mutex
-	secrets   = map[string]*secretEntry{}
-)
-
-// signingSecret returns the secret webhooks posted to path are signed with
-// and whether it came from the API (and may be stale).
-func (p *Provider) signingSecret(ctx context.Context, path string, refresh bool) (string, bool, error) {
+	check := func(secret string) error { return webhookauth.Standard(secret, r.Header, body, now()) }
 	if s := strings.TrimSpace(p.c.WebhookSigningSecret); s != "" {
-		return s, false, nil
+		return check(s)
 	}
+	path := r.URL.Path
 	if path == "" || path == "/" {
-		return "", false, errors.New("no signing secret is configured")
+		return fmt.Errorf("%w: no signing secret is configured", providers.ErrBadSignature)
 	}
-	key := sha256.Sum256([]byte(p.api.BaseURL + "\x00" + p.c.APIKey + "\x00" + path))
-	secretsMu.Lock()
-	e, ok := secrets[hex.EncodeToString(key[:])]
-	if !ok {
-		e = &secretEntry{}
-		secrets[hex.EncodeToString(key[:])] = e
-	}
-	secretsMu.Unlock()
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	if e.secret != "" && (!refresh || time.Since(e.fetched) < time.Minute) {
-		return e.secret, true, nil
-	}
+	return secrets.Verify(ctx, p.secretKey(path), func(ctx context.Context) (string, error) { return p.fetchSigningSecret(ctx, path) }, check)
+}
+
+// secrets caches the signing secrets read from Resend's API, shared by
+// every adapter instance.
+var secrets webhookauth.Material
+
+func (p *Provider) secretKey(path string) string {
+	return webhookauth.Key(p.api.BaseURL, p.c.APIKey, strings.TrimRight(path, "/"))
+}
+
+// fetchSigningSecret reads the signing secret of the webhook posting to
+// path.
+func (p *Provider) fetchSigningSecret(ctx context.Context, path string) (string, error) {
 	want := strings.TrimRight(path, "/")
 	hook, err := p.findWebhook(ctx, func(endpoint string) bool {
 		// The suffix allows a reverse proxy that strips a path prefix.
@@ -91,22 +59,21 @@ func (p *Provider) signingSecret(ctx context.Context, path string, refresh bool)
 		return hp == want || strings.HasSuffix(hp, want)
 	})
 	if err != nil {
-		return "", false, err
+		return "", err
 	}
 	if hook == nil {
-		return "", false, errors.New("no Resend webhook points at this URL; register it again or enter its signing secret")
+		return "", errors.New("no Resend webhook points at this URL; register it again or enter its signing secret")
 	}
 	var full struct {
 		SigningSecret string `json:"signing_secret"`
 	}
 	if err := p.api.Do(ctx, "GET /webhooks/{id}", http.MethodGet, apiclient.Path("/webhooks/%s", hook.ID), nil, &full); err != nil {
-		return "", false, err
+		return "", err
 	}
 	if full.SigningSecret == "" {
-		return "", false, errors.New("the webhook's signing secret was missing from Resend's answer")
+		return "", errors.New("the webhook's signing secret was missing from Resend's answer")
 	}
-	e.secret, e.fetched = full.SigningSecret, time.Now()
-	return e.secret, true, nil
+	return full.SigningSecret, nil
 }
 
 func pathOf(endpoint string) string {

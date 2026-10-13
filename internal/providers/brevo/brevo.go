@@ -179,8 +179,13 @@ func classify(err error) error {
 	return ce
 }
 
+// duplicate reports Brevo refusing a request whose IdempotencyKey it saw in
+// the last 30 minutes, which means an earlier attempt was accepted. Brevo
+// answers duplicate_parameter, a code other duplicated parameters share, so
+// the message must be about the key or a request already processed.
 func duplicate(ce *providers.CallError) bool {
-	return ce.Code == "duplicate_parameter" || ce.Code == "duplicate_request"
+	msg := strings.ToLower(ce.Message)
+	return ce.Code == "duplicate_parameter" && (strings.Contains(msg, "idempotency") || strings.Contains(msg, "already"))
 }
 
 type address struct {
@@ -248,17 +253,12 @@ func (p *Provider) sendOne(ctx context.Context, m providers.Message) (providers.
 	if err != nil {
 		err = classify(err)
 		var ce *providers.CallError
-		switch {
-		case !errors.As(err, &ce):
-			return providers.SendResult{}, err
-		case duplicate(ce):
+		if errors.As(err, &ce) && duplicate(ce) {
 			// Accepted by an earlier attempt; events find the message by
 			// the rc_message in X-Mailin-custom.
 			return providers.SendResult{MessageID: m.ID, ProviderMessageID: m.ID.String()}, nil
-		case !ce.Auth && !ce.Temporary && ce.Status >= 400 && ce.Status < 500:
-			return providers.SendResult{MessageID: m.ID, Err: &providers.SendError{Code: ce.Code, Message: ce.Message}}, nil
 		}
-		return providers.SendResult{}, err
+		return apiclient.Failed(m, err)
 	}
 	id := strings.Trim(strings.TrimSpace(out.MessageID), "<>")
 	if id == "" {

@@ -251,6 +251,16 @@ func (p *Provider) signingSecret() string {
 	return p.cfg.WebhookSecret
 }
 
+// WebhookSecretHeaders implements providers.WebhookSecrets: with auth
+// "header" the secret travels as it is, and its header is never stored
+// with the raw event.
+func (p *Provider) WebhookSecretHeaders() []string {
+	if h := p.c.hook; h != nil && h.auth == "header" {
+		return []string{h.token}
+	}
+	return nil
+}
+
 // VerifyWebhook implements providers.WebhookVerifier.
 func (p *Provider) VerifyWebhook(_ context.Context, r *http.Request, body []byte) error {
 	h := p.c.hook
@@ -347,27 +357,50 @@ func (h *hookSpec) normalize(item any) (providers.Event, bool) {
 	}
 	codeText := h.code.text(item)
 	code, rest := bounce.Split(codeText)
-	if code == "" && codeText != "" && len(codeText) <= 40 {
+	// A provider's own code ("mailbox_full", "invalid-recipient") rather
+	// than an SMTP reply: classified by its words.
+	symbolic := code == "" && codeText != "" && len(codeText) <= 40
+	if symbolic {
 		code, rest = codeText, ""
 	}
 	ev.OriginalCode = code
 	ev.Diagnostic = strings.TrimSpace(firstNonEmpty(h.diag.text(item), rest))
+	class := bounce.Classify(code, strings.NewReplacer("_", " ", "-", " ").Replace(codeText+" "+ev.Diagnostic))
 	switch kind {
 	case "bounce":
-		// A plain "bounced" is permanent unless the code says otherwise.
+		// A plain "bounced" is permanent unless its code says otherwise.
+		// An SMTP reply decides by its class (5xx or 4xx); a provider code
+		// is permanent when it names an unknown mailbox or domain, or says
+		// hard or permanent, and otherwise suppresses nothing on a guess.
 		kind = "hard_bounce"
-		if code != "" && !bounce.Permanent(code) {
+		words := strings.ToLower(codeText)
+		switch {
+		case code == "":
+		case symbolic:
+			if class != bounce.MailboxUnknown && class != bounce.DomainInvalid &&
+				(class != bounce.Other || !strings.Contains(words, "hard") && !strings.Contains(words, "permanent")) {
+				kind = "soft_bounce"
+			}
+		case !bounce.Permanent(code):
 			kind = "soft_bounce"
 		}
 	case "hard_bounce":
-		if code != "" && !bounce.Permanent(code) && strings.HasPrefix(code, "4") {
+		if code != "" && !symbolic && !bounce.Permanent(code) && strings.HasPrefix(code, "4") {
+			kind = "soft_bounce"
+		}
+	}
+	if kind == "hard_bounce" {
+		switch class {
+		case bounce.SpamBlock, bounce.Reputation, bounce.PolicyBlock:
+			// Refused because of the sender, not the address: nothing is
+			// suppressed for it.
 			kind = "soft_bounce"
 		}
 	}
 	ev.Type = providers.EventType(kind)
 	switch ev.Type {
 	case providers.EventHardBounce, providers.EventSoftBounce, providers.EventDeferred, providers.EventRejected:
-		ev.BounceClass = bounce.Classify(code, codeText+" "+ev.Diagnostic)
+		ev.BounceClass = class
 	}
 	ev.URL = h.url.text(item)
 	ev.UserAgent = h.ua.text(item)

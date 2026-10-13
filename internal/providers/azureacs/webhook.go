@@ -22,8 +22,10 @@ func asCallError(err error, target **providers.CallError) bool { return errors.A
 // now is the clock, replaced in tests.
 var now = time.Now
 
-// gridEvent is an Event Grid event in the Event Grid schema or as a
-// CloudEvent.
+// gridEvent is an Event Grid event. Subscriptions use the Event Grid event
+// schema: the CloudEvents schema validates a webhook with an HTTP OPTIONS
+// request the ingest endpoint doesn't route. A CloudEvent's fields are read
+// all the same.
 type gridEvent struct {
 	ID        string          `json:"id"`
 	EventType string          `json:"eventType"`
@@ -88,12 +90,18 @@ func (p *Provider) Handshake(_ context.Context, r *http.Request, body []byte) (b
 	return false, nil, nil
 }
 
+// WebhookSecretHeaders implements providers.WebhookSecrets: the secret
+// header is never stored with the raw event.
+func (p *Provider) WebhookSecretHeaders() []string { return []string{SecretHeader} }
+
 // VerifyWebhook implements providers.WebhookVerifier. Event Grid doesn't
 // sign deliveries. A subscription protected with Microsoft Entra ID sends a
 // bearer token, checked against the webhook application (when
 // event_grid_audience is set); otherwise the subscription sends the
-// provider's webhook secret as a delivery header (X-ReputeCast-Secret, or
-// Authorization: Bearer) or in the endpoint URL's query (secret=).
+// provider's webhook secret as a delivery header (Authorization: Bearer,
+// preferred, or X-ReputeCast-Secret) or in the endpoint URL's query
+// (secret=). Neither header is stored with the raw event, and the query
+// isn't either.
 func (p *Provider) VerifyWebhook(ctx context.Context, r *http.Request, _ []byte) error {
 	if p.s.EventGridAudience != "" {
 		if token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer "); ok && strings.Count(token, ".") == 2 {
@@ -134,7 +142,7 @@ type engagementReport struct {
 }
 
 // ParseWebhook implements providers.Provider for Event Grid deliveries (an
-// array of events, or one CloudEvent).
+// array of events).
 func (p *Provider) ParseWebhook(ctx context.Context, r *http.Request, body []byte) ([]providers.Event, error) {
 	if !providers.SignatureVerified(ctx) {
 		if err := p.VerifyWebhook(ctx, r, body); err != nil {

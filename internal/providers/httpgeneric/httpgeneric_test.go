@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -253,6 +254,10 @@ func TestStatusMappingAndAuthModes(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// A secret sent as it is must not be stored with the raw event.
+			if hs := p.(providers.WebhookSecrets).WebhookSecretHeaders(); (tc.name == "header") != (len(hs) == 1 && hs[0] == "X-Webhook-Token") {
+				t.Fatalf("secret headers: %v", hs)
+			}
 			r, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://reputecast.acme.io/hooks/httpgeneric/x", bytes.NewReader(body))
 			if _, err := p.ParseWebhook(context.Background(), r, body); !errors.Is(err, providers.ErrBadSignature) {
 				t.Fatalf("an unsigned request must be refused: %v", err)
@@ -273,7 +278,8 @@ func TestStatusMappingAndAuthModes(t *testing.T) {
 				class string
 			}{
 				{providers.EventDelivered, "a.k@gmail.com", "m-1@esp.example", "250 2.0.0", ""},
-				{providers.EventHardBounce, "k.n@hotmail.com", "m-2", "550 5.7.1", "spam_block"},
+				// Refused because of the sender: not the address's fault.
+				{providers.EventSoftBounce, "k.n@hotmail.com", "m-2", "550 5.7.1", "spam_block"},
 				{providers.EventSoftBounce, "p.s@yahoo.com", "m-3", "421 4.7.0", "reputation"},
 				{providers.EventComplaint, "m.g@aol.com", "m-4", "", ""},
 				{providers.EventClick, "a.k@gmail.com", "m-1", "", ""},
@@ -311,6 +317,41 @@ func TestStaleTimestampIsRefused(t *testing.T) {
 	r.Header.Set("X-ESP-Signature", "sha256="+hex.EncodeToString(mac.Sum(nil)))
 	if _, err := p.ParseWebhook(context.Background(), r, body); !errors.Is(err, providers.ErrBadSignature) {
 		t.Fatalf("a replayed request must be refused: %v", err)
+	}
+}
+
+func TestBounceCodes(t *testing.T) {
+	m := httpgeneric.Mapping{URL: "https://api.example-esp.com/v1/send", Body: `{"to":"{{ recipient }}"}`, WebhookMapping: "status", Webhook: httpgeneric.WebhookSpec{Auth: "none"}}
+	settings, _ := json.Marshal(map[string]any{"http": m})
+	p, err := httpgeneric.New(providers.Config{Settings: settings})
+	if err != nil {
+		t.Fatal(err)
+	}
+	type want struct {
+		typ   providers.EventType
+		class string
+	}
+	for code, w := range map[string]want{
+		"":                  {providers.EventHardBounce, "other"},
+		"550 5.1.1":         {providers.EventHardBounce, "mailbox_unknown"},
+		"452 4.2.2":         {providers.EventSoftBounce, "mailbox_full"},
+		"invalid_recipient": {providers.EventHardBounce, "mailbox_unknown"},
+		"user-unknown":      {providers.EventHardBounce, "mailbox_unknown"},
+		"domain_not_found":  {providers.EventHardBounce, "domain_invalid"},
+		"hard_bounce":       {providers.EventHardBounce, "other"},
+		"mailbox_full":      {providers.EventSoftBounce, "mailbox_full"},
+		"spam_block":        {providers.EventSoftBounce, "spam_block"},
+		"rate_limit":        {providers.EventSoftBounce, "other"},
+	} {
+		body := []byte(fmt.Sprintf(`{"status":"bounced","recipient":"a@b.example","code":%q}`, code))
+		r, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://reputecast.acme.io/hooks/httpgeneric/x", bytes.NewReader(body))
+		evs, err := p.ParseWebhook(context.Background(), r, body)
+		if err != nil || len(evs) != 1 {
+			t.Fatalf("%q: %v, %v", code, evs, err)
+		}
+		if evs[0].Type != w.typ || evs[0].BounceClass != w.class || evs[0].OriginalCode != code {
+			t.Errorf("bounced with code %q: %s/%s, want %s/%s", code, evs[0].Type, evs[0].BounceClass, w.typ, w.class)
+		}
 	}
 }
 

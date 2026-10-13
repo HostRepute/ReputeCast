@@ -24,7 +24,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -249,28 +248,37 @@ func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]provid
 	body, _ := json.Marshal(in)
 	res, err := p.api.Exec(ctx, apiclient.Request{Op: "POST /v3.1/send", Method: http.MethodPost, Path: "/v3.1/send", ContentType: "application/json", Body: body,
 		Accept: func(status int, body []byte) bool {
-			// Per-message results ride on a 400 or 403 when some failed.
-			return (status == http.StatusBadRequest || status == http.StatusForbidden) && strings.Contains(string(body), `"Messages"`)
+			// Per-message results ride on a 400 or 403 when some failed;
+			// any other answer is about the whole request.
+			if status != http.StatusBadRequest && status != http.StatusForbidden {
+				return false
+			}
+			var r sendResponse
+			return json.Unmarshal(body, &r) == nil && len(r.Messages) == len(msgs)
 		}})
 	if err != nil {
-		var ce *providers.CallError
-		if errors.As(err, &ce) && !ce.Auth && !ce.Temporary && ce.Status >= 400 && ce.Status < 500 {
+		if se := apiclient.MessageError(err); se != nil {
 			// A request-level error (malformed payload): every message fails
 			// the same way.
 			out := make([]providers.SendResult, len(msgs))
 			for i, m := range msgs {
-				out[i] = providers.SendResult{MessageID: m.ID, Err: &providers.SendError{Code: ce.Code, Message: ce.Message}}
+				out[i] = providers.SendResult{MessageID: m.ID, Err: se}
 			}
 			return out, nil
 		}
 		return nil, err
 	}
+	results := make([]providers.SendResult, len(msgs))
 	var out sendResponse
 	if err := json.Unmarshal(res.Body, &out); err != nil || len(out.Messages) != len(msgs) {
-		return nil, &providers.CallError{Op: "POST /v3.1/send", Status: res.Status, Temporary: true,
-			Message: fmt.Sprintf("Mailjet answered %d results for %d messages", len(out.Messages), len(msgs))}
+		// Accepted (a 2xx), but the answer can't be matched to the
+		// messages: they count as sent, since sending them again could
+		// deliver them twice, and their events find them by CustomID.
+		for i, m := range msgs {
+			results[i] = providers.SendResult{MessageID: m.ID, ProviderMessageID: m.ID.String()}
+		}
+		return results, nil
 	}
-	results := make([]providers.SendResult, len(msgs))
 	for i, m := range msgs {
 		r := out.Messages[i]
 		results[i] = providers.SendResult{MessageID: m.ID}

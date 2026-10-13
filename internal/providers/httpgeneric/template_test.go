@@ -23,7 +23,11 @@ func TestRenderJSONContexts(t *testing.T) {
 		{`{"a": "{{ "api:" | append: secrets.api_key | base64_encode }}"}`, `{"a": "YXBpOmszeQ=="}`},
 		{`{"u": "{{ subject | strip | downcase | prepend: '>' }}"}`, `{"u": ">say \"hi\" \\ <now>"}`},
 		{`{"j": "{{ headers | json }}"}`, `{"j": "{\"List-Unsubscribe\":\"<https://x.io/u>\"}"}`},
-		{`{"lit": "\{{ not a placeholder"}`, `{"lit": "\{{ not a placeholder"}`},
+		// The API's own placeholders: "\{{" sends a literal "{{".
+		{`{"lit": "Hi \{{first_name}}, {{ subject | strip }}"}`, `{"lit": "Hi {{first_name}}, Say \"hi\" \\ <now>"}`},
+		{`{"lit": "{{ '{{' }}name}}"}`, `{"lit": "{{name}}"}`},
+		// An escaped backslash before a placeholder is just a backslash.
+		{`{"bs": "\\{{ empty | default: 'x' }}"}`, `{"bs": "\\x"}`},
 	}
 	for _, c := range cases {
 		tpl, err := parseTemplate(c.tpl, modeJSON)
@@ -36,6 +40,9 @@ func TestRenderJSONContexts(t *testing.T) {
 		}
 		if got != c.want {
 			t.Fatalf("%s\n got  %s\n want %s", c.tpl, got, c.want)
+		}
+		if !json.Valid([]byte(got)) {
+			t.Fatalf("%s renders invalid JSON: %s", c.tpl, got)
 		}
 	}
 }

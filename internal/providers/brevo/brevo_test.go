@@ -80,6 +80,8 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 			writeErr(w, http.StatusBadRequest, "invalid_parameter", "idempotency key expected")
 		case seen:
 			writeErr(w, http.StatusBadRequest, "duplicate_parameter", "Request already processed")
+		case in.To[0].Email == "twice@example.com":
+			writeErr(w, http.StatusBadRequest, "duplicate_parameter", "duplicate email address in to and bcc")
 		case in.To[0].Email == contracttest.RejectAddress:
 			writeErr(w, http.StatusBadRequest, "invalid_parameter", "email is not valid in to")
 		default:
@@ -308,6 +310,13 @@ func TestRetriedSendIsNotSentTwice(t *testing.T) {
 	again, err := p.Send(context.Background(), []providers.Message{m})
 	if err != nil || again[0].Err != nil || again[0].ProviderMessageID != m.ID.String() {
 		t.Fatalf("a retry Brevo refuses as a duplicate was sent the first time: %+v, %v", again, err)
+	}
+	// The same code about another parameter is a refusal, not a success.
+	other := contracttest.Message(1)
+	other.To.Address = "twice@example.com"
+	res, err := p.Send(context.Background(), []providers.Message{other})
+	if err != nil || res[0].Err == nil || res[0].Err.Code != "duplicate_parameter" || res[0].Err.Temporary {
+		t.Fatalf("a duplicated parameter fails the message: %+v, %v", res, err)
 	}
 }
 

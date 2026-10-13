@@ -34,6 +34,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
+	"github.com/hostrepute/reputecast/internal/providers/mimemsg"
 	"github.com/hostrepute/reputecast/internal/version"
 )
 
@@ -207,10 +208,6 @@ func classify(err error) error {
 	return ce
 }
 
-func messageLevel(ce *providers.CallError) bool {
-	return !ce.Auth && !ce.Temporary && ce.Status >= 400 && ce.Status < 500
-}
-
 type address struct {
 	Email string `json:"email"`
 	Name  string `json:"name,omitempty"`
@@ -258,7 +255,7 @@ func (p *Provider) mail(m providers.Message) mail {
 		Personalizations: []personalization{{To: []address{{Email: m.To.Address, Name: m.To.Name}}, CustomArgs: args}},
 		From:             address{Email: m.From.Address, Name: m.From.Name},
 		Subject:          m.Subject,
-		Headers:          map[string]string{"X-ReputeCast-Message": m.ID.String()},
+		Headers:          map[string]string{mimemsg.HeaderMessage: m.ID.String()},
 		IPPoolName:       p.s.IPPool,
 		// ReputeCast tracks opens and clicks and handles unsubscribes
 		// itself: SendGrid's own tracking stays off on every message,
@@ -299,11 +296,7 @@ func (p *Provider) sendOne(ctx context.Context, m providers.Message) (providers.
 	res, err := p.api.Exec(ctx, apiclient.Request{Op: "POST /v3/mail/send", Method: http.MethodPost, Path: "/v3/mail/send", ContentType: "application/json", Body: body})
 	if err != nil {
 		err = classify(err)
-		var ce *providers.CallError
-		if errors.As(err, &ce) && messageLevel(ce) {
-			return providers.SendResult{MessageID: m.ID, Err: &providers.SendError{Code: ce.Code, Message: ce.Message}}, nil
-		}
-		return providers.SendResult{}, err
+		return apiclient.Failed(m, err)
 	}
 	id := strings.TrimSpace(res.Header.Get("X-Message-Id"))
 	if id == "" {

@@ -2,8 +2,6 @@ package sendgrid
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -152,25 +150,9 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 		return err
 	}
 	if signed.PublicKey != "" {
-		p.rememberKey(pathOf(hookURL), signed.PublicKey)
+		verificationKeys.Set(p.keyID(pathOf(hookURL)), signed.PublicKey)
 	}
 	return nil
-}
-
-// rememberKey seeds the verification-key cache for a webhook path.
-func (p *Provider) rememberKey(path, key string) {
-	sum := sha256.Sum256([]byte(p.api.BaseURL + "\x00" + p.c.APIKey + "\x00" + path))
-	id := hex.EncodeToString(sum[:])
-	keysMu.Lock()
-	e, ok := keys[id]
-	if !ok {
-		e = &keyEntry{}
-		keys[id] = e
-	}
-	keysMu.Unlock()
-	e.mu.Lock()
-	e.key, e.fetched = key, time.Now()
-	e.mu.Unlock()
 }
 
 // InspectWebhook implements providers.WebhookInspector.

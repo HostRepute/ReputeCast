@@ -195,10 +195,6 @@ func classify(err error) error {
 	return ce
 }
 
-func messageLevel(ce *providers.CallError) bool {
-	return !ce.Auth && !ce.Temporary && ce.Status >= 400 && ce.Status < 500
-}
-
 type address struct {
 	Email string `json:"email"`
 	Name  string `json:"name,omitempty"`
@@ -281,11 +277,7 @@ func (p *Provider) sendOne(ctx context.Context, m providers.Message) (providers.
 		ContentType: "application/json", Body: body, Header: http.Header{"Idempotency-Key": {"rc-" + m.ID.String()}}})
 	if err != nil {
 		err = classify(err)
-		var ce *providers.CallError
-		if errors.As(err, &ce) && messageLevel(ce) {
-			return providers.SendResult{MessageID: m.ID, Err: &providers.SendError{Code: ce.Code, Message: ce.Message}}, nil
-		}
-		return providers.SendResult{}, err
+		return apiclient.Failed(m, err)
 	}
 	var out struct {
 		apiErrors

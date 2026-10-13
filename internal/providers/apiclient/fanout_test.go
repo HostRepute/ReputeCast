@@ -74,6 +74,9 @@ func TestFanoutStopsAfterOutage(t *testing.T) {
 		t.Fatalf("no call may start after the outage; got %d calls", n)
 	}
 	for i, r := range res {
+		if r.MessageID != in[i].ID {
+			t.Fatalf("result %d must name its message, sent or not: %+v", i, r)
+		}
 		if i < 2 {
 			if r.Err != nil {
 				t.Fatalf("message %d was accepted: %+v", i, r)
@@ -82,6 +85,25 @@ func TestFanoutStopsAfterOutage(t *testing.T) {
 		}
 		if r.Err == nil || !r.Err.Temporary || r.Err.Code != "HTTP 503" {
 			t.Fatalf("message %d must be retried later: %+v", i, r.Err)
+		}
+	}
+}
+
+func TestMessageError(t *testing.T) {
+	for _, c := range []struct {
+		err  error
+		code string // "" when the error isn't the message's
+	}{
+		{&providers.CallError{Status: 422, Code: "validation_error", Message: "bad to"}, "validation_error"},
+		{&providers.CallError{Status: 400, Message: "bad"}, "HTTP 400"},
+		{&providers.CallError{Status: 401, Auth: true}, ""},
+		{&providers.CallError{Status: 429, Temporary: true, Throttled: true}, ""},
+		{&providers.CallError{Status: 503, Temporary: true}, ""},
+		{errors.New("network"), ""},
+	} {
+		se := apiclient.MessageError(c.err)
+		if (se == nil) != (c.code == "") || (se != nil && (se.Code != c.code || se.Temporary)) {
+			t.Fatalf("%v: %+v", c.err, se)
 		}
 	}
 }

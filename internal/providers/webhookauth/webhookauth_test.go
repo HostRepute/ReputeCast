@@ -65,6 +65,16 @@ func TestFresh(t *testing.T) {
 			t.Fatalf("Fresh(%q) = %v", ts, err)
 		}
 	}
+	// A provider that retries with its first signature for hours.
+	for ts, ok := range map[string]bool{
+		strconv.FormatInt(now.Add(-11*time.Hour).Unix(), 10): true,
+		strconv.FormatInt(now.Add(-13*time.Hour).Unix(), 10): false,
+		strconv.FormatInt(now.Add(time.Hour).Unix(), 10):     false,
+	} {
+		if err := webhookauth.Within(ts, now, 12*time.Hour); (err == nil) != ok || (err != nil && !errors.Is(err, webhookauth.ErrStale)) {
+			t.Fatalf("Within(%q, 12h) = %v", ts, err)
+		}
+	}
 }
 
 func TestSharedSecrets(t *testing.T) {

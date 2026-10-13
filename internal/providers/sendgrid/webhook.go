@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,13 +14,13 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/bounce"
+	"github.com/hostrepute/reputecast/internal/providers/webhookauth"
 )
 
 // Headers of the signed Event Webhook.
@@ -32,10 +31,8 @@ const (
 
 // Verify checks a signed Event Webhook payload: an ECDSA P-256 signature
 // (base64 ASN.1) over the timestamp header followed by the raw body,
-// verified with the webhook's public key (base64 DER). SendGrid retries
-// deliveries for 24 hours and documents no timestamp window, so stale
-// timestamps are accepted; redelivered events are dropped by ingest's
-// dedupe instead.
+// verified with the webhook's public key (base64 DER). It checks the
+// signature only; VerifyWebhook also bounds the timestamp's age (Window).
 func Verify(publicKey, signature, timestamp string, body []byte) error {
 	der, err := base64.StdEncoding.DecodeString(strings.TrimSpace(publicKey))
 	if err != nil {
@@ -62,66 +59,53 @@ func Verify(publicKey, signature, timestamp string, body []byte) error {
 	return nil
 }
 
+// Window is how old a signed timestamp may be. SendGrid retries a delivery
+// for 24 hours and doesn't document whether a retry is signed again, so the
+// window spans the retries. The signature covers the body: a replay within
+// it repeats events ingest's dedupe drops.
+const Window = 26 * time.Hour
+
+// now is the clock, replaced in tests.
+var now = time.Now
+
 // VerifyWebhook implements providers.WebhookVerifier.
 func (p *Provider) VerifyWebhook(ctx context.Context, r *http.Request, body []byte) error {
 	sig, ts := r.Header.Get(SignatureHeader), r.Header.Get(TimestampHeader)
 	if sig == "" || ts == "" {
 		return fmt.Errorf("%w: the request is not signed; turn on signature verification for the Event Webhook", providers.ErrBadSignature)
 	}
-	key, cached, err := p.verificationKey(ctx, r.URL.Path, false)
-	if err != nil {
-		return fmt.Errorf("%w: %w", providers.ErrBadSignature, err)
+	check := func(key string) error {
+		if err := Verify(key, sig, ts, body); err != nil {
+			return err
+		}
+		return webhookauth.Within(ts, now(), Window)
 	}
-	err = Verify(key, sig, ts, body)
-	if err == nil || !cached {
-		return err
-	}
-	// Signing may have been turned off and on again (a new key).
-	fresh, _, ferr := p.verificationKey(ctx, r.URL.Path, true)
-	if ferr != nil || fresh == key {
-		return err
-	}
-	return Verify(fresh, sig, ts, body)
-}
-
-type keyEntry struct {
-	mu      sync.Mutex
-	key     string
-	fetched time.Time
-}
-
-var (
-	keysMu sync.Mutex
-	keys   = map[string]*keyEntry{}
-)
-
-// verificationKey returns the public key of the webhook posting to path:
-// the one entered at connect time, or the one SendGrid reports for the
-// webhook whose URL ends with path (cached, shared by adapter instances).
-func (p *Provider) verificationKey(ctx context.Context, path string, refresh bool) (string, bool, error) {
 	if k := strings.TrimSpace(p.s.WebhookVerificationKey); k != "" {
-		return k, false, nil
+		return check(k)
 	}
+	path := r.URL.Path
 	if path == "" || path == "/" {
-		return "", false, errors.New("no verification key is configured")
+		return fmt.Errorf("%w: no verification key is configured", providers.ErrBadSignature)
 	}
-	sum := sha256.Sum256([]byte(p.api.BaseURL + "\x00" + p.c.APIKey + "\x00" + path))
-	id := hex.EncodeToString(sum[:])
-	keysMu.Lock()
-	e, ok := keys[id]
-	if !ok {
-		e = &keyEntry{}
-		keys[id] = e
-	}
-	keysMu.Unlock()
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	if e.key != "" && (!refresh || time.Since(e.fetched) < time.Minute) {
-		return e.key, true, nil
-	}
+	// Signing may have been turned off and on again (a new key): the
+	// cache reads the key again when a signature doesn't verify.
+	return verificationKeys.Verify(ctx, p.keyID(path), func(ctx context.Context) (string, error) { return p.fetchVerificationKey(ctx, path) }, check)
+}
+
+// verificationKeys caches the public keys read from SendGrid's API, shared
+// by every adapter instance.
+var verificationKeys webhookauth.Material
+
+func (p *Provider) keyID(path string) string {
+	return webhookauth.Key(p.api.BaseURL, p.c.APIKey, strings.TrimRight(path, "/"))
+}
+
+// fetchVerificationKey reads the public key of the webhook whose URL ends
+// with path.
+func (p *Provider) fetchVerificationKey(ctx context.Context, path string) (string, error) {
 	hooks, err := p.listWebhooks(ctx)
 	if err != nil {
-		return "", false, err
+		return "", err
 	}
 	want := strings.TrimRight(path, "/")
 	for _, h := range hooks {
@@ -136,17 +120,16 @@ func (p *Provider) verificationKey(ctx context.Context, path string, refresh boo
 				PublicKey string `json:"public_key"`
 			}
 			if err := p.api.Do(ctx, "GET /v3/user/webhooks/event/settings/signed/{id}", http.MethodGet, "/v3/user/webhooks/event/settings/signed/"+url.PathEscape(h.ID), nil, &signed); err != nil {
-				return "", false, err
+				return "", err
 			}
 			key = signed.PublicKey
 		}
 		if key == "" {
-			return "", false, errors.New("signature verification is off for this Event Webhook; register the webhook again to turn it on")
+			return "", errors.New("signature verification is off for this Event Webhook; register the webhook again to turn it on")
 		}
-		e.key, e.fetched = key, time.Now()
-		return key, true, nil
+		return key, nil
 	}
-	return "", false, errors.New("no SendGrid Event Webhook points at this URL; register it again or enter its verification key")
+	return "", errors.New("no SendGrid Event Webhook points at this URL; register it again or enter its verification key")
 }
 
 func pathOf(u string) string {

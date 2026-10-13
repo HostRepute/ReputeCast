@@ -249,7 +249,7 @@ func sameURL(a, b string) bool { return strings.TrimRight(a, "/") == strings.Tri
 // RegisterWebhook implements providers.WebhookRegistrar: one webhook for
 // deliveries, delays, bounces, complaints, failures and suppressions. An
 // existing webhook for the URL is updated and enabled. Its signing secret
-// is read back from the API when events arrive.
+// arrives with the answer, or is read back from the API when events arrive.
 func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 	existing, err := p.findWebhook(ctx, func(e string) bool { return sameURL(e, hookURL) })
 	if err != nil {
@@ -260,7 +260,14 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 		return p.api.Do(ctx, "PATCH /webhooks/{id}", http.MethodPatch, apiclient.Path("/webhooks/%s", existing.ID), body, nil)
 	}
 	body := map[string]any{"endpoint": hookURL, "events": webhookEvents}
-	return p.api.Do(ctx, "POST /webhooks", http.MethodPost, "/webhooks", body, nil)
+	var created struct {
+		SigningSecret string `json:"signing_secret"`
+	}
+	if err := p.api.Do(ctx, "POST /webhooks", http.MethodPost, "/webhooks", body, &created); err != nil {
+		return err
+	}
+	secrets.Set(p.secretKey(pathOf(hookURL)), created.SigningSecret)
+	return nil
 }
 
 // InspectWebhook implements providers.WebhookInspector, with the delivery

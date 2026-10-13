@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -22,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/contracttest"
 	"github.com/hostrepute/reputecast/internal/providers/mailgun"
+	"github.com/hostrepute/reputecast/internal/providers/webhookauth"
 )
 
 const (
@@ -120,6 +122,10 @@ func (f *fake) handler(t *testing.T) func(env *contracttest.Env) http.Handler {
 			}
 		}
 		mux.HandleFunc("GET /v4/domains/{name}", guard(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.PathValue("name"), "unknown.") {
+				message(w, http.StatusNotFound, "Domain not found")
+				return
+			}
 			f.mu.Lock()
 			state := f.domainState
 			f.mu.Unlock()
@@ -288,7 +294,10 @@ func signed(t *testing.T, file string) (*http.Request, []byte) {
 	if m == nil {
 		t.Fatalf("%s has no signature placeholder", file)
 	}
-	body := bytes.Replace(raw, []byte("__SIGNATURE__"), []byte(mailgun.Sign(signingKey, string(m[2]), string(m[1]))), 1)
+	// Signed now, as Mailgun signs a delivery when it sends it.
+	ts := strconv.FormatInt(time.Now().Unix(), 10)
+	block := fmt.Sprintf(`"token": "%s", "timestamp": "%s", "signature": "%s"`, m[1], ts, mailgun.Sign(signingKey, ts, string(m[1])))
+	body := bytes.Replace(raw, m[0], []byte(block), 1)
 	r, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://reputecast.acme.io/hooks/mailgun/token", bytes.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	return r, body
@@ -377,6 +386,39 @@ func TestSigningKeyFromTheAPI(t *testing.T) {
 	}
 }
 
+func TestWebhookReplays(t *testing.T) {
+	f := newFake()
+	env := contracttest.NewEnv(t, f.handler(t))
+	p := newProvider(t, env, true, domain).(providers.WebhookVerifier)
+	r, body := signed(t, "failed-permanent.json")
+	if err := p.VerifyWebhook(context.Background(), r, body); err != nil {
+		t.Fatal(err)
+	}
+	// A redelivery, serialized differently, is the same event.
+	var v map[string]any
+	_ = json.Unmarshal(body, &v)
+	again, _ := json.MarshalIndent(v, "", "\t")
+	if err := p.VerifyWebhook(context.Background(), r, again); err != nil {
+		t.Fatalf("a redelivery of the same event passes: %v", err)
+	}
+	// The signature covers the token, not the event: a captured one can't
+	// carry another event.
+	forged := bytes.Replace(body, []byte("john@example.com"), []byte("ceo@acme.io"), 1)
+	if bytes.Equal(forged, body) {
+		t.Fatal("the fixture changed")
+	}
+	if err := p.VerifyWebhook(context.Background(), r, forged); !errors.Is(err, providers.ErrBadSignature) {
+		t.Fatalf("a reused token with another event is a forgery: %v", err)
+	}
+	// Retries come for eight hours; much older signatures are replays.
+	ts := strconv.FormatInt(time.Now().Add(-mailgun.Window-time.Hour).Unix(), 10)
+	const token = "f0e1d2c3b4a5968778695a4b3c2d1e0f0e1d2c3b4a59687786"
+	old := fmt.Sprintf(`{"signature":{"token":%q,"timestamp":%q,"signature":%q},"event-data":{"event":"delivered"}}`, token, ts, mailgun.Sign(signingKey, ts, token))
+	if err := p.VerifyWebhook(context.Background(), r, []byte(old)); !errors.Is(err, webhookauth.ErrStale) {
+		t.Fatalf("a request signed long ago is a replay: %v", err)
+	}
+}
+
 func TestSignMatchesMailgunsExample(t *testing.T) {
 	// hex(HMAC-SHA256(key, timestamp+token)), the computation Mailgun documents.
 	got := mailgun.Sign("key-secret", "1529006854", "a8ce0edb2dd8301dee6c2405235584e45aa91d1e9f979f3de0")
@@ -455,6 +497,11 @@ func TestDomains(t *testing.T) {
 	}
 	if !verified {
 		t.Fatal("an unverified domain is verified again")
+	}
+	// Another domain Mailgun doesn't know is not a settings problem.
+	_, err = p.DomainStatus(context.Background(), "unknown.acme.io")
+	if err == nil || errors.Is(err, providers.ErrUnauthorized) || !strings.Contains(err.Error(), "doesn't know the domain unknown.acme.io") {
+		t.Fatalf("an unknown domain other than the sending one: %v", err)
 	}
 }
 

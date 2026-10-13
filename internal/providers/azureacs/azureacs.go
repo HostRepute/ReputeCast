@@ -3,10 +3,10 @@
 // It sends one message per call, authenticated with the resource's access
 // key (HMAC-SHA256 request signing) or a Microsoft Entra ID application
 // (client credentials), and receives delivery reports from an Event Grid
-// subscription: the validation handshake is answered, and deliveries are
-// authenticated with the Microsoft Entra ID token of a protected webhook,
-// or with a shared secret Event Grid sends as a delivery header (or in the
-// URL's query).
+// subscription (Event Grid event schema): the validation handshake is
+// answered, and deliveries are authenticated with the Microsoft Entra ID
+// token of a protected webhook, or with a shared secret Event Grid sends
+// as a delivery header (or in the URL's query).
 //
 // What the data-plane API can't do stays manual and is not claimed:
 // domains, sender usernames, Event Grid subscriptions and suppression lists
@@ -31,7 +31,6 @@
 package azureacs
 
 import (
-	"cmp"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -39,6 +38,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -47,6 +47,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
 	"github.com/hostrepute/reputecast/internal/providers/flex"
+	"github.com/hostrepute/reputecast/internal/providers/mimemsg"
 	"github.com/hostrepute/reputecast/internal/version"
 )
 
@@ -59,8 +60,9 @@ const APIVersion = "2025-09-01"
 // DefaultAuthority is Microsoft Entra ID's token endpoint host.
 const DefaultAuthority = "https://login.microsoftonline.com"
 
-// SecretHeader carries the webhook secret on Event Grid deliveries (a
-// delivery property marked secret in the subscription).
+// SecretHeader can carry the webhook secret on Event Grid deliveries (a
+// delivery property marked secret in the subscription); Authorization:
+// Bearer <secret> is preferred. Neither is stored with raw events.
 const SecretHeader = "X-ReputeCast-Secret" //nolint:gosec // a header name, not a credential
 
 // parallel is how many calls one Send makes at a time when it is handed
@@ -132,7 +134,7 @@ func Descriptor() providers.Descriptor {
 			{Key: "per_minute", Label: "Sending limit · per minute", Help: "30 for a custom domain until Azure raises it."},
 			{Key: "per_hour", Label: "Sending limit · per hour", Help: "100 for a custom domain until Azure raises it."},
 			{Key: "event_grid_audience", Label: "Event Grid · Entra application ID",
-				Help: "Only when the Event Grid subscription uses Microsoft Entra authentication: the webhook application's ID or ID URI. Otherwise the subscription sends the webhook secret as the X-ReputeCast-Secret delivery header."},
+				Help: "Only when the Event Grid subscription uses Microsoft Entra authentication: the webhook application's ID or ID URI. Otherwise the subscription sends the webhook secret as a secret delivery header, Authorization: Bearer <secret>."},
 			{Key: "event_grid_tenant_id", Label: "Event Grid · Entra tenant ID", Help: "The tenant of that application, when it isn't the one above."},
 		},
 		New: New,
@@ -150,7 +152,10 @@ type Provider struct {
 	http     *http.Client
 }
 
-var _ providers.Provider = (*Provider)(nil)
+var (
+	_ providers.Provider       = (*Provider)(nil)
+	_ providers.WebhookSecrets = (*Provider)(nil)
+)
 
 // New builds the adapter from a connected provider's configuration.
 func New(cfg providers.Config) (providers.Provider, error) {
@@ -183,15 +188,40 @@ func New(cfg providers.Config) (providers.Provider, error) {
 			return nil, errors.New("azureacs: the access key is not base64")
 		}
 	}
-	u, err := url.Parse(strings.TrimSpace(endpoint))
-	if endpoint != "" && (err != nil || u.Host == "" || (u.Scheme != "https" && !strings.HasPrefix(u.Host, "127.0.0.1"))) {
+	if !secureURL(endpoint) {
 		return nil, errors.New("azureacs: the endpoint must be an https:// URL")
+	}
+	if !secureURL(p.s.AuthorityURL) {
+		return nil, errors.New("azureacs: the Entra ID authority must be an https:// URL")
 	}
 	p.endpoint = strings.TrimRight(strings.TrimSpace(endpoint), "/")
 	p.api = apiclient.New(p.endpoint, p.http)
 	p.api.Header.Set("User-Agent", "ReputeCast/"+version.Version)
 	p.api.Decode = decodeError
 	return p, nil
+}
+
+// secureURL accepts an empty value, an https:// URL, or an http:// one on
+// this machine (local emulators and tests): credentials go there.
+func secureURL(raw string) bool {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return true
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return false
+	}
+	return u.Scheme == "https" || (u.Scheme == "http" && loopback(u.Hostname()))
+}
+
+// loopback reports a host on this machine.
+func loopback(host string) bool {
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 // parseConnectionString reads "endpoint=…;accesskey=…".
@@ -322,7 +352,7 @@ func (p *Provider) sendOne(ctx context.Context, m providers.Message) (providers.
 	if m.ReplyTo != nil {
 		in.ReplyTo = []address{{Address: m.ReplyTo.Address, DisplayName: m.ReplyTo.Name}}
 	}
-	in.Headers = map[string]string{"X-ReputeCast-Message": m.ID.String()}
+	in.Headers = map[string]string{mimemsg.HeaderMessage: m.ID.String()}
 	for k, v := range m.Headers {
 		if !reserved[strings.ToLower(k)] {
 			in.Headers[k] = v
@@ -333,11 +363,7 @@ func (p *Provider) sendOne(ctx context.Context, m providers.Message) (providers.
 	body, _ := json.Marshal(in)
 	res, err := p.request(ctx, "POST /emails:send", http.MethodPost, "/emails:send?api-version="+APIVersion, body, http.Header{"Operation-Id": {m.ID.String()}})
 	if err != nil {
-		var ce *providers.CallError
-		if errors.As(err, &ce) && !ce.Auth && !ce.Temporary && ce.Status >= 400 && ce.Status < 500 {
-			return providers.SendResult{MessageID: m.ID, Err: &providers.SendError{Code: cmp.Or(ce.Code, fmt.Sprintf("HTTP %d", ce.Status)), Message: ce.Message}}, nil
-		}
-		return providers.SendResult{}, err
+		return apiclient.Failed(m, err)
 	}
 	var out struct {
 		ID string `json:"id"`

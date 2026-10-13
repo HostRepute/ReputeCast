@@ -24,6 +24,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/contracttest"
 	"github.com/hostrepute/reputecast/internal/providers/sendgrid"
+	"github.com/hostrepute/reputecast/internal/providers/webhookauth"
 )
 
 const apiKey = "SG.test-key"
@@ -483,6 +484,17 @@ func TestWebhookRegistrationAndKeyLookup(t *testing.T) {
 	}
 	if err := fresh.VerifyWebhook(context.Background(), signedRequest(t, "/hooks/sendgrid/other", body), body); !errors.Is(err, providers.ErrBadSignature) {
 		t.Fatalf("no webhook for this URL: %v", err)
+	}
+	// Retries can carry the first attempt's signature for 24 hours; older
+	// requests are replays.
+	for age, ok := range map[time.Duration]bool{20 * time.Hour: true, sendgrid.Window + time.Hour: false} {
+		old := signedRequest(t, "/hooks/sendgrid/tok-1", body)
+		ts := strconv.FormatInt(time.Now().Add(-age).Unix(), 10)
+		old.Header.Set(sendgrid.TimestampHeader, ts)
+		old.Header.Set(sendgrid.SignatureHeader, sign(t, ts, body))
+		if err := fresh.VerifyWebhook(context.Background(), old, body); (err == nil) != ok || (err != nil && !errors.Is(err, webhookauth.ErrStale)) {
+			t.Fatalf("a request signed %s ago: %v", age, err)
+		}
 	}
 	unsigned, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://reputecast.acme.io/hooks/sendgrid/tok-1", bytes.NewReader(body))
 	if err := fresh.VerifyWebhook(context.Background(), unsigned, body); !errors.Is(err, providers.ErrBadSignature) {

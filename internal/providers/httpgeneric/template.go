@@ -72,11 +72,19 @@ var filters = map[string]int{
 // escaping context of each placeholder.
 func parseTemplate(src string, m mode) (*template, error) {
 	t := &template{mode: m}
-	var lit strings.Builder
+	var lit []byte
 	inString, escaped, inQuery := false, false, false
 	for i := 0; i < len(src); i++ {
-		// An escaped "\{" inside a JSON string is literal text.
-		if strings.HasPrefix(src[i:], "{{") && (!inString || !escaped) {
+		if strings.HasPrefix(src[i:], "{{") {
+			if m == modeJSON && inString && escaped {
+				// "\{{" inside a JSON string is a literal "{{" (for an API's
+				// own placeholders): the backslash only marks it and is
+				// dropped, as "\{" is no JSON escape.
+				lit = append(lit[:len(lit)-1], '{', '{')
+				escaped = false
+				i++
+				continue
+			}
 			end := strings.Index(src[i+2:], "}}")
 			if end < 0 {
 				return nil, fmt.Errorf("a {{ placeholder at position %d is not closed with }}", i)
@@ -86,9 +94,9 @@ func parseTemplate(src string, m mode) (*template, error) {
 			if err != nil {
 				return nil, err
 			}
-			if lit.Len() > 0 {
-				t.segs = append(t.segs, segment{lit: lit.String()})
-				lit.Reset()
+			if len(lit) > 0 {
+				t.segs = append(t.segs, segment{lit: string(lit)})
+				lit = lit[:0]
 			}
 			ctx := false
 			switch m {
@@ -102,7 +110,7 @@ func parseTemplate(src string, m mode) (*template, error) {
 			continue
 		}
 		c := src[i]
-		lit.WriteByte(c)
+		lit = append(lit, c)
 		switch m {
 		case modeJSON:
 			switch {
@@ -119,8 +127,8 @@ func parseTemplate(src string, m mode) (*template, error) {
 			}
 		}
 	}
-	if lit.Len() > 0 {
-		t.segs = append(t.segs, segment{lit: lit.String()})
+	if len(lit) > 0 {
+		t.segs = append(t.segs, segment{lit: string(lit)})
 	}
 	return t, nil
 }

@@ -177,7 +177,10 @@ type Provider struct {
 	api      *apiclient.Client
 }
 
-var _ providers.Provider = (*Provider)(nil)
+var (
+	_ providers.Provider       = (*Provider)(nil)
+	_ providers.WebhookSecrets = (*Provider)(nil)
+)
 
 // compiled is a parsed mapping.
 type compiled struct {

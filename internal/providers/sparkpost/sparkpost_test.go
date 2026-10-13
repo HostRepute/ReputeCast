@@ -345,6 +345,13 @@ func TestDomains(t *testing.T) {
 	if err != nil || recs[0].Status != "verified" || recs[1].Status != "wrong_value" {
 		t.Fatalf("existing: %+v, %v", recs, err)
 	}
+	// A zone apex can't take the bounce CNAME: DKIM only.
+	for _, apex := range []string{"acme.io", "acme.co.uk"} {
+		recs, err = p.AddDomain(context.Background(), apex)
+		if err != nil || len(recs) != 1 || recs[0].Purpose != "dkim" {
+			t.Fatalf("apex %s: %+v, %v", apex, recs, err)
+		}
+	}
 }
 
 func TestWebhooks(t *testing.T) {

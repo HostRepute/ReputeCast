@@ -76,4 +76,30 @@ func TestPullOnlyProviderSyncsWithoutError(t *testing.T) {
 	if err := svc.SyncProvider(ctx, p); err != nil {
 		t.Fatal(err)
 	}
+
+	// Set to push only, the sync has nothing it can do: it turns off
+	// rather than starting to pull.
+	pushID := uuid.Must(uuid.NewV7())
+	pushCreds, err := env.App.Secrets.Seal([]byte(`{"api_key":"xkeysib-test"}`), manage.CredentialsAD(store.Provider{ID: pushID}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pushToken, _ := authn.NewToken()
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO providers (id, workspace_id, adapter, name, config, credentials_enc, webhook_token, capabilities)
+		VALUES ($1, $2, 'brevo', 'Brevo push', $3, $4, $5, '{}')`, pushID, ws.ID, `{"base_url":"`+api.URL+`"}`, pushCreds, pushToken); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO provider_suppression_sync (provider_id, mode) VALUES ($1, 'push')`, pushID); err != nil {
+		t.Fatal(err)
+	}
+	pp, err := env.App.Q.ProvGetAny(ctx, pushID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.SyncProvider(ctx, pp); err != nil {
+		t.Fatalf("a push-only sync to a pull-only provider must not fail: %v", err)
+	}
+	if row, err := env.App.Q.SuppSyncGet(ctx, pushID); err != nil || row.Mode != "off" || row.Pulled != 0 {
+		t.Fatalf("push-only sync row: %+v, %v", row, err)
+	}
 }

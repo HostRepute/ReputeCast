@@ -1,6 +1,7 @@
 package mailgun
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -12,7 +13,6 @@ import (
 	"math"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,10 +43,27 @@ func Sign(key, timestamp, token string) string {
 	return hex.EncodeToString(webhookauth.HMAC(sha256.New, []byte(key), []byte(timestamp), []byte(token)))
 }
 
-// VerifyWebhook implements providers.WebhookVerifier. Mailgun retries a
-// delivery for up to eight hours with the same signature and documents no
-// timestamp window, so stale timestamps are accepted; redelivered events
-// are dropped by ingest's dedupe.
+// Window is how old a signed timestamp may be. Mailgun retries a delivery
+// for up to eight hours, and its guide asks for a lenient timestamp check
+// because deliveries can be delayed.
+const Window = 12 * time.Hour
+
+// now is the clock, replaced in tests.
+var now = time.Now
+
+// replays ties each signed token to the event it came with.
+var replays = &webhookauth.Replay{Window: Window}
+
+// signingKeys caches the signing keys read from Mailgun's API, shared by
+// every adapter instance.
+var signingKeys webhookauth.Material
+
+// VerifyWebhook implements providers.WebhookVerifier. Mailgun's signature
+// covers the timestamp and a one-time token, not the event, so, as its
+// guide suggests, the timestamp must be recent (Window) and a token is
+// honored only with the event it first came with: a captured signature
+// can't carry a forged event. A redelivery of the same event passes; ingest
+// drops it as a duplicate.
 func (p *Provider) VerifyWebhook(ctx context.Context, _ *http.Request, body []byte) error {
 	var pl payload
 	if err := json.Unmarshal(body, &pl); err != nil {
@@ -56,20 +73,40 @@ func (p *Provider) VerifyWebhook(ctx context.Context, _ *http.Request, body []by
 	if pl.Signature.Token == "" || ts == "" || pl.Signature.Signature == "" {
 		return fmt.Errorf("%w: the request has no signature", providers.ErrBadSignature)
 	}
-	key, cached, err := p.signingKey(ctx, false)
-	if err != nil {
-		return fmt.Errorf("%w: %w", providers.ErrBadSignature, err)
-	}
-	if check(key, ts, pl.Signature.Token, pl.Signature.Signature) {
-		return nil
-	}
-	if cached {
-		// The key may have been regenerated: read it again (at most once a minute).
-		if fresh, _, err := p.signingKey(ctx, true); err == nil && fresh != key && check(fresh, ts, pl.Signature.Token, pl.Signature.Signature) {
-			return nil
+	verify := func(key string) error {
+		if !check(key, ts, pl.Signature.Token, pl.Signature.Signature) {
+			return providers.ErrBadSignature
 		}
+		return webhookauth.Within(ts, now(), Window)
 	}
-	return providers.ErrBadSignature
+	var err error
+	if k := strings.TrimSpace(p.c.WebhookSigningKey); k != "" {
+		err = verify(k)
+	} else {
+		// The key may have been regenerated: the cache reads it again
+		// when a signature doesn't verify.
+		err = signingKeys.Verify(ctx, webhookauth.Key(p.api.BaseURL, p.c.APIKey), p.fetchSigningKey, verify)
+	}
+	if err != nil {
+		return err
+	}
+	return replays.Check(pl.Signature.Token, canonical(pl.EventData), now())
+}
+
+// canonical re-encodes JSON with sorted keys and no spacing, so a
+// redelivery that serializes the event differently still matches.
+func canonical(raw json.RawMessage) []byte {
+	var v any
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.UseNumber()
+	if d.Decode(&v) != nil {
+		return raw
+	}
+	out, err := json.Marshal(v)
+	if err != nil {
+		return raw
+	}
+	return out
 }
 
 func check(key, ts, token, sig string) bool {
@@ -81,49 +118,18 @@ func check(key, ts, token, sig string) bool {
 	return hmac.Equal(got, want)
 }
 
-type keyEntry struct {
-	mu      sync.Mutex
-	key     string
-	fetched time.Time
-}
-
-var (
-	keysMu sync.Mutex
-	keys   = map[string]*keyEntry{}
-)
-
-// signingKey returns the account's HTTP webhook signing key: the one
-// entered at connect time, or the one GET /v5/accounts/http_signing_key
-// reports (cached, shared by adapter instances).
-func (p *Provider) signingKey(ctx context.Context, refresh bool) (string, bool, error) {
-	if k := strings.TrimSpace(p.c.WebhookSigningKey); k != "" {
-		return k, false, nil
-	}
-	sum := sha256.Sum256([]byte(p.api.BaseURL + "\x00" + p.c.APIKey))
-	id := hex.EncodeToString(sum[:])
-	keysMu.Lock()
-	e, ok := keys[id]
-	if !ok {
-		e = &keyEntry{}
-		keys[id] = e
-	}
-	keysMu.Unlock()
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	if e.key != "" && (!refresh || time.Since(e.fetched) < time.Minute) {
-		return e.key, true, nil
-	}
+// fetchSigningKey reads the account's HTTP webhook signing key.
+func (p *Provider) fetchSigningKey(ctx context.Context) (string, error) {
 	var out struct {
 		Key string `json:"http_signing_key"`
 	}
 	if err := p.api.Do(ctx, "GET /v5/accounts/http_signing_key", http.MethodGet, "/v5/accounts/http_signing_key", nil, &out); err != nil {
-		return "", false, err
+		return "", err
 	}
 	if out.Key == "" {
-		return "", false, errors.New("no HTTP webhook signing key in Mailgun's answer")
+		return "", errors.New("no HTTP webhook signing key in Mailgun's answer")
 	}
-	e.key, e.fetched = out.Key, time.Now()
-	return e.key, true, nil
+	return out.Key, nil
 }
 
 // eventData is a Mailgun event, as webhooks and the events API carry it.

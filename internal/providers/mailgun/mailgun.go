@@ -184,11 +184,12 @@ func decodeError(_ int, body []byte) (string, string) {
 	return "", strings.TrimSpace(string(body))
 }
 
-// classify adjusts apiclient's status mapping to Mailgun: an unknown domain
-// is a settings problem (shown like rejected credentials), a payment problem
-// stops the account like an outage, and refusals about one recipient
-// (sandbox authorized recipients) concern the message.
-func (p *Provider) classify(err error) error {
+// classify adjusts apiclient's status mapping to Mailgun for a call about
+// domain: an unknown sending domain is a settings problem (shown like
+// rejected credentials; any other unknown domain is just not found), a
+// payment problem stops the account like an outage, and refusals about one
+// recipient (sandbox authorized recipients) concern the message.
+func (p *Provider) classify(err error, domain string) error {
 	var ce *providers.CallError
 	if !errors.As(err, &ce) {
 		return err
@@ -196,8 +197,8 @@ func (p *Provider) classify(err error) error {
 	msg := strings.ToLower(ce.Message)
 	switch {
 	case ce.Status == http.StatusNotFound && strings.Contains(msg, "domain"):
-		ce.Code, ce.Auth = "domain_not_found", true
-		ce.Message = "Mailgun doesn't know the domain " + p.s.Domain + " in this region. Check the domain and the region."
+		ce.Code, ce.Auth = "domain_not_found", strings.EqualFold(domain, p.s.Domain)
+		ce.Message = "Mailgun doesn't know the domain " + domain + " in this region. Check the domain and the region."
 	case ce.Status == http.StatusPaymentRequired:
 		ce.Code, ce.Temporary = "payment_required", true
 	case ce.Status == http.StatusForbidden && (strings.Contains(msg, "authorized recipients") || strings.Contains(msg, "sandbox")):
@@ -207,10 +208,6 @@ func (p *Provider) classify(err error) error {
 		ce.Code = fmt.Sprintf("HTTP %d", ce.Status)
 	}
 	return ce
-}
-
-func messageLevel(ce *providers.CallError) bool {
-	return !ce.Auth && !ce.Temporary && ce.Status >= 400 && ce.Status < 500
 }
 
 // form encodes values as multipart/form-data, which every Mailgun form
@@ -270,12 +267,8 @@ func (p *Provider) sendOne(ctx context.Context, m providers.Message) (providers.
 	res, err := p.api.Exec(ctx, apiclient.Request{Op: "POST /v3/{domain}/messages", Method: http.MethodPost,
 		Path: apiclient.Path("/v3/%s/messages", p.s.Domain), ContentType: ct, Body: body})
 	if err != nil {
-		err = p.classify(err)
-		var ce *providers.CallError
-		if errors.As(err, &ce) && messageLevel(ce) {
-			return providers.SendResult{MessageID: m.ID, Err: &providers.SendError{Code: ce.Code, Message: ce.Message}}, nil
-		}
-		return providers.SendResult{}, err
+		err = p.classify(err, p.s.Domain)
+		return apiclient.Failed(m, err)
 	}
 	var out struct {
 		ID string `json:"id"`

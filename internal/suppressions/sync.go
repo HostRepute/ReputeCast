@@ -206,8 +206,12 @@ func (s *Service) SyncProvider(ctx context.Context, p store.Provider) error {
 			cancel()
 			if errors.Is(err, providers.ErrNotSupported) {
 				// The provider lists its suppressions but takes none over
-				// its API (Brevo): the sync pulls only from now on.
+				// its API (Brevo): a two-way sync pulls only from now on,
+				// and a push-only one has nothing left to do.
 				next.Mode = "pull"
+				if cur.Mode == "push" {
+					next.Mode = "off"
+				}
 				break
 			}
 			if err != nil {
