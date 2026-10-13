@@ -21909,8 +21909,7 @@
           },
           "replyHandling": {
             "enum": [
-              "forward",
-              "inbox"
+              "forward"
             ],
             "type": "string"
           },
@@ -21962,8 +21961,7 @@
           },
           "replyHandling": {
             "enum": [
-              "forward",
-              "inbox"
+              "forward"
             ],
             "type": "string"
           },

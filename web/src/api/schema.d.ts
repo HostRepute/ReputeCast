@@ -11285,7 +11285,7 @@ export interface components {
             defaultSenderId: string;
             footerAddress: string;
             /** @enum {string} */
-            replyHandling: "forward" | "inbox";
+            replyHandling: "forward";
             replyOptions: string[];
             replyTo: string;
             systemSenderId: string;
@@ -11297,7 +11297,7 @@ export interface components {
             defaultSenderId?: string;
             footerAddress: string;
             /** @enum {string} */
-            replyHandling: "forward" | "inbox";
+            replyHandling: "forward";
             replyTo?: string;
             /** @description Empty for the provider default */
             trackingDomain?: string;

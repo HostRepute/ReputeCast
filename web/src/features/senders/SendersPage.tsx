@@ -223,19 +223,19 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
   const qc = useQueryClient()
   const d = data.defaults
   const [senderId, setSenderId] = useState(d.defaultSenderId)
-  const [reply, setReply] = useState(d.replyHandling === 'inbox' ? 'inbox' : `forward:${d.replyTo}`)
+  // Where replies go: one address for every sender, or "" for each sender's own reply-to.
+  const [reply, setReply] = useState(d.replyTo)
   const [footer, setFooter] = useState(d.footerAddress)
   const [tracking, setTracking] = useState(d.trackingDomain)
   const save = $api.useMutation('put', '/api/v1/workspaces/{workspace}/senders/defaults')
   const submit = () => {
-    const forward = reply.startsWith('forward:')
     save.mutate(
       {
         params: { path: { workspace: slug } },
         body: {
           defaultSenderId: senderId || undefined,
-          replyHandling: forward ? 'forward' : 'inbox',
-          replyTo: forward ? reply.slice('forward:'.length) : undefined,
+          replyHandling: 'forward',
+          replyTo: reply || undefined,
           footerAddress: footer.trim(),
           trackingDomain: tracking,
         },
@@ -267,9 +267,9 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
           Reply handling
           <select className="in" value={reply} onChange={(e) => setReply(e.target.value)} disabled={Boolean(reason)}>
             {(d.replyOptions.length ? d.replyOptions : [d.replyTo].filter(Boolean)).map((a) => (
-              <option key={a} value={`forward:${a}`}>{`Forward replies to ${a}`}</option>
+              <option key={a} value={a}>{`Forward replies to ${a}`}</option>
             ))}
-            <option value="inbox">Keep replies in ReputeCast inbox</option>
+            <option value="">{"Use each sender's reply-to"}</option>
           </select>
         </label>
         <label className="lbl">

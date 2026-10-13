@@ -202,6 +202,7 @@ func TestSenderDefaults(t *testing.T) {
 		t.Fatalf("workspace default sender: %s %v", defaultSender, err)
 	}
 	c.Do("PUT", ws+"/senders/defaults", map[string]any{"replyHandling": "inbox", "footerAddress": ""}).MustStatus(t, 422)
+	c.Do("PUT", ws+"/senders/defaults", map[string]any{"replyHandling": "forward", "replyTo": "not an address", "footerAddress": ""}).MustStatus(t, 422)
 	c.Do("PUT", ws+"/senders/defaults", map[string]any{"replyHandling": "forward", "footerAddress": "", "trackingDomain": "go.unknown.example"}).MustStatus(t, 422)
 	if auditCount(t, env, "senders.defaults_update") != 1 {
 		t.Fatal("audit")

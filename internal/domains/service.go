@@ -172,9 +172,10 @@ type SenderDefaults struct {
 	DefaultSenderID    string `json:"defaultSenderId"`
 	AutomationSenderID string `json:"automationSenderId"`
 	SystemSenderID     string `json:"systemSenderId"`
-	// ReplyHandling: forward replies to ReplyTo, or keep them in a
-	// ReputeCast inbox (not available in this version).
-	ReplyHandling string `json:"replyHandling" enum:"forward,inbox"`
+	// ReplyHandling is "forward": replies go to ReplyTo, or to each
+	// sender's own reply-to address when ReplyTo is empty. (ReputeCast
+	// doesn't receive mail, so there is no reply inbox.)
+	ReplyHandling string `json:"replyHandling" enum:"forward"`
 	ReplyTo       string `json:"replyTo"`
 	FooterAddress string `json:"footerAddress"`
 	// TrackingDomain is the default link tracking domain ("" = the
@@ -668,17 +669,15 @@ func (s *Service) DeleteSender(ctx context.Context, ws *store.Workspace, rawID s
 // SenderDefaultsInput saves the "Defaults" card.
 type SenderDefaultsInput struct {
 	DefaultSenderID string `json:"defaultSenderId,omitempty" doc:"Default From for new campaigns (the Broadcasts default)"`
-	ReplyHandling   string `json:"replyHandling" enum:"forward,inbox"`
-	ReplyTo         string `json:"replyTo,omitempty" maxLength:"254"`
-	FooterAddress   string `json:"footerAddress" maxLength:"300"`
-	TrackingDomain  string `json:"trackingDomain,omitempty" maxLength:"253" doc:"Empty for the provider default"`
+	ReplyHandling   string `json:"replyHandling" enum:"forward"`
+	// ReplyTo is where replies go; empty keeps each sender's own reply-to.
+	ReplyTo        string `json:"replyTo,omitempty" maxLength:"254"`
+	FooterAddress  string `json:"footerAddress" maxLength:"300"`
+	TrackingDomain string `json:"trackingDomain,omitempty" maxLength:"253" doc:"Empty for the provider default"`
 }
 
 // SaveDefaults saves the "Defaults" card.
 func (s *Service) SaveDefaults(ctx context.Context, ws *store.Workspace, in SenderDefaultsInput) (SenderDefaults, error) {
-	if in.ReplyHandling == "inbox" {
-		return SenderDefaults{}, api.Invalid("body.replyHandling", "Keeping replies in a ReputeCast inbox isn't available yet. Forward them to an address you read.")
-	}
 	defs, err := s.workspaceDefaults(ctx, s.Q, ws.ID)
 	if err != nil {
 		return SenderDefaults{}, err
