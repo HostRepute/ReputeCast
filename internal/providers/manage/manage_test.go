@@ -523,7 +523,9 @@ func TestEventLogAndExport(t *testing.T) {
 		Total int
 	}
 	owner.Do("GET", ws+"/provider-events", nil).MustStatus(t, 200).JSON(t, &log)
-	if log.Total != 9 || len(log.Items) != 9 {
+	// The nine events of the board are the newest; the audience demo adds
+	// older deliveries for the contact timelines.
+	if log.Total < 9 || len(log.Items) < 9 {
 		t.Fatalf("event log total %d", log.Total)
 	}
 	for _, e := range log.Items {

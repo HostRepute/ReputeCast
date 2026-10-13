@@ -389,8 +389,10 @@ func TestComposerChecksAndPreview(t *testing.T) {
 	for _, tk := range ctxOut.Tokens {
 		keys = append(keys, tk.Key)
 	}
-	if !strings.Contains(strings.Join(keys, ","), "first_name,last_name,email,plan,unsubscribe_url") {
-		t.Fatalf("tokens: %v", keys)
+	for _, want := range []string{"first_name", "last_name", "email", "plan", "unsubscribe_url"} {
+		if !has(want, keys) {
+			t.Fatalf("token %s missing: %v", want, keys)
+		}
 	}
 
 	// Server-side compile for API clients.

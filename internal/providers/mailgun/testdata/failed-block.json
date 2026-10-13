@@ -1,0 +1,15 @@
+{
+  "signature": {"token": "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2", "timestamp": "1760276490", "signature": "__SIGNATURE__"},
+  "event-data": {
+    "event": "failed",
+    "id": "Hj2-qa3PT8OB9cXgB4vF1w",
+    "timestamp": 1760276490.5,
+    "log-level": "error",
+    "recipient": "k.n@hotmail.com",
+    "reason": "bounce",
+    "severity": "permanent",
+    "message": {"headers": {"message-id": "20261012134102.8c3d4e5f6a7b8c9d@mg.acme.io"}},
+    "delivery-status": {"attempt-no": 1, "code": 550, "message": "5.7.1 Service unavailable, Client host [161.38.194.10] blocked using Spamhaus. To request removal from this list see https://www.spamhaus.org/query/ip/161.38.194.10", "description": null, "enhanced-code": "5.7.1", "mx-host": "hotmail-com.olc.protection.outlook.com", "bounce-type": "hard"},
+    "user-variables": []
+  }
+}

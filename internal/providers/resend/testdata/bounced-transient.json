@@ -1,0 +1,18 @@
+{
+  "type": "email.bounced",
+  "created_at": "2026-10-12T13:52:40.551Z",
+  "data": {
+    "created_at": "2026-10-12T13:41:01.894Z",
+    "email_id": "9a3f1c01-7520-42d8-8898-ff6fc54ce618",
+    "from": "Acme Newsletter <news@news.acme.io>",
+    "to": ["b.h@yahoo.com"],
+    "subject": "The October issue",
+    "tags": {"rc_stream": "broadcast"},
+    "bounce": {
+      "message": "The recipient's mailbox is full.",
+      "subType": "MailboxFull",
+      "type": "Transient",
+      "diagnosticCode": ["smtp; 452 4.2.2 The email account that you tried to reach is over quota."]
+    }
+  }
+}

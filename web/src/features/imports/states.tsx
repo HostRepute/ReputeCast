@@ -1,0 +1,109 @@
+import { useState } from 'react'
+import { $api, errorMessage } from '@/api/client'
+import { Badge } from '@/components/ui/Badge'
+import { Button, ButtonLink } from '@/components/ui/Button'
+import { Note } from '@/components/ui/Note'
+import { clock, count } from '@/lib/format'
+import { useWorkspace } from '@/lib/session'
+import { stepPath, useRefreshImport, type Detail } from './ImportFrame'
+
+/** Loading · reading the source (MigrationStates). */
+export function ReadingSource({ title, detail }: { title: string; detail?: string }) {
+  return (
+    <div className="card flex flex-col gap-3 px-5 py-4.5" aria-busy="true" role="status">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="spin" aria-hidden="true" />
+        <span className="font-semibold">{title}</span>
+        {detail ? <span className="k">{detail}</span> : null}
+      </div>
+      <div className="flex gap-3" aria-hidden="true">
+        <span className="sk h-9 w-[220px] max-w-full" />
+        <span className="sk h-9 w-[120px]" />
+        <span className="sk h-9 w-[160px] max-md:hidden" />
+      </div>
+      <div className="flex flex-col gap-2" aria-hidden="true">
+        <span className="sk h-3.5 w-[90%]" />
+        <span className="sk h-3.5 w-[70%]" />
+        <span className="sk h-3.5 w-[80%]" />
+      </div>
+    </div>
+  )
+}
+
+/** What reading the source is doing now: "1 of 1 audiences · 14 fields · 9 tags". */
+export function readingDetail(d: Detail) {
+  const lists = d.connection?.lists ?? []
+  const picked = new Set(d.options.lists.map((l) => l.sourceId))
+  const chosen = lists.filter((l) => picked.has(l.id))
+  const unit = d.source === 'mailchimp' ? 'audiences' : d.source === 'mailerlite' ? 'groups' : d.source === 'keila' ? 'segments' : 'lists'
+  const fields = chosen.reduce((n, l) => Math.max(n, l.fields), 0)
+  const tags = chosen.reduce((n, l) => n + l.tags, 0)
+  return [`${chosen.length} of ${lists.length} ${unit}`, fields ? `${fields} fields` : '', tags ? `${tags} tags` : ''].filter(Boolean).join(' · ')
+}
+
+/** Paused · the source is rate-limiting us (MigrationStates). */
+export function PausedCard({ d, now }: { d: Detail; now: number }) {
+  const { slug } = useWorkspace()
+  const refresh = useRefreshImport()
+  const resume = $api.useMutation('post', '/api/v1/workspaces/{workspace}/imports/{id}/resume')
+  const [err, setErr] = useState<string | null>(null)
+  const go = async (slow: boolean) => {
+    setErr(null)
+    try {
+      await resume.mutateAsync({ params: { path: { workspace: slug, id: d.id }, query: slow ? { slow: true } : {} } })
+      await refresh()
+    } catch (e) {
+      setErr(errorMessage(e))
+    }
+  }
+  const at = d.error?.retryAt
+  const row = d.error?.row ?? (d.stagedRows > 0 ? d.stagedRows : undefined)
+  const wait = at ? Math.max(0, Math.round((new Date(at).getTime() - now) / 1000)) : undefined
+  return (
+    <div role="alert" className="card flex flex-col gap-2 border-[#FCD34D] px-4.5 py-4">
+      <div className="flex items-center gap-2.5">
+        <Badge tone="warn">Paused</Badge>
+        <span className="font-semibold">
+          {d.sourceName} is rate-limiting us (429), import paused{row ? ` at row ${count(row)}` : ''}
+        </span>
+      </div>
+      <span className="k">
+        ReputeCast backs off automatically and resumes {wait !== undefined ? (wait > 0 ? `in ${wait} s` : 'now') : at ? `at ${clock(at)}` : 'in a minute'}. Rows already imported are safe;
+        nothing is imported twice because each row is keyed on email.
+      </span>
+      {err ? <Note tone="bad">{err}</Note> : null}
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" loading={resume.isPending && !resume.variables?.params.query?.slow} onClick={() => void go(false)}>
+          Resume now
+        </Button>
+        {d.options.pace !== 3 ? (
+          <Button size="sm" loading={resume.isPending && Boolean(resume.variables?.params.query?.slow)} onClick={() => void go(true)}>
+            Slow down to 3 req/s
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+/** Reading the source stopped with an error: say why, offer the way back. */
+export function SourceFailed({ d }: { d: Detail }) {
+  const { slug } = useWorkspace()
+  const e = d.error
+  return (
+    <div role="alert" className="card flex flex-col gap-2 border-[#FCA5A5] px-4.5 py-4">
+      <div className="flex items-center gap-2.5">
+        <Badge tone="bad">{e?.status ? String(e.status) : 'Error'}</Badge>
+        <span className="font-semibold">
+          {e?.code === 'source_auth_failed' ? `${d.sourceName} rejected the API key` : `Couldn't read the contacts from ${d.sourceName}`}
+        </span>
+      </div>
+      <span className="k">{e?.message ?? 'The source stopped answering.'} Nothing was imported.</span>
+      <div className="flex flex-wrap gap-2">
+        <ButtonLink size="sm" variant="primary" to={stepPath.source} params={{ workspace: slug, importId: d.id }}>
+          Back to the source
+        </ButtonLink>
+      </div>
+    </div>
+  )
+}

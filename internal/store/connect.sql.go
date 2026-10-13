@@ -172,7 +172,7 @@ func (q *Queries) ConnectListNames(ctx context.Context, workspaceID uuid.UUID) (
 }
 
 const connectMessage = `-- name: ConnectMessage :one
-SELECT id, workspace_id, stream, campaign_id, automation_id, automation_node, contact_id, email, variant, provider_id, provider_message_id, mailbox_provider, status, queued_at, sent_at, delivered_at, opened_at, clicked_at, error, kind FROM messages WHERE workspace_id = $1 AND id = $2
+SELECT id, workspace_id, stream, campaign_id, automation_id, automation_node, contact_id, email, variant, provider_id, provider_message_id, mailbox_provider, status, queued_at, sent_at, delivered_at, opened_at, clicked_at, error, kind, failover, route_note FROM messages WHERE workspace_id = $1 AND id = $2
 `
 
 type ConnectMessageParams struct {
@@ -204,6 +204,8 @@ func (q *Queries) ConnectMessage(ctx context.Context, arg ConnectMessageParams) 
 		&i.ClickedAt,
 		&i.Error,
 		&i.Kind,
+		&i.Failover,
+		&i.RouteNote,
 	)
 	return i, err
 }
