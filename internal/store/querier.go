@@ -131,6 +131,9 @@ type Querier interface {
 	ProvHeldRoutes(ctx context.Context, arg ProvHeldRoutesParams) ([]ProvHeldRoutesRow, error)
 	ProvIncidentsSince(ctx context.Context, arg ProvIncidentsSinceParams) ([]Incident, error)
 	ProvInsertIncident(ctx context.Context, arg ProvInsertIncidentParams) error
+	// The newest message a provider reported on before its webhooks went quiet
+	// (the last row of "Messages awaiting status").
+	ProvLastConfirmed(ctx context.Context, arg ProvLastConfirmedParams) ([]ProvLastConfirmedRow, error)
 	// W01 · Sending providers: connected providers, health inputs, actions.
 	// Query names start with Prov so they never collide with other domains.
 	ProvListActive(ctx context.Context, workspaceID uuid.UUID) ([]Provider, error)
@@ -154,6 +157,8 @@ type Querier interface {
 	// Messages handed to each provider since a time, and since the provider's
 	// last webhook event (webhook freshness: mail went out but nothing came back).
 	ProvSentSince(ctx context.Context, arg ProvSentSinceParams) ([]ProvSentSinceRow, error)
+	// Mail of one stream a provider sent since a time (what failover moved to it).
+	ProvSentThroughSince(ctx context.Context, arg ProvSentThroughSinceParams) (int64, error)
 	ProvSetRouteStatus(ctx context.Context, arg ProvSetRouteStatusParams) (int64, error)
 	ProvStartFailover(ctx context.Context, arg ProvStartFailoverParams) error
 	// Messages per stream over a window (volume estimates on the routing screen).

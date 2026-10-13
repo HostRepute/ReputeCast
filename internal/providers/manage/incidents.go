@@ -348,9 +348,18 @@ func (s *Service) silent(ctx context.Context, sn *snapshot, p store.Provider) (*
 			out.Hourly[i] = hr.N
 		}
 	}
-	rows, err := s.Q.ProvAwaitingStatus(ctx, store.ProvAwaitingStatusParams{ProviderID: &p.ID, Since: ptrTime(since.Add(-5 * time.Minute)), Lim: 8})
+	// The newest messages without an event, then the last one the provider
+	// reported on before it went quiet.
+	rows, err := s.Q.ProvAwaitingStatus(ctx, store.ProvAwaitingStatusParams{ProviderID: &p.ID, Since: ptrTime(since.Add(time.Nanosecond)), Lim: AwaitingRows})
 	if err != nil {
 		return nil, err
+	}
+	last, err := s.Q.ProvLastConfirmed(ctx, store.ProvLastConfirmedParams{ProviderID: &p.ID, Before: &since})
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range last {
+		rows = append(rows, store.ProvAwaitingStatusRow(r))
 	}
 	for _, r := range rows {
 		m := ProviderAwaitingMessage{Recipient: MaskEmail(r.Email), Source: sourceLabel(r.CampaignName, r.AutomationName, r.AutomationNode, r.Kind), Status: "accepted", DeliveredAt: r.DeliveredAt}

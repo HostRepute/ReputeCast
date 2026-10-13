@@ -40,6 +40,9 @@ const (
 	OutageRate  = 0.5
 	// SelfTestHeader marks the webhook endpoint self-test.
 	SelfTestHeader = "X-ReputeCast-Self-Test"
+	// AwaitingRows is how many messages without an event the webhooks-silent
+	// view lists (newest first) before the last one that had its event.
+	AwaitingRows = 3
 )
 
 // IsDemo reports whether a provider is sample data (config "demo": true):

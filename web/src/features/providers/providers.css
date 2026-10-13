@@ -1,0 +1,191 @@
+/*
+ * Sending providers & routing: classes specific to the Providers boards
+ * (Providers, ProvidersOutage, ProvidersWebhooksSilent, ProvidersRouting,
+ * ProvidersBulkWarning, ProvidersWarmup, ProvidersEvents, ProvidersAdapters),
+ * copied value for value and prefixed `pv-` so they never collide with the
+ * shared vocabulary in app.css.
+ */
+@layer components {
+  /* Capability chips (.cap on the boards) */
+  .pv-cap {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    background: var(--ground-3);
+    color: var(--ink-nav);
+    white-space: nowrap;
+  }
+  .pv-cap.y {
+    border-color: var(--ok-line);
+    background: var(--ok-tint);
+    color: var(--ok-fg);
+  }
+  .pv-cap.n {
+    border-color: var(--line);
+    background: #fff;
+    color: #6b7280;
+    text-decoration: line-through;
+  }
+  .pv-cap.p {
+    border-color: #fde68a;
+    background: #fffbeb;
+    color: var(--warn-fg);
+  }
+
+  /* Metric with a bar (.m on the boards) */
+  .pv-m {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .pv-m .l {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: baseline;
+    font-size: 12.5px;
+  }
+
+  /* Incident timeline rows (.ev) */
+  .pv-ev {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 14px;
+    border-top: 1px solid var(--line-2);
+    font-size: 12.5px;
+  }
+
+  /* Routing conditions (.cond, .chip) */
+  .pv-cond {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--ground-3);
+    font-size: 13px;
+  }
+  .pv-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 9px;
+    border-radius: 6px;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    font-weight: 600;
+    font-size: 12.5px;
+  }
+  .pv-chip.then {
+    border-color: #c4b5fd;
+    background: #f5f3ff;
+  }
+
+  /* Route tester steps (.step) */
+  .pv-step {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 13px;
+  }
+  .pv-step .num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+
+  /* Radio rows of the failover policy (label.tg) */
+  label.pv-tg {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  label.pv-tg input {
+    margin-top: 3px;
+  }
+
+  /* Warm-up ramp chart (.col, .cap, .sent) */
+  .pv-col {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 2px;
+    min-width: 0;
+  }
+  .pv-col .cap {
+    width: 100%;
+    background: var(--info-bg);
+    border-radius: 3px 3px 0 0;
+  }
+  .pv-col .sent {
+    width: 100%;
+    background: #1c5cab;
+    border-radius: 3px 3px 0 0;
+  }
+
+  /* Table cell spacing that differs per board */
+  .tbl.pv-9 td {
+    padding: 9px 12px;
+    white-space: nowrap;
+  }
+  .tbl.pv-10 td {
+    padding: 10px 12px;
+  }
+  .tbl.pv-11 td {
+    padding: 11px 12px;
+  }
+  .tbl.pv-top td {
+    vertical-align: top;
+  }
+  .tbl.pv-nw td {
+    white-space: nowrap;
+  }
+  .tbl.pv-nw td.wrap {
+    white-space: normal;
+    min-width: 160px;
+  }
+
+  /* Raw provider event type (.raw) */
+  .pv-raw {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--ground);
+    font-size: 12px;
+  }
+
+  /* Code sample on the Adapters board (pre) */
+  .pv-pre {
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: var(--ink);
+    color: #e5e7eb;
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    line-height: 1.55;
+    overflow-x: auto;
+    white-space: pre;
+  }
+}
