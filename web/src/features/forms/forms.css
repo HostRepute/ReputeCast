@@ -108,6 +108,13 @@
   .fb-in[aria-invalid='true'] {
     border-color: var(--bad-bar);
   }
+  /* The boards' placeholders are the browser's own grey (#757575, 4.6:1 on
+     white), not Tailwind's half-transparent text colour. */
+  .fb-in::placeholder,
+  .pf-field input::placeholder {
+    color: #757575;
+    opacity: 1;
+  }
   .fb-in:disabled {
     background: var(--ground);
     color: var(--ink-3);
