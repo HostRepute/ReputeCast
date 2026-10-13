@@ -339,7 +339,7 @@ export function BulkResultPanel({ result, onDismiss }: { result: Schemas['Contac
   const suppressed = result.failures.filter((f) => /suppress/i.test(f.reason)).length
   return (
     <div role="alert" className="card flex flex-col gap-2 border-[#FCD34D] px-4.5 py-4">
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex items-center gap-2.5 max-md:flex-wrap">
         <Badge tone="warn">Partly done</Badge>
         <span className="font-semibold">
           {verb[result.action] ?? 'Done for'} {count(result.done)} of {count(result.matched)} contacts{target}; {count(result.failed)} failed

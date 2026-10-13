@@ -456,7 +456,7 @@ function LiveCount({ preview, name, detail, segmentId }: { preview: PreviewQuery
     const last = detail?.count
     return (
       <div role="alert" className="card flex flex-col gap-2 border-bad-line px-4.5 py-4">
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-2.5 max-md:flex-wrap">
           <Badge tone="bad">Timed out</Badge>
           <span className="font-semibold">The live count for "{name || 'this segment'}" took longer than 10 s</span>
         </div>
