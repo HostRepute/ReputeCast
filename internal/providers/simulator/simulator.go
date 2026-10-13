@@ -186,10 +186,11 @@ func (p *Provider) host() string {
 	return "mta.acme.io"
 }
 
-// outageError alternates the two failures a Postal server behind a proxy
-// gives when its web process is down: refused connections and 502s.
+// outageError gives the failures of a Postal server behind a proxy whose
+// web process went down (LiveMonitorOutage): connections refused at first,
+// then 502s from the proxy for two and a half minutes, then refused again.
 func (p *Provider) outageError(now time.Time) error {
-	if (now.Unix()/30)%3 == 1 {
+	if since := now.Sub(p.s.Started.Add(OutageAfter)); since >= 30*time.Second && since < 3*time.Minute {
 		return &providers.CallError{Op: p.op(), Status: 502, Code: "Bad Gateway", Message: "HTTP 502 Bad Gateway · /api/v1/send/message", Temporary: true}
 	}
 	return &providers.CallError{Op: p.op(), Code: "ECONNREFUSED", Message: "ECONNREFUSED " + p.host() + ":443", Temporary: true}

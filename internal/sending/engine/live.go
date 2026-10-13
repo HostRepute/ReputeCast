@@ -62,19 +62,22 @@ type LiveSnapshot struct {
 	Totals     LiveTotals `json:"totals"`
 	// HeldMailboxes are the mailbox providers on hold, HeldProviders the
 	// sending providers.
-	Mailboxes      []LiveMailbox    `json:"mailboxes"`
-	Providers      []LiveProvider   `json:"providers"`
-	Thresholds     []LiveThreshold  `json:"thresholds"`
-	ThresholdScope string           `json:"thresholdScope" enum:"route,campaign"`
-	Details        LiveDetails      `json:"details"`
-	DeliveredMix   []LiveShare      `json:"deliveredMix"`
-	AB             *LiveAB          `json:"ab,omitempty"`
-	Incident       *LiveIncident    `json:"incident,omitempty"`
-	Incidents      []LiveIncident   `json:"incidents"`
-	Events         []LiveEvent      `json:"events"`
-	EventsVia      string           `json:"eventsVia"`
-	LastEventAt    *time.Time       `json:"lastEventAt,omitempty"`
-	Failovers      []LiveFailover   `json:"failovers"`
+	Mailboxes      []LiveMailbox   `json:"mailboxes"`
+	Providers      []LiveProvider  `json:"providers"`
+	Thresholds     []LiveThreshold `json:"thresholds"`
+	ThresholdScope string          `json:"thresholdScope" enum:"route,campaign"`
+	Details        LiveDetails     `json:"details"`
+	DeliveredMix   []LiveShare     `json:"deliveredMix"`
+	AB             *LiveAB         `json:"ab,omitempty"`
+	Incident       *LiveIncident   `json:"incident,omitempty"`
+	Incidents      []LiveIncident  `json:"incidents"`
+	Events         []LiveEvent     `json:"events"`
+	EventsVia      string          `json:"eventsVia"`
+	LastEventAt    *time.Time      `json:"lastEventAt,omitempty"`
+	Failovers      []LiveFailover  `json:"failovers"`
+	// SharedStreams are the other streams (Automations, System) that route
+	// to a sending provider whose share is held.
+	SharedStreams  []string         `json:"sharedStreams"`
 	Excluded       LiveExcluded     `json:"excluded"`
 	Error          string           `json:"error"`
 	Resumed        bool             `json:"resumed"`
@@ -310,7 +313,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	s := LiveSnapshot{CampaignID: cc.ID.String(), Name: cc.Name, Status: cc.Status, At: now, Version: now.UnixMilli(),
 		StartedAt: cc.StartedAt, ScheduledAt: cc.ScheduledAt, CompletedAt: cc.CompletedAt, ThresholdScope: "route",
 		Mailboxes: []LiveMailbox{}, Providers: []LiveProvider{}, Thresholds: []LiveThreshold{}, DeliveredMix: []LiveShare{}, Incidents: []LiveIncident{},
-		Events: []LiveEvent{}, Failovers: []LiveFailover{}, ProvidersHeld: []string{}, MailboxesHeld: []string{}, Continuing: []string{}, Throttles: []LiveThrottle{},
+		Events: []LiveEvent{}, Failovers: []LiveFailover{}, SharedStreams: []string{}, ProvidersHeld: []string{}, MailboxesHeld: []string{}, Continuing: []string{}, Throttles: []LiveThrottle{},
 		Routes: []LiveRouteShare{}}
 	loc := state.Location(cc.WorkspaceTimezone)
 	snd, sendErr := e.Q.SendingGetSend(ctx, campaignID)
@@ -702,7 +705,50 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			s.Incident = &c
 		}
 	}
-	// Other streams that failed over on their own.
+	// A held route's "down since" and error rate come from its outage
+	// incident when this process didn't see the failures itself (another
+	// worker sent, or the calls are older than the error window).
+	for i := range s.Providers {
+		lp := &s.Providers[i]
+		if lp.RouteStatus != "held" {
+			continue
+		}
+		for _, in := range s.Incidents {
+			if in.ResolvedAt != nil || in.Kind != "provider_outage" || in.ProviderID != lp.ID {
+				continue
+			}
+			if lp.DownSince == nil {
+				since := in.TrippedAt
+				if in.Detail.From != nil {
+					since = *in.Detail.From
+				}
+				lp.DownSince = &since
+			}
+			if lp.APIErrorRate == nil && in.Detail.Attempts > 0 {
+				v := round2(rate(int64(in.Detail.Attempts-in.Detail.Succeeded), int64(in.Detail.Attempts)))
+				lp.APIErrorRate = &v
+			}
+			break
+		}
+	}
+	// Other streams that use a held provider, and those that failed over
+	// on their own.
+	if len(heldProviders) > 0 {
+		if set, err := routing.Load(ctx, e.Q, cc.WorkspaceID); err == nil {
+			for _, st := range []providers.Stream{providers.StreamAutomation, providers.StreamSystem} {
+				for _, r := range set.StreamRules(st) {
+					uses := r.Fallback != nil && heldProviders[*r.Fallback]
+					for _, sp := range r.Splits {
+						uses = uses || heldProviders[sp.ProviderID]
+					}
+					if uses {
+						s.SharedStreams = append(s.SharedStreams, streamName(string(st)))
+						break
+					}
+				}
+			}
+		}
+	}
 	if len(heldProviders) > 0 {
 		if fos, err := e.Q.ProvActiveFailovers(ctx, cc.WorkspaceID); err == nil {
 			for _, f := range fos {

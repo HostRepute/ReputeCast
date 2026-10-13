@@ -429,17 +429,13 @@ func (e *Engine) analyzeOutage(ctx context.Context, rs *runState, r *runRoute, r
 	key := routeKey{rs.campaign.ID, r.provider.ID}
 	l := e.callLogFor(key)
 	e.mu.Lock()
-	first, failures := l.firstFailure, l.failures
+	first, last, failures := l.firstFailure, l.lastFailure, l.failures
 	lines := append([]IncidentLogLine(nil), l.lines...)
 	e.mu.Unlock()
 	d := IncidentDetail{Reason: reason, Attempts: failures, Remaining: remaining, Log: lines}
 	if !first.IsZero() {
-		f := first
-		d.From = &f
-	}
-	if n := len(lines); n > 0 {
-		t := lines[n-1].At
-		d.To = &t
+		f, t := first, last
+		d.From, d.To = &f, &t
 	}
 	d.Host = hostOf(r.provider)
 	if ts, err := e.tallies(ctx, rs.campaign.ID); err == nil {
@@ -490,7 +486,8 @@ func (e *Engine) analyzeOutage(ctx context.Context, rs *runState, r *runRoute, r
 		}
 	}
 	if r.rate.WarmingUp && r.rate.Cap > 0 {
-		d.Causes = append(d.Causes, IncidentCause{Body: fmt.Sprintf("Not a quota or rate issue: %s of today's %s warm-up cap used, %s /s.", countText(r.rate.SentToday+d.SentOnRoute), countText(r.rate.Cap), rateText(r.rate.PerSecond))})
+		// Today's count already has what this send handed to the provider.
+		d.Causes = append(d.Causes, IncidentCause{Body: fmt.Sprintf("Not a quota or rate issue: %s of today's %s warm-up cap used, %s /s.", countText(r.rate.SentToday), countText(r.rate.Cap), rateText(r.rate.PerSecond))})
 		d.WarmupNote = "The " + short + " warm-up schedule shifts by a day so the IP doesn't miss its ramp."
 	} else if h := state.HealthOf(r.provider); h.Quota != nil && h.Quota.Max > 0 {
 		d.Causes = append(d.Causes, IncidentCause{Body: fmt.Sprintf("Not a quota issue: %s of %s used.", countText(h.Quota.Used), countText(h.Quota.Max))})

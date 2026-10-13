@@ -13276,6 +13276,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "sharedStreams": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "startedAt": {
             "format": "date-time",
             "type": "string"
@@ -13378,6 +13384,7 @@
           "events",
           "eventsVia",
           "failovers",
+          "sharedStreams",
           "excluded",
           "error",
           "resumed",

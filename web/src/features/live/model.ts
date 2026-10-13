@@ -795,8 +795,11 @@ export function complaintHeading(s: Snapshot): string {
 
 /** "Automations and System already failed over to Postmark and SES on their own". */
 export function failoverCaption(s: Snapshot): string {
-  if (!s.failovers.length) return 'who delivers the mail'
-  return `${andList(s.failovers.map((f) => f.stream))} already failed over to ${andList(s.failovers.map((f) => f.to))} on their own`
+  if (s.failovers.length) return `${andList(s.failovers.map((f) => f.stream))} already failed over to ${andList(s.failovers.map((f) => f.to))} on their own`
+  const held = s.providers.filter((p) => p.routeStatus === 'held').map((p) => p.short)
+  if (!held.length) return 'who delivers the mail'
+  if (!s.sharedStreams.length) return `Automations and System don't use ${andList(held)}`
+  return `${andList(s.sharedStreams)} also ${s.sharedStreams.length === 1 ? 'uses' : 'use'} ${andList(held)}`
 }
 
 /** "Delivered share: Gmail 46%, Outlook 21%, …" for the stacked bar. */

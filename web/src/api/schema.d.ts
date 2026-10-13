@@ -8645,6 +8645,7 @@ export interface components {
             scheduledBy: string;
             /** Format: int64 */
             sent: number;
+            sharedStreams: string[];
             /** Format: date-time */
             startedAt?: string;
             startedBy: string;

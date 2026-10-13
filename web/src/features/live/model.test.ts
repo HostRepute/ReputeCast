@@ -107,6 +107,7 @@ function snapshot(s: Partial<Snapshot>): Snapshot {
     eventsVia: 'SNS and Postal webhooks',
     lastEventAt: T('09:21:44'),
     failovers: [],
+    sharedStreams: [],
     excluded: { suppressed: 0, unsubscribed: 0, bounced: 0, complained: 0, paused: 0, role: 0, sunset: 0, excluded: 0, tiers: 0 },
     error: '',
     resumed: false,
@@ -406,6 +407,8 @@ describe('LiveMonitorOutage', () => {
     expect(providerNote(down.providers[1]!, true)).toBe('mta.acme.io · 203.0.113.25')
     expect(providerStatus(down.providers[1]!)).toEqual({ tone: 'bad', text: 'Down since 09:14' })
     expect(failoverCaption(down)).toBe('Automations and System already failed over to Postmark and SES on their own')
+    expect(failoverCaption({ ...down, failovers: [] })).toBe("Automations and System don't use Postal")
+    expect(failoverCaption({ ...down, failovers: [], sharedStreams: ['Automations'] })).toBe('Automations also uses Postal')
     expect(optionAction(outage, 'move')).toEqual({ kind: 'move', body: { fromProviderId: 'postal', toProviderId: 'ses' } })
   })
 })

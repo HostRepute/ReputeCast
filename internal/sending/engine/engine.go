@@ -299,6 +299,7 @@ type routeKey struct {
 // and the "What Postal returned" list.
 type callLog struct {
 	firstFailure time.Time
+	lastFailure  time.Time
 	lastSuccess  time.Time
 	failures     int
 	lines        []IncidentLogLine
@@ -329,7 +330,7 @@ func (e *Engine) recordCall(k routeKey, at time.Time, err error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if err == nil {
-		l.lastSuccess, l.firstFailure, l.failures = at, time.Time{}, 0
+		l.lastSuccess, l.firstFailure, l.lastFailure, l.failures = at, time.Time{}, time.Time{}, 0
 		return
 	}
 	// Throttling is the provider pacing us, not an outage: the batch backs
@@ -341,13 +342,21 @@ func (e *Engine) recordCall(k routeKey, at time.Time, err error) {
 	if l.firstFailure.IsZero() {
 		l.firstFailure = at
 	}
+	l.lastFailure = at
 	l.failures++
+	// The log summarises: a line when the answer changes, and once more a
+	// minute later when the provider keeps answering the same way.
 	text := callText(err)
-	if n := len(l.lines); n == 0 || l.lines[n-1].Text != text || at.Sub(l.lines[n-1].At) > 30*time.Second {
-		l.lines = append(l.lines, IncidentLogLine{At: at, Text: text, Bad: true})
-		if len(l.lines) > 12 {
-			l.lines = l.lines[len(l.lines)-12:]
-		}
+	n := len(l.lines)
+	switch {
+	case n == 0 || l.lines[n-1].Text != text:
+	case at.Sub(l.lines[n-1].At) >= time.Minute && (n < 2 || l.lines[n-2].Text != text):
+	default:
+		return
+	}
+	l.lines = append(l.lines, IncidentLogLine{At: at, Text: text, Bad: true})
+	if len(l.lines) > 12 {
+		l.lines = l.lines[len(l.lines)-12:]
 	}
 }
 
