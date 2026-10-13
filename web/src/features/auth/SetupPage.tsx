@@ -15,7 +15,7 @@ import { meQueryKey } from '@/lib/session'
 import { PasskeyGlyph } from './AuthParts'
 import { passkeyErrorMessage, registerPasskey } from './passkey'
 import { RecoveryCodesPanel } from './RecoveryCodes'
-import { timezoneLabel, timezoneOptions } from './timezones'
+import { browserTimezone, timezoneLabel, timezoneOptions } from './timezones'
 import { TotpSetupForm } from './TotpSetup'
 import './auth.css'
 
@@ -511,7 +511,10 @@ function CheckDetail({ text }: { text: string }) {
 
 function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header; onBack: () => void; onDone: () => Promise<void> }) {
   const [name, setName] = useState(s.instance.name === 'ReputeCast' ? '' : s.instance.name)
-  const [tz, setTz] = useState(s.instance.timezone || 'UTC')
+  // Until this step is saved the instance has the install default (UTC);
+  // the Owner's own timezone is the likelier choice.
+  const saved = s.steps.find((x) => x.key === 'instance')?.done
+  const [tz, setTz] = useState(() => (!saved && (!s.instance.timezone || s.instance.timezone === 'UTC') ? browserTimezone() : s.instance.timezone) || 'UTC')
   const [url, setUrl] = useState(s.instance.publicUrl)
   const [updateCheck, setUpdateCheck] = useState(s.instance.updateCheck)
   const [check, setCheck] = useState<Schemas['URLCheck']>()
@@ -634,7 +637,7 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
         </div>
       ) : null}
       <div className="chk-row items-start">
-        <input type="checkbox" id={ids.upd} className="mt-0.5 cursor-pointer" checked={updateCheck} onChange={(e) => setUpdateCheck(e.target.checked)} aria-describedby={`${ids.upd}-hint`} />
+        <input type="checkbox" id={ids.upd} className="m-[2px_3px_3px_4px] cursor-pointer" checked={updateCheck} onChange={(e) => setUpdateCheck(e.target.checked)} aria-describedby={`${ids.upd}-hint`} />
         <span className="flex flex-col gap-0.5">
           <label htmlFor={ids.upd} className="cursor-pointer font-semibold">
             Check GitHub for new releases once a day

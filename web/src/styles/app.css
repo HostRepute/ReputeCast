@@ -2063,3 +2063,21 @@
     }
   }
 }
+
+/* ------------------------------------------------- W04: shared fixes */
+@layer components {
+  /* A neutral note keeps the weight of the text around it, as on the
+     boards: the boards that use .note.n don't have the global .n
+     (bold tabular numbers) rule, so it must not make the note bold. */
+  .note.n {
+    font-weight: inherit;
+    font-variant-numeric: inherit;
+  }
+  /* A note's text is running text: the boards put it in a span, so its
+     links are underlined like other links in spans. */
+  .note a:not(.btn):not([style*='color']) {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+}

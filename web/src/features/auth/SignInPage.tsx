@@ -552,8 +552,10 @@ function TwoFactorStep({
             {error}
           </span>
         ) : null}
-        <Button variant="primary" loading={busy} onClick={confirmPasskey}>
-          {busy ? null : <PasskeyGlyph />}
+        {/* While the browser's own passkey prompt is open the button keeps its
+            glyph (TwoFactorStates); a second press would only be refused. */}
+        <Button variant="primary" aria-busy={busy || undefined} onClick={busy ? undefined : confirmPasskey}>
+          <PasskeyGlyph />
           Use passkey
         </Button>
         {links}
@@ -573,7 +575,7 @@ function TwoFactorStep({
         {totp ? (
           <div className="stack-8">
             <span className="otp-label" id="otp-label">
-              6-digit code from your authenticator app
+              {error ? '6-digit code' : '6-digit code from your authenticator app'}
             </span>
             <OtpInput value={code} onChange={setCode} invalid={Boolean(error)} describedBy={error ? errId : undefined} labelledBy="otp-label" />
             {error ? (

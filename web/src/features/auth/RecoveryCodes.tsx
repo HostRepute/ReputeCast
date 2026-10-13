@@ -124,7 +124,7 @@ export function RecoveryCodesPanel({
       <RecoveryCodeList codes={codes} />
       <RecoveryCodeActions codes={codes} email={email} />
       <label className="flex items-center gap-2.5 text-[13.5px]" htmlFor={id}>
-        <input type="checkbox" id={id} checked={saved} onChange={(e) => setSaved(e.target.checked)} />I have saved these codes
+        <input type="checkbox" id={id} className="m-[3px_3px_3px_4px]" checked={saved} onChange={(e) => setSaved(e.target.checked)} />I have saved these codes
       </label>
       <div className="flex justify-end">
         <Button variant="primary" loading={busy} disabledReason={saved ? undefined : 'Confirm that you saved the codes first'} onClick={onFinish}>

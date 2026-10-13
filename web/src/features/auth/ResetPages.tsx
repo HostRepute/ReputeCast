@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useId, useRef, useState, type FormEvent } from 'react'
+import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { AuthLayout } from '@/components/shell/AuthLayout'
+import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
@@ -14,6 +15,20 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 /** "Locked out of Google too?": Google Workspace is Google; others keep their name. */
 function shortProvider(sso: Schemas['SSOStart']) {
   return sso.preset === 'google' ? 'Google' : sso.preset === 'entra' ? 'Microsoft' : sso.name
+}
+
+/**
+ * The Sent and Expired results of a reset request (AuthScreens): the badge
+ * beside text in the ink colour, on the note's tint.
+ */
+function ResultNote({ tone, label, role, children }: { tone: 'ok' | 'bad'; label: string; role: 'status' | 'alert'; children: ReactNode }) {
+  const colors = tone === 'ok' ? 'border-ok-line bg-ok-tint' : 'border-bad-line bg-bad-tint'
+  return (
+    <div className={`flex items-start gap-2.5 rounded-lg border px-3.5 py-3 text-[13px] ${colors}`} role={role}>
+      <Badge tone={tone}>{label}</Badge>
+      <span>{children}</span>
+    </div>
+  )
 }
 
 /**
@@ -116,12 +131,12 @@ export function ResetRequestPage({ email: initial, expired }: { email?: string; 
           </Button>
         </form>
         {result?.status === 'sent' ? (
-          <Note tone="ok" label="Sent">
+          <ResultNote tone="ok" label="Sent" role="status">
             If {result.email} belongs to a member, a link is on its way. It works once and expires in {result.expiresInMinutes} minutes. Check Promotions or spam if it's slow.
-          </Note>
+          </ResultNote>
         ) : null}
         {expired && !result ? (
-          <Note tone="bad" label="Expired" role="alert">
+          <ResultNote tone="bad" label="Expired" role="alert">
             This reset link is older than 15 minutes or was already used.{' '}
             <a
               href="#email"
@@ -133,7 +148,7 @@ export function ResetRequestPage({ email: initial, expired }: { email?: string; 
               Request a new one
             </a>
             ; your current password still works until you change it.
-          </Note>
+          </ResultNote>
         ) : null}
         <span className="foot">
           <Link to="/sign-in">Back to sign in</Link> · Workspaces that use SSO reset passwords with their identity provider.

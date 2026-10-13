@@ -39,3 +39,13 @@ export function timezoneOptions(current?: string): string[] {
   const list = timezones()
   return current && !list.includes(current) ? [current, ...list] : list
 }
+
+/** The browser's timezone, if it is one the browser can list. */
+export function browserTimezone(): string | undefined {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    return tz && timezones().includes(tz) ? tz : undefined
+  } catch {
+    return undefined
+  }
+}

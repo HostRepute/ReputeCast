@@ -22,6 +22,10 @@
     flex-direction: column;
     gap: 8px;
   }
+  /* The boards' code boxes are content-box: 46×54 with the border. */
+  .auth .otp input {
+    box-sizing: content-box;
+  }
   .auth .otp-label {
     font-size: 13px;
     font-weight: 600;
