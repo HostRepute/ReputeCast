@@ -267,8 +267,10 @@ func (s *Service) forecast(ctx context.Context, sn *snapshot, p store.Provider, 
 	if h.Quota == nil || h.Quota.Kind != "monthly_plan" || h.Quota.Max <= 0 {
 		return nil
 	}
-	week := sn.now.AddDate(0, 0, -7)
-	rows, err := s.Q.ProvStreamVolume(ctx, store.ProvStreamVolumeParams{WorkspaceID: sn.ws.ID, Since: &week})
+	// The last seven whole days, as the routing screen counts them.
+	today := dayStart(sn.now, sn.loc)
+	week := today.AddDate(0, 0, -7)
+	rows, err := s.Q.ProvStreamVolume(ctx, store.ProvStreamVolumeParams{WorkspaceID: sn.ws.ID, Since: &week, Until: &today})
 	if err != nil {
 		return nil
 	}
