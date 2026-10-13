@@ -42,13 +42,26 @@ export function AccountPage({ verifyEmail }: { verifyEmail?: string }) {
         <AccountSkeleton />
       ) : (
         <Grid min={420} gap={20} className="items-start">
-          <ProfileCard a={a} />
-          {/* SSO-only members have no Password card: their sign-in card (which
-              explains SSO) takes its place beside the profile. */}
-          {a.password.ssoOnly ? <ConnectedSignInsCard a={a} /> : <PasswordCard a={a} />}
-          <PasskeysCard a={a} />
-          {a.password.set || a.twoFactor.totp ? <AuthenticatorCard a={a} /> : null}
-          {a.password.ssoOnly ? null : <ConnectedSignInsCard a={a} />}
+          {a.password.ssoOnly ? (
+            <>
+              {/* SSO-only members have no Password card: their sign-in card
+                  (which explains SSO) sits beside the profile and passkeys. */}
+              <div className="col min-w-0" style={{ gap: 20 }}>
+                <ProfileCard a={a} />
+                <PasskeysCard a={a} />
+                {a.twoFactor.totp ? <AuthenticatorCard a={a} /> : null}
+              </div>
+              <ConnectedSignInsCard a={a} />
+            </>
+          ) : (
+            <>
+              <ProfileCard a={a} />
+              <PasswordCard a={a} />
+              <PasskeysCard a={a} />
+              {a.password.set || a.twoFactor.totp ? <AuthenticatorCard a={a} /> : null}
+              <ConnectedSignInsCard a={a} />
+            </>
+          )}
           <SessionsCard policy={a.sessionPolicy} />
           <WorkspacesCard a={a} />
           <NotificationPreferencesCard a={a} />
