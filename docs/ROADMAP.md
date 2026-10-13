@@ -14,7 +14,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 | **M3 Sending providers** | Provider contract and contract tests, SES, SMTP, Postmark, Postal adapters, webhook ingest and normalization, shared suppression list and sync, streams and routing, failover, warm-up | W01 | ✅ |
 | **M4 Senders, domains, Send Readiness** | DNS checks, sending domains and senders, connect-a-provider wizard, Send Readiness engine | W10, W11 | ⏳ |
 | **M5 Audience** | Contacts, lists, custom fields, tiers and sunset policy, segments (builder and SQL), suppressions, importer | W02 | ✅ |
-| **M6 Composer** | GrapesJS + MJML wrapper, code view, previews, Liquid tokens, templates, versions, inline warnings | W05 | 🚧 |
+| **M6 Composer** | GrapesJS + MJML wrapper, code view, previews, Liquid tokens, templates, versions, inline warnings | W05 | ✅ |
 | **M7 Review & send, approvals, live monitor** | Review & send, approval policy/inbox/review, sending pipeline, live monitor (SSE), auto-pause, outage handling | W11, W12 | ⏳ |
 | **M8 Reports** | Campaign report, honest analytics (human vs machine opens), click map, provider comparisons, A/B, share links; Overview | W09 | ⏳ (campaigns list ✅) |
 | **M9 Automations** | React Flow editor, triggers and steps, runs engine, live stats, versions and publish diff, templates | W06 | ✅ (emails queue until W12's mailer sends them; approvals hook for W11) |
@@ -77,3 +77,13 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 - Triggers: joined list, form submitted, tag added, API event (`POST /workspaces/{workspace}/automations/events`) and date fields. Steps: delay, send email (Automations route unless overridden, send window, skip rules), branch (opened, clicked, field, tag, list, event), filter, A/B split, webhook (SSRF-safe, signed, retried, logged), list and tag actions, goal and exit.
 - Runs engine on River: enrollment from trigger events, delays, branch waits woken by engagement, goal detection, per-step daily stats, retiring old versions, alerts. Emails go through the `automations.Mailer` seam (queued until the sending pipeline lands); publishing goes through `automations.PublishGate` for approvals.
 - Demo: the Welcome series (v3 live, v4 draft whose diff the publish dialog shows), Onboarding, Re-engagement, the Re-permission draft and the paused Beta invite, with 30 days of per-step stats and contacts in each flow.
+
+## Done so far (M6 Composer, W05)
+
+- `/campaigns/new` creates a draft and opens it on the template gallery; `/campaigns/:id/edit` is the full-screen composer (`?view=mjml|html|preview`, `?device=mobile`, `?variant=B`, and deep links `?select=2-0&panel=deliverability&left=layers`).
+- GrapesJS 0.23 + grapesjs-mjml behind ReputeCast's own UI (lazy chunk, none of GrapesJS's panels): blocks (MJML layout and content, ReputeCast header, article and product cards, footer with address and unsubscribe, saved sections), layers, templates, a Style/Settings inspector limited to MJML attributes, selection toolbar (parent, move by drag or arrow keys, duplicate, delete), rich text toolbar (bold, italic, links, personalization tokens), image library with validated uploads, device switcher 600/375 with zoom-to-fit, undo/redo and shortcuts. The canvas renders the head's mj-attributes and mj-style as the email will.
+- Code view (CodeMirror): MJML with compile results and layout warnings, read-only compiled HTML, import, format, structural checks before Apply.
+- Autosave every 30 s and 2 s after structural changes, ⌘S versions, conflict detection with keep-mine/load-theirs/compare, offline backup and retry, version history with restore and line diffs, the shared leave guard.
+- Inline checks (`internal/contentcheck`, reused by Send Readiness): size against Gmail's clip, alt text, image share, blocklisted/shortened/broken links, footer and postal address, plain text, personalization, subject heuristics; tags on the canvas and one-click fixes.
+- Previews: personalized per contact (Liquid with fallbacks, `internal/liquid`), light and dark mode approximations with dark-mode checks, plain text, inbox line, A/B set-up (subject, content and send time), test sends through the System route.
+- API: drafts, content saves, versions, restore, duplicate, previews, test sends, checks, MJML compile (gomjml), templates and saved sections, media; demo content for the Composer, ComposerWarnings and ComposerEmpty boards.

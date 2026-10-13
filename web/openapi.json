@@ -4094,6 +4094,1235 @@
         ],
         "type": "object"
       },
+      "ComposerABTest": {
+        "additionalProperties": false,
+        "properties": {
+          "bestTime": {
+            "type": "boolean"
+          },
+          "durationHours": {
+            "format": "int64",
+            "maximum": 72,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "subject",
+              "content",
+              "send_time"
+            ],
+            "type": "string"
+          },
+          "metric": {
+            "enum": [
+              "human_opens",
+              "clicks",
+              "manual"
+            ],
+            "type": "string"
+          },
+          "testPercent": {
+            "description": "Share of the audience in the test",
+            "format": "int64",
+            "maximum": 50,
+            "minimum": 5,
+            "type": "integer"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerABVariant"
+            },
+            "maxItems": 3,
+            "minItems": 2,
+            "type": "array"
+          },
+          "winner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "variants",
+          "testPercent",
+          "metric",
+          "durationHours"
+        ],
+        "type": "object"
+      },
+      "ComposerABVariant": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "key": {
+            "description": "Variant A is the campaign itself",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "sendTime": {
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "type": "object"
+      },
+      "ComposerAccess": {
+        "additionalProperties": false,
+        "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canEditTemplates": {
+            "type": "boolean"
+          },
+          "canManageRouting": {
+            "type": "boolean"
+          },
+          "canSend": {
+            "type": "boolean"
+          },
+          "canSendTestToOthers": {
+            "type": "boolean"
+          },
+          "canViewContacts": {
+            "type": "boolean"
+          },
+          "editable": {
+            "type": "boolean"
+          },
+          "readOnlyReason": {
+            "type": "string"
+          },
+          "sendHelpers": {
+            "description": "Members who hold campaigns:send",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "editable",
+          "canEdit",
+          "canSend",
+          "sendHelpers",
+          "canManageRouting",
+          "canSendTestToOthers",
+          "canEditTemplates",
+          "canViewContacts"
+        ],
+        "type": "object"
+      },
+      "ComposerAudience": {
+        "additionalProperties": false,
+        "properties": {
+          "excludeLists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "excludeSegments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "segments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "lists",
+          "segments",
+          "excludeLists",
+          "excludeSegments"
+        ],
+        "type": "object"
+      },
+      "ComposerAudienceCount": {
+        "additionalProperties": false,
+        "properties": {
+          "approximate": {
+            "type": "boolean"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "approximate"
+        ],
+        "type": "object"
+      },
+      "ComposerAudienceInput": {
+        "additionalProperties": false,
+        "properties": {
+          "excludeLists": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "excludeSegments": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "segments": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ComposerAudienceOption": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ComposerCampaign": {
+        "additionalProperties": false,
+        "properties": {
+          "abTest": {
+            "$ref": "#/components/schemas/ComposerABTest"
+          },
+          "access": {
+            "$ref": "#/components/schemas/ComposerAccess"
+          },
+          "audience": {
+            "$ref": "#/components/schemas/ComposerAudience"
+          },
+          "audienceCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "audienceLabel": {
+            "type": "string"
+          },
+          "autosavedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "editorMode": {
+            "enum": [
+              "visual",
+              "mjml",
+              "html"
+            ],
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mjml": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "plainText": {
+            "type": "string"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/ReadinessSummary"
+          },
+          "replyTo": {
+            "type": "string"
+          },
+          "route": {
+            "$ref": "#/components/schemas/ComposerRoute"
+          },
+          "scheduledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/ComposerSenderRef"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ComposerContentSettings"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "approval",
+              "approved",
+              "scheduled",
+              "sending",
+              "paused",
+              "sent",
+              "cancelled",
+              "failed"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "versionCount": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "subject",
+          "preheader",
+          "replyTo",
+          "audience",
+          "audienceLabel",
+          "editorMode",
+          "mjml",
+          "html",
+          "plainText",
+          "version",
+          "versionCount",
+          "contentHash",
+          "settings",
+          "createdAt",
+          "updatedAt",
+          "updatedBy",
+          "route",
+          "access"
+        ],
+        "type": "object"
+      },
+      "ComposerChecks": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "clipBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "footerRemovedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "images": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "imagesMissingAlt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/ContentCheckIssue"
+            },
+            "type": "array"
+          },
+          "links": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "linksBlocklisted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "linksBroken": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lint": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLProblem"
+            },
+            "type": "array"
+          },
+          "plainText": {
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/ContentCheckSection"
+            },
+            "type": "array"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "subjectHeuristics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "verdict": {
+            "enum": [
+              "ready",
+              "warnings",
+              "blocked"
+            ],
+            "type": "string"
+          },
+          "warnings": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lint",
+          "verdict",
+          "blocks",
+          "warnings",
+          "sizeBytes",
+          "clipBytes",
+          "images",
+          "imagesMissingAlt",
+          "links",
+          "linksBlocklisted",
+          "linksBroken",
+          "subjectHeuristics",
+          "issues",
+          "sections",
+          "plainText",
+          "checkedAt"
+        ],
+        "type": "object"
+      },
+      "ComposerChecksRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "maxLength": 2500000,
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "probeLinks": {
+            "description": "Also request every link (slower; Send Readiness does it)",
+            "type": "boolean"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ComposerCompileRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mjml": {
+            "maxLength": 2000000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "mjml"
+        ],
+        "type": "object"
+      },
+      "ComposerCompiled": {
+        "additionalProperties": false,
+        "properties": {
+          "durationMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLProblem"
+            },
+            "type": "array"
+          },
+          "html": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLProblem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "html",
+          "errors",
+          "warnings",
+          "sizeBytes",
+          "durationMs"
+        ],
+        "type": "object"
+      },
+      "ComposerContentSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "minify": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "minify"
+        ],
+        "type": "object"
+      },
+      "ComposerContext": {
+        "additionalProperties": false,
+        "properties": {
+          "broadcastRoute": {
+            "$ref": "#/components/schemas/ComposerRoute"
+          },
+          "defaultSenderId": {
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerAudienceOption"
+            },
+            "type": "array"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerTestRecipient"
+            },
+            "type": "array"
+          },
+          "postalAddress": {
+            "type": "string"
+          },
+          "publicUrl": {
+            "type": "string"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerAudienceOption"
+            },
+            "type": "array"
+          },
+          "senderDomains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "senders": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerSenderOption"
+            },
+            "type": "array"
+          },
+          "tokens": {
+            "items": {
+              "$ref": "#/components/schemas/PersonalizationToken"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "senders",
+          "lists",
+          "segments",
+          "tokens",
+          "members",
+          "broadcastRoute",
+          "postalAddress",
+          "publicUrl",
+          "senderDomains"
+        ],
+        "type": "object"
+      },
+      "ComposerCreateCampaign": {
+        "additionalProperties": false,
+        "properties": {
+          "fromCampaignId": {
+            "description": "Start from a copy of another campaign's content",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "templateId": {
+            "description": "Start from a template (starter:\u003ckey\u003e or a saved template id)",
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ComposerPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "contact": {
+            "$ref": "#/components/schemas/ComposerPreviewContact"
+          },
+          "fromEmail": {
+            "type": "string"
+          },
+          "fromName": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "missingFirstName": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/LiquidProblem"
+            },
+            "type": "array"
+          },
+          "renderedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "tokens": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerTokenValue"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "subject",
+          "preheader",
+          "html",
+          "text",
+          "fromName",
+          "fromEmail",
+          "tokens",
+          "problems",
+          "renderedAt"
+        ],
+        "type": "object"
+      },
+      "ComposerPreviewContact": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "label"
+        ],
+        "type": "object"
+      },
+      "ComposerPreviewContactList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerPreviewContact"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "ComposerPreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "html": {
+            "maxLength": 2500000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "sample": {
+            "default": "contact",
+            "enum": [
+              "contact",
+              "no_first_name",
+              "random"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          },
+          "variant": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ComposerRestoreVersion": {
+        "additionalProperties": false,
+        "properties": {
+          "baseVersion": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "baseVersion"
+        ],
+        "type": "object"
+      },
+      "ComposerRoute": {
+        "additionalProperties": false,
+        "properties": {
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/RouteShare"
+            },
+            "type": "array"
+          },
+          "source": {
+            "enum": [
+              "campaign",
+              "rule",
+              "none"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "shares"
+        ],
+        "type": "object"
+      },
+      "ComposerSaveContent": {
+        "additionalProperties": false,
+        "properties": {
+          "abTest": {
+            "$ref": "#/components/schemas/ComposerABTest"
+          },
+          "baseVersion": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "force": {
+            "type": "boolean"
+          },
+          "html": {
+            "maxLength": 2500000,
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "source": {
+            "default": "autosave",
+            "enum": [
+              "autosave",
+              "manual",
+              "import",
+              "template"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          }
+        },
+        "required": [
+          "baseVersion"
+        ],
+        "type": "object"
+      },
+      "ComposerSavedContent": {
+        "additionalProperties": false,
+        "properties": {
+          "contentHash": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "plainText": {
+            "type": "string"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "savedAt",
+          "contentHash",
+          "sizeBytes",
+          "plainText",
+          "html"
+        ],
+        "type": "object"
+      },
+      "ComposerSenderOption": {
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "domain",
+          "verified"
+        ],
+        "type": "object"
+      },
+      "ComposerSenderRef": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email"
+        ],
+        "type": "object"
+      },
+      "ComposerTestRecipient": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email"
+        ],
+        "type": "object"
+      },
+      "ComposerTestSend": {
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "description": "Personalize as this contact",
+            "format": "uuid",
+            "type": "string"
+          },
+          "to": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array"
+          },
+          "variant": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "to"
+        ],
+        "type": "object"
+      },
+      "ComposerTestSendResult": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "sent": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "sent",
+          "provider"
+        ],
+        "type": "object"
+      },
+      "ComposerTokenValue": {
+        "additionalProperties": false,
+        "properties": {
+          "fallbackUsed": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "perRecipient": {
+            "description": "A link filled in per recipient at send time",
+            "type": "boolean"
+          },
+          "token": {
+            "examples": [
+              "{{ first_name | default: \"there\" }}"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "key",
+          "value",
+          "fallbackUsed",
+          "perRecipient"
+        ],
+        "type": "object"
+      },
+      "ComposerUpdateCampaign": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "$ref": "#/components/schemas/ComposerAudienceInput"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "replyTo": {
+            "maxLength": 254,
+            "type": "string"
+          },
+          "senderId": {
+            "description": "A sender id, or empty to clear",
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ComposerContentSettings"
+          }
+        },
+        "type": "object"
+      },
+      "ComposerVersion": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "type": "boolean"
+          },
+          "label": {
+            "type": "string"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "savedBy": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "source": {
+            "enum": [
+              "create",
+              "autosave",
+              "manual",
+              "restore",
+              "template",
+              "import",
+              "duplicate",
+              "api"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "savedAt",
+          "savedBy",
+          "label",
+          "source",
+          "sizeBytes",
+          "current"
+        ],
+        "type": "object"
+      },
+      "ComposerVersionDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "abTest": {
+            "$ref": "#/components/schemas/ComposerABTest"
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "html": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "mjml": {
+            "type": "string"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "savedBy": {
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "source": {
+            "enum": [
+              "create",
+              "autosave",
+              "manual",
+              "restore",
+              "template",
+              "import",
+              "duplicate",
+              "api"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subject",
+          "preheader",
+          "mjml",
+          "html",
+          "sections",
+          "version",
+          "savedAt",
+          "savedBy",
+          "label",
+          "source",
+          "sizeBytes",
+          "current"
+        ],
+        "type": "object"
+      },
+      "ComposerVersionList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerVersion"
+            },
+            "type": "array"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ],
+        "type": "object"
+      },
       "Confirm-email-changeRequest": {
         "additionalProperties": false,
         "properties": {
@@ -5014,6 +6243,152 @@
         "required": [
           "name",
           "filters"
+        ],
+        "type": "object"
+      },
+      "ContentCheckFix": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "replace_link",
+              "edit_link",
+              "insert_footer",
+              "set_alt",
+              "minify",
+              "remove_section",
+              "use_subject"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "path": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "label"
+        ],
+        "type": "object"
+      },
+      "ContentCheckIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "fixes": {
+            "items": {
+              "$ref": "#/components/schemas/ContentCheckFix"
+            },
+            "type": "array"
+          },
+          "group": {
+            "enum": [
+              "Content",
+              "Links",
+              "Compliance",
+              "Subject",
+              "Personalization"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "examples": [
+              "links.blocklist"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "section": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "severity": {
+            "enum": [
+              "block",
+              "warn",
+              "info",
+              "pass"
+            ],
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "severity",
+          "group",
+          "title",
+          "path",
+          "section",
+          "fixes"
+        ],
+        "type": "object"
+      },
+      "ContentCheckSection": {
+        "additionalProperties": false,
+        "properties": {
+          "images": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "imagesWithAlt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "index": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "issues": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "links": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "linksOk": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "index",
+          "label",
+          "images",
+          "imagesWithAlt",
+          "links",
+          "linksOk",
+          "issues"
         ],
         "type": "object"
       },
@@ -6542,6 +7917,228 @@
         "required": [
           "day",
           "days"
+        ],
+        "type": "object"
+      },
+      "EmailTemplateDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "builtin": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "id": {
+            "examples": [
+              "starter:weekly-digest"
+            ],
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "template",
+              "section"
+            ],
+            "type": "string"
+          },
+          "mjml": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sourceCampaignId": {
+            "type": "string"
+          },
+          "thumb": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLThumbItem"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mjml",
+          "html",
+          "id",
+          "kind",
+          "name",
+          "description",
+          "thumb",
+          "builtin",
+          "sizeBytes"
+        ],
+        "type": "object"
+      },
+      "EmailTemplateGallery": {
+        "additionalProperties": false,
+        "properties": {
+          "lastCampaign": {
+            "$ref": "#/components/schemas/EmailTemplateLastCampaign"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/EmailTemplateSummary"
+            },
+            "type": "array"
+          },
+          "starters": {
+            "items": {
+              "$ref": "#/components/schemas/EmailTemplateSummary"
+            },
+            "type": "array"
+          },
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/EmailTemplateSummary"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "starters",
+          "templates",
+          "sections"
+        ],
+        "type": "object"
+      },
+      "EmailTemplateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "html": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "kind": {
+            "default": "template",
+            "enum": [
+              "template",
+              "section"
+            ],
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sourceCampaignId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "mjml"
+        ],
+        "type": "object"
+      },
+      "EmailTemplateLastCampaign": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "thumb": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLThumbItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "sentAt",
+          "thumb"
+        ],
+        "type": "object"
+      },
+      "EmailTemplateSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "builtin": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "examples": [
+              "starter:weekly-digest"
+            ],
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "template",
+              "section"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sourceCampaignId": {
+            "type": "string"
+          },
+          "thumb": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLThumbItem"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "description",
+          "thumb",
+          "builtin",
+          "sizeBytes"
         ],
         "type": "object"
       },
@@ -8748,6 +10345,23 @@
         ],
         "type": "object"
       },
+      "LiquidProblem": {
+        "additionalProperties": false,
+        "properties": {
+          "line": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "line",
+          "message"
+        ],
+        "type": "object"
+      },
       "ListHealth": {
         "additionalProperties": false,
         "properties": {
@@ -9153,6 +10767,49 @@
         ],
         "type": "object"
       },
+      "MJMLProblem": {
+        "additionalProperties": false,
+        "properties": {
+          "line": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "line",
+          "message"
+        ],
+        "type": "object"
+      },
+      "MJMLThumbItem": {
+        "additionalProperties": false,
+        "properties": {
+          "accent": {
+            "type": "boolean"
+          },
+          "h": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "row": {
+            "items": {
+              "$ref": "#/components/schemas/MJMLThumbItem"
+            },
+            "type": "array"
+          },
+          "w": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "Me": {
         "additionalProperties": false,
         "properties": {
@@ -9308,6 +10965,80 @@
           "roleName",
           "memberCount",
           "subscribers"
+        ],
+        "type": "object"
+      },
+      "MediaAsset": {
+        "additionalProperties": false,
+        "properties": {
+          "contentType": {
+            "enum": [
+              "image/png",
+              "image/jpeg",
+              "image/gif"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "hasAlpha": {
+            "description": "Transparent pixels (logos survive dark mode)",
+            "type": "boolean"
+          },
+          "height": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "description": "Root-relative URL; emails get the absolute public URL",
+            "type": "string"
+          },
+          "width": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "fileName",
+          "contentType",
+          "sizeBytes",
+          "width",
+          "height",
+          "hasAlpha",
+          "createdAt",
+          "createdBy"
+        ],
+        "type": "object"
+      },
+      "MediaAssetList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MediaAsset"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
         ],
         "type": "object"
       },
@@ -9969,6 +11700,40 @@
           "sensitive",
           "implies",
           "ownerOnly"
+        ],
+        "type": "object"
+      },
+      "PersonalizationToken": {
+        "additionalProperties": false,
+        "properties": {
+          "fallback": {
+            "type": "string"
+          },
+          "key": {
+            "examples": [
+              "first_name"
+            ],
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "contact",
+              "custom",
+              "system"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "examples": [
+              "First name"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "kind"
         ],
         "type": "object"
       },
@@ -22194,6 +23959,138 @@
         ],
         "x-access": "workspace",
         "x-permission": "campaigns:view"
+      },
+      "post": {
+        "operationId": "create-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComposerCreateCampaign"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerCampaign"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start a draft, blank or from a template or another campaign",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/audience-count": {
+      "post": {
+        "operationId": "count-campaign-audience",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComposerAudienceInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerAudienceCount"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Live recipient count of an audience definition",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
       }
     },
     "/api/v1/workspaces/{workspace}/campaigns/summary": {
@@ -22258,6 +24155,891 @@
           }
         ],
         "summary": "Totals across campaigns sent in the last N days",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}": {
+      "get": {
+        "operationId": "get-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerCampaign"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a campaign with its content, audience, sender and route",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      },
+      "patch": {
+        "operationId": "update-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComposerUpdateCampaign"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerCampaign"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a campaign or change its sender, reply-to, audience or content settings",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/checks": {
+      "post": {
+        "description": "Size against Gmail's 102 KB clipping limit, alt text, image-to-text ratio, blocklisted and shortened links, unsubscribe link and postal address, personalization, subject heuristics and the plain-text part. Nothing is saved.",
+        "operationId": "check-campaign-content",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComposerChecksRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerChecks"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Run the content checks on the composer's current content",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/content": {
+      "put": {
+        "description": "Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top.",
+        "operationId": "save-campaign-content",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComposerSaveContent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerSavedContent"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the content as a new version (autosave)",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/duplicate": {
+      "post": {
+        "operationId": "duplicate-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerCampaign"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Copy a campaign into a new draft",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview": {
+      "post": {
+        "operationId": "preview-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComposerPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Render the email for one recipient (personalization, links)",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview-contacts": {
+      "get": {
+        "operationId": "list-preview-contacts",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerPreviewContactList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Contacts of the audience to preview as",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/test": {
+      "post": {
+        "description": "Goes through the System route. Without campaigns:send, test emails can only go to your own address.",
+        "operationId": "send-campaign-test",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComposerTestSend"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerTestSendResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send a test email of the saved content",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions": {
+      "get": {
+        "operationId": "list-campaign-versions",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "format": "int64",
+              "maximum": 300,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerVersionList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Version history, newest first",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}": {
+      "get": {
+        "operationId": "get-campaign-version",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerVersionDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One version with its content",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}/restore": {
+      "post": {
+        "operationId": "restore-campaign-version",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComposerRestoreVersion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerSavedContent"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore a version (saved as a new version)",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/composer": {
+      "get": {
+        "operationId": "composer-context",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerContext"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Senders, lists, segments, personalization tokens, team and route for the composer",
         "tags": [
           "Campaigns"
         ],
@@ -27349,6 +30131,217 @@
         "x-access": "workspace"
       }
     },
+    "/api/v1/workspaces/{workspace}/media": {
+      "get": {
+        "operationId": "list-media",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 200,
+              "format": "int64",
+              "maximum": 500,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaAssetList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the images in the library",
+        "tags": [
+          "Media"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      },
+      "post": {
+        "description": "The file is validated by its content, not its name. Uploading the same file twice returns the stored image.",
+        "operationId": "upload-media",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "file": {
+                  "contentType": "image/png,image/jpeg,image/gif,application/octet-stream"
+                }
+              },
+              "schema": {
+                "properties": {
+                  "file": {
+                    "contentEncoding": "binary",
+                    "contentMediaType": "application/octet-stream",
+                    "description": "PNG, JPEG or GIF, up to 5 MB",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaAsset"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload an image (PNG, JPEG or GIF, up to 5 MB)",
+        "tags": [
+          "Media"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/media/{assetId}": {
+      "delete": {
+        "description": "The image disappears from the library but stays reachable, so emails already sent keep showing it.",
+        "operationId": "remove-media",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "assetId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove an image from the library",
+        "tags": [
+          "Media"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
     "/api/v1/workspaces/{workspace}/members": {
       "get": {
         "operationId": "list-members",
@@ -27892,6 +30885,74 @@
         ],
         "x-access": "workspace",
         "x-permission": "team:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mjml/compile": {
+      "post": {
+        "description": "The composer compiles in the browser; this endpoint serves API clients and automations, and reports layout warnings.",
+        "operationId": "compile-mjml",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComposerCompileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerCompiled"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Compile MJML to HTML on the server (gomjml, MJML 4)",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
       }
     },
     "/api/v1/workspaces/{workspace}/notifications": {
@@ -30910,6 +33971,327 @@
         ],
         "x-access": "workspace",
         "x-permission": "subscribers:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/templates": {
+      "get": {
+        "operationId": "template-gallery",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailTemplateGallery"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Starter templates, saved templates, saved sections and the last sent campaign",
+        "tags": [
+          "Templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "templates:view"
+      },
+      "post": {
+        "operationId": "create-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailTemplateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailTemplateDetail"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a template or a reusable section",
+        "tags": [
+          "Templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "templates:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/templates/{templateId}": {
+      "delete": {
+        "operationId": "delete-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a template or saved section",
+        "tags": [
+          "Templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "templates:edit"
+      },
+      "get": {
+        "operationId": "get-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A template id, or starter:\u003ckey\u003e for a built-in starter",
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "description": "A template id, or starter:\u003ckey\u003e for a built-in starter",
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailTemplateDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a template with its MJML",
+        "tags": [
+          "Templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "templates:view"
+      },
+      "put": {
+        "operationId": "update-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailTemplateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailTemplateDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a template or replace its content",
+        "tags": [
+          "Templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "templates:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/tracking-checks": {
