@@ -144,6 +144,23 @@ type StatusReporter interface {
 	ServiceStatus(ctx context.Context) (ServiceStatus, error)
 }
 
+// Reputation is the bounce and complaint rate a provider measures for the
+// account itself: what its own review and suspension thresholds apply to.
+type Reputation struct {
+	// Bounce and Complaint are percentages (0.2 means 0.2%).
+	Bounce    float64
+	Complaint float64
+	// Window describes the period measured ("7 d").
+	Window string
+}
+
+// ReputationReporter is implemented by adapters whose API reports the
+// account's own bounce and complaint rates (Postmark outbound stats). Without
+// it, ReputeCast counts the rates from the events it received.
+type ReputationReporter interface {
+	Reputation(ctx context.Context) (Reputation, error)
+}
+
 // StatusPage is the public status page of a provider, shown as a button
 // during outages ("AWS status").
 type StatusPage interface {

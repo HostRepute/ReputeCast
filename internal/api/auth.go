@@ -72,6 +72,10 @@ type Authenticator struct {
 	CookieName string
 	Policy     func(context.Context) (Policy, error)
 	Now        func() time.Time
+	// OnKeyRejected, when set, records a call refused because its key was
+	// revoked or expired (reason "revoked" or "expired"), so Settings › Keys
+	// can show what still uses it.
+	OnKeyRejected func(ctx context.Context, keyID uuid.UUID, reason string)
 }
 
 // Middleware returns the Huma middleware enforcing each operation's Access.
@@ -205,15 +209,26 @@ func (a *Authenticator) resolve(ctx context.Context, hctx huma.Context) (*authz.
 	return p, u, s, nil
 }
 
+func (a *Authenticator) keyRejected(ctx context.Context, id uuid.UUID, reason string) {
+	if a.OnKeyRejected != nil {
+		a.OnKeyRejected(ctx, id, reason)
+	}
+}
+
 func (a *Authenticator) keyPrincipal(ctx context.Context, token string) (*authz.Principal, *Problem) {
 	if !authn.LooksLikeAPIKey(token) {
 		return nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "Unknown API key.")
 	}
 	k, err := a.Q.GetAPIKeyByToken(ctx, authn.HashToken(token))
-	if err != nil || k.RevokedAt != nil {
+	if err != nil {
+		return nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key is revoked or unknown.")
+	}
+	if k.RevokedAt != nil {
+		a.keyRejected(ctx, k.ID, "revoked")
 		return nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key is revoked or unknown.")
 	}
 	if k.ExpiresAt != nil && !k.ExpiresAt.After(a.now()) {
+		a.keyRejected(ctx, k.ID, "expired")
 		return nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key expired on "+k.ExpiresAt.Format("Jan 2, 2006")+". Rotate it in Settings › Keys & MCP.")
 	}
 	perms := authz.ParseSet(k.Permissions)

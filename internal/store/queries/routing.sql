@@ -45,3 +45,10 @@ FROM contacts c
 LEFT JOIN list_memberships lm ON lm.contact_id = c.id
 WHERE c.workspace_id = @workspace_id AND c.email = @email AND c.erased_at IS NULL
 GROUP BY c.id;
+
+-- name: RoutingBroadcastSizes :one
+-- Smallest and largest broadcast audience over a window ("31,988 to 48,213
+-- recipients per send").
+SELECT coalesce(min(audience_count), 0)::bigint AS smallest, coalesce(max(audience_count), 0)::bigint AS largest
+FROM campaigns
+WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND origin = '' AND started_at >= @since AND audience_count > 0;

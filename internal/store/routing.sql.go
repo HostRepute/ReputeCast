@@ -13,6 +13,31 @@ import (
 	"github.com/google/uuid"
 )
 
+const routingBroadcastSizes = `-- name: RoutingBroadcastSizes :one
+SELECT coalesce(min(audience_count), 0)::bigint AS smallest, coalesce(max(audience_count), 0)::bigint AS largest
+FROM campaigns
+WHERE workspace_id = $1 AND deleted_at IS NULL AND origin = '' AND started_at >= $2 AND audience_count > 0
+`
+
+type RoutingBroadcastSizesParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Since       *time.Time `json:"since"`
+}
+
+type RoutingBroadcastSizesRow struct {
+	Smallest int64 `json:"smallest"`
+	Largest  int64 `json:"largest"`
+}
+
+// Smallest and largest broadcast audience over a window ("31,988 to 48,213
+// recipients per send").
+func (q *Queries) RoutingBroadcastSizes(ctx context.Context, arg RoutingBroadcastSizesParams) (RoutingBroadcastSizesRow, error) {
+	row := q.db.QueryRow(ctx, routingBroadcastSizes, arg.WorkspaceID, arg.Since)
+	var i RoutingBroadcastSizesRow
+	err := row.Scan(&i.Smallest, &i.Largest)
+	return i, err
+}
+
 const routingContact = `-- name: RoutingContact :one
 SELECT c.id, c.mailbox_provider,
        coalesce(array_agg(lm.list_id) FILTER (WHERE lm.status = 'subscribed'), '{}')::uuid[] AS list_ids
