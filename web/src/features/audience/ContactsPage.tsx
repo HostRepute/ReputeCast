@@ -11,6 +11,7 @@ import { Field, Input, Select } from '@/components/ui/Field'
 import { Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
 import { andList, count, dayMonthDate, shortDate } from '@/lib/format'
+import { trackJob, updateJob } from '@/lib/jobs'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { AudienceTabs, useAudienceSummary } from './AudienceTabs'
 import { AddContactDialog, BulkDialog, BulkResultPanel, EraseDialog, SaveViewDialog, type BulkKind } from './ContactDialogs'
@@ -133,7 +134,7 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
             <BulkBar
               n={ids.length}
               onAction={(k) => (k === 'erase' ? setErasing(true) : setBulk(k))}
-              onExport={() => void exportCSV(slug, ids)}
+              onExport={() => void exportCSV(slug, { ids }, ids.length)}
               onClear={() => setSelection({})}
             />
           ) : null}
@@ -186,16 +187,18 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
   )
 }
 
-async function exportCSV(slug: string, ids: string[]) {
+/** Exports the selection as CSV; the jobs tray shows it while it runs. */
+export async function exportCSV(slug: string, body: Schemas['ContactExportInput'], n: number) {
+  const id = `export-${Date.now()}`
+  const what = `${count(n)} ${n === 1 ? 'contact' : 'contacts'}`
+  trackJob(slug, { id, kind: 'export', title: `Exporting ${what}`, status: 'running', startedAt: new Date().toISOString() })
   try {
-    const { data, response } = await http.POST('/api/v1/workspaces/{workspace}/contacts/export', {
-      params: { path: { workspace: slug } },
-      body: { ids },
-      parseAs: 'blob',
-    })
+    const { data, response } = await http.POST('/api/v1/workspaces/{workspace}/contacts/export', { params: { path: { workspace: slug } }, body, parseAs: 'blob' })
     if (data) saveBlob(data as unknown as Blob, fileName(response, 'contacts.csv'))
-    toast({ kind: 'success', title: `Exported ${count(ids.length)} ${ids.length === 1 ? 'contact' : 'contacts'}`, detail: 'The export is in the audit log.' })
+    updateJob(slug, id, { status: 'done', detail: `${what} · the export is in the audit log`, finishedAt: new Date().toISOString() })
+    toast({ kind: 'success', title: `Exported ${what}`, detail: 'The export is in the audit log.' })
   } catch (e) {
+    updateJob(slug, id, { status: 'failed', detail: errorMessage(e), finishedAt: new Date().toISOString() })
     toast({ kind: 'error', title: "Couldn't export", detail: errorMessage(e) })
   }
 }
@@ -264,7 +267,7 @@ function Filters({
   }, [q, urlQ, onChange])
   const more = [search.source, search.tag, search.joinedAfter, search.segment].filter(Boolean).length
   const phone = 'max-md:w-0 max-md:min-w-full'
-  const sel = `in pr-2.5 ${phone}`
+  const sel = `in ${phone}`
   return (
     <div className="card flex flex-wrap items-center gap-2 px-3 py-2.5">
       <label className="vh" htmlFor="contacts-q">
@@ -465,7 +468,6 @@ function ContactsTable({
           header: ({ table }) => (
             <input
               type="checkbox"
-              className="cbx"
               aria-label="Select all"
               checked={table.getIsAllPageRowsSelected()}
               ref={(el) => {
@@ -475,7 +477,7 @@ function ContactsTable({
             />
           ),
           cell: ({ row }) => (
-            <input type="checkbox" className="cbx" aria-label={`Select ${row.original.name || row.original.email}`} checked={row.getIsSelected()} onChange={row.getToggleSelectedHandler()} />
+            <input type="checkbox" aria-label={`Select ${row.original.name || row.original.email}`} checked={row.getIsSelected()} onChange={row.getToggleSelectedHandler()} />
           ),
         }),
       ]),
@@ -581,7 +583,7 @@ function ContactsTable({
           {count(from)} to {count(to)} of {count(data.total)}
         </span>
         <div className="flex items-center gap-1.5 max-md:flex-wrap">
-          <select className="in h-[30px] pr-2.5 max-md:w-0 max-md:min-w-full" aria-label="Rows per page" value={size} onChange={(e) => onSize(Number(e.target.value))}>
+          <select className="in h-[30px] max-md:w-0 max-md:min-w-full" aria-label="Rows per page" value={size} onChange={(e) => onSize(Number(e.target.value))}>
             {[10, 50, 100].map((n) => (
               <option key={n} value={n}>
                 {n} per page

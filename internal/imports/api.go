@@ -67,6 +67,12 @@ func Register(h huma.API, s *Service) {
 			out, err := s.List(ctx, api.WorkspaceFrom(ctx))
 			return api.OK(out), err
 		})
+	api.Get(h, api.Op{ID: "list-background-jobs", Path: "/workspaces/{workspace}/jobs", Summary: "Imports running in the background and those that just ended (jobs tray)",
+		Tags: tags, Access: api.Workspace(authz.SubscribersView)},
+		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[ImportJobList], error) {
+			out, err := s.BackgroundJobs(ctx, api.WorkspaceFrom(ctx))
+			return api.OK(out), err
+		})
 	api.Post(h, api.Op{ID: "create-import", Path: base, Summary: "Start an import from a source", Tags: tags, Access: imp, Status: http.StatusCreated},
 		func(ctx context.Context, in *createBody) (*api.Body[ImportDetail], error) {
 			out, err := s.Create(ctx, api.WorkspaceFrom(ctx), in.Body)

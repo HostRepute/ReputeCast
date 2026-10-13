@@ -176,6 +176,9 @@ type Querier interface {
 	HostReputeProviderForIP(ctx context.Context, arg HostReputeProviderForIPParams) (HostReputeProviderForIPRow, error)
 	HostReputeUserName(ctx context.Context, id uuid.UUID) (HostReputeUserNameRow, error)
 	HostReputeWorkspaceSlug(ctx context.Context, id uuid.UUID) (string, error)
+	// Imports running in the background, and those that ended in the last two
+	// hours, for the jobs tray.
+	ImportJobs(ctx context.Context, arg ImportJobsParams) ([]ImportJobsRow, error)
 	ImportRowsAfter(ctx context.Context, arg ImportRowsAfterParams) ([]ImportRow, error)
 	ImportStatusCounts(ctx context.Context, importID uuid.UUID) ([]ImportStatusCountsRow, error)
 	IngestAddSuppression(ctx context.Context, arg IngestAddSuppressionParams) (uuid.UUID, error)

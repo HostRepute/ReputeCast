@@ -97,3 +97,14 @@ SELECT domain, has_mx, provider FROM mx_cache WHERE domain = ANY(@domains::text[
 -- name: PutMXCache :exec
 INSERT INTO mx_cache (domain, has_mx, provider, checked_at) VALUES (@domain, @has_mx, @provider, now())
 ON CONFLICT (domain) DO UPDATE SET has_mx = excluded.has_mx, provider = excluded.provider, checked_at = now();
+
+-- name: ImportJobs :many
+-- Imports running in the background, and those that ended in the last two
+-- hours, for the jobs tray.
+SELECT i.id, i.source, i.status, i.file_name, i.progress, i.stats, i.error, i.connection, i.resume_at,
+       i.created_at, i.started_at, i.finished_at
+FROM imports i
+WHERE i.workspace_id = @workspace_id
+  AND (i.status IN ('staging', 'running', 'paused') OR (i.finished_at IS NOT NULL AND i.finished_at > @ended_after))
+ORDER BY i.created_at DESC
+LIMIT 20;

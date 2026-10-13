@@ -130,11 +130,6 @@ button.badge.afilter[aria-pressed='true'] {
   color: #fff;
 }
 
-/* Checkboxes keep the browser's default margin, as on the boards. */
-input[type='checkbox'].cbx {
-  margin: 3px 3px 3px 4px;
-}
-
 /* Danger-outlined small buttons in the bulk bar and on the profile. */
 .btn.dline {
   color: var(--bad-fg);

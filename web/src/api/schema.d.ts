@@ -1648,6 +1648,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Imports running in the background and those that just ended (jobs tray) */
+        get: operations["list-background-jobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/leave": {
         parameters: {
             query?: never;
@@ -3763,6 +3780,26 @@ export interface components {
             problem: string;
             /** Format: int64 */
             rows: number;
+        };
+        ImportJob: {
+            detail?: string;
+            eta?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            href: string;
+            id: string;
+            /** @enum {string} */
+            kind: "import";
+            /** Format: int64 */
+            progress?: number;
+            /** Format: date-time */
+            startedAt?: string;
+            /** @enum {string} */
+            status: "queued" | "running" | "done" | "failed" | "canceled";
+            title: string;
+        };
+        ImportJobList: {
+            items: components["schemas"]["ImportJob"][];
         };
         ImportList: {
             active?: string;
@@ -9292,6 +9329,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HostReputeSyncQueued"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-background-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJobList"];
                 };
             };
             /** @description Error */

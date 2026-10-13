@@ -289,6 +289,71 @@ func (q *Queries) GetMXCache(ctx context.Context, arg GetMXCacheParams) ([]GetMX
 	return items, nil
 }
 
+const importJobs = `-- name: ImportJobs :many
+SELECT i.id, i.source, i.status, i.file_name, i.progress, i.stats, i.error, i.connection, i.resume_at,
+       i.created_at, i.started_at, i.finished_at
+FROM imports i
+WHERE i.workspace_id = $1
+  AND (i.status IN ('staging', 'running', 'paused') OR (i.finished_at IS NOT NULL AND i.finished_at > $2))
+ORDER BY i.created_at DESC
+LIMIT 20
+`
+
+type ImportJobsParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	EndedAfter  *time.Time `json:"endedAfter"`
+}
+
+type ImportJobsRow struct {
+	ID         uuid.UUID       `json:"id"`
+	Source     string          `json:"source"`
+	Status     string          `json:"status"`
+	FileName   string          `json:"fileName"`
+	Progress   json.RawMessage `json:"progress"`
+	Stats      json.RawMessage `json:"stats"`
+	Error      string          `json:"error"`
+	Connection json.RawMessage `json:"connection"`
+	ResumeAt   *time.Time      `json:"resumeAt"`
+	CreatedAt  time.Time       `json:"createdAt"`
+	StartedAt  *time.Time      `json:"startedAt"`
+	FinishedAt *time.Time      `json:"finishedAt"`
+}
+
+// Imports running in the background, and those that ended in the last two
+// hours, for the jobs tray.
+func (q *Queries) ImportJobs(ctx context.Context, arg ImportJobsParams) ([]ImportJobsRow, error) {
+	rows, err := q.db.Query(ctx, importJobs, arg.WorkspaceID, arg.EndedAfter)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ImportJobsRow{}
+	for rows.Next() {
+		var i ImportJobsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Source,
+			&i.Status,
+			&i.FileName,
+			&i.Progress,
+			&i.Stats,
+			&i.Error,
+			&i.Connection,
+			&i.ResumeAt,
+			&i.CreatedAt,
+			&i.StartedAt,
+			&i.FinishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const importRowsAfter = `-- name: ImportRowsAfter :many
 SELECT import_id, row_no, email, status, list_ref, data, tags, engagement, outcome, reason FROM import_rows WHERE import_id = $1 AND row_no > $2 ORDER BY row_no LIMIT $3
 `

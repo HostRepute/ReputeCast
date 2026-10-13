@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { ContactsPage } from '@/features/audience/ContactsPage'
+// The jobs tray lists imports from the server once this module loads.
+import '@/features/imports/jobsSource'
 
 const search = z.object({
   q: z.string().max(200).optional().catch(undefined),

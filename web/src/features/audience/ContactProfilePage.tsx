@@ -47,7 +47,9 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
   const exportReason = usePermissionReason('subscribers:export')
   const resend = $api.useMutation('post', '/api/v1/workspaces/{workspace}/contacts/{contact}/resend-optin')
   const invalidate = useInvalidateAudience()
-  const notFound = q.error instanceof ApiError && q.error.status === 404
+  // A contact that doesn't exist (or that the role can't see) gets the
+  // shell's 404 or 403 screen.
+  if (!p && q.error instanceof ApiError && (q.error.status === 404 || q.error.status === 403)) throw q.error
   return (
     <Page
       title={name}
@@ -103,11 +105,7 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
         ) : null
       }
     >
-      {notFound ? (
-        <ErrorPanel title="This contact doesn't exist" actions={<Link className="btn" to="/w/$workspace/audience" params={{ workspace: slug }}>Back to contacts</Link>}>
-          It may have been erased, or it belongs to a list your role can't see.
-        </ErrorPanel>
-      ) : q.isError ? (
+      {q.isError && !p ? (
         <ErrorPanel title="Couldn't load this contact" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
           {errorMessage(q.error)} Nothing was changed.
         </ErrorPanel>
