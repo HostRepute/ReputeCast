@@ -135,6 +135,21 @@ WHERE m.provider_id = @provider_id AND m.sent_at IS NOT NULL AND m.sent_at >= @s
 ORDER BY m.sent_at DESC, m.id DESC
 LIMIT @lim;
 
+-- name: ProvLastConfirmed :many
+-- The newest message a provider reported on before its webhooks went quiet
+-- (the last row of "Messages awaiting status").
+SELECT m.id, m.email, m.provider_message_id, m.sent_at, m.status, m.delivered_at, m.kind,
+       coalesce(c.name, '')::text AS campaign_name,
+       coalesce(a.name, '')::text AS automation_name,
+       m.automation_node
+FROM messages m
+LEFT JOIN campaigns c ON c.id = m.campaign_id
+LEFT JOIN automations a ON a.id = m.automation_id
+WHERE m.provider_id = @provider_id AND m.sent_at IS NOT NULL AND m.sent_at <= @before
+  AND m.status IN ('delivered', 'deferred', 'bounced', 'complained', 'rejected')
+ORDER BY m.sent_at DESC, m.id DESC
+LIMIT 1;
+
 -- name: ProvAwaitingCount :one
 SELECT count(*)::bigint AS total,
        count(DISTINCT m.campaign_id)::bigint AS campaigns
@@ -163,6 +178,12 @@ FROM messages m
 LEFT JOIN automations a ON a.id = m.automation_id
 WHERE m.workspace_id = @workspace_id AND m.stream = 'automation' AND m.provider_id = @provider_id AND m.sent_at >= @since
 GROUP BY 1 ORDER BY 2 DESC, 1;
+
+-- name: ProvSentThroughSince :one
+-- Mail of one stream a provider sent since a time (what failover moved to it).
+SELECT count(*)::bigint AS n
+FROM messages
+WHERE workspace_id = @workspace_id AND stream = @stream AND provider_id = @provider_id AND sent_at >= @since;
 
 -- name: ProvSentByKind :many
 -- System mail sent through a provider since a time, per kind.

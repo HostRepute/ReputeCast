@@ -6,6 +6,7 @@ import { useMe, useWorkspace } from '@/lib/session'
 import { Icon, LogoMark, type IconName } from '../icons/Icon'
 import { Avatar } from '../ui/Avatar'
 import { Tooltip } from '../ui/Menu'
+import { SystemBanners } from './SystemBanners'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 
 type NavItem = { to: string; label: string; icon: IconName; exact?: boolean }
@@ -24,9 +25,11 @@ const NAV: NavItem[] = [
 /**
  * The workspace app shell: a 232px sidebar that becomes a 72px icon rail at
  * 1100px and a bottom tab bar at 767px. Screens render their own top bar and
- * content with <Page>.
+ * content with <Page>. System banners (offline, maintenance) sit at the top
+ * of the content column. `children` replaces the routed screen, for the
+ * in-shell 404 and 500 states.
  */
-export function AppShell() {
+export function AppShell({ children }: { children?: ReactNode } = {}) {
   return (
     <div className="app rc-app">
       <a href="#main" className="skip">
@@ -34,7 +37,8 @@ export function AppShell() {
       </a>
       <Sidebar />
       <div className="mainc">
-        <Outlet />
+        <SystemBanners />
+        {children ?? <Outlet />}
       </div>
     </div>
   )

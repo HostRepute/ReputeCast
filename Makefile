@@ -90,10 +90,18 @@ web: ## Build the web app into web/dist (embedded by go:embed)
 build: web ## Build the single binary into bin/reputecast
 	CGO_ENABLED=0 $(GO) build -trimpath -ldflags '$(LDFLAGS)' -o bin/reputecast ./cmd/reputecast
 
+.PHONY: site
+site: ## Check and build the landing site (reputecast.com) into site/dist
+	cd site && $(PNPM) install --frozen-lockfile && $(PNPM) lint && $(PNPM) typecheck && $(PNPM) test && $(PNPM) build
+
+.PHONY: site-dev
+site-dev: ## Run the landing site with live reload on :5288
+	cd site && $(PNPM) install --frozen-lockfile && $(PNPM) dev
+
 .PHONY: docker
 docker: ## Build the Docker image
 	docker build -t reputecast:$(VERSION) --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) .
 
 .PHONY: clean
 clean: ## Remove build output
-	rm -rf bin tmp web/dist/assets web/dist/index.html
+	rm -rf bin tmp web/dist/assets web/dist/index.html site/dist site/.ssr

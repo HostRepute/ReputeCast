@@ -2,12 +2,22 @@ import { useEffect, useSyncExternalStore, type ReactNode } from 'react'
 
 export type ToastKind = 'success' | 'deleted' | 'error' | 'progress' | 'info'
 
+/**
+ * Toasts (Feedback board): bottom-left, one at a time, above the phone tab
+ * bar. Success and progress toasts use role="status"; errors use
+ * role="alert" and stay until dismissed. Focus never moves to a toast.
+ * Never toast something the page already shows.
+ */
 export interface ToastInput {
   kind?: ToastKind
   title: ReactNode
   detail?: ReactNode
   action?: { label: string; onClick: () => void }
-  /** Errors and progress stay until dismissed; others close after 6 s. */
+  /** Offered for deletes, moves and unsubscribes; the toast then stays 10 s. */
+  undo?: () => void
+  /** Offered on errors: try the failed action again. */
+  retry?: () => void
+  /** Errors and progress stay until dismissed; undo toasts 10 s; others 6 s. */
   duration?: number
 }
 
@@ -28,6 +38,13 @@ export function toast(t: ToastInput): number {
   return id
 }
 
+/** Changes a toast in place, e.g. a progress toast that finished. */
+export function updateToast(id: number, patch: Partial<ToastInput>) {
+  if (!items.some((t) => t.id === id)) return
+  items = items.map((t) => (t.id === id ? { ...t, ...patch } : t))
+  emit()
+}
+
 export function dismissToast(id?: number) {
   items = id === undefined ? [] : items.filter((t) => t.id !== id)
   emit()
@@ -45,16 +62,25 @@ const icons: Record<Exclude<ToastKind, 'progress'>, { bg: string; path: string; 
   info: { bg: '#1E40AF', path: 'M8 7.5V11M8 5v.5', sw: 2.4 },
 }
 
+export function toastDuration(t: ToastInput): number {
+  if (t.duration !== undefined) return t.duration
+  const kind = t.kind ?? 'success'
+  if (kind === 'error' || kind === 'progress') return 0
+  return t.undo ? 10_000 : 6000
+}
+
 function ToastView({ t }: { t: ToastItem }) {
   const kind = t.kind ?? 'success'
-  const sticky = kind === 'error' || kind === 'progress'
-  const duration = t.duration ?? (sticky ? 0 : 6000)
+  const duration = toastDuration(t)
   useEffect(() => {
     if (!duration) return
     const h = window.setTimeout(() => dismissToast(t.id), duration)
     return () => window.clearTimeout(h)
   }, [t.id, duration])
   const ic = kind === 'progress' ? null : icons[kind]
+  const act =
+    t.action ??
+    (t.undo ? { label: 'Undo', onClick: t.undo } : t.retry ? { label: 'Retry', onClick: t.retry } : kind === 'progress' ? { label: 'Hide', onClick: () => {} } : undefined)
   return (
     <div className="toast" role={kind === 'error' ? 'alert' : 'status'}>
       {ic ? (
@@ -64,21 +90,21 @@ function ToastView({ t }: { t: ToastItem }) {
           </svg>
         </span>
       ) : (
-        <span className="spin" aria-hidden="true" />
+        <span className="spin sm on-dark" aria-hidden="true" />
       )}
       <span className="t">
         {t.title} {t.detail ? <span className="k">· {t.detail}</span> : null}
       </span>
-      {t.action ? (
+      {act ? (
         <button
           type="button"
           className="btn"
           onClick={() => {
-            t.action?.onClick()
+            act.onClick()
             dismissToast(t.id)
           }}
         >
-          {t.action.label}
+          {act.label}
         </button>
       ) : null}
       {kind !== 'progress' ? (

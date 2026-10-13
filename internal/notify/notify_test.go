@@ -24,10 +24,10 @@ func TestDemoNotificationCenter(t *testing.T) {
 	var list map[string]any
 	c.Do("GET", "/workspaces/acme-newsletter/notifications", nil).MustStatus(t, 200).JSON(t, &list)
 	items := list["items"].([]any)
-	if len(items) != 6 || list["unread"].(float64) != 3 || list["retentionDays"].(float64) != 90 {
+	if len(items) != 8 || list["unread"].(float64) != 3 || list["retentionDays"].(float64) != 90 {
 		t.Fatalf("center: %d items, %v unread", len(items), list["unread"])
 	}
-	want := []string{"Approval requested", "Send auto-paused", "Provider down", "Webhooks silent", "Invite accepted", "HostRepute alert"}
+	want := []string{"Approval requested", "Send auto-paused", "Provider down", "Approval given", "Webhooks silent", "Approval invalidated", "Invite accepted", "HostRepute alert"}
 	for i, w := range want {
 		it := items[i].(map[string]any)
 		if it["title"] != w {

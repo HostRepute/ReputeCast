@@ -19,6 +19,7 @@ export function Field({
   label,
   hint,
   error,
+  success,
   children,
   className,
   size = 'md',
@@ -27,17 +28,25 @@ export function Field({
   label: ReactNode
   hint?: ReactNode
   error?: ReactNode
-  children: ReactElement<{ id?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean }>
+  /** Validation passed and there's something worth saying ("Within the SES quota…"): green border and text. */
+  success?: ReactNode
+  children: ReactElement<{ id?: string; className?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean }>
   className?: string
   size?: 'md' | 'lg'
   optional?: boolean
 }) {
   const id = useId()
-  const hintId = hint ? `${id}-hint` : undefined
+  const ok = success && !error ? success : undefined
+  const hintId = hint || ok ? `${id}-hint` : undefined
   const errId = error ? `${id}-err` : undefined
   const describedBy = [errId, hintId].filter(Boolean).join(' ') || undefined
   const control = isValidElement(children)
-    ? cloneElement(children, { id: children.props.id ?? id, 'aria-describedby': describedBy, 'aria-invalid': error ? true : undefined })
+    ? cloneElement(children, {
+        id: children.props.id ?? id,
+        'aria-describedby': describedBy,
+        'aria-invalid': error ? true : undefined,
+        ...(ok ? { className: cn(children.props.className, 'okb') } : {}),
+      })
     : children
   return (
     <div className={cn('lbl', size === 'lg' && 'lg', className)}>
@@ -51,7 +60,11 @@ export function Field({
           {error}
         </span>
       ) : null}
-      {hint ? (
+      {ok ? (
+        <span className="k okmsg" id={hintId}>
+          {ok}
+        </span>
+      ) : hint ? (
         <span className="k" id={hintId}>
           {hint}
         </span>

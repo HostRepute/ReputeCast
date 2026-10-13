@@ -112,11 +112,13 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 		fn   func(context.Context, *Seeder) error
 	}{
 		{"core", seedCore},
+		// Sending domains and senders come first: team settings (default
+		// sender), the composer and deliverability all point at them.
+		{"senders", seedSenders},
 		{"team", seedTeam},
 		{"account", seedAccount},
 		{"instance", seedInstance},
 		{"audience", seedAudience},
-		{"senders", seedSenders},
 		{"providers", seedProviders},
 		{"deliverability", seedDeliverability},
 		{"campaigns", seedCampaigns},

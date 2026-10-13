@@ -210,7 +210,7 @@ func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]provid
 	if err != nil {
 		return nil, err
 	}
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 	now := time.Now()
 	gms := make([]*gomail.Msg, len(msgs))
 	ids := make([]string, len(msgs))
