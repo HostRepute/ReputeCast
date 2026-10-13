@@ -78,6 +78,7 @@ const (
 	msgClosed      = "This form isn't taking signups right now."
 	msgOrigin      = "This form can't be used on this site."
 	msgChallenge   = "One more step: confirm you're a person."
+	msgExpired     = "This form has expired. Reload the page and send it again."
 )
 
 func (s *Service) recordReject(ctx context.Context, ws *store.Workspace, c Config, reason, origin string) {
@@ -125,9 +126,12 @@ func (s *Service) RecordView(ctx context.Context, ws *store.Workspace, c Config,
 // The checks, in order: the form is live; the address and the form are
 // under their rate limits; the browser's origin is allowed; the honeypot is
 // empty (a filled one is dropped silently, so bots see a success); the
-// timestamp token is valid and old enough; the fields are valid; disposable
-// domains and role addresses are refused. A submission that fails only the
-// timing check goes to a Turnstile challenge when Turnstile is set up.
+// signed timestamp token is valid (it is the CSRF token of the hosted page
+// and of embeds; copied plain HTML forms can't carry one and rely on the
+// origin allowlist) and, with the timing check on, old enough; the fields
+// are valid; disposable domains and role addresses are refused. A
+// submission that fails only the token checks goes to a Turnstile challenge
+// when Turnstile is set up.
 func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings, c Config, sub Submission) Outcome {
 	if c.Status != StatusLive {
 		return Outcome{Status: OutcomeClosed, Message: msgClosed}
@@ -154,10 +158,13 @@ func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings
 		}
 		return Outcome{Status: OutcomeSubscribed}
 	}
-	suspicious := false
-	if c.Spam.Honeypot && !sub.Plain {
+	suspicious, expired := false, false
+	if !sub.Plain {
 		age, ok := s.tokenAge(formKey(c), sub.Token, now)
-		if !ok || age < time.Duration(c.Spam.MinSeconds)*time.Second {
+		switch {
+		case !ok:
+			suspicious, expired = true, true
+		case c.Spam.Honeypot && age < time.Duration(c.Spam.MinSeconds)*time.Second:
 			suspicious = true
 		}
 	}
@@ -185,6 +192,9 @@ func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings
 			return Outcome{Status: OutcomeChallenge, ChallengeID: id, Message: msgChallenge}
 		}
 		s.recordReject(ctx, ws, c, "timing", sub.Origin)
+		if expired {
+			return Outcome{Status: OutcomeInvalid, Message: msgExpired}
+		}
 		return Outcome{Status: OutcomeInvalid, Message: msgTooFast}
 	}
 	return s.accept(ctx, ws, set, c, sub, lists)

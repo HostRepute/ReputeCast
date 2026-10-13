@@ -95,6 +95,14 @@ func (h *Handler) confirmBody(ctx context.Context, s *site, pc audience.PublicCo
 		return b, err
 	}
 	if len(offered) == 0 {
+		// Not from a form: the lists of the subscribe page's form.
+		if id := s.set.HostedFormID(); id != nil {
+			if f, err := h.Q.FormGet(ctx, store.FormGetParams{WorkspaceID: s.ws.ID, ID: *id}); err == nil {
+				offered = f.ListIds
+			}
+		}
+	}
+	if len(offered) == 0 {
 		for _, l := range lists {
 			if l.Public {
 				offered = append(offered, l.ID)
