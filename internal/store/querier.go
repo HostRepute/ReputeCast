@@ -14,6 +14,10 @@ import (
 
 type Querier interface {
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) error
+	AcceptPendingInvitation(ctx context.Context, arg AcceptPendingInvitationParams) (int64, error)
+	// Access requests from the "403 · no permission" screen (internal/accessrequests).
+	// The member's latest request for this role in the last day (one a day).
+	AccessRequestsLatest(ctx context.Context, arg AccessRequestsLatestParams) (time.Time, error)
 	// Where contacts are, per version and step (publish impact).
 	AutomationActiveRunNodes(ctx context.Context, automationID uuid.UUID) ([]AutomationActiveRunNodesRow, error)
 	// Live flows' versions that still have contacts in them (goal detection).
@@ -74,13 +78,17 @@ type Querier interface {
 	// key by key.
 	BumpAutomationStepStats(ctx context.Context, arg BumpAutomationStepStatsParams) error
 	BumpChallengeAttempts(ctx context.Context, id uuid.UUID) (int32, error)
+	BumpNotificationEmailAttempts(ctx context.Context, arg BumpNotificationEmailAttemptsParams) error
 	CampaignCostSince(ctx context.Context, arg CampaignCostSinceParams) ([]CampaignCostSinceRow, error)
 	CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSinceParams) (CampaignTotalsSinceRow, error)
 	ClaimAutomationEvents(ctx context.Context, lim int32) ([]ClaimAutomationEventsRow, error)
 	// Runs ready to move on, in flows that are live (paused flows hold their runs).
 	ClaimDueAutomationRuns(ctx context.Context, arg ClaimDueAutomationRunsParams) ([]ClaimDueAutomationRunsRow, error)
 	ClearSignInThrottle(ctx context.Context, email string) error
+	ClearUserLockout(ctx context.Context, id uuid.UUID) error
 	CompleteInstanceSetup(ctx context.Context, arg CompleteInstanceSetupParams) (InstanceSetting, error)
+	ConfirmInstanceBasics(ctx context.Context) error
+	ConsumeEmailChange(ctx context.Context, arg ConsumeEmailChangeParams) (EmailChange, error)
 	// A state is single use: reading it deletes it.
 	ConsumeHostReputeOAuthState(ctx context.Context, stateHash []byte) (HostreputeOauthState, error)
 	ConsumePasswordReset(ctx context.Context, tokenHash []byte) (PasswordReset, error)
@@ -92,6 +100,8 @@ type Querier interface {
 	CountCampaigns(ctx context.Context, arg CountCampaignsParams) (int64, error)
 	CountCampaignsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountCampaignsByStatusRow, error)
 	CountDeliverabilityIncidents(ctx context.Context, arg CountDeliverabilityIncidentsParams) (int64, error)
+	CountNotifications(ctx context.Context, arg CountNotificationsParams) (CountNotificationsRow, error)
+	CountUnreadNotifications(ctx context.Context, arg CountUnreadNotificationsParams) (int64, error)
 	CountUnusedRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountUsers(ctx context.Context) (int64, error)
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
@@ -99,18 +109,22 @@ type Querier interface {
 	CreateAutomationEmail(ctx context.Context, arg CreateAutomationEmailParams) error
 	CreateChallenge(ctx context.Context, arg CreateChallengeParams) (AuthChallenge, error)
 	CreateDeliverabilityCheckRun(ctx context.Context, arg CreateDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
+	CreateEmailChange(ctx context.Context, arg CreateEmailChangeParams) (EmailChange, error)
 	CreateHostReputeOAuthState(ctx context.Context, arg CreateHostReputeOAuthStateParams) error
 	CreateIdentity(ctx context.Context, arg CreateIdentityParams) (UserIdentity, error)
 	CreateInvitation(ctx context.Context, arg CreateInvitationParams) (Invitation, error)
 	CreateMember(ctx context.Context, arg CreateMemberParams) (WorkspaceMember, error)
 	CreatePasskey(ctx context.Context, arg CreatePasskeyParams) (UserPasskey, error)
+	CreatePasskeyRecord(ctx context.Context, arg CreatePasskeyRecordParams) (UserPasskey, error)
 	CreatePasswordReset(ctx context.Context, arg CreatePasswordResetParams) (PasswordReset, error)
+	CreatePasswordResetFrom(ctx context.Context, arg CreatePasswordResetFromParams) (PasswordReset, error)
 	CreateRecoveryCode(ctx context.Context, arg CreateRecoveryCodeParams) error
 	CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
 	DeleteAutomationStepSecret(ctx context.Context, arg DeleteAutomationStepSecretParams) (int64, error)
+	DeleteAvatar(ctx context.Context, userID uuid.UUID) (int64, error)
 	DeleteChallenge(ctx context.Context, id uuid.UUID) error
 	DeleteDeliverabilityBlocklistResults(ctx context.Context, arg DeleteDeliverabilityBlocklistResultsParams) error
 	DeleteExpiredChallenges(ctx context.Context) (int64, error)
@@ -121,7 +135,9 @@ type Querier interface {
 	DeleteHostReputeData(ctx context.Context, workspaceID uuid.UUID) error
 	DeleteIdentity(ctx context.Context, arg DeleteIdentityParams) (int64, error)
 	DeleteMember(ctx context.Context, arg DeleteMemberParams) (int64, error)
+	DeleteOldNotifications(ctx context.Context, days int32) (int64, error)
 	DeletePasskey(ctx context.Context, arg DeletePasskeyParams) (int64, error)
+	DeletePendingEmailChanges(ctx context.Context, userID uuid.UUID) (int64, error)
 	DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) error
 	DeleteRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	DeleteStaleThrottle(ctx context.Context) (int64, error)
@@ -130,8 +146,10 @@ type Querier interface {
 	DeliverabilityWarmupPlans(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityWarmupPlansRow, error)
 	// Workspaces the daily checks look at: they send through something.
 	DeliverabilityWorkspaces(ctx context.Context) ([]uuid.UUID, error)
+	EmailTaken(ctx context.Context, arg EmailTakenParams) (bool, error)
 	// Must run inside the same transaction as PurgeAuditEvents (retention job only).
 	EnableAuditPurge(ctx context.Context) error
+	EnabledSSOProviders(ctx context.Context) ([]EnabledSSOProvidersRow, error)
 	ExitAutomationRuns(ctx context.Context, arg ExitAutomationRunsParams) (int64, error)
 	FailStaleDeliverabilityCheckRuns(ctx context.Context, aliveAfter time.Time) (int64, error)
 	FinishDeliverabilityCheckRun(ctx context.Context, arg FinishDeliverabilityCheckRunParams) error
@@ -143,6 +161,7 @@ type Querier interface {
 	GetAutomationRunForUpdate(ctx context.Context, id uuid.UUID) (GetAutomationRunForUpdateRow, error)
 	GetAutomationStepSecret(ctx context.Context, arg GetAutomationStepSecretParams) ([]byte, error)
 	GetAutomationVersion(ctx context.Context, arg GetAutomationVersionParams) (GetAutomationVersionRow, error)
+	GetAvatar(ctx context.Context, userID uuid.UUID) (UserAvatar, error)
 	GetChallenge(ctx context.Context, arg GetChallengeParams) (AuthChallenge, error)
 	GetDeliverabilityBlocklistListing(ctx context.Context, arg GetDeliverabilityBlocklistListingParams) (BlocklistResult, error)
 	GetDeliverabilityCheckRun(ctx context.Context, arg GetDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
@@ -151,16 +170,23 @@ type Querier interface {
 	GetIdentity(ctx context.Context, arg GetIdentityParams) (UserIdentity, error)
 	GetInstanceSettings(ctx context.Context) (InstanceSetting, error)
 	GetInvitationByToken(ctx context.Context, tokenHash []byte) (GetInvitationByTokenRow, error)
+	GetInvitationView(ctx context.Context, tokenHash []byte) (GetInvitationViewRow, error)
 	GetMember(ctx context.Context, arg GetMemberParams) (GetMemberRow, error)
 	GetMembership(ctx context.Context, arg GetMembershipParams) (GetMembershipRow, error)
+	GetNotificationSettings(ctx context.Context, userID uuid.UUID) (NotificationSetting, error)
 	GetPasskeyByCredential(ctx context.Context, credentialID []byte) (UserPasskey, error)
 	GetPasswordReset(ctx context.Context, tokenHash []byte) (PasswordReset, error)
+	GetPendingEmailChange(ctx context.Context, userID uuid.UUID) (EmailChange, error)
 	GetRole(ctx context.Context, id uuid.UUID) (Role, error)
 	GetRoleByKey(ctx context.Context, arg GetRoleByKeyParams) (Role, error)
 	GetSessionByToken(ctx context.Context, tokenHash []byte) (Session, error)
 	GetSignInThrottle(ctx context.Context, email string) (SignInThrottle, error)
+	GetUsablePasswordReset(ctx context.Context, tokenHash []byte) (GetUsablePasswordResetRow, error)
 	GetUser(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByWebAuthnID(ctx context.Context, webauthnID []byte) (User, error)
+	GetUserPasskey(ctx context.Context, arg GetUserPasskeyParams) (UserPasskey, error)
+	GetUserSession(ctx context.Context, arg GetUserSessionParams) (Session, error)
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
 	// The sending domains an asset list is built from (with the records their
@@ -205,7 +231,14 @@ type Querier interface {
 	// Incidents with an external id (HostRepute alerts) are stored once; the
 	// returned row count says whether this one is new.
 	InsertDeliverabilityIncident(ctx context.Context, arg InsertDeliverabilityIncidentParams) (uuid.UUID, error)
+	// Notification center, preferences and email delivery. Owned by internal/notify.
+	// Stores a notification unless the person turned both in-app and email off
+	// for its event type. email_status is 'pending' when they asked for email.
+	InsertNotification(ctx context.Context, arg InsertNotificationParams) (int64, error)
+	InvalidatePasswordResets(ctx context.Context, userID uuid.UUID) error
 	LastDeliverabilityAssetCheckAt(ctx context.Context, workspaceID uuid.UUID) (time.Time, error)
+	LastPasswordResetAt(ctx context.Context, userID uuid.UUID) (time.Time, error)
+	LastRecoveryCodeUse(ctx context.Context, userID uuid.UUID) (time.Time, error)
 	LatestDeliverabilityCheckRun(ctx context.Context, workspaceID uuid.UUID) (DeliverabilityCheckRun, error)
 	LatestFinishedDeliverabilityCheckRun(ctx context.Context, arg LatestFinishedDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
 	ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error)
@@ -242,10 +275,17 @@ type Querier interface {
 	ListDeliverabilityPostmasterDays(ctx context.Context, arg ListDeliverabilityPostmasterDaysParams) ([]PostmasterDaily, error)
 	ListDeliverabilitySNDSDays(ctx context.Context, arg ListDeliverabilitySNDSDaysParams) ([]SndsDaily, error)
 	ListIdentities(ctx context.Context, userID uuid.UUID) ([]UserIdentity, error)
+	ListIdentitiesWithProvider(ctx context.Context, userID uuid.UUID) ([]ListIdentitiesWithProviderRow, error)
 	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]ListMembersRow, error)
 	// Used to name who can help when a permission is missing.
 	ListMembersWithRoles(ctx context.Context, workspaceID uuid.UUID) ([]ListMembersWithRolesRow, error)
+	ListMembershipsOfUser(ctx context.Context, userID uuid.UUID) ([]ListMembershipsOfUserRow, error)
+	ListNamesOfLists(ctx context.Context, arg ListNamesOfListsParams) ([]ListNamesOfListsRow, error)
+	ListNotificationPreferences(ctx context.Context, userID uuid.UUID) ([]NotificationPreference, error)
+	// Unread first, then newest first (the notification center and the bell).
+	ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]Notification, error)
 	ListPasskeys(ctx context.Context, userID uuid.UUID) ([]UserPasskey, error)
+	ListPendingEmailNotifications(ctx context.Context, userID uuid.UUID) ([]ListPendingEmailNotificationsRow, error)
 	ListPendingInvitations(ctx context.Context, workspaceID uuid.UUID) ([]ListPendingInvitationsRow, error)
 	// Published versions that are no longer live but not yet retired: they
 	// retire once their last contact leaves.
@@ -254,11 +294,13 @@ type Querier interface {
 	ListUserSessions(ctx context.Context, userID uuid.UUID) ([]Session, error)
 	ListUserWorkspaces(ctx context.Context, userID uuid.UUID) ([]ListUserWorkspacesRow, error)
 	ListUsers(ctx context.Context) ([]User, error)
+	ListUsersWithPendingEmail(ctx context.Context) ([]uuid.UUID, error)
 	ListWorkspaceLists(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceListsRow, error)
 	ListWorkspaces(ctx context.Context) ([]Workspace, error)
 	// Live flows a trigger event enrolls into.
 	LiveAutomationsForTrigger(ctx context.Context, arg LiveAutomationsForTriggerParams) ([]LiveAutomationsForTriggerRow, error)
 	LockAutomation(ctx context.Context, arg LockAutomationParams) (Automation, error)
+	MarkAllNotificationsRead(ctx context.Context, arg MarkAllNotificationsReadParams) (int64, error)
 	MarkAutomationEventProcessed(ctx context.Context, arg MarkAutomationEventProcessedParams) error
 	// A sync finished: account, team, scopes and monitored assets as HostRepute
 	// reports them now.
@@ -266,6 +308,8 @@ type Querier interface {
 	// HostRepute rejected the token (revoked on its side, or expired and not
 	// refreshable). Only the first rejection is recorded.
 	MarkHostReputeTokenRejected(ctx context.Context, arg MarkHostReputeTokenRejectedParams) (int64, error)
+	MarkNotificationRead(ctx context.Context, arg MarkNotificationReadParams) (int64, error)
+	MarkReinviteRequested(ctx context.Context, id uuid.UUID) (int64, error)
 	// Records a failure: opens the alert or adds to the open one.
 	OpenAutomationAlert(ctx context.Context, arg OpenAutomationAlertParams) error
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
@@ -334,6 +378,7 @@ type Querier interface {
 	RecordSignInFailure(ctx context.Context, arg RecordSignInFailureParams) (RecordSignInFailureRow, error)
 	RecordSignInSuccess(ctx context.Context, id uuid.UUID) error
 	RecordSignInThrottleFailure(ctx context.Context, arg RecordSignInThrottleFailureParams) (SignInThrottle, error)
+	RecoveryCodeStats(ctx context.Context, userID uuid.UUID) (RecoveryCodeStatsRow, error)
 	RefreshInvitation(ctx context.Context, arg RefreshInvitationParams) (Invitation, error)
 	ReleaseAutomationHeldMessages(ctx context.Context, arg ReleaseAutomationHeldMessagesParams) (int64, error)
 	RenamePasskey(ctx context.Context, arg RenamePasskeyParams) error
@@ -361,21 +406,36 @@ type Querier interface {
 	RoutingUpsertPolicy(ctx context.Context, arg RoutingUpsertPolicyParams) error
 	// A run still in progress (runs older than ten minutes are considered dead).
 	RunningDeliverabilityCheckRun(ctx context.Context, arg RunningDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
+	// Restarts the idle clock now (the middleware only touches sessions every
+	// 30 seconds). The absolute lifetime (expires_at) never moves.
+	SessionExtRestartIdle(ctx context.Context, arg SessionExtRestartIdleParams) (SessionExtRestartIdleRow, error)
+	// Session timing for the app's "Session ending in 2 minutes" banner and its
+	// Extend action (internal/sessionext).
+	SessionExtTiming(ctx context.Context, id uuid.UUID) (SessionExtTimingRow, error)
 	// A draft was saved: bump the revision and remember the trigger of a flow
 	// that was never published (live flows keep the live trigger).
 	SetAutomationDraft(ctx context.Context, arg SetAutomationDraftParams) error
 	SetAutomationLive(ctx context.Context, arg SetAutomationLiveParams) error
+	SetAvatarUpdatedAt(ctx context.Context, arg SetAvatarUpdatedAtParams) error
 	SetDeliverabilityBlocklistDelisting(ctx context.Context, arg SetDeliverabilityBlocklistDelistingParams) error
 	SetHostReputeMonitored(ctx context.Context, arg SetHostReputeMonitoredParams) error
+	SetLastDigestAt(ctx context.Context, userID uuid.UUID) error
 	SetLatestRelease(ctx context.Context, latestRelease json.RawMessage) error
 	SetMemberStatus(ctx context.Context, arg SetMemberStatusParams) error
+	SetNotificationsEmailStatus(ctx context.Context, arg SetNotificationsEmailStatusParams) error
+	SetRecoveryCodesSaved(ctx context.Context, id uuid.UUID) error
+	SetSessionPasskey(ctx context.Context, arg SetSessionPasskeyParams) error
 	SetUserBreakGlass(ctx context.Context, arg SetUserBreakGlassParams) error
 	SetUserEmail(ctx context.Context, arg SetUserEmailParams) error
 	SetUserInstanceAdmin(ctx context.Context, arg SetUserInstanceAdminParams) error
 	SetUserPassword(ctx context.Context, arg SetUserPasswordParams) error
 	SetUserStatus(ctx context.Context, arg SetUserStatusParams) error
 	SetUserTOTP(ctx context.Context, arg SetUserTOTPParams) error
+	SetUserTOTPLabel(ctx context.Context, arg SetUserTOTPLabelParams) error
 	SetUserTwoFAGrace(ctx context.Context, arg SetUserTwoFAGraceParams) error
+	// Account & security, passkeys, password resets, email changes, invitations
+	// (accept side) and the first sign-in. Owned by internal/accounts.
+	SetUserWebAuthnID(ctx context.Context, arg SetUserWebAuthnIDParams) error
 	SlugTaken(ctx context.Context, slug string) (bool, error)
 	SoftDeleteAutomation(ctx context.Context, arg SoftDeleteAutomationParams) error
 	SoftDeleteWorkspace(ctx context.Context, id uuid.UUID) error
@@ -396,6 +456,9 @@ type Querier interface {
 	// Addresses of the shared list created after a time that didn't come from
 	// the provider being pushed to (no point echoing its own list back).
 	SuppToPush(ctx context.Context, arg SuppToPushParams) ([]SuppToPushRow, error)
+	// The provider of the default System-stream route of a workspace (read-only
+	// view of the routing domain, for "emails go out … via Postmark").
+	SystemStreamProviderName(ctx context.Context, workspaceID uuid.UUID) (string, error)
 	TouchAPIKey(ctx context.Context, arg TouchAPIKeyParams) error
 	TouchAutomationRunNextAt(ctx context.Context, arg TouchAutomationRunNextAtParams) error
 	TouchIdentity(ctx context.Context, id uuid.UUID) error
@@ -411,6 +474,7 @@ type Querier interface {
 	UpdateHostReputeTokens(ctx context.Context, arg UpdateHostReputeTokensParams) error
 	UpdateInstanceBasics(ctx context.Context, arg UpdateInstanceBasicsParams) (InstanceSetting, error)
 	UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) (WorkspaceMember, error)
+	UpdatePasskeyAfterUse(ctx context.Context, arg UpdatePasskeyAfterUseParams) error
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)
 	UpdateSocialProviders(ctx context.Context, arg UpdateSocialProvidersParams) (InstanceSetting, error)
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)
@@ -418,6 +482,7 @@ type Querier interface {
 	UpdateWorkspaceGeneral(ctx context.Context, arg UpdateWorkspaceGeneralParams) (Workspace, error)
 	UpdateWorkspaceJSON(ctx context.Context, arg UpdateWorkspaceJSONParams) (Workspace, error)
 	UpsertAutomationStepSecret(ctx context.Context, arg UpsertAutomationStepSecretParams) error
+	UpsertAvatar(ctx context.Context, arg UpsertAvatarParams) error
 	UpsertDeliverabilityAssetCheck(ctx context.Context, arg UpsertDeliverabilityAssetCheckParams) error
 	UpsertDeliverabilityDMARCReport(ctx context.Context, arg UpsertDeliverabilityDMARCReportParams) error
 	UpsertDeliverabilityPostmasterDay(ctx context.Context, arg UpsertDeliverabilityPostmasterDayParams) error
@@ -425,7 +490,10 @@ type Querier interface {
 	// Connect or reconnect: new tokens and account details, status back to
 	// connected. Monitored assets and alert history survive a reconnect.
 	UpsertHostReputeConnection(ctx context.Context, arg UpsertHostReputeConnectionParams) (HostreputeConnection, error)
+	UpsertNotificationPreference(ctx context.Context, arg UpsertNotificationPreferenceParams) error
+	UpsertNotificationSettings(ctx context.Context, arg UpsertNotificationSettingsParams) error
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (uuid.UUID, error)
+	UsersShareWorkspace(ctx context.Context, arg UsersShareWorkspaceParams) (bool, error)
 	// Runs waiting at a branch for an open or click: wake them as soon as the
 	// email they wait on has one, instead of at the end of the window.
 	WakeAutomationBranchRuns(ctx context.Context, now *time.Time) (int64, error)

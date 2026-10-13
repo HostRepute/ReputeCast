@@ -3,6 +3,8 @@ package server
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -22,12 +24,10 @@ type RateLimits struct {
 
 // Middleware returns the rate-limiting middleware.
 func (rl RateLimits) Middleware() func(http.Handler) http.Handler {
-	auth := httprate.Limit(rl.AuthPerMinute, time.Minute,
-		httprate.WithKeyFuncs(httprate.KeyByIP),
+	auth := httprate.LimitBy(rl.AuthPerMinute, time.Minute, keyByIP,
 		httprate.WithLimitHandler(limited("Too many sign-in attempts from your network. Wait a minute and try again.")),
 	)
-	api := httprate.Limit(rl.APIPerMinute, time.Minute,
-		httprate.WithKeyFuncs(keyByCredential),
+	api := httprate.LimitBy(rl.APIPerMinute, time.Minute, keyByCredential,
 		httprate.WithLimitHandler(limited("Rate limit reached. Requests resume within a minute; batch endpoints accept up to 1,000 items per call.")),
 	)
 	return func(next http.Handler) http.Handler {
@@ -53,17 +53,29 @@ func keyByCredential(r *http.Request) (string, error) {
 		sum := sha256.Sum256([]byte(strings.TrimSpace(h[7:])))
 		return "key:" + hex.EncodeToString(sum[:8]), nil
 	}
-	ip, err := httprate.KeyByIP(r)
+	ip, err := keyByIP(r)
 	return "ip:" + ip, err
 }
 
+// keyByIP keys on the client address. RealIP, earlier in the chain, has
+// already replaced RemoteAddr with the client's address when the request came
+// through a trusted proxy, so a forwarded header is never trusted here.
+func keyByIP(r *http.Request) (string, error) {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	return httprate.CanonicalizeIP(host), nil
+}
+
 func limited(detail string) http.HandlerFunc {
+	body, _ := json.Marshal(map[string]any{"status": http.StatusTooManyRequests, "title": "Too Many Requests", "detail": detail, "code": "rate_limited"})
 	return func(w http.ResponseWriter, r *http.Request) {
 		if w.Header().Get("Retry-After") == "" {
 			w.Header().Set("Retry-After", strconv.Itoa(60))
 		}
 		w.Header().Set("Content-Type", "application/problem+json")
 		w.WriteHeader(http.StatusTooManyRequests)
-		_, _ = w.Write([]byte(`{"status":429,"title":"Too Many Requests","detail":` + strconv.Quote(detail) + `,"code":"rate_limited"}`))
+		_, _ = w.Write(body)
 	}
 }

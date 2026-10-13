@@ -5,6 +5,7 @@ package meta
 import (
 	"context"
 	"encoding/json"
+	"slices"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -18,6 +19,10 @@ type SSOOption struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`
 	Preset string `json:"preset" enum:"google,entra,okta,keycloak,authentik,oidc"`
+	// Domains are the email domains the provider signs in (allowed or enforced).
+	Domains []string `json:"domains"`
+	// StartURL starts the OIDC flow.
+	StartURL string `json:"startUrl"`
 }
 
 // InstanceInfo is the public instance description.
@@ -55,6 +60,9 @@ func (s *Service) Get(ctx context.Context) (InstanceInfo, error) {
 	if st.LogoSvg != nil {
 		info.LogoSVG = *st.LogoSvg
 	}
+	if len(st.AllowedMethods) == 0 {
+		info.Password, info.Passkeys = true, true
+	}
 	for _, m := range st.AllowedMethods {
 		switch m {
 		case "password":
@@ -68,11 +76,30 @@ func (s *Service) Get(ctx context.Context) (InstanceInfo, error) {
 	}
 	_ = json.Unmarshal(st.SocialProviders, &social)
 	for _, k := range []string{"google", "microsoft", "github"} {
-		if social[k].Enabled {
+		if social[k].Enabled && allowed(st.AllowedMethods, "social") {
 			info.Social = append(info.Social, k)
 		}
 	}
+	if allowed(st.AllowedMethods, "sso") {
+		ssos, err := s.Q.EnabledSSOProviders(ctx)
+		if err != nil {
+			return InstanceInfo{}, err
+		}
+		for _, p := range ssos {
+			domains := append([]string{}, p.AllowedDomains...)
+			for _, d := range p.EnforceDomains {
+				if !slices.Contains(domains, d) {
+					domains = append(domains, d)
+				}
+			}
+			info.SSO = append(info.SSO, SSOOption{ID: p.ID.String(), Name: p.Name, Preset: p.Preset, Domains: domains, StartURL: "/api/v1/auth/sso/" + p.ID.String() + "/start"})
+		}
+	}
 	return info, nil
+}
+
+func allowed(methods []string, m string) bool {
+	return len(methods) == 0 || slices.Contains(methods, m)
 }
 
 // Register adds GET /api/v1/meta.

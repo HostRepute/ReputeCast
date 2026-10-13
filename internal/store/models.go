@@ -637,24 +637,26 @@ type InstanceSetting struct {
 	LatestRelease      json.RawMessage `json:"latestRelease"`
 	LatestReleaseAt    *time.Time      `json:"latestReleaseAt"`
 	UpdatedAt          time.Time       `json:"updatedAt"`
+	BasicsConfirmedAt  *time.Time      `json:"basicsConfirmedAt"`
 }
 
 type Invitation struct {
-	ID          uuid.UUID       `json:"id"`
-	WorkspaceID uuid.UUID       `json:"workspaceId"`
-	Email       string          `json:"email"`
-	RoleID      uuid.UUID       `json:"roleId"`
-	Scope       json.RawMessage `json:"scope"`
-	Message     string          `json:"message"`
-	TokenHash   []byte          `json:"tokenHash"`
-	InvitedBy   *uuid.UUID      `json:"invitedBy"`
-	SentVia     *string         `json:"sentVia"`
-	LastSentAt  *time.Time      `json:"lastSentAt"`
-	CreatedAt   time.Time       `json:"createdAt"`
-	ExpiresAt   time.Time       `json:"expiresAt"`
-	AcceptedAt  *time.Time      `json:"acceptedAt"`
-	AcceptedBy  *uuid.UUID      `json:"acceptedBy"`
-	RevokedAt   *time.Time      `json:"revokedAt"`
+	ID                  uuid.UUID       `json:"id"`
+	WorkspaceID         uuid.UUID       `json:"workspaceId"`
+	Email               string          `json:"email"`
+	RoleID              uuid.UUID       `json:"roleId"`
+	Scope               json.RawMessage `json:"scope"`
+	Message             string          `json:"message"`
+	TokenHash           []byte          `json:"tokenHash"`
+	InvitedBy           *uuid.UUID      `json:"invitedBy"`
+	SentVia             *string         `json:"sentVia"`
+	LastSentAt          *time.Time      `json:"lastSentAt"`
+	CreatedAt           time.Time       `json:"createdAt"`
+	ExpiresAt           time.Time       `json:"expiresAt"`
+	AcceptedAt          *time.Time      `json:"acceptedAt"`
+	AcceptedBy          *uuid.UUID      `json:"acceptedBy"`
+	RevokedAt           *time.Time      `json:"revokedAt"`
+	ReinviteRequestedAt *time.Time      `json:"reinviteRequestedAt"`
 }
 
 type List struct {
@@ -703,17 +705,22 @@ type Message struct {
 }
 
 type Notification struct {
-	ID          uuid.UUID       `json:"id"`
-	UserID      uuid.UUID       `json:"userId"`
-	WorkspaceID *uuid.UUID      `json:"workspaceId"`
-	Kind        string          `json:"kind"`
-	Severity    string          `json:"severity"`
-	Title       string          `json:"title"`
-	Body        string          `json:"body"`
-	Link        string          `json:"link"`
-	Data        json.RawMessage `json:"data"`
-	CreatedAt   time.Time       `json:"createdAt"`
-	ReadAt      *time.Time      `json:"readAt"`
+	ID            uuid.UUID       `json:"id"`
+	UserID        uuid.UUID       `json:"userId"`
+	WorkspaceID   *uuid.UUID      `json:"workspaceId"`
+	Kind          string          `json:"kind"`
+	Severity      string          `json:"severity"`
+	Title         string          `json:"title"`
+	Body          string          `json:"body"`
+	Link          string          `json:"link"`
+	Data          json.RawMessage `json:"data"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	ReadAt        *time.Time      `json:"readAt"`
+	Summary       string          `json:"summary"`
+	InApp         bool            `json:"inApp"`
+	EmailStatus   *string         `json:"emailStatus"`
+	EmailAttempts int32           `json:"emailAttempts"`
+	EmailedAt     *time.Time      `json:"emailedAt"`
 }
 
 type NotificationPreference struct {
@@ -723,6 +730,15 @@ type NotificationPreference struct {
 	Email     bool      `json:"email"`
 }
 
+type NotificationSetting struct {
+	UserID       uuid.UUID  `json:"userId"`
+	QuietStart   *int16     `json:"quietStart"`
+	QuietEnd     *int16     `json:"quietEnd"`
+	Digest       string     `json:"digest"`
+	LastDigestAt *time.Time `json:"lastDigestAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
+}
+
 type PasswordReset struct {
 	ID        uuid.UUID  `json:"id"`
 	UserID    uuid.UUID  `json:"userId"`
@@ -730,6 +746,7 @@ type PasswordReset struct {
 	CreatedAt time.Time  `json:"createdAt"`
 	ExpiresAt time.Time  `json:"expiresAt"`
 	UsedAt    *time.Time `json:"usedAt"`
+	Source    string     `json:"source"`
 }
 
 type PostmasterDaily struct {
@@ -930,6 +947,10 @@ type Session struct {
 	LastSeenAt  time.Time   `json:"lastSeenAt"`
 	ExpiresAt   time.Time   `json:"expiresAt"`
 	RevokedAt   *time.Time  `json:"revokedAt"`
+	Device      string      `json:"device"`
+	Os          string      `json:"os"`
+	Browser     string      `json:"browser"`
+	PasskeyID   *uuid.UUID  `json:"passkeyId"`
 }
 
 type SignInThrottle struct {
@@ -1045,54 +1066,70 @@ type UnsubscribeFeedback struct {
 }
 
 type User struct {
-	ID                 uuid.UUID  `json:"id"`
-	Email              string     `json:"email"`
-	Name               string     `json:"name"`
-	AvatarColor        string     `json:"avatarColor"`
-	Timezone           string     `json:"timezone"`
-	PasswordHash       *string    `json:"passwordHash"`
-	PasswordSetAt      *time.Time `json:"passwordSetAt"`
-	MustChangePassword bool       `json:"mustChangePassword"`
-	IsInstanceAdmin    bool       `json:"isInstanceAdmin"`
-	BreakGlass         bool       `json:"breakGlass"`
-	Status             string     `json:"status"`
-	DeactivatedAt      *time.Time `json:"deactivatedAt"`
-	TotpSecretEnc      []byte     `json:"totpSecretEnc"`
-	TotpEnabledAt      *time.Time `json:"totpEnabledAt"`
-	TwofaGraceUntil    *time.Time `json:"twofaGraceUntil"`
-	FailedAttempts     int32      `json:"failedAttempts"`
-	LockedUntil        *time.Time `json:"lockedUntil"`
-	LastSignInAt       *time.Time `json:"lastSignInAt"`
-	LastActiveAt       *time.Time `json:"lastActiveAt"`
-	CreatedAt          time.Time  `json:"createdAt"`
-	UpdatedAt          time.Time  `json:"updatedAt"`
+	ID                   uuid.UUID  `json:"id"`
+	Email                string     `json:"email"`
+	Name                 string     `json:"name"`
+	AvatarColor          string     `json:"avatarColor"`
+	Timezone             string     `json:"timezone"`
+	PasswordHash         *string    `json:"passwordHash"`
+	PasswordSetAt        *time.Time `json:"passwordSetAt"`
+	MustChangePassword   bool       `json:"mustChangePassword"`
+	IsInstanceAdmin      bool       `json:"isInstanceAdmin"`
+	BreakGlass           bool       `json:"breakGlass"`
+	Status               string     `json:"status"`
+	DeactivatedAt        *time.Time `json:"deactivatedAt"`
+	TotpSecretEnc        []byte     `json:"totpSecretEnc"`
+	TotpEnabledAt        *time.Time `json:"totpEnabledAt"`
+	TwofaGraceUntil      *time.Time `json:"twofaGraceUntil"`
+	FailedAttempts       int32      `json:"failedAttempts"`
+	LockedUntil          *time.Time `json:"lockedUntil"`
+	LastSignInAt         *time.Time `json:"lastSignInAt"`
+	LastActiveAt         *time.Time `json:"lastActiveAt"`
+	CreatedAt            time.Time  `json:"createdAt"`
+	UpdatedAt            time.Time  `json:"updatedAt"`
+	WebauthnID           []byte     `json:"webauthnId"`
+	TotpLabel            string     `json:"totpLabel"`
+	RecoveryCodesSavedAt *time.Time `json:"recoveryCodesSavedAt"`
+	AvatarUpdatedAt      *time.Time `json:"avatarUpdatedAt"`
+}
+
+type UserAvatar struct {
+	UserID      uuid.UUID `json:"userId"`
+	ContentType string    `json:"contentType"`
+	Data        []byte    `json:"data"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type UserIdentity struct {
-	ID            uuid.UUID  `json:"id"`
-	UserID        uuid.UUID  `json:"userId"`
-	Kind          string     `json:"kind"`
-	SsoProviderID *uuid.UUID `json:"ssoProviderId"`
-	Subject       string     `json:"subject"`
-	Email         string     `json:"email"`
-	CreatedAt     time.Time  `json:"createdAt"`
-	LastUsedAt    *time.Time `json:"lastUsedAt"`
+	ID            uuid.UUID       `json:"id"`
+	UserID        uuid.UUID       `json:"userId"`
+	Kind          string          `json:"kind"`
+	SsoProviderID *uuid.UUID      `json:"ssoProviderId"`
+	Subject       string          `json:"subject"`
+	Email         string          `json:"email"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	LastUsedAt    *time.Time      `json:"lastUsedAt"`
+	Username      string          `json:"username"`
+	Details       json.RawMessage `json:"details"`
 }
 
 type UserPasskey struct {
-	ID              uuid.UUID  `json:"id"`
-	UserID          uuid.UUID  `json:"userId"`
-	Name            string     `json:"name"`
-	CredentialID    []byte     `json:"credentialId"`
-	PublicKey       []byte     `json:"publicKey"`
-	AttestationType string     `json:"attestationType"`
-	Aaguid          []byte     `json:"aaguid"`
-	SignCount       int64      `json:"signCount"`
-	Transports      []string   `json:"transports"`
-	BackupEligible  bool       `json:"backupEligible"`
-	BackupState     bool       `json:"backupState"`
-	CreatedAt       time.Time  `json:"createdAt"`
-	LastUsedAt      *time.Time `json:"lastUsedAt"`
+	ID              uuid.UUID       `json:"id"`
+	UserID          uuid.UUID       `json:"userId"`
+	Name            string          `json:"name"`
+	CredentialID    []byte          `json:"credentialId"`
+	PublicKey       []byte          `json:"publicKey"`
+	AttestationType string          `json:"attestationType"`
+	Aaguid          []byte          `json:"aaguid"`
+	SignCount       int64           `json:"signCount"`
+	Transports      []string        `json:"transports"`
+	BackupEligible  bool            `json:"backupEligible"`
+	BackupState     bool            `json:"backupState"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	LastUsedAt      *time.Time      `json:"lastUsedAt"`
+	Credential      json.RawMessage `json:"credential"`
+	Attachment      string          `json:"attachment"`
+	Provider        string          `json:"provider"`
 }
 
 type UserRecoveryCode struct {

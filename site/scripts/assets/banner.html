@@ -1,0 +1,104 @@
+<!doctype html>
+<!--
+  The GitHub README banner (design/boards/ReadmeBanner.dc.html), copied
+  value for value. scripts/assets.ts renders it to docs/assets/readme-banner.png
+  and, with the text outlined, docs/assets/readme-banner.svg; at 1200 x 630 it
+  is also the site's Open Graph image (public/og.png). The script fills in
+  the size, the footer line and the self-hosted fonts.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      {{FONTS}}
+      html,
+      body {
+        margin: 0;
+        background: #0b1220;
+      }
+      body {
+        color: #fff;
+        font-family: 'IBM Plex Sans', system-ui, sans-serif;
+        font-variant-ligatures: none;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        height: 30px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid #374151;
+        background: #111827;
+        color: #e5e7eb;
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 0;
+        border-top: 1px solid #1f2937;
+        font-size: 13px;
+        color: #e5e7eb;
+      }
+      .b {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 22px;
+        padding: 0 8px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 700;
+        white-space: nowrap;
+        flex: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="banner"
+      style="width:{{W}}px;height:{{H}}px;box-sizing:border-box;padding:56px {{PADX}}px;display:flex;gap:48px;align-items:center;background:#0B1220;position:relative;overflow:hidden"
+    >
+      <div style="position:absolute;right:-120px;top:-120px;width:520px;height:520px;border-radius:50%;background:#0F766E;opacity:.18"></div>
+      <div style="flex:1 1 600px;display:flex;flex-direction:column;gap:22px;position:relative">
+        <div style="display:flex;align-items:center;gap:14px">
+          <svg width="52" height="52" viewBox="0 0 32 32" aria-hidden="true">
+            <rect width="32" height="32" rx="8" fill="#0F766E"></rect>
+            <path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+          <span style="font-size:30px;font-weight:700;letter-spacing:-.02em">ReputeCast</span>
+        </div>
+        <h1 style="margin:0;font-size:46px;font-weight:700;letter-spacing:-.03em;line-height:1.05">The newsletter platform that protects your inbox placement.</h1>
+        <p style="margin:0;font-size:18px;color:#C3C2B7;line-height:1.5;max-width:600px">
+          Open source and self-hosted. Checks deliverability before you send, guards your reputation while you send, and delivers through your own SES, Postmark,
+          Mailgun, SendGrid, Resend, Postal or any SMTP server.
+        </p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="chip">Open source</span><span class="chip">Self-hosted · docker compose up</span><span class="chip">Any sending provider, several at once</span
+          ><span class="chip">Every feature free</span>
+        </div>
+        <span style="font-size:14px;color:#9CA3AF">{{FOOT}}</span>
+      </div>
+      <div style="flex:0 0 420px;position:relative;display:flex;flex-direction:column;gap:12px">
+        <div
+          style="background:#111827;border:1px solid #374151;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:4px;box-shadow:0 24px 60px rgba(0,0,0,.4)"
+        >
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px">
+            <span style="font-weight:700;font-size:14px">Send Readiness</span><span class="b" style="background:#FEF3C7;color:#92400E">Ready with 2 warnings</span>
+          </div>
+          <div class="row"><span class="b" style="background:#DCFCE7;color:#166534">Pass</span>Clean on 84 of 84 blocklists</div>
+          <div class="row"><span class="b" style="background:#DCFCE7;color:#166534">Pass</span>SPF · DKIM · DMARC aligned on 2 providers</div>
+          <div class="row"><span class="b" style="background:#DCFCE7;color:#166534">Pass</span>64 KB, under Gmail's 102 KB clip</div>
+          <div class="row"><span class="b" style="background:#FEF3C7;color:#92400E">Warn</span>412 unengaged contacts included</div>
+          <div class="row"><span class="b" style="background:#DCFCE7;color:#166534">Pass</span>Route SES 90% / Postal 10%, both healthy</div>
+        </div>
+        <div style="background:#111827;border:1px solid #7F1D1D;border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:10px;font-size:13px;color:#E5E7EB">
+          <span class="b" style="background:#FEE2E2;color:#991B1B">Auto-paused</span>Outlook complaints 0.18% · limit 0.10% · 2,522 held, rest still sending
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

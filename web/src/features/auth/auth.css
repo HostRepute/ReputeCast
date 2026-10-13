@@ -1,0 +1,151 @@
+/* Sign-in, two-factor, invite, reset and first sign-in screens
+   (SignInStates, TwoFactorStates, InviteStates, AuthScreens, InstanceSetup). */
+@layer components {
+  /* The state boards draw the card 412px wide (a 3-column gallery) and the
+     brand at 15px. */
+  .auth-page main {
+    max-width: 412px !important;
+  }
+  .auth {
+    max-width: 412px;
+  }
+  .auth .brand {
+    font-size: 15px;
+  }
+  .auth .tiles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .auth .stack-8 {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  /* The boards' code boxes are content-box: 46×54 with the border. */
+  .auth .otp input {
+    box-sizing: content-box;
+  }
+  .auth .otp-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .auth .lock .pk-name {
+    font-weight: 600;
+  }
+  .auth p.body {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--ink-nav);
+  }
+  .auth .refbox {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    flex-wrap: wrap;
+  }
+  .auth .refbox > .k {
+    flex: 1 1 200px;
+  }
+  .auth .badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .auth .btn.quiet {
+    border-color: transparent;
+  }
+  .auth .in[readonly] {
+    background: var(--ground);
+  }
+  @media (max-width: 767px) {
+    .auth-page {
+      padding: 52px 16px 32px;
+    }
+  }
+
+  /* First sign-in (InstanceSetup): a stepper card beside the step. */
+  .setup {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 40px 40px 48px;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 28px;
+    align-items: start;
+    box-sizing: border-box;
+  }
+  .setup .card {
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .setup .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .setup .brand small {
+    font-weight: 500;
+    color: var(--ink-3);
+    font-size: 12px;
+    margin-left: 4px;
+  }
+  .setup .btn {
+    min-height: 40px;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+  .setup .btn.sm {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  .setup .in {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 14px;
+    width: 100%;
+  }
+  .setup .lbl {
+    gap: 5px;
+    font-size: 13px;
+  }
+  .setup .chk-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .setup .two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .setup h1,
+  .setup h2 {
+    margin: 0;
+  }
+  @media (max-width: 1100px) {
+    .setup {
+      grid-template-columns: 1fr;
+      padding: 24px 16px;
+    }
+  }
+  @media (max-width: 767px) {
+    .setup .two {
+      grid-template-columns: 1fr;
+    }
+  }
+}

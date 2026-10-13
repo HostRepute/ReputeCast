@@ -83,7 +83,7 @@ func (s *SPA) serveFile(w http.ResponseWriter, r *http.Request, name string) boo
 			continue
 		}
 		if f, err := s.fsys.Open(name + enc.ext); err == nil {
-			defer f.Close()
+			defer func() { _ = f.Close() }()
 			if rs, ok := f.(io.ReadSeeker); ok {
 				h.Set("Content-Encoding", enc.name)
 				http.ServeContent(w, r, name, s.start, rs)
@@ -95,7 +95,7 @@ func (s *SPA) serveFile(w http.ResponseWriter, r *http.Request, name string) boo
 	if err != nil {
 		return false
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	rs, ok := f.(io.ReadSeeker)
 	if !ok {
 		b, err := io.ReadAll(f)

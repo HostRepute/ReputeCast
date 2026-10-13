@@ -135,7 +135,7 @@ func GenerateKey() string {
 // LoadOrCreateKeyFile reads a base64 key from path, creating the file with a
 // fresh key (mode 0600) when it doesn't exist yet.
 func LoadOrCreateKeyFile(path string) (string, bool, error) {
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(path) //nolint:gosec // the path is the operator's secrets.key_file setting
 	if err == nil {
 		return strings.TrimSpace(string(b)), false, nil
 	}
@@ -146,12 +146,15 @@ func LoadOrCreateKeyFile(path string) (string, bool, error) {
 		return "", false, err
 	}
 	k := GenerateKey()
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600) //nolint:gosec // the operator's secrets.key_file setting
 	if err != nil {
 		return "", false, err
 	}
-	defer f.Close()
 	if _, err := f.WriteString(k + "\n"); err != nil {
+		_ = f.Close()
+		return "", false, err
+	}
+	if err := f.Close(); err != nil {
 		return "", false, err
 	}
 	return k, true, nil
