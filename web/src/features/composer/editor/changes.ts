@@ -8,6 +8,8 @@ import { sectionLabel, sectionOf, tagOf } from './labels'
 export interface ChangeTracker {
   /** Distinct descriptions since the last take(), at most three. */
   take(): string
+  /** The same descriptions without clearing them (the leave dialog names them). */
+  peek(): string[]
   /** True when a section or element was added or removed since the last take(). */
   structural(): boolean
   note(label: string): void
@@ -88,6 +90,7 @@ export function trackChanges(editor: Editor): ChangeTracker {
       structural = false
       return out
     },
+    peek: () => labels.slice(0, 3),
     structural: () => structural,
     note: add,
     dispose() {
