@@ -12,6 +12,41 @@ import (
 	"github.com/google/uuid"
 )
 
+const suppAddedByProvider = `-- name: SuppAddedByProvider :many
+SELECT source_provider_id::uuid AS provider_id, count(*)::bigint AS n, max(created_at)::timestamptz AS last_at
+FROM suppressions
+WHERE workspace_id = $1 AND source_provider_id IS NOT NULL
+GROUP BY source_provider_id
+`
+
+type SuppAddedByProviderRow struct {
+	ProviderID uuid.UUID `json:"providerId"`
+	N          int64     `json:"n"`
+	LastAt     time.Time `json:"lastAt"`
+}
+
+// Addresses each provider's bounce and complaint events added to the shared
+// list (the "pulled in" count of providers without a suppression API).
+func (q *Queries) SuppAddedByProvider(ctx context.Context, workspaceID uuid.UUID) ([]SuppAddedByProviderRow, error) {
+	rows, err := q.db.Query(ctx, suppAddedByProvider, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SuppAddedByProviderRow{}
+	for rows.Next() {
+		var i SuppAddedByProviderRow
+		if err := rows.Scan(&i.ProviderID, &i.N, &i.LastAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const suppCount = `-- name: SuppCount :one
 SELECT count(*)::bigint FROM suppressions WHERE workspace_id = $1
 `

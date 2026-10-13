@@ -202,6 +202,9 @@ type Querier interface {
 	SetUserTwoFAGrace(ctx context.Context, arg SetUserTwoFAGraceParams) error
 	SlugTaken(ctx context.Context, slug string) (bool, error)
 	SoftDeleteWorkspace(ctx context.Context, id uuid.UUID) error
+	// Addresses each provider's bounce and complaint events added to the shared
+	// list (the "pulled in" count of providers without a suppression API).
+	SuppAddedByProvider(ctx context.Context, workspaceID uuid.UUID) ([]SuppAddedByProviderRow, error)
 	SuppCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	// Suppressions brought in by imports ("Brevo (import)"), per source.
 	SuppImportSources(ctx context.Context, workspaceID uuid.UUID) ([]SuppImportSourcesRow, error)

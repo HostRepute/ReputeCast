@@ -309,13 +309,28 @@ func (s *Service) Status(ctx context.Context, ws *store.Workspace) (SuppressionS
 	for _, r := range syncs {
 		byID[r.ProviderID] = r
 	}
+	added, err := s.Q.SuppAddedByProvider(ctx, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	addedBy := map[uuid.UUID]store.SuppAddedByProviderRow{}
+	for _, a := range added {
+		addedBy[a.ProviderID] = a
+	}
 	for _, p := range provs {
 		row := SuppressionSyncRow{ProviderID: p.ID.String(), Provider: p.Name, Scope: scope(p.Adapter)}
 		r, ok := byID[p.ID]
 		if !state.Caps(p).SuppressionSync {
+			// No suppression API: its bounce and complaint events still add
+			// to the shared list, which is enforced before every send.
 			row.Direction, row.Status, row.Detail = "local", "local", "ReputeCast checks the shared list before handing mail to "+p.Name+"."
-			if ok {
-				row.Pulled = r.Pulled
+			if a, found := addedBy[p.ID]; found {
+				row.Pulled = a.N
+				at := a.LastAt
+				row.LastSync = &at
+			}
+			if p.LastEventAt != nil && (row.LastSync == nil || p.LastEventAt.After(*row.LastSync)) {
+				row.LastSync = p.LastEventAt
 			}
 			out.Rows = append(out.Rows, row)
 			continue

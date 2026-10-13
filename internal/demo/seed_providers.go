@@ -158,6 +158,9 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 	if err := seedEventLog(ctx, s, linh.ID); err != nil {
 		return err
 	}
+	if err := seedCommunityAdapters(ctx, s); err != nil {
+		return err
+	}
 	// The route tester shows each provider's DKIM selector; the senders
 	// seeder owns sending domains, so only fill in what's missing once
 	// every seeder ran.
@@ -412,7 +415,7 @@ func seedSuppressionsIfEmpty(ctx context.Context, s *Seeder) error {
 	if err := s.Tx.QueryRow(ctx, `SELECT count(*) FROM suppressions WHERE workspace_id = $1`, ws.ID).Scan(&n); err != nil || n > 0 {
 		return err
 	}
-	ses, postmark := s.Providers["ses"], s.Providers["postmark"]
+	ses, postmark, postal := s.Providers["ses"], s.Providers["postmark"], s.Providers["postal"]
 	brevo := s.designDay(24, 10, 0)
 	type group struct {
 		reason, source string
@@ -422,8 +425,10 @@ func seedSuppressionsIfEmpty(ctx context.Context, s *Seeder) error {
 	}
 	groups := []group{
 		{"hard_bounce", "import:brevo", nil, 870, brevo},
-		{"hard_bounce", "webhook", &ses, 372, s.Ago(9 * 24 * time.Hour)},
+		{"hard_bounce", "webhook", &ses, 331, s.Ago(9 * 24 * time.Hour)},
 		{"hard_bounce", "webhook", &postmark, 120, s.Ago(6 * 24 * time.Hour)},
+		// Postal's warm-up bounces ("41 pulled in" on Events & sync).
+		{"hard_bounce", "webhook", &postal, 41, s.Ago(2 * time.Minute)},
 		{"hard_bounce", "bounce_mailbox", nil, 40, s.Ago(20 * 24 * time.Hour)},
 		{"complaint", "import:brevo", nil, 52, brevo},
 		{"complaint", "webhook", &ses, 36, s.Ago(4 * 24 * time.Hour)},
@@ -641,4 +646,28 @@ func demoCredentials(adapter string) []byte {
 	}
 	b, _ := json.Marshal(m)
 	return b
+}
+
+// seedCommunityAdapters installs the three community adapters of the
+// Adapters board (instance-wide, none connected). The maintainer handles
+// are the board's placeholders.
+func seedCommunityAdapters(ctx context.Context, s *Seeder) error {
+	for _, a := range []struct {
+		name, version, latest string
+		caps                  []string
+		lastRelease           time.Time
+		installed             time.Duration
+	}{
+		{"Scaleway Transactional Email", "0.6.1", "0.7.0", []string{"webhooks", "suppression pull", "batch 50"}, s.Ago(9 * 24 * time.Hour), 41 * 24 * time.Hour},
+		{"Mailtrap Sending", "1.1.0", "1.1.0", []string{"webhooks", "domain setup via API"}, s.Ago(52 * 24 * time.Hour), 33 * 24 * time.Hour},
+		{"MailerSend", "0.3.4", "0.3.4", []string{"webhooks"}, s.Now.AddDate(0, -14, -3), 120 * 24 * time.Hour},
+	} {
+		manifest, _ := json.Marshal(map[string]any{"kind": "wasm", "capabilities": a.caps, "last_release": a.lastRelease.UTC().Format(time.RFC3339)})
+		if _, err := s.Tx.Exec(ctx, `INSERT INTO installed_adapters (id, name, kind, version, maintainer, source_url, manifest, latest_version, installed_at)
+			VALUES ($1, $2, 'wasm', $3, '[MAINTAINER HANDLE]', 'https://github.com/hostrepute/reputecast-adapters', $4, $5, $6)
+			ON CONFLICT (name) DO NOTHING`, ID(), a.name, a.version, manifest, a.latest, s.Ago(a.installed)); err != nil {
+			return err
+		}
+	}
+	return nil
 }

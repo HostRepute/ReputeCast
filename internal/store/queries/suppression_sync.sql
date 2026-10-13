@@ -44,3 +44,11 @@ WHERE workspace_id = @workspace_id AND created_at > @since
 
 -- name: SuppLatestCreated :one
 SELECT coalesce(max(created_at), '-infinity'::timestamptz)::timestamptz FROM suppressions WHERE workspace_id = @workspace_id;
+
+-- name: SuppAddedByProvider :many
+-- Addresses each provider's bounce and complaint events added to the shared
+-- list (the "pulled in" count of providers without a suppression API).
+SELECT source_provider_id::uuid AS provider_id, count(*)::bigint AS n, max(created_at)::timestamptz AS last_at
+FROM suppressions
+WHERE workspace_id = @workspace_id AND source_provider_id IS NOT NULL
+GROUP BY source_provider_id;
