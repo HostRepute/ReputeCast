@@ -155,7 +155,10 @@ func (s *Service) click(w http.ResponseWriter, r *http.Request) {
 		s.log().WarnContext(r.Context(), "record click", "err", err)
 	}
 	cancel()
-	http.Redirect(w, r, target, http.StatusFound)
+	// target is one of the signed message's own links (its position is in
+	// the signed token, the URL in that campaign's links, an http(s) URL):
+	// never a URL taken from the request.
+	http.Redirect(w, r, target, http.StatusFound) //nolint:gosec // G710: see target
 }
 
 func gone(w http.ResponseWriter) {
@@ -175,7 +178,8 @@ func (s *Service) target(ctx context.Context, c linktoken.Claims) (string, error
 	if m.WorkspaceID != c.WorkspaceID {
 		return "", errors.New("token workspace mismatch")
 	}
-	key, load := uuid.Nil, func() (map[int]string, error) { return nil, nil }
+	var key uuid.UUID
+	var load func() (map[int]string, error)
 	switch {
 	case m.CampaignID != nil:
 		key = *m.CampaignID

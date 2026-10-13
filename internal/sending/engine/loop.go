@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -128,7 +127,6 @@ type runState struct {
 	loc        *time.Location
 	ab         abState
 	started    time.Time
-	mu         sync.Mutex
 }
 
 // cachedTemplate keeps a send's parsed templates in the process.
@@ -188,7 +186,7 @@ func (e *Engine) load(ctx context.Context, id uuid.UUID, now time.Time) (*runSta
 		return nil, errStopped
 	}
 	rs := &runState{campaign: cc, send: snd, routes: map[uuid.UUID]*runRoute{}, tokens: map[string]float64{}, queue: map[queueKey]queueCell{},
-		loc: state.Location(cc.WorkspaceTimezone), thresholds: ParseThresholds(snd.Thresholds), ab: parseAB(snd.Ab), loadedAt: now}
+		loc: state.Location(cc.WorkspaceTimezone), thresholds: ParseThresholds(snd.Thresholds, nil), ab: parseAB(snd.Ab), loadedAt: now}
 	if cc.StartedAt != nil {
 		rs.started = *cc.StartedAt
 	}
@@ -714,7 +712,7 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 				out.sentPMID = append(out.sentPMID, res.ProviderMessageID)
 				out.cell(p.row.MailboxProvider, p.row.Variant).sent++
 				out.cost += r.micros
-				if r.sim != nil {
+				if r.sim != nil && !e.QuietDemo {
 					out.sims = append(out.sims, simRows(rs.campaign.WorkspaceID, &rs.campaign.ID, p.row.ID, r.provider.ID, now, r.sim.Plan(p.msg))...)
 				}
 				continue

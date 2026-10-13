@@ -105,15 +105,49 @@ func TestMaskAddress(t *testing.T) {
 }
 
 func TestParseThresholds(t *testing.T) {
-	th := ParseThresholds(json.RawMessage(`{"bounce":1.5,"complaint":0.08,"scope":"campaign"}`))
+	th := ParseThresholds(json.RawMessage(`{"bounce":1.5,"complaint":0.08,"scope":"campaign"}`), nil)
 	if th.Bounce != 1.5 || th.Complaint != 0.08 || th.MailboxComplaint != 0.08 || th.Deferral != 5 || th.APIErrors != 5 || th.Scope != "campaign" {
 		t.Fatalf("%+v", th)
 	}
-	if d := ParseThresholds(nil); d != DefaultThresholds {
+	if d := ParseThresholds(nil, nil); d != DefaultThresholds {
 		t.Fatalf("defaults %+v", d)
 	}
-	if th := ParseThresholds(json.RawMessage(`{"bounce":-1,"scope":"everything"}`)); th.Bounce != 2 || th.Scope != "route" {
+	if th := ParseThresholds(json.RawMessage(`{"bounce":-1,"scope":"everything"}`), nil); th.Bounce != 2 || th.Scope != "route" {
 		t.Fatalf("invalid values must keep defaults: %+v", th)
+	}
+	// The workspace's defaults (Settings › Providers spells them its own
+	// way), then the campaign's (Review & send).
+	ws := json.RawMessage(`{"hard_bounce":3.0,"complaint":0.2,"mailbox_complaint":0.3,"provider_error_rate":10,"scope":"campaign","min_sample":500}`)
+	if th := ParseThresholds(nil, ws); th.Bounce != 3 || th.Complaint != 0.2 || th.MailboxComplaint != 0.3 || th.APIErrors != 10 || th.Scope != "campaign" {
+		t.Fatalf("workspace defaults: %+v", th)
+	}
+	campaign := json.RawMessage(`{"bounce":1.5,"complaint":0.1,"provider_errors":4,"scope":"route"}`)
+	if th := ParseThresholds(campaign, ws); th.Bounce != 1.5 || th.Complaint != 0.1 || th.MailboxComplaint != 0.3 || th.APIErrors != 4 || th.Scope != "route" {
+		t.Fatalf("campaign over workspace: %+v", th)
+	}
+}
+
+func TestSendThrottles(t *testing.T) {
+	got := sendThrottles(json.RawMessage(`{"throttles":{"gmail":0,"outlook":8,"yahoo":0},"suppression_sync":"15m"}`), map[string]float64{"icloud": 2})
+	want := map[string]float64{"outlook": 8, "icloud": 2}
+	if len(got) != len(want) || got["outlook"] != 8 || got["icloud"] != 2 {
+		t.Fatalf("throttles %v, want %v (0 = no limit)", got, want)
+	}
+	if d := sendThrottles(nil, nil); d["outlook"] != 5 || d["yahoo"] != 4 || d["icloud"] != 3 || len(d) != 3 {
+		t.Fatalf("defaults %v", d)
+	}
+}
+
+func TestNextAtHour(t *testing.T) {
+	now := time.Date(2026, 10, 14, 9, 20, 0, 0, time.UTC)
+	for hour, want := range map[int]time.Time{
+		9:  now,                                            // within the hour: at once
+		14: time.Date(2026, 10, 14, 14, 0, 0, 0, time.UTC), // later today
+		7:  time.Date(2026, 10, 15, 7, 0, 0, 0, time.UTC),  // tomorrow
+	} {
+		if got := nextAtHour(now, hour); !got.Equal(want) {
+			t.Errorf("nextAtHour(%d) = %v, want %v", hour, got, want)
+		}
 	}
 }
 

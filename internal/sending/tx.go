@@ -26,7 +26,7 @@ func Tx(ctx context.Context, pool *pgxpool.Pool, fn func(pgx.Tx) error) error {
 		if err = db.Tx(ctx, pool, fn); !Retryable(err) {
 			return err
 		}
-		wait := time.Duration(10<<attempt)*time.Millisecond + time.Duration(rand.IntN(10))*time.Millisecond
+		wait := time.Duration(10<<attempt)*time.Millisecond + time.Duration(rand.IntN(10))*time.Millisecond //nolint:gosec // jitter, not a secret
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

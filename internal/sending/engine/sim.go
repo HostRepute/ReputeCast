@@ -210,8 +210,11 @@ func (e *Engine) linkCount(ctx context.Context, q *store.Queries, m store.Sendin
 		n = len(ls)
 	} else {
 		tm, err := q.TrackingMessage(ctx, m.ID)
-		if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return 0, nil
+		}
+		if err != nil {
+			return 0, err
 		}
 		var ref contentRef
 		_ = json.Unmarshal(tm.ContentRef, &ref)

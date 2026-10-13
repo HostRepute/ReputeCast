@@ -53,9 +53,9 @@ func testAPI(t *testing.T, f *fixture) {
 
 	// An MCP agent with campaigns:pause (the demo's "Ops agent") can stop a
 	// send but never start or resume one.
-	token, hash := authn.NewToken()
+	token, _ := authn.NewToken()
 	token = "rc_agent_" + token
-	hash = authn.HashToken(token)
+	hash := authn.HashToken(token)
 	var linh uuid.UUID
 	_ = f.env.App.Pool.QueryRow(f.ctx, `SELECT id FROM users WHERE email = 'linh@acme.io'`).Scan(&linh)
 	f.exec(`INSERT INTO api_keys (id, workspace_id, kind, name, prefix, token_hash, permissions, scope, created_by)
@@ -87,7 +87,7 @@ func testAPI(t *testing.T, f *fixture) {
 		t.Fatal(err)
 	}
 	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != 200 || !strings.HasPrefix(resp.Header.Get("Content-Type"), "text/event-stream") {
+	if resp.StatusCode != http.StatusOK || !strings.HasPrefix(resp.Header.Get("Content-Type"), "text/event-stream") {
 		t.Fatalf("stream %d %s", resp.StatusCode, resp.Header.Get("Content-Type"))
 	}
 	sc := bufio.NewScanner(resp.Body)
@@ -131,7 +131,12 @@ func testTracking(t *testing.T, f *fixture) {
 	open := links.Sign(linktoken.Claims{Kind: linktoken.Open, WorkspaceID: f.ws, MessageID: msg, ContactID: contact})
 	click := links.Sign(linktoken.Claims{Kind: linktoken.Click, WorkspaceID: f.ws, MessageID: msg, ContactID: contact, Link: 0})
 	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }, Timeout: 10 * time.Second}
-	get := func(path, ua string) *http.Response {
+	// answer is what a tracking request got back.
+	type answer struct {
+		StatusCode int
+		Header     http.Header
+	}
+	get := func(path, ua string) answer {
 		t.Helper()
 		req, _ := http.NewRequest(http.MethodGet, f.env.Server.URL+path, nil)
 		if ua != "" {
@@ -141,11 +146,11 @@ func testTracking(t *testing.T, f *fixture) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_ = resp.Body.Close()
-		return resp
+		defer func() { _ = resp.Body.Close() }()
+		return answer{StatusCode: resp.StatusCode, Header: resp.Header}
 	}
 	// Apple Mail Privacy Protection prefetch first: a machine open.
-	if r := get("/t/o/"+open, "Mozilla/5.0"); r.StatusCode != 200 || r.Header.Get("Content-Type") != "image/gif" || !strings.Contains(r.Header.Get("Cache-Control"), "no-store") {
+	if r := get("/t/o/"+open, "Mozilla/5.0"); r.StatusCode != http.StatusOK || r.Header.Get("Content-Type") != "image/gif" || !strings.Contains(r.Header.Get("Cache-Control"), "no-store") {
 		t.Fatalf("pixel %d %s %s", r.StatusCode, r.Header.Get("Content-Type"), r.Header.Get("Cache-Control"))
 	}
 	waitFor(t, func() bool {
@@ -181,21 +186,21 @@ func testTracking(t *testing.T, f *fixture) {
 		t.Fatalf("scanner click counted: %d clicks", n)
 	}
 	// Never an open redirect: forged tokens, other kinds and unknown links fail.
-	if r := get("/t/c/"+open, ""); r.StatusCode != 404 {
+	if r := get("/t/c/"+open, ""); r.StatusCode != http.StatusNotFound {
 		t.Fatalf("an open token used as a click: %d", r.StatusCode)
 	}
-	if r := get("/t/c/not-a-token", ""); r.StatusCode != 404 {
+	if r := get("/t/c/not-a-token", ""); r.StatusCode != http.StatusNotFound {
 		t.Fatalf("forged click token: %d", r.StatusCode)
 	}
 	unknown := links.Sign(linktoken.Claims{Kind: linktoken.Click, WorkspaceID: f.ws, MessageID: msg, ContactID: contact, Link: 9999})
-	if r := get("/t/c/"+unknown, ""); r.StatusCode != 404 || r.Header.Get("Location") != "" {
+	if r := get("/t/c/"+unknown, ""); r.StatusCode != http.StatusNotFound || r.Header.Get("Location") != "" {
 		t.Fatalf("unknown link: %d %q", r.StatusCode, r.Header.Get("Location"))
 	}
 	otherWS := links.Sign(linktoken.Claims{Kind: linktoken.Click, WorkspaceID: uuid.New(), MessageID: msg, ContactID: contact, Link: 0})
-	if r := get("/t/c/"+otherWS, ""); r.StatusCode != 404 {
+	if r := get("/t/c/"+otherWS, ""); r.StatusCode != http.StatusNotFound {
 		t.Fatalf("token of another workspace: %d", r.StatusCode)
 	}
-	if r := get("/t/o/garbage", ""); r.StatusCode != 200 || r.Header.Get("Content-Type") != "image/gif" {
+	if r := get("/t/o/garbage", ""); r.StatusCode != http.StatusOK || r.Header.Get("Content-Type") != "image/gif" {
 		t.Fatalf("a bad pixel token still gets the GIF: %d", r.StatusCode)
 	}
 	if n := f.count(`SELECT count(*) FROM delivery_events WHERE message_id = $1 AND type = 'open' AND NOT machine AND diagnostic = 'Chrome on macOS'`, msg); n != 1 {

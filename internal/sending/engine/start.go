@@ -88,7 +88,9 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 	}
 	var sc schedule
 	_ = json.Unmarshal(c.Schedule, &sc)
-	if !o.Now && sc.Mode == "at" && sc.At != nil && sc.At.After(now.Add(5*time.Second)) {
+	// "best_time" starts at the time too, then gives each recipient their
+	// usual open hour within the next 24 hours (the audience build).
+	if !o.Now && (sc.Mode == "at" || sc.Mode == "best_time") && sc.At != nil && sc.At.After(now.Add(5*time.Second)) {
 		return e.schedule(ctx, c, *sc.At, o)
 	}
 	rc, err := e.readiness().Recheck(ctx, campaignID)
@@ -112,12 +114,12 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 		default:
 			return stateErr("%q is %s.", c.Name, c.Status)
 		}
-		throttles := DefaultThrottles
-		if rc.Throttles != nil {
-			throttles = rc.Throttles
+		defaults, err := q.SendingWorkspaceDefaults(ctx, c.WorkspaceID)
+		if err != nil {
+			return err
 		}
-		tb, _ := json.Marshal(throttles)
-		th, _ := json.Marshal(ParseThresholds(c.Thresholds))
+		tb, _ := json.Marshal(sendThrottles(defaults.SendingDefaults, rc.Throttles))
+		th, _ := json.Marshal(ParseThresholds(c.Thresholds, defaults.SendThresholds))
 		approvedBy, approvedAt := o.ApprovedBy, o.ApprovedAt
 		if approvedBy == nil {
 			if ap, err := q.SendingApproval(ctx, &c.ID); err == nil {

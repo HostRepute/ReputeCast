@@ -166,30 +166,57 @@ func (q *Queries) SendingApproval(ctx context.Context, campaignID *uuid.UUID) (S
 }
 
 const sendingAudiencePage = `-- name: SendingAudiencePage :many
-SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.mailbox_provider, c.tier, c.status, c.source,
-       c.last_open_at, c.last_human_open_at, c.consent, c.role_address,
+WITH page AS (
+    SELECT u.id FROM (
+        SELECT m.contact_id AS id FROM list_memberships m
+        WHERE m.list_id = ANY($3::uuid[]) AND m.status = 'subscribed' AND m.contact_id > $4::uuid
+        UNION
+        SELECT st.contact_id FROM campaign_audience_stage st
+        WHERE st.campaign_id = $5 AND NOT st.exclude AND st.contact_id > $4::uuid
+    ) u
+    ORDER BY u.id
+    LIMIT $6
+), member_lists AS (
+    SELECT m.contact_id, array_agg(m.list_id ORDER BY m.list_id)::uuid[] AS lists
+    FROM list_memberships m
+    WHERE m.contact_id IN (SELECT id FROM page) AND m.list_id = ANY($3::uuid[]) AND m.status = 'subscribed'
+    GROUP BY m.contact_id
+), excluded AS (
+    SELECT DISTINCT x.contact_id
+    FROM list_memberships x
+    WHERE x.contact_id IN (SELECT id FROM page) AND x.list_id = ANY($7::uuid[]) AND x.status = 'subscribed'
+), excluded_staged AS (
+    SELECT st.contact_id FROM campaign_audience_stage st
+    WHERE st.campaign_id = $5 AND st.exclude AND st.contact_id IN (SELECT id FROM page)
+)
+SELECT page.id::uuid AS id,
+       coalesce(c.email, '')::text AS email, coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
+       coalesce(c.attributes, '{}'::jsonb)::jsonb AS attributes, coalesce(c.mailbox_provider, '')::text AS mailbox_provider,
+       coalesce(c.tier, '')::text AS tier, coalesce(c.status, '')::text AS status, coalesce(c.source, '')::text AS source,
+       c.last_open_at, c.last_human_open_at, coalesce(c.consent, '')::text AS consent, coalesce(c.role_address, false)::boolean AS role_address,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS sunset_stopped,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)::boolean AS suppressed,
        coalesce((SELECT p.paused_until > $1::timestamptz FROM contact_preferences p WHERE p.contact_id = c.id), false)::boolean AS paused,
-       EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($2::uuid[]))::boolean AS excluded_list,
-       EXISTS (SELECT 1 FROM campaign_audience_stage st WHERE st.campaign_id = $3 AND st.exclude AND st.contact_id = c.id)::boolean AS excluded_segment,
-       ARRAY(SELECT m.list_id FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY($4::uuid[]) ORDER BY m.list_id)::uuid[] AS lists
-FROM contacts c
-WHERE c.workspace_id = $5 AND c.id > $6::uuid AND c.erased_at IS NULL
-  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY($4::uuid[]))
-       OR EXISTS (SELECT 1 FROM campaign_audience_stage st WHERE st.campaign_id = $3 AND NOT st.exclude AND st.contact_id = c.id))
-ORDER BY c.id
-LIMIT $7
+       (excluded.contact_id IS NOT NULL)::boolean AS excluded_list,
+       (excluded_staged.contact_id IS NOT NULL)::boolean AS excluded_segment,
+       coalesce(member_lists.lists, '{}'::uuid[])::uuid[] AS lists,
+       (c.id IS NULL OR c.erased_at IS NOT NULL OR c.workspace_id <> $2::uuid)::boolean AS gone
+FROM page
+LEFT JOIN contacts c ON c.id = page.id
+LEFT JOIN member_lists ON member_lists.contact_id = page.id
+LEFT JOIN excluded ON excluded.contact_id = page.id
+LEFT JOIN excluded_staged ON excluded_staged.contact_id = page.id
+ORDER BY page.id
 `
 
 type SendingAudiencePageParams struct {
 	Now          time.Time   `json:"now"`
-	ExcludeLists []uuid.UUID `json:"excludeLists"`
-	CampaignID   uuid.UUID   `json:"campaignId"`
-	Lists        []uuid.UUID `json:"lists"`
 	WorkspaceID  uuid.UUID   `json:"workspaceId"`
+	Lists        []uuid.UUID `json:"lists"`
 	After        uuid.UUID   `json:"after"`
+	CampaignID   uuid.UUID   `json:"campaignId"`
 	Lim          int32       `json:"lim"`
+	ExcludeLists []uuid.UUID `json:"excludeLists"`
 }
 
 type SendingAudiencePageRow struct {
@@ -212,20 +239,26 @@ type SendingAudiencePageRow struct {
 	ExcludedList    bool            `json:"excludedList"`
 	ExcludedSegment bool            `json:"excludedSegment"`
 	Lists           []uuid.UUID     `json:"lists"`
+	Gone            bool            `json:"gone"`
 }
 
-// One page of candidate recipients (members of the included lists or
-// segments) after the cursor, with everything that decides whether they
-// receive the campaign. The caller filters and counts what is left out.
+// One page of the audience after the cursor, in contact id order: members
+// of the included lists and staged segment members, with everything that
+// decides whether each receives the campaign. It reads the audience, not
+// the workspace's contacts, and looks up the page's memberships once for
+// the whole page, so a page costs the same whatever the workspace's size
+// and whatever the planner's statistics say right after a large import.
+// gone marks a member whose contact was erased or isn't the workspace's:
+// the caller skips it and the cursor moves on.
 func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePageParams) ([]SendingAudiencePageRow, error) {
 	rows, err := q.db.Query(ctx, sendingAudiencePage,
 		arg.Now,
-		arg.ExcludeLists,
-		arg.CampaignID,
-		arg.Lists,
 		arg.WorkspaceID,
+		arg.Lists,
 		arg.After,
+		arg.CampaignID,
 		arg.Lim,
+		arg.ExcludeLists,
 	)
 	if err != nil {
 		return nil, err
@@ -254,6 +287,7 @@ func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePa
 			&i.ExcludedList,
 			&i.ExcludedSegment,
 			&i.Lists,
+			&i.Gone,
 		); err != nil {
 			return nil, err
 		}
@@ -468,7 +502,8 @@ SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.sender_
        coalesce(s.email, '')::text    AS sender_email,
        coalesce(s.name, '')::text     AS sender_name,
        coalesce(s.reply_to, '')::text AS sender_reply_to,
-       w.slug AS workspace_slug, w.timezone AS workspace_timezone, w.name AS workspace_name
+       w.slug AS workspace_slug, w.timezone AS workspace_timezone, w.name AS workspace_name,
+       w.send_thresholds AS workspace_thresholds
 FROM campaigns c
 JOIN workspaces w ON w.id = c.workspace_id
 LEFT JOIN senders s ON s.id = c.sender_id
@@ -476,36 +511,37 @@ WHERE c.id = $1
 `
 
 type SendingCampaignContextRow struct {
-	ID                uuid.UUID       `json:"id"`
-	WorkspaceID       uuid.UUID       `json:"workspaceId"`
-	Name              string          `json:"name"`
-	Status            string          `json:"status"`
-	Subject           string          `json:"subject"`
-	Preheader         string          `json:"preheader"`
-	SenderID          *uuid.UUID      `json:"senderId"`
-	ReplyTo           string          `json:"replyTo"`
-	Audience          json.RawMessage `json:"audience"`
-	AudienceCount     *int64          `json:"audienceCount"`
-	Html              string          `json:"html"`
-	PlainText         string          `json:"plainText"`
-	AbTest            json.RawMessage `json:"abTest"`
-	Schedule          json.RawMessage `json:"schedule"`
-	Thresholds        json.RawMessage `json:"thresholds"`
-	RouteOverride     json.RawMessage `json:"routeOverride"`
-	Tracking          json.RawMessage `json:"tracking"`
-	CreatedBy         *uuid.UUID      `json:"createdBy"`
-	UpdatedBy         *uuid.UUID      `json:"updatedBy"`
-	ScheduledAt       *time.Time      `json:"scheduledAt"`
-	StartedBy         *uuid.UUID      `json:"startedBy"`
-	StartedAt         *time.Time      `json:"startedAt"`
-	CompletedAt       *time.Time      `json:"completedAt"`
-	Version           int32           `json:"version"`
-	SenderEmail       string          `json:"senderEmail"`
-	SenderName        string          `json:"senderName"`
-	SenderReplyTo     string          `json:"senderReplyTo"`
-	WorkspaceSlug     string          `json:"workspaceSlug"`
-	WorkspaceTimezone string          `json:"workspaceTimezone"`
-	WorkspaceName     string          `json:"workspaceName"`
+	ID                  uuid.UUID       `json:"id"`
+	WorkspaceID         uuid.UUID       `json:"workspaceId"`
+	Name                string          `json:"name"`
+	Status              string          `json:"status"`
+	Subject             string          `json:"subject"`
+	Preheader           string          `json:"preheader"`
+	SenderID            *uuid.UUID      `json:"senderId"`
+	ReplyTo             string          `json:"replyTo"`
+	Audience            json.RawMessage `json:"audience"`
+	AudienceCount       *int64          `json:"audienceCount"`
+	Html                string          `json:"html"`
+	PlainText           string          `json:"plainText"`
+	AbTest              json.RawMessage `json:"abTest"`
+	Schedule            json.RawMessage `json:"schedule"`
+	Thresholds          json.RawMessage `json:"thresholds"`
+	RouteOverride       json.RawMessage `json:"routeOverride"`
+	Tracking            json.RawMessage `json:"tracking"`
+	CreatedBy           *uuid.UUID      `json:"createdBy"`
+	UpdatedBy           *uuid.UUID      `json:"updatedBy"`
+	ScheduledAt         *time.Time      `json:"scheduledAt"`
+	StartedBy           *uuid.UUID      `json:"startedBy"`
+	StartedAt           *time.Time      `json:"startedAt"`
+	CompletedAt         *time.Time      `json:"completedAt"`
+	Version             int32           `json:"version"`
+	SenderEmail         string          `json:"senderEmail"`
+	SenderName          string          `json:"senderName"`
+	SenderReplyTo       string          `json:"senderReplyTo"`
+	WorkspaceSlug       string          `json:"workspaceSlug"`
+	WorkspaceTimezone   string          `json:"workspaceTimezone"`
+	WorkspaceName       string          `json:"workspaceName"`
+	WorkspaceThresholds json.RawMessage `json:"workspaceThresholds"`
 }
 
 // A campaign with its sender and workspace, for building messages.
@@ -543,6 +579,7 @@ func (q *Queries) SendingCampaignContext(ctx context.Context, id uuid.UUID) (Sen
 		&i.WorkspaceSlug,
 		&i.WorkspaceTimezone,
 		&i.WorkspaceName,
+		&i.WorkspaceThresholds,
 	)
 	return i, err
 }
@@ -1960,7 +1997,8 @@ const sendingQueueState = `-- name: SendingQueueState :many
 SELECT provider_id, mailbox_provider, status,
        count(*)::bigint AS n,
        count(*) FILTER (WHERE next_attempt_at IS NOT NULL AND next_attempt_at > $1::timestamptz)::bigint AS waiting,
-       coalesce(min(next_attempt_at), 'epoch'::timestamptz)::timestamptz AS next_at
+       coalesce(min(next_attempt_at), 'epoch'::timestamptz)::timestamptz AS next_at,
+       coalesce(max(next_attempt_at), 'epoch'::timestamptz)::timestamptz AS last_at
 FROM messages
 WHERE campaign_id = $2 AND status IN ('queued', 'held')
 GROUP BY provider_id, mailbox_provider, status
@@ -1978,6 +2016,7 @@ type SendingQueueStateRow struct {
 	N               int64      `json:"n"`
 	Waiting         int64      `json:"waiting"`
 	NextAt          time.Time  `json:"nextAt"`
+	LastAt          time.Time  `json:"lastAt"`
 }
 
 // What is left of a campaign per sending and mailbox provider: queued (and
@@ -1998,6 +2037,7 @@ func (q *Queries) SendingQueueState(ctx context.Context, arg SendingQueueStatePa
 			&i.N,
 			&i.Waiting,
 			&i.NextAt,
+			&i.LastAt,
 		); err != nil {
 			return nil, err
 		}
@@ -2637,6 +2677,64 @@ func (q *Queries) SendingUserNames(ctx context.Context, ids []uuid.UUID) ([]Send
 		return nil, err
 	}
 	return items, nil
+}
+
+const sendingUsualOpenHours = `-- name: SendingUsualOpenHours :many
+SELECT e.contact_id, (mode() WITHIN GROUP (ORDER BY extract(hour FROM e.occurred_at AT TIME ZONE 'UTC')))::int AS hour
+FROM delivery_events e
+WHERE e.contact_id = ANY($1::uuid[]) AND e.type = 'open' AND NOT e.machine AND e.occurred_at > $2
+GROUP BY e.contact_id
+`
+
+type SendingUsualOpenHoursParams struct {
+	ContactIds []uuid.UUID `json:"contactIds"`
+	Since      time.Time   `json:"since"`
+}
+
+type SendingUsualOpenHoursRow struct {
+	ContactID *uuid.UUID `json:"contactId"`
+	Hour      int32      `json:"hour"`
+}
+
+// The hour of the day (UTC) each contact opens at most often, from their
+// own opens since a date (privacy-proxy fetches left out): the best time of
+// a send scheduled per recipient.
+func (q *Queries) SendingUsualOpenHours(ctx context.Context, arg SendingUsualOpenHoursParams) ([]SendingUsualOpenHoursRow, error) {
+	rows, err := q.db.Query(ctx, sendingUsualOpenHours, arg.ContactIds, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SendingUsualOpenHoursRow{}
+	for rows.Next() {
+		var i SendingUsualOpenHoursRow
+		if err := rows.Scan(&i.ContactID, &i.Hour); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const sendingWorkspaceDefaults = `-- name: SendingWorkspaceDefaults :one
+SELECT send_thresholds, sending_defaults FROM workspaces WHERE id = $1
+`
+
+type SendingWorkspaceDefaultsRow struct {
+	SendThresholds  json.RawMessage `json:"sendThresholds"`
+	SendingDefaults json.RawMessage `json:"sendingDefaults"`
+}
+
+// The workspace's sending defaults (Settings › Providers): auto-pause
+// thresholds and the throttles per mailbox provider.
+func (q *Queries) SendingWorkspaceDefaults(ctx context.Context, id uuid.UUID) (SendingWorkspaceDefaultsRow, error) {
+	row := q.db.QueryRow(ctx, sendingWorkspaceDefaults, id)
+	var i SendingWorkspaceDefaultsRow
+	err := row.Scan(&i.SendThresholds, &i.SendingDefaults)
+	return i, err
 }
 
 const sendingWorkspaceProviders = `-- name: SendingWorkspaceProviders :many

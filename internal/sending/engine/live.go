@@ -321,7 +321,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	if sendErr != nil && !errors.Is(sendErr, pgx.ErrNoRows) {
 		return s, sendErr
 	}
-	th := ParseThresholds(cc.Thresholds)
+	th := ParseThresholds(cc.Thresholds, cc.WorkspaceThresholds)
 	holds := map[string]hold{}
 	throttles := map[string]float64{}
 	content := sendContent{FromName: cc.SenderName, FromEmail: cc.SenderEmail}
@@ -399,6 +399,9 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	// Queue.
 	cid := cc.ID
 	queue := map[queueKey]queueCell{}
+	// The latest a recipient is due (a send at each recipient's best time,
+	// a send-time A/B test).
+	var lastDue *time.Time
 	if hasSend {
 		qrows, err := e.Q.SendingQueueState(ctx, store.SendingQueueStateParams{CampaignID: &cid, Now: now})
 		if err != nil {
@@ -407,6 +410,10 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		for _, r := range qrows {
 			if r.ProviderID == nil {
 				continue
+			}
+			if r.Waiting > 0 && r.LastAt.After(now) && (lastDue == nil || r.LastAt.After(*lastDue)) {
+				t := r.LastAt
+				lastDue = &t
 			}
 			k := queueKey{*r.ProviderID, r.MailboxProvider}
 			c := queue[k]
@@ -622,6 +629,10 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		s.ETASeconds = &eta
 		f := now.Add(time.Duration(eta) * time.Second)
 		s.FinishesAt = &f
+	}
+	if lastDue != nil && (s.State == "sending" || s.State == "partial") && (s.FinishesAt == nil || lastDue.After(*s.FinishesAt)) {
+		eta := int64(math.Ceil(lastDue.Sub(now).Seconds()))
+		s.ETASeconds, s.FinishesAt = &eta, lastDue
 	}
 	if s.State == "sending" && (len(s.MailboxesHeld) > 0 || len(s.ProvidersHeld) > 0) {
 		s.State = "partial"

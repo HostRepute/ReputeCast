@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -220,6 +219,9 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 		cursor = *snd.PrepareCursor
 	}
 	sendAt := sendTimes(ab, loc, now)
+	var sc schedule
+	_ = json.Unmarshal(cc.Schedule, &sc)
+	bestTime := sc.Mode == "best_time"
 	for {
 		rows, err := e.Q.SendingAudiencePage(ctx, store.SendingAudiencePageParams{
 			Now: now, ExcludeLists: def.ExcludeLists, CampaignID: campaignID, Lists: def.Lists, WorkspaceID: cc.WorkspaceID, After: cursor, Lim: pageSize,
@@ -232,6 +234,10 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 		}
 		msgs := make([][]any, 0, len(rows))
 		planned := map[uuid.UUID]int64{}
+		var hours map[uuid.UUID]int
+		if bestTime {
+			hours = e.usualOpenHours(ctx, rows, now)
+		}
 		for _, c := range rows {
 			if why := eligibility(c, def); why != "" {
 				excluded.add(why)
@@ -247,6 +253,13 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			}
 			pid := rt.provider
 			variant, status, next := assignVariant(ab, c.ID, sendAt)
+			if h, ok := hours[c.ID]; ok && next == nil {
+				// Best time: the hour the contact usually opens at, within
+				// 24 hours; contacts who never opened go at the start.
+				if t := nextAtHour(now, h); t.After(now) {
+					next = &t
+				}
+			}
 			// A random send order: the first minutes of the send are a fair
 			// sample of the audience (migration 00652).
 			order := rand.Int32() //nolint:gosec // an order, not a secret
@@ -442,6 +455,8 @@ func (e *Engine) fail(ctx context.Context, cc store.SendingCampaignContextRow, w
 // eligibility says why a contact doesn't receive the campaign ("" = it does).
 func eligibility(c store.SendingAudiencePageRow, def audienceDef) string {
 	switch {
+	case c.Gone:
+		return "gone" // erased, or not this workspace's: not counted anywhere
 	case c.Status == "unsubscribed":
 		return "unsubscribed"
 	case c.Status == "bounced":
@@ -526,6 +541,42 @@ func assignVariant(ab *abTest, contact uuid.UUID, sendAt map[string]*time.Time) 
 	_, _ = h.Write(contact[:])
 	v := ab.Variants[int(h.Sum32())%len(ab.Variants)]
 	return v.Key, "queued", sendAt[v.Key]
+}
+
+// usualOpenHours is the hour of the day (UTC) each contact of a page opens
+// at most often, over the last 180 days.
+func (e *Engine) usualOpenHours(ctx context.Context, rows []store.SendingAudiencePageRow, now time.Time) map[uuid.UUID]int {
+	ids := make([]uuid.UUID, 0, len(rows))
+	for _, r := range rows {
+		ids = append(ids, r.ID)
+	}
+	out := map[uuid.UUID]int{}
+	hs, err := e.Q.SendingUsualOpenHours(ctx, store.SendingUsualOpenHoursParams{ContactIds: ids, Since: now.AddDate(0, 0, -180)})
+	if err != nil {
+		e.log().WarnContext(ctx, "usual open hours", "err", err)
+		return out
+	}
+	for _, h := range hs {
+		if h.ContactID != nil {
+			out[*h.ContactID] = int(h.Hour)
+		}
+	}
+	return out
+}
+
+// nextAtHour is when a contact who usually opens at hour (UTC) gets a send
+// starting at now: within that hour it goes at once, otherwise at the hour's
+// next start, at most 24 hours later.
+func nextAtHour(now time.Time, hour int) time.Time {
+	u := now.UTC()
+	t := time.Date(u.Year(), u.Month(), u.Day(), hour, 0, 0, 0, time.UTC)
+	switch {
+	case !now.Before(t) && now.Before(t.Add(time.Hour)):
+		return now
+	case t.Before(now):
+		return t.Add(24 * time.Hour)
+	}
+	return t
 }
 
 // sendTimes are the local send times of a send-time test's variants.
@@ -672,12 +723,12 @@ func (r *router) route(ctx context.Context, c store.SendingAudiencePageRow, mbp 
 	}
 	d, ok := r.set.Resolve(routing.Recipient{Stream: providers.StreamBroadcast, Email: c.Email, Lists: lists, SenderDomain: r.senderDomain, MailboxProvider: mbp})
 	if !ok {
-		return routed{}, errors.New("No sending provider is set up for Broadcasts. Add a route in Sending providers › Routing, then start the send again.")
+		return routed{}, sendFailure("No sending provider is set up for Broadcasts. Add a route in Sending providers › Routing, then start the send again.")
 	}
 	pid := d.ProviderID
 	p, ok := r.byID[pid]
 	if !ok {
-		return routed{}, errors.New("The Broadcasts route points at a provider that is no longer connected. Fix the route, then start the send again.")
+		return routed{}, sendFailure("The Broadcasts route points at a provider that is no longer connected. Fix the route, then start the send again.")
 	}
 	out := routed{provider: pid}
 	short := state.Short(p.Name, p.Adapter)
@@ -794,5 +845,8 @@ func firstNonEmpty(xs ...string) string {
 	return ""
 }
 
-// uint64Of is a stable number from an id (simulation and sampling).
-func uint64Of(id uuid.UUID) uint64 { return binary.BigEndian.Uint64(id[8:]) }
+// sendFailure is why a send can't go out, in words for the people who
+// started it (the monitor shows it).
+type sendFailure string
+
+func (f sendFailure) Error() string { return string(f) }

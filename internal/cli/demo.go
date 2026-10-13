@@ -30,12 +30,15 @@ func newDemoCmd(o *rootOpts) *cobra.Command {
 			"boards' rates. The running server's worker sends it in real time.\n\n" +
 			"Scenarios:\n" +
 			"  normal              the LiveMonitor board\n" +
-			"  outlook-complaints  never-engaged Outlook recipients complain until Outlook auto-pauses (LiveMonitorPaused)\n" +
+			"  outlook-complaints  lapsed Outlook readers complain until the Outlook share auto-pauses (LiveMonitorPaused)\n" +
 			"  postal-outage       Postal refuses connections 14 minutes in; its share is held (LiveMonitorOutage)\n\n" +
-			"--elapsed starts the send that long ago and sends that part at once with back-dated times, so the\n" +
-			"monitor opens mid-send (e.g. --elapsed 21m shows the boards' 09:21 moment).",
-		Example: `  reputecast demo send "Weekly Digest #142"
-  reputecast demo send "Weekly Digest #142" --scenario outlook-complaints --elapsed 20m --reset`,
+			"--elapsed starts the send that long ago and sends that part at once with back-dated times (and the\n" +
+			"minute or two that takes), so the monitor opens mid-send: --elapsed 20m shows the boards' 09:21 moment.\n" +
+			"--reset clears an earlier send of the campaign, with what it changed outside it (provider statistics,\n" +
+			"suppressions from its bounces). Only workspaces whose providers are all demo providers can send.",
+		Example: `  reputecast demo send "Weekly Digest #142" --elapsed 20m
+  reputecast demo send "Weekly Digest #142" --scenario outlook-complaints --elapsed 20m --reset
+  reputecast demo send "Weekly Digest #142" --scenario postal-outage --elapsed 17m --reset`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, log, err := o.load(cmd)

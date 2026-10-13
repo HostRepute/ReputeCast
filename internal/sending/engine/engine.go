@@ -1,3 +1,9 @@
+// Package engine is ReputeCast's sending engine (spec 5.3, 7.6): it builds
+// a campaign's recipient list, routes, renders and hands every message to
+// its sending provider within rate limits and throttles, watches bounce,
+// complaint and outage signals and pauses what they concern, sends
+// automation emails, and serves the live monitor's snapshot and stream.
+// Providers marked "demo": true go through the simulated transport.
 package engine
 
 import (
@@ -52,11 +58,13 @@ type Engine struct {
 	Recorder sending.Recorder
 	// Automations receives delivery outcomes of automation emails.
 	Automations *automations.Service
+	// QuietDemo makes the demo transport report no delivery or engagement
+	// events (throughput measurements of the send path alone).
+	QuietDemo bool
 
 	mu       sync.Mutex
 	calls    map[routeKey]*callLog
 	hubs     map[uuid.UUID]*hub
-	running  map[uuid.UUID]bool
 	templMu  sync.Mutex
 	template map[string]*cachedTemplate
 }
@@ -131,34 +139,76 @@ type Thresholds struct {
 // DefaultThresholds are used for limits a campaign doesn't set.
 var DefaultThresholds = Thresholds{Bounce: 2.0, Complaint: 0.1, MailboxComplaint: 0.1, Deferral: 5.0, APIErrors: 5.0, Scope: "route"}
 
-// ParseThresholds reads campaigns.thresholds with defaults.
-func ParseThresholds(raw json.RawMessage) Thresholds {
+// ParseThresholds resolves a send's thresholds: the defaults, then the
+// workspace's (workspaces.send_thresholds, Settings › Providers), then the
+// campaign's own (campaigns.thresholds, Review & send). Each level may set
+// any limit; the spellings of both screens are read (hard_bounce or
+// bounce; provider_error_rate, provider_errors or api_errors). The
+// per-mailbox complaint limit follows the overall one unless set.
+func ParseThresholds(campaign, workspace json.RawMessage) Thresholds {
 	t := DefaultThresholds
-	var in struct {
-		Bounce           *float64 `json:"bounce"`
-		Complaint        *float64 `json:"complaint"`
-		MailboxComplaint *float64 `json:"mailbox_complaint"`
-		Deferral         *float64 `json:"deferral"`
-		APIErrors        *float64 `json:"api_errors"`
-		Scope            string   `json:"scope"`
-	}
-	if len(raw) > 0 && json.Unmarshal(raw, &in) == nil {
-		set := func(dst *float64, v *float64) {
-			if v != nil && *v > 0 {
-				*dst = *v
-			}
+	mailbox := false
+	for _, raw := range []json.RawMessage{workspace, campaign} {
+		var in struct {
+			Bounce            *float64 `json:"bounce"`
+			HardBounce        *float64 `json:"hard_bounce"`
+			Complaint         *float64 `json:"complaint"`
+			MailboxComplaint  *float64 `json:"mailbox_complaint"`
+			Deferral          *float64 `json:"deferral"`
+			APIErrors         *float64 `json:"api_errors"`
+			ProviderErrors    *float64 `json:"provider_errors"`
+			ProviderErrorRate *float64 `json:"provider_error_rate"`
+			Scope             string   `json:"scope"`
 		}
-		set(&t.Bounce, in.Bounce)
+		if len(raw) == 0 || json.Unmarshal(raw, &in) != nil {
+			continue
+		}
+		set := func(dst *float64, vs ...*float64) bool {
+			ok := false
+			for _, v := range vs {
+				if v != nil && *v > 0 {
+					*dst, ok = *v, true
+				}
+			}
+			return ok
+		}
+		set(&t.Bounce, in.HardBounce, in.Bounce)
 		set(&t.Complaint, in.Complaint)
-		t.MailboxComplaint = t.Complaint
-		set(&t.MailboxComplaint, in.MailboxComplaint)
+		mailbox = set(&t.MailboxComplaint, in.MailboxComplaint) || mailbox
 		set(&t.Deferral, in.Deferral)
-		set(&t.APIErrors, in.APIErrors)
+		set(&t.APIErrors, in.ProviderErrorRate, in.ProviderErrors, in.APIErrors)
 		if in.Scope == "campaign" || in.Scope == "route" {
 			t.Scope = in.Scope
 		}
 	}
+	if !mailbox {
+		t.MailboxComplaint = t.Complaint
+	}
 	return t
+}
+
+// sendThrottles are the throttles of a send: the defaults, then the
+// workspace's (sending_defaults.throttles, Settings › Providers), then what
+// Send Readiness computed for it. 0 means no limit.
+func sendThrottles(sendingDefaults json.RawMessage, readiness map[string]float64) map[string]float64 {
+	out := map[string]float64{}
+	for k, v := range DefaultThrottles {
+		out[k] = v
+	}
+	var sd struct {
+		Throttles map[string]float64 `json:"throttles"`
+	}
+	_ = json.Unmarshal(sendingDefaults, &sd)
+	for _, layer := range []map[string]float64{sd.Throttles, readiness} {
+		for k, v := range layer {
+			if v > 0 {
+				out[k] = v
+			} else {
+				delete(out, k)
+			}
+		}
+	}
+	return out
 }
 
 // DefaultThrottles are messages per second per mailbox provider when Send

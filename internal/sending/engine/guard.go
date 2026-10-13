@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -125,7 +126,7 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 		waiting += c.waiting
 		r := rs.routes[k.provider]
 		h, onHold := rs.holds[k.mailbox]
-		if r == nil || (onHold && !h.Resumed) || !(r.status == "pending" || r.status == "sending") {
+		if r == nil || (onHold && !h.Resumed) || !r.open() {
 			blocked += c.queued
 		}
 		if c.nextAt != nil && (next == nil || c.nextAt.Before(*next)) {
@@ -205,7 +206,7 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 		for _, pid := range rs.order {
 			r := rs.routes[pid]
 			p := ts.provider[pid]
-			if p == nil || !(r.status == "pending" || r.status == "sending") {
+			if p == nil || !r.open() {
 				continue
 			}
 			if p.sent >= minSampleScoped && over(p.bounced(), p.sent, th.Bounce, minEvents) {
@@ -351,6 +352,10 @@ func thresholdHeadline(tr trip, scopeName string) string {
 	}
 	return fmt.Sprintf("%s reached %s (limit %s)", subject, fmtRate(tr.value), fmtRate(tr.limit))
 }
+
+// open reports whether the route still sends (not held, paused, moved,
+// cancelled or done).
+func (r *runRoute) open() bool { return r.status == "pending" || r.status == "sending" }
 
 // shortName is the provider's badge label ("SES", "Postal").
 func (r *runRoute) shortName() string {
@@ -623,15 +628,19 @@ func (e *Engine) probeHeld(ctx context.Context, rs *runState, r *runRoute, now t
 		return nil
 	}
 	r.lastProbe = now
-	id, err := uuid.Parse(r.detail.Incident)
-	if err != nil {
-		return nil
+	id, ok := parseID(r.detail.Incident)
+	if !ok {
+		return nil // no incident to report to
 	}
 	var raw json.RawMessage
 	var tripped time.Time
 	var held int64
-	if err := e.Pool.QueryRow(ctx, `SELECT detail, tripped_at, held FROM campaign_incidents WHERE id = $1 AND resolved_at IS NULL`, id).Scan(&raw, &tripped, &held); err != nil {
-		return nil
+	err := e.Pool.QueryRow(ctx, `SELECT detail, tripped_at, held FROM campaign_incidents WHERE id = $1 AND resolved_at IS NULL`, id).Scan(&raw, &tripped, &held)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil // decided since
+	}
+	if err != nil {
+		return err
 	}
 	if now.Sub(tripped) < 30*time.Second {
 		return nil

@@ -230,6 +230,56 @@ func TestSending(t *testing.T) {
 	t.Run("API", func(t *testing.T) { testAPI(t, s.fixture(t, "API")) })
 	t.Run("Tracking", func(t *testing.T) { testTracking(t, s.fixture(t, "Tracking")) })
 	t.Run("DemoSendReset", func(t *testing.T) { testDemoReset(t, s.fixture(t, "Demo reset")) })
+	t.Run("BestTime", func(t *testing.T) { testBestTime(t, s.fixture(t, "Best time")) })
+}
+
+// testBestTime sends at each recipient's best time: a contact who usually
+// opens at a given hour gets the send then (within 24 hours), one without
+// opens at the start; a send scheduled that way waits for its time.
+func testBestTime(t *testing.T, f *fixture) {
+	f.exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.campaign)
+	f.addContacts(contactSpec{n: 6, mailbox: "gmail", domain: "gmail.com", engaged: true})
+	hour := (f.start.UTC().Hour() + 3) % 24
+	// Three of them opened at that hour on several days (one machine fetch
+	// at another hour doesn't count).
+	f.exec(`INSERT INTO delivery_events (id, workspace_id, contact_id, type, occurred_at, machine)
+		SELECT gen_random_uuid(), c.workspace_id, c.id, 'open', date_trunc('day', $2::timestamptz) - (d || ' days')::interval + make_interval(hours => $3) + interval '7 minutes', false
+		FROM (SELECT c.* FROM contacts c JOIN list_memberships m ON m.contact_id = c.id WHERE m.list_id = $1 ORDER BY c.id LIMIT 3) c, generate_series(1, 4) d`,
+		f.list, f.start, hour)
+	f.exec(`INSERT INTO delivery_events (id, workspace_id, contact_id, type, occurred_at, machine)
+		SELECT gen_random_uuid(), c.workspace_id, c.id, 'open', $2::timestamptz - interval '2 days', true
+		FROM contacts c JOIN list_memberships m ON m.contact_id = c.id WHERE m.list_id = $1`, f.list, f.start)
+
+	later := f.start.Add(36 * time.Hour)
+	f.exec(`UPDATE campaigns SET schedule = $2 WHERE id = $1`, f.campaign, fmt.Sprintf(`{"mode":"best_time","at":%q,"timezone":"UTC"}`, later.Format(time.RFC3339)))
+	if err := f.e.Start(f.ctx, f.campaign, f.sofia); err != nil {
+		t.Fatal(err)
+	}
+	if f.status() != "scheduled" {
+		t.Fatalf("a best-time send for later is %s, want scheduled", f.status())
+	}
+	f.startSend(engine.StartOptions{})
+	want := f.start.UTC().Truncate(24 * time.Hour).Add(time.Duration(hour) * time.Hour)
+	if want.Before(f.start) {
+		want = want.Add(24 * time.Hour)
+	}
+	if n := f.count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND next_attempt_at = $2`, f.campaign, want); n != 3 {
+		f.dump()
+		t.Fatalf("%d recipients due at their usual hour %v, want 3", n, want)
+	}
+	if n := f.count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND next_attempt_at IS NULL`, f.campaign); n != 3 {
+		t.Fatalf("%d recipients without opens go at the start, want 3", n)
+	}
+	snap, err := f.e.Snapshot(f.ctx, f.ws, f.campaign)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snap.FinishesAt == nil || !snap.FinishesAt.Equal(want) {
+		t.Fatalf("the monitor's finish time %v, want %v (the last recipient's hour)", snap.FinishesAt, want)
+	}
+	if _, done, err := f.e.Drive(f.ctx, f.campaign, f.start, want.Sub(f.start)+time.Minute); err != nil || !done {
+		t.Fatalf("the send didn't finish at the last recipient's hour: done=%v err=%v", done, err)
+	}
 }
 
 // testDemoReset runs the demo command's send, then starts it again with

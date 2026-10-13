@@ -189,11 +189,17 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 	r := transports[pid]
 	if r == nil {
 		p, err := e.Q.ProvGetAny(ctx, pid)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil // the provider was deleted; its mail fails over or waits
+		}
 		if err != nil {
-			return 0, nil
+			return 0, err
 		}
 		r = &runRoute{provider: p, batch: batchSize(p), tracked: state.TrackingOf(p).Mode != "provider"}
 		r.transport, _, r.openErr = e.transport(ctx, p, "", time.Time{})
+		if r.openErr != nil {
+			e.log().WarnContext(ctx, "open a provider for automation mail", "provider", p.ID, "err", r.openErr)
+		}
 		if s, ok := r.transport.(*simulator.Provider); ok {
 			r.sim = s
 		}
@@ -207,7 +213,9 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 		// Automations fail over on their own.
 		return 0, e.failOverOutbox(ctx, r.provider)
 	}
-	if r.openErr != nil || r.cooldown.After(now) {
+	// A provider whose adapter can't be opened (logged above) keeps its
+	// mail queued, as does one cooling down after a failed call.
+	if r.transport == nil || r.cooldown.After(now) {
 		return 0, nil
 	}
 	want := max(int(math.Floor(r.rate.PerSecond)), 1)
@@ -308,7 +316,13 @@ func (e *Engine) failOverOutbox(ctx context.Context, p store.Provider) error {
 		return nil
 	}
 	fb, err := e.Q.ProvGetAny(ctx, *def.Fallback)
-	if err != nil || !state.Available(fb) {
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil // no fallback any more: the mail waits for its provider
+	}
+	if err != nil {
+		return err
+	}
+	if !state.Available(fb) {
 		return nil
 	}
 	_, err = e.Pool.Exec(ctx, `UPDATE messages SET provider_id = $2, claimed_at = NULL

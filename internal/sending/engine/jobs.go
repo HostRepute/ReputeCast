@@ -70,8 +70,11 @@ type StartWorker struct {
 // Work implements river.Worker.
 func (w *StartWorker) Work(ctx context.Context, job *river.Job[StartArgs]) error {
 	c, err := w.E.Q.SendingCampaign(ctx, job.Args.CampaignID)
-	if err != nil {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil // deleted
+	}
+	if err != nil {
+		return interrupted(ctx, err)
 	}
 	// Rescheduled or unscheduled since: a newer job (or none) owns it.
 	if c.Status != "scheduled" || c.ScheduledAt == nil || c.ScheduledAt.Sub(job.Args.At).Abs() > time.Second {

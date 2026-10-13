@@ -1011,9 +1011,14 @@ type Querier interface {
 	SendingAddRouteCost(ctx context.Context, arg SendingAddRouteCostParams) error
 	// The approval a campaign's send went out under, with the approver.
 	SendingApproval(ctx context.Context, campaignID *uuid.UUID) (SendingApprovalRow, error)
-	// One page of candidate recipients (members of the included lists or
-	// segments) after the cursor, with everything that decides whether they
-	// receive the campaign. The caller filters and counts what is left out.
+	// One page of the audience after the cursor, in contact id order: members
+	// of the included lists and staged segment members, with everything that
+	// decides whether each receives the campaign. It reads the audience, not
+	// the workspace's contacts, and looks up the page's memberships once for
+	// the whole page, so a page costs the same whatever the workspace's size
+	// and whatever the planner's statistics say right after a large import.
+	// gone marks a member whose contact was erased or isn't the workspace's:
+	// the caller skips it and the cursor moves on.
 	SendingAudiencePage(ctx context.Context, arg SendingAudiencePageParams) ([]SendingAudiencePageRow, error)
 	// A flow whose name matches, for "move them into the Re-permission automation".
 	SendingAutomationByName(ctx context.Context, arg SendingAutomationByNameParams) (SendingAutomationByNameRow, error)
@@ -1149,6 +1154,13 @@ type Querier interface {
 	SendingUnsentCounts(ctx context.Context, campaignID *uuid.UUID) ([]SendingUnsentCountsRow, error)
 	SendingUpdateIncidentDetail(ctx context.Context, arg SendingUpdateIncidentDetailParams) error
 	SendingUserNames(ctx context.Context, ids []uuid.UUID) ([]SendingUserNamesRow, error)
+	// The hour of the day (UTC) each contact opens at most often, from their
+	// own opens since a date (privacy-proxy fetches left out): the best time of
+	// a send scheduled per recipient.
+	SendingUsualOpenHours(ctx context.Context, arg SendingUsualOpenHoursParams) ([]SendingUsualOpenHoursRow, error)
+	// The workspace's sending defaults (Settings › Providers): auto-pause
+	// thresholds and the throttles per mailbox provider.
+	SendingWorkspaceDefaults(ctx context.Context, id uuid.UUID) (SendingWorkspaceDefaultsRow, error)
 	SendingWorkspaceProviders(ctx context.Context, workspaceID uuid.UUID) ([]Provider, error)
 	// Restarts the idle clock now (the middleware only touches sessions every
 	// 30 seconds). The absolute lifetime (expires_at) never moves.

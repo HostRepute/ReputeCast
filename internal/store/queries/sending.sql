@@ -13,11 +13,17 @@ SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.sender_
        coalesce(s.email, '')::text    AS sender_email,
        coalesce(s.name, '')::text     AS sender_name,
        coalesce(s.reply_to, '')::text AS sender_reply_to,
-       w.slug AS workspace_slug, w.timezone AS workspace_timezone, w.name AS workspace_name
+       w.slug AS workspace_slug, w.timezone AS workspace_timezone, w.name AS workspace_name,
+       w.send_thresholds AS workspace_thresholds
 FROM campaigns c
 JOIN workspaces w ON w.id = c.workspace_id
 LEFT JOIN senders s ON s.id = c.sender_id
 WHERE c.id = @id;
+
+-- name: SendingWorkspaceDefaults :one
+-- The workspace's sending defaults (Settings › Providers): auto-pause
+-- thresholds and the throttles per mailbox provider.
+SELECT send_thresholds, sending_defaults FROM workspaces WHERE id = @id;
 
 -- name: SendingCampaign :one
 SELECT * FROM campaigns WHERE id = @id AND deleted_at IS NULL;
@@ -122,23 +128,55 @@ DELETE FROM campaign_audience_stage WHERE campaign_id = @campaign_id;
 SELECT count(*)::bigint FROM campaign_audience_stage WHERE campaign_id = @campaign_id;
 
 -- name: SendingAudiencePage :many
--- One page of candidate recipients (members of the included lists or
--- segments) after the cursor, with everything that decides whether they
--- receive the campaign. The caller filters and counts what is left out.
-SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.mailbox_provider, c.tier, c.status, c.source,
-       c.last_open_at, c.last_human_open_at, c.consent, c.role_address,
+-- One page of the audience after the cursor, in contact id order: members
+-- of the included lists and staged segment members, with everything that
+-- decides whether each receives the campaign. It reads the audience, not
+-- the workspace's contacts, and looks up the page's memberships once for
+-- the whole page, so a page costs the same whatever the workspace's size
+-- and whatever the planner's statistics say right after a large import.
+-- gone marks a member whose contact was erased or isn't the workspace's:
+-- the caller skips it and the cursor moves on.
+WITH page AS (
+    SELECT u.id FROM (
+        SELECT m.contact_id AS id FROM list_memberships m
+        WHERE m.list_id = ANY(@lists::uuid[]) AND m.status = 'subscribed' AND m.contact_id > @after::uuid
+        UNION
+        SELECT st.contact_id FROM campaign_audience_stage st
+        WHERE st.campaign_id = @campaign_id AND NOT st.exclude AND st.contact_id > @after::uuid
+    ) u
+    ORDER BY u.id
+    LIMIT @lim
+), member_lists AS (
+    SELECT m.contact_id, array_agg(m.list_id ORDER BY m.list_id)::uuid[] AS lists
+    FROM list_memberships m
+    WHERE m.contact_id IN (SELECT id FROM page) AND m.list_id = ANY(@lists::uuid[]) AND m.status = 'subscribed'
+    GROUP BY m.contact_id
+), excluded AS (
+    SELECT DISTINCT x.contact_id
+    FROM list_memberships x
+    WHERE x.contact_id IN (SELECT id FROM page) AND x.list_id = ANY(@exclude_lists::uuid[]) AND x.status = 'subscribed'
+), excluded_staged AS (
+    SELECT st.contact_id FROM campaign_audience_stage st
+    WHERE st.campaign_id = @campaign_id AND st.exclude AND st.contact_id IN (SELECT id FROM page)
+)
+SELECT page.id::uuid AS id,
+       coalesce(c.email, '')::text AS email, coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
+       coalesce(c.attributes, '{}'::jsonb)::jsonb AS attributes, coalesce(c.mailbox_provider, '')::text AS mailbox_provider,
+       coalesce(c.tier, '')::text AS tier, coalesce(c.status, '')::text AS status, coalesce(c.source, '')::text AS source,
+       c.last_open_at, c.last_human_open_at, coalesce(c.consent, '')::text AS consent, coalesce(c.role_address, false)::boolean AS role_address,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS sunset_stopped,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)::boolean AS suppressed,
        coalesce((SELECT p.paused_until > @now::timestamptz FROM contact_preferences p WHERE p.contact_id = c.id), false)::boolean AS paused,
-       EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY(@exclude_lists::uuid[]))::boolean AS excluded_list,
-       EXISTS (SELECT 1 FROM campaign_audience_stage st WHERE st.campaign_id = @campaign_id AND st.exclude AND st.contact_id = c.id)::boolean AS excluded_segment,
-       ARRAY(SELECT m.list_id FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(@lists::uuid[]) ORDER BY m.list_id)::uuid[] AS lists
-FROM contacts c
-WHERE c.workspace_id = @workspace_id AND c.id > @after::uuid AND c.erased_at IS NULL
-  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(@lists::uuid[]))
-       OR EXISTS (SELECT 1 FROM campaign_audience_stage st WHERE st.campaign_id = @campaign_id AND NOT st.exclude AND st.contact_id = c.id))
-ORDER BY c.id
-LIMIT @lim;
+       (excluded.contact_id IS NOT NULL)::boolean AS excluded_list,
+       (excluded_staged.contact_id IS NOT NULL)::boolean AS excluded_segment,
+       coalesce(member_lists.lists, '{}'::uuid[])::uuid[] AS lists,
+       (c.id IS NULL OR c.erased_at IS NOT NULL OR c.workspace_id <> @workspace_id::uuid)::boolean AS gone
+FROM page
+LEFT JOIN contacts c ON c.id = page.id
+LEFT JOIN member_lists ON member_lists.contact_id = page.id
+LEFT JOIN excluded ON excluded.contact_id = page.id
+LEFT JOIN excluded_staged ON excluded_staged.contact_id = page.id
+ORDER BY page.id;
 
 -- name: SendingClearRoutes :exec
 DELETE FROM campaign_routes WHERE campaign_id = @campaign_id;
@@ -280,7 +318,8 @@ DELETE FROM sending_rate_windows WHERE provider_id = ANY(@provider_ids::uuid[]) 
 SELECT provider_id, mailbox_provider, status,
        count(*)::bigint AS n,
        count(*) FILTER (WHERE next_attempt_at IS NOT NULL AND next_attempt_at > @now::timestamptz)::bigint AS waiting,
-       coalesce(min(next_attempt_at), 'epoch'::timestamptz)::timestamptz AS next_at
+       coalesce(min(next_attempt_at), 'epoch'::timestamptz)::timestamptz AS next_at,
+       coalesce(max(next_attempt_at), 'epoch'::timestamptz)::timestamptz AS last_at
 FROM messages
 WHERE campaign_id = @campaign_id AND status IN ('queued', 'held')
 GROUP BY provider_id, mailbox_provider, status;
@@ -546,3 +585,12 @@ SELECT id, email, mailbox_provider, status, erased_at FROM contacts WHERE id = @
 
 -- name: SendingCampaignWorkspace :one
 SELECT workspace_id FROM campaigns WHERE id = $1;
+
+-- name: SendingUsualOpenHours :many
+-- The hour of the day (UTC) each contact opens at most often, from their
+-- own opens since a date (privacy-proxy fetches left out): the best time of
+-- a send scheduled per recipient.
+SELECT e.contact_id, (mode() WITHIN GROUP (ORDER BY extract(hour FROM e.occurred_at AT TIME ZONE 'UTC')))::int AS hour
+FROM delivery_events e
+WHERE e.contact_id = ANY(@contact_ids::uuid[]) AND e.type = 'open' AND NOT e.machine AND e.occurred_at > @since
+GROUP BY e.contact_id;
