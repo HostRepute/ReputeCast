@@ -7,13 +7,13 @@ import { GoogleMark } from '@/components/icons/Icon'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
-import { EmptyRow, Table, Td, Th } from '@/components/ui/Table'
+import { EmptyRow, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { ago, inDays, monthDay, usDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
-import { copyText, PersonCell, RoleBadge, SignInText, TwoFABadge } from '../access/parts'
+import { AccessTable, copyText, PersonCell, RoleBadge, SignInText, TwoFABadge } from '../access/parts'
 import { DeactivateDialog } from './DeactivateDialog'
 import { InviteDialog } from './InviteDialog'
 
@@ -116,7 +116,7 @@ function MembersCard({ list, search, hideMembers }: { list: Schemas['TeamMemberL
         )}
       </div>
       {manage ? <BulkBar list={list} selected={selected} setSelected={setSelected} /> : null}
-      <Table density="compact" className="[&_td]:whitespace-normal" caption="Members">
+      <AccessTable caption="Members">
         <thead>
           <tr>
             <Th>Member</Th>
@@ -149,7 +149,7 @@ function MembersCard({ list, search, hideMembers }: { list: Schemas['TeamMemberL
             ))
           )}
         </tbody>
-      </Table>
+      </AccessTable>
     </section>
   )
 }
@@ -399,7 +399,7 @@ function InvitationsCard({ list, onInvite }: { list: Schemas['TeamInvitationList
           </Button>
         ) : null}
       </div>
-      <Table density="compact" className="[&_td]:whitespace-normal" caption="Pending invitations">
+      <AccessTable caption="Pending invitations">
         <thead>
           <tr>
             <Th>Invitee</Th>
@@ -498,7 +498,7 @@ function InvitationsCard({ list, onInvite }: { list: Schemas['TeamInvitationList
             ))
           )}
         </tbody>
-      </Table>
+      </AccessTable>
       {invite && jit ? (
         <div className="pad pt-3">
           <div className="note i">

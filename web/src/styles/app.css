@@ -2063,3 +2063,12 @@
     }
   }
 }
+
+/* Neutral notes (.note.n) share the .n class of numeric cells; their text
+   stays regular, as on every board that has one (W03). */
+@layer components {
+  .note.n {
+    font-weight: inherit;
+    font-variant-numeric: normal;
+  }
+}

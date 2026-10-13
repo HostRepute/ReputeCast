@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
 import { GitHubMark, GoogleMark, MicrosoftMark } from '@/components/icons/Icon'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge, SensitiveFlag, type Tone } from '@/components/ui/Badge'
+import { Table } from '@/components/ui/Table'
 import { cn } from '@/lib/cn'
 
 /** The avatar + name + mono email cell of the team and keys tables. */
@@ -118,6 +119,48 @@ export function PermissionKey({ k, sensitive, className }: { k: string; sensitiv
         </>
       ) : null}
     </span>
+  )
+}
+
+/**
+ * The table of the team and access boards (Team, member, Roles, Keys, Audit):
+ * 11px cells that wrap, the first column at least 180px, and button rows
+ * kept on one line.
+ */
+export function AccessTable({ className, ...rest }: ComponentProps<typeof Table>) {
+  return <Table density="compact" className={cn('[&_td]:whitespace-normal [&_td_.row]:flex-nowrap', className)} {...rest} />
+}
+
+/** A permission-group heading row of the permission tables (grey band, uppercase). */
+export function GroupRow({ label, cells }: { label: string; cells: number }) {
+  return (
+    <tr className="bg-ground-2">
+      <td>
+        <span className="text-[12px] font-bold uppercase tracking-[.04em] text-ink-2">{label}</span>
+      </td>
+      {Array.from({ length: cells }, (_, i) => (
+        <td key={i} className="c" />
+      ))}
+    </tr>
+  )
+}
+
+/** ✓ or – in the compare-roles matrix, with words for screen readers. */
+export function HasMark({ on }: { on: boolean }) {
+  return on ? (
+    <>
+      <span className="font-bold text-accent" aria-hidden="true">
+        ✓
+      </span>
+      <span className="vh">Granted</span>
+    </>
+  ) : (
+    <>
+      <span className="k" aria-hidden="true">
+        –
+      </span>
+      <span className="vh">Not granted</span>
+    </>
   )
 }
 

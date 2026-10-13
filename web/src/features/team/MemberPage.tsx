@@ -10,13 +10,13 @@ import { CardSection } from '@/components/ui/Card'
 import { KeyValues } from '@/components/ui/Data'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
-import { EmptyRow, Table, Td, Th } from '@/components/ui/Table'
+import { EmptyRow, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { FullPageState } from '@/components/shell/SystemScreens'
 import { ago, monthDay, usDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
-import { RoleBadge, SignInText } from '../access/parts'
+import { AccessTable, GroupRow, RoleBadge, SignInText } from '../access/parts'
 import { ChangeRoleDialog } from './ChangeRoleDialog'
 import { DeactivateDialog } from './DeactivateDialog'
 import { LastOwnerDialog } from './LastOwnerDialog'
@@ -131,7 +131,7 @@ function Member({ d }: { d: Detail }) {
               title={<span id="perm-h">Effective permissions</span>}
               caption={`What ${first} can do and where it comes from: role, SSO group mapping or scope`}
             />
-            <Table density="compact" className="[&_td]:whitespace-normal" caption="Effective permissions">
+            <AccessTable caption="Effective permissions">
               <thead>
                 <tr>
                   <Th>Permission</Th>
@@ -143,14 +143,7 @@ function Member({ d }: { d: Detail }) {
               <tbody>
                 {groups.map((g) => (
                   <Fragment key={g.group}>
-                    <tr className="bg-ground-2">
-                      <Td>
-                        <span className="text-[12px] font-bold uppercase tracking-[.04em] text-ink-2">{g.group}</span>
-                      </Td>
-                      <Td />
-                      <Td />
-                      <Td />
-                    </tr>
+                    <GroupRow label={g.group} cells={3} />
                     {g.rows.map((p) => (
                       <tr key={p.key}>
                         <Td>
@@ -183,7 +176,7 @@ function Member({ d }: { d: Detail }) {
                   </Fragment>
                 ))}
               </tbody>
-            </Table>
+            </AccessTable>
           </section>
           <section className="card" aria-labelledby="act-h">
             <CardSection
@@ -195,7 +188,7 @@ function Member({ d }: { d: Detail }) {
                 </ButtonLink>
               }
             />
-            <Table density="compact" className="[&_td]:whitespace-normal" caption="Recent activity">
+            <AccessTable caption="Recent activity">
               <thead>
                 <tr>
                   <Th>When</Th>
@@ -229,7 +222,7 @@ function Member({ d }: { d: Detail }) {
                   ))
                 )}
               </tbody>
-            </Table>
+            </AccessTable>
           </section>
         </div>
         <div className="col gap-5">
