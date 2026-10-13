@@ -665,11 +665,11 @@ func seedCommunityAdapters(ctx context.Context, s *Seeder) error {
 		lastRelease           time.Time
 		installed             time.Duration
 	}{
-		{"Scaleway Transactional Email", "0.6.1", "0.7.0", []string{"webhooks", "suppression pull", "batch 50"}, s.Ago(9 * 24 * time.Hour), 41 * 24 * time.Hour},
-		{"Mailtrap Sending", "1.1.0", "1.1.0", []string{"webhooks", "domain setup via API"}, s.Ago(52 * 24 * time.Hour), 33 * 24 * time.Hour},
-		{"MailerSend", "0.3.4", "0.3.4", []string{"webhooks"}, s.Now.AddDate(0, -14, -3), 120 * 24 * time.Hour},
+		{"Scaleway Transactional Email", "0.6.1", "0.7.0", []string{"webhooks", "suppression pull", "batch 50"}, s.Ago(9 * 24 * time.Hour), 160 * 24 * time.Hour},
+		{"Mailtrap Sending", "1.1.0", "1.1.0", []string{"webhooks", "domain setup via API"}, s.Ago(52 * 24 * time.Hour), 130 * 24 * time.Hour},
+		{"MailerSend", "0.3.4", "0.3.4", []string{"webhooks"}, s.Now.AddDate(0, -14, -3), 100 * 24 * time.Hour},
 	} {
-		manifest, _ := json.Marshal(map[string]any{"kind": "wasm", "capabilities": a.caps, "last_release": a.lastRelease.UTC().Format(time.RFC3339)})
+		manifest, _ := json.Marshal(map[string]any{"demo": true, "kind": "wasm", "capabilities": a.caps, "last_release": a.lastRelease.UTC().Format(time.RFC3339)})
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO installed_adapters (id, name, kind, version, maintainer, source_url, manifest, latest_version, installed_at)
 			VALUES ($1, $2, 'wasm', $3, '[MAINTAINER HANDLE]', 'https://github.com/hostrepute/reputecast-adapters', $4, $5, $6)
 			ON CONFLICT (name) DO NOTHING`, ID(), a.name, a.version, manifest, a.latest, s.Ago(a.installed)); err != nil {

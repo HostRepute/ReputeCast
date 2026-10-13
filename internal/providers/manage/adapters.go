@@ -259,12 +259,27 @@ func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id str
 		return AdapterCommunity{}, api.NotFound("Adapter")
 	}
 	var name, ver, src string
-	if err := s.Pool.QueryRow(ctx, `SELECT name, version, source_url FROM installed_adapters WHERE id = $1`, aid).Scan(&name, &ver, &src); err != nil {
+	var current json.RawMessage
+	var latest *string
+	if err := s.Pool.QueryRow(ctx, `SELECT name, version, source_url, manifest, latest_version FROM installed_adapters WHERE id = $1`, aid).Scan(&name, &ver, &src, &current, &latest); err != nil {
 		return AdapterCommunity{}, api.MapError(err, "Adapter")
 	}
-	m, raw, err := fetchManifest(ctx, src)
-	if err != nil {
-		return AdapterCommunity{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, "Couldn't read the manifest at "+src+": "+err.Error())
+	var m AdapterManifest
+	var raw json.RawMessage
+	if isDemoManifest(current) {
+		// The demo's sample adapters have no manifest to download: move to
+		// the advertised version.
+		if latest == nil || *latest == "" {
+			return AdapterCommunity{}, api.Conflict(name + " is up to date.")
+		}
+		_ = json.Unmarshal(current, &m)
+		m.Name, m.Version = name, *latest
+		raw = current
+	} else {
+		m, raw, err = fetchManifest(ctx, src)
+		if err != nil {
+			return AdapterCommunity{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, "Couldn't read the manifest at "+src+": "+err.Error())
+		}
 	}
 	if m.Name != name {
 		return AdapterCommunity{}, api.Conflict("The manifest at " + src + " now describes " + m.Name + ", not " + name + ". Nothing was changed.")
@@ -395,6 +410,15 @@ func placeholderSafe(t string) string {
 		}
 	}
 	return b.String()
+}
+
+// isDemoManifest reports a sample adapter of the demo data ("demo": true).
+func isDemoManifest(raw json.RawMessage) bool {
+	var m struct {
+		Demo bool `json:"demo"`
+	}
+	_ = json.Unmarshal(raw, &m)
+	return m.Demo
 }
 
 // problem is an error whose text is shown to the person as it is.
