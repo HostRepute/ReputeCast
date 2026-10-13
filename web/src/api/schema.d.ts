@@ -4357,6 +4357,7 @@ export interface components {
             /** Format: date-time */
             at?: string;
             detail: string;
+            local: boolean;
             name: string;
             providerId: string;
             /** Format: int64 */

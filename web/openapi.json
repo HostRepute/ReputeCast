@@ -8991,6 +8991,9 @@
           "detail": {
             "type": "string"
           },
+          "local": {
+            "type": "boolean"
+          },
           "name": {
             "type": "string"
           },
@@ -9025,6 +9028,7 @@
           "status",
           "pulled",
           "pushed",
+          "local",
           "pulledNote",
           "detail"
         ],
