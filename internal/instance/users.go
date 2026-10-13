@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/accounts"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
@@ -31,15 +32,6 @@ type InstanceUserWorkspace struct {
 	Status string `json:"status" enum:"active,deactivated"`
 }
 
-// InstanceUserMethod is one way a person signs in.
-type InstanceUserMethod struct {
-	Kind string `json:"kind" enum:"password,passkey,sso,google,microsoft,github"`
-	// Label as shown: "Password", "passkey", "Google SSO", "GitHub".
-	Label string `json:"label"`
-	// Preset of an SSO identity (google shows the Google mark).
-	Preset string `json:"preset,omitempty"`
-}
-
 // InstanceUser is one row of Instance admin › Users.
 type InstanceUser struct {
 	ID            string                  `json:"id"`
@@ -50,12 +42,15 @@ type InstanceUser struct {
 	InstanceAdmin bool                    `json:"instanceAdmin"`
 	BreakGlass    bool                    `json:"breakGlass"`
 	Workspaces    []InstanceUserWorkspace `json:"workspaces"`
-	Methods       []InstanceUserMethod    `json:"methods"`
-	// TwoFactor: totp, passkey, idp (SSO with two-factor at the IdP),
-	// required (the policy asks for it; in grace), off, or none (deactivated).
-	TwoFactor    string     `json:"twoFactor" enum:"totp,passkey,idp,required,off,none"`
-	GraceUntil   *time.Time `json:"graceUntil,omitempty"`
-	LastSignInAt *time.Time `json:"lastSignInAt,omitempty"`
+	// Methods: their own credentials first ("Password · passkey"); people
+	// without a password list their SSO or social sign-in first
+	// ("Google SSO · passkey"). AllMethods has every one.
+	Methods    []access.MemberSignInMethod `json:"methods"`
+	AllMethods []access.MemberSignInMethod `json:"allMethods"`
+	// TwoFactor is the same status as on the team list (On · TOTP, Via
+	// IdP, Required · off with the grace period, Off).
+	TwoFactor    access.MemberTwoFA `json:"twoFactor"`
+	LastSignInAt *time.Time         `json:"lastSignInAt,omitempty"`
 	Status       string     `json:"status" enum:"active,deactivated"`
 	// DeactivatedAt is set for deactivated accounts.
 	DeactivatedAt *time.Time `json:"deactivatedAt,omitempty"`
@@ -127,15 +122,15 @@ func (s *Service) Users(ctx context.Context, f UserFilter) (InstanceUserList, er
 		}
 		switch f.TwoFactor {
 		case "on":
-			if u.TwoFactor != "totp" && u.TwoFactor != "passkey" {
+			if u.TwoFactor.State != "on" {
 				continue
 			}
 		case "off":
-			if u.TwoFactor != "off" && u.TwoFactor != "required" {
+			if u.TwoFactor.State != "off" && u.TwoFactor.State != "required" {
 				continue
 			}
 		case "idp":
-			if u.TwoFactor != "idp" {
+			if u.TwoFactor.State != "idp" {
 				continue
 			}
 		}
@@ -222,7 +217,7 @@ func (s *Service) loadUsers(ctx context.Context, me *store.User) ([]InstanceUser
 
 func (s *Service) userView(ctx context.Context, r store.InstanceAdminUsersRow, ms []store.InstanceAdminMembershipsRow, ids []store.InstanceAdminIdentitiesRow, st store.InstanceSetting, me *store.User) InstanceUser {
 	u := InstanceUser{ID: r.ID.String(), Email: r.Email, Name: displayName(r.Name, r.Email), AvatarColor: r.AvatarColor, InstanceAdmin: r.IsInstanceAdmin,
-		BreakGlass: r.BreakGlass, Workspaces: []InstanceUserWorkspace{}, Methods: []InstanceUserMethod{}, LastSignInAt: r.LastSignInAt,
+		BreakGlass: r.BreakGlass, Workspaces: []InstanceUserWorkspace{}, LastSignInAt: r.LastSignInAt,
 		Status: r.Status, DeactivatedAt: r.DeactivatedAt, Sessions: int(r.Sessions), APIKeys: int(r.ApiKeys), SoleOwnerOf: []string{},
 		HasPassword: r.HasPassword, Self: me != nil && me.ID == r.ID}
 	if r.AvatarUpdatedAt != nil {
@@ -244,61 +239,24 @@ func (s *Service) userView(ctx context.Context, r store.InstanceAdminUsersRow, m
 		}
 		return 0
 	})
-	ssoTwoFA := false
-	var sso, social []InstanceUserMethod
+	ssoOnly := !r.HasPassword
+	var linked []access.Identity
+	hasSSO := false
 	for _, i := range ids {
-		switch i.Kind {
-		case "sso":
-			name := i.ProviderName
-			if i.ProviderPreset == "google" {
-				name = "Google"
-			}
-			sso = append(sso, InstanceUserMethod{Kind: "sso", Label: name + " SSO", Preset: i.ProviderPreset})
+		linked = append(linked, access.Identity{Kind: i.Kind, ProviderName: i.ProviderName, ProviderPreset: i.ProviderPreset})
+		if i.Kind == "sso" {
+			hasSSO = true
 			if u.SSOProvider == "" {
 				u.SSOProvider = i.ProviderName
 			}
-			if i.ProviderStatus == "enabled" {
-				ssoTwoFA = true
-			}
-		default:
-			social = append(social, InstanceUserMethod{Kind: i.Kind, Label: socialLabel(i.Kind)})
 		}
 	}
-	pw := InstanceUserMethod{Kind: "password", Label: "Password"}
-	pk := InstanceUserMethod{Kind: "passkey", Label: "passkey"}
-	if r.HasPassword {
-		pw.Label = "Password"
-		u.Methods = append(u.Methods, pw)
-		if r.Passkeys > 0 {
-			u.Methods = append(u.Methods, pk)
-		}
-		u.Methods = append(u.Methods, sso...)
-	} else {
-		u.Methods = append(u.Methods, sso...)
-		if r.Passkeys > 0 {
-			if len(u.Methods) == 0 {
-				pk.Label = "Passkey"
-			}
-			u.Methods = append(u.Methods, pk)
-		}
-	}
-	u.Methods = append(u.Methods, social...)
-	switch {
-	case r.Status != "active":
-		u.TwoFactor = "none"
-		u.Methods = []InstanceUserMethod{}
-	case r.TotpEnabledAt != nil:
-		u.TwoFactor = "totp"
-	case r.Passkeys > 0:
-		u.TwoFactor = "passkey"
-	case ssoTwoFA && !r.HasPassword:
-		u.TwoFactor = "idp"
-	case r.TwofaGraceUntil != nil && r.TwofaGraceUntil.After(s.now()):
-		u.TwoFactor, u.GraceUntil = "required", r.TwofaGraceUntil
-	case requiresTwoFactor(st, ms):
-		u.TwoFactor = "required"
-	default:
-		u.TwoFactor = "off"
+	u.AllMethods = access.SignInMethods(r.HasPassword, r.Passkeys, linked)
+	u.Methods = primaryMethods(u.AllMethods, r.HasPassword)
+	u.TwoFactor = access.TwoFAStatus(access.TwoFAInput{TOTP: r.TotpEnabledAt != nil, Passkeys: r.Passkeys, SSOOnly: ssoOnly && hasSSO,
+		GraceUntil: r.TwofaGraceUntil, Required: requiresTwoFactor(st, ms), Now: s.now()})
+	if r.Status != "active" {
+		u.Methods = []access.MemberSignInMethod{}
 	}
 	if sole, err := s.Q.InstanceAdminSoleOwnerships(ctx, r.ID); err == nil {
 		for _, w := range sole {
@@ -324,16 +282,33 @@ func requiresTwoFactor(st store.InstanceSetting, ms []store.InstanceAdminMembers
 	return false
 }
 
-func socialLabel(kind string) string {
-	switch kind {
-	case "google":
-		return "Google"
-	case "microsoft":
-		return "Microsoft"
-	case "github":
-		return "GitHub"
+// primaryMethods is the sign-in column of the users list: a person with a
+// password shows their own credentials ("Password · passkey"); without
+// one, their SSO or social sign-in comes first ("Google SSO · passkey").
+// The Google Workspace preset is shortened to "Google SSO" as on the board.
+func primaryMethods(all []access.MemberSignInMethod, hasPassword bool) []access.MemberSignInMethod {
+	out := []access.MemberSignInMethod{}
+	if hasPassword {
+		return access.PrimarySignIn(all)
 	}
-	return kind
+	var keys []access.MemberSignInMethod
+	for _, m := range all {
+		switch m.Kind {
+		case "passkey":
+			keys = append(keys, access.MemberSignInMethod{Kind: m.Kind, Label: "passkey"})
+		case "sso":
+			if m.Preset == "google" {
+				m.Label = "Google SSO"
+			}
+			out = append(out, m)
+		default:
+			out = append(out, m)
+		}
+	}
+	if len(out) == 0 && len(keys) > 0 {
+		keys[0].Label = "Passkey"
+	}
+	return append(out, keys...)
 }
 
 // user loads one account for an action, or a 404.

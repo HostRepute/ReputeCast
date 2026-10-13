@@ -12,15 +12,15 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 )
 
-// startInput is the query of a start link.
-type startInput struct {
+// SSOStartQuery is the query of a start link.
+type SSOStartQuery struct {
 	LoginHint string `query:"login_hint" maxLength:"254" doc:"Email to pre-fill at the IdP"`
 	Next      string `query:"next" maxLength:"1000" doc:"App path to open after signing in"`
 	Invite    string `query:"invite" maxLength:"200" doc:"Invitation token: join its workspace with this identity"`
 	Intent    string `query:"intent" enum:"signin,link" doc:"link adds the identity to the signed-in account"`
 }
 
-func (in startInput) request() StartRequest {
+func (in SSOStartQuery) request() StartRequest {
 	return StartRequest{LoginHint: strings.ToLower(strings.TrimSpace(in.LoginHint)), Next: in.Next, Invite: in.Invite, Intent: in.Intent}
 }
 
@@ -35,12 +35,12 @@ func redirect(r Redirect) *redirectOut {
 	return &redirectOut{Status: http.StatusFound, Location: r.Location, SetCookie: r.Cookies}
 }
 
-// providerPath is the {providerId} path parameter.
-type providerPath struct {
+// SSOProviderPath is the {providerId} path parameter.
+type SSOProviderPath struct {
 	ProviderID string `path:"providerId" format:"uuid"`
 }
 
-func (p providerPath) id() (uuid.UUID, error) {
+func (p SSOProviderPath) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(p.ProviderID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("SSO provider")
@@ -64,8 +64,8 @@ func Register(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "sso-start", Path: "/auth/sso/{providerId}/start", Summary: "Start single sign-on: redirects to the identity provider", Tags: auth,
 		Access: api.Public, Status: http.StatusFound},
 		func(ctx context.Context, in *struct {
-			providerPath
-			startInput
+			SSOProviderPath
+			SSOStartQuery
 		}) (*redirectOut, error) {
 			id, err := uuid.Parse(in.ProviderID)
 			if err != nil {
@@ -78,7 +78,7 @@ func Register(h huma.API, s *Service) {
 		Access: api.Public, Status: http.StatusFound},
 		func(ctx context.Context, in *struct {
 			Kind string `path:"kind" enum:"google,microsoft,github"`
-			startInput
+			SSOStartQuery
 		}) (*redirectOut, error) {
 			return redirect(s.StartSocial(ctx, in.Kind, in.request())), nil
 		})
@@ -97,7 +97,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Get(h, api.Op{ID: "get-sso-provider", Path: "/admin/sso/{providerId}", Summary: "An SSO provider: connection, claims, access, test sign-in", Tags: tags, Access: api.InstanceAdmin},
-		func(ctx context.Context, in *providerPath) (*api.Body[SSOProviderDetail], error) {
+		func(ctx context.Context, in *SSOProviderPath) (*api.Body[SSOProviderDetail], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -108,7 +108,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Put(h, api.Op{ID: "update-sso-provider", Path: "/admin/sso/{providerId}", Summary: "Save an SSO provider (the client secret is write-only)", Tags: tags, Access: api.InstanceAdmin},
 		func(ctx context.Context, in *struct {
-			providerPath
+			SSOProviderPath
 			Body SSOProviderInput
 		}) (*api.Body[SSOProviderDetail], error) {
 			id, err := in.id()
@@ -120,7 +120,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Delete(h, api.Op{ID: "delete-sso-provider", Path: "/admin/sso/{providerId}", Summary: "Delete a provider that isn't enabled", Tags: tags, Access: api.InstanceAdmin},
-		func(ctx context.Context, in *providerPath) (*api.Empty, error) {
+		func(ctx context.Context, in *SSOProviderPath) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -130,7 +130,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Post(h, api.Op{ID: "test-sso-discovery", Path: "/admin/sso/{providerId}/discovery", Summary: "Fetch the issuer's discovery document and signing keys", Tags: tags, Access: api.InstanceAdmin},
 		func(ctx context.Context, in *struct {
-			providerPath
+			SSOProviderPath
 			Body SSODiscoveryInput
 		}) (*api.Body[SSOProviderDetail], error) {
 			id, err := in.id()
@@ -143,7 +143,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Post(h, api.Op{ID: "start-sso-test", Path: "/admin/sso/{providerId}/test", Summary: "Start a test sign-in: shows the claims, signs nobody in, changes nothing", Tags: tags, Access: api.InstanceAdmin},
 		func(ctx context.Context, in *struct {
-			providerPath
+			SSOProviderPath
 			Body SSOTestInput
 		}) (*testOut, error) {
 			id, err := in.id()
@@ -162,7 +162,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "enable-sso-provider", Path: "/admin/sso/{providerId}/enable", Summary: "Enable a provider: its button appears on the sign-in page", Tags: tags, Access: api.InstanceAdmin},
-		func(ctx context.Context, in *providerPath) (*api.Body[SSOProviderDetail], error) {
+		func(ctx context.Context, in *SSOProviderPath) (*api.Body[SSOProviderDetail], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -172,7 +172,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "disable-sso-provider", Path: "/admin/sso/{providerId}/disable", Summary: "Disable a provider (its domain enforcement ends too)", Tags: tags, Access: api.InstanceAdmin},
-		func(ctx context.Context, in *providerPath) (*api.Body[SSOProviderDetail], error) {
+		func(ctx context.Context, in *SSOProviderPath) (*api.Body[SSOProviderDetail], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -183,7 +183,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Get(h, api.Op{ID: "preview-sso-enforcement", Path: "/admin/sso/{providerId}/enforcement", Summary: "Who signs in how before and after domain enforcement", Tags: tags, Access: api.InstanceAdmin},
 		func(ctx context.Context, in *struct {
-			providerPath
+			SSOProviderPath
 			Domain []string `query:"domain" maxItems:"20"`
 		}) (*api.Body[SSOEnforcementPreview], error) {
 			id, err := in.id()
@@ -196,7 +196,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Put(h, api.Op{ID: "set-sso-enforcement", Path: "/admin/sso/{providerId}/enforcement", Summary: "Turn domain enforcement on (with break-glass Owners confirmed) or off", Tags: tags, Access: api.InstanceAdmin},
 		func(ctx context.Context, in *struct {
-			providerPath
+			SSOProviderPath
 			Body SSOEnforcementInput
 		}) (*api.Body[SSOProviderDetail], error) {
 			id, err := in.id()

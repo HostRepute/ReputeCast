@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/notify"
@@ -72,7 +73,11 @@ func (s *Service) Workspaces(ctx context.Context) (InstanceWorkspaceList, error)
 	out := InstanceWorkspaceList{Items: make([]InstanceWorkspace, 0, len(rows))}
 	for _, r := range rows {
 		w := InstanceWorkspace{ID: r.ID.String(), Slug: r.Slug, Name: r.Name, Owner: r.OwnerName, Members: int(r.Members), Invited: int(r.Invited),
-			Subscribers: r.Subscribers, Providers: nonNil(r.Providers), CreatedAt: r.CreatedAt, DeletedAt: r.DeletedAt, Member: mine[r.ID]}
+			Subscribers: r.Subscribers, Providers: []string{}, CreatedAt: r.CreatedAt, DeletedAt: r.DeletedAt, Member: mine[r.ID]}
+		for _, p := range r.Providers {
+			adapter, name, _ := strings.Cut(p, "|")
+			w.Providers = append(w.Providers, campaigns.ShortName(name, adapter))
+		}
 		if r.DeletedAt != nil {
 			p := r.DeletedAt.Add(RestoreHold)
 			w.PurgeAt = &p

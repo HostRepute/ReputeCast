@@ -855,7 +855,7 @@ func (q *Queries) InstanceAdminUsersInGrace(ctx context.Context) ([]InstanceAdmi
 }
 
 const instanceAdminWorkspace = `-- name: InstanceAdminWorkspace :one
-SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at FROM workspaces WHERE id = $1
+SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status FROM workspaces WHERE id = $1
 `
 
 func (q *Queries) InstanceAdminWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error) {
@@ -877,6 +877,12 @@ func (q *Queries) InstanceAdminWorkspace(ctx context.Context, id uuid.UUID) (Wor
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.McpSettings,
+		&i.AuditStreamEnabled,
+		&i.AuditStreamSecretEnc,
+		&i.AuditStreamCursorAt,
+		&i.AuditStreamCursorID,
+		&i.AuditStreamStatus,
 	)
 	return i, err
 }
@@ -884,11 +890,10 @@ func (q *Queries) InstanceAdminWorkspace(ctx context.Context, id uuid.UUID) (Wor
 const instanceAdminWorkspaces = `-- name: InstanceAdminWorkspaces :many
 
 SELECT w.id, w.slug, w.name, w.timezone, w.created_at, w.deleted_at,
-       (SELECT count(*) FROM workspace_members m JOIN users u ON u.id = m.user_id AND u.status = 'active'
-         WHERE m.workspace_id = w.id AND m.status = 'active')::bigint AS members,
+       (SELECT count(*) FROM workspace_members m WHERE m.workspace_id = w.id)::bigint AS members,
        (SELECT count(*) FROM invitations i WHERE i.workspace_id = w.id AND i.accepted_at IS NULL AND i.revoked_at IS NULL AND i.expires_at > now())::bigint AS invited,
        (SELECT count(*) FROM contacts c WHERE c.workspace_id = w.id AND c.erased_at IS NULL)::bigint AS subscribers,
-       coalesce((SELECT array_agg(p.name ORDER BY p.connected_at) FROM providers p WHERE p.workspace_id = w.id AND p.disconnected_at IS NULL), '{}')::text[] AS providers,
+       coalesce((SELECT array_agg(p.adapter || '|' || p.name ORDER BY p.connected_at) FROM providers p WHERE p.workspace_id = w.id AND p.disconnected_at IS NULL), '{}')::text[] AS providers,
        coalesce((SELECT u.name FROM workspace_members m JOIN roles r ON r.id = m.role_id AND r.key = 'owner' AND r.builtin
                  JOIN users u ON u.id = m.user_id WHERE m.workspace_id = w.id AND m.status = 'active' ORDER BY m.joined_at LIMIT 1), '')::text AS owner_name
 FROM workspaces w

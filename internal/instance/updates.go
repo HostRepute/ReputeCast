@@ -305,5 +305,9 @@ func (w *ReleaseCheckWorker) Work(ctx context.Context, _ *river.Job[ReleaseCheck
 	if !st.UpdateCheck {
 		return nil
 	}
+	// Once a day at most, however often the server restarts.
+	if st.UpdateCheckedAt != nil && w.S.now().Sub(*st.UpdateCheckedAt) < 20*time.Hour {
+		return nil
+	}
 	return w.S.checkRelease(ctx)
 }

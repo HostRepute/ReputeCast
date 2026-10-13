@@ -10,11 +10,11 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 )
 
-type userPath struct {
+type InstanceUserPath struct {
 	UserID string `path:"userId" format:"uuid"`
 }
 
-func (p userPath) id() (uuid.UUID, error) {
+func (p InstanceUserPath) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(p.UserID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("User")
@@ -22,11 +22,11 @@ func (p userPath) id() (uuid.UUID, error) {
 	return id, nil
 }
 
-type workspacePath struct {
+type InstanceWorkspacePath struct {
 	WorkspaceID string `path:"workspaceId" format:"uuid"`
 }
 
-func (p workspacePath) id() (uuid.UUID, error) {
+func (p InstanceWorkspacePath) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(p.WorkspaceID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("Workspace")
@@ -53,7 +53,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Post(h, api.Op{ID: "sign-out-instance-user", Path: "/admin/users/{userId}/sign-out", Summary: "Sign a person out of every session", Tags: users, Access: admin},
 		func(ctx context.Context, in *struct {
-			userPath
+			InstanceUserPath
 			Body InstanceUserReason
 		}) (*api.Body[InstanceSignOutResult], error) {
 			id, err := in.id()
@@ -66,7 +66,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Post(h, api.Op{ID: "deactivate-instance-user", Path: "/admin/users/{userId}/deactivate", Summary: "Deactivate an account (reason required): signed out everywhere, history kept", Tags: users, Access: admin},
 		func(ctx context.Context, in *struct {
-			userPath
+			InstanceUserPath
 			Body InstanceDeactivateInput
 		}) (*api.Body[InstanceDeactivateResult], error) {
 			id, err := in.id()
@@ -78,7 +78,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "reactivate-instance-user", Path: "/admin/users/{userId}/reactivate", Summary: "Let a deactivated person sign in again", Tags: users, Access: admin, Status: http.StatusNoContent},
-		func(ctx context.Context, in *userPath) (*api.Empty, error) {
+		func(ctx context.Context, in *InstanceUserPath) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -87,7 +87,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "unlock-instance-user", Path: "/admin/users/{userId}/unlock", Summary: "Clear a sign-in lockout", Tags: users, Access: admin, Status: http.StatusNoContent},
-		func(ctx context.Context, in *userPath) (*api.Empty, error) {
+		func(ctx context.Context, in *InstanceUserPath) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -97,7 +97,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Post(h, api.Op{ID: "reset-instance-user-two-factor", Path: "/admin/users/{userId}/two-factor-reset", Summary: "Reset someone's authenticator (reason required and logged; confirm with your password)", Tags: users, Access: admin, Status: http.StatusNoContent},
 		func(ctx context.Context, in *struct {
-			userPath
+			InstanceUserPath
 			Body InstanceTwoFactorResetInput
 		}) (*api.Empty, error) {
 			id, err := in.id()
@@ -108,7 +108,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Get(h, api.Op{ID: "get-instance-user-password-reset", Path: "/admin/users/{userId}/password-reset", Summary: "Whether a reset email can go out now, and the CLI command", Tags: users, Access: admin},
-		func(ctx context.Context, in *userPath) (*api.Body[InstancePasswordResetInfo], error) {
+		func(ctx context.Context, in *InstanceUserPath) (*api.Body[InstancePasswordResetInfo], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -118,7 +118,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "send-instance-user-password-reset", Path: "/admin/users/{userId}/password-reset", Summary: "Email a one-time password reset link on the System stream", Tags: users, Access: admin},
-		func(ctx context.Context, in *userPath) (*api.Body[InstancePasswordResetSent], error) {
+		func(ctx context.Context, in *InstanceUserPath) (*api.Body[InstancePasswordResetSent], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -129,7 +129,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Put(h, api.Op{ID: "set-instance-admin", Path: "/admin/users/{userId}/instance-admin", Summary: "Make someone an instance admin, or remove it (never the last one)", Tags: users, Access: admin, Status: http.StatusNoContent},
 		func(ctx context.Context, in *struct {
-			userPath
+			InstanceUserPath
 			Body InstanceAdminInput
 		}) (*api.Empty, error) {
 			id, err := in.id()
@@ -162,7 +162,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Post(h, api.Op{ID: "delete-instance-workspace", Path: "/admin/workspaces/{workspaceId}/delete", Summary: "Delete a workspace (typed name; restorable for 7 days, then purged by a job)", Tags: wsTags, Access: admin},
 		func(ctx context.Context, in *struct {
-			workspacePath
+			InstanceWorkspacePath
 			Body InstanceWorkspaceDeleteInput
 		}) (*api.Body[InstanceWorkspaceDeleted], error) {
 			id, err := in.id()
@@ -174,7 +174,7 @@ func Register(h huma.API, s *Service) {
 		})
 
 	api.Post(h, api.Op{ID: "restore-instance-workspace", Path: "/admin/workspaces/{workspaceId}/restore", Summary: "Restore a deleted workspace during its 7-day hold", Tags: wsTags, Access: admin},
-		func(ctx context.Context, in *workspacePath) (*api.Body[InstanceWorkspace], error) {
+		func(ctx context.Context, in *InstanceWorkspacePath) (*api.Body[InstanceWorkspace], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err

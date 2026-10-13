@@ -114,11 +114,10 @@ LIMIT @lim;
 -- name: InstanceAdminWorkspaces :many
 -- Live workspaces and the ones deleted within the 7-day restore hold.
 SELECT w.id, w.slug, w.name, w.timezone, w.created_at, w.deleted_at,
-       (SELECT count(*) FROM workspace_members m JOIN users u ON u.id = m.user_id AND u.status = 'active'
-         WHERE m.workspace_id = w.id AND m.status = 'active')::bigint AS members,
+       (SELECT count(*) FROM workspace_members m WHERE m.workspace_id = w.id)::bigint AS members,
        (SELECT count(*) FROM invitations i WHERE i.workspace_id = w.id AND i.accepted_at IS NULL AND i.revoked_at IS NULL AND i.expires_at > now())::bigint AS invited,
        (SELECT count(*) FROM contacts c WHERE c.workspace_id = w.id AND c.erased_at IS NULL)::bigint AS subscribers,
-       coalesce((SELECT array_agg(p.name ORDER BY p.connected_at) FROM providers p WHERE p.workspace_id = w.id AND p.disconnected_at IS NULL), '{}')::text[] AS providers,
+       coalesce((SELECT array_agg(p.adapter || '|' || p.name ORDER BY p.connected_at) FROM providers p WHERE p.workspace_id = w.id AND p.disconnected_at IS NULL), '{}')::text[] AS providers,
        coalesce((SELECT u.name FROM workspace_members m JOIN roles r ON r.id = m.role_id AND r.key = 'owner' AND r.builtin
                  JOIN users u ON u.id = m.user_id WHERE m.workspace_id = w.id AND m.status = 'active' ORDER BY m.joined_at LIMIT 1), '')::text AS owner_name
 FROM workspaces w
