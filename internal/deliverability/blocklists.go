@@ -37,9 +37,9 @@ func sortAssets(list []string, order map[string]int) {
 }
 
 // blocklistStatus groups the current source's results by blocklist.
-func (st *state) blocklistStatus(builtin int) BlocklistStatus {
+func (st *state) blocklistStatus(builtin int) DeliverabilityBlocklistStatus {
 	via := st.blocklistVia()
-	out := BlocklistStatus{Via: via, Sources: st.sourcesFor(via, builtin), Interval: "daily", Assets: []string{}, Results: []BlocklistSourceResult{}}
+	out := DeliverabilityBlocklistStatus{Via: via, Sources: st.sourcesFor(via, builtin), Interval: "daily", Assets: []string{}, Results: []DeliverabilityBlocklistSource{}}
 	if via == "hostrepute" {
 		out.Interval = "hourly"
 		out.Stale = st.hostReputeStale()
@@ -48,7 +48,7 @@ func (st *state) blocklistStatus(builtin int) BlocklistStatus {
 		return out
 	}
 	type group struct {
-		res  BlocklistSourceResult
+		res  DeliverabilityBlocklistSource
 		rank int32
 	}
 	groups := map[string]*group{}
@@ -60,7 +60,7 @@ func (st *state) blocklistStatus(builtin int) BlocklistStatus {
 		}
 		g, ok := groups[b.Source]
 		if !ok {
-			g = &group{res: BlocklistSourceResult{Source: b.Source, Impact: b.Impact, Assets: []string{}, ListedAssets: []string{}, DelistURL: b.DelistUrl}, rank: b.Rank}
+			g = &group{res: DeliverabilityBlocklistSource{Source: b.Source, Impact: b.Impact, Assets: []string{}, ListedAssets: []string{}, DelistURL: b.DelistUrl}, rank: b.Rank}
 			groups[b.Source] = g
 			names = append(names, b.Source)
 		}

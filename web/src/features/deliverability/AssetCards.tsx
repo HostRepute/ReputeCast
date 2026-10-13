@@ -37,7 +37,7 @@ function Card({ children, className, label }: { children: ReactNode; className?:
 }
 
 /** "1 of 84 · UCEPROTECT L3" */
-function listingLine(b: Schemas['AssetBlocklists']): string {
+function listingLine(b: Schemas['DeliverabilityAssetBlocklists']): string {
   return b.listed ? `${b.listed} of ${b.sources} · ${b.listings.map(shortSource).join(', ')}` : `0 of ${b.sources} listed`
 }
 
@@ -155,7 +155,7 @@ function IPCard({ a, connected, onDelist, delistReason, delisting }: { a: AssetH
   )
 }
 
-function PoolCard({ p, connected, ipPool }: { p: Schemas['PoolHealth']; connected: boolean; ipPool?: string }) {
+function PoolCard({ p, connected, ipPool }: { p: Schemas['DeliverabilityPoolHealth']; connected: boolean; ipPool?: string }) {
   const caption = connected
     ? [`Shared pool${p.region ? `, ${p.region}` : ''}`, p.onlyStream ? `${cap(p.onlyStream)} stream only` : null, `checked at domain level${p.managedReputation ? ', Amazon manages IP reputation' : ''}`]
     : ['Shared pool', p.onlyStream ? `${cap(p.onlyStream)} stream only` : 'checked at domain level']

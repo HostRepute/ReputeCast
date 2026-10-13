@@ -86,34 +86,34 @@ type HostReputeShared struct {
 	IPs     []string `json:"ips"`
 }
 
-// IntegrationsOverview is Settings › Integrations.
-type IntegrationsOverview struct {
+// HostReputeIntegrationsOverview is Settings › Integrations.
+type HostReputeIntegrationsOverview struct {
 	HostRepute HostReputeConnection `json:"hostRepute"`
-	Webhooks   WebhooksSummary      `json:"webhooks"`
-	MCP        MCPSummary           `json:"mcp"`
+	Webhooks   HostReputeIntegrationsWebhooks      `json:"webhooks"`
+	MCP        HostReputeIntegrationsMCP           `json:"mcp"`
 	// Postmaster and SNDS say where that data comes from.
-	Postmaster DataSourceSummary `json:"postmaster"`
-	SNDS       DataSourceSummary `json:"snds"`
+	Postmaster HostReputeDataSource `json:"postmaster"`
+	SNDS       HostReputeDataSource `json:"snds"`
 }
 
-// WebhooksSummary counts outgoing webhook endpoints.
-type WebhooksSummary struct {
+// HostReputeIntegrationsWebhooks counts outgoing webhook endpoints.
+type HostReputeIntegrationsWebhooks struct {
 	Endpoints int64 `json:"endpoints"`
 	Failing   int64 `json:"failing"`
 }
 
-// MCPSummary counts active MCP agents.
-type MCPSummary struct {
+// HostReputeIntegrationsMCP counts active MCP agents.
+type HostReputeIntegrationsMCP struct {
 	Agents int64 `json:"agents"`
 }
 
-// DataSourceSummary says where Postmaster or SNDS data comes from.
-type DataSourceSummary struct {
+// HostReputeDataSource says where Postmaster or SNDS data comes from.
+type HostReputeDataSource struct {
 	Via string `json:"via" enum:"hostrepute,direct,none"`
 }
 
-// SyncQueued is the check run a sync fills in.
-type SyncQueued struct {
+// HostReputeSyncQueued is the check run a sync fills in.
+type HostReputeSyncQueued struct {
 	RunID     string    `json:"runId"`
 	StartedAt time.Time `json:"startedAt"`
 }
@@ -236,17 +236,17 @@ func (s *Service) Connection(ctx context.Context, ws uuid.UUID) (HostReputeConne
 }
 
 // Overview returns Settings › Integrations.
-func (s *Service) Overview(ctx context.Context, ws uuid.UUID) (IntegrationsOverview, error) {
+func (s *Service) Overview(ctx context.Context, ws uuid.UUID) (HostReputeIntegrationsOverview, error) {
 	hr, err := s.Connection(ctx, ws)
 	if err != nil {
-		return IntegrationsOverview{}, err
+		return HostReputeIntegrationsOverview{}, err
 	}
-	out := IntegrationsOverview{HostRepute: hr}
+	out := HostReputeIntegrationsOverview{HostRepute: hr}
 	wh, err := s.Q.HostReputeCountWebhooks(ctx, ws)
 	if err != nil {
 		return out, err
 	}
-	out.Webhooks = WebhooksSummary{Endpoints: wh.Endpoints, Failing: wh.Failing}
+	out.Webhooks = HostReputeIntegrationsWebhooks{Endpoints: wh.Endpoints, Failing: wh.Failing}
 	if out.MCP.Agents, err = s.Q.HostReputeCountAgents(ctx, ws); err != nil {
 		return out, err
 	}
@@ -254,14 +254,14 @@ func (s *Service) Overview(ctx context.Context, ws uuid.UUID) (IntegrationsOverv
 	if err != nil {
 		return out, err
 	}
-	source := func(v string) DataSourceSummary {
+	source := func(v string) HostReputeDataSource {
 		switch {
 		case v == "direct":
-			return DataSourceSummary{Via: "direct"}
+			return HostReputeDataSource{Via: "direct"}
 		case v == "hostrepute" && hr.Status != "not_connected":
-			return DataSourceSummary{Via: "hostrepute"}
+			return HostReputeDataSource{Via: "hostrepute"}
 		}
-		return DataSourceSummary{Via: "none"}
+		return HostReputeDataSource{Via: "none"}
 	}
 	out.Postmaster, out.SNDS = source(via.Postmaster), source(via.Snds)
 	return out, nil

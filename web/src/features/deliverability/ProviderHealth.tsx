@@ -6,7 +6,7 @@ import { trimPct } from '@/lib/format'
 import { KV } from './AssetCards'
 import { barColor, toneOf } from './words'
 
-function RateRow({ r }: { r: Schemas['RateLimit'] }) {
+function RateRow({ r }: { r: Schemas['DeliverabilityRateLimit'] }) {
   const label = r.thresholds ? `${r.label} · ${r.thresholds}` : r.label
   return (
     <div>
@@ -19,7 +19,7 @@ function RateRow({ r }: { r: Schemas['RateLimit'] }) {
 }
 
 /** Account health per sending provider, against each provider's own thresholds. */
-export function ProviderHealthCard({ providers, connected }: { providers: Schemas['ProviderAccountHealth'][]; connected: boolean }) {
+export function ProviderHealthCard({ providers, connected }: { providers: Schemas['DeliverabilityProviderHealth'][]; connected: boolean }) {
   if (!providers.length) return null
   return (
     <section className="card" aria-labelledby="h-provider-health">

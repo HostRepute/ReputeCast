@@ -227,12 +227,12 @@ func (st *state) checkSchedule(builtin int) DeliverabilityChecks {
 	return out
 }
 
-func runView(r store.DeliverabilityCheckRun) CheckRun {
+func runView(r store.DeliverabilityCheckRun) DeliverabilityCheckRun {
 	assets := r.Assets
 	if assets == nil {
 		assets = []string{}
 	}
-	return CheckRun{ID: r.ID.String(), Via: r.Via, Trigger: r.Trigger, Status: r.Status, Assets: assets, Total: r.Total, Answered: r.Answered,
+	return DeliverabilityCheckRun{ID: r.ID.String(), Via: r.Via, Trigger: r.Trigger, Status: r.Status, Assets: assets, Total: r.Total, Answered: r.Answered,
 		Listed: r.Listed, Error: r.Error, StartedAt: r.StartedAt, FinishedAt: r.FinishedAt}
 }
 
@@ -262,8 +262,8 @@ func impactRank(s string) int {
 }
 
 // assetBlocklists summarizes one asset's results from one source.
-func (st *state) assetBlocklists(asset, via string, sources int) AssetBlocklists {
-	out := AssetBlocklists{Via: via, Listings: []string{}}
+func (st *state) assetBlocklists(asset, via string, sources int) DeliverabilityAssetBlocklists {
+	out := DeliverabilityAssetBlocklists{Via: via, Listings: []string{}}
 	if via == "none" {
 		return out
 	}
@@ -320,8 +320,8 @@ func (st *state) providerShort(id uuid.UUID) string {
 }
 
 // assetHealth builds the cards for sending domains and dedicated IPs.
-func (st *state) assetHealth(builtin int) []AssetHealth {
-	out := []AssetHealth{}
+func (st *state) assetHealth(builtin int) []DeliverabilityAssetHealth {
+	out := []DeliverabilityAssetHealth{}
 	via := st.blocklistVia()
 	sources := st.sourcesFor(via, builtin)
 	stale := st.hostReputeStale()
@@ -336,7 +336,7 @@ func (st *state) assetHealth(builtin int) []AssetHealth {
 		if c.Role != hostrepute.RoleSendingDomain && c.Role != hostrepute.RoleDedicatedIP {
 			continue
 		}
-		a := AssetHealth{Asset: c.Asset, Type: c.Type, Role: c.Role, UsedBy: []string{}, Tone: "ok"}
+		a := DeliverabilityAssetHealth{Asset: c.Asset, Type: c.Type, Role: c.Role, UsedBy: []string{}, Tone: "ok"}
 		a.Blocklists = st.assetBlocklists(c.Asset, via, sources)
 		if via == "hostrepute" && stale {
 			a.Stale = staleAt
@@ -372,11 +372,11 @@ func (st *state) assetHealth(builtin int) []AssetHealth {
 					RDNS dnscheck.ReverseDNS `json:"rdns"`
 				}
 				if json.Unmarshal(chk.Result, &r) == nil && r.RDNS.IP != "" {
-					a.ReverseDNS = &ReverseDNS{PTR: r.RDNS.PTR, Matches: r.RDNS.Matches, Status: r.RDNS.Status}
+					a.ReverseDNS = &DeliverabilityReverseDNS{PTR: r.RDNS.PTR, Matches: r.RDNS.Matches, Status: r.RDNS.Status}
 				}
 			}
 			if sn := st.latestSNDS(c.Asset); sn != nil {
-				a.SNDS = &SNDSBrief{FilterResult: sn.FilterResult, TrapHits: st.sndsTraps(c.Asset, 7)}
+				a.SNDS = &DeliverabilitySNDSBrief{FilterResult: sn.FilterResult, TrapHits: st.sndsTraps(c.Asset, 7)}
 			}
 		}
 		a.Tone = assetTone(a)
@@ -385,7 +385,7 @@ func (st *state) assetHealth(builtin int) []AssetHealth {
 	return out
 }
 
-func assetTone(a AssetHealth) string {
+func assetTone(a DeliverabilityAssetHealth) string {
 	switch {
 	case a.Stale != nil:
 		return "bad"
@@ -403,7 +403,7 @@ func assetTone(a AssetHealth) string {
 	return "ok"
 }
 
-func authSummary(c store.DeliverabilityAssetCheck) *DomainAuthSummary {
+func authSummary(c store.DeliverabilityAssetCheck) *DeliverabilityDomainAuth {
 	var r struct {
 		Auth *dnscheck.DomainAuth `json:"auth"`
 	}
@@ -412,7 +412,7 @@ func authSummary(c store.DeliverabilityAssetCheck) *DomainAuthSummary {
 	}
 	t := c.CheckedAt
 	s := r.Auth.Summary
-	return &DomainAuthSummary{SPF: s.SPF, DKIM: s.DKIM, DMARC: s.DMARC, BIMI: s.BIMI, ReturnPath: s.ReturnPath, CheckedAt: &t}
+	return &DeliverabilityDomainAuth{SPF: s.SPF, DKIM: s.DKIM, DMARC: s.DMARC, BIMI: s.BIMI, ReturnPath: s.ReturnPath, CheckedAt: &t}
 }
 
 // usedBy lists the providers that send for a domain: those with records on
@@ -442,14 +442,14 @@ func (st *state) usedBy(domain string) []string {
 	return out
 }
 
-func (st *state) warmup(provider uuid.UUID, ip string) *WarmupProgress {
+func (st *state) warmup(provider uuid.UUID, ip string) *DeliverabilityWarmupProgress {
 	for _, w := range st.warmups {
 		if w.ProviderID != provider || (w.Ip != "" && w.Ip != ip) {
 			continue
 		}
 		start := time.Date(w.StartDate.Year(), w.StartDate.Month(), w.StartDate.Day(), 0, 0, 0, 0, time.UTC)
 		day := int(st.today.Sub(start).Hours()/24) + 1
-		return &WarmupProgress{Day: min(max(day, 1), int(w.Days)), Days: int(w.Days)}
+		return &DeliverabilityWarmupProgress{Day: min(max(day, 1), int(w.Days)), Days: int(w.Days)}
 	}
 	// Providers without a stored plan describe it in their status ("Warming up · day 9 of 21").
 	for _, p := range st.providers {
@@ -459,7 +459,7 @@ func (st *state) warmup(provider uuid.UUID, ip string) *WarmupProgress {
 		var d, n int
 		if i := strings.Index(p.StatusDetail, "day "); i >= 0 {
 			if _, err := fmt.Sscanf(p.StatusDetail[i:], "day %d of %d", &d, &n); err == nil && d > 0 && n > 0 {
-				return &WarmupProgress{Day: d, Days: n}
+				return &DeliverabilityWarmupProgress{Day: d, Days: n}
 			}
 		}
 	}
@@ -531,7 +531,7 @@ func pctOf(f *float64) *float64 {
 	return &v
 }
 
-func (st *state) postmasterPanel() *PostmasterPanel {
+func (st *state) postmasterPanel() *DeliverabilityPostmaster {
 	domain := st.mainDomain()
 	var days []store.PostmasterDaily
 	for _, d := range st.postmaster {
@@ -544,7 +544,7 @@ func (st *state) postmasterPanel() *PostmasterPanel {
 	}
 	sort.Slice(days, func(i, j int) bool { return days[i].Day.Before(days[j].Day) })
 	last := days[len(days)-1]
-	out := &PostmasterPanel{Domain: domain, Via: last.Via, Series: []PostmasterPoint{}}
+	out := &DeliverabilityPostmaster{Domain: domain, Via: last.Via, Series: []DeliverabilityPostmasterPoint{}}
 	out.Stale = last.Via == "hostrepute" && st.hostReputeStale()
 	latest := st.latestPostmaster(domain)
 	out.DomainReputation, out.IPReputation = latest.DomainReputation, latest.IPReputation
@@ -579,7 +579,7 @@ func (st *state) postmasterPanel() *PostmasterPanel {
 		out.FeedbackLoopFlagged = &fbl
 	}
 	if peak != nil {
-		out.Peak = &PostmasterPeak{Day: peak.Day.Format(dateLayout), SpamRate: round(*peak.SpamRate*100, 2)}
+		out.Peak = &DeliverabilityPostmasterPeak{Day: peak.Day.Format(dateLayout), SpamRate: round(*peak.SpamRate*100, 2)}
 	}
 	// Two-day buckets from 30 days ago to yesterday.
 	start := st.today.AddDate(0, 0, -hostrepute.PostmasterDays)
@@ -595,7 +595,7 @@ func (st *state) postmasterPanel() *PostmasterPanel {
 				k++
 			}
 		}
-		pt := PostmasterPoint{From: from.Format(dateLayout), To: to.AddDate(0, 0, -1).Format(dateLayout)}
+		pt := DeliverabilityPostmasterPoint{From: from.Format(dateLayout), To: to.AddDate(0, 0, -1).Format(dateLayout)}
 		if k > 0 {
 			v := round(s/float64(k)*100, 3)
 			pt.SpamRate = &v
@@ -608,7 +608,7 @@ func (st *state) postmasterPanel() *PostmasterPanel {
 const dateLayout = "2006-01-02"
 
 // peakNote explains the spam-rate peak with an incident of that day.
-func peakNote(items []IncidentItem, day string, zone *time.Location) string {
+func peakNote(items []DeliverabilityIncident, day string, zone *time.Location) string {
 	for _, it := range items {
 		if it.OccurredAt.In(zone).Format(dateLayout) == day && (it.Kind == "reputation_change" || it.Kind == KindMigration) {
 			return "first send after migration"
@@ -617,7 +617,7 @@ func peakNote(items []IncidentItem, day string, zone *time.Location) string {
 	return ""
 }
 
-func (st *state) sndsPanel() *SNDSPanel {
+func (st *state) sndsPanel() *DeliverabilitySNDS {
 	for _, c := range st.cands {
 		if c.Role != hostrepute.RoleDedicatedIP {
 			continue
@@ -626,7 +626,7 @@ func (st *state) sndsPanel() *SNDSPanel {
 		if last == nil {
 			continue
 		}
-		out := &SNDSPanel{IP: c.Asset, Via: last.Via, FilterResult: last.FilterResult, ComplaintRate: pctOf(last.ComplaintRate), TrapHits: st.sndsTraps(c.Asset, 7)}
+		out := &DeliverabilitySNDS{IP: c.Asset, Via: last.Via, FilterResult: last.FilterResult, ComplaintRate: pctOf(last.ComplaintRate), TrapHits: st.sndsTraps(c.Asset, 7)}
 		out.Stale = last.Via == "hostrepute" && st.hostReputeStale()
 		since := st.today.AddDate(0, 0, -7)
 		for _, d := range st.snds {

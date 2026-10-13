@@ -3,8 +3,8 @@ import type { Tone } from '@/components/ui/Badge'
 import { andList } from '@/lib/format'
 
 export type Overview = Schemas['DeliverabilityOverview']
-export type AssetHealth = Schemas['AssetHealth']
-export type CheckRun = Schemas['CheckRun']
+export type AssetHealth = Schemas['DeliverabilityAssetHealth']
+export type CheckRun = Schemas['DeliverabilityCheckRun']
 
 const plainDate = new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 
@@ -27,7 +27,7 @@ export function shortSource(s: string): string {
 }
 
 /** "pass · pass · p=quarantine" */
-export function authLine(a: Schemas['DomainAuthSummary']): string {
+export function authLine(a: Schemas['DeliverabilityDomainAuth']): string {
   const dmarc = ['none', 'quarantine', 'reject'].includes(a.dmarc) ? `p=${a.dmarc}` : a.dmarc
   return `${a.spf} · ${a.dkim} · ${dmarc}`
 }

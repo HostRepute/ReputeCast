@@ -8,14 +8,14 @@ import "time"
 type DeliverabilityOverview struct {
 	HostRepute DeliverabilityHostRepute `json:"hostRepute"`
 	Checks     DeliverabilityChecks     `json:"checks"`
-	Assets     []AssetHealth            `json:"assets"`
-	Pools      []PoolHealth             `json:"pools"`
-	Providers  []ProviderAccountHealth  `json:"providers"`
-	Blocklists BlocklistStatus          `json:"blocklists"`
-	Postmaster *PostmasterPanel         `json:"postmaster,omitempty"`
-	SNDS       *SNDSPanel               `json:"snds,omitempty"`
-	DMARC      DMARCSummary             `json:"dmarc"`
-	Incidents  IncidentTimeline         `json:"incidents"`
+	Assets     []DeliverabilityAssetHealth            `json:"assets"`
+	Pools      []DeliverabilityPoolHealth             `json:"pools"`
+	Providers  []DeliverabilityProviderHealth  `json:"providers"`
+	Blocklists DeliverabilityBlocklistStatus          `json:"blocklists"`
+	Postmaster *DeliverabilityPostmaster         `json:"postmaster,omitempty"`
+	SNDS       *DeliverabilitySNDS               `json:"snds,omitempty"`
+	DMARC      DeliverabilityDMARCSummary             `json:"dmarc"`
+	Incidents  DeliverabilityIncidentTimeline         `json:"incidents"`
 }
 
 // DeliverabilityHostRepute is the HostRepute part of the screen header.
@@ -46,13 +46,13 @@ type DeliverabilityChecks struct {
 	LastAt   *time.Time `json:"lastAt,omitempty"`
 	NextAt   *time.Time `json:"nextAt,omitempty"`
 	// Running is the check in progress ("61 of 84 sources answered").
-	Running *CheckRun `json:"running,omitempty"`
+	Running *DeliverabilityCheckRun `json:"running,omitempty"`
 	// BuiltinSources is the size of the built-in DNSBL set (8).
 	BuiltinSources int `json:"builtinSources"`
 }
 
-// CheckRun is one run of the checks.
-type CheckRun struct {
+// DeliverabilityCheckRun is one run of the checks.
+type DeliverabilityCheckRun struct {
 	ID         string     `json:"id"`
 	Via        string     `json:"via" enum:"hostrepute,builtin"`
 	Trigger    string     `json:"trigger" enum:"schedule,manual,connect,fallback"`
@@ -66,8 +66,8 @@ type CheckRun struct {
 	FinishedAt *time.Time `json:"finishedAt,omitempty"`
 }
 
-// AssetHealth is one sending domain or dedicated IP.
-type AssetHealth struct {
+// DeliverabilityAssetHealth is one sending domain or dedicated IP.
+type DeliverabilityAssetHealth struct {
 	Asset string `json:"asset"`
 	Type  string `json:"type" enum:"domain,ip"`
 	Role  string `json:"role" enum:"sending_domain,dedicated_ip"`
@@ -77,35 +77,35 @@ type AssetHealth struct {
 	Provider       string          `json:"provider,omitempty"`
 	ProviderID     string          `json:"providerId,omitempty"`
 	ProviderStatus string          `json:"providerStatus,omitempty"`
-	Warmup         *WarmupProgress `json:"warmup,omitempty"`
+	Warmup         *DeliverabilityWarmupProgress `json:"warmup,omitempty"`
 	// Score and Verdict come from HostRepute.
 	Score   *int   `json:"score,omitempty"`
 	Verdict string `json:"verdict,omitempty"`
 	Tone    string `json:"tone" enum:"ok,warn,bad,neutral"`
 	// Blocklists from the current source; Fallback holds the built-in
 	// results while HostRepute data is stale.
-	Blocklists AssetBlocklists  `json:"blocklists"`
-	Fallback   *AssetBlocklists `json:"fallback,omitempty"`
+	Blocklists DeliverabilityAssetBlocklists  `json:"blocklists"`
+	Fallback   *DeliverabilityAssetBlocklists `json:"fallback,omitempty"`
 	// Stale is when the HostRepute data on the card was last fresh.
 	Stale *time.Time `json:"stale,omitempty"`
 	// Auth is the SPF / DKIM / DMARC check of a domain.
-	Auth *DomainAuthSummary `json:"auth,omitempty"`
+	Auth *DeliverabilityDomainAuth `json:"auth,omitempty"`
 	// DMARCAligned is the share of DMARC-aligned mail, last 7 days (percent).
 	DMARCAligned *float64 `json:"dmarcAligned,omitempty"`
 	// GmailReputation is Postmaster's domain reputation: high, medium, low, bad.
 	GmailReputation string      `json:"gmailReputation,omitempty"`
-	ReverseDNS      *ReverseDNS `json:"reverseDns,omitempty"`
-	SNDS            *SNDSBrief  `json:"snds,omitempty"`
+	ReverseDNS      *DeliverabilityReverseDNS `json:"reverseDns,omitempty"`
+	SNDS            *DeliverabilitySNDSBrief  `json:"snds,omitempty"`
 }
 
-// WarmupProgress is "day 9 of 21".
-type WarmupProgress struct {
+// DeliverabilityWarmupProgress is "day 9 of 21".
+type DeliverabilityWarmupProgress struct {
 	Day  int `json:"day"`
 	Days int `json:"days"`
 }
 
-// AssetBlocklists summarizes an asset's blocklist checks.
-type AssetBlocklists struct {
+// DeliverabilityAssetBlocklists summarizes an asset's blocklist checks.
+type DeliverabilityAssetBlocklists struct {
 	Via       string     `json:"via" enum:"hostrepute,builtin,none"`
 	Sources   int        `json:"sources"`
 	Listed    int        `json:"listed"`
@@ -115,8 +115,8 @@ type AssetBlocklists struct {
 	HighImpact bool `json:"highImpact"`
 }
 
-// DomainAuthSummary is "pass · pass · p=quarantine".
-type DomainAuthSummary struct {
+// DeliverabilityDomainAuth is "pass · pass · p=quarantine".
+type DeliverabilityDomainAuth struct {
 	SPF        string     `json:"spf"`
 	DKIM       string     `json:"dkim"`
 	DMARC      string     `json:"dmarc" doc:"Policy (none, quarantine, reject) or missing / invalid"`
@@ -125,21 +125,21 @@ type DomainAuthSummary struct {
 	CheckedAt  *time.Time `json:"checkedAt,omitempty"`
 }
 
-// ReverseDNS is the forward-confirmed reverse DNS of an IP.
-type ReverseDNS struct {
+// DeliverabilityReverseDNS is the forward-confirmed reverse DNS of an IP.
+type DeliverabilityReverseDNS struct {
 	PTR     string `json:"ptr,omitempty"`
 	Matches bool   `json:"matches"`
 	Status  string `json:"status"`
 }
 
-// SNDSBrief is "Green · 0 trap hits".
-type SNDSBrief struct {
+// DeliverabilitySNDSBrief is "Green · 0 trap hits".
+type DeliverabilitySNDSBrief struct {
 	FilterResult string `json:"filterResult"`
 	TrapHits     int    `json:"trapHits"`
 }
 
-// PoolHealth is a provider's shared IP pool, checked at domain level.
-type PoolHealth struct {
+// DeliverabilityPoolHealth is a provider's shared IP pool, checked at domain level.
+type DeliverabilityPoolHealth struct {
 	ProviderID string `json:"providerId"`
 	Provider   string `json:"provider"`
 	Short      string `json:"short"`
@@ -159,23 +159,23 @@ type PoolHealth struct {
 	ComplaintRate *float64 `json:"complaintRate,omitempty"`
 }
 
-// ProviderAccountHealth is a sending provider's account health against its
+// DeliverabilityProviderHealth is a sending provider's account health against its
 // own thresholds.
-type ProviderAccountHealth struct {
+type DeliverabilityProviderHealth struct {
 	ProviderID string    `json:"providerId"`
 	Name       string    `json:"name" doc:"Postal (self-hosted)"`
 	Adapter    string    `json:"adapter"`
 	Status     string    `json:"status"`
 	Badge      string    `json:"badge" doc:"Healthy · no enforcement"`
 	Tone       string    `json:"tone" enum:"ok,warn,bad,info,neutral"`
-	Bounce     RateLimit `json:"bounce"`
-	Complaint  RateLimit `json:"complaint"`
+	Bounce     DeliverabilityRateLimit `json:"bounce"`
+	Complaint  DeliverabilityRateLimit `json:"complaint"`
 	// Note is one extra fact ("Reputation dashboard", "Stream", "Thresholds").
-	Note *ProviderNote `json:"note,omitempty"`
+	Note *DeliverabilityProviderNote `json:"note,omitempty"`
 }
 
-// RateLimit is a rate against the provider's limits.
-type RateLimit struct {
+// DeliverabilityRateLimit is a rate against the provider's limits.
+type DeliverabilityRateLimit struct {
 	Label string `json:"label" doc:"Bounce rate, Complaint rate, Spam complaint rate"`
 	// Value is the current rate in percent.
 	Value *float64 `json:"value,omitempty"`
@@ -186,14 +186,14 @@ type RateLimit struct {
 	Tone  string  `json:"tone" enum:"ok,warn,bad"`
 }
 
-// ProviderNote is a label and a value.
-type ProviderNote struct {
+// DeliverabilityProviderNote is a label and a value.
+type DeliverabilityProviderNote struct {
 	Label string `json:"label"`
 	Value string `json:"value"`
 }
 
-// BlocklistStatus is the blacklist table.
-type BlocklistStatus struct {
+// DeliverabilityBlocklistStatus is the blacklist table.
+type DeliverabilityBlocklistStatus struct {
 	Via       string     `json:"via" enum:"hostrepute,builtin,none"`
 	Sources   int        `json:"sources"`
 	Interval  string     `json:"interval" enum:"hourly,daily"`
@@ -203,11 +203,11 @@ type BlocklistStatus struct {
 	CheckedAt *time.Time `json:"checkedAt,omitempty"`
 	// Stale is true while HostRepute data can't be refreshed.
 	Stale   bool                    `json:"stale"`
-	Results []BlocklistSourceResult `json:"results"`
+	Results []DeliverabilityBlocklistSource `json:"results"`
 }
 
-// BlocklistSourceResult is one source and the assets checked on it.
-type BlocklistSourceResult struct {
+// DeliverabilityBlocklistSource is one source and the assets checked on it.
+type DeliverabilityBlocklistSource struct {
 	Source       string     `json:"source"`
 	Impact       string     `json:"impact" enum:"high,medium,low"`
 	Assets       []string   `json:"assets"`
@@ -220,8 +220,8 @@ type BlocklistSourceResult struct {
 	DelistingAt  *time.Time `json:"delistingAt,omitempty"`
 }
 
-// PostmasterPanel is Google Postmaster Tools for the main sending domain.
-type PostmasterPanel struct {
+// DeliverabilityPostmaster is Google Postmaster Tools for the main sending domain.
+type DeliverabilityPostmaster struct {
 	Domain string `json:"domain"`
 	Via    string `json:"via" enum:"hostrepute,direct"`
 	Stale  bool   `json:"stale"`
@@ -239,30 +239,30 @@ type PostmasterPanel struct {
 	// FeedbackLoopFlagged is the number of flagged FBL identifiers (nil: no FBL data).
 	FeedbackLoopFlagged *int `json:"feedbackLoopFlagged,omitempty"`
 	// Series is the spam rate in two-day buckets, oldest first.
-	Series []PostmasterPoint `json:"series"`
-	Peak   *PostmasterPeak   `json:"peak,omitempty"`
+	Series []DeliverabilityPostmasterPoint `json:"series"`
+	Peak   *DeliverabilityPostmasterPeak   `json:"peak,omitempty"`
 	// From and To are dates (YYYY-MM-DD) in the workspace's timezone.
 	From string `json:"from" format:"date"`
 	To   string `json:"to" format:"date"`
 }
 
-// PostmasterPoint is the average spam rate of a bucket of days.
-type PostmasterPoint struct {
+// DeliverabilityPostmasterPoint is the average spam rate of a bucket of days.
+type DeliverabilityPostmasterPoint struct {
 	From     string   `json:"from" format:"date"`
 	To       string   `json:"to" format:"date"`
 	SpamRate *float64 `json:"spamRate,omitempty"`
 }
 
-// PostmasterPeak is the highest daily spam rate of the period.
-type PostmasterPeak struct {
+// DeliverabilityPostmasterPeak is the highest daily spam rate of the period.
+type DeliverabilityPostmasterPeak struct {
 	Day      string  `json:"day" format:"date"`
 	SpamRate float64 `json:"spamRate"`
 	// Note explains the peak from the timeline ("first send after migration").
 	Note string `json:"note,omitempty"`
 }
 
-// SNDSPanel is Microsoft SNDS for the dedicated IP.
-type SNDSPanel struct {
+// DeliverabilitySNDS is Microsoft SNDS for the dedicated IP.
+type DeliverabilitySNDS struct {
 	IP           string `json:"ip"`
 	Via          string `json:"via" enum:"hostrepute,direct"`
 	Stale        bool   `json:"stale"`
@@ -274,8 +274,8 @@ type SNDSPanel struct {
 	JMRPReports   int      `json:"jmrpReports"`
 }
 
-// DMARCSummary is the DMARC aggregate report summary, last 7 days.
-type DMARCSummary struct {
+// DeliverabilityDMARCSummary is the DMARC aggregate report summary, last 7 days.
+type DeliverabilityDMARCSummary struct {
 	Via      string `json:"via" enum:"hostrepute,upload,none"`
 	Days     int    `json:"days"`
 	Rua      string `json:"rua,omitempty"`
@@ -285,13 +285,13 @@ type DMARCSummary struct {
 	Messages int64  `json:"messages"`
 	// PassRate is the share of messages that passed DMARC (percent).
 	PassRate *float64         `json:"passRate,omitempty"`
-	Sources  []DMARCSourceRow `json:"sources"`
+	Sources  []DeliverabilityDMARCSource `json:"sources"`
 	// Unknown is the largest source that isn't one of the providers.
-	Unknown *DMARCSourceRow `json:"unknown,omitempty"`
+	Unknown *DeliverabilityDMARCSource `json:"unknown,omitempty"`
 }
 
-// DMARCSourceRow is one sending source in the reports.
-type DMARCSourceRow struct {
+// DeliverabilityDMARCSource is one sending source in the reports.
+type DeliverabilityDMARCSource struct {
 	Label      string `json:"label" doc:"Amazon SES, Postal · 203.0.113.25, Unknown · 198.51.100.77"`
 	ProviderID string `json:"providerId,omitempty"`
 	Adapter    string `json:"adapter,omitempty"`
@@ -303,16 +303,16 @@ type DMARCSourceRow struct {
 	Result     string `json:"result" enum:"pass,quarantined,rejected,fail"`
 }
 
-// IncidentTimeline is the incident timeline.
-type IncidentTimeline struct {
-	Items []IncidentItem `json:"items"`
+// DeliverabilityIncidentTimeline is the incident timeline.
+type DeliverabilityIncidentTimeline struct {
+	Items []DeliverabilityIncident `json:"items"`
 	Total int64          `json:"total"`
 	// FromHostRepute is true when HostRepute alerts are part of the timeline.
 	FromHostRepute bool `json:"fromHostRepute"`
 }
 
-// IncidentItem is one incident, linked to campaigns and providers.
-type IncidentItem struct {
+// DeliverabilityIncident is one incident, linked to campaigns and providers.
+type DeliverabilityIncident struct {
 	ID         string         `json:"id"`
 	OccurredAt time.Time      `json:"occurredAt"`
 	Kind       string         `json:"kind"`
@@ -320,11 +320,11 @@ type IncidentItem struct {
 	Title      string         `json:"title"`
 	Detail     string         `json:"detail"`
 	Source     string         `json:"source" enum:"reputecast,hostrepute,builtin"`
-	Links      []IncidentLink `json:"links"`
+	Links      []DeliverabilityIncidentLink `json:"links"`
 }
 
-// IncidentLink points to the screen an incident is about.
-type IncidentLink struct {
+// DeliverabilityIncidentLink points to the screen an incident is about.
+type DeliverabilityIncidentLink struct {
 	Kind  string `json:"kind" enum:"warmup,campaign,campaign_report,provider,provider_events,import,deliverability"`
 	Label string `json:"label"`
 	ID    string `json:"id,omitempty"`

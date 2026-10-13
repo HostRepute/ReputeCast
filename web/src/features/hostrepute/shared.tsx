@@ -5,7 +5,7 @@ import { toast } from '@/components/ui/Toast'
 import { useWorkspace } from '@/lib/session'
 
 export type Connection = Schemas['HostReputeConnection']
-export type Integrations = Schemas['IntegrationsOverview']
+export type Integrations = Schemas['HostReputeIntegrationsOverview']
 
 export const integrationsPath = '/api/v1/workspaces/{workspace}/integrations' as const
 

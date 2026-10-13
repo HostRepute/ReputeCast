@@ -15,15 +15,15 @@ type workspaceOnly struct {
 	api.WorkspaceInput
 }
 
-type connectAPIKeyInput struct {
+type hostReputeAPIKeyInput struct {
 	api.WorkspaceInput
 	Body struct {
 		APIKey string `json:"apiKey" minLength:"1" maxLength:"512" doc:"A HostRepute API key (hr_live_…) with the monitor:read, alerts:read and assets:write scopes. Write-only: it is stored encrypted and never returned."`
 	}
 }
 
-// OAuthStart is where to send the browser for HostRepute's consent page.
-type OAuthStart struct {
+// HostReputeOAuthStart is where to send the browser for HostRepute's consent page.
+type HostReputeOAuthStart struct {
 	AuthorizeURL string `json:"authorizeUrl" format:"uri"`
 }
 
@@ -40,14 +40,14 @@ type redirectOutput struct {
 	CacheControl string `header:"Cache-Control"`
 }
 
-type addAssetInput struct {
+type hostReputeAddAssetInput struct {
 	api.WorkspaceInput
 	Body struct {
 		Asset string `json:"asset" minLength:"1" maxLength:"253" doc:"A sending domain, organization domain, dedicated IP or server hostname of this workspace"`
 	}
 }
 
-type swapAssetInput struct {
+type hostReputeSwapAssetInput struct {
 	api.WorkspaceInput
 	Body struct {
 		Remove string `json:"remove" minLength:"1" maxLength:"253"`
@@ -60,7 +60,7 @@ func Register(h huma.API, s *Service) {
 	tags := []string{"Integrations"}
 	api.Get(h, api.Op{ID: "get-integrations", Path: "/workspaces/{workspace}/integrations", Summary: "Settings › Integrations: HostRepute, webhooks, MCP, Postmaster and SNDS",
 		Tags: tags, Access: api.Workspace(authz.DeliverabilityView)},
-		func(ctx context.Context, _ *workspaceOnly) (*api.Body[IntegrationsOverview], error) {
+		func(ctx context.Context, _ *workspaceOnly) (*api.Body[HostReputeIntegrationsOverview], error) {
 			out, err := s.Overview(ctx, api.WorkspaceFrom(ctx).ID)
 			return api.OK(out), err
 		})
@@ -68,9 +68,9 @@ func Register(h huma.API, s *Service) {
 		Summary:     "Start connecting HostRepute (OAuth 2 with PKCE)",
 		Description: "Returns HostRepute's consent URL. The browser comes back to /api/v1/integrations/hostrepute/callback.",
 		Tags:        tags, Access: api.WorkspaceHuman(authz.IntegrationsHostRepute)},
-		func(ctx context.Context, _ *workspaceOnly) (*api.Body[OAuthStart], error) {
+		func(ctx context.Context, _ *workspaceOnly) (*api.Body[HostReputeOAuthStart], error) {
 			u, err := s.StartOAuth(ctx, api.WorkspaceFrom(ctx), api.UserFrom(ctx))
-			return api.OK(OAuthStart{AuthorizeURL: u}), err
+			return api.OK(HostReputeOAuthStart{AuthorizeURL: u}), err
 		})
 	// The redirect URI is the same for every workspace (one registration per
 	// instance); the single-use state names the workspace and the person,
@@ -86,7 +86,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "connect-hostrepute-api-key", Path: "/workspaces/{workspace}/integrations/hostrepute/api-key",
 		Summary: "Connect HostRepute with an API key", Tags: tags, Access: api.Workspace(authz.IntegrationsHostRepute)},
-		func(ctx context.Context, in *connectAPIKeyInput) (*api.Body[HostReputeConnection], error) {
+		func(ctx context.Context, in *hostReputeAPIKeyInput) (*api.Body[HostReputeConnection], error) {
 			out, err := s.ConnectAPIKey(ctx, api.WorkspaceFrom(ctx), in.Body.APIKey)
 			return api.OK(out), err
 		})
@@ -98,7 +98,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "sync-hostrepute", Path: "/workspaces/{workspace}/integrations/hostrepute/sync",
 		Summary: "Sync HostRepute data now", Tags: tags, Access: api.Workspace(authz.IntegrationsHostRepute), Status: http.StatusAccepted},
-		func(ctx context.Context, _ *workspaceOnly) (*api.Body[SyncQueued], error) {
+		func(ctx context.Context, _ *workspaceOnly) (*api.Body[HostReputeSyncQueued], error) {
 			out, err := s.SyncNow(ctx, api.WorkspaceFrom(ctx))
 			return api.OK(out), err
 		})
@@ -106,13 +106,13 @@ func Register(h huma.API, s *Service) {
 		Summary:     "Add a domain, IP or hostname to HostRepute monitoring",
 		Description: "Answers 409 with code monitor_limit_reached (meta: limit, used, team, asset, swap) when the HostRepute plan is full.",
 		Tags:        tags, Access: api.Workspace(authz.IntegrationsHostRepute)},
-		func(ctx context.Context, in *addAssetInput) (*api.Body[HostReputeConnection], error) {
+		func(ctx context.Context, in *hostReputeAddAssetInput) (*api.Body[HostReputeConnection], error) {
 			out, err := s.AddAsset(ctx, api.WorkspaceFrom(ctx), in.Body.Asset)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "swap-hostrepute-asset", Path: "/workspaces/{workspace}/integrations/hostrepute/assets/swap",
 		Summary: "Stop monitoring one asset and monitor another instead", Tags: tags, Access: api.Workspace(authz.IntegrationsHostRepute)},
-		func(ctx context.Context, in *swapAssetInput) (*api.Body[HostReputeConnection], error) {
+		func(ctx context.Context, in *hostReputeSwapAssetInput) (*api.Body[HostReputeConnection], error) {
 			out, err := s.SwapAsset(ctx, api.WorkspaceFrom(ctx), in.Body.Remove, in.Body.Add)
 			return api.OK(out), err
 		})

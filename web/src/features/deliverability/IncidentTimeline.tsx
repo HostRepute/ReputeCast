@@ -7,7 +7,7 @@ import { shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { severityTone } from './words'
 
-function IncidentLink({ l }: { l: Schemas['IncidentLink'] }) {
+function IncidentLink({ l }: { l: Schemas['DeliverabilityIncidentLink'] }) {
   const { slug } = useWorkspace()
   const params = { workspace: slug }
   switch (l.kind) {
@@ -51,7 +51,7 @@ function IncidentLink({ l }: { l: Schemas['IncidentLink'] }) {
 }
 
 /** Incident timeline, linked to campaigns and providers. */
-export function IncidentTimeline({ t, connected, className }: { t: Schemas['IncidentTimeline']; connected: boolean; className?: string }) {
+export function IncidentTimeline({ t, connected, className }: { t: Schemas['DeliverabilityIncidentTimeline']; connected: boolean; className?: string }) {
   return (
     <section className={cn('card min-w-0', className)} aria-labelledby="h-incidents">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">

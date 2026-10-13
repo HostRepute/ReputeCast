@@ -9,7 +9,7 @@ import { useWorkspace } from '@/lib/session'
 const TOP = 8
 
 /** Blacklist status: 84 sources via HostRepute, or the built-in 8. */
-export function BlocklistCard({ b, connected, canConnect }: { b: Schemas['BlocklistStatus']; connected: boolean; canConnect: boolean }) {
+export function BlocklistCard({ b, connected, canConnect }: { b: Schemas['DeliverabilityBlocklistStatus']; connected: boolean; canConnect: boolean }) {
   const { slug } = useWorkspace()
   const [all, setAll] = useState(false)
   const viaHostRepute = b.via === 'hostrepute'

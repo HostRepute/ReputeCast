@@ -42,7 +42,7 @@ type uploadInput struct {
 	RawBody []byte `contentType:"application/octet-stream" doc:"An aggregate report: XML, .xml.gz or .zip"`
 }
 
-type delistInput struct {
+type deliverabilityDelistInput struct {
 	api.WorkspaceInput
 	Body struct {
 		Asset  string `json:"asset" minLength:"1" maxLength:"253"`
@@ -61,7 +61,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "get-deliverability-reputation", Path: "/workspaces/{workspace}/deliverability/reputation",
 		Summary: "Blocklist verdict used by Send Readiness (pass, warn, block or unknown)", Tags: tags, Access: api.Workspace(authz.DeliverabilityView)},
-		func(ctx context.Context, _ *overviewInput) (*api.Body[Reputation], error) {
+		func(ctx context.Context, _ *overviewInput) (*api.Body[DeliverabilityReputation], error) {
 			out, err := s.Reputation(ctx, api.WorkspaceFrom(ctx))
 			return api.OK(out), err
 		})
@@ -69,13 +69,13 @@ func Register(h huma.API, s *Service) {
 		Summary:     "Run all checks now",
 		Description: "Asks HostRepute to re-check every source when it is connected, otherwise runs the built-in checks. Returns the run in progress when one is already running.",
 		Tags:        tags, Access: api.Workspace(authz.DeliverabilityView), Status: http.StatusAccepted},
-		func(ctx context.Context, in *runChecksInput) (*api.Body[CheckRun], error) {
+		func(ctx context.Context, in *runChecksInput) (*api.Body[DeliverabilityCheckRun], error) {
 			out, err := s.RunNow(ctx, api.WorkspaceFrom(ctx), in.Builtin)
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-deliverability-check", Path: "/workspaces/{workspace}/deliverability/checks/{runId}",
 		Summary: "Progress of a check run", Tags: tags, Access: api.Workspace(authz.DeliverabilityView)},
-		func(ctx context.Context, in *runInput) (*api.Body[CheckRun], error) {
+		func(ctx context.Context, in *runInput) (*api.Body[DeliverabilityCheckRun], error) {
 			id, err := uuid.Parse(in.RunID)
 			if err != nil {
 				return nil, api.NotFound("Check run")
@@ -96,20 +96,20 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "get-dmarc-source", Path: "/workspaces/{workspace}/deliverability/dmarc/sources/{ip}",
 		Summary: "What the DMARC reports say about one sending IP", Tags: tags, Access: api.Workspace(authz.DeliverabilityView)},
-		func(ctx context.Context, in *sourceInput) (*api.Body[DMARCSourceDetail], error) {
+		func(ctx context.Context, in *sourceInput) (*api.Body[DeliverabilityDMARCSourceDetail], error) {
 			out, err := s.DMARCSource(ctx, api.WorkspaceFrom(ctx), in.IP)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "upload-dmarc-report", Path: "/workspaces/{workspace}/deliverability/dmarc/reports",
 		Summary: "Upload a DMARC aggregate report (XML, .xml.gz or .zip)", Tags: tags, Access: api.Workspace(authz.DomainsManage),
 		Status: http.StatusCreated, MaxBodyBytes: MaxReportBytes},
-		func(ctx context.Context, in *uploadInput) (*api.Body[DMARCUpload], error) {
+		func(ctx context.Context, in *uploadInput) (*api.Body[DeliverabilityDMARCUpload], error) {
 			out, err := s.UploadReport(ctx, api.WorkspaceFrom(ctx), in.RawBody)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "request-delisting", Path: "/workspaces/{workspace}/deliverability/delistings",
 		Summary: "Request delisting through HostRepute", Tags: tags, Access: api.Workspace(authz.IntegrationsHostRepute)},
-		func(ctx context.Context, in *delistInput) (*api.Body[DelistingRequest], error) {
+		func(ctx context.Context, in *deliverabilityDelistInput) (*api.Body[DeliverabilityDelistingRequest], error) {
 			out, err := s.RequestDelisting(ctx, api.WorkspaceFrom(ctx), in.Body.Asset, in.Body.Source)
 			return api.OK(out), err
 		})

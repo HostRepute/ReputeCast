@@ -67,20 +67,20 @@ func RecordIncident(ctx context.Context, q *store.Queries, workspaceID uuid.UUID
 }
 
 // timeline reads the incident timeline with its links.
-func (s *Service) timeline(ctx context.Context, st *state) (IncidentTimeline, error) {
+func (s *Service) timeline(ctx context.Context, st *state) (DeliverabilityIncidentTimeline, error) {
 	since := st.now.AddDate(0, 0, -timelineDays)
 	rows, err := s.Q.ListDeliverabilityIncidents(ctx, store.ListDeliverabilityIncidentsParams{WorkspaceID: st.ws, Since: since, Lim: timelineItems})
 	if err != nil {
-		return IncidentTimeline{}, err
+		return DeliverabilityIncidentTimeline{}, err
 	}
 	total, err := s.Q.CountDeliverabilityIncidents(ctx, store.CountDeliverabilityIncidentsParams{WorkspaceID: st.ws, Since: since})
 	if err != nil {
-		return IncidentTimeline{}, err
+		return DeliverabilityIncidentTimeline{}, err
 	}
-	out := IncidentTimeline{Items: make([]IncidentItem, 0, len(rows)), Total: total}
+	out := DeliverabilityIncidentTimeline{Items: make([]DeliverabilityIncident, 0, len(rows)), Total: total}
 	for _, r := range rows {
-		it := IncidentItem{ID: r.ID.String(), OccurredAt: r.OccurredAt, Kind: r.Kind, Severity: r.Severity, Title: r.Title, Detail: r.Detail,
-			Source: r.Source, Links: []IncidentLink{}}
+		it := DeliverabilityIncident{ID: r.ID.String(), OccurredAt: r.OccurredAt, Kind: r.Kind, Severity: r.Severity, Title: r.Title, Detail: r.Detail,
+			Source: r.Source, Links: []DeliverabilityIncidentLink{}}
 		if r.Source == "hostrepute" {
 			out.FromHostRepute = true
 		}
@@ -129,30 +129,30 @@ func (st *state) loc() *time.Location {
 }
 
 // links are the screens an incident points to.
-func links(r store.ListDeliverabilityIncidentsRow) []IncidentLink {
-	out := []IncidentLink{}
+func links(r store.ListDeliverabilityIncidentsRow) []DeliverabilityIncidentLink {
+	out := []DeliverabilityIncidentLink{}
 	campaign := r.CampaignID != uuid.Nil
 	switch r.Kind {
 	case KindWarmupSlowdown:
-		out = append(out, IncidentLink{Kind: "warmup", Label: "Warm-up plan"})
+		out = append(out, DeliverabilityIncidentLink{Kind: "warmup", Label: "Warm-up plan"})
 		if campaign {
-			out = append(out, IncidentLink{Kind: "campaign", Label: r.CampaignName, ID: r.CampaignID.String()})
+			out = append(out, DeliverabilityIncidentLink{Kind: "campaign", Label: r.CampaignName, ID: r.CampaignID.String()})
 		}
 	case KindAutoPause:
 		if campaign {
-			out = append(out, IncidentLink{Kind: "campaign_report", Label: "Report", ID: r.CampaignID.String()})
+			out = append(out, DeliverabilityIncidentLink{Kind: "campaign_report", Label: "Report", ID: r.CampaignID.String()})
 		}
 	case KindWebhooksSilent, KindProviderOutage:
-		out = append(out, IncidentLink{Kind: "provider_events", Label: "Details"})
+		out = append(out, DeliverabilityIncidentLink{Kind: "provider_events", Label: "Details"})
 	case KindBlocklistListed, "blocklist_delisted":
 		if r.ProviderID != nil && r.ProviderName != "" {
-			out = append(out, IncidentLink{Kind: "provider", Label: r.ProviderName, ID: r.ProviderID.String()})
+			out = append(out, DeliverabilityIncidentLink{Kind: "provider", Label: r.ProviderName, ID: r.ProviderID.String()})
 		}
 	case KindMigration, "reputation_change":
-		out = append(out, IncidentLink{Kind: "import", Label: "Import summary"})
+		out = append(out, DeliverabilityIncidentLink{Kind: "import", Label: "Import summary"})
 	default:
 		if campaign {
-			out = append(out, IncidentLink{Kind: "campaign", Label: r.CampaignName, ID: r.CampaignID.String()})
+			out = append(out, DeliverabilityIncidentLink{Kind: "campaign", Label: r.CampaignName, ID: r.CampaignID.String()})
 		}
 	}
 	return out

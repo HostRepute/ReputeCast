@@ -85,7 +85,7 @@ func (st *state) ownedDomain(d string) bool {
 }
 
 type dmarcAgg struct {
-	row      DMARCSourceRow
+	row      DeliverabilityDMARCSource
 	spfPass  int64
 	dkimPass int64
 	spfRaw   map[string]int64
@@ -96,8 +96,8 @@ type dmarcAgg struct {
 func dmarcPassed(r dmarcRecord) bool { return r.DKIM == "pass" || r.SPF == "pass" }
 
 // dmarcSummary aggregates the last 7 days of reports per sending source.
-func (st *state) dmarcSummary() DMARCSummary {
-	out := DMARCSummary{Via: "none", Days: hostrepute.DMARCDays, Sources: []DMARCSourceRow{}}
+func (st *state) dmarcSummary() DeliverabilityDMARCSummary {
+	out := DeliverabilityDMARCSummary{Via: "none", Days: hostrepute.DMARCDays, Sources: []DeliverabilityDMARCSource{}}
 	if st.conn != nil {
 		out.Rua = st.conn.DmarcRua
 	}
@@ -267,9 +267,9 @@ func (st *state) dmarcAligned(domain string) *float64 {
 	return &v
 }
 
-// DMARCSourceDetail is "Investigate source": everything the reports say
+// DeliverabilityDMARCSourceDetail is "Investigate source": everything the reports say
 // about one sending IP.
-type DMARCSourceDetail struct {
+type DeliverabilityDMARCSourceDetail struct {
 	IP          string   `json:"ip"`
 	PTR         string   `json:"ptr,omitempty"`
 	Known       bool     `json:"known"`
@@ -290,17 +290,17 @@ type DMARCSourceDetail struct {
 }
 
 // DMARCSource describes one sending IP from the last 7 days of reports.
-func (s *Service) DMARCSource(ctx context.Context, ws *store.Workspace, ip string) (DMARCSourceDetail, error) {
+func (s *Service) DMARCSource(ctx context.Context, ws *store.Workspace, ip string) (DeliverabilityDMARCSourceDetail, error) {
 	addr, err := netip.ParseAddr(ip)
 	if err != nil {
-		return DMARCSourceDetail{}, api.Invalid("path.ip", "Give an IPv4 or IPv6 address.")
+		return DeliverabilityDMARCSourceDetail{}, api.Invalid("path.ip", "Give an IPv4 or IPv6 address.")
 	}
 	ip = addr.String()
 	st, err := s.load(ctx, ws.ID, ws.Timezone)
 	if err != nil {
-		return DMARCSourceDetail{}, err
+		return DeliverabilityDMARCSourceDetail{}, err
 	}
-	out := DMARCSourceDetail{IP: ip, Reporters: []string{}, HeaderFrom: []string{}, SPFDomains: []string{}, DKIMDomains: []string{}}
+	out := DeliverabilityDMARCSourceDetail{IP: ip, Reporters: []string{}, HeaderFrom: []string{}, SPFDomains: []string{}, DKIMDomains: []string{}}
 	add := func(list *[]string, v string) {
 		if v != "" && !contains(*list, v) {
 			*list = append(*list, v)
@@ -505,8 +505,8 @@ func ParseReport(data []byte) (hostrepute.DMARCReport, error) {
 	return out, nil
 }
 
-// DMARCUpload is the result of uploading a report.
-type DMARCUpload struct {
+// DeliverabilityDMARCUpload is the result of uploading a report.
+type DeliverabilityDMARCUpload struct {
 	OrgName  string    `json:"orgName"`
 	ReportID string    `json:"reportId"`
 	Domain   string    `json:"domain"`
@@ -517,22 +517,22 @@ type DMARCUpload struct {
 }
 
 // UploadReport stores an aggregate report pasted or uploaded by hand.
-func (s *Service) UploadReport(ctx context.Context, ws *store.Workspace, data []byte) (DMARCUpload, error) {
+func (s *Service) UploadReport(ctx context.Context, ws *store.Workspace, data []byte) (DeliverabilityDMARCUpload, error) {
 	if len(bytes.TrimSpace(data)) == 0 {
-		return DMARCUpload{}, api.Invalid("body", "Choose a DMARC aggregate report: an .xml file, or the .xml.gz or .zip a mailbox provider sent.")
+		return DeliverabilityDMARCUpload{}, api.Invalid("body", "Choose a DMARC aggregate report: an .xml file, or the .xml.gz or .zip a mailbox provider sent.")
 	}
 	rep, err := ParseReport(data)
 	if err != nil {
-		return DMARCUpload{}, api.Invalid("body", strings.ToUpper(err.Error()[:1])+err.Error()[1:]+".")
+		return DeliverabilityDMARCUpload{}, api.Invalid("body", strings.ToUpper(err.Error()[:1])+err.Error()[1:]+".")
 	}
 	st, err := s.load(ctx, ws.ID, ws.Timezone)
 	if err != nil {
-		return DMARCUpload{}, err
+		return DeliverabilityDMARCUpload{}, err
 	}
 	if !st.ownedDomain(rep.Domain) {
-		return DMARCUpload{}, api.Invalid("body", "This report is for "+rep.Domain+", which isn't a sending domain of this workspace.")
+		return DeliverabilityDMARCUpload{}, api.Invalid("body", "This report is for "+rep.Domain+", which isn't a sending domain of this workspace.")
 	}
-	out := DMARCUpload{OrgName: rep.OrgName, ReportID: rep.ReportID, Domain: rep.Domain, Records: len(rep.Records), From: rep.DateBegin, To: rep.DateEnd}
+	out := DeliverabilityDMARCUpload{OrgName: rep.OrgName, ReportID: rep.ReportID, Domain: rep.Domain, Records: len(rep.Records), From: rep.DateBegin, To: rep.DateEnd}
 	for _, r := range rep.Records {
 		out.Messages += r.Count
 	}

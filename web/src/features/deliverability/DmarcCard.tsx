@@ -18,7 +18,7 @@ function resultTone(v: string): Tone {
 }
 
 /** DMARC reports · last 7 days, per sending source. */
-export function DmarcCard({ d, className }: { d: Schemas['DMARCSummary']; className?: string }) {
+export function DmarcCard({ d, className }: { d: Schemas['DeliverabilityDMARCSummary']; className?: string }) {
   const [investigate, setInvestigate] = useState<string | null>(null)
   const pass = d.passRate ?? 0
   const caption = d.via === 'hostrepute' && d.rua ? `aggregate reports to ${d.rua}` : `${count(d.reports)} uploaded aggregate ${d.reports === 1 ? 'report' : 'reports'}`

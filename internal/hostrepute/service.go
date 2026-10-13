@@ -758,12 +758,12 @@ func (s *Service) storeMonitoring(ctx context.Context, ws uuid.UUID, c Client, a
 }
 
 // SyncNow queues a sync of the HostRepute data ("Sync now").
-func (s *Service) SyncNow(ctx context.Context, ws *store.Workspace) (SyncQueued, error) {
+func (s *Service) SyncNow(ctx context.Context, ws *store.Workspace) (HostReputeSyncQueued, error) {
 	conn, err := s.requireConnected(ctx, ws.ID)
 	if err != nil {
-		return SyncQueued{}, err
+		return HostReputeSyncQueued{}, err
 	}
-	var out SyncQueued
+	var out HostReputeSyncQueued
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "hostrepute.sync", TargetType: "integration", TargetID: "hostrepute", TargetName: "HostRepute · " + conn.TeamName}); err != nil {
@@ -776,7 +776,7 @@ func (s *Service) SyncNow(ctx context.Context, ws *store.Workspace) (SyncQueued,
 		if err != nil {
 			return err
 		}
-		out = SyncQueued{RunID: run.ID.String(), StartedAt: run.StartedAt}
+		out = HostReputeSyncQueued{RunID: run.ID.String(), StartedAt: run.StartedAt}
 		return nil
 	})
 	return out, err

@@ -97,8 +97,8 @@ func (st *state) primaryStreams(p store.HostReputeActiveProvidersRow) []string {
 }
 
 // pools lists the shared IP pools (checked at domain level).
-func (st *state) pools() []PoolHealth {
-	out := []PoolHealth{}
+func (st *state) pools() []DeliverabilityPoolHealth {
+	out := []DeliverabilityPoolHealth{}
 	domain := st.mainDomain()
 	pm := st.latestPostmaster(domain)
 	for _, p := range st.providers {
@@ -106,7 +106,7 @@ func (st *state) pools() []PoolHealth {
 			continue
 		}
 		d := readProvider(p)
-		pool := PoolHealth{ProviderID: p.ID.String(), Provider: p.Name, Short: campaigns.ShortName(p.Name, p.Adapter), Adapter: p.Adapter,
+		pool := DeliverabilityPoolHealth{ProviderID: p.ID.String(), Provider: p.Name, Short: campaigns.ShortName(p.Name, p.Adapter), Adapter: p.Adapter,
 			Region: d.Config.Region, Status: p.Status, ManagedReputation: p.Adapter == "ses", GmailIPReputation: pm.IPReputation,
 			BounceRate: d.Health.BounceRate, ComplaintRate: d.Health.ComplaintRate}
 		if s := st.primaryStreams(p); len(s) == 1 {
@@ -137,11 +137,11 @@ func accountWord(p store.HostReputeActiveProvidersRow, d providerData) string {
 }
 
 // providerHealth is account health per sending provider.
-func (st *state) providerHealth() []ProviderAccountHealth {
-	out := []ProviderAccountHealth{}
+func (st *state) providerHealth() []DeliverabilityProviderHealth {
+	out := []DeliverabilityProviderHealth{}
 	for _, p := range st.providers {
 		d := readProvider(p)
-		h := ProviderAccountHealth{ProviderID: p.ID.String(), Name: p.Name, Adapter: p.Adapter, Status: p.Status, Tone: statusTone(p.Status)}
+		h := DeliverabilityProviderHealth{ProviderID: p.ID.String(), Name: p.Name, Adapter: p.Adapter, Status: p.Status, Tone: statusTone(p.Status)}
 		if selfHosted(p.Adapter) {
 			h.Name += " (self-hosted)"
 		}
@@ -164,7 +164,7 @@ func (st *state) providerHealth() []ProviderAccountHealth {
 			if d.Health.VDM {
 				v = "Virtual Deliverability Manager on"
 			}
-			h.Note = &ProviderNote{Label: "Reputation dashboard", Value: v}
+			h.Note = &DeliverabilityProviderNote{Label: "Reputation dashboard", Value: v}
 		case p.Adapter == "postmark":
 			kind := "Transactional"
 			if strings.Contains(strings.ToLower(d.Config.MessageStream), "broadcast") {
@@ -174,9 +174,9 @@ func (st *state) providerHealth() []ProviderAccountHealth {
 			if s := st.primaryStreams(p); len(s) == 1 {
 				v += " · " + streamName(s[0]) + " mail only"
 			}
-			h.Note = &ProviderNote{Label: "Stream", Value: v}
+			h.Note = &DeliverabilityProviderNote{Label: "Stream", Value: v}
 		case selfHosted(p.Adapter):
-			h.Note = &ProviderNote{Label: "Thresholds", Value: "Set by ReputeCast; " + p.Name + " has no account limits"}
+			h.Note = &DeliverabilityProviderNote{Label: "Thresholds", Value: "Set by ReputeCast; " + p.Name + " has no account limits"}
 		}
 		out = append(out, h)
 	}
@@ -203,8 +203,8 @@ func pctText(v float64) string {
 // rateLimit describes a rate against the provider's thresholds: SES has a
 // review and a pause level, Postmark a limit, self-hosted servers the guard
 // ReputeCast sets (the warm-up guard while warming up).
-func rateLimit(label string, value *float64, d providerData, key, adapter string) RateLimit {
-	out := RateLimit{Label: label, Value: value, Tone: "ok"}
+func rateLimit(label string, value *float64, d providerData, key, adapter string) DeliverabilityRateLimit {
+	out := DeliverabilityRateLimit{Label: label, Value: value, Tone: "ok"}
 	l, ok := d.Limits[key]
 	if !ok {
 		return out

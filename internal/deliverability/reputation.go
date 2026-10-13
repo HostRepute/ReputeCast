@@ -19,9 +19,9 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// Reputation is the "Sender reputation" input of Send Readiness (spec 5.1):
+// DeliverabilityReputation is the "Sender reputation" input of Send Readiness (spec 5.1):
 // blocklist listings of the workspace's domains and IPs.
-type Reputation struct {
+type DeliverabilityReputation struct {
 	// Status: pass (clean), warn (low or medium impact listing), block
 	// (high-impact listing) or unknown (no current data: HostRepute rejected
 	// the token or can't be reached and no fallback ran). Unknown is never
@@ -29,14 +29,14 @@ type Reputation struct {
 	Status    string              `json:"status" enum:"pass,warn,block,unknown"`
 	Via       string              `json:"via" enum:"hostrepute,builtin,none"`
 	Sources   int                 `json:"sources"`
-	Listings  []ReputationListing `json:"listings"`
+	Listings  []DeliverabilityReputationListing `json:"listings"`
 	CheckedAt *time.Time          `json:"checkedAt,omitempty"`
 	// Reason explains an unknown status.
 	Reason string `json:"reason,omitempty"`
 }
 
-// ReputationListing is one listing.
-type ReputationListing struct {
+// DeliverabilityReputationListing is one listing.
+type DeliverabilityReputationListing struct {
 	Asset     string     `json:"asset"`
 	Source    string     `json:"source"`
 	Impact    string     `json:"impact"`
@@ -45,12 +45,12 @@ type ReputationListing struct {
 }
 
 // Reputation returns the blocklist verdict for Send Readiness.
-func (s *Service) Reputation(ctx context.Context, ws *store.Workspace) (Reputation, error) {
+func (s *Service) Reputation(ctx context.Context, ws *store.Workspace) (DeliverabilityReputation, error) {
 	st, err := s.load(ctx, ws.ID, ws.Timezone)
 	if err != nil {
-		return Reputation{}, err
+		return DeliverabilityReputation{}, err
 	}
-	out := Reputation{Status: "pass", Listings: []ReputationListing{}}
+	out := DeliverabilityReputation{Status: "pass", Listings: []DeliverabilityReputationListing{}}
 	via := st.blocklistVia()
 	if st.hostReputeStale() {
 		// Prefer fresh built-in results over stale HostRepute ones.
@@ -82,7 +82,7 @@ func (s *Service) Reputation(ctx context.Context, ws *store.Workspace) (Reputati
 		if !b.Listed {
 			continue
 		}
-		out.Listings = append(out.Listings, ReputationListing{Asset: b.Asset, Source: b.Source, Impact: b.Impact, Since: b.ListedSince, DelistURL: b.DelistUrl})
+		out.Listings = append(out.Listings, DeliverabilityReputationListing{Asset: b.Asset, Source: b.Source, Impact: b.Impact, Since: b.ListedSince, DelistURL: b.DelistUrl})
 		switch {
 		case b.Impact == "high":
 			out.Status = "block"
@@ -142,14 +142,14 @@ func (s *Service) AssetStatuses(ctx context.Context, ws uuid.UUID) (map[string]h
 	return out, nil
 }
 
-// DelistingRequest is the result of "Request delisting".
-type DelistingRequest struct {
+// DeliverabilityDelistingRequest is the result of "Request delisting".
+type DeliverabilityDelistingRequest struct {
 	Asset    string             `json:"asset"`
-	Requests []DelistingOutcome `json:"requests"`
+	Requests []DeliverabilityDelistingOutcome `json:"requests"`
 }
 
-// DelistingOutcome is one source's delisting request.
-type DelistingOutcome struct {
+// DeliverabilityDelistingOutcome is one source's delisting request.
+type DeliverabilityDelistingOutcome struct {
 	Source      string    `json:"source"`
 	Status      string    `json:"status" enum:"requested,pending,delisted,denied"`
 	RequestedAt time.Time `json:"requestedAt"`
@@ -161,11 +161,11 @@ type DelistingOutcome struct {
 // RequestDelisting asks HostRepute to request delisting of an asset from
 // every list it's on (or one source). Without HostRepute, delisting is done
 // on each list's own page.
-func (s *Service) RequestDelisting(ctx context.Context, ws *store.Workspace, asset, source string) (DelistingRequest, error) {
+func (s *Service) RequestDelisting(ctx context.Context, ws *store.Workspace, asset, source string) (DeliverabilityDelistingRequest, error) {
 	asset = strings.ToLower(strings.TrimSpace(asset))
 	rows, err := s.Q.ListDeliverabilityBlocklistResults(ctx, ws.ID)
 	if err != nil {
-		return DelistingRequest{}, err
+		return DeliverabilityDelistingRequest{}, err
 	}
 	var listed []store.BlocklistResult
 	for _, b := range rows {
@@ -174,21 +174,21 @@ func (s *Service) RequestDelisting(ctx context.Context, ws *store.Workspace, ass
 		}
 	}
 	if len(listed) == 0 {
-		return DelistingRequest{}, api.Invalid("body.asset", asset+" isn't listed on any blocklist we check.")
+		return DeliverabilityDelistingRequest{}, api.Invalid("body.asset", asset+" isn't listed on any blocklist we check.")
 	}
 	conn, err := s.Q.GetHostReputeConnection(ctx, ws.ID)
 	if err != nil || (conn.Status != "connected" && conn.Status != "limit_reached") {
-		return DelistingRequest{}, api.Err(http.StatusConflict, "hostrepute_required",
+		return DeliverabilityDelistingRequest{}, api.Err(http.StatusConflict, "hostrepute_required",
 			"Delisting requests go through HostRepute. Request it on the list's own page instead: "+listed[0].DelistUrl).WithMeta("delistUrl", listed[0].DelistUrl)
 	}
 	sort.Slice(listed, func(i, j int) bool { return impactRank(listed[i].Impact) < impactRank(listed[j].Impact) })
-	out := DelistingRequest{Asset: asset, Requests: []DelistingOutcome{}}
+	out := DeliverabilityDelistingRequest{Asset: asset, Requests: []DeliverabilityDelistingOutcome{}}
 	for _, b := range listed {
 		if b.Via != "hostrepute" {
 			continue
 		}
 		if (b.Delisting == "requested" || b.Delisting == "pending") && b.DelistingRequestedAt != nil {
-			out.Requests = append(out.Requests, DelistingOutcome{Source: b.Source, Status: b.Delisting, RequestedAt: *b.DelistingRequestedAt, Already: true, URL: b.DelistUrl})
+			out.Requests = append(out.Requests, DeliverabilityDelistingOutcome{Source: b.Source, Status: b.Delisting, RequestedAt: *b.DelistingRequestedAt, Already: true, URL: b.DelistUrl})
 			continue
 		}
 		d, err := s.HostRepute.RequestDelisting(ctx, ws.ID, asset, b.Source)
@@ -211,7 +211,7 @@ func (s *Service) RequestDelisting(ctx context.Context, ws *store.Workspace, ass
 		if err != nil {
 			return out, err
 		}
-		out.Requests = append(out.Requests, DelistingOutcome{Source: b.Source, Status: status, RequestedAt: d.RequestedAt, URL: firstNonEmpty(d.URL, b.DelistUrl)})
+		out.Requests = append(out.Requests, DeliverabilityDelistingOutcome{Source: b.Source, Status: status, RequestedAt: d.RequestedAt, URL: firstNonEmpty(d.URL, b.DelistUrl)})
 	}
 	return out, nil
 }

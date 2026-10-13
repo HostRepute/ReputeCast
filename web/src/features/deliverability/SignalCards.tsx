@@ -27,13 +27,13 @@ function PanelCard({ title, id, badge, children }: { title: string; id: string; 
 const pair = 'grid gap-x-4 gap-y-2 [grid-template-columns:repeat(2,minmax(0,1fr))] max-md:[grid-template-columns:repeat(auto-fit,minmax(140px,1fr))]'
 
 /** "100 · 100 · 100%" */
-function successLine(p: Schemas['PostmasterPanel']): string {
+function successLine(p: Schemas['DeliverabilityPostmaster']): string {
   const v = (x?: number) => (x == null ? '—' : String(Number(x.toFixed(1))))
   return `${v(p.spf)} · ${v(p.dkim)} · ${v(p.dmarc)}%`
 }
 
 /** Spam rate in two-day bars with a table for screen readers. */
-function SpamRateChart({ p }: { p: Schemas['PostmasterPanel'] }) {
+function SpamRateChart({ p }: { p: Schemas['DeliverabilityPostmaster'] }) {
   const values = p.series.map((s) => s.spamRate ?? 0)
   const max = Math.max(0.1, ...values)
   const known = p.series.filter((s) => s.spamRate != null).map((s) => s.spamRate!)
@@ -82,7 +82,7 @@ function SpamRateChart({ p }: { p: Schemas['PostmasterPanel'] }) {
 }
 
 /** Google Postmaster Tools for the main sending domain. */
-export function PostmasterCard({ p }: { p: Schemas['PostmasterPanel'] }) {
+export function PostmasterCard({ p }: { p: Schemas['DeliverabilityPostmaster'] }) {
   const direct = p.via === 'direct'
   const fbl = p.feedbackLoopFlagged == null ? 'no data' : p.feedbackLoopFlagged === 0 ? 'no flagged campaigns' : `${count(p.feedbackLoopFlagged)} flagged`
   return (
@@ -119,7 +119,7 @@ export function PostmasterCard({ p }: { p: Schemas['PostmasterPanel'] }) {
 const filterColor: Record<string, string> = { green: 'text-ok-fg', yellow: 'text-warn-fg', red: 'text-bad-fg' }
 
 /** Microsoft SNDS for the dedicated IP. */
-export function SndsCard({ s }: { s: Schemas['SNDSPanel'] }) {
+export function SndsCard({ s }: { s: Schemas['DeliverabilitySNDS'] }) {
   const direct = s.via === 'direct'
   const complaint = s.complaintRate == null ? '—' : s.complaintRate < 0.1 ? 'under 0.1%' : trimPct(s.complaintRate)
   return (

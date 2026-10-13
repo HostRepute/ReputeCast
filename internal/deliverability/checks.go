@@ -169,7 +169,7 @@ const manualCheckGap = time.Minute
 // is connected (plus the local DNS checks), else the built-in checks. A run
 // already in progress, or one started less than a minute ago, is returned
 // instead of starting another.
-func (s *Service) RunNow(ctx context.Context, ws *store.Workspace, builtinOnly bool) (CheckRun, error) {
+func (s *Service) RunNow(ctx context.Context, ws *store.Workspace, builtinOnly bool) (DeliverabilityCheckRun, error) {
 	now := s.now()
 	if run, err := s.Q.RunningDeliverabilityCheckRun(ctx, store.RunningDeliverabilityCheckRunParams{WorkspaceID: ws.ID, AliveAfter: now.Add(-runTTL)}); err == nil {
 		return runView(run), nil
@@ -189,7 +189,7 @@ func (s *Service) RunNow(ctx context.Context, ws *store.Workspace, builtinOnly b
 			useHostRepute = true
 		}
 	}
-	var out CheckRun
+	var out DeliverabilityCheckRun
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		via := "builtin"
@@ -216,10 +216,10 @@ func (s *Service) RunNow(ctx context.Context, ws *store.Workspace, builtinOnly b
 }
 
 // Run returns a check run (progress polling).
-func (s *Service) Run(ctx context.Context, ws uuid.UUID, id uuid.UUID) (CheckRun, error) {
+func (s *Service) Run(ctx context.Context, ws uuid.UUID, id uuid.UUID) (DeliverabilityCheckRun, error) {
 	run, err := s.Q.GetDeliverabilityCheckRun(ctx, store.GetDeliverabilityCheckRunParams{ID: id, WorkspaceID: ws})
 	if err != nil {
-		return CheckRun{}, api.MapError(err, "Check run")
+		return DeliverabilityCheckRun{}, api.MapError(err, "Check run")
 	}
 	return runView(run), nil
 }
