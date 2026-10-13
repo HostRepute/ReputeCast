@@ -17,7 +17,9 @@ export function FitSelect({ label, className, ...rest }: SelectHTMLAttributes<HT
       measureCtx ??= document.createElement('canvas').getContext('2d')
       if (!measureCtx) return
       measureCtx.font = getComputedStyle(el).font
-      el.style.setProperty('--fitw', `${Math.ceil(measureCtx.measureText(label).width) + 39}px`)
+      // Chrome sizes a native select to floor(text width) + 39px (padding,
+      // border and arrow): 97.4px of text makes a 136px select on the board.
+      el.style.setProperty('--fitw', `${Math.floor(measureCtx.measureText(label).width) + 39}px`)
     }
     fit()
     void document.fonts?.ready.then(fit)
