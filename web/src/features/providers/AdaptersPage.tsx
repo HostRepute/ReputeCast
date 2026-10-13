@@ -9,6 +9,7 @@ import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
+import { ScrollPre } from '@/components/ui/ScrollPre'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { ProvidersTabs, throwIfForbidden } from './common'
@@ -574,9 +575,9 @@ function BuildYourOwn({ data }: { data: Overview }) {
           </ButtonAnchor>
         </div>
       </div>
-      <pre className="pv-pre min-w-0 flex-[1_1_420px]" aria-label="Example adapter">
+      <ScrollPre className="pv-pre min-w-0 flex-[1_1_420px]" label="Example adapter">
         {sdkSample}
-      </pre>
+      </ScrollPre>
     </section>
   )
 }

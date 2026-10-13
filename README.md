@@ -357,6 +357,7 @@ Mailpit shows every email the demo sends at <http://localhost:8025>.
 | Adapter SDK and template: build, test, run through the Go runtime | `make sdk` |
 | Compare a screen with its design board at 1440/834/390 | `cd web && pnpm shot --path /w/acme-newsletter/campaigns --design Campaigns` |
 | Side-by-side QA of boards and screens, with a difference score (`scripts/qa-map.ts` maps boards to routes) | `cd web && pnpm qa --only Report,Campaigns` |
+| Accessibility sweep of the same screens (axe-core, WCAG 2.0–2.2 A and AA) | `cd web && pnpm a11y` |
 | Re-render the demo's placeholder images | `cd web && node scripts/demo-images.ts [file.png …]` |
 
 The screenshot tools read the design boards from `http://localhost:8765`:

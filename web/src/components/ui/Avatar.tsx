@@ -26,7 +26,9 @@ export function initials(name: string): string {
 
 /**
  * Round initials avatar; square when `shape="square"` (workspace switcher).
- * With `src` (a profile photo) the photo replaces the initials.
+ * With `src` (a profile photo) the photo replaces the initials. The initials
+ * are drawn by CSS (`data-initials`): they decorate, so they are no part of
+ * the visible label of a button that holds the avatar (WCAG 2.5.3).
  */
 export function Avatar({
   name,
@@ -55,8 +57,9 @@ export function Avatar({
       className={cn('av', className)}
       style={{ width: size, height: size, fontSize: fontSize ?? (size <= 24 ? 10 : 11), background: p.bg, color: p.fg, borderRadius: radius, overflow: src ? 'hidden' : undefined }}
       aria-hidden="true"
+      data-initials={src ? undefined : (text ?? initials(name))}
     >
-      {src ? <img src={src} alt="" width={size} height={size} style={{ width: size, height: size, objectFit: 'cover', borderRadius: radius }} /> : (text ?? initials(name))}
+      {src ? <img src={src} alt="" width={size} height={size} style={{ width: size, height: size, objectFit: 'cover', borderRadius: radius }} /> : null}
     </span>
   )
 }

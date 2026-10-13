@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Schemas } from '@/api/client'
 import { Button } from '@/components/ui/Button'
+import { TableScroll } from '@/components/ui/Table'
 import { cn } from '@/lib/cn'
 import { count } from '@/lib/format'
 import { clickNote } from './words'
@@ -267,7 +268,7 @@ function MapFrame({ m }: { m: Schemas['ReportClickMap'] }) {
 /** Clicks per link as a table (the click map's table view). */
 function LinkTable({ m }: { m: Schemas['ReportClickMap'] }) {
   return (
-    <div className="tscroll">
+    <TableScroll label="Clicks per link">
       <table className="tbl rep-tbl phone-wrap">
         <thead>
           <tr>
@@ -293,7 +294,7 @@ function LinkTable({ m }: { m: Schemas['ReportClickMap'] }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </TableScroll>
   )
 }
 

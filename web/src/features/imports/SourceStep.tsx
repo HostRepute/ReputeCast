@@ -6,6 +6,7 @@ import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { TableScroll } from '@/components/ui/Table'
 import { useAudienceSummary } from '@/features/audience/AudienceTabs'
 import { saveBlob, fileName as downloadName } from '@/features/audience/download'
 import { clock, count } from '@/lib/format'
@@ -522,7 +523,7 @@ function Choose({ d }: { d: Detail }) {
           <h3 className="h2">Choose what to import</h3>
           <span className="k">{file ? `read from ${d.fileName}` : `counts from the ${d.sourceName} API, ${clock(conn.checkedAt)}`}</span>
         </div>
-        <div className="tscroll">
+        <TableScroll label="What to import">
           <table className="tbl">
             <thead>
               <tr>
@@ -608,7 +609,7 @@ function Choose({ d }: { d: Detail }) {
               })}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
         <div className="flex flex-col gap-2.5 border-t border-line-2 px-5 py-3.5">
           {!file ? (
             <>

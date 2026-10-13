@@ -9,6 +9,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
+import { TableScroll } from '@/components/ui/Table'
 import { clock, count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ReportBody, type ReportActions } from './ReportBody'
@@ -135,7 +136,7 @@ function ReviewDialog({ row, campaignId, onClose, onSuppress, suppressReason }: 
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : (
-        <div className="tscroll">
+        <TableScroll label="Diagnostics">
           <table className="tbl rep-tbl phone-wrap">
             <thead>
               <tr>
@@ -163,7 +164,7 @@ function ReviewDialog({ row, campaignId, onClose, onSuppress, suppressReason }: 
               ) : null}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       )}
     </Dialog>
   )

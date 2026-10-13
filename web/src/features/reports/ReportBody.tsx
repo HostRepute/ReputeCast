@@ -3,6 +3,7 @@ import type { Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Grid } from '@/components/ui/Layout'
+import { TableScroll } from '@/components/ui/Table'
 import { cn } from '@/lib/cn'
 import { clock, count, money } from '@/lib/format'
 import { providerColor } from '../providers/common'
@@ -80,7 +81,7 @@ function TableCard({ title, caption, footer, className, children, id }: { title:
         </h2>
         <span className="k">{caption}</span>
       </div>
-      <div className="tscroll">{children}</div>
+      <TableScroll label={title}>{children}</TableScroll>
       {footer ? <div className="k border-t border-line-2 px-4.5 py-2.5">{footer}</div> : null}
     </section>
   )
