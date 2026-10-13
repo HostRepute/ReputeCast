@@ -9,11 +9,12 @@ import (
 
 func init() { seedNotifications = seedNotificationsImpl }
 
-// seedNotificationsImpl gives Linh the six notifications of the bell popover
-// (ShellNotifications) and the notification center: three unread (approval
-// requested, send auto-paused, provider down) and three read. Links point at
-// the screens where she can act; they are resolved once every seeder has
-// run, so the approval request and campaign ids exist.
+// seedNotificationsImpl gives Linh the eight notifications of the
+// notification center (Notifications board; the bell popover shows the
+// latest): three unread (approval requested, send auto-paused, provider
+// down) and five read. Links point at the screens where she can act; they
+// are resolved once every seeder has run, so the approval request and
+// campaign ids exist.
 func seedNotificationsImpl(_ context.Context, s *Seeder) error {
 	s.After(func(ctx context.Context, s *Seeder) error {
 		ws := s.WS()
@@ -29,6 +30,15 @@ func seedNotificationsImpl(_ context.Context, s *Seeder) error {
 		if id, ok := s.Campaigns["October Product Update"]; ok {
 			live = base + "/campaigns/" + id.String() + "/live"
 		}
+		digest := base + "/campaigns"
+		if id, ok := s.Campaigns["Weekly Digest #142"]; ok {
+			digest = base + "/campaigns/" + id.String() + "/review"
+		}
+		loc, err := time.LoadLocation("America/New_York")
+		if err != nil {
+			loc = time.UTC
+		}
+		scheduled := s.designDay(-2, 9, 0).In(loc).Format("Jan 2, 15:04")
 		items := []struct {
 			kind, severity, title, summary, body, link string
 			at                                         time.Time
@@ -46,17 +56,27 @@ func seedNotificationsImpl(_ context.Context, s *Seeder) error {
 				"Postal returned connection errors for 3 minutes · Broadcasts waiting for a decision",
 				"Postal (mta.acme.io) returned connection errors for 3 minutes. Automations and System failed over; Broadcasts are waiting for a decision.",
 				base + "/providers", s.designDay(3, 9, 12), false},
+			{"approval_decided", "ok", "Approval given",
+				"Marcus Chen approved “Weekly Digest #142” · scheduled " + scheduled,
+				"Marcus Chen approved “Weekly Digest #142” · scheduled " + scheduled,
+				digest, s.designDay(2, 16, 20), true},
 			{"webhooks_silent", "warn", "Webhooks silent",
 				"No events from Postmark for 6 hours · check the endpoint",
 				"No events from Postmark for 6 hours. Delivery counts may lag; check the endpoint and the Postmark message stream.",
 				base + "/providers", s.designDay(4, 14, 5), true},
+			{"approval_invalidated", "warn", "Approval invalidated",
+				"“Partner webinar”: the audience moved +14% after your approval",
+				"“Partner webinar”: the audience moved +14% after Linh Nguyen's approval. A new approval is needed.",
+				approval, s.designDay(9, 11, 30), true},
 			{"invite_accepted", "ok", "Invite accepted",
 				"Sofia Rossi joined Acme Newsletter as Editor",
 				"Sofia Rossi joined Acme Newsletter as Editor through Google Workspace.",
 				base + "/settings/team", s.designDay(11, 9, 2), true},
+			// The board names SORBS-SPAM, which shut down in 2024; the demo's
+			// listing is UCEPROTECT Level 3 everywhere (DESIGN_INVENTORY #12).
 			{"hostrepute_alert", "info", "HostRepute alert",
-				"203.0.113.25 listed on one blocklist (SORBS-SPAM) · delisting link available",
-				"203.0.113.25 was listed on SORBS-SPAM. Delisting usually takes 24–48 h; the link is in Deliverability.",
+				"203.0.113.25 listed on one blocklist (UCEPROTECT Level 3) · delisting link available",
+				"203.0.113.25 was listed on UCEPROTECT Level 3. Delisting usually takes 24–48 h; the link is in Deliverability.",
 				base + "/deliverability", s.designDay(12, 22, 14), true},
 		}
 		wsID := ws.ID
@@ -81,7 +101,7 @@ func seedNotificationsImpl(_ context.Context, s *Seeder) error {
 // the delivery job doesn't send them again.
 func emailStatus(kind string) *string {
 	switch kind {
-	case "webhooks_silent", "invite_accepted":
+	case "webhooks_silent", "invite_accepted", "approval_invalidated":
 		return nil
 	}
 	v := "sent"
