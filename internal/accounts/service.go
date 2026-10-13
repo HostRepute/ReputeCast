@@ -82,7 +82,7 @@ func totpAD(userID uuid.UUID) string { return "user:" + userID.String() + ":totp
 
 // cookie builds the session cookie. maxAge 0 makes a browser-session cookie.
 func (s *Service) cookie(token string, expires time.Time, persistent bool) http.Cookie {
-	c := http.Cookie{
+	c := http.Cookie{ //nolint:gosec // G124: Secure follows auth.cookie_secure, which is off only for plain-http development.
 		Name:     s.Cfg.Auth.CookieName,
 		Value:    token,
 		Path:     "/",
@@ -98,7 +98,7 @@ func (s *Service) cookie(token string, expires time.Time, persistent bool) http.
 }
 
 func (s *Service) clearCookie() http.Cookie {
-	return http.Cookie{Name: s.Cfg.Auth.CookieName, Value: "", Path: "/", HttpOnly: true, Secure: s.secureCookies(), SameSite: http.SameSiteLaxMode, MaxAge: -1, Expires: time.Unix(0, 0)}
+	return http.Cookie{Name: s.Cfg.Auth.CookieName, Value: "", Path: "/", HttpOnly: true, Secure: s.secureCookies(), SameSite: http.SameSiteLaxMode, MaxAge: -1, Expires: time.Unix(0, 0)} //nolint:gosec // G124: as in cookie.
 }
 
 func (s *Service) secureCookies() bool {
@@ -206,8 +206,6 @@ func (s *Service) nextPath(ctx context.Context, u store.User) string {
 	}
 	return "/workspaces/new"
 }
-
-var errNotFound = errors.New("not found")
 
 func isNoRows(err error) bool { return errors.Is(err, pgx.ErrNoRows) }
 

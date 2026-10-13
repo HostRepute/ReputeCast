@@ -390,7 +390,7 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, in Invitat
 		wsID := inv.WorkspaceID
 		actor := actorFor(user)
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "invitation.accept", TargetType: "invitation", TargetID: inv.ID.String(), TargetName: inv.Email, Actor: actor,
-			After: map[string]any{"role": inv.RoleKey, "scope": json.RawMessage(inv.Scope)}, Metadata: map[string]any{"new_account": out.NewAccount}}); err != nil {
+			After: map[string]any{"role": inv.RoleKey, "scope": inv.Scope}, Metadata: map[string]any{"new_account": out.NewAccount}}); err != nil {
 			return err
 		}
 		note := notify.Notification{WorkspaceID: &wsID, Kind: notify.KindInviteAccepted, Severity: "ok", Title: "Invite accepted",
@@ -448,7 +448,7 @@ func (s *Service) RequestNewInvite(ctx context.Context, token string) (Invitatio
 	status := inviteStatus(inv, s.now())
 	signedIn := api.UserFrom(ctx)
 	other := signedIn != nil && signedIn.Email != inv.Email
-	if status != "expired" && !(status == "pending" && other) {
+	if status != "expired" && (status != "pending" || !other) {
 		return InvitationRequestResult{}, api.Conflict("This invitation doesn't need a new one.")
 	}
 	res := InvitationRequestResult{Status: "sent", Inviter: orAdmin(inv)}

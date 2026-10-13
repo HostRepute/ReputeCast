@@ -150,10 +150,11 @@ func (a *softAuthenticator) register(t *testing.T, options map[string]any) map[s
 		t.Fatalf("user handle: %v", err)
 	}
 	a.userHandle = handle
-	pub := a.priv.PublicKey
-	x, y := make([]byte, 32), make([]byte, 32)
-	pub.X.FillBytes(x)
-	pub.Y.FillBytes(y)
+	point, err := a.priv.PublicKey.Bytes() // 0x04 || X || Y
+	if err != nil {
+		t.Fatalf("public key: %v", err)
+	}
+	x, y := point[1:33], point[33:65]
 	cose, err := cbor.Marshal(map[int]any{1: 2, 3: -7, -1: 1, -2: x, -3: y})
 	if err != nil {
 		t.Fatal(err)

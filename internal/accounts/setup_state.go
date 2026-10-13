@@ -125,7 +125,8 @@ func (s *Service) Setup(ctx context.Context) (SetupState, error) {
 		}
 	} else {
 		required, reason := s.twoFactorRequired(ctx, u, st)
-		needsSecond := required && !hasSecond && !(u.TwofaGraceUntil != nil && u.TwofaGraceUntil.After(s.now()))
+		inGrace := u.TwofaGraceUntil != nil && u.TwofaGraceUntil.After(s.now())
+		needsSecond := required && !hasSecond && !inGrace
 		if sess := api.SessionFrom(ctx); sess != nil && sess.MfaVerified && !hasSecond && u.PasswordHash == nil {
 			needsSecond = false // SSO sign-ins where the identity provider asserted MFA
 		}

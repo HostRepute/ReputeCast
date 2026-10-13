@@ -79,7 +79,7 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string) (Passw
 	if err != nil {
 		return res, err
 	}
-	if p != nil && !(exists && u.BreakGlass && u.PasswordHash != nil) {
+	if p != nil && (!exists || !u.BreakGlass || u.PasswordHash == nil) {
 		start := ssoStart(p, email)
 		res.Status, res.SSO = "sso", &start
 		return res, nil
