@@ -64,15 +64,20 @@ ORDER BY n DESC, provider_name, e.original_code;
 
 -- name: ReportBounceDiagnostics :many
 -- The diagnostics behind one group of bounce classes (the Review dialog).
--- Addresses are never returned, only the provider's words and how often.
-SELECT coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS adapter,
-       e.original_type, e.original_code, e.diagnostic, count(*)::bigint AS n
-FROM delivery_events e
-LEFT JOIN providers p ON p.id = e.provider_id
-WHERE e.campaign_id = @campaign_id AND e.workspace_id = @workspace_id AND e.type IN ('hard_bounce', 'soft_bounce')
-  AND e.bounce_class = ANY(@classes::text[])
-GROUP BY p.name, p.adapter, e.original_type, e.original_code, e.diagnostic
-ORDER BY n DESC, provider_name
+-- Addresses are never returned: an address inside a provider's words reads
+-- "<address>", so the same answer for many recipients is one line.
+SELECT d.provider_name, d.adapter, d.original_type, d.original_code, d.diagnostic, count(*)::bigint AS n
+FROM (
+    SELECT coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS adapter,
+           e.original_type, e.original_code,
+           regexp_replace(e.diagnostic, '[^[:space:]<>()"'',;:]+@[^[:space:]<>()"'',;:]+', '<address>', 'g')::text AS diagnostic
+    FROM delivery_events e
+    LEFT JOIN providers p ON p.id = e.provider_id
+    WHERE e.campaign_id = @campaign_id AND e.workspace_id = @workspace_id AND e.type IN ('hard_bounce', 'soft_bounce')
+      AND e.bounce_class = ANY(@classes::text[])
+) d
+GROUP BY d.provider_name, d.adapter, d.original_type, d.original_code, d.diagnostic
+ORDER BY n DESC, d.provider_name
 LIMIT 20;
 
 -- name: ReportBounceRecipients :many

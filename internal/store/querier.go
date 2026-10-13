@@ -405,7 +405,8 @@ type Querier interface {
 	// addresses are on the shared suppression list now.
 	ReportBounceCodes(ctx context.Context, arg ReportBounceCodesParams) ([]ReportBounceCodesRow, error)
 	// The diagnostics behind one group of bounce classes (the Review dialog).
-	// Addresses are never returned, only the provider's words and how often.
+	// Addresses are never returned: an address inside a provider's words reads
+	// "<address>", so the same answer for many recipients is one line.
 	ReportBounceDiagnostics(ctx context.Context, arg ReportBounceDiagnosticsParams) ([]ReportBounceDiagnosticsRow, error)
 	// Bounced addresses of some classes that aren't suppressed yet (for "Add
 	// to suppression"). Never sent to the browser.

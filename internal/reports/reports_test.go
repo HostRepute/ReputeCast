@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/apptest"
 )
 
@@ -255,6 +257,36 @@ func TestReportExportAndSuppress(t *testing.T) {
 	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action = 'suppression.add'`).Scan(&n); err != nil || n != 1 {
 		t.Fatalf("suppression audit: %d %v", n, err)
 	}
+
+	// The review shows what providers said, never an address inside it.
+	for i, who := range []string{"jane.doe@example.org", "sam+news@example.net"} {
+		if _, err := env.App.Pool.Exec(ctx, `INSERT INTO delivery_events (id, workspace_id, campaign_id, provider_id, type, occurred_at, original_type, original_code, diagnostic, bounce_class, recipient)
+			SELECT $1, c.workspace_id, c.id, (SELECT provider_id FROM campaign_routes WHERE campaign_id = c.id LIMIT 1), 'hard_bounce', now(),
+			       'Bounce/Permanent/General', '550 5.7.1', 'smtp; 550 5.7.1 <' || $3 || '>: rejected by policy for ' || $3 || '.', 'policy_block', $3
+			FROM campaigns c WHERE c.id = $2`, uuid.Must(uuid.NewV7()), oct, who); err != nil {
+			t.Fatalf("event %d: %v", i, err)
+		}
+	}
+	var review struct {
+		Diagnostics []struct {
+			Diagnostic string
+			Count      int64
+		}
+	}
+	res = c.Do("GET", base+"/bounces/blocked", nil).MustStatus(t, 200)
+	if strings.Contains(string(res.Body), "@example.") {
+		t.Fatalf("the review shows addresses: %s", res.Body)
+	}
+	res.JSON(t, &review)
+	found := false
+	for _, d := range review.Diagnostics {
+		if d.Diagnostic == "smtp; 550 5.7.1 <<address>>: rejected by policy for <address>" && d.Count == 2 {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("masked diagnostics: %+v", review.Diagnostics)
+	}
 }
 
 func TestReportShares(t *testing.T) {
@@ -269,6 +301,16 @@ func TestReportShares(t *testing.T) {
 	// Nothing to share before a campaign is sent.
 	c.Do("POST", "/workspaces/acme-newsletter/campaigns/"+campaignID(t, c, "Weekly Digest #142")+"/report/shares", map[string]any{}).MustStatus(t, 409)
 
+	// The demo already shares this report once (the Report board's link).
+	var list struct {
+		Items []struct{ ID, URL string }
+	}
+	c.Do("GET", base+"/shares", nil).MustStatus(t, 200).JSON(t, &list)
+	seeded := len(list.Items)
+	if seeded != 1 || list.Items[0].URL == "" {
+		t.Fatalf("seeded links: %+v", list)
+	}
+
 	var link struct{ ID, URL string }
 	c.Do("POST", base+"/shares", map[string]any{}).MustStatus(t, 201).JSON(t, &link)
 	prefix := env.App.URLs.Report("")
@@ -276,11 +318,9 @@ func TestReportShares(t *testing.T) {
 		t.Fatalf("link %q", link.URL)
 	}
 	token := strings.TrimPrefix(link.URL, prefix)
-	var list struct {
-		Items []struct{ ID, URL string }
-	}
 	c.Do("GET", base+"/shares", nil).MustStatus(t, 200).JSON(t, &list)
-	if len(list.Items) != 1 || list.Items[0].URL != link.URL {
+	// Newest first.
+	if len(list.Items) != seeded+1 || list.Items[0].ID != link.ID || list.Items[0].URL != link.URL {
 		t.Fatalf("list: %+v", list)
 	}
 	// The token is stored sealed and hashed, never in the clear.
@@ -319,8 +359,13 @@ func TestReportShares(t *testing.T) {
 	}
 	anon.Do("GET", "/shared-reports/"+strings.TrimPrefix(exp.URL, prefix), nil).MustStatus(t, 404)
 	c.Do("GET", base+"/shares", nil).MustStatus(t, 200).JSON(t, &list)
-	if len(list.Items) != 0 {
-		t.Fatalf("expired links listed: %+v", list)
+	if len(list.Items) != seeded {
+		t.Fatalf("revoked or expired links listed: %+v", list)
+	}
+	for _, l := range list.Items {
+		if l.ID == link.ID || l.ID == exp.ID {
+			t.Fatalf("revoked or expired link listed: %+v", l)
+		}
 	}
 	var n int
 	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action IN ('report_share.create', 'report_share.revoke')`).Scan(&n); err != nil || n != 3 {
