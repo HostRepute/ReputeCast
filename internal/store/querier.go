@@ -184,6 +184,9 @@ type Querier interface {
 	RevokeInvitation(ctx context.Context, arg RevokeInvitationParams) (int64, error)
 	RevokeOtherSessions(ctx context.Context, arg RevokeOtherSessionsParams) (int64, error)
 	RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error)
+	// Smallest and largest broadcast audience over a window ("31,988 to 48,213
+	// recipients per send").
+	RoutingBroadcastSizes(ctx context.Context, arg RoutingBroadcastSizesParams) (RoutingBroadcastSizesRow, error)
 	RoutingContact(ctx context.Context, arg RoutingContactParams) (RoutingContactRow, error)
 	RoutingDeleteRules(ctx context.Context, workspaceID uuid.UUID) error
 	RoutingInsertRule(ctx context.Context, arg RoutingInsertRuleParams) error

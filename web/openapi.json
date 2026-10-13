@@ -3536,12 +3536,20 @@
             "format": "int64",
             "type": "integer"
           },
+          "largest": {
+            "format": "int64",
+            "type": "integer"
+          },
           "per": {
             "enum": [
               "day",
               "week"
             ],
             "type": "string"
+          },
+          "smallest": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [

@@ -1737,8 +1737,12 @@ export interface components {
         RoutingVolume: {
             /** Format: int64 */
             count: number;
+            /** Format: int64 */
+            largest?: number;
             /** @enum {string} */
             per: "day" | "week";
+            /** Format: int64 */
+            smallest?: number;
         };
         SSOOption: {
             id: string;

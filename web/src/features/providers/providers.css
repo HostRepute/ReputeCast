@@ -119,8 +119,11 @@
     font-size: 13px;
     cursor: pointer;
   }
-  label.pv-tg input {
-    margin-top: 3px;
+  /* The boards keep the browser's radio margins (3px 3px 0 5px), with
+     margin-top 3px from the label rule. */
+  label.pv-tg input,
+  label.opt.pv-opt input {
+    margin: 3px 3px 0 5px;
   }
 
   /* Warm-up ramp chart (.col, .cap, .sent) */
