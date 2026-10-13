@@ -116,11 +116,11 @@ function HostReputeStatus() {
       params={{ workspace: slug }}
       className="flex items-center gap-2 rounded-lg border border-line bg-white px-2.5 py-2 text-ink hover:text-ink"
     >
-      <span className="dot" style={{ color: connected ? '#15803D' : hr ? '#B45309' : '#8B94A3' }} aria-hidden="true" />
+      <span className="dot" style={{ color: connected ? '#15803D' : hr ? '#B45309' : '#6B7280' }} aria-hidden="true" />
       <div className="flex flex-col leading-[1.25]">
         <span className="text-[12px] font-semibold">{connected ? 'HostRepute connected' : hr ? 'HostRepute needs attention' : 'Connect HostRepute'}</span>
         <span className="k text-[11px]">
-          {connected ? `${hr.teamName} · synced ${ago(hr.lastSyncAt)}` : hr ? 'Reconnect to resume monitoring' : 'Optional · no paywall'}
+          {connected ? `${hr.teamName} · synced ${ago(hr.lastSyncAt)}` : hr ? 'Reconnect to resume monitoring' : 'Optional · free'}
         </span>
       </div>
     </Link>
