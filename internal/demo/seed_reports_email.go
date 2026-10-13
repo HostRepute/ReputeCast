@@ -47,13 +47,13 @@ func reportEmailHTML(name string, oct bool) string {
 	b.WriteString(`<div style="font-size:21px;font-weight:700;color:#0B1220">` + esc(title) + `</div><div>` + esc(intro) + `</div></div>`)
 	b.WriteString(`<div style="display:flex;gap:14px;padding:0 18px 18px">`)
 	for i, c := range cards {
-		b.WriteString(fmt.Sprintf(`<div style="flex:1"><a href="%s" aria-label="%s image" style="display:block;%s"><div style="%s;height:78px"></div></a>`, esc(imgURLs[i]), esc(c.heading), link, ph))
-		b.WriteString(fmt.Sprintf(`<div style="font-weight:700;margin:7px 0 4px;color:#0B1220">%s</div>`, esc(c.heading)))
-		b.WriteString(fmt.Sprintf(`<a href="%s" style="%s">%s</a></div>`, esc(c.url), btn, esc(c.label)))
+		fmt.Fprintf(&b, `<div style="flex:1"><a href="%s" aria-label="%s image" style="display:block;%s"><div style="%s;height:78px"></div></a>`, esc(imgURLs[i]), esc(c.heading), link, ph)
+		fmt.Fprintf(&b, `<div style="font-weight:700;margin:7px 0 4px;color:#0B1220">%s</div>`, esc(c.heading))
+		fmt.Fprintf(&b, `<a href="%s" style="%s">%s</a></div>`, esc(c.url), btn, esc(c.label))
 	}
 	b.WriteString(`</div>`)
 	b.WriteString(`<div style="padding:11px 18px 18px"><div style="font-weight:700;color:#0B1220">` + esc(closing.heading) + `</div>`)
-	b.WriteString(fmt.Sprintf(`<div>%s <a href="%s" style="color:inherit;text-decoration:underline">%s</a></div></div>`, esc(closing.body), esc(closing.url), esc(closing.label)))
+	fmt.Fprintf(&b, `<div>%s <a href="%s" style="color:inherit;text-decoration:underline">%s</a></div></div>`, esc(closing.body), esc(closing.url), esc(closing.label))
 	// Footer.
 	b.WriteString(`<div style="padding:14px;background:#F3F4F6;` + plex + `;font-size:13px;color:#5B6472;text-align:center">`)
 	b.WriteString(`Acme Inc · 500 Market St · <a href="{{ unsubscribe_url }}" style="color:inherit;text-decoration:underline">Unsubscribe</a> · `)

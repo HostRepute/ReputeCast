@@ -207,8 +207,10 @@ func (s *Service) audienceLabel(ctx context.Context, wsID uuid.UUID, raw json.Ra
 		Lists    []uuid.UUID `json:"lists"`
 		Segments []uuid.UUID `json:"segments"`
 	}
-	if json.Unmarshal(raw, &a) != nil || (len(a.Lists) == 0 && len(a.Segments) == 0) {
-		return "", nil
+	// An audience that is missing or doesn't parse has no label; the header
+	// leaves it out.
+	if err := json.Unmarshal(raw, &a); err != nil || (len(a.Lists) == 0 && len(a.Segments) == 0) {
+		return "", nil //nolint:nilerr // no audience, no label
 	}
 	lists, err := s.Q.ListWorkspaceLists(ctx, wsID)
 	if err != nil {
