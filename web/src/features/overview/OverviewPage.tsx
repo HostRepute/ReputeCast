@@ -80,7 +80,8 @@ export function OverviewPage() {
 
   // First run: no sending provider yet.
   const firstRun = providers.data?.connected === 0
-  const subtitle = overviewSubtitle(now, health.data?.domain, firstRun || health.data?.state === 'pending')
+  const providersLoading = providers.isPending && can.providers
+  const subtitle = overviewSubtitle(now, health.data?.domain, health.data?.state === 'pending' || (firstRun && !health.data?.domain))
   const stale = providers.data?.providers.find((p) => p.refresh)
   const alert = stale ? refreshSentences(stale, clock) : null
 
@@ -144,15 +145,22 @@ export function OverviewPage() {
               {(n) => <NextCampaignCard n={n} />}
             </Section>
           </Grid>
-          <section className="flex flex-col gap-3" aria-labelledby="ov-providers-h">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="h2" id="ov-providers-h">
-                Sending providers
-              </h2>
-              <Link to="/w/$workspace/providers" params={path} className="text-[13px] font-medium">
-                Manage providers &amp; routing
-              </Link>
-            </div>
+          <section
+            className="flex flex-col gap-3"
+            aria-labelledby={providersLoading ? undefined : 'ov-providers-h'}
+            aria-label={providersLoading ? 'Sending providers' : undefined}
+          >
+            {/* While the cards load, only their skeletons show (OverviewStates). */}
+            {providersLoading ? null : (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="h2" id="ov-providers-h">
+                  Sending providers
+                </h2>
+                <Link to="/w/$workspace/providers" params={path} className="text-[13px] font-medium">
+                  Manage providers &amp; routing
+                </Link>
+              </div>
+            )}
             <Section q={providers} perm="providers:view" title="Sending providers" skeleton={<ProvidersSkeleton />}>
               {(p) => (
                 <Grid min={340} gap={16}>

@@ -11,7 +11,7 @@ import { PendingHealthCard } from './SenderHealthCard'
 
 function Step({ n, current, title, children, action }: { n: number; current?: boolean; title: string; children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex items-start gap-4 border-t border-line-2 px-5 py-4.5 max-md:flex-wrap">
+    <div className="flex items-start gap-4 border-t border-line-2 px-5 py-4.5">
       <span
         className={cn('inline-flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full text-[13px] font-bold', current ? 'bg-accent text-white' : 'bg-line-2 text-ink-3')}
         aria-hidden="true"

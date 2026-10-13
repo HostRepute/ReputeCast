@@ -43,7 +43,7 @@ export function ProviderOverviewCard({ p, monthStart }: { p: Schemas['OverviewPr
         </Badge>
       </div>
       <div className={cn('flex flex-col gap-2 text-[12.5px]', stale && 'opacity-70')}>
-        <Meter label={bounceLabel(b)} value={bouncePct(b.value)} percent={b.value !== undefined ? (b.value / b.limit) * 100 : 0} color={rateColor(b.value, b.limit, b.stale)} />
+        <Meter label={bounceLabel(b, stale)} value={bouncePct(b.value)} percent={b.value !== undefined ? (b.value / b.limit) * 100 : 0} color={rateColor(b.value, b.limit, b.stale)} />
         <Meter label={complaintLabel(cp)} value={complaintPct(cp.value)} percent={cp.value !== undefined ? (cp.value / cp.limit) * 100 : 0} color={rateColor(cp.value, cp.limit, cp.stale)} />
         {quota ? <Meter label={quota.label} value={quota.value} percent={quota.percent} color="var(--accent)" /> : null}
       </div>

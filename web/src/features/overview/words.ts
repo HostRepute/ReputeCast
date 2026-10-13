@@ -57,10 +57,10 @@ function limitPct(v: number): string {
   return `${Number(v.toFixed(2))}%`
 }
 
-/** "Bounce rate · limit 5% (SES review)", "Bounce rate · warm-up limit 2%". */
-export function bounceLabel(l: Schemas['ProviderLimitRate']): string {
+/** "Bounce rate · limit 5% (SES review)", "Bounce rate · warm-up limit 2%"; `short` drops whose level it is. */
+export function bounceLabel(l: Schemas['ProviderLimitRate'], short = false): string {
   if (l.label === 'warm-up guard') return `Bounce rate · warm-up limit ${limitPct(l.limit)}`
-  return `Bounce rate · limit ${limitPct(l.limit)}${l.review && l.label ? ` (${l.label} review)` : ''}`
+  return `Bounce rate · limit ${limitPct(l.limit)}${l.review && l.label && !short ? ` (${l.label} review)` : ''}`
 }
 
 /** "Complaint rate · limit 0.1%" */
