@@ -251,7 +251,7 @@ func (st *state) dmarcAligned(domain string) *float64 {
 		for _, r := range recs {
 			hf := strings.ToLower(r.HeaderFrom)
 			// An organization domain covers its subdomains' mail.
-			if hf != domain && !(domain == org && dnscheck.OrgDomain(hf) == org) {
+			if hf != domain && (domain != org || dnscheck.OrgDomain(hf) != org) {
 				continue
 			}
 			total += r.Count
@@ -456,7 +456,7 @@ func ParseReport(data []byte) (hostrepute.DMARCReport, error) {
 				return hostrepute.DMARCReport{}, err
 			}
 			data, err = io.ReadAll(io.LimitReader(rc, MaxReportBytes+1))
-			rc.Close()
+			_ = rc.Close()
 			if err != nil {
 				return hostrepute.DMARCReport{}, err
 			}
@@ -474,7 +474,7 @@ func ParseReport(data []byte) (hostrepute.DMARCReport, error) {
 	dec := xml.NewDecoder(bytes.NewReader(data))
 	dec.Strict = false
 	if err := dec.Decode(&fb); err != nil {
-		return hostrepute.DMARCReport{}, fmt.Errorf("this isn't a DMARC aggregate report: %v", err)
+		return hostrepute.DMARCReport{}, fmt.Errorf("this isn't a DMARC aggregate report: %w", err)
 	}
 	if fb.Metadata.OrgName == "" || fb.Metadata.ReportID == "" || len(fb.Records) == 0 {
 		return hostrepute.DMARCReport{}, errors.New("this isn't a DMARC aggregate report: no report_metadata or records")

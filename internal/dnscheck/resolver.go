@@ -164,7 +164,7 @@ func (c *Client) query(ctx context.Context, name string, qtype uint16) ([]dns.RR
 			lastErr = fmt.Errorf("%s answered %s", server, dns.RcodeToString[in.Rcode])
 		}
 	}
-	return nil, fmt.Errorf("%s %s: %w: %v", name, dns.TypeToString[qtype], ErrTemporary, lastErr)
+	return nil, fmt.Errorf("%s %s: %w: %w", name, dns.TypeToString[qtype], ErrTemporary, lastErr)
 }
 
 // TXT implements Resolver.

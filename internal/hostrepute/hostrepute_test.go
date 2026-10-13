@@ -196,11 +196,7 @@ func TestConnectWithAPIKey(t *testing.T) {
 		t.Fatalf("connected: %+v", hr)
 	}
 	// Connecting shares exactly the sending domains, organization domain and dedicated IP.
-	var shared []string
-	for _, b := range fake.Bodies {
-		shared = append(shared, b)
-	}
-	got := strings.Join(shared, " ")
+	got := strings.Join(fake.Bodies, " ")
 	for _, want := range []string{`"asset":"news.acme.io"`, `"asset":"acme.io"`, `"asset":"203.0.113.25"`} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected %s to be added to monitoring, got %s", want, got)

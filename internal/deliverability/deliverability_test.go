@@ -360,7 +360,7 @@ func rawPost(t *testing.T, env *apptest.Env, email, path string, body []byte) (i
 	if _, err := env.App.Q.CreateSession(ctx, store.CreateSessionParams{ID: uuid.Must(uuid.NewV7()), UserID: u.ID, TokenHash: hash, AuthMethod: "test", MfaVerified: true, ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
 		t.Fatal(err)
 	}
-	req, _ := http.NewRequest("POST", env.Server.URL+"/api/v1"+path, bytes.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, env.Server.URL+"/api/v1"+path, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("Sec-Fetch-Site", "same-origin")
 	req.AddCookie(&http.Cookie{Name: env.App.Cfg.Auth.CookieName, Value: token})
@@ -368,7 +368,7 @@ func rawPost(t *testing.T, env *apptest.Env, email, path string, body []byte) (i
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	b, _ := io.ReadAll(resp.Body)
 	return resp.StatusCode, string(b)
 }

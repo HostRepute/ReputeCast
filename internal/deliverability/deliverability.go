@@ -315,15 +315,6 @@ func (st *state) sourcesFor(via string, builtin int) int {
 	return builtin
 }
 
-func (st *state) providerShort(id uuid.UUID) string {
-	for _, p := range st.providers {
-		if p.ID == id {
-			return provstate.Short(p.Name, p.Adapter)
-		}
-	}
-	return ""
-}
-
 // assetHealth builds the cards for sending domains and dedicated IPs.
 func (st *state) assetHealth(builtin int) []DeliverabilityAssetHealth {
 	out := []DeliverabilityAssetHealth{}

@@ -264,7 +264,7 @@ func TestClient(t *testing.T) {
 	}
 	ln, err := net.Listen("tcp", pc.LocalAddr().String())
 	if err != nil {
-		pc.Close()
+		_ = pc.Close()
 		t.Skipf("no TCP on the same port: %v", err)
 	}
 	h := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {

@@ -170,7 +170,7 @@ func Defaults() Config {
 		Worker:  WorkerConfig{Concurrency: 50},
 		Updates: UpdatesConfig{Check: true, Repo: "hostrepute/reputecast"},
 		Metrics: MetricsConfig{Enabled: true},
-		HostRepute: HostReputeConfig{
+		HostRepute: HostReputeConfig{ //nolint:gosec // G101: public endpoint URLs and client ID, not credentials
 			APIURL:    "https://api.hostrepute.com/v1",
 			AuthURL:   "https://app.hostrepute.com/oauth/authorize",
 			TokenURL:  "https://api.hostrepute.com/oauth/token",

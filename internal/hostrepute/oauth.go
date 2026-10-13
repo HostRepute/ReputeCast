@@ -89,5 +89,6 @@ func (o *OAuth) TokenSource(ctx context.Context, tok *oauth2.Token) oauth2.Token
 }
 
 func demoToken() *oauth2.Token {
-	return &oauth2.Token{AccessToken: "hr_demo_access", RefreshToken: "hr_demo_refresh", TokenType: "Bearer", Expiry: time.Now().Add(time.Hour)}
+	// Placeholders for the offline demo client; they open nothing.
+	return &oauth2.Token{AccessToken: "hr_demo_access", RefreshToken: "hr_demo_refresh", TokenType: "Bearer", Expiry: time.Now().Add(time.Hour)} //nolint:gosec // G101: not a credential
 }

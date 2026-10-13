@@ -192,7 +192,7 @@ type problem struct {
 
 // handle maps an answer to a result; retry is true for 429 and 5xx.
 func (c *HTTPClient) handle(resp *http.Response, out any) (retry bool, err error) {
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // a failed close of a read body changes nothing
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		if out == nil || len(bytes.TrimSpace(body)) == 0 {
@@ -344,7 +344,7 @@ func (c *HTTPClient) Revoke(ctx context.Context) error {
 	if err != nil {
 		return &UnavailableError{Host: c.host(), Attempts: 1, Reason: reasonFor(err, c.HTTP.Timeout)}
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // a failed close of a read body changes nothing
 	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<16))
 	if resp.StatusCode >= 300 {
 		return &APIError{Status: resp.StatusCode, Code: "revoke_failed"}
