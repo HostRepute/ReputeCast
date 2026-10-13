@@ -5330,6 +5330,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "pauseSlack": {
+            "type": "boolean"
+          },
           "run": {
             "$ref": "#/components/schemas/ReadinessRun"
           },
@@ -5367,6 +5370,7 @@
           "approval",
           "access",
           "largeSend",
+          "pauseSlack",
           "timezone"
         ],
         "type": "object"

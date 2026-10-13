@@ -5644,6 +5644,7 @@ export interface components {
             held?: components["schemas"]["ReviewHeld"];
             /** Format: int64 */
             largeSend: number;
+            pauseSlack: boolean;
             run?: components["schemas"]["ReadinessRun"];
             running?: components["schemas"]["ReadinessProgress"];
             schedule: components["schemas"]["ReadinessSchedule"];
