@@ -176,18 +176,23 @@ WITH page AS (
     ) u
     ORDER BY u.id
     LIMIT $6
+), ids AS (
+    -- One array of the page's ids: the lookups below see a list of known
+    -- size (an index lookup or a hashed check) instead of a join the
+    -- planner may misjudge.
+    SELECT coalesce(array_agg(id), '{}')::uuid[] AS a FROM page
 ), member_lists AS (
     SELECT m.contact_id, array_agg(m.list_id ORDER BY m.list_id)::uuid[] AS lists
     FROM list_memberships m
-    WHERE m.contact_id IN (SELECT id FROM page) AND m.list_id = ANY($3::uuid[]) AND m.status = 'subscribed'
+    WHERE m.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND m.list_id = ANY($3::uuid[]) AND m.status = 'subscribed'
     GROUP BY m.contact_id
 ), excluded AS (
     SELECT DISTINCT x.contact_id
     FROM list_memberships x
-    WHERE x.contact_id IN (SELECT id FROM page) AND x.list_id = ANY($7::uuid[]) AND x.status = 'subscribed'
+    WHERE x.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND x.list_id = ANY($7::uuid[]) AND x.status = 'subscribed'
 ), excluded_staged AS (
     SELECT st.contact_id FROM campaign_audience_stage st
-    WHERE st.campaign_id = $5 AND st.exclude AND st.contact_id IN (SELECT id FROM page)
+    WHERE st.campaign_id = $5 AND st.exclude AND st.contact_id = ANY((SELECT a FROM ids)::uuid[])
 )
 SELECT page.id::uuid AS id,
        coalesce(c.email, '')::text AS email, coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
