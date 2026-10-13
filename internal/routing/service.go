@@ -1,0 +1,596 @@
+package routing
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"math"
+	"net/http"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/providers"
+	"github.com/hostrepute/reputecast/internal/providers/state"
+	"github.com/hostrepute/reputecast/internal/store"
+)
+
+// Service stores routing and serves the routing screen.
+type Service struct {
+	Pool  *pgxpool.Pool
+	Q     *store.Queries
+	Audit *audit.Logger
+	Now   func() time.Time
+}
+
+func (s *Service) now() time.Time {
+	if s.Now != nil {
+		return s.Now()
+	}
+	return time.Now()
+}
+
+// Load reads a workspace's routing set.
+func Load(ctx context.Context, q *store.Queries, wsID uuid.UUID) (Set, error) {
+	rows, err := q.RoutingListRules(ctx, wsID)
+	if err != nil {
+		return Set{}, err
+	}
+	set := Set{Policies: map[providers.Stream]Policy{}}
+	for _, r := range rows {
+		rule := Rule{ID: r.ID, Stream: providers.Stream(r.Stream), Priority: int(r.Priority), Name: r.Name, Fallback: r.FallbackProviderID, Enabled: r.Enabled}
+		_ = json.Unmarshal(r.Conditions, &rule.Conditions)
+		_ = json.Unmarshal(r.Splits, &rule.Splits)
+		set.Rules = append(set.Rules, rule)
+	}
+	pols, err := q.RoutingListPolicies(ctx, wsID)
+	if err != nil {
+		return Set{}, err
+	}
+	for _, p := range pols {
+		set.Policies[providers.Stream(p.Stream)] = Policy(p.Failover)
+	}
+	return set, nil
+}
+
+// Route decides the provider for one recipient with the saved rules. The
+// sending pipeline and the system mailer use it.
+func (s *Service) Route(ctx context.Context, wsID uuid.UUID, r Recipient) (Decision, bool, error) {
+	set, err := Load(ctx, s.Q, wsID)
+	if err != nil {
+		return Decision{}, false, err
+	}
+	d, ok := set.Resolve(r)
+	return d, ok, nil
+}
+
+// RoutingSplit is one provider's share.
+type RoutingSplit struct {
+	ProviderID string `json:"providerId" format:"uuid"`
+	Weight     int    `json:"weight" minimum:"0" maximum:"100"`
+}
+
+// RoutingCondition is a rule evaluated before the split: IF field matches
+// one of values THEN only providerId.
+type RoutingCondition struct {
+	Field      string   `json:"field" enum:"mailbox_provider,list,sender_domain"`
+	Values     []string `json:"values" minItems:"1" maxItems:"50"`
+	ProviderID string   `json:"providerId" format:"uuid"`
+	Note       string   `json:"note,omitempty" maxLength:"120"`
+}
+
+// RoutingStreamInput is one stream's routing in a save.
+type RoutingStreamInput struct {
+	Stream     string             `json:"stream" enum:"broadcast,automation,system"`
+	Splits     []RoutingSplit     `json:"splits" minItems:"1" maxItems:"5"`
+	Fallback   string             `json:"fallback,omitempty" doc:"Provider id, or empty for none"`
+	Failover   string             `json:"failover" enum:"automatic,pause_and_ask,warm_only"`
+	Conditions []RoutingCondition `json:"conditions" maxItems:"20"`
+}
+
+// RoutingSaveInput replaces the routing of the streams it lists.
+type RoutingSaveInput struct {
+	Streams []RoutingStreamInput `json:"streams" minItems:"1" maxItems:"3"`
+	// AcknowledgeBulkTerms keeps a Broadcast route that a provider's terms
+	// don't allow. The decision is recorded and Send Readiness blocks
+	// broadcasts while it stands.
+	AcknowledgeBulkTerms bool `json:"acknowledgeBulkTerms,omitempty"`
+}
+
+// RoutingConditionView is a condition with readable values.
+type RoutingConditionView struct {
+	RoutingCondition
+	ValueLabels []string `json:"valueLabels"`
+}
+
+// RoutingVolume is how much mail a stream carries.
+type RoutingVolume struct {
+	Count int64  `json:"count"`
+	Per   string `json:"per" enum:"day,week"`
+}
+
+// RoutingStreamView is one stream's saved routing.
+type RoutingStreamView struct {
+	Stream     string                 `json:"stream" enum:"broadcast,automation,system"`
+	Splits     []RoutingSplit         `json:"splits"`
+	Fallback   string                 `json:"fallback"`
+	Failover   string                 `json:"failover" enum:"automatic,pause_and_ask,warm_only"`
+	Conditions []RoutingConditionView `json:"conditions"`
+	// BulkTermsAcknowledgedAt is set while someone chose to keep a Broadcast
+	// route the provider's terms don't allow.
+	BulkTermsAcknowledgedAt *time.Time     `json:"bulkTermsAcknowledgedAt,omitempty"`
+	Volume                  *RoutingVolume `json:"volume,omitempty"`
+}
+
+// RoutingTerms is one row of "What each connected provider's terms allow".
+type RoutingTerms struct {
+	Variant string   `json:"variant"`
+	Bulk    string   `json:"bulk" enum:"allowed,broadcast_streams_only,forbidden,your_policy"`
+	Note    string   `json:"note"`
+	Streams []string `json:"streams"`
+	// Active marks the variant this connection uses; Available is false for
+	// a variant that isn't set up yet (Postmark Broadcast stream).
+	Active    bool `json:"active"`
+	Available bool `json:"available"`
+}
+
+// RoutingProvider is a provider that can be picked in the routing selects.
+type RoutingProvider struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Short       string `json:"short"`
+	Label       string `json:"label"`
+	Adapter     string `json:"adapter"`
+	Color       string `json:"color" enum:"ses,postal,postmark,other"`
+	Status      string `json:"status"`
+	Bulk        string `json:"bulk" enum:"allowed,broadcast_streams_only,forbidden,your_policy"`
+	BulkAllowed bool   `json:"bulkAllowed"`
+	// BroadcastStreamCreatable: ReputeCast can create the stream that makes
+	// bulk mail allowed ("Postmark · Broadcast stream (create)").
+	BroadcastStreamCreatable bool               `json:"broadcastStreamCreatable"`
+	WarmingUp                bool               `json:"warmingUp"`
+	WarmupDay                int                `json:"warmupDay,omitempty"`
+	WarmupDays               int                `json:"warmupDays,omitempty"`
+	ShareSteps               []RoutingShareStep `json:"shareSteps"`
+	Terms                    []RoutingTerms     `json:"terms"`
+}
+
+// RoutingShareStep is a planned increase of a warming provider's Broadcast share.
+type RoutingShareStep struct {
+	Day   int `json:"day"`
+	Share int `json:"share"`
+}
+
+// RoutingNamed is a list or sender domain option.
+type RoutingNamed struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// RoutingShared is the "Shared across providers" card.
+type RoutingShared struct {
+	Suppressions int64      `json:"suppressions"`
+	SyncedAt     *time.Time `json:"syncedAt,omitempty"`
+}
+
+// RoutingConfig is the routing screen.
+type RoutingConfig struct {
+	Streams       []RoutingStreamView `json:"streams"`
+	Providers     []RoutingProvider   `json:"providers"`
+	Lists         []RoutingNamed      `json:"lists"`
+	SenderDomains []string            `json:"senderDomains"`
+	SavedAt       *time.Time          `json:"savedAt,omitempty"`
+	SavedBy       string              `json:"savedBy"`
+	Issues        []RoutingIssue      `json:"issues"`
+	Shared        RoutingShared       `json:"shared"`
+}
+
+// Get returns the routing screen for a workspace.
+func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, error) {
+	set, err := Load(ctx, s.Q, ws.ID)
+	if err != nil {
+		return RoutingConfig{}, err
+	}
+	facts, provs, err := s.facts(ctx, ws)
+	if err != nil {
+		return RoutingConfig{}, err
+	}
+	lists, err := s.Q.RoutingLists(ctx, ws.ID)
+	if err != nil {
+		return RoutingConfig{}, err
+	}
+	listNames := map[string]string{}
+	out := RoutingConfig{Providers: provs, Lists: []RoutingNamed{}, SenderDomains: []string{}, Issues: Validate(set, facts)}
+	for _, l := range lists {
+		out.Lists = append(out.Lists, RoutingNamed{ID: l.ID.String(), Name: l.Name})
+		listNames[l.ID.String()] = l.Name
+	}
+	domains, err := s.Q.RoutingSenderDomains(ctx, ws.ID)
+	if err != nil {
+		return RoutingConfig{}, err
+	}
+	for _, d := range domains {
+		out.SenderDomains = append(out.SenderDomains, d.Domain)
+	}
+	pols, err := s.Q.RoutingListPolicies(ctx, ws.ID)
+	if err != nil {
+		return RoutingConfig{}, err
+	}
+	acks := map[string]*time.Time{}
+	for _, p := range pols {
+		acks[p.Stream] = p.BulkTermsAckAt
+	}
+	volumes := s.volumes(ctx, ws)
+	for _, stream := range Streams {
+		v := RoutingStreamView{Stream: string(stream), Splits: []RoutingSplit{}, Failover: string(set.Policy(stream)), Conditions: []RoutingConditionView{}, BulkTermsAcknowledgedAt: acks[string(stream)], Volume: volumes[stream]}
+		for _, r := range set.StreamRules(stream) {
+			if r.Conditions.Empty() {
+				for _, sp := range r.Splits {
+					v.Splits = append(v.Splits, RoutingSplit{ProviderID: sp.ProviderID.String(), Weight: sp.Weight})
+				}
+				if r.Fallback != nil {
+					v.Fallback = r.Fallback.String()
+				}
+				continue
+			}
+			if len(r.Splits) == 0 {
+				continue
+			}
+			c := conditionView(r, listNames)
+			v.Conditions = append(v.Conditions, c)
+		}
+		slices.SortStableFunc(v.Splits, func(a, b RoutingSplit) int { return b.Weight - a.Weight })
+		out.Streams = append(out.Streams, v)
+	}
+	if saved, err := s.Q.RoutingSaved(ctx, ws.ID); err == nil {
+		t := saved.UpdatedAt
+		out.SavedAt, out.SavedBy = &t, saved.UpdatedByName
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return RoutingConfig{}, err
+	}
+	out.Shared.Suppressions, _ = s.Q.SuppCount(ctx, ws.ID)
+	out.Shared.SyncedAt = s.syncedAt(ctx, provs)
+	return out, nil
+}
+
+func conditionView(r Rule, listNames map[string]string) RoutingConditionView {
+	c := RoutingConditionView{RoutingCondition: RoutingCondition{ProviderID: r.Splits[0].ProviderID.String(), Note: r.Name}}
+	switch {
+	case len(r.Conditions.MailboxProviders) > 0:
+		c.Field, c.Values = "mailbox_provider", r.Conditions.MailboxProviders
+		for _, v := range c.Values {
+			c.ValueLabels = append(c.ValueLabels, MailboxName(v))
+		}
+	case len(r.Conditions.Lists) > 0:
+		c.Field, c.Values = "list", r.Conditions.Lists
+		for _, v := range c.Values {
+			name := listNames[v]
+			if name == "" {
+				name = "deleted list"
+			}
+			c.ValueLabels = append(c.ValueLabels, name)
+		}
+	default:
+		c.Field, c.Values = "sender_domain", r.Conditions.SenderDomains
+		c.ValueLabels = append(c.ValueLabels, c.Values...)
+	}
+	return c
+}
+
+// facts loads what validation and the selects need about each provider.
+func (s *Service) facts(ctx context.Context, ws *store.Workspace) (map[uuid.UUID]Facts, []RoutingProvider, error) {
+	provs, err := s.Q.ProvListActive(ctx, ws.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	plans, err := s.Q.WarmupListPlans(ctx, ws.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	loc := state.Location(ws.Timezone)
+	facts := map[uuid.UUID]Facts{}
+	out := []RoutingProvider{}
+	for _, p := range provs {
+		caps := state.Caps(p)
+		f := Facts{ID: p.ID, Name: p.Name, Short: state.Short(p.Name, p.Adapter), Adapter: p.Adapter, Status: p.Status, Bulk: caps.Bulk, BulkAllowed: caps.BulkAllowed()}
+		rp := RoutingProvider{ID: p.ID.String(), Name: p.Name, Short: f.Short, Label: p.Label, Adapter: p.Adapter, Color: state.Color(p.Adapter), Status: p.Status,
+			Bulk: string(caps.Bulk), BulkAllowed: f.BulkAllowed, ShareSteps: []RoutingShareStep{}, Terms: []RoutingTerms{}}
+		if d, ok := providers.Lookup(p.Adapter); ok {
+			for _, t := range d.Terms {
+				rt := RoutingTerms{Variant: t.Variant, Bulk: string(t.Bulk), Note: t.Note, Streams: []string{}, Available: true}
+				for _, st := range t.Streams {
+					rt.Streams = append(rt.Streams, string(st))
+				}
+				if caps.Bulk == providers.BulkBroadcastStreams {
+					// Postmark: the transactional variant is the one in use;
+					// the broadcast one exists only once created.
+					rt.Active = t.Bulk != providers.BulkAllowed
+					if t.Bulk == providers.BulkAllowed {
+						rt.Available = caps.BroadcastStream
+						rt.Active = caps.BroadcastStream
+					}
+				} else {
+					rt.Active = true
+				}
+				rp.Terms = append(rp.Terms, rt)
+			}
+			if caps.Bulk == providers.BulkBroadcastStreams && !caps.BroadcastStream {
+				f.BroadcastStreamCreatable = true
+			}
+		}
+		rp.BroadcastStreamCreatable = f.BroadcastStreamCreatable
+		for _, w := range plans {
+			if w.ProviderID != p.ID || w.Status == "done" {
+				continue
+			}
+			f.WarmingUp, f.WarmupDays = true, int(w.Days)
+			f.WarmupDay = min(max(state.WarmupDay(w.StartDate, s.now(), loc), 1), int(w.Days))
+			var sched []struct {
+				Day   int `json:"day"`
+				Share int `json:"share"`
+			}
+			_ = json.Unmarshal(w.Schedule, &sched)
+			last := 0
+			for _, d := range sched {
+				if d.Share > 0 && d.Share != last {
+					if last != 0 && d.Day > f.WarmupDay {
+						rp.ShareSteps = append(rp.ShareSteps, RoutingShareStep{Day: d.Day, Share: d.Share})
+					}
+					last = d.Share
+				}
+			}
+			break
+		}
+		rp.WarmingUp, rp.WarmupDay, rp.WarmupDays = f.WarmingUp, f.WarmupDay, f.WarmupDays
+		facts[p.ID] = f
+		out = append(out, rp)
+	}
+	return facts, out, nil
+}
+
+// volumes estimates how much each stream carries: Broadcasts per week over
+// the last four weeks, Automations and System per day over the last seven
+// whole days (in the workspace time zone, so the estimate holds all day).
+func (s *Service) volumes(ctx context.Context, ws *store.Workspace) map[providers.Stream]*RoutingVolume {
+	out := map[providers.Stream]*RoutingVolume{}
+	wsID := ws.ID
+	since := s.now().AddDate(0, 0, -28)
+	if b, err := s.Q.ProvBroadcastWeekly(ctx, store.ProvBroadcastWeeklyParams{WorkspaceID: wsID, Since: &since}); err == nil && b > 0 {
+		out[providers.StreamBroadcast] = &RoutingVolume{Count: about(b / 4), Per: "week"}
+	}
+	now := s.now().In(state.Location(ws.Timezone))
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	week := today.AddDate(0, 0, -7)
+	rows, err := s.Q.ProvStreamVolume(ctx, store.ProvStreamVolumeParams{WorkspaceID: wsID, Since: &week, Until: &today})
+	if err == nil {
+		for _, r := range rows {
+			st := providers.Stream(r.Stream)
+			if st == providers.StreamBroadcast || r.N == 0 {
+				continue
+			}
+			out[st] = &RoutingVolume{Count: about(r.N / 7), Per: "day"}
+		}
+	}
+	return out
+}
+
+// about keeps the first two significant digits: 47,980 is "about 47,000",
+// 1,912 "about 1,900".
+func about(n int64) int64 {
+	if n < 100 {
+		return n
+	}
+	unit := int64(math.Pow10(len(strconv.FormatInt(n, 10)) - 2))
+	return n / unit * unit
+}
+
+func (s *Service) syncedAt(ctx context.Context, provs []RoutingProvider) *time.Time {
+	ids := make([]uuid.UUID, 0, len(provs))
+	for _, p := range provs {
+		ids = append(ids, uuid.MustParse(p.ID))
+	}
+	rows, err := s.Q.SuppSyncList(ctx, ids)
+	if err != nil {
+		return nil
+	}
+	var oldest *time.Time
+	for _, r := range rows {
+		if r.Mode == "off" || r.LastPushAt == nil {
+			continue
+		}
+		if oldest == nil || r.LastPushAt.Before(*oldest) {
+			t := *r.LastPushAt
+			oldest = &t
+		}
+	}
+	return oldest
+}
+
+// toSet converts a save input to rules, with field errors for bad ids.
+func toSet(in RoutingSaveInput, base Set) (Set, error) {
+	out := Set{Policies: map[providers.Stream]Policy{}}
+	for k, v := range base.Policies {
+		out.Policies[k] = v
+	}
+	replaced := map[providers.Stream]bool{}
+	for i, st := range in.Streams {
+		stream := providers.Stream(st.Stream)
+		if replaced[stream] {
+			return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].stream", i), "Each stream can appear once.")
+		}
+		replaced[stream] = true
+		out.Policies[stream] = Policy(st.Failover)
+		var fallback *uuid.UUID
+		if st.Fallback != "" {
+			id, err := uuid.Parse(st.Fallback)
+			if err != nil {
+				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].fallback", i), "Pick a fallback provider or none.")
+			}
+			fallback = &id
+		}
+		def := Rule{ID: uuid.Must(uuid.NewV7()), Stream: stream, Priority: 100, Fallback: fallback, Enabled: true}
+		for j, sp := range st.Splits {
+			id, err := uuid.Parse(sp.ProviderID)
+			if err != nil {
+				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].splits[%d].providerId", i, j), "Pick a provider.")
+			}
+			if sp.Weight == 0 && len(st.Splits) > 1 {
+				continue
+			}
+			def.Splits = append(def.Splits, Split{ProviderID: id, Weight: sp.Weight})
+		}
+		out.Rules = append(out.Rules, def)
+		for j, c := range st.Conditions {
+			id, err := uuid.Parse(c.ProviderID)
+			if err != nil {
+				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].providerId", i, j), "Pick the provider this condition sends to.")
+			}
+			values := []string{}
+			for _, v := range c.Values {
+				if v = strings.TrimSpace(v); v != "" && !slices.Contains(values, v) {
+					values = append(values, v)
+				}
+			}
+			if len(values) == 0 {
+				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].values", i, j), "Pick at least one value.")
+			}
+			var cond Conditions
+			switch c.Field {
+			case "mailbox_provider":
+				for _, v := range values {
+					if !slices.Contains(MailboxProviders, v) {
+						return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].values", i, j), "Mailbox providers are gmail, outlook, yahoo, icloud and other.")
+					}
+				}
+				cond.MailboxProviders = values
+			case "list":
+				for _, v := range values {
+					if _, err := uuid.Parse(v); err != nil {
+						return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].values", i, j), "Pick lists from this workspace.")
+					}
+				}
+				cond.Lists = values
+			default:
+				for k := range values {
+					values[k] = strings.ToLower(values[k])
+				}
+				cond.SenderDomains = values
+			}
+			out.Rules = append(out.Rules, Rule{ID: uuid.Must(uuid.NewV7()), Stream: stream, Priority: 10 * (j + 1), Name: strings.TrimSpace(c.Note),
+				Conditions: cond, Splits: []Split{{ProviderID: id, Weight: 100}}, Fallback: fallback, Enabled: true})
+		}
+	}
+	for _, r := range base.Rules {
+		if !replaced[r.Stream] {
+			out.Rules = append(out.Rules, r)
+		}
+	}
+	return out, nil
+}
+
+// Save replaces the routing of the streams in the input.
+func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveInput) (RoutingConfig, error) {
+	before, err := s.Get(ctx, ws)
+	if err != nil {
+		return RoutingConfig{}, err
+	}
+	base, err := Load(ctx, s.Q, ws.ID)
+	if err != nil {
+		return RoutingConfig{}, err
+	}
+	set, err := toSet(in, base)
+	if err != nil {
+		return RoutingConfig{}, err
+	}
+	facts, _, err := s.facts(ctx, ws)
+	if err != nil {
+		return RoutingConfig{}, err
+	}
+	// Lists named in conditions must belong to the workspace.
+	lists, err := s.Q.RoutingLists(ctx, ws.ID)
+	if err != nil {
+		return RoutingConfig{}, err
+	}
+	known := map[string]bool{}
+	for _, l := range lists {
+		known[l.ID.String()] = true
+	}
+	for _, r := range set.Rules {
+		for _, l := range r.Conditions.Lists {
+			if !known[l] {
+				return RoutingConfig{}, api.Invalid("body.streams", "A condition names a list that isn't in this workspace.")
+			}
+		}
+	}
+	issues := Validate(set, facts)
+	if Blocking(issues) {
+		for _, i := range issues {
+			if i.Blocking {
+				return RoutingConfig{}, api.Err(http.StatusUnprocessableEntity, api.CodeValidation, i.Message).WithMeta("issues", issues)
+			}
+		}
+	}
+	bulk := []RoutingIssue{}
+	for _, i := range issues {
+		if i.Code == IssueBulkTerms {
+			bulk = append(bulk, i)
+		}
+	}
+	if len(bulk) > 0 && !in.AcknowledgeBulkTerms {
+		return RoutingConfig{}, api.Err(http.StatusConflict, "bulk_terms", bulk[0].Message+" Choose another provider, or keep it and acknowledge the terms.").WithMeta("issues", bulk)
+	}
+	p := api.PrincipalFrom(ctx)
+	var by *uuid.UUID
+	if p != nil && p.UserID != uuid.Nil {
+		u := p.UserID
+		by = &u
+	}
+	now := s.now()
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := q.RoutingDeleteRules(ctx, ws.ID); err != nil {
+			return err
+		}
+		for _, r := range set.Rules {
+			conds, _ := json.Marshal(r.Conditions)
+			splits, _ := json.Marshal(r.Splits)
+			if err := q.RoutingInsertRule(ctx, store.RoutingInsertRuleParams{
+				ID: r.ID, WorkspaceID: ws.ID, Stream: string(r.Stream), Priority: int32(r.Priority), Name: r.Name,
+				Conditions: conds, Splits: splits, FallbackProviderID: r.Fallback, UpdatedBy: by, UpdatedAt: now,
+			}); err != nil {
+				return err
+			}
+		}
+		for _, stream := range Streams {
+			params := store.RoutingUpsertPolicyParams{WorkspaceID: ws.ID, Stream: string(stream), Failover: string(set.Policy(stream))}
+			if stream == providers.StreamBroadcast && len(bulk) > 0 {
+				params.BulkTermsAckAt, params.BulkTermsAckBy = &now, by
+			}
+			if err := q.RoutingUpsertPolicy(ctx, params); err != nil {
+				return err
+			}
+		}
+		wsID := ws.ID
+		meta := map[string]any{}
+		if len(bulk) > 0 {
+			meta["acknowledged_bulk_terms"] = bulk
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{
+			WorkspaceID: &wsID, Action: "routing.update", TargetType: "routing", TargetID: ws.ID.String(), TargetName: ws.Name,
+			Before: before.Streams, After: in.Streams, Metadata: meta,
+		})
+	})
+	if err != nil {
+		return RoutingConfig{}, err
+	}
+	return s.Get(ctx, ws)
+}

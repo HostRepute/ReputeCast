@@ -161,6 +161,12 @@ export function andList(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
 }
 
+/** A percentage with up to two decimals and no trailing zeros: 0.6%, 0.04%, 99.6%, 100%. */
+export function trimPct(v: number | null | undefined): string {
+  if (v === null || v === undefined || Number.isNaN(v)) return '—'
+  return `${Number(v.toFixed(2))}%`
+}
+
 // --- Team, keys and audit log (W03) ---------------------------------------
 
 /** "Oct 10" */

@@ -38,6 +38,7 @@ import { Route as WWorkspaceAppAudienceSuppressionsRouteImport } from './routes/
 import { Route as WWorkspaceAppAutomationsIndexRouteImport } from './routes/w/$workspace/_app/automations/index'
 import { Route as WWorkspaceAppCampaignsIndexRouteImport } from './routes/w/$workspace/_app/campaigns/index'
 import { Route as WWorkspaceAppDeliverabilityIndexRouteImport } from './routes/w/$workspace/_app/deliverability/index'
+import { Route as WWorkspaceAppDeliverabilityConnectRouteImport } from './routes/w/$workspace/_app/deliverability/connect'
 import { Route as WWorkspaceAppFormsIndexRouteImport } from './routes/w/$workspace/_app/forms/index'
 import { Route as WWorkspaceAppFormsArchiveRouteImport } from './routes/w/$workspace/_app/forms/archive'
 import { Route as WWorkspaceAppFormsBrandingRouteImport } from './routes/w/$workspace/_app/forms/branding'
@@ -229,6 +230,12 @@ const WWorkspaceAppDeliverabilityIndexRoute =
   WWorkspaceAppDeliverabilityIndexRouteImport.update({
     id: '/deliverability/',
     path: '/deliverability/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppDeliverabilityConnectRoute =
+  WWorkspaceAppDeliverabilityConnectRouteImport.update({
+    id: '/deliverability/connect',
+    path: '/deliverability/connect',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppFormsIndexRoute = WWorkspaceAppFormsIndexRouteImport.update({
@@ -465,6 +472,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
   '/w/$workspace/audience/suppressions': typeof WWorkspaceAppAudienceSuppressionsRoute
+  '/w/$workspace/deliverability/connect': typeof WWorkspaceAppDeliverabilityConnectRoute
   '/w/$workspace/forms/archive': typeof WWorkspaceAppFormsArchiveRoute
   '/w/$workspace/forms/branding': typeof WWorkspaceAppFormsBrandingRoute
   '/w/$workspace/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
@@ -529,6 +537,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
   '/w/$workspace/audience/suppressions': typeof WWorkspaceAppAudienceSuppressionsRoute
+  '/w/$workspace/deliverability/connect': typeof WWorkspaceAppDeliverabilityConnectRoute
   '/w/$workspace/forms/archive': typeof WWorkspaceAppFormsArchiveRoute
   '/w/$workspace/forms/branding': typeof WWorkspaceAppFormsBrandingRoute
   '/w/$workspace/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
@@ -596,6 +605,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
   '/w/$workspace/_app/audience/health': typeof WWorkspaceAppAudienceHealthRoute
   '/w/$workspace/_app/audience/suppressions': typeof WWorkspaceAppAudienceSuppressionsRoute
+  '/w/$workspace/_app/deliverability/connect': typeof WWorkspaceAppDeliverabilityConnectRoute
   '/w/$workspace/_app/forms/archive': typeof WWorkspaceAppFormsArchiveRoute
   '/w/$workspace/_app/forms/branding': typeof WWorkspaceAppFormsBrandingRoute
   '/w/$workspace/_app/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
@@ -663,6 +673,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/approvals/$approvalId'
     | '/w/$workspace/audience/health'
     | '/w/$workspace/audience/suppressions'
+    | '/w/$workspace/deliverability/connect'
     | '/w/$workspace/forms/archive'
     | '/w/$workspace/forms/branding'
     | '/w/$workspace/forms/preferences'
@@ -727,6 +738,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/approvals/$approvalId'
     | '/w/$workspace/audience/health'
     | '/w/$workspace/audience/suppressions'
+    | '/w/$workspace/deliverability/connect'
     | '/w/$workspace/forms/archive'
     | '/w/$workspace/forms/branding'
     | '/w/$workspace/forms/preferences'
@@ -793,6 +805,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/approvals/$approvalId'
     | '/w/$workspace/_app/audience/health'
     | '/w/$workspace/_app/audience/suppressions'
+    | '/w/$workspace/_app/deliverability/connect'
     | '/w/$workspace/_app/forms/archive'
     | '/w/$workspace/_app/forms/branding'
     | '/w/$workspace/_app/forms/preferences'
@@ -1049,6 +1062,13 @@ declare module '@tanstack/react-router' {
       path: '/deliverability'
       fullPath: '/w/$workspace/deliverability/'
       preLoaderRoute: typeof WWorkspaceAppDeliverabilityIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/deliverability/connect': {
+      id: '/w/$workspace/_app/deliverability/connect'
+      path: '/deliverability/connect'
+      fullPath: '/w/$workspace/deliverability/connect'
+      preLoaderRoute: typeof WWorkspaceAppDeliverabilityConnectRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/forms/': {
@@ -1323,6 +1343,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppApprovalsApprovalIdRoute: typeof WWorkspaceAppApprovalsApprovalIdRoute
   WWorkspaceAppAudienceHealthRoute: typeof WWorkspaceAppAudienceHealthRoute
   WWorkspaceAppAudienceSuppressionsRoute: typeof WWorkspaceAppAudienceSuppressionsRoute
+  WWorkspaceAppDeliverabilityConnectRoute: typeof WWorkspaceAppDeliverabilityConnectRoute
   WWorkspaceAppFormsArchiveRoute: typeof WWorkspaceAppFormsArchiveRoute
   WWorkspaceAppFormsBrandingRoute: typeof WWorkspaceAppFormsBrandingRoute
   WWorkspaceAppFormsPreferencesRoute: typeof WWorkspaceAppFormsPreferencesRoute
@@ -1375,6 +1396,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppAudienceHealthRoute: WWorkspaceAppAudienceHealthRoute,
   WWorkspaceAppAudienceSuppressionsRoute:
     WWorkspaceAppAudienceSuppressionsRoute,
+  WWorkspaceAppDeliverabilityConnectRoute:
+    WWorkspaceAppDeliverabilityConnectRoute,
   WWorkspaceAppFormsArchiveRoute: WWorkspaceAppFormsArchiveRoute,
   WWorkspaceAppFormsBrandingRoute: WWorkspaceAppFormsBrandingRoute,
   WWorkspaceAppFormsPreferencesRoute: WWorkspaceAppFormsPreferencesRoute,
