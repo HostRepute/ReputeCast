@@ -3,7 +3,8 @@ import { fieldLabel, PublisherMark, type FormInput, type Overview } from './comm
 
 /** The consent sentence with "privacy policy" linked when there is a policy. */
 export function ConsentText({ text, privacy, color }: { text: string; privacy: string; color: string }) {
-  const at = privacy ? text.toLowerCase().indexOf('privacy policy') : -1
+  // A case-insensitive search that returns an index into text itself.
+  const at = privacy ? text.search(/privacy policy/i) : -1
   if (at < 0) return <>{text}</>
   return (
     <>

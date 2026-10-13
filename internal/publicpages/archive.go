@@ -93,8 +93,8 @@ type archiveParams struct {
 
 func archiveParamsOf(v url.Values, lists map[string]uuid.UUID) archiveParams {
 	p := archiveParams{q: strings.TrimSpace(v.Get("q")), list: v.Get("list"), page: 1}
-	if len(p.q) > 100 {
-		p.q = p.q[:100]
+	if r := []rune(p.q); len(r) > 100 {
+		p.q = string(r[:100])
 	}
 	if n, err := strconv.Atoi(v.Get("page")); err == nil && n > 1 && n < 100000 {
 		p.page = n

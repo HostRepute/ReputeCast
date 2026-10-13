@@ -178,6 +178,32 @@ func EmbedScript(c Config, links PageLinks, b Branding, lists []audience.PublicL
 	return []byte(strings.Replace(embedScript, "__RC_FORM__", string(raw), 1))
 }
 
+// PrivacyPolicyIndex finds "privacy policy" in a consent sentence, in any
+// letter case, and returns its byte offset in text, or -1. The phrase is
+// ASCII, so the search compares bytes and the offset always points into
+// text itself (lowercasing first would shift it for letters whose
+// lowercase form has another UTF-8 length, like "İ").
+func PrivacyPolicyIndex(text string) int {
+	const want = "privacy policy"
+	for i := 0; i+len(want) <= len(text); i++ {
+		match := true
+		for j := 0; j < len(want); j++ {
+			c := text[i+j]
+			if 'A' <= c && c <= 'Z' {
+				c += 'a' - 'A'
+			}
+			if c != want[j] {
+				match = false
+				break
+			}
+		}
+		if match {
+			return i
+		}
+	}
+	return -1
+}
+
 // PlainAction is where the plain HTML form posts: always under /p/ so the
 // cross-site post reaches the form whichever site it sits on.
 func (l PageLinks) PlainAction(slug string) string {
@@ -229,10 +255,11 @@ func PlainHTML(c Config, links PageLinks, lists []audience.PublicList, customs [
 		w.WriteString("  </fieldset>\n")
 	}
 	if c.ConsentText != "" {
-		text := esc(c.ConsentText)
+		raw := c.ConsentText
+		text := esc(raw)
 		if b.PrivacyURL != "" {
-			if i := strings.Index(strings.ToLower(text), "privacy policy"); i >= 0 {
-				text = text[:i] + `<a href="` + esc(b.PrivacyURL) + `">` + text[i:i+14] + `</a>` + text[i+14:]
+			if i := PrivacyPolicyIndex(raw); i >= 0 {
+				text = esc(raw[:i]) + `<a href="` + esc(b.PrivacyURL) + `">` + esc(raw[i:i+14]) + `</a>` + esc(raw[i+14:])
 			}
 		}
 		w.WriteString(`  <label><input type="checkbox" name="consent" value="1" required> ` + text + `</label>` + "\n")

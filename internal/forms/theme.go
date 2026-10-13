@@ -73,9 +73,18 @@ var (
 	white = rgb{255, 255, 255}
 )
 
-// darkenUntil darkens c until it reaches ratio against every background.
+// rounded is c as it will be written ("#4338CA"): contrast is checked on
+// the colour that ships, not on its unrounded value.
+func (c rgb) rounded() rgb {
+	r, _ := ParseColor(c.Hex())
+	return r
+}
+
+// darkenUntil darkens c until its written value reaches ratio against
+// every background.
 func darkenUntil(c rgb, ratio float64, bgs ...rgb) rgb {
-	for range 40 {
+	c = c.rounded()
+	for range 60 {
 		ok := true
 		for _, bg := range bgs {
 			if Contrast(c, bg) < ratio {
@@ -86,7 +95,7 @@ func darkenUntil(c rgb, ratio float64, bgs ...rgb) rgb {
 		if ok {
 			return c
 		}
-		c = mix(c, black, 0.94)
+		c = mix(c, black, 0.94).rounded()
 	}
 	return c
 }
@@ -121,10 +130,16 @@ func DerivePalette(accent, background string) (Palette, error) {
 	if muted, _ := ParseColor(ink3Color); Contrast(muted, bg) < 4.5 {
 		return Palette{}, fmt.Errorf("%s is too dark for the page background: the footer text needs 4.5:1 against it. Pick a lighter colour", bg.Hex())
 	}
+	a, bg = a.rounded(), bg.rounded()
 	p := Palette{Accent: a.Hex(), Background: bg.Hex(), Notes: []string{}}
 	p.OnAccent = whiteColor
 	if Contrast(white, a) < 4.5 {
+		// Ink when it reads well enough, else black: when white is under
+		// 4.5:1, black is always above it.
 		p.OnAccent = inkColor
+		if ink, _ := ParseColor(inkColor); Contrast(ink, a) < 4.5 {
+			p.OnAccent = "#000000"
+		}
 		p.Notes = append(p.Notes, fmt.Sprintf("White text on %s is %.1f:1, under the 4.5:1 buttons need, so buttons use dark text.", a.Hex(), Contrast(white, a)))
 	}
 	text := darkenUntil(a, 4.5, white, bg)
@@ -133,14 +148,14 @@ func DerivePalette(accent, background string) (Palette, error) {
 	}
 	p.Text = text.Hex()
 	p.Hover = darkenUntil(mix(text, black, 0.82), 4.5, white, bg).Hex()
-	soft := mix(a, white, 0.2)
+	soft := mix(a, white, 0.2).rounded()
 	hover, _ := ParseColor(p.Hover)
 	// Text on the soft tint is the hover colour: keep it readable.
 	for range 20 {
 		if Contrast(hover, soft) >= 4.5 {
 			break
 		}
-		soft = mix(soft, white, 0.6)
+		soft = mix(soft, white, 0.6).rounded()
 	}
 	p.Soft = soft.Hex()
 	return p, nil

@@ -40,7 +40,8 @@
   // The consent sentence, with "privacy policy" linked when there is a policy.
   function consentText(parent) {
     var text = cfg.consent
-    var at = cfg.privacy ? text.toLowerCase().indexOf('privacy policy') : -1
+    // A case-insensitive search that returns an index into text itself.
+    var at = cfg.privacy ? text.search(/privacy policy/i) : -1
     if (at < 0) {
       parent.appendChild(document.createTextNode(text))
       return

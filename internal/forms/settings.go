@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -942,6 +943,10 @@ func (s *Service) UnsubscribeNumbers(ctx context.Context, ws *store.Workspace) (
 
 // --- logo ------------------------------------------------------------------------
 
+// svgEventHandler finds event attributes (onload, onmouseover, onbegin…)
+// in any spacing.
+var svgEventHandler = regexp.MustCompile(`(?i)[\s"'/]on[a-z]+\s*=`)
+
 // MaxLogoBytes bounds an uploaded logo.
 const MaxLogoBytes = 256 << 10
 
@@ -962,10 +967,12 @@ func sniffLogo(data []byte) (ctype, problem string) {
 	lower := bytes.ToLower(head)
 	if bytes.Contains(lower, []byte("<svg")) {
 		all := bytes.ToLower(data)
-		for _, bad := range [][]byte{[]byte("<script"), []byte("javascript:"), []byte("<foreignobject"), []byte("onload="), []byte("onerror="), []byte("onclick="), []byte("<iframe"), []byte("<!entity")} {
-			if bytes.Contains(all, bad) {
-				return "", "This SVG contains scripts or embedded content. Export it again as a plain SVG or a PNG."
-			}
+		bad := svgEventHandler.Match(all)
+		for _, s := range [][]byte{[]byte("<script"), []byte("javascript:"), []byte("<foreignobject"), []byte("<iframe"), []byte("<!entity"), []byte("<embed"), []byte("<object")} {
+			bad = bad || bytes.Contains(all, s)
+		}
+		if bad {
+			return "", "This SVG contains scripts or embedded content. Export it again as a plain SVG or a PNG."
 		}
 		return "image/svg+xml", ""
 	}

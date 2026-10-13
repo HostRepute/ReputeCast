@@ -42,7 +42,7 @@ func splitConsent(text, privacy string) consentParts {
 	if privacy == "" {
 		return c
 	}
-	if i := strings.Index(strings.ToLower(text), "privacy policy"); i >= 0 {
+	if i := forms.PrivacyPolicyIndex(text); i >= 0 {
 		c.Before, c.Link, c.After, c.Href = text[:i], text[i:i+14], text[i+14:], privacy
 	}
 	return c
