@@ -98,11 +98,11 @@ function Prop({ title, children, id }: { title: ReactNode; children: ReactNode; 
 }
 
 /** Colour swatch (native picker) + hex input. */
-function ColorField({ value, onCommit, label, children }: { value: string; onCommit: (v: string) => void; label: string; children?: ReactNode }) {
+function ColorField({ value, onCommit, label, children, gap = 8 }: { value: string; onCommit: (v: string) => void; label: string; children?: ReactNode; gap?: number }) {
   const timer = useRef<number | undefined>(undefined)
   const hex = hexColor(value)
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center" style={{ gap }}>
       <input
         type="color"
         className="sw"
@@ -132,8 +132,9 @@ const SIDE_LABELS = [
 function SubField({ label, value, placeholder, mono, onCommit, id: given }: { label: string; value: string; placeholder?: string; mono?: boolean; onCommit: (v: string) => void; id?: string }) {
   const own = useId()
   const id = given ?? own
+  // The board wraps label and input in a label.k, so the input inherits its 500 weight.
   return (
-    <div className="flex min-w-0 flex-col" style={{ gap: 2 }}>
+    <div className="k flex min-w-0 flex-col" style={{ gap: 2 }}>
       <label className="k" htmlFor={id}>
         {label}
       </label>
@@ -323,7 +324,8 @@ function TypographyProp({ targets, title, sample, weight }: { targets: Component
         <DraftInput label="Font size" value={effective(sample, 'font-size', head)} onCommit={(v) => set('font-size', withPx(v))} />
       </div>
       <div className="row2">
-        <ColorField label="Text colour" value={color} onCommit={(v) => set('color', v)} />
+        {/* In a two-column row the board spaces swatch and hex 6px apart. */}
+        <ColorField label="Text colour" value={color} onCommit={(v) => set('color', v)} gap={6} />
         {weight ? (
           <SelectField
             label="Font weight"

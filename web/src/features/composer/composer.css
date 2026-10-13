@@ -108,9 +108,12 @@
   gap: 2px;
   min-width: 0;
 }
-.cmp-subj .k {
+/* The field labels are 11px; the inbox preview's time stays a 12px .k. */
+.cmp-subj > label > .k,
+.cmp-subj > div > .k {
   font-size: 11px;
 }
+/* Content-box as on the boards: 32px plus the border, 2px taller than the inputs. */
 .cmp-inbox {
   display: flex;
   gap: 10px;
@@ -123,7 +126,6 @@
   font-size: 12.5px;
   white-space: nowrap;
   overflow: hidden;
-  box-sizing: border-box;
 }
 .cmp-inbox.empty {
   border-style: dashed;
@@ -326,13 +328,14 @@
   width: 100%;
   box-sizing: border-box;
 }
+/* 22px plus the border, as the board's span (a color input is border-box by default). */
 .sw {
   width: 22px;
   height: 22px;
   border-radius: 5px;
   border: 1px solid var(--line-strong);
   flex: none;
-  box-sizing: border-box;
+  box-sizing: content-box;
   padding: 0;
 }
 input.sw {
