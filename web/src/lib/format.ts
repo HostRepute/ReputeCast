@@ -184,3 +184,15 @@ export function countdown(ms: number): string {
   if (s >= 60) return 'in 1 minute'
   return `in ${s} second${s === 1 ? '' : 's'}`
 }
+
+/** A percentage with up to two decimals and no trailing zeros: 0.6%, 0.04%, 99.6%, 100%. */
+export function trimPct(v: number | null | undefined): string {
+  if (v === null || v === undefined || Number.isNaN(v)) return '—'
+  return `${Number(v.toFixed(2))}%`
+}
+
+/** "Oct 10" */
+export function monthDay(d: string | number | Date): string {
+  const p = parts('monthDay', toDate(d), { month: 'short', day: 'numeric' })
+  return `${p.month} ${p.day}`
+}

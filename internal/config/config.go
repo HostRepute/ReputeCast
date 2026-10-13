@@ -46,6 +46,32 @@ type Config struct {
 	Worker   WorkerConfig   `koanf:"worker"`
 	Updates  UpdatesConfig  `koanf:"updates"`
 	Metrics  MetricsConfig  `koanf:"metrics"`
+	// HostRepute and DNS configure Deliverability (internal/hostrepute, internal/dnscheck).
+	HostRepute HostReputeConfig `koanf:"hostrepute"`
+	DNS        DNSConfig        `koanf:"dns"`
+}
+
+// HostReputeConfig configures the optional HostRepute integration. ReputeCast
+// is a public OAuth client of HostRepute (PKCE, no secret); instances that
+// registered their own client can set its id and secret.
+type HostReputeConfig struct {
+	APIURL       string `koanf:"api_url"`
+	AuthURL      string `koanf:"auth_url"`
+	TokenURL     string `koanf:"token_url"`
+	RevokeURL    string `koanf:"revoke_url"`
+	ClientID     string `koanf:"client_id"`
+	ClientSecret string `koanf:"client_secret"`
+	// Demo serves a built-in, offline HostRepute (sample data, instant OAuth
+	// approval) for development and screenshots.
+	Demo bool `koanf:"demo"`
+}
+
+// DNSConfig configures the resolvers used for authentication checks and
+// blocklist lookups. Empty uses the system resolvers; DNSBLs such as
+// Spamhaus refuse queries that come through public resolvers.
+type DNSConfig struct {
+	Servers []string      `koanf:"servers"`
+	Timeout time.Duration `koanf:"timeout"`
 }
 
 // HTTPConfig configures the HTTP listener.
@@ -133,7 +159,8 @@ func Defaults() Config {
 			WriteTimeout:    60 * time.Second,
 			ShutdownTimeout: 20 * time.Second,
 		},
-		Database: DatabaseConfig{
+		// The docker-compose development database; production sets database.url.
+		Database: DatabaseConfig{ //nolint:gosec // development default, not a secret
 			URL:         "postgres://reputecast:reputecast@localhost:5432/reputecast?sslmode=disable",
 			MaxConns:    20,
 			SegmentRole: "reputecast_segments",
@@ -144,6 +171,14 @@ func Defaults() Config {
 		Worker:  WorkerConfig{Concurrency: 50},
 		Updates: UpdatesConfig{Check: true, Repo: "hostrepute/reputecast"},
 		Metrics: MetricsConfig{Enabled: true},
+		HostRepute: HostReputeConfig{ //nolint:gosec // G101: public endpoint URLs and client ID, not credentials
+			APIURL:    "https://api.hostrepute.com/v1",
+			AuthURL:   "https://app.hostrepute.com/oauth/authorize",
+			TokenURL:  "https://api.hostrepute.com/oauth/token",
+			RevokeURL: "https://api.hostrepute.com/oauth/revoke",
+			ClientID:  "reputecast",
+		},
+		DNS: DNSConfig{Timeout: 4 * time.Second},
 	}
 }
 
@@ -199,6 +234,7 @@ var listKeys = map[string]bool{
 	"roles":                 true,
 	"http.trusted_proxies":  true,
 	"secrets.previous_keys": true,
+	"dns.servers":           true,
 }
 
 // flagKey maps a command-line flag to a config key. Only flags that were

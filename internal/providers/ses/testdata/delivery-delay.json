@@ -1,0 +1,18 @@
+{
+  "eventType": "DeliveryDelay",
+  "mail": {
+    "timestamp": "2026-10-12T13:30:00.000Z",
+    "source": "news@news.acme.io",
+    "messageId": "0100018f2b4d5c6e-33333333-0d1e-4f2a-8b3c-4d5e6f7a8b9c-000000",
+    "destination": ["b.h@yahoo.com"],
+    "tags": { "rc_message": ["0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e63"] }
+  },
+  "deliveryDelay": {
+    "timestamp": "2026-10-12T13:40:55.000Z",
+    "delayType": "MailboxFull",
+    "expirationTime": "2026-10-12T19:30:00.000Z",
+    "delayedRecipients": [
+      { "emailAddress": "b.h@yahoo.com", "status": "4.2.2", "diagnosticCode": "smtp; 452 4.2.2 Mailbox full" }
+    ]
+  }
+}

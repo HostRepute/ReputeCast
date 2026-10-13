@@ -1,0 +1,10 @@
+/* Connect HostRepute shows a breadcrumb in the top bar instead of the title
+   (ConnectHostRepute board); the h1 stays for screen readers, visually hidden. */
+.mainc:has(> main.hr-crumbs) > .top > h1 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
