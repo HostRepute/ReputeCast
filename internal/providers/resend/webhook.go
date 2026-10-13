@@ -84,8 +84,11 @@ func (p *Provider) signingSecret(ctx context.Context, path string, refresh bool)
 	if e.secret != "" && (!refresh || time.Since(e.fetched) < time.Minute) {
 		return e.secret, true, nil
 	}
+	want := strings.TrimRight(path, "/")
 	hook, err := p.findWebhook(ctx, func(endpoint string) bool {
-		return pathOf(endpoint) == path || strings.HasSuffix(pathOf(endpoint), path)
+		// The suffix allows a reverse proxy that strips a path prefix.
+		hp := strings.TrimRight(pathOf(endpoint), "/")
+		return hp == want || strings.HasSuffix(hp, want)
 	})
 	if err != nil {
 		return "", false, err

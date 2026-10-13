@@ -6,4 +6,5 @@ package app
 import (
 	_ "github.com/hostrepute/reputecast/internal/providers/httpgeneric"
 	_ "github.com/hostrepute/reputecast/internal/providers/resend"
+	_ "github.com/hostrepute/reputecast/internal/providers/sendgrid"
 )
