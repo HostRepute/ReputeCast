@@ -153,8 +153,18 @@ func TestKeyEscalation(t *testing.T) {
 	if p := r.Problem(t); p["code"] != "escalation_denied" || p["permission"] != "subscribers:export" {
 		t.Fatalf("escalation: %v", p)
 	}
-	ic.Do("POST", ws+"/api-keys", map[string]any{"name": "Analytics export", "permissions": []string{"reports:view", "subscribers:view"}}).MustStatus(t, 201)
+	var k created
+	ic.Do("POST", ws+"/api-keys", map[string]any{"name": "Analytics export", "permissions": []string{"reports:view", "subscribers:view"}}).MustStatus(t, 201).JSON(t, &k)
 	ic.Do("GET", ws+"/mcp-agents", nil).MustStatus(t, 403)
+	// The key never does more than its creator can now: nothing once Ivy is
+	// deactivated in the workspace.
+	b := env.Client()
+	b.Bearer = k.Secret
+	b.Do("GET", ws+"/contacts?pageSize=1", nil).MustStatus(t, 200)
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE workspace_members SET status = 'deactivated' WHERE user_id = $1`, u.ID); err != nil {
+		t.Fatal(err)
+	}
+	b.Do("GET", ws+"/contacts?pageSize=1", nil).MustStatus(t, 403)
 	v := env.Client()
 	v.SignInDemo("aisha@acme.io")
 	v.Do("GET", ws+"/api-keys", nil).MustStatus(t, 403)

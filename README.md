@@ -153,6 +153,16 @@ authenticator app, save your recovery codes, confirm the public URL and
 create your first workspace; then ReputeCast walks you through connecting a
 sending provider.
 
+Images are published to `ghcr.io/hostrepute/reputecast` with each release.
+To run your own build instead (or before the first release), build the image
+from a checkout and point the compose file at it:
+
+```bash
+make docker VERSION=local
+REPUTECAST_IMAGE=reputecast REPUTECAST_VERSION=local REPUTECAST_ADMIN_EMAIL=you@company.com \
+  docker compose -f deploy/docker-compose.yml up -d
+```
+
 > Want to look around first? `make dev && make seed` (see
 > [Development](#development)) loads the Acme demo instance used throughout
 > the design.
@@ -181,6 +191,7 @@ reputecast serve
 | `reputecast user reset-2fa --email … --reason …` | Removes the authenticator app; the reason goes to the audit log. |
 | `reputecast user make-admin\|unlock --email …` | Instance admin flag, clear a sign-in lockout. |
 | `reputecast secrets generate-key` | Prints a new encryption key. |
+| `reputecast adapter install\|set-url\|secret\|check\|list\|remove` | Installs a community adapter from its manifest, tells ReputeCast where its process runs and issues its signing secret ([docs/adapters.md](docs/adapters.md#community-adapters)). |
 | `reputecast openapi [--yaml]` | Prints the OpenAPI 3.1 document. |
 | `reputecast seed` | Loads the Acme demo data (development only). |
 | `reputecast version` | Prints the version. |
@@ -197,7 +208,7 @@ between levels (`http.public_url` → `REPUTECAST_HTTP__PUBLIC_URL`).
 | `REPUTECAST_DATABASE__URL` (or `DATABASE_URL`) | `postgres://reputecast:reputecast@localhost:5432/reputecast?sslmode=disable` | Postgres 16–18. |
 | `REPUTECAST_DATABASE__MAX_CONNS` | `20` | Pool size per process. |
 | `REPUTECAST_HTTP__ADDR` | `:8080` | Listen address. |
-| `REPUTECAST_HTTP__PUBLIC_URL` | `http://localhost:8080` | The address people and providers reach. Used for webhooks, SSO redirects, passkeys, public pages and links in emails. Use `https://` in production. |
+| `REPUTECAST_HTTP__PUBLIC_URL` | `http://localhost:8080` | The address people and providers reach. Used for webhooks, SSO redirects, passkeys, public pages and links in emails. Use `https://` in production. An address saved in Instance admin › Instance & updates replaces it for links, pages and webhooks (moving provider webhooks with it); HTTPS-only cookies and HSTS follow this setting, so keep the two the same. |
 | `REPUTECAST_HTTP__TRUSTED_PROXIES` | — | Comma-separated CIDRs or IPs of your reverse proxies; only then is `X-Forwarded-For` trusted. |
 | `REPUTECAST_HTTP__RATE_LIMIT_AUTH` | `30` | Sign-in requests per minute per client IP (on top of per-email lockout). |
 | `REPUTECAST_HTTP__RATE_LIMIT_API` | `600` | API requests per minute per API key (per IP for browser sessions). |
@@ -210,7 +221,7 @@ between levels (`http.public_url` → `REPUTECAST_HTTP__PUBLIC_URL`).
 | `REPUTECAST_METRICS__ENABLED` / `__ADDR` | `true` / main listener | Prometheus metrics at `/metrics`; set an address to serve them on a separate port. |
 | `REPUTECAST_UPDATES__CHECK` | `true` | Daily check of GitHub releases (only the version number is fetched). Can also be turned off in Instance admin. ReputeCast never sends usage data anywhere. |
 | `REPUTECAST_AUTH__COOKIE_SECURE` | `true` | Secure session cookie (always on when the public URL is https). |
-| `REPUTECAST_PROVIDERS__ALLOW_PRIVATE_NETWORKS` | `false` | Let provider URLs entered in a workspace (a Postal server, a generic HTTP adapter) resolve to loopback or private addresses, for providers on your own network. Cloud metadata and link-local addresses are always refused. |
+| `REPUTECAST_PROVIDERS__ALLOW_PRIVATE_NETWORKS` | `false` | Let provider URLs entered in a workspace (a Postal server, a generic HTTP adapter) and community adapters' addresses (a sidecar; plain `http://` only there) resolve to loopback or private addresses, for providers on your own network. Cloud metadata and link-local addresses are always refused. |
 | `REPUTECAST_WEBHOOKS__ALLOW_PRIVATE_NETWORKS` | `false` | The same for outgoing webhooks and the audit stream. |
 | `REPUTECAST_ADMIN_EMAIL` / `_NAME` / `_PASSWORD` | — | Used by `install` and `serve --auto-install`. Without a password a temporary one is printed. |
 | `REPUTECAST_AUTO_MIGRATE`, `REPUTECAST_AUTO_INSTALL` | `false` | Container conveniences (the Docker image enables both). |
@@ -258,7 +269,9 @@ Authentication**, not in configuration.
   (`internal/providers/provider.go`: capabilities, send, parse webhook, plus
   optional domain setup, webhook registration, quota and suppression sync)
   and must pass the shared contract-test suite. Core code never imports an
-  adapter.
+  adapter. Community adapters run in their own process and are called over
+  a signed protocol, written with the TypeScript SDK in `sdk/`
+  ([docs/adapters.md](docs/adapters.md#community-adapters)).
 - **Webhooks are cheap to receive.** Ingest verifies the signature, stores
   the raw payload and answers 200 immediately; a job normalizes events later,
   so provider retries never pile up.
@@ -330,11 +343,24 @@ Mailpit shows every email the demo sends at <http://localhost:8025>.
 | Regenerate sqlc, OpenAPI and web API types | `make generate` |
 | Production build (web app embedded in `bin/reputecast`) | `make build` |
 | Docker image | `make docker` |
+| Landing site (reputecast.com): build, or live reload on :5288 | `make site`, `make site-dev` |
+| Adapter SDK and template: build, test, run through the Go runtime | `make sdk` |
 | Compare a screen with its design board at 1440/834/390 | `cd web && pnpm shot --path /w/acme-newsletter/campaigns --design Campaigns` |
+| Side-by-side QA of boards and screens, with a difference score (`scripts/qa-map.ts` maps boards to routes) | `cd web && pnpm qa --only Report,Campaigns` |
+| Re-render the demo's placeholder images | `cd web && node scripts/demo-images.ts [file.png …]` |
+
+The screenshot tools read the design boards from `http://localhost:8765`:
+`python3 -m http.server 8765 -d design/boards` serves them. Static boards
+render as they are; the phone and tablet wrappers and the boards with live
+parts (composer, automation flow, landing page) also need the design canvas
+runtime saved as `design/boards/support.js`, which is not part of this
+repository.
 
 Integration tests start Postgres 18 with Testcontainers, or reuse the
 compose database when it runs (`make test` does that automatically). CI runs
-the Go suite against Postgres 16, 17 and 18 and Go 1.26 and 1.27.
+the Go suite on Go 1.27 against Postgres 16, 17 and 18. Packages test in
+parallel against one server; `go test -p 4 ./...` keeps the connection count
+within Postgres' default `max_connections`.
 
 Read [`docs/dev/CONVENTIONS.md`](docs/dev/CONVENTIONS.md) before
 contributing: it explains how a screen is built from the design boards to

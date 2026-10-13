@@ -85,6 +85,7 @@ func (e *Env) start(pool *pgxpool.Pool) {
 	srv := httptest.NewServer(a.Handler())
 	a.Cfg.HTTP.PublicURL = srv.URL
 	_, _ = a.Pool.Exec(context.Background(), `UPDATE instance_settings SET public_url = $1`, srv.URL)
+	a.PublicURL.Set(srv.URL)
 	e.App, e.Server = a, srv
 }
 

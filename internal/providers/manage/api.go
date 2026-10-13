@@ -61,6 +61,11 @@ type httpAdapterInput struct {
 	Body AdapterHTTPInput
 }
 
+type httpPreviewInput struct {
+	api.WorkspaceInput
+	Body AdapterHTTPMapping
+}
+
 // ProviderTrackingChecks is the tracking-check list.
 type ProviderTrackingChecks struct {
 	Items []ProviderTrackingCheck `json:"items"`
@@ -164,6 +169,12 @@ func Register(h huma.API, s *Service) {
 		Tags: atags, Access: admin, Status: http.StatusCreated},
 		func(ctx context.Context, in *httpAdapterInput) (*api.Body[AdapterCommunity], error) {
 			out, err := s.SaveHTTPAdapter(ctx, api.WorkspaceFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "preview-http-adapter", Path: "/workspaces/{workspace}/adapters/http/preview", Summary: "Render the request a generic HTTP mapping sends for a sample message (instance admins)",
+		Description: "Nothing is sent. Secrets are shown as ••••.", Tags: atags, Access: admin},
+		func(ctx context.Context, in *httpPreviewInput) (*api.Body[AdapterHTTPPreview], error) {
+			out, err := s.PreviewHTTPAdapter(ctx, in.Body)
 			return api.OK(out), err
 		})
 }

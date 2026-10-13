@@ -1,11 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { AdminPage } from '@/features/admin/AdminPage'
+import { WorkspacesCard } from '@/features/admin/instance/WorkspacesCard'
 
+/** Instance admin › Workspaces: the workspaces card of InstanceSettings on its own. */
 export const Route = createFileRoute('/w/$workspace/_app/admin/workspaces')({
-  component: () => (
-    <Page title="Instance admin">
-      <NotBuilt screen="Instance admin" />
-    </Page>
-  ),
+  component: function AdminWorkspacesRoute() {
+    return (
+      <AdminPage documentTitle="Workspaces">
+        <WorkspacesCard />
+      </AdminPage>
+    )
+  },
 })

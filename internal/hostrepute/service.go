@@ -54,6 +54,9 @@ type Service struct {
 	Cfg   *config.Config
 	Log   *slog.Logger
 	Jobs  JobInserter
+	// PublicURL is the instance's public URL (the OAuth redirect is built on
+	// it); nil uses http.public_url.
+	PublicURL func() string
 	// HTTP carries HostRepute API and OAuth calls; tests inject one.
 	HTTP *http.Client
 	Now  func() time.Time
@@ -72,7 +75,11 @@ func (s *Service) now() time.Time {
 }
 
 func (s *Service) oauth() *OAuth {
-	o := NewOAuth(s.Cfg.HostRepute, s.Cfg.HTTP.PublicURL)
+	pub := s.Cfg.HTTP.PublicURL
+	if s.PublicURL != nil {
+		pub = s.PublicURL()
+	}
+	o := NewOAuth(s.Cfg.HostRepute, pub)
 	o.HTTP = s.HTTP
 	return o
 }

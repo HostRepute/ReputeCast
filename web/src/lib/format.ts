@@ -332,3 +332,24 @@ export function suppressedWhen(d: string | number | Date, now: Date = new Date()
   const year = notificationDateParts(t).year
   return year === notificationDateParts(now).year ? dayMonthDate(t) : `${dayMonthDate(t)} ${year}`
 }
+
+/* ---- W14 · Instance admin (appended) ---- */
+
+/** Instance audit log time: "09:12:03" today, "Sat 11 Oct 14:02" this week, else "Sep 30 17:10". */
+export function instanceAuditTime(d: string | number | Date, now: Date = new Date()): string {
+  const t = toDate(d)
+  if (sameDay(t, now)) return clockSeconds(t)
+  if (now.getTime() - t.getTime() < 7 * 86_400_000) return `${shortDate(t)} ${clock(t)}`
+  return `${monthDay(t)} ${clock(t)}`
+}
+
+/** When something happened, in a sentence: "this morning", "this afternoon", "this evening", "yesterday", "on Oct 9". */
+export function dayPartWords(d: string | number | Date, now: Date = new Date()): string {
+  const t = toDate(d)
+  if (sameDay(t, now)) {
+    const hour = Number(clock(t).slice(0, 2))
+    return hour < 12 ? 'this morning' : hour < 18 ? 'this afternoon' : 'this evening'
+  }
+  if (isYesterday(t, now)) return 'yesterday'
+  return `on ${monthDay(t)}`
+}

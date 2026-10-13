@@ -111,6 +111,12 @@ func TestThumbAndChanges(t *testing.T) {
 	if len(th) != 4 || th[0].H != 10 || th[0].W != 40 || len(th[2].Row) != 2 {
 		t.Fatalf("thumb: %+v", th)
 	}
+	// Header, hero, cards, text and footer need 112 px: the footer's bar
+	// would be cut off, so it is left out.
+	long := strings.Replace(doc, "<mj-section><mj-column><mj-divider/></mj-column></mj-section>", "<mj-section><mj-column><mj-text>Retiring the v1 API</mj-text></mj-column></mj-section>", 1)
+	if th := Thumb(long); len(th) != 4 || th[3].H != 8 || th[3].W != 70 {
+		t.Fatalf("thumb that overflows: %+v", th)
+	}
 	changed := strings.Replace(doc, "Hi {{", "Hello {{", 1)
 	if got := ChangedSections(doc, changed); len(got) != 1 || got[0] != "hero" {
 		t.Fatalf("changed: %v", got)
