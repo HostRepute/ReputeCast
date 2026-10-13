@@ -5953,6 +5953,7 @@ export interface components {
             tone: "ok" | "neutral";
         };
         ConnectInput: {
+            publicUrl?: string;
             ses?: components["schemas"]["ConnectSESInput"];
             smtp?: components["schemas"]["ConnectSMTPInput"];
             values?: {

@@ -483,6 +483,31 @@ func TestManualWebhookSecret(t *testing.T) {
 	v.Do("POST", base+"/webhook-secret", nil).MustStatus(t, 403)
 }
 
+// Provider URLs go through the SSRF guard: a metadata address is refused
+// with a message that says why, whatever the instance allows.
+func TestBlockedProviderAddress(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	var st setupT
+	c.Do("POST", ws+"/connect/setups", map[string]any{"adapter": "postal"}).MustStatus(t, 201).JSON(t, &st)
+	var res struct {
+		ProviderID string
+		Connection struct {
+			Status string
+			Error  *struct{ Field, Code, Message string }
+		}
+	}
+	c.Do("POST", ws+"/connect/setups/"+st.ID+"/connection", map[string]any{"values": map[string]string{"server_url": "http://169.254.169.254", "api_key": "abc123"}}).
+		MustStatus(t, 200).JSON(t, &res)
+	e := res.Connection.Error
+	if res.Connection.Status != "failed" || res.ProviderID != "" || e == nil || e.Code != "address_blocked" || e.Field != "server_url" ||
+		!strings.Contains(e.Message, "providers.allow_private_networks") {
+		t.Fatalf("blocked: %+v %+v", res.Connection, e)
+	}
+}
+
 func TestConnectPollingAndCancel(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -613,8 +638,10 @@ func TestDemoSetupAndSettings(t *testing.T) {
 		t.Fatalf("setups: %+v", list.Items)
 	}
 	setupID := list.Items[0].ID
+	// The only unfinished setup is the Mailgun attempt whose key was
+	// rejected (SetupError); nothing was connected for it.
 	c.Do("GET", ws+"/connect/setups?status=open", nil).MustStatus(t, 200).JSON(t, &list)
-	if len(list.Items) != 0 {
+	if len(list.Items) != 1 || list.Items[0].Name != "Mailgun" || list.Items[0].Step != "connection" || list.Items[0].Provider != "" {
 		t.Fatalf("open setups: %+v", list.Items)
 	}
 	var st struct {

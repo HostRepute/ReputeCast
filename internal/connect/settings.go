@@ -3,7 +3,6 @@ package connect
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -366,7 +365,7 @@ func (s *Service) RotateSecrets(ctx context.Context, ws *store.Workspace) (Setti
 					continue
 				}
 				a, err := d.New(providers.Config{ProviderID: p.ID, WorkspaceID: p.WorkspaceID, Settings: p.Config, Credentials: creds, WebhookSecret: secret,
-					HTTPClient: &http.Client{Timeout: 30 * time.Second}})
+					HTTPClient: s.httpClient()})
 				if err != nil {
 					out.Skipped = append(out.Skipped, p.Name)
 					continue

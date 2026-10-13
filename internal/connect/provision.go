@@ -437,7 +437,7 @@ func (s *Service) SetRegion(ctx context.Context, ws *store.Workspace, rawID stri
 	b := built{settings: cfg, creds: s.currentCreds(&p), label: in.Region}
 	quota := providers.Quota{}
 	if !manage.IsDemo(p) {
-		adapter, err := newAdapter(d, p.ID, ws.ID, b, s.Factory.WebhookSecret(p))
+		adapter, err := newAdapter(d, p.ID, ws.ID, b, s.Factory.WebhookSecret(p), s.httpClient())
 		if err != nil {
 			return ConnectSetup{}, err
 		}

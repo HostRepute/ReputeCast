@@ -34,6 +34,13 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
     a.connect.mutate({ values: body }, { onError: failed(`Couldn't check the ${info.short} key`, () => connect()) })
   }
   const missing = fields.find((f) => f.required && !(values[f.key] ?? '').trim() && !(f.secret && f.set))
+  // The key, the required fields and the selects come first; optional
+  // fields (allowances, signing keys, alternatives) fold away.
+  const firstSecret = fields.find((f) => f.secret)?.key
+  const main = fields.filter((f) => f.required || f.options.length > 0 || f.key === firstSecret)
+  const extra = fields.filter((f) => !main.includes(f))
+  const errorFor = (f: Schemas['ConnectField']) => (failedKey && (failedKey.field === f.key || (!failedKey.field && f.key === firstSecret)) ? failedKey : undefined)
+  const extraOpen = extra.some((f) => errorFor(f) || (f.secret ? f.set : Boolean(f.value)))
   return (
     <>
       <StepHeading title={info.heading}>{info.lead}</StepHeading>
@@ -42,19 +49,25 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
         <h3 className="h2" id="key-h">
           {info.section || '1. API key'}
         </h3>
-        <form id="api-key" className="grid items-end gap-3 max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))' }} onSubmit={connect}>
-          {fields.map((f) => (
-            <KeyField
-              key={f.key}
-              field={f}
-              value={values[f.key] ?? ''}
-              onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))}
-              error={failedKey && (failedKey.field === f.key || (!failedKey.field && f.secret)) ? failedKey : undefined}
-              disabled={Boolean(reason)}
-            />
-          ))}
+        <form id="api-key" className="contents" onSubmit={connect}>
+          <div className="grid items-end gap-3 max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))' }}>
+            {main.map((f) => (
+              <KeyField key={f.key} field={f} value={values[f.key] ?? ''} onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))} error={errorFor(f)} disabled={Boolean(reason)} />
+            ))}
+          </div>
+          {extra.length ? (
+            <details className="text-[13px]" open={extraOpen || undefined}>
+              <summary className="cursor-pointer font-semibold">{`More ${info.short} settings`}</summary>
+              <div className="mt-3 grid items-end gap-3 max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))' }}>
+                {extra.map((f) => (
+                  <KeyField key={f.key} field={f} value={values[f.key] ?? ''} onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))} error={errorFor(f)} disabled={Boolean(reason)} />
+                ))}
+              </div>
+            </details>
+          ) : null}
+          <button type="submit" hidden aria-hidden="true" tabIndex={-1} />
         </form>
-        {failedKey && !fields.some((f) => f.key === failedKey.field || (!failedKey.field && f.secret)) ? (
+        {failedKey && !fields.some((f) => errorFor(f)) ? (
           <Note tone="bad">
             <Ticks text={failedKey.message} />
           </Note>
@@ -75,7 +88,7 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
       </section>
 
       {c.webhook && c.webhook.mode !== 'none' && c.webhook.mode !== 'mailbox' ? (
-        <WebhooksCard setup={setup} webhook={c.webhook} reason={reason} onRetestWithoutProvider={() => connect()} />
+        <WebhooksCard setup={setup} webhook={c.webhook} reason={reason} />
       ) : null}
 
       <WizardFooter
@@ -166,17 +179,7 @@ function KeyField({
 }
 
 /** How events come back: the endpoint self-test, registration, or polling. */
-function WebhooksCard({
-  setup,
-  webhook: w,
-  reason,
-  onRetestWithoutProvider,
-}: {
-  setup: Schemas['ConnectSetup']
-  webhook: Schemas['ConnectWebhook']
-  reason?: string
-  onRetestWithoutProvider: () => void
-}) {
+function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSetup']; webhook: Schemas['ConnectWebhook']; reason?: string }) {
   const { slug } = useWorkspace()
   const a = useSetupActions(slug, setup.id)
   const info = setup.info
@@ -185,9 +188,7 @@ function WebhooksCard({
   const test = w.selfTest
   const unreachable = Boolean(test && !test.ok)
   const reg = w.registration
-  const connected = Boolean(setup.providerId)
   const retest = () => {
-    if (!connected) return onRetestWithoutProvider()
     a.webhook.mutate(
       { publicUrl: tunnel.trim() || undefined },
       {
@@ -260,28 +261,28 @@ function WebhooksCard({
                 {test?.private ? 'ReputeCast is running at a private address. ' : "Providers can't reach ReputeCast at its public URL. "}
                 Set <span className="mono">REPUTECAST_PUBLIC_URL</span> in your docker compose .env to the HTTPS address your reverse proxy exposes, then restart.
               </span>
-              <pre className="cn-pre">{`REPUTECAST_PUBLIC_URL=https://reputecast.${org}`}</pre>
+              <pre className="cn-pre whitespace-pre-wrap break-all">{`REPUTECAST_PUBLIC_URL=https://reputecast.${org}`}</pre>
             </div>
             <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
               <span className="font-semibold">Or use a tunnel while testing</span>
               <span className="k">For a laptop or staging box, expose port 8080 with Cloudflare Tunnel or ngrok and paste the URL here.</span>
               <label className="lbl">
                 Public URL
-                <input className="in mono" placeholder="https://…" value={tunnel} onChange={(e) => setTunnel(e.target.value)} disabled={Boolean(reason) || !connected} inputMode="url" />
+                <input className="in mono" placeholder="https://…" value={tunnel} onChange={(e) => setTunnel(e.target.value)} disabled={Boolean(reason)} inputMode="url" />
               </label>
             </div>
             {info.canPoll ? (
               <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
                 <span className="font-semibold">Or poll instead of webhooks</span>
                 <span className="k">{`${name} keeps an events API. ReputeCast can poll it every minute. Slower, and bounce protection during a send lags by up to a minute.`}</span>
-                <Button size="sm" className="self-start" onClick={usePolling} loading={a.polling.isPending} disabledReason={reason ?? (connected ? undefined : `Connect ${name} first.`)}>
+                <Button size="sm" className="self-start" onClick={usePolling} loading={a.polling.isPending} disabledReason={reason}>
                   Use polling for now
                 </Button>
               </div>
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2.5">
-            <Button variant="primary" onClick={retest} loading={a.webhook.isPending || a.connect.isPending} busyLabel="Testing…" disabledReason={reason}>
+            <Button variant="primary" onClick={retest} loading={a.webhook.isPending} busyLabel="Testing…" disabledReason={reason}>
               Re-test endpoint
             </Button>
             <ButtonAnchor href={REVERSE_PROXY_GUIDE}>Reverse-proxy guide</ButtonAnchor>

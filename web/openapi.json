@@ -6114,6 +6114,10 @@
       "ConnectInput": {
         "additionalProperties": false,
         "properties": {
+          "publicUrl": {
+            "maxLength": 2048,
+            "type": "string"
+          },
           "ses": {
             "$ref": "#/components/schemas/ConnectSESInput"
           },

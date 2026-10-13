@@ -21,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -68,8 +69,11 @@ type ConnectMailboxInput struct {
 type ConnectInput struct {
 	// Values are the generic form's fields by key (settings and credentials).
 	Values map[string]string `json:"values,omitempty"`
-	SES    *ConnectSESInput  `json:"ses,omitempty"`
-	SMTP   *ConnectSMTPInput `json:"smtp,omitempty"`
+	// PublicURL is a tunnel address the provider calls instead of the
+	// instance's public URL (testing on a laptop or a staging box).
+	PublicURL string            `json:"publicUrl,omitempty" maxLength:"2048"`
+	SES       *ConnectSESInput  `json:"ses,omitempty"`
+	SMTP      *ConnectSMTPInput `json:"smtp,omitempty"`
 }
 
 // built is a candidate configuration for a provider.
@@ -152,10 +156,24 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 		if state.Connection.Webhook == nil {
 			state.Connection.Webhook = &WebhookState{Mode: "webhook"}
 		}
-		if state.Connection.Webhook.Token == "" {
-			state.Connection.Webhook.Token = randomToken(16)
+		w := state.Connection.Webhook
+		if w.Token == "" {
+			w.Token = randomToken(16)
 		}
-		b.token = state.Connection.Webhook.Token
+		b.token = w.Token
+		if in.PublicURL != "" {
+			tunnel, err := tunnelURL(in.PublicURL)
+			if err != nil {
+				return ConnectSetup{}, err
+			}
+			w.PublicURL = tunnel
+		}
+		if w.PublicURL != "" {
+			b.settings["webhook_base_url"] = w.PublicURL
+		}
+		if w.Mode == "polling" {
+			b.settings["events"] = "polling"
+		}
 	}
 	webhookSecret := randomToken(24)
 	if prov != nil && s.Factory != nil {
@@ -163,7 +181,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 			webhookSecret = sec
 		}
 	}
-	adapter, err := newAdapter(d, providerID, ws.ID, b, webhookSecret)
+	adapter, err := newAdapter(d, providerID, ws.ID, b, webhookSecret, s.httpClient())
 	if err != nil {
 		return s.connectFailed(ctx, ws, st, state, b, &StepError{Code: "invalid_settings", Message: "These settings can't be used: " + err.Error()})
 	}
@@ -329,15 +347,34 @@ func (s *Service) connectFailed(ctx context.Context, ws *store.Workspace, st sto
 	return s.View(ctx, ws, cur)
 }
 
+// httpClient is the client provider calls go through: the factory's, which
+// the SSRF guard protects (private networks only when the instance allows
+// them; link-local and cloud metadata addresses never).
+func (s *Service) httpClient() *http.Client {
+	if s.Factory != nil && s.Factory.HTTP != nil {
+		return s.Factory.HTTP
+	}
+	return netguard.Policy{}.Client(30 * time.Second)
+}
+
+// urlField is the form field that holds the provider's address, if any.
+func urlField(d providers.Descriptor) string {
+	for _, f := range d.Fields {
+		if !f.Secret && (strings.Contains(f.Key, "url") || strings.Contains(f.Key, "endpoint") || strings.Contains(f.Key, "host")) {
+			return f.Key
+		}
+	}
+	return ""
+}
+
 // newAdapter builds the adapter with the candidate configuration. Form
 // values arrive as strings; when the adapter wants numbers, a second try
 // passes digit-only values as numbers.
-func newAdapter(d providers.Descriptor, providerID, wsID uuid.UUID, b built, webhookSecret string) (providers.Provider, error) {
+func newAdapter(d providers.Descriptor, providerID, wsID uuid.UUID, b built, webhookSecret string, client *http.Client) (providers.Provider, error) {
 	try := func(settings map[string]any) (providers.Provider, error) {
 		sb, _ := json.Marshal(settings)
 		cb, _ := json.Marshal(b.creds)
-		return d.New(providers.Config{ProviderID: providerID, WorkspaceID: wsID, Settings: sb, Credentials: cb, WebhookSecret: webhookSecret,
-			HTTPClient: &http.Client{Timeout: 30 * time.Second}})
+		return d.New(providers.Config{ProviderID: providerID, WorkspaceID: wsID, Settings: sb, Credentials: cb, WebhookSecret: webhookSecret, HTTPClient: client})
 	}
 	a, err := try(b.settings)
 	if err == nil {
@@ -562,6 +599,11 @@ func keyError(d providers.Descriptor, c adapterCopy, b built, err error) *StepEr
 				Message: "AWS didn't let ReputeCast assume this role. Check that the stack finished, that the ARN is its RoleArn output, and that the external id wasn't changed."}
 		}
 		field = "access_key_id"
+	}
+	if netguard.IsBlocked(err) {
+		why := netguard.Describe(context.Background(), err)
+		return &StepError{Field: urlField(d), Code: "address_blocked", Detail: why,
+			Message: "ReputeCast won't connect to that address: `" + strings.ReplaceAll(why, "`", "'") + "`. Provider URLs can't point at private, loopback or cloud metadata addresses unless an instance admin turns on providers.allow_private_networks."}
 	}
 	if errors.Is(err, providers.ErrUnauthorized) || ce != nil && ce.Auth {
 		// "Mailgun rejected this key: `401 Unauthorized · Forbidden`. Check…"
@@ -973,11 +1015,54 @@ type ConnectWebhookInput struct {
 	PublicURL string `json:"publicUrl,omitempty" maxLength:"2048"`
 }
 
+// tunnelURL checks a tunnel address: https, no path. Empty stays empty.
+func tunnelURL(raw string) (string, error) {
+	tunnel := strings.TrimRight(strings.TrimSpace(raw), "/")
+	if tunnel == "" {
+		return "", nil
+	}
+	u, err := url.Parse(tunnel)
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.Path != "" && u.Path != "/" {
+		return "", api.Invalid("body.publicUrl", "Paste the tunnel's https:// address, without a path.")
+	}
+	return tunnel, nil
+}
+
 // RetestWebhook tests the endpoint again and registers it when reachable.
 func (s *Service) RetestWebhook(ctx context.Context, ws *store.Workspace, rawID string, in ConnectWebhookInput) (ConnectSetup, error) {
 	st, err := s.setup(ctx, ws, rawID)
 	if err != nil {
 		return ConnectSetup{}, err
+	}
+	if st.ProviderID == nil {
+		// Not connected yet: check that providers could reach the endpoint
+		// (through the tunnel, when given); the self-test proper follows the
+		// connection.
+		tunnel, err := tunnelURL(in.PublicURL)
+		if err != nil {
+			return ConnectSetup{}, err
+		}
+		out, err := s.update(ctx, ws, st.ID, "provider.webhook_test", map[string]any{"tunnel": tunnel != "", "connected": false}, func(st *store.ProviderSetup, state *State) error {
+			if state.Connection.Webhook == nil {
+				state.Connection.Webhook = &WebhookState{}
+			}
+			w := state.Connection.Webhook
+			if w.Token == "" {
+				w.Token = randomToken(16)
+			}
+			now := s.now()
+			w.Mode, w.PublicURL = "webhook", tunnel
+			w.URL = s.webhookBase(w.PublicURL) + "/hooks/" + st.Adapter + "/" + w.Token
+			w.SelfTest, w.Registration = Preflight(ctx, w.URL, now, s.AllowPrivateURL), nil
+			if w.SelfTest != nil {
+				w.Registration = &Registration{Status: "skipped", At: now, Detail: "after the endpoint is reachable"}
+			}
+			return nil
+		})
+		if err != nil {
+			return ConnectSetup{}, err
+		}
+		return s.View(ctx, ws, out)
 	}
 	p, err := s.provider(ctx, ws, st)
 	if err != nil {
@@ -991,12 +1076,11 @@ func (s *Service) RetestWebhook(ctx context.Context, ws *store.Workspace, rawID 
 	if state.Connection.Webhook == nil {
 		state.Connection.Webhook = &WebhookState{Mode: "webhook"}
 	}
-	tunnel := strings.TrimRight(strings.TrimSpace(in.PublicURL), "/")
+	tunnel, err := tunnelURL(in.PublicURL)
+	if err != nil {
+		return ConnectSetup{}, err
+	}
 	if tunnel != "" {
-		u, err := url.Parse(tunnel)
-		if err != nil || u.Scheme != "https" || u.Host == "" || u.Path != "" && u.Path != "/" {
-			return ConnectSetup{}, api.Invalid("body.publicUrl", "Paste the tunnel's https:// address, without a path.")
-		}
 		cfg := currentSettings(&p)
 		cfg["webhook_base_url"] = tunnel
 		b, _ := json.Marshal(cfg)
@@ -1023,11 +1107,29 @@ func (s *Service) UsePolling(ctx context.Context, ws *store.Workspace, rawID str
 	if err != nil {
 		return ConnectSetup{}, err
 	}
-	p, err := s.provider(ctx, ws, st)
+	d, err := descriptor(st.Adapter)
 	if err != nil {
 		return ConnectSetup{}, err
 	}
-	d, err := descriptor(st.Adapter)
+	if st.ProviderID == nil {
+		// Not connected yet: the connection uses polling from the start.
+		if !copyFor(d).EventsAPI {
+			return ConnectSetup{}, api.Conflict(d.Name + " has no events API to poll. Make the webhook endpoint reachable instead.")
+		}
+		out, err := s.update(ctx, ws, st.ID, "provider.events_polling", map[string]any{"adapter": d.Adapter, "events": "polling"}, func(_ *store.ProviderSetup, state *State) error {
+			if state.Connection.Webhook == nil {
+				state.Connection.Webhook = &WebhookState{}
+			}
+			w := state.Connection.Webhook
+			w.Mode, w.SelfTest, w.Registration = "polling", nil, nil
+			return nil
+		})
+		if err != nil {
+			return ConnectSetup{}, err
+		}
+		return s.View(ctx, ws, out)
+	}
+	p, err := s.provider(ctx, ws, st)
 	if err != nil {
 		return ConnectSetup{}, err
 	}
@@ -1097,7 +1199,7 @@ func (s *Service) ConnectMailbox(ctx context.Context, ws *store.Workspace, rawID
 		return ConnectSetup{}, api.Invalid("body.password", "Enter the mailbox password.")
 	}
 	b := built{settings: cfg, creds: creds}
-	adapter, err := newAdapter(d, p.ID, ws.ID, b, s.Factory.WebhookSecret(p))
+	adapter, err := newAdapter(d, p.ID, ws.ID, b, s.Factory.WebhookSecret(p), s.httpClient())
 	if err != nil {
 		return ConnectSetup{}, api.Invalid("body", "These settings can't be used: "+err.Error())
 	}
