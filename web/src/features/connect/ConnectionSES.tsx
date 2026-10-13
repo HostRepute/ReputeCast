@@ -330,7 +330,7 @@ function SandboxCard({ setup, sandbox: sb, reason }: { setup: Schemas['ConnectSe
           production-access request for you.
         </span>
       </div>
-      <div className="grid gap-3 px-5 py-4 max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))' }}>
+      <div className="grid gap-3 px-5 py-4 max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))' }}>
         <label className="lbl">
           Website
           <input className="in" value={website} onChange={(e) => setWebsite(e.target.value)} disabled={Boolean(reason)} inputMode="url" />

@@ -65,7 +65,7 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
           {info.section || '1. API key'}
         </h3>
         <form id="api-key" className="contents" onSubmit={connect}>
-          <div className="grid items-end gap-3 max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))' }}>
+          <div className="grid items-end gap-3 max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))' }}>
             {main.map((f) => (
               <KeyField key={f.key} field={f} value={values[f.key] ?? ''} onChange={(v) => change(f.key, v)} error={errorFor(f)} disabled={Boolean(reason)} />
             ))}
@@ -73,7 +73,7 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
           {extra.length ? (
             <details className="text-[13px]" open={extraOpen || undefined}>
               <summary className="cursor-pointer font-semibold">{`More ${info.short} settings`}</summary>
-              <div className="mt-3 grid items-end gap-3 max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))' }}>
+              <div className="mt-3 grid items-end gap-3 max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))' }}>
                 {extra.map((f) => (
                   <KeyField key={f.key} field={f} value={values[f.key] ?? ''} onChange={(v) => change(f.key, v)} error={errorFor(f)} disabled={Boolean(reason)} />
                 ))}
@@ -270,7 +270,7 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
       {unreachable ? (
         <div className="flex flex-col gap-2.5 border-t border-line-2 px-5 py-3.5">
           <span className="text-[13px] font-semibold">How to fix</span>
-          <div className="grid gap-3 max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))' }}>
+          <div className="grid gap-3 max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))' }}>
             <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
               <span className="font-semibold">Set a public URL</span>
               <span className="k">
