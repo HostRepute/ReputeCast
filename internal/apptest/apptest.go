@@ -126,7 +126,7 @@ func (c *Client) Do(method, path string, body any) *Response {
 	if !strings.HasPrefix(path, "/api/") && !strings.HasPrefix(path, "/p/") && !strings.HasPrefix(path, "/hooks/") {
 		url = c.env.Server.URL + "/api/v1" + path
 	}
-	req, err := http.NewRequest(method, url, rd)
+	req, err := http.NewRequestWithContext(context.Background(), method, url, rd)
 	if err != nil {
 		c.env.T.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func (c *Client) Do(method, path string, body any) *Response {
 	if err != nil {
 		c.env.T.Fatalf("%s %s: %v", method, path, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	b, _ := io.ReadAll(resp.Body)
 	return &Response{Status: resp.StatusCode, Header: resp.Header, Body: b}
 }
@@ -246,5 +246,5 @@ func (c *Client) SignInDemo(email string) {
 		c.env.T.Fatal(err)
 	}
 	u2, _ := url.Parse(c.env.Server.URL)
-	c.http.Jar.SetCookies(u2, []*http.Cookie{{Name: c.env.App.Cfg.Auth.CookieName, Value: token, Path: "/"}})
+	c.http.Jar.SetCookies(u2, []*http.Cookie{{Name: c.env.App.Cfg.Auth.CookieName, Value: token, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode}}) //nolint:gosec // test server runs on plain HTTP
 }

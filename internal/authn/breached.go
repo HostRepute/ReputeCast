@@ -39,7 +39,7 @@ func (c *BreachChecker) Breached(ctx context.Context, password string) (bool, er
 	if err != nil {
 		return false, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return false, fmt.Errorf("breach check: HTTP %d", resp.StatusCode)
 	}
