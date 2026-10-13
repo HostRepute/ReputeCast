@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import type { Component } from 'grapesjs'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { $api, ApiError, errorMessage, http } from '@/api/client'
 import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
@@ -11,7 +11,6 @@ import { useUnsavedWork } from '@/lib/sessionClock'
 import { runShortcutHandler, useShortcutHandler } from '@/lib/shortcuts'
 import { useCan, useWorkspace } from '@/lib/session'
 import { CanvasArea } from './CanvasArea'
-import { CodeView } from './CodeView'
 import { ComposerCtx, type ABTest, type Campaign, type Checks, type ComposerCtxData, type ComposerDialog, type ComposerState, type SaveStatus, type View } from './context'
 import { Dialogs } from './Dialogs'
 import { trackChanges, type ChangeTracker } from './editor/changes'
@@ -25,6 +24,9 @@ import { PreviewView } from './PreviewView'
 import { RightPanel } from './RightPanel'
 import { SubjectBar } from './SubjectBar'
 import './composer.css'
+
+// CodeMirror loads with the code view only.
+const CodeView = lazy(() => import('./CodeView').then((m) => ({ default: m.CodeView })))
 
 export interface ComposerSearch {
   view?: View
@@ -635,7 +637,11 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
             <div className={`cmp-main${view !== 'visual' ? ' cmp-offstage' : ''}`} inert={view !== 'visual' || undefined} aria-hidden={view !== 'visual' || undefined}>
               <CanvasArea containerRef={containerRef} savedCard={savedCard} onCloseSaved={() => setSavedCard(null)} onReview={goReview} />
             </div>
-            {view === 'mjml' || view === 'html' ? <CodeView /> : null}
+            {view === 'mjml' || view === 'html' ? (
+              <Suspense fallback={<div className="cmp-main" style={{ alignItems: 'center', justifyContent: 'center' }} aria-busy="true"><span className="spin" aria-hidden="true" /></div>}>
+                <CodeView />
+              </Suspense>
+            ) : null}
             {view === 'visual' ? <RightPanel /> : null}
           </div>
           {view !== 'preview' ? <Footer /> : null}
