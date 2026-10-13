@@ -238,6 +238,16 @@ func seedSendersSetup(ctx context.Context, s *Seeder) error {
 	contactsAt := at(9, 21, 50, 0)
 	state.Contacts = &connect.ContactsStep{Suppressions: &connect.SuppressionPreview{Available: true, Total: 612, Bounces: 540, Complaints: 72, At: contactsAt},
 		Choice: "empty", Pull: true, ListsCreated: []string{"Weekly Digest", "Product Updates", "Beta Program"}, Imported: &imported, At: &contactsAt}
+	// What the setup provisioned lives in the provider's settings, as the
+	// connect flow writes it: the topic (kept with the ones SNS may post
+	// from), a configuration set per stream and the account.
+	topic := "arn:aws:sns:us-east-1:123456789012:reputecast-events"
+	if _, err := s.Tx.Exec(ctx, `UPDATE providers SET config = jsonb_set(config, '{topic_arns}', COALESCE(config->'topic_arns', '[]'::jsonb) || to_jsonb($2::text))
+		|| jsonb_build_object('topic_arn', $2::text, 'account_id', '123456789012', 'external_id', $3::text, 'role_arn', $4::text,
+			'configuration_sets', jsonb_build_object('broadcast', 'rc-broadcasts', 'automation', 'rc-automations', 'system', 'rc-system'))
+		WHERE id = $1`, ses, topic, state.Connection.ExternalID, state.Connection.RoleARN); err != nil {
+		return err
+	}
 	stateJSON, _ := json.Marshal(state)
 	created, finished := at(9, 12, 30, 0), at(9, 21, 50, 0)
 	_, err := s.Tx.Exec(ctx, `INSERT INTO provider_setups (id, workspace_id, adapter, provider_id, step, status, state, created_by, created_at, updated_at, finished_at)

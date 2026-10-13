@@ -167,6 +167,7 @@ func (p *Provider) TestConnection(ctx context.Context) (providers.ConnectionRepo
 			return out, &providers.CallError{Op: "SMTP AUTH", Status: 535, Message: err.Error(), Auth: true, Cause: err}
 		}
 		authWord = "AUTH " + mech + " accepted"
+		out.Auth = strings.ToLower(mech)
 	}
 	_ = c.Quit()
 	out.Summary = tlsWord + " · " + authWord

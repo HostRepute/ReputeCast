@@ -174,6 +174,10 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 			state.Connection.SMTP = probe
 			return s.connectFailed(ctx, ws, st, state, b, smtpError(err))
 		}
+		// Sends use the login method the server just accepted.
+		if a := stringOf(b.settings["auth"]); rep.Auth != "" && (a == "" || a == "auto") {
+			b.settings["auth"] = rep.Auth
+		}
 	default:
 		if v, ok := adapter.(providers.Verifier); ok {
 			cctx, cancel := context.WithTimeout(ctx, 30*time.Second)

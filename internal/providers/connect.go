@@ -22,6 +22,9 @@ type ConnectionReport struct {
 	// Transcript is the protocol exchange without secrets, one entry per
 	// line: "220 smtp.mta.acme.io ESMTP Postal", "EHLO reputecast.acme.io"…
 	Transcript []string
+	// Auth is the login method the server accepted ("plain", "login"), so
+	// sends can use it rather than discover it again; empty without login.
+	Auth string
 }
 
 // ConnectionTester is implemented by adapters that can describe a connection

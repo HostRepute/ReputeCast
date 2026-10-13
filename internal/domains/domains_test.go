@@ -20,10 +20,10 @@ type overviewT struct {
 		Verification                           []struct{ ProviderID, Status, Text string }
 	}
 	Domains []struct {
-		ID, Domain, Note                                string
-		UsedBy                                          []string
-		DKIM, SPF, DMARC, ReturnPath, Tracking, BIMI   cellT
-		Senders                                         int
+		ID, Domain, Note                             string
+		UsedBy                                       []string
+		DKIM, SPF, DMARC, ReturnPath, Tracking, BIMI cellT
+		Senders                                      int
 	}
 	Providers []struct{ ID, Name, Short string }
 	Defaults  struct {

@@ -374,6 +374,9 @@ func (s *Service) doneView(ctx context.Context, ws *store.Workspace, st store.Pr
 		out.Rows = append(out.Rows, ConnectDoneRow{Status: "done", Lead: "AWS access", Text: " via " + via + acct + ", region " + region + quota})
 		events := ConnectDoneRow{Status: "pending", Lead: "Events"}
 		topic := stringOf(cfg["topic_arn"])
+		if arns, ok := cfg["topic_arns"].([]any); ok && topic == "" && len(arns) > 0 {
+			topic = stringOf(arns[len(arns)-1])
+		}
 		if i := strings.LastIndex(topic, ":"); i >= 0 {
 			topic = topic[i+1:]
 		}
@@ -397,6 +400,8 @@ func (s *Service) doneView(ctx context.Context, ws *store.Workspace, st store.Pr
 					sets = append(sets, "`"+v+"`")
 				}
 			}
+		} else if v := stringOf(cfg["configuration_set"]); v != "" {
+			sets = append(sets, "`"+v+"`")
 		}
 		if len(sets) > 0 {
 			out.Rows = append(out.Rows, ConnectDoneRow{Status: "done", Lead: "Configuration sets", Text: " " + strings.Join(sets, ", ") + ", provider-side tracking off"})

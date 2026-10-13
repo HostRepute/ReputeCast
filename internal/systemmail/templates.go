@@ -61,7 +61,7 @@ func Render(kind string, brand Brand, subject, text, body string) (Rendered, err
 		reason = "This is an automated message from " + brand.Name + "."
 	}
 	if strings.TrimSpace(body) == "" {
-		body = TextToHTML(text)
+		body = TextToHTML(text, brand.Accent)
 	}
 	if strings.TrimSpace(text) == "" {
 		text = HTMLToText(body)
@@ -94,12 +94,19 @@ func firstLine(text string) string {
 	return line
 }
 
-var urlRe = regexp.MustCompile(`https?://[^\s<>"']+[^\s<>"'.,;:!?)]`)
+var (
+	urlRe  = regexp.MustCompile(`https?://[^\s<>"']+[^\s<>"'.,;:!?)]`)
+	paraRe = regexp.MustCompile(`\n\s*\n`)
+)
 
-// TextToHTML turns plain text into paragraphs with clickable links.
-func TextToHTML(text string) string {
+// TextToHTML turns plain text into paragraphs with clickable links in the
+// brand's colour.
+func TextToHTML(text, linkColor string) string {
+	if !hexColor.MatchString(linkColor) {
+		linkColor = "#0F766E"
+	}
 	var b strings.Builder
-	for _, para := range regexp.MustCompile(`\n\s*\n`).Split(strings.TrimSpace(text), -1) {
+	for _, para := range paraRe.Split(strings.TrimSpace(text), -1) {
 		if strings.TrimSpace(para) == "" {
 			continue
 		}
@@ -113,7 +120,7 @@ func TextToHTML(text string) string {
 			for _, m := range urlRe.FindAllStringIndex(line, -1) {
 				b.WriteString(html.EscapeString(line[last:m[0]]))
 				u := line[m[0]:m[1]]
-				b.WriteString(`<a href="` + html.EscapeString(u) + `" style="color:#0F766E">` + html.EscapeString(u) + `</a>`)
+				b.WriteString(`<a href="` + html.EscapeString(u) + `" style="color:` + linkColor + `">` + html.EscapeString(u) + `</a>`)
 				last = m[1]
 			}
 			b.WriteString(html.EscapeString(line[last:]))
