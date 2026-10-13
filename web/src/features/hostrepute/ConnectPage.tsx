@@ -21,14 +21,26 @@ export interface ConnectSearch {
 }
 
 /** Why a handoff came back without a connection. */
-const reasons: Record<string, string> = {
-  declined: 'You declined the request on HostRepute. Nothing was connected.',
-  wrong_user: 'This handoff was started by someone else. Start it again from your own account.',
-  forbidden: 'Connecting HostRepute needs the integrations:hostrepute permission. Nothing was connected.',
-  exchange_failed: "HostRepute didn't accept the approval (it expired or was already used). Nothing was connected; try again.",
-  unreachable: "Couldn't reach HostRepute to finish connecting. Nothing was saved; try again in a minute.",
-  hostrepute_error: 'HostRepute answered with an error. Nothing was connected; try again.',
-  save_failed: "ReputeCast couldn't save the connection. Nothing was connected; try again.",
+function reasonText(reason: string | undefined, conn: Connection): string {
+  // A workspace that was already connected keeps its connection.
+  const kept = conn.status === 'connected' ? `Your connection to team “${conn.teamName}” is unchanged` : 'Nothing was connected'
+  switch (reason) {
+    case 'declined':
+      return `You declined the request on HostRepute. ${kept}.`
+    case 'wrong_user':
+      return 'This handoff was started by someone else. Start it again from your own account.'
+    case 'forbidden':
+      return `Connecting HostRepute needs the integrations:hostrepute permission. ${kept}.`
+    case 'exchange_failed':
+      return `HostRepute didn't accept the approval (it expired or was already used). ${kept}; try again.`
+    case 'unreachable':
+      return `Couldn't reach HostRepute to finish connecting. ${kept}; try again in a minute.`
+    case 'hostrepute_error':
+      return `HostRepute answered with an error. ${kept}; try again.`
+    case 'save_failed':
+      return `ReputeCast couldn't save the connection. ${kept}; try again.`
+  }
+  return `HostRepute sent you back without connecting. ${kept}; try again.`
 }
 
 /** A5 5.15 Connect HostRepute: before connecting, the OAuth handoff and the return, or an API key. */
@@ -38,13 +50,16 @@ export function ConnectPage({ search }: { search: ConnectSearch }) {
   const [redirect, setRedirect] = useState<string | null>(null)
   const oauth = useStartOAuth(setRedirect)
   const keyInput = useRef<HTMLInputElement>(null)
-  const [showKey, setShowKey] = useState(true)
+  // The API key card shows next to the handoff until it's dismissed; a
+  // workspace that is already connected only sees it when asked for.
+  const [keyOpen, setKeyOpen] = useState<boolean | null>(search.key ? true : null)
   useEffect(() => {
     if (search.key) keyInput.current?.focus()
   }, [search.key, q.data])
   const conn = q.data?.hostRepute
+  const showKey = keyOpen ?? conn?.status !== 'connected'
   const useKey = () => {
-    setShowKey(true)
+    setKeyOpen(true)
     window.setTimeout(() => {
       keyInput.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
       keyInput.current?.focus()
@@ -93,8 +108,10 @@ export function ConnectPage({ search }: { search: ConnectSearch }) {
           <div className="col gap-5">
             {redirect ? <RedirectCard url={redirect} /> : null}
             {search.result === 'connected' && !redirect ? <BackCard conn={conn} /> : null}
-            {search.result === 'error' && !redirect ? <ErrorCard reason={search.reason} onRetry={oauth.start} retrying={oauth.pending} /> : null}
-            {search.result !== 'connected' && showKey ? <KeyCard inputRef={keyInput} onCancel={() => setShowKey(false)} /> : null}
+            {search.result === 'error' && !redirect ? (
+              <ErrorCard conn={conn} reason={search.reason} onRetry={oauth.start} retrying={oauth.pending} />
+            ) : null}
+            {search.result !== 'connected' && showKey ? <KeyCard inputRef={keyInput} onCancel={() => setKeyOpen(false)} /> : null}
           </div>
         </div>
       )}
@@ -225,7 +242,12 @@ function BackCard({ conn }: { conn: Connection }) {
   const [limit, setLimit] = useState<string | null>(null)
   const connected = conn.status === 'connected'
   useEffect(() => {
-    if (!conn.syncing) return
+    // Once the first sync is done (it may finish before this page loads),
+    // refresh once more so the sidebar and Deliverability show it.
+    if (!conn.syncing) {
+      void refresh()
+      return
+    }
     const h = window.setInterval(() => void refresh(), 2000)
     return () => window.clearInterval(h)
   }, [conn.syncing, refresh])
@@ -287,7 +309,7 @@ function BackCard({ conn }: { conn: Connection }) {
   )
 }
 
-function ErrorCard({ reason, onRetry, retrying }: { reason?: string; onRetry: () => void; retrying: boolean }) {
+function ErrorCard({ conn, reason, onRetry, retrying }: { conn: Connection; reason?: string; onRetry: () => void; retrying: boolean }) {
   const can = !usePermissionReason('integrations:hostrepute')
   return (
     <section className="card" aria-labelledby="h-hr-back">
@@ -295,10 +317,16 @@ function ErrorCard({ reason, onRetry, retrying }: { reason?: string; onRetry: ()
         <h2 className="h2" id="h-hr-back">
           Back from HostRepute
         </h2>
-        <Badge tone="bad">Not connected</Badge>
+        {conn.status === 'connected' ? (
+          <Badge tone="ok">Still connected</Badge>
+        ) : conn.status === 'revoked' || conn.status === 'expired' ? (
+          <Badge tone="warn">Needs reconnecting</Badge>
+        ) : (
+          <Badge tone="bad">Not connected</Badge>
+        )}
       </div>
       <div className="pad col gap-2.5">
-        <Note tone="bad">{reasons[reason ?? ''] ?? 'HostRepute sent you back without connecting. Nothing was connected; try again.'}</Note>
+        <Note tone="bad">{reasonText(reason, conn)}</Note>
         {can ? (
           <Button size="sm" variant="primary" className="self-start" onClick={onRetry} loading={retrying}>
             Try again
