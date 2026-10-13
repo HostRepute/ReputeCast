@@ -585,7 +585,7 @@ export function AuthBanner({ af, onUpdate }: { af: AuthFailure; onUpdate: () => 
   const words = credentialWords(af.down.credentialLabel)
   const failing = af.streams.filter((s) => s.role !== 'fallback' && s.state === 'failover_active')
   return (
-    <div role="alert" className="flex items-start gap-3.5 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3.5">
+    <div role="alert" className="flex items-start gap-3.5 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3.5 max-md:flex-wrap">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#B91C1C" strokeWidth="1.8" aria-hidden="true" className="flex-none">
         <circle cx="10" cy="10" r="8" />
         <path d="M10 6v5M10 13.5v.5" strokeLinecap="round" />
