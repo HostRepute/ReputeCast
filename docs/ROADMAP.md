@@ -11,7 +11,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 | **M0 Skeleton** | Repo layout, Makefile, docker compose (Postgres 18 + Mailpit), goose, sqlc, River, chi + Huma (`/healthz`, `/readyz`, `/metrics`, OpenAPI 3.1), embedded SPA, openapi-typescript, CI (Go 1.26/1.27 × PG 16/17/18, web lint/typecheck/test/build), GoReleaser, Dockerfile. Design system foundation in the web app (tokens, components, shell). | core | ✅ |
 | **M1 Install and first sign-in** | `reputecast install`, identifier-first sign-in, argon2id, throttling and lockout, TOTP + recovery codes, sessions, first sign-in setup API; passkeys, password reset, invite accept, Account & security screens | core, W04 | 🚧 |
 | **M2 Workspaces, team, roles, audit** | `internal/authz`, built-in and custom roles, escalation guard, invitations, member management, API keys and MCP agents, audit log views | core, W03 | 🚧 |
-| **M3 Sending providers** | Provider contract and contract tests, SES, SMTP, Postmark, Postal adapters, webhook ingest and normalization, shared suppression list and sync, streams and routing, failover, warm-up | W01 | 🚧 |
+| **M3 Sending providers** | Provider contract and contract tests, SES, SMTP, Postmark, Postal adapters, webhook ingest and normalization, shared suppression list and sync, streams and routing, failover, warm-up | W01 | ✅ |
 | **M4 Senders, domains, Send Readiness** | DNS checks, sending domains and senders, connect-a-provider wizard, Send Readiness engine | W10, W11 | ⏳ |
 | **M5 Audience** | Contacts, lists, custom fields, tiers and sunset policy, segments (builder and SQL), suppressions, importer | W02 | 🚧 |
 | **M6 Composer** | GrapesJS + MJML wrapper, code view, previews, Liquid tokens, templates, versions, inline warnings | W05 | 🚧 |
@@ -33,6 +33,14 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 - Sign-in API (identify, password, two-factor, sign-out), `/me`, first-run setup API, integration tests on real Postgres.
 - Web: Clearwater tokens and component vocabulary, app shell (sidebar → rail → tab bar), sign-in flow, campaigns list with KPIs, filters, search, pagination and states.
 - Demo data (`reputecast seed`) and a visual QA tool comparing app screenshots with the design boards (`web/scripts/shot.ts`).
+
+## Done so far (W01: sending providers & routing, M3)
+
+- Adapters for Amazon SES (SESv2, SNS signature check and subscription handshake, Easy DKIM, configuration-set tracking, VDM flag, AWS status feed), Postmark (batch send, Broadcast stream, basic-auth webhooks, outbound stats as its own reputation), Postal (RS256 signed webhooks via JWKS, message backfill) and generic SMTP (go-mail, DSN/ARF parsing, IMAP and POP3 bounce mailboxes). All pass the shared contract suite (`internal/providers/contracttest`); optional interfaces for quota, domains, suppressions, webhooks, tracking, backfill and status pages.
+- Webhook ingest `POST /hooks/{adapter}/{token}`: verify, store the raw payload, 200 at once; a River job normalizes into delivery events, messages, campaign counters, the shared suppression list and provider stats, with dedupe; sweeper and 90-day retention.
+- Health job: quota and rate discovery, call windows, outage detection (error rate or two failed probes), automatic failover per stream policy, held Broadcast shares with wait/move/cancel decisions, recovery after ten healthy minutes, rejected credentials, webhooks silent after six hours with a diagnosis and backfill, incidents, notifications and system audit entries.
+- Routing per stream (primary, weighted split, conditions on mailbox provider/list/sender domain, fallback, failover policy), bulk-terms validation with an acknowledged override, route tester; warm-up plans with guards, slowdowns, share steps and a daily job; suppression sync per provider; provider-side tracking checks; community and generic HTTP adapters (instance admins).
+- Screens: Providers (healthy, outage, webhooks silent, rejected credentials, empty, loading), Routing & failover (with the bulk-terms fix view), Warm-up, Events & sync, Adapters, provider settings with write-only credentials. Demo data matches the boards; `internal/providers/state` and `manage.UsageOf` are the contract other screens read.
 
 ## Done so far (W08: landing, README banner, cross-cutting states)
 
