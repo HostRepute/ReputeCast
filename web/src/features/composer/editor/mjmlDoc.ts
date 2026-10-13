@@ -206,6 +206,120 @@ export function canvasHead(head: string): string {
     .join('')
 }
 
+/** Elements whose content is text or HTML: kept on one line by formatMjml. */
+const INLINE_CONTENT = new Set(['mj-text', 'mj-button', 'mj-raw', 'mj-table', 'mj-title', 'mj-preview', 'mj-style', 'mj-navbar-link', 'mj-social-element', 'mj-accordion-title', 'mj-accordion-text'])
+
+/**
+ * Re-indents an MJML document: one element per line, two spaces per level.
+ * The content of text-like elements (mj-text, mj-button, mj-raw…) and
+ * comments is kept as written.
+ */
+export function formatMjml(src: string): string {
+  const out: string[] = []
+  const walk = (s: string, depth: number) => {
+    let i = 0
+    while (i < s.length) {
+      const lt = s.indexOf('<', i)
+      const text = (lt < 0 ? s.slice(i) : s.slice(i, lt)).trim()
+      if (text) out.push('  '.repeat(depth) + text)
+      if (lt < 0) break
+      if (s.startsWith('<!--', lt)) {
+        const end = s.indexOf('-->', lt + 4)
+        const stop = end < 0 ? s.length : end + 3
+        out.push('  '.repeat(depth) + s.slice(lt, stop).trim())
+        i = stop
+        continue
+      }
+      const el = topLevelElements(s.slice(lt))[0]
+      if (!el || el.start !== 0) {
+        out.push('  '.repeat(depth) + s.slice(lt).trim())
+        break
+      }
+      const whole = s.slice(lt, lt + el.end)
+      const open = whole.slice(0, tagEnd(whole, 0) + 1)
+      if (open.endsWith('/>') || INLINE_CONTENT.has(el.tag) || !/<[a-z]/i.test(el.inner)) {
+        out.push('  '.repeat(depth) + whole.replace(/\s*\n\s*/g, el.tag === 'mj-style' || el.tag === 'mj-raw' ? '\n' + '  '.repeat(depth + 1) : ' ').trim())
+      } else {
+        out.push('  '.repeat(depth) + open)
+        walk(el.inner, depth + 1)
+        out.push('  '.repeat(depth) + `</${el.tag}>`)
+      }
+      i = lt + el.end
+    }
+  }
+  walk(src.trim(), 0)
+  return out.join('\n') + '\n'
+}
+
+/** Elements whose content MJML doesn't parse as MJML (it may hold any HTML). */
+const ENDING_TAGS = new Set(['mj-text', 'mj-button', 'mj-raw', 'mj-table', 'mj-style', 'mj-title', 'mj-preview', 'mj-navbar-link', 'mj-social-element', 'mj-accordion-title', 'mj-accordion-text'])
+
+/**
+ * Finds the first structural problem in an MJML document: an mj-* element
+ * that is never closed, or a closing tag that doesn't match. HTML inside
+ * text-like elements isn't checked (MJML passes it through).
+ */
+export function checkMjmlTags(src: string): { line: number; message: string } | null {
+  const lineAt = (i: number) => src.slice(0, i).split('\n').length
+  const stack: { tag: string; at: number }[] = []
+  const re = /<!--[\s\S]*?-->|<(\/?)(mjml|mj-[\w-]+)\b(?:[^>"']|"[^"]*"|'[^']*')*?(\/?)>/g
+  for (let m = re.exec(src); m; m = re.exec(src)) {
+    if (m[0].startsWith('<!--')) continue
+    const [, close, tag, selfClose] = m as unknown as [string, string, string, string]
+    if (selfClose) continue
+    if (!close) {
+      stack.push({ tag: tag!, at: m.index })
+      if (ENDING_TAGS.has(tag!)) {
+        const end = src.indexOf(`</${tag}>`, re.lastIndex)
+        if (end < 0) return { line: lineAt(m.index), message: `unclosed <${tag}>` }
+        re.lastIndex = end
+      }
+      continue
+    }
+    const top = stack.pop()
+    if (!top) return { line: lineAt(m.index), message: `</${tag}> has no opening tag` }
+    if (top.tag !== tag) return { line: lineAt(top.at), message: `unclosed <${top.tag}>` }
+  }
+  const open = stack.pop()
+  return open ? { line: lineAt(open.at), message: `unclosed <${open.tag}>` } : null
+}
+
+const VISIBILITY_MARK = '/* rc:visibility */'
+
+/**
+ * Adds or removes the media-query rule behind "Hide on mobile" and "Hide on
+ * desktop" (css-class rc-hide-mobile / rc-hide-desktop). MJML stacks columns
+ * below 480 px, so that is the breakpoint here too. Clients without media
+ * query support (Outlook for Windows) show both.
+ */
+export function withVisibilityStyles(head: string, used: { mobile: boolean; desktop: boolean }): string {
+  let out = head
+  const el = topLevelElements(out).find((e) => e.tag === 'mj-style' && e.inner.includes(VISIBILITY_MARK))
+  if (el) out = out.slice(0, el.start) + out.slice(el.end)
+  if (used.mobile || used.desktop) {
+    const rules = [VISIBILITY_MARK]
+    if (used.mobile) rules.push('@media only screen and (max-width:480px) { .rc-hide-mobile { display:none !important; } }')
+    if (used.desktop) rules.push('@media only screen and (min-width:481px) { .rc-hide-desktop { display:none !important; } }')
+    out = `${out.trim()}\n<mj-style>\n${rules.join('\n')}\n</mj-style>`
+  }
+  return out
+    .split('\n')
+    .filter((l) => l.trim())
+    .join('\n')
+}
+
+/**
+ * CSS of the head's <mj-style> elements, for the canvas (media queries
+ * included). The visibility rule is left out: the canvas dims hidden
+ * components instead of hiding them, so they stay selectable.
+ */
+export function headCss(head: string): string {
+  return topLevelElements(head)
+    .filter((e) => e.tag === 'mj-style' && !e.inner.includes(VISIBILITY_MARK))
+    .map((e) => e.inner)
+    .join('\n')
+}
+
 /** True when the body has no sections yet (the empty-canvas state). */
 export function isEmptyBody(mjml: string): boolean {
   if (!mjml.trim()) return true

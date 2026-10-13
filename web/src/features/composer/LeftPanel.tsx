@@ -222,7 +222,7 @@ function LayersTab() {
     )
     if (tag === 'mjml' && o) {
       rows.push(
-        <div key="head" role="treeitem" aria-level={depth + 2}>
+        <div key="head" role="treeitem" aria-level={depth + 2} aria-selected={false}>
           <button type="button" className="lay" style={{ paddingLeft: 8 + (depth + 1) * 16 }} onClick={() => c.setView('mjml')} title="The head (title, preview text, shared attributes) is edited in the code view">
             <ToolIcon name="chevronRight" size={14} strokeWidth={1.6} />
             mj-head

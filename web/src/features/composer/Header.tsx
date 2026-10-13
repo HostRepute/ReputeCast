@@ -68,14 +68,13 @@ function RouteButton() {
 }
 
 /** The composer's top bar: back, name, status, audience, sender, route and actions. */
-export function Header({ dirty, onReview }: { dirty: boolean; onReview: () => void }) {
+export function Header({ onReview }: { onReview: () => void }) {
   const c = useComposer()
   const { campaign, view, slug, status, canEdit } = c
   const blocks = c.checks?.issues.filter((i) => i.severity === 'block' && i.group !== 'Subject').length ?? 0
   const empty = c.isEmpty
   const preview = view === 'preview'
   const reviewLabel = campaign.access.canSend ? 'Review & send' : 'Request approval'
-  void dirty
   return (
     <header className="cmp-head">
       {preview ? (
@@ -132,24 +131,27 @@ export function Header({ dirty, onReview }: { dirty: boolean; onReview: () => vo
       )}
       <div className="flex flex-wrap items-center gap-2" style={{ marginLeft: 'auto' }}>
         {preview ? (
+          // The preview fills this with "Preview as", the test button and Review & send.
           <PreviewAsSlot />
         ) : (
-          <button type="button" className="btn" disabled={empty} style={empty ? { opacity: 0.5 } : undefined} onClick={() => c.setView('preview')}>
-            Preview
-          </button>
+          <>
+            <button type="button" className="btn" disabled={empty} style={empty ? { opacity: 0.5 } : undefined} onClick={() => c.setView('preview')}>
+              Preview
+            </button>
+            <SendTestButton disabled={empty} />
+            <button
+              type="button"
+              className={`btn pri${blocks ? ' bad-pri' : ''}`}
+              disabled={empty}
+              style={empty ? { opacity: 0.5 } : undefined}
+              aria-describedby={campaign.access.canSend ? undefined : 'perm-hint'}
+              onClick={onReview}
+            >
+              {reviewLabel}
+              {blocks ? ` · ${blocks} ${blocks === 1 ? 'block' : 'blocks'}` : ''}
+            </button>
+          </>
         )}
-        <SendTestButton disabled={empty} />
-        <button
-          type="button"
-          className={`btn pri${blocks ? ' bad-pri' : ''}`}
-          disabled={empty}
-          style={empty ? { opacity: 0.5 } : undefined}
-          aria-describedby={campaign.access.canSend ? undefined : 'perm-hint'}
-          onClick={onReview}
-        >
-          {reviewLabel}
-          {blocks ? ` · ${blocks} ${blocks === 1 ? 'block' : 'blocks'}` : ''}
-        </button>
       </div>
     </header>
   )
@@ -157,7 +159,8 @@ export function Header({ dirty, onReview }: { dirty: boolean; onReview: () => vo
 
 /** Filled by the preview view (the "Preview as" select lives in the header). */
 export function PreviewAsSlot() {
-  return <div id="cmp-preview-as" className="contents" />
+  const { setPreviewSlot } = useComposer()
+  return <div ref={setPreviewSlot} className="contents" />
 }
 
 /** What a member without campaigns:send can do here (A5 §6, Content Writer). */

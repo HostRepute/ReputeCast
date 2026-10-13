@@ -35,19 +35,18 @@ export function AudiencePicker() {
   const [live, setLive] = useState<{ count: number; approximate: boolean } | null>(null)
   const update = useUpdateCampaign()
 
-  useEffect(() => {
-    if (!open) return
-    setLists(campaign.audience.lists)
-    setSegments(campaign.audience.segments)
-    setExclude(campaign.audience.excludeLists)
-  }, [open, campaign.audience])
+  const onOpenChange = (o: boolean) => {
+    if (o) {
+      setLists(campaign.audience.lists)
+      setSegments(campaign.audience.segments)
+      setExclude(campaign.audience.excludeLists)
+    }
+    setOpen(o)
+  }
+  const nothing = !lists.length && !segments.length
 
   useEffect(() => {
-    if (!open) return
-    if (!lists.length && !segments.length) {
-      setLive({ count: 0, approximate: false })
-      return
-    }
+    if (!open || nothing) return
     const h = window.setTimeout(() => {
       void http
         .POST('/api/v1/workspaces/{workspace}/campaigns/audience-count', { params: { path: { workspace: slug } }, body: { lists, segments, excludeLists: exclude } })
@@ -55,7 +54,7 @@ export function AudiencePicker() {
         .catch(() => setLive(null))
     }, 250)
     return () => window.clearTimeout(h)
-  }, [open, lists, segments, exclude, slug])
+  }, [open, nothing, lists, segments, exclude, slug])
 
   const label = campaign.audienceLabel ? `${campaign.audienceLabel} · ${count(campaign.audienceCount ?? 0)}` : 'Choose audience'
   const toggle = (arr: string[], id: string) => (arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id])
@@ -71,7 +70,7 @@ export function AudiencePicker() {
   )
   if (!canEdit) return trigger
   return (
-    <Popover trigger={trigger} open={open} onOpenChange={setOpen} align="start" label="Audience" className="w-[340px] max-w-[calc(100vw-24px)]">
+    <Popover trigger={trigger} open={open} onOpenChange={onOpenChange} align="start" label="Audience" className="w-[340px] max-w-[calc(100vw-24px)]">
       <div className="flex flex-col gap-1 p-1">
         <span className="mh">Send to</span>
         {context.lists.map((l) => (
@@ -102,7 +101,7 @@ export function AudiencePicker() {
           : null}
         <div className="mt-1 flex items-center gap-2 border-t border-line-2 px-2.5 pt-2.5 pb-1">
           <span className="k flex-1" role="status" aria-live="polite">
-            {live ? `${live.approximate ? 'About ' : ''}${count(live.count)} recipients after suppressions` : 'Counting…'}
+            {nothing ? 'Pick a list or a segment' : live ? `${live.approximate ? 'About ' : ''}${count(live.count)} recipients after suppressions` : 'Counting…'}
           </span>
           <button
             type="button"

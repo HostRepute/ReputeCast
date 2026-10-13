@@ -103,6 +103,8 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
   })
   await new Promise<void>((resolve) => editor.onReady(() => resolve()))
   if (!compile) throw new Error('grapesjs-mjml did not load')
+  // Dev builds expose the editor to the QA scripts (scripts/qa.ts and friends).
+  if (import.meta.env.DEV) (window as unknown as { __rcComposer?: Editor }).__rcComposer = editor
   return {
     editor,
     compile,

@@ -18,4 +18,10 @@ body { -webkit-font-smoothing: antialiased; }
 .gjs-no-pointer { pointer-events: none; }
 .gjs-grabbing, .gjs-grabbing * { cursor: grabbing !important; }
 [data-rc-warning] { outline: 2px solid currentColor; }
+/* Hidden on this device: dimmed while editing (the preview shows the email as sent). */
+@media (max-width: 480px) { html body .rc-hide-mobile { display: revert !important; opacity: .35; } }
+@media (min-width: 481px) { html body .rc-hide-desktop { display: revert !important; opacity: .35; } }
+/* Dark-mode check: inverted like a client that ignores the email's colours; images keep theirs. */
+html.rc-dark { filter: invert(1) hue-rotate(180deg); background: #fff; }
+html.rc-dark img { filter: invert(1) hue-rotate(180deg); }
 `

@@ -47,17 +47,16 @@ export function collapseBox(t: string, r: string, b: string, l: string): string 
   return `${t} ${r} ${b} ${l}`
 }
 
+/** Tags whose padding can't be written per side (padding-top…). */
+const NO_SIDES = new Set(['mjml', 'mj-head', 'mj-body', 'mj-group', 'mj-raw', 'mj-navbar'])
+
 /**
- * grapesjs-mjml seeds every component with its default paddings as
- * longhands (padding-top: 20px…). A `padding="16px 24px"` shorthand in the
- * source is then overridden by those longhands when the canvas renders, so
- * the canvas and the sent email differ. We expand the shorthand into
- * longhands when a component is created (the inspector edits longhands) and
- * write the shortest shorthand back when MJML is exported.
+ * A `padding="16px 24px"` shorthand becomes longhands when a component is
+ * created, so the inspector edits one side at a time (MJML gives a longhand
+ * precedence over the shorthand); export writes the shortest shorthand back.
  */
 function expandPadding(c: Component) {
-  const defaults = (c.get('style-default') ?? {}) as Attrs
-  if (!('padding-top' in defaults)) return
+  if (NO_SIDES.has(String(c.get('tagName') ?? ''))) return
   const attrs = { ...(c.get('attributes') as Attrs) }
   const short = attrs.padding
   if (typeof short !== 'string' || !short.trim()) return
@@ -70,18 +69,23 @@ function expandPadding(c: Component) {
   c.set('attributes', attrs, { silent: true })
 }
 
-function collapsePadding(c: Component, out: Attrs): Attrs {
-  const defaults = (c.get('style-default') ?? {}) as Attrs
-  const all = (c.get('attributes') ?? {}) as Attrs
-  if (!SIDES.some((s) => `padding-${s}` in all)) return out
-  const side = (s: string) => String(all[`padding-${s}`] ?? defaults[`padding-${s}`] ?? '0px')
-  const def = (s: string) => String(defaults[`padding-${s}`] ?? '0px')
+/** All four longhands → one shorthand; a partial set stays as longhands. */
+function collapsePadding(out: Attrs): Attrs {
+  const sides = SIDES.map((s) => out[`padding-${s}`])
+  if (!sides.every((v) => v !== undefined && v !== null && v !== '')) return out
   const next = { ...out }
   for (const s of SIDES) delete next[`padding-${s}`]
-  const value = collapseBox(side('top'), side('right'), side('bottom'), side('left'))
-  const fallback = collapseBox(def('top'), def('right'), def('bottom'), def('left'))
-  if (value !== fallback) next.padding = escapeAttr(value)
+  const [t, r, b, l] = sides.map(String) as [string, string, string, string]
+  next.padding = collapseBox(t, r, b, l)
   return next
+}
+
+/** The component's own MJML attributes. */
+function ownAttributes(c: Component): Attrs {
+  const a = { ...((c.get('attributes') ?? {}) as Attrs) }
+  delete a.style
+  delete a.id
+  return a
 }
 
 /**
@@ -89,6 +93,10 @@ function collapsePadding(c: Component, out: Attrs): Attrs {
  *  - every canvas render (the plugin compiles each component on its own)
  *    gets the document's mj-attributes, mj-style and mj-font from `head`, so
  *    the canvas looks like the compiled email;
+ *  - components keep only the attributes the source gives them: the plugin
+ *    copies its defaults into every component (for its style manager, which
+ *    isn't used), and rendering those would override the head's
+ *    mj-attributes in the canvas, while export drops them anyway;
  *  - attribute values are escaped when MJML is written out (the plugin
  *    concatenates them as is, so a quote in alt text would break the file);
  *  - padding shorthands become longhands (see expandPadding);
@@ -106,18 +114,23 @@ export function installMjmlHooks(editor: Editor, o: ComponentPluginOptions, head
   for (const t of editor.Components.getTypes()) {
     if (!t.id.startsWith('mj-') && t.id !== 'mjml') continue
     const proto = (t.model as unknown as { prototype: Record<string, ((...a: unknown[]) => unknown) | undefined> }).prototype
-    const getAttrToHTML = proto.getAttrToHTML as ((this: Component) => Attrs) | undefined
     const getMjmlAttributes = proto.getMjmlAttributes as ((this: Component) => Attrs) | undefined
     const init = proto.init as ((this: Component, ...a: unknown[]) => void) | undefined
-    if (!getAttrToHTML || !getMjmlAttributes) continue
+    if (!proto.getAttrToHTML || !getMjmlAttributes) continue
     editor.Components.addType(t.id, {
       model: {
         init(this: Component, ...a: unknown[]) {
           expandPadding(this)
+          const mine = ownAttributes(this)
           init?.apply(this, a)
+          this.set('attributes', mine, { silent: true })
+          this.set('style', {}, { silent: true })
         },
+        // Attributes and style aren't mirrored: the style manager isn't used.
+        handleAttributeChange() {},
+        handleStyleChange() {},
         getAttrToHTML(this: Component) {
-          return collapsePadding(this, escapeAll(getAttrToHTML.call(this)))
+          return collapsePadding(escapeAll(ownAttributes(this)))
         },
         getMjmlAttributes(this: Component) {
           return escapeAll(getMjmlAttributes.call(this))

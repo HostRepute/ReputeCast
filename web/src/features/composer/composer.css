@@ -56,6 +56,10 @@
 .cmp .seg button {
   font-family: inherit;
 }
+/* The composer boards draw segmented controls without separators. */
+.cmp .seg button + button {
+  border-left: 0;
+}
 .cmp .seg button:disabled {
   cursor: default;
 }
@@ -454,9 +458,23 @@ label.tg {
   display: flex;
   flex-direction: column;
 }
+.cmp-code,
+.cmp-html {
+  box-sizing: border-box;
+  height: calc(100vh - 160px);
+  height: calc(100dvh - 160px);
+  min-height: 420px;
+}
+.cmp-cm {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.cmp-cm .cm-editor {
+  height: 100%;
+}
 .cmp-code .cm-editor,
 .cmp-html .cm-editor {
-  flex: 1;
   font-family: var(--font-family-mono);
   font-size: 12px;
   line-height: 1.6;
@@ -582,7 +600,10 @@ label.tg {
 .cmp-canvas .gjs-offset-v,
 .cmp-canvas .gjs-offset-fixed-v,
 .cmp-canvas .gjs-resizer,
-.cmp-canvas .gjs-off-prv {
+.cmp-canvas .gjs-off-prv,
+.cmp-canvas .gjs-rte-toolbar,
+.cmp-canvas .gjs-com-badge,
+.cmp-canvas .gjs-com-badge-red {
   display: none !important;
 }
 .cmp-canvas .gjs-placeholder {

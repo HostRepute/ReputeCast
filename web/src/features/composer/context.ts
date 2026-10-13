@@ -48,13 +48,29 @@ export interface ComposerState {
   setHead(h: string): void
 
   status: SaveStatus
-  save(opts?: { manual?: boolean; force?: boolean; source?: 'autosave' | 'manual' | 'import' | 'template'; label?: string }): Promise<boolean>
+  /** Saves a version now. `manual` shows the saved card unless `quiet`; `force` overrides a conflict. */
+  save(opts?: { manual?: boolean; quiet?: boolean; force?: boolean; source?: 'autosave' | 'manual' | 'import' | 'template'; label?: string }): Promise<boolean>
   /** Full MJML of the current content (head with title and preview + canvas). */
   currentMjml(): string
   compileCurrent(): { html: string; errors: { line: number; message: string; tagName: string }[] } | null
-  /** Replaces the whole content (template, import, restore); empty string resets to the gallery. */
-  loadContent(mjml: string, how: { source: 'template' | 'import' | 'restore' | 'reload'; label?: string }): void
+  /** Replaces the whole content (template, import, code view, restore); empty string resets to the gallery. */
+  loadContent(mjml: string, how: { source: 'template' | 'import' | 'code' | 'restore' | 'reload'; label?: string }): void
+  /** Loads the latest saved version (after a restore, or to take someone else's save). */
+  reloadFromServer(): Promise<void>
+  /** Content settings changed on the server (minify): re-run the checks. */
+  onSettingsChanged(): void
+  /** The code view applies or keeps its draft before another view opens; false blocks the switch. */
+  registerLeaveCheck(fn: () => boolean): () => void
   isEmpty: boolean
+  /** Dark-mode check on the mobile canvas. */
+  darkCanvas: boolean
+  setDarkCanvas(v: boolean): void
+  /** Where the asset manager puts the chosen image. */
+  assetTarget: { component: Component; attr: 'src' | 'background-url' } | null
+  setAssetTarget(t: { component: Component; attr: 'src' | 'background-url' } | null): void
+  /** Where the preview puts "Preview as" and its actions (in the header). */
+  previewSlot: HTMLElement | null
+  setPreviewSlot(el: HTMLElement | null): void
 
   checks: Checks | undefined
   checksPending: boolean

@@ -38,7 +38,7 @@ function useSend() {
  * "Send test": members with campaigns:send pick recipients (themselves and
  * teammates); everyone else gets "Send test to me".
  */
-export function SendTestButton({ disabled, toMeLabel }: { disabled?: boolean; toMeLabel?: string }) {
+export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: boolean }) {
   const c = useComposer()
   const { data: me } = useMe()
   const email = me?.user.email ?? ''
@@ -53,10 +53,10 @@ export function SendTestButton({ disabled, toMeLabel }: { disabled?: boolean; to
       </button>
     )
   }
-  if (!c.campaign.access.canSendTestToOthers || toMeLabel) {
+  if (!c.campaign.access.canSendTestToOthers || toMe) {
     return (
       <button type="button" className="btn" aria-busy={busy || undefined} onClick={() => void run([email])}>
-        {toMeLabel ?? 'Send test to me'}
+        {toMe && email ? `Send test to ${email}` : 'Send test to me'}
       </button>
     )
   }
@@ -80,7 +80,7 @@ export function SendTestButton({ disabled, toMeLabel }: { disabled?: boolean; to
     >
       <span className="mh">Send a test of {c.variant === 'A' ? 'this version' : `variant ${c.variant}`} to</span>
       {members.map((m) => (
-        <label key={m.email} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-ground">
+        <label key={m.email} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-ground" aria-label={`${m.name || m.email}, ${m.email}`}>
           <input type="checkbox" checked={picked.includes(m.email)} onChange={() => toggle(m.email)} />
           <span className="flex min-w-0 flex-1 flex-col">
             <span>{m.name || m.email}</span>
