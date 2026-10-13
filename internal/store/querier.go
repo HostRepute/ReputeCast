@@ -106,6 +106,7 @@ type Querier interface {
 	ClearUserLockout(ctx context.Context, id uuid.UUID) error
 	CompleteInstanceSetup(ctx context.Context, arg CompleteInstanceSetupParams) (InstanceSetting, error)
 	ConfirmInstanceBasics(ctx context.Context) error
+	ConnectActiveContacts(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	ConnectCreateList(ctx context.Context, arg ConnectCreateListParams) error
 	// The first webhook payload a provider sent since a time (the test send's
 	// "event came back" step).

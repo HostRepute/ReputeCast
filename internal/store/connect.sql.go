@@ -13,6 +13,17 @@ import (
 	"github.com/google/uuid"
 )
 
+const connectActiveContacts = `-- name: ConnectActiveContacts :one
+SELECT count(*)::bigint AS n FROM contacts WHERE workspace_id = $1 AND status = 'active' AND erased_at IS NULL
+`
+
+func (q *Queries) ConnectActiveContacts(ctx context.Context, workspaceID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, connectActiveContacts, workspaceID)
+	var n int64
+	err := row.Scan(&n)
+	return n, err
+}
+
 const connectCreateList = `-- name: ConnectCreateList :exec
 INSERT INTO lists (id, workspace_id, name, created_at) VALUES ($1, $2, $3, $4)
 `

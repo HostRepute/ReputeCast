@@ -126,3 +126,6 @@ ORDER BY m.joined_at, w.created_at;
 -- Every workspace, oldest first (instance-level mail falls back to the
 -- first workspace with a System route).
 SELECT id FROM workspaces WHERE deleted_at IS NULL ORDER BY created_at, id;
+
+-- name: ConnectActiveContacts :one
+SELECT count(*)::bigint AS n FROM contacts WHERE workspace_id = @workspace_id AND status = 'active' AND erased_at IS NULL;
