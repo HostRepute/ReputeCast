@@ -1,11 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { IntegrationsPage } from '@/features/hostrepute/IntegrationsPage'
 
 export const Route = createFileRoute('/w/$workspace/_app/settings/integrations')({
-  component: () => (
-    <Page title="Settings">
-      <NotBuilt screen="Settings" />
-    </Page>
-  ),
+  component: IntegrationsPage,
 })

@@ -34,14 +34,17 @@ type sentCampaign struct {
 	ab                   string
 }
 
-// designToday is "Sunday 12 Oct 2026, 11:00" in the prototype; the demo
-// anchors every date to the current day instead.
+// designDay returns hour:minute (New York time) daysAgo days before the
+// demo's "today". The prototype's clock reads Sunday 12 Oct 2026, 11:00; the
+// demo anchors dates to the real calendar instead. "Today" is the current
+// New York date from 11:00 on and the day before until then, so every time
+// the boards show for today (08:55, 09:44…) is always in the past.
 func (s *Seeder) designDay(daysAgo int, hour, minute int) time.Time {
 	loc, err := time.LoadLocation("America/New_York")
 	if err != nil {
 		loc = time.UTC
 	}
-	n := s.Now.In(loc)
+	n := s.Now.In(loc).Add(-11 * time.Hour)
 	d := time.Date(n.Year(), n.Month(), n.Day(), hour, minute, 0, 0, loc)
 	return d.AddDate(0, 0, -daysAgo)
 }

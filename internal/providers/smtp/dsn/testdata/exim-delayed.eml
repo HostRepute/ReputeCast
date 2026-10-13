@@ -1,0 +1,27 @@
+From: Mail Delivery System <Mailer-Daemon@relay.acme.io>
+To: bounces@news.acme.io
+Subject: Warning: message 1vXy2z-000abc-1Q delayed 24 hours
+Date: Sun, 12 Oct 2026 09:00:00 +0000
+X-Failed-Recipients: b.h@yahoo.com
+Content-Type: text/plain; charset=us-ascii
+
+This message was created automatically by mail delivery software.
+A message that you sent has not yet been delivered to one or more of its
+recipients after more than 24 hours on the queue on relay.acme.io.
+
+  b.h@yahoo.com
+    host mta6.am0.yahoodns.net [67.195.204.72]
+    452 4.2.2 Mailbox full
+
+No action is required on your part. Delivery attempts will continue for
+some time, and this warning may be repeated at intervals if the message
+remains undelivered. Eventually the mail delivery software will give up,
+and when that happens, the message will be returned to you.
+
+------ This is a copy of the message's headers. ------
+
+From: Acme Newsletter <news@news.acme.io>
+To: b.h@yahoo.com
+Subject: Weekly Digest #142
+Message-ID: <0199d5a8-2b6e-7c41-9a0e-000000000002@news.acme.io>
+X-ReputeCast-Message: 0199d5a8-2b6e-7c41-9a0e-000000000002
