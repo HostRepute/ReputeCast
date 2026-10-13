@@ -304,7 +304,7 @@ from the board except for live data.
 - [ ] Demo data makes it look like the board.
 - [ ] Go integration test for the API; unit tests for non-trivial logic (Go or Vitest).
 - [ ] `go vet ./...`, `go test ./...`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` pass.
-- [ ] Accessibility checklist above.
+- [ ] Accessibility checklist above, and `pnpm a11y --only <its boards>` (axe-core, WCAG 2.0–2.2 A and AA) reports nothing.
 
 ## 8. Git
 

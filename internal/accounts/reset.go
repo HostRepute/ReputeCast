@@ -85,13 +85,6 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string) (Passw
 		res.Status, res.SSO = "sso", &start
 		return res, nil
 	}
-	if exists && u.PasswordHash == nil {
-		if sso := s.ssoIdentityProvider(ctx, u.ID); sso != nil {
-			start := ssoStart(sso, email)
-			res.Status, res.SSO = "sso", &start
-			return res, nil
-		}
-	}
 	if !s.mail().SystemAvailable(ctx, nil) {
 		res.Status = "email_unavailable"
 		res.Command = "reputecast user reset-password --email " + email
@@ -99,6 +92,15 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string) (Passw
 	}
 	if !exists {
 		return res, nil
+	}
+	// An account that only signs in through single sign-on has no password
+	// to reset. The answer stays the generic one, which mustn't tell that the
+	// email has an account; the email says how they sign in.
+	if u.PasswordHash == nil {
+		if sso := s.ssoIdentityProvider(ctx, u.ID); sso != nil {
+			s.ssoReminder(ctx, u, sso)
+			return res, nil
+		}
 	}
 	if last, err := s.Q.LastPasswordResetAt(ctx, u.ID); err == nil && s.now().Sub(last) < resetResendGap {
 		return res, nil
@@ -128,6 +130,24 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string) (Passw
 	_ = s.Audit.Log(ctx, audit.Event{Action: "account.password_reset_request", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u),
 		Metadata: map[string]any{"via": provider}})
 	return res, nil
+}
+
+// ssoReminder tells someone who asked to reset a password they don't have
+// how they sign in.
+func (s *Service) ssoReminder(ctx context.Context, u store.User, p *store.SsoProvider) {
+	st, _ := s.policy(ctx)
+	link := s.publicURL(ctx) + "/sign-in"
+	msg := mailer.Message{
+		To: u.Email, ToName: u.Name, Kind: "password_reset_sso",
+		Subject: "How you sign in to " + st.Name,
+		Text: fmt.Sprintf("Someone asked to reset the password of %s on %s. This account has no password: it signs in with %s.\n\nSign in: %s\n\nIf it wasn't you, ignore this email.\n",
+			u.Email, st.Name, p.Name, link),
+		HTML: fmt.Sprintf(`<p style="font:14px/1.5 sans-serif">Someone asked to reset the password of <b>%s</b> on %s. This account has no password: it signs in with %s.</p><p style="font:14px sans-serif"><a href="%s">Sign in</a></p><p style="font:13px/1.5 sans-serif;color:#5B6472">If it wasn't you, ignore this email.</p>`,
+			html.EscapeString(u.Email), html.EscapeString(st.Name), html.EscapeString(p.Name), html.EscapeString(link)),
+	}
+	if _, err := s.mail().SendSystem(ctx, msg); err != nil {
+		s.Log.WarnContext(ctx, "sign-in reminder not sent", "user", u.ID, "err", err)
+	}
 }
 
 // ssoIdentityProvider returns the SSO provider of one of the user's

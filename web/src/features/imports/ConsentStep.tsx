@@ -6,6 +6,7 @@ import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
+import { TableScroll } from '@/components/ui/Table'
 import { andList, count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { stepPath, useImportDetail, WizardHeading, type Detail } from './ImportFrame'
@@ -86,7 +87,7 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
   return (
     <>
       <section className="card flex flex-col">
-        <div className="tscroll">
+        <TableScroll label="Consent per source status">
           <table className="tbl">
             <thead>
               <tr>
@@ -128,7 +129,7 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
         <div className="flex flex-wrap items-center gap-2 border-t border-line-2 px-5 py-3">
           <Badge tone="ok">
             {count(m.suppressCount)} {m.suppressCount === 1 ? 'address' : 'addresses'} will be suppressed

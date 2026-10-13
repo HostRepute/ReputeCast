@@ -22,13 +22,16 @@ export function WorkspaceSwitcher() {
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
-        <button className="ws" type="button" aria-label={`Switch workspace. Current: ${ws.workspace.name}, your role ${ws.workspace.roleName}`}>
-          <span className="av" style={{ width: 24, height: 24, fontSize: 10, background: wsColor(idx), color: '#fff', borderRadius: 6 }} aria-hidden="true">
-            {initials(ws.workspace.name)}
-          </span>
+        <button className="ws" type="button" aria-label={`${ws.workspace.name}, ${ws.workspace.roleName}. Switch workspace`}>
+          <span
+            className="av"
+            style={{ width: 24, height: 24, fontSize: 10, background: wsColor(idx), color: '#fff', borderRadius: 6 }}
+            aria-hidden="true"
+            data-initials={initials(ws.workspace.name)}
+          />
+          {/* The space keeps "name role" two words for speech input (WCAG 2.5.3); the flex column doesn't render it. */}
           <span className="wsn">
-            <b>{ws.workspace.name}</b>
-            <span>{ws.workspace.roleName}</span>
+            <b>{ws.workspace.name}</b> <span>{ws.workspace.roleName}</span>
           </span>
           <Icon name="chevronDown" size={14} />
         </button>

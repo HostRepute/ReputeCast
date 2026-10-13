@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
+import { TableScroll } from '@/components/ui/Table'
 import { count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { stepPath, useImportDetail, WizardHeading, type Detail } from './ImportFrame'
@@ -105,7 +106,7 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
             <h3 className="h2">Risky addresses · {count(p.risky)}</h3>
             <span className="k">imported addresses that bounce or hit traps hurt every provider's reputation</span>
           </div>
-          <div className="tscroll">
+          <TableScroll label="Risky addresses">
             <table className="tbl mpre">
               <thead>
                 <tr>
@@ -146,7 +147,7 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableScroll>
         </section>
       ) : null}
       {p.duplicates.length > 0 || p.merged > 0 ? (
@@ -167,7 +168,7 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
               </select>
             </label>
           </div>
-          <div className="tscroll">
+          <TableScroll label="Duplicates">
             <table className="tbl mpre">
               <thead>
                 <tr>
@@ -190,7 +191,7 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableScroll>
         </section>
       ) : null}
       {p.invalid > 0 ? (

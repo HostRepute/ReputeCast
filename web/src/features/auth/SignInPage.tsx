@@ -47,9 +47,9 @@ type Step =
     }
   | { kind: 'last_code'; email: string; next: string; total: number }
 
-/** Only same-origin relative paths are followed after sign-in. */
+/** Only same-origin relative paths are followed after sign-in (a browser reads "/\host" as "//host"). */
 function safeNext(next?: string) {
-  return next && next.startsWith('/') && !next.startsWith('//') ? next : undefined
+  return next && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : undefined
 }
 
 /** A start link of an SSO or social provider that returns to `next`. */
