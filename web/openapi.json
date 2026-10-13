@@ -580,20 +580,6 @@
         ],
         "type": "object"
       },
-      "Auth-password-reset-requestRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "format": "email",
-            "maxLength": 254,
-            "type": "string"
-          }
-        },
-        "required": [
-          "email"
-        ],
-        "type": "object"
-      },
       "Auth-password-resetRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2816,7 +2802,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Auth-password-reset-requestRequest"
+                "$ref": "#/components/schemas/Auth-identifyRequest"
               }
             }
           },

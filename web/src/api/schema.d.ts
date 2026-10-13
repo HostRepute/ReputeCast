@@ -941,10 +941,6 @@ export interface components {
             credential: unknown;
             remember?: boolean;
         };
-        "Auth-password-reset-requestRequest": {
-            /** Format: email */
-            email: string;
-        };
         "Auth-password-resetRequest": {
             password: string;
         };
@@ -1680,7 +1676,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Auth-password-reset-requestRequest"];
+                "application/json": components["schemas"]["Auth-identifyRequest"];
             };
         };
         responses: {
