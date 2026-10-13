@@ -487,12 +487,18 @@ function Choose({ d }: { d: Detail }) {
   const conn = d.connection!
   const info = sourceInfo(d.source)
   const file = isFile(d.source)
-  const [opts, setOpts] = useState<Schemas['ImportOptions']>(() => d.options)
+  // Lists picked on connect but not placed yet go to a new list named after
+  // them, so the select never shows a list the draft doesn't hold.
+  const [opts, setOpts] = useState<Schemas['ImportOptions']>(() => ({
+    ...d.options,
+    lists: d.options.lists.map((l) => (l.target ? l : { ...l, target: `new:${conn.lists.find((x) => x.id === l.sourceId)?.name ?? 'Imported contacts'}` })),
+  }))
   const [err, setErr] = useState<string | null>(null)
   const choice = (id: string) => opts.lists.find((l) => l.sourceId === id)
   const setChoice = (id: string, c: ListChoice | null) =>
     setOpts((o) => ({ ...o, lists: c ? [...o.lists.filter((l) => l.sourceId !== id), c] : o.lists.filter((l) => l.sourceId !== id) }))
-  const defaultTarget = (name: string) => lists.find((l) => l.name === 'Product Updates')?.id ?? lists[0]?.id ?? `new:${name}`
+  // A new list named after the source's, unless the workspace has exactly one list.
+  const defaultTarget = (name: string) => (lists.length === 1 && lists[0] ? lists[0].id : `new:${name}`)
   const picked = conn.lists.filter((l) => choice(l.id))
   const tags = picked.reduce((n, l) => n + l.tags, 0)
   const examples = picked.flatMap((l) => l.tagExamples).slice(0, 3)
