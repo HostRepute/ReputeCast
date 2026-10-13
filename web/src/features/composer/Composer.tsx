@@ -86,6 +86,7 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
   const [darkCanvas, setDarkCanvas] = useState(false)
   const [assetTarget, setAssetTarget] = useState<ComposerState['assetTarget']>(null)
   const [previewSlot, setPreviewSlot] = useState<HTMLElement | null>(null)
+  const [codeDirty, setCodeDirty] = useState(false)
 
   const version = useRef(campaign.version)
   const revision = useRef(0)
@@ -132,6 +133,8 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
         if (import.meta.env.DEV) (window as unknown as { __rcComposer?: typeof ed }).__rcComposer = ed
         tracker.current = trackChanges(ed)
         ed.on('update', markDirty)
+        // Typing in a text only reports input; it's an edit all the same.
+        ed.on('component:input', markDirty)
         ed.on('component:toggled', () => setSelected(ed.getSelected() ?? null))
         ed.on('component:remove', () => setSelected(ed.getSelected() ?? null))
         ed.on('undo redo', () => setRev((r) => r + 1))
@@ -234,8 +237,14 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
 
   // ---------------------------------------------------------------- saving
   const save = useCallback(
-    async (opts: { manual?: boolean; quiet?: boolean; force?: boolean; source?: 'autosave' | 'manual' | 'import' | 'template'; label?: string } = {}): Promise<boolean> => {
+    async (opts: { manual?: boolean; quiet?: boolean; force?: boolean; background?: boolean; source?: 'autosave' | 'manual' | 'import' | 'template'; label?: string } = {}): Promise<boolean> => {
       if (!canEdit) return false
+      // Text being typed reaches the model when its editing ends: timed autosaves
+      // wait for that; anything the person asked for ends the editing first.
+      if (geRef.current?.isEditingText()) {
+        if (opts.background) return false
+        await geRef.current.flushEditing()
+      }
       if (saving.current) {
         await saving.current
         if (revision.current === savedRevision.current && !opts.force) return true
@@ -309,21 +318,21 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
   useEffect(() => {
     if (!canEdit) return
     const h = window.setInterval(() => {
-      if (revision.current !== savedRevision.current) void saveRef.current()
+      if (revision.current !== savedRevision.current) void saveRef.current({ background: true })
     }, 30_000)
     return () => window.clearInterval(h)
   }, [canEdit])
   useEffect(() => {
     if (!canEdit || revision.current === savedRevision.current) return
     if (pendingSource.current || tracker.current?.structural()) {
-      const h = window.setTimeout(() => void saveRef.current(), pendingSource.current ? 300 : 2000)
+      const h = window.setTimeout(() => void saveRef.current({ background: true }), pendingSource.current ? 300 : 2000)
       return () => window.clearTimeout(h)
     }
   }, [rev, canEdit])
   // Offline: retry every 10 s.
   useEffect(() => {
     if (status.kind !== 'offline') return
-    const h = window.setInterval(() => void saveRef.current(), 10_000)
+    const h = window.setInterval(() => void saveRef.current({ background: true }), 10_000)
     return () => window.clearInterval(h)
   }, [status.kind])
   const reloadFromServer = useCallback(async () => {
@@ -543,6 +552,7 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
     reloadFromServer,
     onSettingsChanged,
     registerLeaveCheck,
+    setCodeDirty,
     isEmpty: empty,
     checks: empty ? undefined : checks,
     checksPending,
@@ -616,7 +626,7 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
         </div>
         <Dialogs dialog={dialog} onClose={() => setDialog(null)} onSavedTemplate={(t) => setSavedCard({ version: version.current, at: new Date().toISOString(), template: t })} />
         <UnsavedChangesGuard
-          dirty={canEdit && unsaved}
+          dirty={canEdit && (unsaved || codeDirty)}
           title="Leave the composer?"
           description={`Your latest edits to ${name || 'this campaign'} aren't saved yet${lastSave ? `; the last autosave was at ${clock(lastSave)}` : ''}.`}
           onSave={async () => {

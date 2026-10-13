@@ -49,7 +49,7 @@ export interface ComposerState {
 
   status: SaveStatus
   /** Saves a version now. `manual` shows the saved card unless `quiet`; `force` overrides a conflict. */
-  save(opts?: { manual?: boolean; quiet?: boolean; force?: boolean; source?: 'autosave' | 'manual' | 'import' | 'template'; label?: string }): Promise<boolean>
+  save(opts?: { manual?: boolean; quiet?: boolean; force?: boolean; background?: boolean; source?: 'autosave' | 'manual' | 'import' | 'template'; label?: string }): Promise<boolean>
   /** Full MJML of the current content (head with title and preview + canvas). */
   currentMjml(): string
   compileCurrent(): { html: string; errors: { line: number; message: string; tagName: string }[] } | null
@@ -61,6 +61,8 @@ export interface ComposerState {
   onSettingsChanged(): void
   /** The code view applies or keeps its draft before another view opens; false blocks the switch. */
   registerLeaveCheck(fn: () => boolean): () => void
+  /** The code view has edits not applied to the canvas yet (leaving would lose them). */
+  setCodeDirty(dirty: boolean): void
   isEmpty: boolean
   /** Dark-mode check on the mobile canvas. */
   darkCanvas: boolean

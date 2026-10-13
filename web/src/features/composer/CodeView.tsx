@@ -191,7 +191,12 @@ export function CodeView() {
   useLayoutEffect(() => {
     applyRef.current = apply
   })
-  const { registerLeaveCheck } = c
+  const { registerLeaveCheck, setCodeDirty } = c
+  // Unapplied edits count as unsaved work for the leave guard.
+  useEffect(() => {
+    setCodeDirty(changed)
+    return () => setCodeDirty(false)
+  }, [changed, setCodeDirty])
   useEffect(() => registerLeaveCheck(() => applyRef.current()), [registerLeaveCheck])
 
   const html = result?.html ?? ''

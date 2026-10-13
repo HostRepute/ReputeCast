@@ -1,5 +1,5 @@
 import type { Component, Editor } from 'grapesjs'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type RefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { Popover } from '@/components/ui/Menu'
 import { clock } from '@/lib/format'
@@ -262,7 +262,7 @@ function SelectionOverlay({ host, tick }: { host: HTMLElement | null; tick: numb
         {c.canEdit && !rte ? (
           <div className="tb" role="toolbar" aria-label="Component tools">
             {canParent ? (
-              <button type="button" aria-label="Select parent" title="Select parent" onClick={() => ed.runCommand('core:component-exit')}>
+              <button type="button" aria-label="Select parent" title="Select parent" onClick={() => parent && ed.select(parent)}>
                 <ToolIcon name="parent" />
               </button>
             ) : null}
@@ -371,6 +371,30 @@ function MissingFooter({ width }: { width: number }) {
 
 type Rte = { exec(cmd: string, value?: string): void; insertHTML(html: string): void; selection(): Selection | null; doc: Document; el: HTMLElement }
 
+/**
+ * GrapesJS ends text editing on any mousedown in the page outside the text.
+ * Popovers of the text toolbar render in a portal, so they stop the event
+ * themselves; `keepFocus` also keeps the focus (and selection) in the text.
+ */
+function MouseShield({ children, keepFocus }: { children: ReactNode; keepFocus?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const stop = (e: Event) => {
+      if (keepFocus) e.preventDefault()
+      e.stopPropagation()
+    }
+    el.addEventListener('mousedown', stop)
+    return () => el.removeEventListener('mousedown', stop)
+  }, [keepFocus])
+  return (
+    <div ref={ref} className="contents">
+      {children}
+    </div>
+  )
+}
+
 function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) {
   const c = useComposer()
   const ed = c.editor
@@ -407,7 +431,24 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
       return false
     }
   }
-  const keep = (e: MouseEvent) => e.preventDefault()
+  // GrapesJS ends text editing on any mousedown outside the text (its own toolbar
+  // stops the event the same way); preventDefault keeps the focus in the text.
+  const keep = (e: MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+  // The text lives in the canvas iframe: give it focus back before formatting.
+  const exec = (cmd: string) => {
+    const s = rte.rte.selection()
+    const r = s && s.rangeCount ? s.getRangeAt(0).cloneRange() : null
+    rte.rte.el.focus()
+    if (r && s) {
+      s.removeAllRanges()
+      s.addRange(r)
+    }
+    rte.rte.exec(cmd)
+    setSel((n) => n + 1)
+  }
   const saveRange = () => {
     const s = rte.rte.selection()
     range.current = s && s.rangeCount ? s.getRangeAt(0).cloneRange() : null
@@ -440,15 +481,15 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
       rte.rte.insertHTML(`<a href="${url.replace(/"/g, '&quot;')}">${text.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</a>`)
     }
     setLinkOpen(false)
-    rte.el.focus()
+    rte.rte.el.focus()
   }
   const tokens = c.context.tokens
   return (
     <div className="rte" role="toolbar" aria-label="Text formatting" style={{ top: Math.max(0, box.top - 40), left: box.left }} onMouseDown={keep}>
-      <button type="button" aria-label="Bold" aria-pressed={state('bold')} onClick={() => rte.rte.exec('bold')}>
+      <button type="button" aria-label="Bold" aria-pressed={state('bold')} onClick={() => exec('bold')}>
         <b>B</b>
       </button>
-      <button type="button" aria-label="Italic" aria-pressed={state('italic')} onClick={() => rte.rte.exec('italic')}>
+      <button type="button" aria-label="Italic" aria-pressed={state('italic')} onClick={() => exec('italic')}>
         <i style={{ fontFamily: 'Georgia, serif' }}>I</i>
       </button>
       <Popover
@@ -468,27 +509,29 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
           </button>
         }
       >
-        <form
-          className="flex flex-col gap-2 p-1"
-          onSubmit={(e) => {
-            e.preventDefault()
-            applyLink()
-          }}
-        >
-          <label className="lbl">
-            Link URL
-            <input className="in mono" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://" autoFocus />
-          </label>
-          <span className="k">Leave it empty to remove the link. Tokens like {'{{ unsubscribe_url }}'} work too.</span>
-          <div className="flex justify-end gap-2">
-            <button type="button" className="btn sm" onClick={() => setLinkOpen(false)}>
-              Cancel
-            </button>
-            <button type="submit" className="btn sm pri">
-              Apply
-            </button>
-          </div>
-        </form>
+        <MouseShield>
+          <form
+            className="flex flex-col gap-2 p-1"
+            onSubmit={(e) => {
+              e.preventDefault()
+              applyLink()
+            }}
+          >
+            <label className="lbl">
+              Link URL
+              <input className="in mono" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://" autoFocus />
+            </label>
+            <span className="k">Leave it empty to remove the link. Tokens like {'{{ unsubscribe_url }}'} work too.</span>
+            <div className="flex justify-end gap-2">
+              <button type="button" className="btn sm" onClick={() => setLinkOpen(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn sm pri">
+                Apply
+              </button>
+            </div>
+          </form>
+        </MouseShield>
       </Popover>
       <span className="rsep" aria-hidden="true" />
       <Popover
@@ -502,24 +545,26 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
         }
       >
         <span className="mh">Insert a token</span>
-        <div className="flex max-h-[280px] flex-col overflow-auto">
-          {tokens.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              className="flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left hover:bg-ground"
-              style={{ border: 0, background: 'none', font: 'inherit', cursor: 'pointer' }}
-              onClick={() => {
-                restoreRange()
-                const token = t.fallback !== undefined && t.fallback !== '' ? `{{ ${t.key} | default: "${t.fallback}" }}` : `{{ ${t.key} }}`
-                rte.rte.insertHTML(token.replace(/&/g, '&amp;').replace(/</g, '&lt;'))
-              }}
-            >
-              <span>{t.label}</span>
-              <span className="mono k">{t.key}</span>
-            </button>
-          ))}
-        </div>
+        <MouseShield keepFocus>
+          <div className="flex max-h-[280px] flex-col overflow-auto">
+            {tokens.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                className="flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left hover:bg-ground"
+                style={{ border: 0, background: 'none', font: 'inherit', cursor: 'pointer' }}
+                onClick={() => {
+                  restoreRange()
+                  const token = t.fallback !== undefined && t.fallback !== '' ? `{{ ${t.key} | default: "${t.fallback}" }}` : `{{ ${t.key} }}`
+                  rte.rte.insertHTML(token.replace(/&/g, '&amp;').replace(/</g, '&lt;'))
+                }}
+              >
+                <span>{t.label}</span>
+                <span className="mono k">{t.key}</span>
+              </button>
+            ))}
+          </div>
+        </MouseShield>
       </Popover>
     </div>
   )

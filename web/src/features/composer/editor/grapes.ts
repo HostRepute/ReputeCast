@@ -20,6 +20,10 @@ export interface ComposerEditor {
   getBody(): string
   /** Replaces the canvas content (undoable). */
   setBody(body: string): void
+  /** True while a text is being edited on the canvas (its latest words aren't in the model yet). */
+  isEditingText(): boolean
+  /** Ends text editing so the typed text reaches the model (before a save or a compile). */
+  flushEditing(): Promise<void>
 }
 
 export interface CreateOptions {
@@ -109,6 +113,15 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
     getBody: () => editor.getHtml().trim(),
     setBody: (body: string) => {
       editor.setComponents(encodeTables(body))
+    },
+    isEditingText: () => !!editor.getEditing(),
+    flushEditing: async () => {
+      if (!editor.getEditing()) return
+      // GrapesJS ends text editing on 'toolbar:run:before' (as before any toolbar
+      // command) and copies the text into the model just after 'rte:disable'.
+      editor.trigger('toolbar:run:before')
+      for (let i = 0; i < 20 && editor.getEditing(); i++) await new Promise((r) => window.setTimeout(r, 15))
+      await new Promise((r) => window.setTimeout(r, 30))
     },
   }
 }
