@@ -27,3 +27,20 @@ func TestBuilder(t *testing.T) {
 		t.Errorf("path segments are not escaped: %q", got)
 	}
 }
+
+func TestSourceFollowsChanges(t *testing.T) {
+	src := NewSource("https://reputecast.acme.io/")
+	b := From(src)
+	if b.Report("tok") != "https://reputecast.acme.io/r/tok" {
+		t.Fatalf("report: %q", b.Report("tok"))
+	}
+	if src.Set("https://reputecast.acme.io") {
+		t.Fatal("the same URL without its slash is no change")
+	}
+	if !src.Set(" https://news.acme.io/ ") || b.Base() != "https://news.acme.io" || b.Open("x") != "https://news.acme.io/t/o/x" {
+		t.Fatalf("after a change: %q", b.Base())
+	}
+	if (Builder{}).Base() != "" {
+		t.Fatal("a zero Builder has no base")
+	}
+}

@@ -1,11 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { AuthenticationPage } from '@/features/admin/auth/AuthenticationPage'
 
 export const Route = createFileRoute('/w/$workspace/_app/admin/authentication')({
-  component: () => (
-    <Page title="Instance admin">
-      <NotBuilt screen="Instance admin" />
-    </Page>
-  ),
+  component: AuthenticationPage,
 })

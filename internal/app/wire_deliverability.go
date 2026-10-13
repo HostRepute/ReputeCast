@@ -40,7 +40,7 @@ func deliverabilityServices(a *App) (*hostrepute.Service, *deliverability.Servic
 		resolver = demo.DeliverabilityDNSOverlay(resolver)
 	}
 	jobs := lazyJobs{a}
-	hr := &hostrepute.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Cfg: cfg, Log: a.Log, Jobs: jobs}
+	hr := &hostrepute.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Cfg: cfg, Log: a.Log, Jobs: jobs, PublicURL: a.URLs.Base}
 	dl := &deliverability.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, HostRepute: hr, Jobs: jobs, DNS: resolver}
 	hr.Status = dl.AssetStatuses
 	hr.Fallback = dl.Fallback

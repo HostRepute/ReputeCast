@@ -4,6 +4,544 @@
  */
 
 export interface paths {
+    "/api/v1/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every audit entry on the instance, newest first */
+        get: operations["list-instance-audit-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit/events/{eventId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One audit entry of any workspace or of the instance */
+        get: operations["get-instance-audit-event"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export matching entries as CSV or JSON (streamed) */
+        get: operations["export-instance-audit-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Retention and stream of the instance-level entries */
+        get: operations["get-instance-audit-settings"];
+        /** Change the instance retention or stream instance events to a webhook */
+        put: operations["update-instance-audit-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/instance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Instance name, logo, public URL and default timezone */
+        get: operations["get-instance-settings"];
+        /** Save the instance name, public URL and default timezone */
+        put: operations["update-instance-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/instance/check-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the public URL's DNS, TLS and reachability */
+        post: operations["check-instance-url"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/instance/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload the instance logo (SVG or PNG, square) */
+        put: operations["set-instance-logo"];
+        post?: never;
+        /** Use the ReputeCast mark instead of a logo */
+        delete: operations["remove-instance-logo"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sign-in methods, password policy, two-factor, sessions, lockout, JIT allowlist */
+        get: operations["get-instance-policy"];
+        /** Save the authentication policy */
+        put: operations["update-instance-policy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sign-ins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest sign-in attempts */
+        get: operations["list-instance-sign-ins"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/social": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Google, Microsoft and GitHub sign-in settings */
+        get: operations["list-social-providers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/social/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Configure a social sign-in provider (the secret is write-only) */
+        put: operations["update-social-provider"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sso": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** SSO providers and the presets to add one */
+        get: operations["list-sso-providers"];
+        put?: never;
+        /** Add an SSO provider from a preset (a draft until enabled) */
+        post: operations["create-sso-provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sso/{providerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An SSO provider: connection, claims, access, test sign-in */
+        get: operations["get-sso-provider"];
+        /** Save an SSO provider (the client secret is write-only) */
+        put: operations["update-sso-provider"];
+        post?: never;
+        /** Delete a provider that isn't enabled */
+        delete: operations["delete-sso-provider"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sso/{providerId}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disable a provider (its domain enforcement ends too) */
+        post: operations["disable-sso-provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sso/{providerId}/discovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fetch the issuer's discovery document and signing keys */
+        post: operations["test-sso-discovery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sso/{providerId}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enable a provider: its button appears on the sign-in page */
+        post: operations["enable-sso-provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sso/{providerId}/enforcement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who signs in how before and after domain enforcement */
+        get: operations["preview-sso-enforcement"];
+        /** Turn domain enforcement on (with break-glass Owners confirmed) or off */
+        put: operations["set-sso-enforcement"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sso/{providerId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a test sign-in: shows the claims, signs nobody in, changes nothing */
+        post: operations["start-sso-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Installed version, latest release, changelog and how to upgrade */
+        get: operations["get-instance-version"];
+        /** Turn the daily GitHub release check on or off */
+        put: operations["set-instance-update-check"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/updates/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fetch the latest release now (when the check is on) */
+        post: operations["check-instance-updates"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every account on the instance, with workspaces, sign-in methods and two-factor */
+        get: operations["list-instance-users"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{userId}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deactivate an account (reason required): signed out everywhere, history kept */
+        post: operations["deactivate-instance-user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{userId}/instance-admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Make someone an instance admin, or remove it (never the last one) */
+        put: operations["set-instance-admin"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{userId}/password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether a reset email can go out now, and the CLI command */
+        get: operations["get-instance-user-password-reset"];
+        put?: never;
+        /** Email a one-time password reset link on the System stream */
+        post: operations["send-instance-user-password-reset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{userId}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Let a deactivated person sign in again */
+        post: operations["reactivate-instance-user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{userId}/sign-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign a person out of every session */
+        post: operations["sign-out-instance-user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{userId}/two-factor-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset someone's authenticator (reason required and logged; confirm with your password) */
+        post: operations["reset-instance-user-two-factor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{userId}/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clear a sign-in lockout */
+        post: operations["unlock-instance-user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every workspace with members, subscribers and providers */
+        get: operations["list-instance-workspaces"];
+        put?: never;
+        /** Create a workspace with an Owner */
+        post: operations["create-instance-workspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/workspaces/{workspaceId}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete a workspace (typed name; restorable for 7 days, then purged by a job) */
+        post: operations["delete-instance-workspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/workspaces/{workspaceId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a deleted workspace during its 7-day hold */
+        post: operations["restore-instance-workspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/identify": {
         parameters: {
             query?: never;
@@ -118,6 +656,40 @@ export interface paths {
         put?: never;
         /** Sign out of this session */
         post: operations["auth-sign-out"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/social/{kind}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start Google, Microsoft or GitHub sign-in: redirects to the provider */
+        get: operations["social-start"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sso/{providerId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start single sign-on: redirects to the identity provider */
+        get: operations["sso-start"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5016,6 +5588,10 @@ export interface components {
             lastOkAt?: string;
             url?: string;
         };
+        AuditWorkspaceRef: {
+            name: string;
+            slug: string;
+        };
         "Auth-identifyRequest": {
             /** Format: email */
             email: string;
@@ -7454,12 +8030,96 @@ export interface components {
             /** @enum {string} */
             step?: "source" | "fields" | "consent" | "preview" | "";
         };
+        InstanceAdminInput: {
+            admin: boolean;
+        };
+        InstanceAuditDetail: {
+            adminPath?: string;
+            after?: unknown;
+            before?: unknown;
+            client?: string;
+            diff: components["schemas"]["AuditDiffLine"][];
+            event: components["schemas"]["AuditEventItem"];
+            ip?: string;
+            json: unknown;
+            link?: string;
+            linkLabel?: string;
+            permission?: string;
+            related: string[];
+            userAgent?: string;
+            what: string;
+            workspace: string;
+            workspaceSlug?: string;
+        };
+        InstanceAuditItem: {
+            action: string;
+            actor: components["schemas"]["AuditActor"];
+            changes: boolean;
+            id: string;
+            /** Format: date-time */
+            occurredAt: string;
+            reason?: string;
+            requestId?: string;
+            /** @enum {string} */
+            result: "allowed" | "denied" | "error";
+            source: components["schemas"]["AuditSource"];
+            summary: string;
+            target: string;
+            targetId: string;
+            targetName: string;
+            targetType: string;
+            workspace?: string;
+            workspaceSlug?: string;
+        };
+        InstanceAuditList: {
+            items: components["schemas"]["InstanceAuditItem"][];
+            nextCursor?: string;
+            /** Format: int32 */
+            retentionDays: number;
+            workspaces: components["schemas"]["AuditWorkspaceRef"][];
+        };
+        InstanceAuditSettings: {
+            /** Format: int32 */
+            retentionDays: number;
+            stream: components["schemas"]["AuditStreamStatus"];
+            /** Format: int64 */
+            total: number;
+            workspaceStreams: components["schemas"]["InstanceWorkspaceStream"][];
+        };
+        InstanceAuditSettingsResult: {
+            /** @description New signing secret, shown only in this response */
+            secret?: string;
+            settings: components["schemas"]["InstanceAuditSettings"];
+        };
         InstanceBasics: {
             name: string;
             /** Format: uri */
             publicUrl: string;
             timezone: string;
             updateCheck: boolean;
+        };
+        InstanceDeactivateInput: {
+            reason: string;
+            revokeKeys?: boolean;
+        };
+        InstanceDeactivateResult: {
+            /** Format: int64 */
+            keys: number;
+            /** Format: int64 */
+            memberships: number;
+            /** Format: int64 */
+            sessions: number;
+        };
+        InstanceDomainRejection: {
+            /** Format: date-time */
+            at: string;
+            email: string;
+        };
+        InstanceGraceMember: {
+            email: string;
+            name: string;
+            /** Format: date-time */
+            until: string;
         };
         InstanceInfo: {
             /** @example Acme ReputeCast */
@@ -7475,6 +8135,264 @@ export interface components {
             sso: components["schemas"]["SSOOption"][];
             /** @example v1.4.2 */
             version: string;
+        };
+        InstanceLogoInput: {
+            data: string;
+        };
+        InstanceMethods: {
+            passkeys: boolean;
+            password: boolean;
+            sso: boolean;
+        };
+        InstancePasswordResetInfo: {
+            command: string;
+            deactivatedNotice?: string;
+            email: string;
+            lastSentAt?: string;
+            /** Format: int64 */
+            minutesValid: number;
+            provider?: string;
+            providerStatus?: string;
+            ssoOnly: boolean;
+            ssoProvider?: string;
+            system: boolean;
+        };
+        InstancePasswordResetSent: {
+            /** Format: date-time */
+            expiresAt: string;
+            via: string;
+        };
+        InstancePolicy: {
+            breachedCheck: boolean;
+            /** Format: int64 */
+            graceDays: number;
+            inGrace: components["schemas"]["InstanceGraceMember"][];
+            jitDomains: string[];
+            lastRejection?: components["schemas"]["InstanceDomainRejection"];
+            /** Format: int64 */
+            lockedNow: number;
+            /** Format: int64 */
+            lockoutAttempts: number;
+            /** Format: int64 */
+            lockoutMinutes: number;
+            methods: components["schemas"]["InstanceMethods"];
+            /** Format: int64 */
+            passwordMinLength: number;
+            /**
+             * Format: int64
+             * @description Block the last N passwords; 0 allows re-use
+             */
+            passwordReuse: number;
+            /** Format: int64 */
+            sessionIdleMinutes: number;
+            /** Format: int64 */
+            sessionLifetimeHours: number;
+            social: components["schemas"]["SSOSocialProvider"][];
+            sso: components["schemas"]["SSOProviderItem"][];
+            /** @enum {string} */
+            twoFactor: "everyone" | "sensitive" | "off";
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        InstancePolicyInput: {
+            breachedCheck: boolean;
+            /** Format: int64 */
+            graceDays: number;
+            jitDomains: string[];
+            /** Format: int64 */
+            lockoutAttempts: number;
+            /** Format: int64 */
+            lockoutMinutes: number;
+            methods: components["schemas"]["InstanceMethods"];
+            /** Format: int64 */
+            passwordMinLength: number;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            passwordReuse: 0 | 5 | 10;
+            /** Format: int64 */
+            sessionIdleMinutes: number;
+            /** Format: int64 */
+            sessionLifetimeHours: number;
+            social: components["schemas"]["InstanceSocialToggles"];
+            /** @enum {string} */
+            twoFactor: "everyone" | "sensitive" | "off";
+        };
+        InstanceRelease: {
+            demo: boolean;
+            name?: string;
+            note?: string;
+            notes: string[];
+            /** Format: date-time */
+            publishedAt: string;
+            tag: string;
+            url: string;
+        };
+        InstanceSettings: {
+            configPublicUrl?: string;
+            defaultTimezone: string;
+            logoSvg?: string;
+            name: string;
+            publicUrl: string;
+            urlCheck?: components["schemas"]["URLCheck"];
+            webhooks?: components["schemas"]["PublicURLWebhooks"];
+        };
+        InstanceSettingsInput: {
+            defaultTimezone: string;
+            name: string;
+            publicUrl: string;
+        };
+        InstanceSignInEvent: {
+            account: string;
+            /** Format: date-time */
+            at: string;
+            detail?: string;
+            event: string;
+            id: string;
+            /** @enum {string} */
+            result: "allowed" | "denied" | "recovered";
+        };
+        InstanceSignInList: {
+            items: components["schemas"]["InstanceSignInEvent"][];
+        };
+        InstanceSignOutResult: {
+            /** Format: int64 */
+            revoked: number;
+        };
+        InstanceSocialToggles: {
+            github: boolean;
+            google: boolean;
+            microsoft: boolean;
+        };
+        InstanceTwoFactorResetInput: {
+            password?: string;
+            reason: string;
+        };
+        InstanceURLCheckInput: {
+            url?: string;
+        };
+        InstanceUpdateCheckInput: {
+            enabled: boolean;
+        };
+        InstanceUser: {
+            allMethods: components["schemas"]["MemberSignInMethod"][];
+            /**
+             * Format: int64
+             * @description Active API keys and agents the person created
+             */
+            apiKeys: number;
+            avatarColor: string;
+            avatarUrl?: string;
+            breakGlass: boolean;
+            /** Format: date-time */
+            deactivatedAt?: string;
+            email: string;
+            hasPassword: boolean;
+            id: string;
+            instanceAdmin: boolean;
+            /** Format: date-time */
+            lastSignInAt?: string;
+            /** Format: date-time */
+            lockedUntil?: string;
+            methods: components["schemas"]["MemberSignInMethod"][];
+            name: string;
+            self: boolean;
+            /** Format: int64 */
+            sessions: number;
+            soleOwnerOf: string[];
+            ssoProvider?: string;
+            /** @enum {string} */
+            status: "active" | "deactivated";
+            twoFactor: components["schemas"]["MemberTwoFA"];
+            workspaces: components["schemas"]["InstanceUserWorkspace"][];
+        };
+        InstanceUserList: {
+            adminNames: string[];
+            items: components["schemas"]["InstanceUser"][];
+            /** Format: int64 */
+            total: number;
+            workspaces: components["schemas"]["InstanceWorkspaceRef"][];
+        };
+        InstanceUserReason: {
+            reason?: string;
+        };
+        InstanceUserWorkspace: {
+            name: string;
+            role: string;
+            slug: string;
+            /** @enum {string} */
+            status: "active" | "deactivated";
+        };
+        InstanceVersion: {
+            /** Format: date-time */
+            builtAt?: string;
+            checkAllowed: boolean;
+            checkEnabled: boolean;
+            checkError?: string;
+            /** Format: date-time */
+            checkedAt?: string;
+            commit?: string;
+            /** @example v1.4.2 */
+            installed: string;
+            latest?: components["schemas"]["InstanceRelease"];
+            release: boolean;
+            releasesUrl: string;
+            updateAvailable: boolean;
+            upgradeCommand: string;
+        };
+        InstanceWorkspace: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            deletedAt?: string;
+            id: string;
+            /** Format: int64 */
+            invited: number;
+            member: boolean;
+            /** Format: int64 */
+            members: number;
+            name: string;
+            owner?: string;
+            providers: string[];
+            /** Format: date-time */
+            purgeAt?: string;
+            slug: string;
+            /** Format: int64 */
+            subscribers: number;
+        };
+        InstanceWorkspaceDeleteInput: {
+            confirm: string;
+        };
+        InstanceWorkspaceDeleted: {
+            /**
+             * Format: int64
+             * @description Scheduled sends that were stopped
+             */
+            cancelled: number;
+            /** Format: date-time */
+            purgeAt: string;
+        };
+        InstanceWorkspaceInput: {
+            name: string;
+            /** Format: uuid */
+            ownerId?: string;
+            timezone?: string;
+        };
+        InstanceWorkspaceList: {
+            items: components["schemas"]["InstanceWorkspace"][];
+            /** Format: int64 */
+            live: number;
+        };
+        InstanceWorkspaceRef: {
+            name: string;
+            slug: string;
+        };
+        InstanceWorkspaceStream: {
+            failing: boolean;
+            host: string;
+            name: string;
+            slug: string;
         };
         InvitationAcceptInput: {
             name?: string;
@@ -8755,6 +9673,21 @@ export interface components {
             /** @example 0x4AAAAAAA… */
             siteKey: string;
         };
+        PublicURLManualHook: {
+            provider: string;
+            /** @description The provider's webhook address on the new public URL */
+            url: string;
+            workspace: string;
+        };
+        PublicURLWebhooks: {
+            /** @description Providers whose webhook is set up in the provider itself */
+            manual: components["schemas"]["PublicURLManualHook"][];
+            /**
+             * Format: int64
+             * @description Providers whose webhook ReputeCast moves to the new URL, in the background
+             */
+            reregistering: number;
+        };
         ReadinessSummary: {
             /** Format: int64 */
             issues: number;
@@ -9446,6 +10379,96 @@ export interface components {
             /** Format: int64 */
             smallest?: number;
         };
+        SSOBreakGlassOwner: {
+            email: string;
+            keeps: string;
+            name: string;
+            workspace: string;
+        };
+        SSOClaimMap: {
+            email: string;
+            emailVerified: string;
+            groups: string;
+            name: string;
+        };
+        SSOClaimSample: {
+            claim: string;
+            /** Format: int64 */
+            count?: number;
+            /** @enum {string} */
+            field: "email" | "email_verified" | "name" | "groups";
+            found: boolean;
+            missing?: string;
+            note?: string;
+            value?: string;
+        };
+        SSOCreateInput: {
+            /** @enum {string} */
+            preset: "google" | "entra" | "okta" | "keycloak" | "authentik" | "oidc";
+        };
+        SSODiscoveryInput: {
+            issuerUrl?: string;
+        };
+        SSODiscoveryResult: {
+            /** Format: date-time */
+            checkedAt: string;
+            endpoints: string[];
+            error?: string;
+            /** Format: int64 */
+            keys: number;
+            /** Format: int64 */
+            ms?: number;
+            ok: boolean;
+            /** Format: int64 */
+            status?: number;
+            url?: string;
+        };
+        SSOEnforcementInput: {
+            confirm?: boolean;
+            domains: string[];
+        };
+        SSOEnforcementMember: {
+            after: string;
+            avatarColor: string;
+            breakGlass: boolean;
+            email: string;
+            id: string;
+            name: string;
+            today: string;
+            unlinked: boolean;
+        };
+        SSOEnforcementPreview: {
+            breakGlass: components["schemas"]["SSOBreakGlassOwner"][];
+            conflict?: string;
+            domains: string[];
+            enforced: boolean;
+            members: components["schemas"]["SSOEnforcementMember"][];
+            provider: string;
+        };
+        SSOGroupMapping: {
+            group: string;
+            label?: string;
+            lists?: string[];
+            roleKey: string;
+            /** Format: uuid */
+            workspaceId: string;
+        };
+        SSOJIT: {
+            enabled: boolean;
+            roleKey?: string;
+            roleName?: string;
+            workspaceId?: string;
+            workspaceName?: string;
+        };
+        SSOJITInput: {
+            enabled: boolean;
+            roleKey?: string;
+            workspaceId?: string;
+        };
+        SSOListChoice: {
+            id: string;
+            name: string;
+        };
         SSOOption: {
             domains: string[];
             id: string;
@@ -9454,6 +10477,160 @@ export interface components {
             preset: "google" | "entra" | "okta" | "keycloak" | "authentik" | "oidc";
             startUrl: string;
         };
+        SSOPreset: {
+            app: string;
+            discoveryHint: string;
+            docsLabel: string;
+            docsUrl: string;
+            groupIds: boolean;
+            groupsClaim: boolean;
+            groupsHint: string;
+            groupsMissingHint: string;
+            issuer?: string;
+            issuerPattern: string;
+            /** @enum {string} */
+            key: "google" | "entra" | "okta" | "keycloak" | "authentik" | "oidc";
+            /** @example Microsoft Entra ID */
+            name: string;
+            scopes: string[];
+            /** @example Entra ID */
+            shortName: string;
+            /** @description How the IdP enforces two-factor when it is trusted */
+            trustedTwoFactor?: string;
+            /** @enum {string} */
+            twoFactor: "amr" | "trusted";
+        };
+        SSOProviderDetail: {
+            breakGlass: string[];
+            breakGlassOwners: components["schemas"]["SSOBreakGlassOwner"][];
+            claims: components["schemas"]["SSOClaimMap"];
+            clientId: string;
+            discovery?: components["schemas"]["SSODiscoveryResult"];
+            discoveryOk?: boolean;
+            domains: string[];
+            enableBlockers: string[];
+            /** Format: date-time */
+            enabledAt?: string;
+            enforced: string[];
+            groupMappings: components["schemas"]["SSOGroupMapping"][];
+            groupsClaim: boolean;
+            id: string;
+            issuer: string;
+            jit: components["schemas"]["SSOJIT"];
+            /** Format: int64 */
+            mappings: number;
+            /** Format: int64 */
+            members: number;
+            name: string;
+            /** @enum {string} */
+            preset: "google" | "entra" | "okta" | "keycloak" | "authentik" | "oidc";
+            presetInfo: components["schemas"]["SSOPreset"];
+            redirectUri: string;
+            rejections: components["schemas"]["SSORejection"][];
+            scopes: string[];
+            secret: components["schemas"]["SSOSecretInfo"];
+            slug: string;
+            /** @enum {string} */
+            status: "draft" | "enabled" | "disabled" | "error";
+            test?: components["schemas"]["SSOTestView"];
+            twoFactor: string;
+            /** @enum {string} */
+            twoFactorMode: "amr" | "trusted";
+            workspaces: components["schemas"]["SSOWorkspaceChoice"][];
+        };
+        SSOProviderInput: {
+            allowedDomains: string[];
+            claims: components["schemas"]["SSOClaimMap"];
+            clientId: string;
+            clientSecret?: string;
+            groupMappings: components["schemas"]["SSOGroupMapping"][];
+            issuerUrl: string;
+            jit: components["schemas"]["SSOJITInput"];
+            name: string;
+            /** @enum {string} */
+            preset?: "google" | "entra" | "okta" | "keycloak" | "authentik" | "oidc";
+            scopes: string[];
+            secretExpiresOn?: string;
+            /** @enum {string} */
+            twoFactorMode: "amr" | "trusted";
+        };
+        SSOProviderItem: {
+            breakGlass: string[];
+            discoveryOk?: boolean;
+            domains: string[];
+            /** Format: date-time */
+            enabledAt?: string;
+            enforced: string[];
+            groupsClaim: boolean;
+            id: string;
+            issuer: string;
+            jit: components["schemas"]["SSOJIT"];
+            /** Format: int64 */
+            mappings: number;
+            /** Format: int64 */
+            members: number;
+            name: string;
+            /** @enum {string} */
+            preset: "google" | "entra" | "okta" | "keycloak" | "authentik" | "oidc";
+            slug: string;
+            /** @enum {string} */
+            status: "draft" | "enabled" | "disabled" | "error";
+            twoFactor: string;
+        };
+        SSOProviderList: {
+            items: components["schemas"]["SSOProviderItem"][];
+            presets: components["schemas"]["SSOPreset"][];
+        };
+        SSORejection: {
+            /** Format: date-time */
+            at: string;
+            email: string;
+            reason: string;
+            reference?: string;
+        };
+        SSORoleChoice: {
+            grantable: boolean;
+            key: string;
+            name: string;
+            reason?: string;
+        };
+        SSOSecretInfo: {
+            /**
+             * Format: date-time
+             * @description When the secret expires at the IdP, as entered by the admin
+             */
+            expiresOn?: string;
+            set: boolean;
+            /** Format: date-time */
+            setAt?: string;
+            setBy?: string;
+        };
+        SSOSocialInput: {
+            clientId: string;
+            clientSecret?: string;
+            enabled: boolean;
+            org?: string;
+            tenant?: string;
+        };
+        SSOSocialList: {
+            items: components["schemas"]["SSOSocialProvider"][];
+        };
+        SSOSocialProvider: {
+            clientId: string;
+            configured: boolean;
+            enabled: boolean;
+            /** @enum {string} */
+            kind: "google" | "microsoft" | "github";
+            /** Format: int64 */
+            linked: number;
+            name: string;
+            org?: string;
+            redirectUri: string;
+            secretSet: boolean;
+            /** Format: date-time */
+            secretSetAt?: string;
+            tenant?: string;
+        };
         SSOStart: {
             /** @example Google Workspace */
             name: string;
@@ -9461,6 +10638,38 @@ export interface components {
             providerId: string;
             /** @description Navigate here to start the OIDC flow */
             startUrl: string;
+        };
+        SSOTestInput: {
+            workspace: string;
+        };
+        SSOTestOutcome: {
+            code?: string;
+            detail: string;
+            label: string;
+            strong?: string;
+            /** @enum {string} */
+            tone: "ok" | "warn" | "bad" | "info" | "neutral";
+        };
+        SSOTestStart: {
+            authorizeUrl: string;
+        };
+        SSOTestView: {
+            /** Format: date-time */
+            at: string;
+            by?: string;
+            claims?: string;
+            error?: string;
+            groupsMissing: boolean;
+            groupsOverage: boolean;
+            outcome: components["schemas"]["SSOTestOutcome"][];
+            samples: components["schemas"]["SSOClaimSample"][];
+        };
+        SSOWorkspaceChoice: {
+            id: string;
+            lists: components["schemas"]["SSOListChoice"][];
+            name: string;
+            roles: components["schemas"]["SSORoleChoice"][];
+            slug: string;
         };
         Scope: {
             lists?: string[];
@@ -10771,6 +11980,1362 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "list-instance-audit-events": {
+        parameters: {
+            query?: {
+                /** @description Account, target, request id or sign-in reference */
+                q?: string;
+                /** @description Workspace slug, or instance for instance-level entries only */
+                workspace?: string;
+                actorType?: "user" | "api_key" | "mcp_agent" | "system";
+                result?: "allowed" | "denied" | "error";
+                range?: "24h" | "7d" | "30d" | "90d" | "all";
+                /** @description Overrides range */
+                since?: string;
+                until?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceAuditList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-instance-audit-event": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceAuditDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-instance-audit-events": {
+        parameters: {
+            query?: {
+                /** @description Account, target, request id or sign-in reference */
+                q?: string;
+                /** @description Workspace slug, or instance for instance-level entries only */
+                workspace?: string;
+                actorType?: "user" | "api_key" | "mcp_agent" | "system";
+                result?: "allowed" | "denied" | "error";
+                range?: "24h" | "7d" | "30d" | "90d" | "all";
+                /** @description Overrides range */
+                since?: string;
+                until?: string;
+                format?: "csv" | "json";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-instance-audit-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceAuditSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-instance-audit-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceAuditSettingsResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-instance-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-instance-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-instance-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceURLCheckInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-instance-logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceLogoInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-instance-logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-instance-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstancePolicy"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-instance-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstancePolicyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstancePolicy"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-instance-sign-ins": {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceSignInList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-social-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSOSocialList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-social-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "google" | "microsoft" | "github";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SSOSocialInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSOSocialList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sso-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSOProviderList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-sso-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SSOCreateInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSOProviderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sso-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSOProviderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sso-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SSOProviderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSOProviderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-sso-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disable-sso-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSOProviderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-sso-discovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SSODiscoveryInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSOProviderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "enable-sso-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSOProviderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-sso-enforcement": {
+        parameters: {
+            query?: {
+                domain?: string[];
+            };
+            header?: never;
+            path: {
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSOEnforcementPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-sso-enforcement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SSOEnforcementInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSOProviderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-sso-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SSOTestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSOTestStart"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-instance-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceVersion"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-instance-update-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceUpdateCheckInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceVersion"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-instance-updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceVersion"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-instance-users": {
+        parameters: {
+            query?: {
+                q?: string;
+                /** @description Workspace slug */
+                workspace?: string;
+                status?: "active" | "deactivated";
+                twofa?: "on" | "off" | "idp";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceUserList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "deactivate-instance-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceDeactivateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceDeactivateResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-instance-admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceAdminInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-instance-user-password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstancePasswordResetInfo"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-instance-user-password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstancePasswordResetSent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reactivate-instance-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sign-out-instance-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceUserReason"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceSignOutResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reset-instance-user-two-factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceTwoFactorResetInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unlock-instance-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-instance-workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceWorkspaceList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-instance-workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceWorkspaceInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceWorkspace"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-instance-workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceWorkspaceDeleteInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceWorkspaceDeleted"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-instance-workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceWorkspace"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "auth-identify": {
         parameters: {
             query?: never;
@@ -11012,6 +13577,86 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "social-start": {
+        parameters: {
+            query?: {
+                /** @description Email to pre-fill at the IdP */
+                login_hint?: string;
+                /** @description App path to open after signing in */
+                next?: string;
+                /** @description Invitation token: join its workspace with this identity */
+                invite?: string;
+                /** @description link adds the identity to the signed-in account */
+                intent?: "signin" | "link";
+            };
+            header?: never;
+            path: {
+                kind: "google" | "microsoft" | "github";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Found */
+            302: {
+                headers: {
+                    Location?: string;
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sso-start": {
+        parameters: {
+            query?: {
+                /** @description Email to pre-fill at the IdP */
+                login_hint?: string;
+                /** @description App path to open after signing in */
+                next?: string;
+                /** @description Invitation token: join its workspace with this identity */
+                invite?: string;
+                /** @description link adds the identity to the signed-in account */
+                intent?: "signin" | "link";
+            };
+            header?: never;
+            path: {
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Found */
+            302: {
+                headers: {
+                    Location?: string;
                     "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };

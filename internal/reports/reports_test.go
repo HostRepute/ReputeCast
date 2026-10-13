@@ -96,6 +96,7 @@ type report struct {
 		Remaining     int64
 		Variants      []struct {
 			Key        string
+			Label      string
 			Recipients int64
 			Winner     bool
 		}
@@ -177,7 +178,8 @@ func TestCampaignReport(t *testing.T) {
 	}
 	ab := r.ABTest
 	if ab == nil || ab.State != "decided" || ab.Winner != "B" || !ab.Significant || ab.Lift != 2.8 || ab.Confidence < 97 || ab.Confidence >= 99 || ab.Remaining != 38384 ||
-		len(ab.Variants) != 2 || ab.Variants[0].Recipients != 4798 || !ab.Variants[1].Winner {
+		len(ab.Variants) != 2 || ab.Variants[0].Recipients != 4798 || !ab.Variants[1].Winner ||
+		ab.Variants[0].Label != "October Product Update: three launches" || ab.Variants[1].Label != "What shipped in October, and what we're retiring" {
 		t.Fatalf("A/B: %+v", ab)
 	}
 	// The click map is drawn over the email as sent (the composer's
@@ -202,6 +204,17 @@ func TestCampaignReport(t *testing.T) {
 	}
 	if top.Label != "Read the docs" || sum < 99.5 || sum > 100.5 || cm.Other == nil || cm.Other.Links != grouped {
 		t.Fatalf("click map: top %+v, shares add to %v, other %+v, %d grouped", top, sum, cm.Other, grouped)
+	}
+	// The board's bubbles: 38%, 24%, 19% and 6%, and "Other" 13% over 9 links.
+	shown := map[string]float64{}
+	for _, l := range cm.Links {
+		if !l.Grouped {
+			shown[l.Label] = l.Share
+		}
+	}
+	if len(shown) != 4 || shown["Read the docs"] != 38 || shown["See changelog"] != 24 || shown["Read the guide"] != 19 || shown["Docs"] != 6 ||
+		cm.Other.Share != 13 || cm.Other.Links != 9 {
+		t.Fatalf("click map: %v, other %+v", shown, cm.Other)
 	}
 
 	// History imported from Brevo: its totals, and nothing ReputeCast can't

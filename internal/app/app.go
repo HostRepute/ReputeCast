@@ -9,9 +9,9 @@ import (
 	"log/slog"
 	"net/http"
 	"net/netip"
-	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -59,10 +59,15 @@ type App struct {
 	// Links signs open, click, unsubscribe and preference tokens in emails.
 	Links *linktoken.Signer
 	// URLs builds public links (tracking, unsubscribe, preferences, archive,
-	// shared reports) on the configured public URL.
+	// shared reports, provider webhooks) on the instance's public URL.
 	URLs publicurl.Builder
+	// PublicURL is that URL: the saved instance setting, else http.public_url
+	// (see wire_publicurl.go).
+	PublicURL *publicurl.Source
 
 	httpMetrics *server.HTTPMetrics
+	// cop is the cross-origin check; it learns a new public URL's origin.
+	cop atomic.Pointer[http.CrossOriginProtection]
 
 	policyMu    sync.Mutex
 	policy      api.Policy
@@ -87,19 +92,21 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		return nil, err
 	}
 	q := store.New(pool)
+	pub := publicurl.NewSource(cfg.HTTP.PublicURL)
 	a := &App{
-		Cfg:     cfg,
-		Log:     log,
-		Pool:    pool,
-		Q:       q,
-		Secrets: box,
-		Audit:   audit.New(q, log),
-		JobReg:  jobs.NewRegistry(),
-		Metrics: prometheus.NewRegistry(),
-		Mail:    mailer.Unavailable{},
-		Sending: sending.Unavailable{},
-		Links:   links,
-		URLs:    publicurl.New(cfg.HTTP.PublicURL),
+		Cfg:       cfg,
+		Log:       log,
+		Pool:      pool,
+		Q:         q,
+		Secrets:   box,
+		Audit:     audit.New(q, log),
+		JobReg:    jobs.NewRegistry(),
+		Metrics:   prometheus.NewRegistry(),
+		Mail:      mailer.Unavailable{},
+		Sending:   sending.Unavailable{},
+		Links:     links,
+		URLs:      publicurl.From(pub),
+		PublicURL: pub,
 	}
 	a.Metrics.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	a.Auth = &api.Authenticator{
@@ -247,9 +254,9 @@ func (a *App) Handler() http.Handler {
 	cop := http.NewCrossOriginProtection()
 	cop.AddInsecureBypassPattern("POST /hooks/")
 	cop.AddInsecureBypassPattern("POST /p/")
-	if u, err := url.Parse(a.Cfg.HTTP.PublicURL); err == nil {
-		_ = cop.AddTrustedOrigin(u.Scheme + "://" + u.Host)
-	}
+	trustOrigin(cop, a.Cfg.HTTP.PublicURL)
+	trustOrigin(cop, a.URLs.Base())
+	a.cop.Store(cop)
 
 	r.Group(func(r chi.Router) {
 		r.Use(cop.Handler)
@@ -336,6 +343,7 @@ func (a *App) Run(ctx context.Context) error {
 			}
 		}()
 	}
+	go a.followPublicURL(ctx)
 	if a.Cfg.HasRole(config.RoleWorker) {
 		if err := a.Jobs.Start(ctx); err != nil {
 			return fmt.Errorf("start workers: %w", err)

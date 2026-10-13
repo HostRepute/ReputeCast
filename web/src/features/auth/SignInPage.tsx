@@ -14,12 +14,16 @@ import { RecoveryCodesPanel } from './RecoveryCodes'
 export interface SignInSearch {
   next?: string
   reason?: 'expired'
-  error?: 'idp' | 'no_account'
+  error?: 'idp' | 'no_account' | 'deactivated'
   provider?: string
   code?: string
   ref?: string
   email?: string
   reset?: 'done'
+  /** An SSO or social sign-in that still needs the person's own second factor. */
+  challenge?: string
+  methods?: string
+  hint?: string
 }
 
 type TwoFactorMode = 'totp' | 'passkey' | 'recovery'
@@ -48,11 +52,34 @@ function safeNext(next?: string) {
   return next && next.startsWith('/') && !next.startsWith('//') ? next : undefined
 }
 
+/** A start link of an SSO or social provider that returns to `next`. */
+function withNext(url: string, next?: string) {
+  const n = safeNext(next)
+  return n ? `${url}${url.includes('?') ? '&' : '?'}next=${encodeURIComponent(n)}` : url
+}
+
+/** The first step: the callbacks of SSO and social sign-in come back with a
+ * two-factor challenge or a deactivated account. */
+function initialStep(search: SignInSearch): Step {
+  if (search.challenge && search.email) {
+    const methods = (search.methods ?? '').split(',').filter(Boolean)
+    const mode: TwoFactorMode = methods.includes('totp') ? 'totp' : methods.includes('passkey') ? 'passkey' : 'recovery'
+    return { kind: 'two_factor', email: search.email, challenge: search.challenge, methods, mode, passkeyHint: search.hint }
+  }
+  if (search.error === 'deactivated' && search.email) return { kind: 'deactivated', email: search.email }
+  if (search.email && !search.error) return { kind: 'password', email: search.email }
+  return { kind: 'email' }
+}
+
 /** A5 §5.1–5.2: identifier-first sign-in, passkeys, two-factor and every error state. */
 export function SignInPage({ search }: { search: SignInSearch }) {
-  const [step, setStep] = useState<Step>(search.email && !search.error ? { kind: 'password', email: search.email } : { kind: 'email' })
+  const [step, setStep] = useState<Step>(() => initialStep(search))
   const navigate = useNavigate()
   const qc = useQueryClient()
+  // The challenge is single use and short-lived; keep it out of the history.
+  useEffect(() => {
+    if (search.challenge || search.error === 'deactivated') void navigate({ to: '/sign-in', search: safeNext(search.next) ? { next: search.next } : {}, replace: true })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const finish = async (res: Schemas['SignInResult']) => {
     await qc.invalidateQueries({ queryKey: meQueryKey })
@@ -116,6 +143,7 @@ export function SignInPage({ search }: { search: SignInSearch }) {
           initial={step.email}
           expired={search.reason === 'expired'}
           resetDone={search.reset === 'done'}
+          next={search.next}
           onNext={setStep}
           onPasskey={finish}
           onProblem={(email, e) => special(email, e)}
@@ -125,6 +153,7 @@ export function SignInPage({ search }: { search: SignInSearch }) {
       return (
         <PasswordStep
           step={step}
+          next={search.next}
           onBack={back}
           onPasskey={finish}
           onSubmit={async (password) => {
@@ -147,7 +176,7 @@ export function SignInPage({ search }: { search: SignInSearch }) {
         />
       )
     case 'sso':
-      return <SsoStep step={step} onPassword={() => setStep({ kind: 'password', email: step.email })} onBack={back} />
+      return <SsoStep step={step} next={search.next} onPassword={() => setStep({ kind: 'password', email: step.email })} onBack={back} />
     case 'locked':
       return <LockedStep step={step} onBack={back} onPasskey={finish} />
     case 'deactivated':
@@ -208,6 +237,7 @@ function EmailStep({
   initial,
   expired,
   resetDone,
+  next,
   onNext,
   onPasskey,
   onProblem,
@@ -215,6 +245,7 @@ function EmailStep({
   initial?: string
   expired: boolean
   resetDone: boolean
+  next?: string
   onNext: (s: Step) => void
   onPasskey: (r: Schemas['SignInResult']) => void
   onProblem: (email: string, e: unknown) => boolean
@@ -287,7 +318,7 @@ function EmailStep({
       {social.length > 0 ? (
         <>
           <div className="sep">or continue with</div>
-          <SocialButtons providers={social} href={(p) => `/api/v1/auth/social/${p}/start`} />
+          <SocialButtons providers={social} href={(p) => withNext(`/api/v1/auth/social/${p}/start`, next)} />
         </>
       ) : null}
       <span className="foot">
@@ -299,11 +330,13 @@ function EmailStep({
 
 function PasswordStep({
   step,
+  next,
   onBack,
   onSubmit,
   onPasskey,
 }: {
   step: Extract<Step, { kind: 'password' }>
+  next?: string
   onBack: () => void
   onSubmit: (pw: string) => Promise<void>
   onPasskey: (r: Schemas['SignInResult']) => void
@@ -332,6 +365,9 @@ function PasswordStep({
       setPkError(passkeyErrorMessage(e, 'sign-in'))
     }
   }
+  // A domain with single sign-on (not enforced) offers it next to the password.
+  const domain = step.email.split('@')[1]?.toLowerCase() ?? ''
+  const sso = meta?.sso.find((p) => p.domains.includes(domain))
   return (
     <AuthLayout title="Sign in" labelledBy="h-password">
       <AuthHeading id="h-password" title="Sign in" sub={<NotYou email={step.email} onBack={onBack} />} />
@@ -371,12 +407,26 @@ function PasswordStep({
           </button>
         ) : null}
       </div>
+      {sso ? (
+        <>
+          <div className="sep">or</div>
+          <a className="btn" href={withNext(`${sso.startUrl}?login_hint=${encodeURIComponent(step.email)}`, next)}>
+            <SocialMark provider={ssoMark(sso.preset)} />
+            Continue with {sso.name}
+          </a>
+        </>
+      ) : null}
       {step.error ? <span className="foot">The message is the same whether or not an account exists for this email.</span> : null}
     </AuthLayout>
   )
 }
 
-function SsoStep({ step, onPassword, onBack }: { step: Extract<Step, { kind: 'sso' }>; onPassword: () => void; onBack: () => void }) {
+/** The mark of an SSO provider: Google's and Microsoft's for their presets. */
+function ssoMark(preset: string) {
+  return preset === 'google' ? 'google' : preset === 'entra' ? 'microsoft' : 'sso'
+}
+
+function SsoStep({ step, next, onPassword, onBack }: { step: Extract<Step, { kind: 'sso' }>; next?: string; onPassword: () => void; onBack: () => void }) {
   const domain = step.email.split('@')[1] ?? ''
   const google = step.sso.preset === 'google'
   return (
@@ -385,8 +435,8 @@ function SsoStep({ step, onPassword, onBack }: { step: Extract<Step, { kind: 'ss
       <Note tone="info" label="SSO">
         {domain} signs in with {step.sso.name}. Password sign-in is turned off for this domain.
       </Note>
-      <a className="btn pri" href={step.sso.startUrl}>
-        <SocialMark provider={google ? 'google' : 'sso'} />
+      <a className="btn pri" href={withNext(step.sso.startUrl, next)}>
+        <SocialMark provider={ssoMark(step.sso.preset)} />
         Continue with {step.sso.name}
       </a>
       <Note tone="neutral" label="Owner">
@@ -676,11 +726,12 @@ function IdpError({ provider = 'Your identity provider', code, reference, email 
   const [copied, setCopied] = useState(false)
   const navigate = useNavigate()
   const retry = meta?.sso.find((s) => s.name === provider)
+  const social = (['google', 'microsoft', 'github'] as const).find((k) => k === provider.toLowerCase() && meta?.social.includes(k))
   return (
     <AuthLayout title={`${provider} couldn't sign you in`} labelledBy="h-idp">
       <AuthHeading id="h-idp" title={`${provider} couldn't sign you in`} sub={email} />
       <Note tone="bad" label="IdP error">
-        {provider} returned {code ? <span className="mono">{code}</span> : 'an error'} while exchanging your sign-in. Nothing was changed on your account.
+        {idpSentence(provider, code)} Nothing was changed on your account.
       </Note>
       {reference ? (
         <div className="refbox">
@@ -700,8 +751,8 @@ function IdpError({ provider = 'Your identity provider', code, reference, email 
         </div>
       ) : null}
       <div className="tiles">
-        {retry ? (
-          <a className="btn pri" href={retry.startUrl + (email ? `?login_hint=${encodeURIComponent(email)}` : '')}>
+        {retry || social ? (
+          <a className="btn pri" href={retry ? retry.startUrl + (email ? `?login_hint=${encodeURIComponent(email)}` : '') : `/api/v1/auth/social/${social}/start`}>
             Try again
           </a>
         ) : (
@@ -714,6 +765,38 @@ function IdpError({ provider = 'Your identity provider', code, reference, email 
         </Link>
       </div>
     </AuthLayout>
+  )
+}
+
+/** What went wrong, for the codes ReputeCast sets itself; others are the IdP's. */
+function idpSentence(provider: string, code?: string) {
+  switch (code) {
+    case 'state_expired':
+      return 'This sign-in link expired or was already used.'
+    case 'state_mismatch':
+      return 'This sign-in was started in another browser or tab.'
+    case 'nonce_mismatch':
+      return `The answer from ${provider} belongs to another sign-in.`
+    case 'provider_disabled':
+    case 'method_disabled':
+      return `${provider} sign-in is turned off on this instance.`
+    case 'not_in_org':
+      return `${provider} sign-in is limited to members of the instance's organization.`
+    case 'org_restricted':
+      return `Your ${provider} organization restricts third-party apps; an owner of it must approve ReputeCast.`
+    case 'email_not_verified':
+      return `${provider} didn't confirm that your email address is verified.`
+    case 'invite_wrong_account':
+      return `This invitation is for another email address than your ${provider} account.`
+    case 'identity_in_use':
+      return `This ${provider} account is already linked to another ReputeCast account.`
+    case 'already_linked':
+      return `Your account already has a ${provider} sign-in.`
+  }
+  return (
+    <>
+      {provider} returned {code ? <span className="mono">{code}</span> : 'an error'} while exchanging your sign-in.
+    </>
   )
 }
 

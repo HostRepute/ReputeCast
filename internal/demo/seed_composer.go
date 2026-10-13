@@ -228,7 +228,7 @@ func seedComposerImpl(ctx context.Context, s *Seeder) error {
 		if err := s.Tx.QueryRow(ctx, `SELECT coalesce(started_at, now()) FROM campaigns WHERE id = $1`, id).Scan(&started); err != nil {
 			return err
 		}
-		v := version{at: started.Add(-26 * time.Hour), by: linh.ID, label: "subject A/B test", source: "autosave", subject: "October at Acme: what shipped", preheader: "Feature flags preview, faster exports and the Postal warm-up.", mjml: src}
+		v := version{at: started.Add(-26 * time.Hour), by: linh.ID, label: "subject A/B test", source: "autosave", subject: OctoberSubjectA, preheader: "Feature flags are generally available, audit log exports stream to S3 or your SIEM, and the v1 API retires on 30 November.", mjml: src}
 		if err := saveHistory(id, []version{v}, nil, false); err != nil {
 			return err
 		}

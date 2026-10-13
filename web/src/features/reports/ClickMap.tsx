@@ -9,9 +9,13 @@ type Link = Schemas['ReportLink']
 
 /** The email's own width; the map shows it scaled to the card. */
 const EMAIL_WIDTH = 600
-/** Bubble size, for keeping bubbles inside the map. */
-const BUBBLE_W = 42
+/** Bubble height (.rep-ck). */
 const BUBBLE_H = 22
+
+/** A bubble's width: "38%" in 11.5px bold IBM Plex Sans with 8px padding on each side. */
+export function bubbleWidth(share: number): number {
+  return Math.ceil(26.5 + 7.3 * String(Math.round(share)).length)
+}
 
 interface Bubble {
   key: string
@@ -83,8 +87,8 @@ function fontFaces(): string {
 
 /**
  * Where a link sits in the email (unscaled px): its box, the end of its line
- * of links (a navigation row), the block around it, and whether it is drawn
- * as a button.
+ * of links (a navigation row), whether anything follows it on its line, the
+ * block around it, and whether it is drawn as a button.
  */
 export interface AnchorBox {
   top: number
@@ -92,21 +96,25 @@ export interface AnchorBox {
   right: number
   /** Right edge of the last link on the same line. */
   rowRight: number
-  /** The box of the closest block-level element around the link. */
-  blockTop: number
+  /** Nothing but space follows the link (or its row of links) on its line. */
+  endsLine: boolean
+  /** Top of the band the link sits on: the closest box around it that paints a background (an email's section), else its block. */
+  bandTop: number
+  /** Right edge of the closest block-level element around the link. */
   blockRight: number
   button: boolean
 }
 
 /**
  * Bubbles as on the Report board: a button's bubble overlaps its bottom-right
- * corner, a text link's sits just after the link (after the whole row for a
- * line of links), and "Other" sits on the top edge of the block holding the
- * last small link (the footer). A text link that ends its line has no room
- * after it, so its bubble sits just under its end instead of over the words.
+ * corner; a text link that ends its line has its bubble at the right edge of
+ * its block, on its line, when that leaves the words clear; otherwise the
+ * bubble sits just after the link (after the whole row for a line of links)
+ * or, with no room there, just under its end. "Other" sits on the top edge
+ * of the band holding the last small link (the footer), at its block's right.
  */
 export function placeBubbles(links: Link[], anchors: AnchorBox[], other: Schemas['ReportLinkGroup'] | undefined, scale: number, width: number): Bubble[] {
-  const clampX = (x: number) => Math.max(2, Math.min(width - BUBBLE_W - 2, x))
+  const clampX = (x: number, w: number) => Math.max(2, Math.min(width - w - 2, x))
   const clampY = (y: number) => Math.max(2, y)
   const out: Bubble[] = []
   let lastGrouped: AnchorBox | undefined
@@ -117,40 +125,69 @@ export function placeBubbles(links: Link[], anchors: AnchorBox[], other: Schemas
       if (!lastGrouped || a.top >= lastGrouped.top) lastGrouped = a
       continue
     }
+    const w = bubbleWidth(l.share)
     const after = Math.max(a.right, a.rowRight) * scale + 4
+    const line = ((a.top + a.bottom) / 2) * scale - BUBBLE_H / 2
+    const edge = Math.min(a.blockRight * scale, width - 2) - w
     const pos = a.button
       ? { left: a.right * scale - 8, top: a.bottom * scale - 8 }
-      : after + BUBBLE_W <= width - 2
-        ? { left: after, top: ((a.top + a.bottom) / 2) * scale - BUBBLE_H / 2 }
-        : { left: a.right * scale - BUBBLE_W, top: a.bottom * scale + 2 }
-    out.push({ key: `${l.position}`, label: l.label, share: l.share, hot: l.hot, left: clampX(pos.left), top: clampY(pos.top) })
+      : a.endsLine && edge >= after
+        ? { left: edge, top: line }
+        : after + w <= width - 2
+          ? { left: after, top: line }
+          : { left: a.right * scale - w, top: a.bottom * scale + 2 }
+    out.push({ key: `${l.position}`, label: l.label, share: l.share, hot: l.hot, left: clampX(pos.left, w), top: clampY(pos.top) })
   }
   if (other && lastGrouped) {
-    out.push({ key: 'other', label: 'Other', share: other.share, hot: false, left: clampX(lastGrouped.blockRight * scale - BUBBLE_W - 8), top: clampY(lastGrouped.blockTop * scale - 8) })
+    const w = bubbleWidth(other.share)
+    out.push({ key: 'other', label: 'Other', share: other.share, hot: false, left: clampX(lastGrouped.blockRight * scale - w, w), top: clampY(lastGrouped.bandTop * scale - 8) })
   }
   return out
+}
+
+/** Whether only space follows a link inside its block on the link's line. */
+function lastOnLine(a: HTMLAnchorElement, block: Element): boolean {
+  const r = a.getBoundingClientRect()
+  const range = a.ownerDocument.createRange()
+  range.setStartAfter(a)
+  range.setEnd(block, block.childNodes.length)
+  return !Array.from(range.getClientRects()).some((t) => t.width > 0.5 && t.left >= r.right - 1 && t.top < r.bottom - 2 && t.bottom > r.top + 2)
 }
 
 /** Measures a link inside the email document. */
 function anchorBox(a: HTMLAnchorElement, all: HTMLAnchorElement[]): AnchorBox {
   const win = a.ownerDocument.defaultView
   const r = a.getBoundingClientRect()
-  let rowRight = r.right
-  for (const b of all) {
-    const o = b.getBoundingClientRect()
-    if (b !== a && Math.abs(o.top - r.top) < 4 && o.left >= r.right) rowRight = Math.max(rowRight, o.right)
-  }
   let block: Element | null = a.parentElement
   while (block && win && block !== a.ownerDocument.body) {
     const d = win.getComputedStyle(block).display
     if (!d.startsWith('inline') && d !== 'contents') break
     block = block.parentElement
   }
-  const br = (block ?? a.ownerDocument.body).getBoundingClientRect()
+  const outer = block ?? a.ownerDocument.body
+  const br = outer.getBoundingClientRect()
+  let band: Element | null = outer
+  while (band && win && band !== a.ownerDocument.body) {
+    const bg = win.getComputedStyle(band).backgroundColor
+    if (bg !== '' && bg !== 'transparent' && !bg.endsWith(', 0)')) break
+    band = band.parentElement
+  }
+  const bandTop = band && band !== a.ownerDocument.body ? band.getBoundingClientRect().top : br.top
+  // A row is the links after this one on its line in the same block (a
+  // navigation bar), not links in a neighbouring column.
+  let rowRight = r.right
+  let last = a
+  for (const b of all) {
+    const o = b.getBoundingClientRect()
+    if (b !== a && outer.contains(b) && Math.abs(o.top - r.top) < 4 && o.left >= r.right && o.right > rowRight) {
+      rowRight = o.right
+      last = b
+    }
+  }
   const st = win?.getComputedStyle(a)
   const bg = st?.backgroundColor ?? ''
   const button = Boolean(st && bg !== '' && bg !== 'transparent' && !bg.endsWith(', 0)') && parseFloat(st.paddingLeft) >= 4)
-  return { top: r.top, bottom: r.bottom, right: r.right, rowRight, blockTop: br.top, blockRight: br.right, button }
+  return { top: r.top, bottom: r.bottom, right: r.right, rowRight, endsLine: lastOnLine(last, outer), bandTop, blockRight: br.right, button }
 }
 
 function MapFrame({ m }: { m: Schemas['ReportClickMap'] }) {

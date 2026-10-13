@@ -96,16 +96,21 @@ WHERE id = @id;
 -- name: HooksDue :many
 -- Deliveries ready for an attempt that have no job queued (or a lost one).
 -- While an endpoint is failing only its oldest open delivery is tried (the
--- probe); the rest wait and replay once the endpoint answers 2xx again.
+-- probe); the rest wait and replay once the endpoint answers 2xx again. The
+-- probes are found once per failing endpoint, not once per waiting delivery.
+WITH probe AS (
+    SELECT DISTINCT ON (d3.webhook_id) d3.webhook_id, d3.id
+    FROM webhook_deliveries d3 JOIN webhooks h3 ON h3.id = d3.webhook_id AND h3.enabled AND h3.failing_since IS NOT NULL
+    WHERE d3.state IN ('pending','retrying','delivering')
+    ORDER BY d3.webhook_id, d3.created_at, d3.id
+)
 UPDATE webhook_deliveries d SET enqueued_at = now()
 WHERE d.id IN (
     SELECT d2.id FROM webhook_deliveries d2 JOIN webhooks h ON h.id = d2.webhook_id AND h.enabled
+    LEFT JOIN probe p ON p.webhook_id = h.id
     WHERE d2.state IN ('pending','retrying') AND coalesce(d2.next_attempt_at, d2.created_at) <= now()
       AND (d2.enqueued_at IS NULL OR d2.enqueued_at < now() - interval '10 minutes')
-      AND (h.failing_since IS NULL OR d2.id = (
-          SELECT d3.id FROM webhook_deliveries d3
-          WHERE d3.webhook_id = h.id AND d3.state IN ('pending','retrying','delivering')
-          ORDER BY d3.created_at, d3.id LIMIT 1))
+      AND (h.failing_since IS NULL OR d2.id = p.id)
     ORDER BY d2.created_at, d2.id
     LIMIT @lim
     FOR UPDATE OF d2 SKIP LOCKED
