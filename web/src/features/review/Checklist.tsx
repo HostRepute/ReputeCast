@@ -3,7 +3,7 @@ import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
-import { bySeverity, checksByGroup, flatTitle, groupTitles, type Check, type Fix, type Run } from './logic'
+import { bySeverity, checksByGroup, flatGroupLabels, flatTitle, groupTitles, type Check, type Fix, type Run } from './logic'
 import { CheckBadge, CheckRow, FixButtons } from './parts'
 
 type Actions = {
@@ -116,7 +116,7 @@ function BySeverity({ run, ...actions }: { run: Run } & Actions) {
                   <CheckBadge status="pass" />
                   <div className="rv-rt">
                     <span className="rv-t">
-                      {g.title}: {g.summary}
+                      {flatGroupLabels[g.key] ?? g.title}: {g.summary}
                     </span>
                   </div>
                   {i === summaries.length - 1 ? (

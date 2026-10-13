@@ -319,6 +319,9 @@ export const groupTitles: Record<string, string> = {
   routing: 'Routing',
 }
 
+/** Group names that start a one-line row: "Audience: 0 recently bounced, …". */
+export const flatGroupLabels: Record<string, string> = { ...groupTitles, audience: 'Audience' }
+
 /**
  * The order of blocks and warnings when they're listed by severity: legal
  * requirements and what filters every recipient first, then the rest.

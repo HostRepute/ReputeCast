@@ -1036,8 +1036,10 @@ func (b *builder) compliance() {
 			Label:  "One-click unsubscribe", Ack: "I understand one-click unsubscribe won't work until the public URL uses HTTPS."})
 	}
 	ct := b.f.Content
+	footerBlocked := false
 	if ct.Checked {
 		if f := issuesOf(ct.Report, "compliance.footer"); len(f) > 0 {
+			footerBlocked = true
 			title := "The email body has no unsubscribe link or postal address"
 			switch f[0].Title {
 			case "No postal address in the footer":
@@ -1090,6 +1092,11 @@ func (b *builder) compliance() {
 	}
 	parts = append(parts, "unsubscribes processed within 2 days")
 	c.Detail = strings.Join(parts, " · ")
+	if footerBlocked && c.Status == Pass {
+		// The rules also want a visible unsubscribe link and address in the
+		// body: the footer block says they aren't met, and its fix meets them.
+		return
+	}
 	b.add(c)
 }
 
@@ -1294,27 +1301,33 @@ func (b *builder) routing() {
 		}
 		b.add(c)
 	}
-	// Terms.
+	// Terms, of the providers that can send (a provider that is down sends
+	// nothing; the health check above already blocks on it), as the
+	// authentication checks do.
+	sending := b.availableShares()
+	if len(sending) == 0 {
+		sending = shares
+	}
 	var notAllowed []ShareFacts
-	for _, s := range shares {
+	for _, s := range sending {
 		if !s.BulkAllowed || s.Sandbox {
 			notAllowed = append(notAllowed, s)
 		}
 	}
 	if len(notAllowed) == 0 {
 		parts := []string{}
-		for _, s := range shares {
+		for _, s := range sending {
 			parts = append(parts, s.Short+": "+s.Terms)
 		}
 		title := "Both providers' terms allow bulk marketing"
 		short := "both providers' terms allow bulk marketing"
 		switch {
-		case len(shares) == 1:
-			title = shares[0].Short + "'s terms allow bulk marketing"
-			short = shares[0].Short + " terms allow bulk marketing"
-		case len(shares) > 2:
-			title = fmt.Sprintf("All %d providers' terms allow bulk marketing", len(shares))
-			short = fmt.Sprintf("all %d providers' terms allow bulk marketing", len(shares))
+		case len(sending) == 1:
+			title = sending[0].Short + "'s terms allow bulk marketing"
+			short = sending[0].Short + " terms allow bulk marketing"
+		case len(sending) > 2:
+			title = fmt.Sprintf("All %d providers' terms allow bulk marketing", len(sending))
+			short = fmt.Sprintf("all %d providers' terms allow bulk marketing", len(sending))
 		}
 		b.add(ReadinessCheck{Key: "routing.terms", Group: GroupRouting, Status: Pass, Title: title, Detail: strings.Join(parts, " · "), Label: "Bulk-marketing terms", Short: short})
 	} else {
@@ -1489,7 +1502,7 @@ func (b *builder) groups() []ReadinessGroup {
 	out := []ReadinessGroup{}
 	for _, g := range Groups {
 		grp := ReadinessGroup{Key: g, Title: groupTitles[g], Status: Pass}
-		var passShorts []string
+		var passes []ReadinessCheck
 		for _, c := range b.checks {
 			if c.Group != g {
 				continue
@@ -1498,7 +1511,7 @@ func (b *builder) groups() []ReadinessGroup {
 			if c.Status == Pass {
 				grp.Passed++
 				if c.Short != "" {
-					passShorts = append(passShorts, c.Short)
+					passes = append(passes, c)
 				}
 			}
 			if rank(c.Status) < rank(grp.Status) {
@@ -1509,7 +1522,7 @@ func (b *builder) groups() []ReadinessGroup {
 			continue
 		}
 		grp.Caption = b.caption(g, grp)
-		grp.Summary = b.summary(g, passShorts)
+		grp.Summary = b.summary(g, passes)
 		grp.Running = b.running(g)
 		out = append(out, grp)
 	}
@@ -1558,7 +1571,28 @@ func (b *builder) caption(g string, grp ReadinessGroup) string {
 	return ""
 }
 
-func (b *builder) summary(g string, shorts []string) string {
+// summaryOrder puts a group's passing checks in the order its one-line
+// summary names them ("71 KB of 102 KB, image ratio 44%, …"); checks not
+// listed keep their place after the listed ones.
+var summaryOrder = map[string]int{"content.size": 1, "content.image_ratio": 2, "content.alt_text": 3, "content.plain_text": 4}
+
+// summary is the line a group shows when its passing checks are collapsed.
+func (b *builder) summary(g string, passes []ReadinessCheck) string {
+	passes = slices.Clone(passes)
+	slices.SortStableFunc(passes, func(x, y ReadinessCheck) int {
+		rx, ry := summaryOrder[x.Key], summaryOrder[y.Key]
+		if rx == 0 {
+			rx = len(summaryOrder) + 1
+		}
+		if ry == 0 {
+			ry = len(summaryOrder) + 1
+		}
+		return rx - ry
+	})
+	shorts := make([]string, 0, len(passes))
+	for _, c := range passes {
+		shorts = append(shorts, c.Short)
+	}
 	switch g {
 	case GroupAuthentication:
 		parts := []string{}
