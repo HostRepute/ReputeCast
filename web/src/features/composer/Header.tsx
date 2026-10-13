@@ -102,7 +102,7 @@ export function Header({ onReview }: { onReview: () => void }) {
             </label>
             <input
               id="cname"
-              className="cmp-name"
+              className={empty ? 'cmp-name wide' : 'cmp-name'}
               value={c.name}
               placeholder="Untitled campaign"
               onChange={(e) => c.setName(e.target.value)}
