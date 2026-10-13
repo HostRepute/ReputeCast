@@ -317,3 +317,11 @@ export function monthName(d: string | number | Date, style: 'short' | 'long' = '
 export function weekdayName(d: string | number | Date): string {
   return fmt('weekday-long', 'en-US', { weekday: 'long' }).format(toDate(d))
 }
+
+/* ---- W10 · Connect a provider, senders and domains (appended) ---- */
+
+/** "18 Sep 2026" */
+export function dayMonthYear(d: string | number | Date): string {
+  const p = parts('dayMonthYear', toDate(d), { day: 'numeric', month: 'short', year: 'numeric' })
+  return `${p.day} ${p.month} ${p.year}`
+}

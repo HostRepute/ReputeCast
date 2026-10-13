@@ -530,7 +530,12 @@ func keyError(d providers.Descriptor, c adapterCopy, b built, err error) *StepEr
 		field = "access_key_id"
 	}
 	if errors.Is(err, providers.ErrUnauthorized) || ce != nil && ce.Auth {
-		msg := d.Name + " rejected this key."
+		// "Mailgun rejected this key: `401 Unauthorized · Forbidden`. Check…"
+		msg := d.Name + " rejected this key"
+		if detail != "" {
+			msg += ": `" + strings.ReplaceAll(detail, "`", "'") + "`"
+		}
+		msg += "."
 		if c.KeyHint != "" {
 			msg += " " + c.KeyHint
 		}

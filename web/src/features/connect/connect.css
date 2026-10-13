@@ -1,0 +1,247 @@
+/*
+ * Connect a sending provider: the setup wizard's own classes (SetupCatalog,
+ * SetupSES, SetupSMTP, SetupError, SetupDomain, SetupTestSend, SetupStreams,
+ * SetupContacts, SetupDone), copied value for value and prefixed `cn-` so
+ * they never collide with the shared vocabulary in app.css (`.row`, `.kv`
+ * and `.step` mean something else there).
+ */
+@layer components {
+  /* The wizard's top bar: brand, title, step badge, Exit setup. */
+  .cn-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 14px 28px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+  .cn-home {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink);
+  }
+  .cn-home:hover {
+    color: var(--ink);
+  }
+
+  /* Stepper column and content column. */
+  .cn-wiz {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 28px;
+    max-width: 1300px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: flex-start;
+  }
+  .cn-steps {
+    flex: 1 1 220px;
+    max-width: 250px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .cn-main {
+    flex: 999 1 560px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  /* A status row inside a card (provisioning, webhooks, what was configured). */
+  .cn-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 16px;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .cn-row.lg {
+    padding: 11px 18px;
+  }
+
+  /* Catalog cards and capability chips. */
+  .cn-prov {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 18px;
+  }
+  .cn-prov .t {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .cn-prov .nm {
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .cn-prov .btn {
+    align-self: flex-start;
+    margin-top: auto;
+  }
+  .cn-prov.rec {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .cn-cap {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    background: var(--ground-3);
+    color: var(--ink-nav);
+    white-space: nowrap;
+  }
+  .cn-cap.y {
+    border-color: var(--ok-line);
+    background: var(--ok-tint);
+    color: var(--ok-fg);
+  }
+  .cn-cap.n {
+    color: #6b7280;
+    text-decoration: line-through;
+  }
+  .cn-cap.p {
+    border-color: #fde68a;
+    background: #fffbeb;
+    color: var(--warn-fg);
+  }
+
+  /* DNS record values. */
+  .cn-val {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: var(--ground);
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    word-break: break-all;
+  }
+  .cn-tbl td {
+    padding: 10px 12px;
+    vertical-align: top;
+  }
+
+  /* Delivery timeline. */
+  .cn-ev {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .cn-ev .ic {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+
+  /* Stream switches. */
+  label.cn-sw {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    cursor: pointer;
+  }
+  label.cn-sw input {
+    margin-top: 3px;
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Import sources. */
+  .cn-src {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .cn-src:hover {
+    border-color: var(--accent);
+    color: var(--ink);
+  }
+
+  /* Code pane (IAM policy, PUBLIC_URL). */
+  .cn-pre {
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--ink);
+    color: var(--dark-text);
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-x: auto;
+  }
+}
+
+/* ≤1100px: tighter padding. */
+@media (max-width: 1100px) {
+  .cn-wiz {
+    padding: 16px;
+    gap: 16px;
+  }
+}
+
+/* ≤767px: the steps become one scrolling row above the content. */
+@media (max-width: 767px) {
+  .cn-wiz {
+    padding: 12px;
+  }
+  .cn-steps {
+    max-width: none;
+    flex: 1 1 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 14px;
+    padding: 10px 12px;
+  }
+  .cn-steps .cn-step {
+    flex: none;
+    padding: 2px 0;
+    align-items: center;
+  }
+  .cn-steps .cn-step .k,
+  .cn-steps .cn-foot {
+    display: none;
+  }
+  .cn-main {
+    width: 100%;
+    max-width: 100%;
+  }
+  .cn-main > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .cn-main .mono {
+    overflow-wrap: anywhere;
+  }
+  .cn-main .in {
+    max-width: 100%;
+    min-width: 0;
+  }
+}
