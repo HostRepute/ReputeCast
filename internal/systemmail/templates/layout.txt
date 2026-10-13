@@ -1,0 +1,4 @@
+{{.Text}}
+—
+{{if .Reason}}{{.Reason}}
+{{end}}{{.Footer}}

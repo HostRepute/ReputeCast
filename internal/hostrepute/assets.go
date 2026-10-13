@@ -58,8 +58,18 @@ func Candidates(ctx context.Context, q *store.Queries, workspaceID uuid.UUID) ([
 		seen[c.Asset] = true
 		out = append(out, c)
 	}
+	// A sending domain that is also the organization domain of another one
+	// (acme.io for news.acme.io) is listed once, as the organization domain.
+	orgs := map[string]bool{}
 	for _, d := range domains {
-		add(Candidate{Asset: d.Domain, Type: AssetDomain, Role: RoleSendingDomain, Shared: true})
+		if org := dnscheck.OrgDomain(d.Domain); org != d.Domain {
+			orgs[org] = true
+		}
+	}
+	for _, d := range domains {
+		if !orgs[d.Domain] {
+			add(Candidate{Asset: d.Domain, Type: AssetDomain, Role: RoleSendingDomain, Shared: true})
+		}
 	}
 	for _, d := range domains {
 		if org := dnscheck.OrgDomain(d.Domain); org != d.Domain {

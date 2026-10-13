@@ -353,3 +353,11 @@ export function dayPartWords(d: string | number | Date, now: Date = new Date()):
   if (isYesterday(t, now)) return 'yesterday'
   return `on ${monthDay(t)}`
 }
+
+/* ---- W10 · Connect a provider, senders and domains (appended) ---- */
+
+/** "18 Sep 2026" */
+export function dayMonthYear(d: string | number | Date): string {
+  const p = parts('dayMonthYear', toDate(d), { day: 'numeric', month: 'short', year: 'numeric' })
+  return `${p.day} ${p.month} ${p.year}`
+}
