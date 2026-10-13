@@ -3,7 +3,6 @@ import { useId, useState } from 'react'
 import { ApiError } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { Grid } from '@/components/ui/Layout'
 import { count } from '@/lib/format'
 import { acknowledgements, minutes, plural, scheduleSentence, thresholdsLine, verdictTitle, type Review, type Run } from './logic'
 
@@ -107,14 +106,15 @@ export function ConfirmSend({
               </RDialog.Description>
             </section>
             <section>
-              <Grid cols={2} gap="10px 24px">
+              {/* Two columns as on the board; one on small screens, where two would break the labels. */}
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 max-sm:grid-cols-1 [&>*]:min-w-0">
                 {rows.map(([k, v]) => (
                   <div key={k} className="rv-sum">
-                    <span className="k">{k}</span>
+                    <span className="k shrink-0">{k}</span>
                     <span className={k === 'Subject' ? 'n text-right' : 'n'}>{v}</span>
                   </div>
                 ))}
-              </Grid>
+              </div>
             </section>
             {acks.length ? (
               <section className="c-acks" aria-label="Warnings to confirm">
