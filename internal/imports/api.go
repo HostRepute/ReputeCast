@@ -50,6 +50,16 @@ type uploadBody struct {
 	RawBody  []byte `contentType:"application/octet-stream"`
 }
 
+type fieldsQuery struct {
+	ImportPathInput
+	Guesses bool `query:"guesses" doc:"Guess every target again instead of returning the saved mapping"`
+}
+
+type resumeInput struct {
+	ImportPathInput
+	Slow bool `query:"slow" doc:"Pace requests to the source to 3 a second from now on"`
+}
+
 type reportPath struct {
 	ImportPathInput
 	Kind string `path:"kind" enum:"report,skipped,invalid,unreadable"`
@@ -115,13 +125,17 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "resume-import", Path: base + "/{id}/resume", Summary: "Resume an import paused by the source's rate limit", Tags: tags, Access: imp},
-		func(ctx context.Context, in *ImportPathInput) (*api.Body[ImportDetail], error) {
-			out, err := s.Resume(ctx, api.WorkspaceFrom(ctx), id(*in))
+		func(ctx context.Context, in *resumeInput) (*api.Body[ImportDetail], error) {
+			out, err := s.Resume(ctx, api.WorkspaceFrom(ctx), id(in.ImportPathInput), in.Slow)
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-import-fields", Path: base + "/{id}/fields", Summary: "Source fields with sample values and their mapping", Tags: tags, Access: imp},
-		func(ctx context.Context, in *ImportPathInput) (*api.Body[ImportFieldMapping], error) {
-			out, err := s.Fields(ctx, api.WorkspaceFrom(ctx), id(*in))
+		func(ctx context.Context, in *fieldsQuery) (*api.Body[ImportFieldMapping], error) {
+			if in.Guesses {
+				out, err := s.FieldGuesses(ctx, api.WorkspaceFrom(ctx), id(in.ImportPathInput))
+				return api.OK(out), err
+			}
+			out, err := s.Fields(ctx, api.WorkspaceFrom(ctx), id(in.ImportPathInput))
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "save-import-fields", Path: base + "/{id}/fields", Summary: "Save the field mapping", Tags: tags, Access: imp},

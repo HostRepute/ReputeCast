@@ -107,6 +107,9 @@ type ImportOptions struct {
 	Risky      ImportRiskyActions `json:"risky"`
 	// SkipRows are file lines left out (rows with the wrong column count).
 	SkipRows []int `json:"skipRows"`
+	// Pace limits requests to the source, per second (0: as fast as it
+	// answers); "Slow down" after a rate limit sets 3.
+	Pace int `json:"pace,omitempty" minimum:"0" maximum:"50"`
 }
 
 // ImportListChoice maps a source list to a ReputeCast list.
@@ -501,7 +504,20 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 				return err
 			}
 		}
-		return nil
+		meta := map[string]any{}
+		name := SourceName(imp.Source)
+		if in.Source != "" && in.Source != imp.Source {
+			meta["source"] = map[string]string{"from": imp.Source, "to": in.Source}
+			name = SourceName(in.Source)
+		}
+		if in.Options != nil {
+			meta["options"] = true
+		}
+		if in.Step != "" {
+			meta["step"] = in.Step
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "import.update", TargetType: "import", TargetID: imp.ID.String(),
+			TargetName: name, Metadata: meta})
 	})
 	if err != nil {
 		return ImportDetail{}, err

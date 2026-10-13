@@ -13,6 +13,8 @@ import (
 	"github.com/riverqueue/river"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -74,22 +76,28 @@ func (s *Service) RequestStage(ctx context.Context, ws *store.Workspace, id uuid
 		return ImportDetail{}, api.Err(422, "file_columns", conn.Error.Message)
 	}
 	want := sourceIDs(opts.Lists)
-	if imp.StagedAt != nil && sameLists(conn.StagedLists, want) {
-		if imp.Step == "source" {
-			if err := s.Q.SetImportStep(ctx, store.SetImportStepParams{ID: imp.ID, Step: "fields"}); err != nil {
-				return ImportDetail{}, err
+	reuse := imp.StagedAt != nil && sameLists(conn.StagedLists, want)
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if !reuse {
+			if err := q.SetImportStatus(ctx, store.SetImportStatusParams{ID: imp.ID, Status: "staging"}); err != nil {
+				return err
 			}
 		}
-		return s.Get(ctx, ws, id)
-	}
-	if err := s.Q.SetImportStatus(ctx, store.SetImportStatusParams{ID: imp.ID, Status: "staging"}); err != nil {
+		if err := q.SetImportStep(ctx, store.SetImportStepParams{ID: imp.ID, Step: "fields"}); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "import.stage", TargetType: "import", TargetID: imp.ID.String(),
+			TargetName: SourceName(imp.Source), Metadata: map[string]any{"lists": len(want), "alreadyRead": reuse}})
+	})
+	if err != nil {
 		return ImportDetail{}, err
 	}
-	if err := s.Q.SetImportStep(ctx, store.SetImportStepParams{ID: imp.ID, Step: "fields"}); err != nil {
-		return ImportDetail{}, err
-	}
-	if err := s.enqueue(ctx, StageArgs{ImportID: imp.ID}, nil); err != nil {
-		return ImportDetail{}, err
+	if !reuse {
+		// After the commit: inline (tests) the job reads the new status.
+		if err := s.enqueue(ctx, StageArgs{ImportID: imp.ID}, nil); err != nil {
+			return ImportDetail{}, err
+		}
 	}
 	return s.Get(ctx, ws, id)
 }
@@ -152,6 +160,21 @@ func (m *MailerLite) setOnRetry(f func(int, time.Duration, int)) { m.c.OnRetry =
 func (l *Listmonk) setOnRetry(f func(int, time.Duration, int))   { l.c.OnRetry = f }
 func (k *Keila) setOnRetry(f func(int, time.Duration, int))      { k.c.OnRetry = f }
 
+// pacer is implemented by the API sources, so a rate-limited import can be
+// slowed down.
+type pacer interface {
+	setPace(perSecond int)
+}
+
+func (m *Mailchimp) setPace(n int)  { m.c.setPace(n) }
+func (b *Brevo) setPace(n int)      { b.c.setPace(n) }
+func (m *MailerLite) setPace(n int) { m.c.setPace(n) }
+func (l *Listmonk) setPace(n int)   { l.c.setPace(n) }
+func (k *Keila) setPace(n int)      { k.c.setPace(n) }
+
+// slowPace is the "Slow down" rate, in requests a second.
+const slowPace = 3
+
 // Stage reads every row of the selected lists into import_rows.
 func (s *Service) Stage(ctx context.Context, id uuid.UUID) error {
 	imp, err := s.Q.GetImportByID(ctx, id)
@@ -176,6 +199,9 @@ func (s *Service) Stage(ctx context.Context, id uuid.UUID) error {
 		})
 	}
 	opts := parseOptions(imp.Options)
+	if p, ok := src.(pacer); ok && opts.Pace > 0 {
+		p.setPace(opts.Pace)
+	}
 	lists := sourceIDs(opts.Lists)
 	fields, err := src.Fields(ctx, lists)
 	if err != nil {
@@ -254,7 +280,9 @@ func (s *Service) stageFailed(ctx context.Context, imp store.Import, err error) 
 }
 
 // Resume restarts a paused import now ("Resume now").
-func (s *Service) Resume(ctx context.Context, ws *store.Workspace, id uuid.UUID) (ImportDetail, error) {
+// With slow, requests to the source are paced to 3 a second from now on
+// ("Slow down to 3 req/s").
+func (s *Service) Resume(ctx context.Context, ws *store.Workspace, id uuid.UUID, slow bool) (ImportDetail, error) {
 	imp, err := s.get(ctx, ws, id)
 	if err != nil {
 		return ImportDetail{}, err
@@ -262,7 +290,25 @@ func (s *Service) Resume(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	if imp.Status != "paused" {
 		return ImportDetail{}, api.Conflict("Only a paused import can be resumed.")
 	}
-	if err := s.Q.SetImportStatus(ctx, store.SetImportStatusParams{ID: imp.ID, Status: "staging"}); err != nil {
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if slow {
+			opts := parseOptions(imp.Options)
+			opts.Pace = slowPace
+			if err := q.SetImportOptions(ctx, store.SetImportOptionsParams{ID: imp.ID, Options: mustJSON(opts)}); err != nil {
+				return err
+			}
+			if err := s.log(ctx, q, imp.ID, "info", fmt.Sprintf("Slowed down to %d requests a second to %s", slowPace, SourceName(imp.Source))); err != nil {
+				return err
+			}
+		}
+		if err := q.SetImportStatus(ctx, store.SetImportStatusParams{ID: imp.ID, Status: "staging"}); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "import.resume", TargetType: "import", TargetID: imp.ID.String(),
+			TargetName: SourceName(imp.Source), Metadata: map[string]any{"slow": slow}})
+	})
+	if err != nil {
 		return ImportDetail{}, err
 	}
 	if err := s.enqueue(ctx, StageArgs{ImportID: imp.ID}, nil); err != nil {

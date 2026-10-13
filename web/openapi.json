@@ -7839,6 +7839,12 @@
             ],
             "type": "string"
           },
+          "pace": {
+            "format": "int64",
+            "maximum": 50,
+            "minimum": 0,
+            "type": "integer"
+          },
           "pullSuppressions": {
             "type": "boolean"
           },
@@ -24952,6 +24958,16 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Guess every target again instead of returning the saved mapping",
+            "explode": false,
+            "in": "query",
+            "name": "guesses",
+            "schema": {
+              "description": "Guess every target again instead of returning the saved mapping",
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -25344,6 +25360,16 @@
             "schema": {
               "format": "uuid",
               "type": "string"
+            }
+          },
+          {
+            "description": "Pace requests to the source to 3 a second from now on",
+            "explode": false,
+            "in": "query",
+            "name": "slow",
+            "schema": {
+              "description": "Pace requests to the source to 3 a second from now on",
+              "type": "boolean"
             }
           }
         ],

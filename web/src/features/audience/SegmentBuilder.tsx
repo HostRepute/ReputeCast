@@ -1,6 +1,6 @@
 import { keepPreviousData, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
@@ -13,6 +13,7 @@ import { toast } from '@/components/ui/Toast'
 import { clock, count, pct, shortDate } from '@/lib/format'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { AudienceTabs } from './AudienceTabs'
+import { FitSelect } from './FitSelect'
 import { SqlBlock, SqlEditor } from './SqlCode'
 import { tierColor, tierLabel, type Tier } from './labels'
 import './audience.css'
@@ -95,30 +96,6 @@ function useDebounced<T>(v: T, ms: number): T {
     return () => window.clearTimeout(h)
   }, [v, ms])
   return d
-}
-
-let measureCtx: CanvasRenderingContext2D | null = null
-
-/**
- * Sizes a select to its chosen option, the way a native select sizes to its
- * widest option (text + padding, border and arrow): a field select offers
- * every field, but a condition row should be as compact as on the board.
- */
-function FitSelect({ label, className, ...rest }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string }) {
-  const ref = useRef<HTMLSelectElement>(null)
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const fit = () => {
-      measureCtx ??= document.createElement('canvas').getContext('2d')
-      if (!measureCtx) return
-      measureCtx.font = getComputedStyle(el).font
-      el.style.setProperty("--fitw", `${Math.ceil(measureCtx.measureText(label).width) + 39}px`)
-    }
-    fit()
-    void document.fonts?.ready.then(fit)
-  }, [label])
-  return <select ref={ref} className={`${className ?? ""} fit`} {...rest} />
 }
 
 /** Parses "body.definition.groups[1].conditions[0].value" into [1, 0]. */

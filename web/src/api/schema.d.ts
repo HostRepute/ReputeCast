@@ -5710,6 +5710,8 @@ export interface components {
             lists: components["schemas"]["ImportListChoice"][];
             /** @enum {string} */
             onConflict: "fill" | "overwrite" | "keep";
+            /** Format: int64 */
+            pace?: number;
             pullSuppressions: boolean;
             recordHistory: boolean;
             risky: components["schemas"]["ImportRiskyActions"];
@@ -12727,7 +12729,10 @@ export interface operations {
     };
     "get-import-fields": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Guess every target again instead of returning the saved mapping */
+                guesses?: boolean;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -12907,7 +12912,10 @@ export interface operations {
     };
     "resume-import": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Pace requests to the source to 3 a second from now on */
+                slow?: boolean;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */

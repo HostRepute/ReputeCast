@@ -121,6 +121,32 @@ type apiClient struct {
 	// OnRetry is told about each back-off (the live log shows them).
 	OnRetry func(attempt int, wait time.Duration, status int)
 	sleep   func(context.Context, time.Duration) error
+	// gap paces requests ("Slow down to 3 req/s"); zero sends the next
+	// request as soon as the previous one answered.
+	gap  time.Duration
+	last time.Time
+}
+
+// setPace limits the client to perSecond requests a second (0: no limit).
+func (c *apiClient) setPace(perSecond int) {
+	c.gap = 0
+	if perSecond > 0 {
+		c.gap = time.Second / time.Duration(perSecond)
+	}
+}
+
+// pace waits until the next request is allowed.
+func (c *apiClient) pace(ctx context.Context) error {
+	if c.gap <= 0 {
+		return nil
+	}
+	if wait := time.Until(c.last.Add(c.gap)); wait > 0 {
+		if err := c.sleep(ctx, wait); err != nil {
+			return err
+		}
+	}
+	c.last = time.Now()
+	return nil
 }
 
 func newAPIClient(name, base string, hc *http.Client, auth func(*http.Request)) *apiClient {
@@ -145,6 +171,9 @@ func sleepCtx(ctx context.Context, d time.Duration) error {
 func (c *apiClient) get(ctx context.Context, path string, out any) error {
 	var lastErr error
 	for attempt := 0; attempt <= c.retries; attempt++ {
+		if err := c.pace(ctx); err != nil {
+			return err
+		}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base+path, nil)
 		if err != nil {
 			return err

@@ -197,6 +197,16 @@ func newFieldType(f SourceField, samples []string) string {
 // Fields returns the mapping step: each source field with sample values,
 // its current or guessed target and the choices.
 func (s *Service) Fields(ctx context.Context, ws *store.Workspace, id uuid.UUID) (ImportFieldMapping, error) {
+	return s.fieldMapping(ctx, ws, id, false)
+}
+
+// FieldGuesses is the mapping step with every target guessed again
+// ("Reset to guesses"); nothing is saved until the mapping is.
+func (s *Service) FieldGuesses(ctx context.Context, ws *store.Workspace, id uuid.UUID) (ImportFieldMapping, error) {
+	return s.fieldMapping(ctx, ws, id, true)
+}
+
+func (s *Service) fieldMapping(ctx context.Context, ws *store.Workspace, id uuid.UUID, guesses bool) (ImportFieldMapping, error) {
 	imp, err := s.get(ctx, ws, id)
 	if err != nil {
 		return ImportFieldMapping{}, err
@@ -216,8 +226,10 @@ func (s *Service) Fields(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 		return out, err
 	}
 	saved := map[string]ImportFieldChoice{}
-	for _, c := range parseFieldMap(imp.FieldMap).Fields {
-		saved[c.Source] = c
+	if !guesses {
+		for _, c := range parseFieldMap(imp.FieldMap).Fields {
+			saved[c.Source] = c
+		}
 	}
 	for _, f := range conn.Fields {
 		choice, ok := saved[f.Key]
