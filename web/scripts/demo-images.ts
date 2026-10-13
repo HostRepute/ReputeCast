@@ -4,7 +4,9 @@
  * the built-in starter templates (internal/templates/starters). Run it only
  * when a placeholder changes:
  *
- *   node scripts/demo-images.ts
+ *   node scripts/demo-images.ts [file.png …]
+ *
+ * Name files to render only those (the others stay byte for byte).
  *
  * The PNGs are committed and embedded in the binary; they reach a
  * workspace's image library like any uploaded image.
@@ -13,8 +15,12 @@ import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { chromium } from '@playwright/test'
 
-/** `transparent` renders a PNG with an alpha channel (logos, so the dark-mode check sees a transparent logo). */
-type Img = { file: string; w: number; h: number; label: string; transparent?: boolean }
+/**
+ * `transparent` renders a PNG with an alpha channel (logos, so the dark-mode
+ * check sees a transparent logo). `font`, `size` and `border` (px) override
+ * the label's IBM Plex Sans 12px and the 1px dashed border.
+ */
+type Img = { file: string; w: number; h: number; label: string; transparent?: boolean; font?: string; size?: number; border?: number }
 
 const sets: { out: string; images: Img[] }[] = [
   {
@@ -25,7 +31,11 @@ const sets: { out: string; images: Img[] }[] = [
       { file: 'article-card.png', w: 268, h: 120, label: 'Image · 268×120' },
       { file: 'sale-hero.png', w: 552, h: 220, label: 'sale-hero.png · 552×220 · 212 KB' },
       { file: 'plan-card.png', w: 268, h: 110, label: 'Image · 268×110' },
-      { file: 'october-hero.png', w: 552, h: 200, label: 'Hero image · 552×200 · alt "October at Acme"' },
+      // The October Product Update as the Report board's click map draws it
+      // at 340px (× 1.765): the hero labelled in the email's font, blank cards.
+      { file: 'october-logo.png', w: 81, h: 28, label: 'Logo', font: "Georgia, 'Times New Roman', serif", size: 19.4, border: 2 },
+      { file: 'october-hero.png', w: 564, h: 127, label: 'Hero image', font: "Georgia, 'Times New Roman', serif", size: 19.4, border: 2 },
+      { file: 'october-card.png', w: 275, h: 81, label: '', border: 2 },
     ],
   },
   {
@@ -41,17 +51,19 @@ const sets: { out: string; images: Img[] }[] = [
 ]
 
 async function main() {
+  const only = new Set(process.argv.slice(2))
   const browser = await chromium.launch({ channel: 'chrome', headless: true })
   const page = await browser.newPage({ deviceScaleFactor: 1 })
   for (const set of sets) {
     mkdirSync(set.out, { recursive: true })
     for (const img of set.images) {
+      if (only.size > 0 && !only.has(img.file)) continue
       await page.setContent(`<!doctype html><html><head>
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500&display=swap" rel="stylesheet">
         <style>body{margin:0;background:${img.transparent ? 'transparent' : '#fff'}}
         .ph{box-sizing:border-box;width:${img.w}px;height:${img.h}px;display:flex;align-items:center;justify-content:center;
-        background:${img.transparent ? 'rgba(233,236,240,.92)' : '#E9ECF0'};color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500;
-        border:1px dashed #C9CED6;white-space:nowrap;overflow:hidden}</style></head>
+        background:${img.transparent ? 'rgba(233,236,240,.92)' : '#E9ECF0'};color:#5B6472;font-family:${img.font ?? "'IBM Plex Sans',system-ui,sans-serif"};font-size:${img.size ?? 12}px;font-weight:500;
+        border:${img.border ?? 1}px dashed #C9CED6;white-space:nowrap;overflow:hidden}</style></head>
         <body><div class="ph">${img.label.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div></body></html>`)
       await page.evaluate('document.fonts.ready')
       await page.waitForTimeout(150)

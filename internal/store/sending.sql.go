@@ -2143,16 +2143,25 @@ WHERE cr.campaign_id = $1
 ORDER BY cr.planned DESC, p.name
 `
 
+type SendingRoutesRow struct {
+	CampaignID   uuid.UUID `json:"campaignId"`
+	ProviderID   uuid.UUID `json:"providerId"`
+	Planned      int64     `json:"planned"`
+	Status       string    `json:"status"`
+	StatusDetail string    `json:"statusDetail"`
+	CostMicros   int64     `json:"costMicros"`
+}
+
 // Routes ----------------------------------------------------------------
-func (q *Queries) SendingRoutes(ctx context.Context, campaignID uuid.UUID) ([]CampaignRoute, error) {
+func (q *Queries) SendingRoutes(ctx context.Context, campaignID uuid.UUID) ([]SendingRoutesRow, error) {
 	rows, err := q.db.Query(ctx, sendingRoutes, campaignID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []CampaignRoute{}
+	items := []SendingRoutesRow{}
 	for rows.Next() {
-		var i CampaignRoute
+		var i SendingRoutesRow
 		if err := rows.Scan(
 			&i.CampaignID,
 			&i.ProviderID,

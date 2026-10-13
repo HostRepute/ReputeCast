@@ -524,7 +524,8 @@ func TestEventLogAndExport(t *testing.T) {
 	}
 	owner.Do("GET", ws+"/provider-events", nil).MustStatus(t, 200).JSON(t, &log)
 	// The nine events of the board are the newest; the audience demo adds
-	// older deliveries for the contact timelines.
+	// older deliveries for the contact timelines, and the reports demo the
+	// bounces of the sample campaigns.
 	if log.Total < 9 || len(log.Items) < 9 {
 		t.Fatalf("event log total %d", log.Total)
 	}
@@ -534,7 +535,7 @@ func TestEventLogAndExport(t *testing.T) {
 		}
 	}
 	owner.Do("GET", ws+"/provider-events?type=hard_bounce", nil).MustStatus(t, 200).JSON(t, &log)
-	if log.Total != 3 {
+	if log.Total < 3 {
 		t.Fatalf("hard bounces = %d", log.Total)
 	}
 	r := owner.Do("GET", ws+"/provider-events/export", nil).MustStatus(t, 200)

@@ -371,37 +371,7 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, in Invitat
 			}
 			user = created
 		}
-		n, err := q.AcceptPendingInvitation(ctx, store.AcceptPendingInvitationParams{ID: inv.ID, AcceptedBy: &user.ID})
-		if err != nil {
-			return err
-		}
-		if n == 0 {
-			return inviteClosed("accepted", inv)
-		}
-		if _, err := q.CreateMember(ctx, store.CreateMemberParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: inv.WorkspaceID, UserID: user.ID, RoleID: inv.RoleID,
-			Scope: inv.Scope, Source: "invite", InvitedBy: inv.InvitedBy}); err != nil {
-			return err
-		}
-		if out.TwoFactor.Required {
-			if err := workspaces.EnsureTwoFAGrace(ctx, tx, user.ID); err != nil {
-				return err
-			}
-		}
-		wsID := inv.WorkspaceID
-		actor := actorFor(user)
-		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "invitation.accept", TargetType: "invitation", TargetID: inv.ID.String(), TargetName: inv.Email, Actor: actor,
-			After: map[string]any{"role": inv.RoleKey, "scope": inv.Scope}, Metadata: map[string]any{"new_account": out.NewAccount}}); err != nil {
-			return err
-		}
-		note := notify.Notification{WorkspaceID: &wsID, Kind: notify.KindInviteAccepted, Severity: "ok", Title: "Invite accepted",
-			Summary: fmt.Sprintf("%s joined %s as %s", displayName(user), inv.WorkspaceName, inv.RoleName),
-			Body:    fmt.Sprintf("%s joined %s as %s.", displayName(user), inv.WorkspaceName, inv.RoleName),
-			Link:    "/w/" + inv.WorkspaceSlug + "/settings/team"}
-		if inv.InvitedBy != nil && inv.InvitedByStatus == "active" {
-			if err := notify.ToUser(ctx, tx, *inv.InvitedBy, note); err != nil {
-				return err
-			}
-		} else if err := notify.ToMembersWith(ctx, tx, inv.WorkspaceID, authz.TeamManage, note); err != nil {
+		if err := s.joinWorkspace(ctx, tx, inv, user, out.NewAccount, out.TwoFactor.Required); err != nil {
 			return err
 		}
 		if out.NewAccount {
@@ -429,6 +399,43 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, in Invitat
 		out.TwoFactor.GraceUntil = user.TwofaGraceUntil
 	}
 	return out, cookie, nil
+}
+
+// joinWorkspace accepts a pending invitation for user inside tx: the
+// membership with the invited role and scope, the two-factor grace period
+// when the role needs it, the audit entry and the inviter's notification.
+func (s *Service) joinWorkspace(ctx context.Context, tx pgx.Tx, inv store.GetInvitationViewRow, user store.User, newAccount, twoFactorRequired bool) error {
+	q := store.New(tx)
+	n, err := q.AcceptPendingInvitation(ctx, store.AcceptPendingInvitationParams{ID: inv.ID, AcceptedBy: &user.ID})
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return inviteClosed("accepted", inv)
+	}
+	if _, err := q.CreateMember(ctx, store.CreateMemberParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: inv.WorkspaceID, UserID: user.ID, RoleID: inv.RoleID,
+		Scope: inv.Scope, Source: "invite", InvitedBy: inv.InvitedBy}); err != nil {
+		return err
+	}
+	if twoFactorRequired {
+		if err := workspaces.EnsureTwoFAGrace(ctx, tx, user.ID); err != nil {
+			return err
+		}
+	}
+	wsID := inv.WorkspaceID
+	actor := actorFor(user)
+	if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "invitation.accept", TargetType: "invitation", TargetID: inv.ID.String(), TargetName: inv.Email, Actor: actor,
+		After: map[string]any{"role": inv.RoleKey, "scope": inv.Scope}, Metadata: map[string]any{"new_account": newAccount}}); err != nil {
+		return err
+	}
+	note := notify.Notification{WorkspaceID: &wsID, Kind: notify.KindInviteAccepted, Severity: "ok", Title: "Invite accepted",
+		Summary: fmt.Sprintf("%s joined %s as %s", displayName(user), inv.WorkspaceName, inv.RoleName),
+		Body:    fmt.Sprintf("%s joined %s as %s.", displayName(user), inv.WorkspaceName, inv.RoleName),
+		Link:    "/w/" + inv.WorkspaceSlug + "/settings/team"}
+	if inv.InvitedBy != nil && inv.InvitedByStatus == "active" {
+		return notify.ToUser(ctx, tx, *inv.InvitedBy, note)
+	}
+	return notify.ToMembersWith(ctx, tx, inv.WorkspaceID, authz.TeamManage, note)
 }
 
 // InvitationRequestResult says whether the inviter was asked.

@@ -1,0 +1,123 @@
+[
+  {
+    "name": "Delivered",
+    "payload": {
+      "id": "evt_0001",
+      "event": "delivered",
+      "timestamp": "2026-10-12T13:41:02Z",
+      "message_id": "msg_7fa3",
+      "recipient": "D.F@outlook.com",
+      "smtp_code": "250 2.0.0",
+      "metadata": { "rc_message": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40" }
+    },
+    "want": [
+      {
+        "type": "delivered",
+        "recipient": "d.f@outlook.com",
+        "providerMessageId": "msg_7fa3",
+        "messageId": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40",
+        "originalType": "delivered",
+        "originalCode": "250 2.0.0"
+      }
+    ]
+  },
+  {
+    "name": "HardBounce",
+    "payload": {
+      "id": "evt_0002",
+      "event": "bounced",
+      "bounce_type": "hard",
+      "timestamp": "2026-10-12T13:41:05Z",
+      "message_id": "msg_7fa4",
+      "recipient": "john@example.com",
+      "smtp_code": "550 5.1.1",
+      "description": "The email account that you tried to reach does not exist.",
+      "metadata": { "rc_message": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e41" }
+    },
+    "want": [
+      {
+        "type": "hard_bounce",
+        "recipient": "john@example.com",
+        "providerMessageId": "msg_7fa4",
+        "messageId": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e41",
+        "originalType": "bounced · hard",
+        "originalCode": "550 5.1.1",
+        "bounceClass": "mailbox_unknown"
+      }
+    ]
+  },
+  {
+    "name": "SoftBounce",
+    "payload": {
+      "id": "evt_0003",
+      "event": "bounced",
+      "bounce_type": "soft",
+      "timestamp": "2026-10-12T13:42:00Z",
+      "message_id": "msg_7fa5",
+      "recipient": "b.h@yahoo.com",
+      "smtp_code": "452 4.2.2",
+      "description": "Mailbox full"
+    },
+    "want": [
+      {
+        "type": "soft_bounce",
+        "recipient": "b.h@yahoo.com",
+        "providerMessageId": "msg_7fa5",
+        "originalType": "bounced · soft",
+        "originalCode": "452 4.2.2",
+        "bounceClass": "mailbox_full"
+      }
+    ]
+  },
+  {
+    "name": "Batch",
+    "payload": [
+      {
+        "id": "evt_0004",
+        "event": "complained",
+        "timestamp": "2026-10-12T14:01:00Z",
+        "message_id": "msg_7fa6",
+        "recipient": "m.g@aol.com",
+        "metadata": { "rc_message": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e42" }
+      },
+      {
+        "id": "evt_0005",
+        "event": "unsubscribed",
+        "timestamp": "2026-10-12T14:02:00Z",
+        "message_id": "msg_7fa7",
+        "recipient": "leaver@example.com"
+      },
+      {
+        "id": "evt_0006",
+        "event": "deferred",
+        "timestamp": "2026-10-12T14:03:00Z",
+        "message_id": "msg_7fa8",
+        "recipient": "slow@example.com",
+        "smtp_code": "421 4.7.0",
+        "description": "Try again later"
+      }
+    ],
+    "want": [
+      {
+        "type": "complaint",
+        "recipient": "m.g@aol.com",
+        "providerMessageId": "msg_7fa6",
+        "messageId": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e42",
+        "originalType": "complained"
+      },
+      {
+        "type": "unsubscribe",
+        "recipient": "leaver@example.com",
+        "providerMessageId": "msg_7fa7",
+        "originalType": "unsubscribed"
+      },
+      {
+        "type": "deferred",
+        "recipient": "slow@example.com",
+        "providerMessageId": "msg_7fa8",
+        "originalType": "deferred",
+        "originalCode": "421 4.7.0"
+      }
+    ]
+  }
+]

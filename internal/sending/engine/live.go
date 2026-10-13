@@ -427,7 +427,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	if err != nil {
 		return s, err
 	}
-	routeStatus := map[uuid.UUID]store.CampaignRoute{}
+	routeStatus := map[uuid.UUID]store.SendingRoutesRow{}
 	var plannedTotal int64
 	for _, r := range routes {
 		routeStatus[r.ProviderID] = r

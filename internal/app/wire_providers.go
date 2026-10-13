@@ -40,6 +40,9 @@ func (a *App) providersService() *manage.Service {
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Factory: a.providerFactory(), URLs: a.URLs, Log: a.Log,
 		Jobs:    func() *jobs.Client { return a.Jobs },
 		Sending: func() sending.Starter { return a.Sending },
+		// W16: installed community adapters and the generic HTTP form (wire_remote.go).
+		Community:    a.remoteRuntime(),
+		HTTPMappings: httpMappings{},
 	}
 }
 
@@ -71,6 +74,7 @@ func init() {
 		jobsFn := func() *jobs.Client { return a.Jobs }
 		river.AddWorker(a.JobReg.Workers, &manage.HealthWorker{S: svc})
 		river.AddWorker(a.JobReg.Workers, &manage.TrackingWorker{S: svc})
+		river.AddWorker(a.JobReg.Workers, &manage.MoveWebhooksWorker{S: svc, PublicURL: a.currentPublicURL})
 		river.AddWorker(a.JobReg.Workers, &ingest.NormalizeWorker{N: n})
 		river.AddWorker(a.JobReg.Workers, &ingest.SweepWorker{N: n, Jobs: jobsFn})
 		river.AddWorker(a.JobReg.Workers, &ingest.MailboxWorker{N: n, Jobs: jobsFn})

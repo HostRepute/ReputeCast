@@ -1,12 +1,15 @@
 .git
+.claude
 bin
 tmp
 data
 .env
-web/node_modules
+**/node_modules
 web/dist/assets
 web/test-results
 web/playwright-report
+site/dist
+site/.ssr
 design
 docs
 brand

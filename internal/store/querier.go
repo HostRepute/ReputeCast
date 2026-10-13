@@ -113,6 +113,9 @@ type Querier interface {
 	ClearSegmentMembers(ctx context.Context, segmentID uuid.UUID) error
 	ClearSignInThrottle(ctx context.Context, email string) error
 	ClearUserLockout(ctx context.Context, id uuid.UUID) error
+	// Every installed community adapter, any kind: the runtime registers the
+	// kinds it runs, and registry keys must not collide across kinds.
+	CommunityAdapterList(ctx context.Context) ([]CommunityAdapterListRow, error)
 	CompleteInstanceSetup(ctx context.Context, arg CompleteInstanceSetupParams) (InstanceSetting, error)
 	// Lists with their subscribed, active contacts (suppressed addresses excluded).
 	ComposerAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceListsRow, error)
@@ -301,7 +304,8 @@ type Querier interface {
 	HooksDeliveries(ctx context.Context, arg HooksDeliveriesParams) ([]HooksDeliveriesRow, error)
 	// Deliveries ready for an attempt that have no job queued (or a lost one).
 	// While an endpoint is failing only its oldest open delivery is tried (the
-	// probe); the rest wait and replay once the endpoint answers 2xx again.
+	// probe); the rest wait and replay once the endpoint answers 2xx again. The
+	// probes are found once per failing endpoint, not once per waiting delivery.
 	HooksDue(ctx context.Context, lim int32) ([]uuid.UUID, error)
 	HooksFinishDelivery(ctx context.Context, arg HooksFinishDeliveryParams) error
 	HooksGet(ctx context.Context, arg HooksGetParams) (Webhook, error)
@@ -380,6 +384,85 @@ type Querier interface {
 	// for its event type. email_status is 'pending' when they asked for email.
 	InsertNotification(ctx context.Context, arg InsertNotificationParams) (int64, error)
 	InsertSuppression(ctx context.Context, arg InsertSuppressionParams) (Suppression, error)
+	InstanceAdminAdminNames(ctx context.Context) ([]InstanceAdminAdminNamesRow, error)
+	InstanceAdminCancelScheduled(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	InstanceAdminCountAdmins(ctx context.Context) (int64, error)
+	InstanceAdminDeactivateMemberships(ctx context.Context, arg InstanceAdminDeactivateMembershipsParams) (int64, error)
+	InstanceAdminDeactivateUser(ctx context.Context, arg InstanceAdminDeactivateUserParams) (int64, error)
+	InstanceAdminIdentities(ctx context.Context) ([]InstanceAdminIdentitiesRow, error)
+	// The latest sign-in turned away because of its email domain (the
+	// allowlist's "for example kim@gmail.com this morning").
+	InstanceAdminLastDomainRejection(ctx context.Context) (InstanceAdminLastDomainRejectionRow, error)
+	// The active instance admins, locked until the transaction ends: two admins
+	// removing (or deactivating) each other can't both succeed, because the
+	// second waits and then re-reads who is still an admin.
+	InstanceAdminLockAdmins(ctx context.Context) ([]uuid.UUID, error)
+	InstanceAdminLockedCount(ctx context.Context) (InstanceAdminLockedCountRow, error)
+	// Every membership in a live workspace, oldest workspace first.
+	InstanceAdminMemberships(ctx context.Context) ([]InstanceAdminMembershipsRow, error)
+	// The hashes of a person's previous passwords, newest first.
+	InstanceAdminPasswordHistory(ctx context.Context, arg InstanceAdminPasswordHistoryParams) ([]string, error)
+	// Deletes a workspace for good once its restore hold is over (cascade).
+	InstanceAdminPurgeWorkspace(ctx context.Context, id uuid.UUID) (InstanceAdminPurgeWorkspaceRow, error)
+	// Only the memberships deactivated together with the account come back.
+	InstanceAdminReactivateMemberships(ctx context.Context, arg InstanceAdminReactivateMembershipsParams) (int64, error)
+	InstanceAdminReactivateUser(ctx context.Context, id uuid.UUID) (int64, error)
+	InstanceAdminRecordRelease(ctx context.Context, latestRelease json.RawMessage) error
+	InstanceAdminRecordReleaseError(ctx context.Context, error string) error
+	// Removes the authenticator and recovery codes; passkeys stay. The grace
+	// period restarts so the person can set two-factor up again.
+	InstanceAdminResetTwoFactor(ctx context.Context, arg InstanceAdminResetTwoFactorParams) error
+	InstanceAdminRestoreWorkspace(ctx context.Context, arg InstanceAdminRestoreWorkspaceParams) error
+	InstanceAdminRevokeKeysCreatedBy(ctx context.Context, userID *uuid.UUID) (int64, error)
+	InstanceAdminSavePolicy(ctx context.Context, arg InstanceAdminSavePolicyParams) (InstanceSetting, error)
+	// Instance settings, logo, public URL check and updates -----------------------
+	// A new public URL drops the last URL check, which describes the old one.
+	InstanceAdminSaveSettings(ctx context.Context, arg InstanceAdminSaveSettingsParams) (InstanceSetting, error)
+	InstanceAdminSaveSocial(ctx context.Context, arg InstanceAdminSaveSocialParams) error
+	InstanceAdminSetLogo(ctx context.Context, logoSvg *string) error
+	InstanceAdminSetURLCheck(ctx context.Context, result json.RawMessage) error
+	InstanceAdminSetUpdateCheck(ctx context.Context, enabled bool) error
+	// The latest sign-in attempts at instance level (Users › Recent sign-in events).
+	InstanceAdminSignInEvents(ctx context.Context, lim int32) ([]InstanceAdminSignInEventsRow, error)
+	// The slug is freed for new workspaces; the suffix keeps it unique and
+	// within the 63-character limit.
+	InstanceAdminSoftDeleteWorkspace(ctx context.Context, id uuid.UUID) (*time.Time, error)
+	// Every person who is the only active Owner of a live workspace, with the
+	// workspace (the users list reads them in one query).
+	InstanceAdminSoleOwners(ctx context.Context) ([]InstanceAdminSoleOwnersRow, error)
+	// Live workspaces where the user is the only active Owner.
+	InstanceAdminSoleOwnerships(ctx context.Context, userID uuid.UUID) ([]InstanceAdminSoleOwnershipsRow, error)
+	// The System-stream provider of the oldest workspace that has one, for "the
+	// email goes out via Postmark".
+	InstanceAdminSystemProvider(ctx context.Context) (InstanceAdminSystemProviderRow, error)
+	InstanceAdminUnlockUser(ctx context.Context, id uuid.UUID) error
+	InstanceAdminUser(ctx context.Context, id uuid.UUID) (InstanceAdminUserRow, error)
+	// Instance admin: users, workspaces, policies, instance settings and updates (W14).
+	InstanceAdminUsers(ctx context.Context) ([]InstanceAdminUsersRow, error)
+	// People in a two-factor grace period without a second factor yet.
+	InstanceAdminUsersInGrace(ctx context.Context) ([]InstanceAdminUsersInGraceRow, error)
+	InstanceAdminWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
+	// Workspaces ---------------------------------------------------------------
+	// Live workspaces and the ones deleted within the 7-day restore hold.
+	InstanceAdminWorkspaces(ctx context.Context) ([]InstanceAdminWorkspacesRow, error)
+	InstanceAuditCount(ctx context.Context) (int64, error)
+	// Same filters as InstanceAuditList, with before/after for exports.
+	InstanceAuditExport(ctx context.Context, arg InstanceAuditExportParams) ([]InstanceAuditExportRow, error)
+	InstanceAuditGet(ctx context.Context, id uuid.UUID) (InstanceAuditGetRow, error)
+	// Instance admin › Audit log (W14): every workspace's entries and the
+	// instance-level ones (workspace_id IS NULL), with the same filters as the
+	// workspace view plus a workspace filter.
+	InstanceAuditList(ctx context.Context, arg InstanceAuditListParams) ([]InstanceAuditListRow, error)
+	// Other entries about the same target close in time, for "Related:".
+	InstanceAuditRelated(ctx context.Context, arg InstanceAuditRelatedParams) ([]InstanceAuditRelatedRow, error)
+	InstanceAuditSetRetention(ctx context.Context, days int32) error
+	InstanceAuditStreamAdvance(ctx context.Context, arg InstanceAuditStreamAdvanceParams) error
+	InstanceAuditStreamBatch(ctx context.Context, arg InstanceAuditStreamBatchParams) ([]AuditEvent, error)
+	InstanceAuditStreamConfigure(ctx context.Context, arg InstanceAuditStreamConfigureParams) error
+	InstanceAuditStreamSetStatus(ctx context.Context, status json.RawMessage) error
+	InstanceAuditStreamState(ctx context.Context) (InstanceAuditStreamStateRow, error)
+	// Workspaces that stream their own log, for "Streaming" on the instance view.
+	InstanceAuditWorkspaceStreams(ctx context.Context) ([]InstanceAuditWorkspaceStreamsRow, error)
 	InvalidatePasswordResets(ctx context.Context, userID uuid.UUID) error
 	KeysAgentActions(ctx context.Context, arg KeysAgentActionsParams) ([]KeysAgentActionsRow, error)
 	KeysByToken(ctx context.Context, tokenHash []byte) (KeysByTokenRow, error)
@@ -513,6 +596,16 @@ type Querier interface {
 	McpUpdateDraft(ctx context.Context, arg McpUpdateDraftParams) (McpUpdateDraftRow, error)
 	// Records a failure: opens the alert or adds to the open one.
 	OpenAutomationAlert(ctx context.Context, arg OpenAutomationAlertParams) error
+	OverviewCampaignRoutes(ctx context.Context, campaignID uuid.UUID) ([]OverviewCampaignRoutesRow, error)
+	OverviewDraftCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	OverviewLatestReadiness(ctx context.Context, campaignID uuid.UUID) (OverviewLatestReadinessRow, error)
+	// Joins and departures across the workspace's lists in each 24-hour step
+	// since a time, counted the way List health counts a list's net growth
+	// (ListGrowthSince): joins of members still subscribed, and departures.
+	OverviewListChanges(ctx context.Context, arg OverviewListChangesParams) ([]OverviewListChangesRow, error)
+	// W09 · Overview (spec 7.1).
+	// The next campaign due to go out.
+	OverviewNextScheduled(ctx context.Context, arg OverviewNextScheduledParams) (OverviewNextScheduledRow, error)
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
@@ -583,6 +676,8 @@ type Querier interface {
 	PurgeAuditEvents(ctx context.Context, arg PurgeAuditEventsParams) (int64, error)
 	PurgeAutomationEvents(ctx context.Context, before *time.Time) (int64, error)
 	PurgeAutomationWebhookCalls(ctx context.Context, before time.Time) (int64, error)
+	// Retention of the instance-level entries (inside the purge transaction).
+	PurgeInstanceAuditEvents(ctx context.Context, before time.Time) (int64, error)
 	PutMXCache(ctx context.Context, arg PutMXCacheParams) error
 	// Campaigns a segment can refer to ("Opened campaign …").
 	RecentSentCampaigns(ctx context.Context, workspaceID uuid.UUID) ([]RecentSentCampaignsRow, error)
@@ -593,7 +688,61 @@ type Querier interface {
 	RecoveryCodeStats(ctx context.Context, userID uuid.UUID) (RecoveryCodeStatsRow, error)
 	RefreshInvitation(ctx context.Context, arg RefreshInvitationParams) (Invitation, error)
 	ReleaseAutomationHeldMessages(ctx context.Context, arg ReleaseAutomationHeldMessagesParams) (int64, error)
+	RemoteAdapterConnected(ctx context.Context, adapter string) (int64, error)
+	RemoteAdapterDelete(ctx context.Context, id uuid.UUID) (int64, error)
+	RemoteAdapterGet(ctx context.Context, id uuid.UUID) (RemoteAdapterGetRow, error)
+	RemoteAdapterGetByKey(ctx context.Context, adapterKey string) (RemoteAdapterGetByKeyRow, error)
+	RemoteAdapterInsert(ctx context.Context, arg RemoteAdapterInsertParams) error
+	// Community adapters of kind "remote" and their runtime (internal/providers/remote).
+	RemoteAdapterList(ctx context.Context) ([]RemoteAdapterListRow, error)
+	RemoteAdapterUpdateManifest(ctx context.Context, arg RemoteAdapterUpdateManifestParams) error
+	RemoteRuntimeCreate(ctx context.Context, arg RemoteRuntimeCreateParams) error
+	RemoteRuntimeRecordCheck(ctx context.Context, arg RemoteRuntimeRecordCheckParams) error
+	RemoteRuntimeSetEndpoint(ctx context.Context, arg RemoteRuntimeSetEndpointParams) error
+	RemoteRuntimeSetSecret(ctx context.Context, arg RemoteRuntimeSetSecretParams) error
+	RemoteRuntimeTouch(ctx context.Context, adapterID uuid.UUID) error
 	RenamePasskey(ctx context.Context, arg RenamePasskeyParams) error
+	// Bounces of a campaign by taxonomy class, sending provider and the
+	// provider's original event and code, with how many of the bounced
+	// addresses are on the shared suppression list now.
+	ReportBounceCodes(ctx context.Context, arg ReportBounceCodesParams) ([]ReportBounceCodesRow, error)
+	// The diagnostics behind one group of bounce classes (the Review dialog).
+	// Addresses are never returned: an address inside a provider's words reads
+	// "<address>", so the same answer for many recipients is one line.
+	ReportBounceDiagnostics(ctx context.Context, arg ReportBounceDiagnosticsParams) ([]ReportBounceDiagnosticsRow, error)
+	// Bounced addresses of some classes that aren't suppressed yet (for "Add
+	// to suppression"). Never sent to the browser.
+	ReportBounceRecipients(ctx context.Context, arg ReportBounceRecipientsParams) ([]string, error)
+	// W09 · Campaign reports (spec 7.7, 5.5) and read-only report links.
+	ReportCampaign(ctx context.Context, arg ReportCampaignParams) (ReportCampaignRow, error)
+	// Final or live counters per sending provider × mailbox provider × A/B
+	// variant, with the provider's name for the per-provider comparison.
+	ReportCounterCells(ctx context.Context, campaignID uuid.UUID) ([]ReportCounterCellsRow, error)
+	ReportHourly(ctx context.Context, arg ReportHourlyParams) ([]ReportHourlyRow, error)
+	// Provider events received but not normalized yet, per provider: when the
+	// normalization job falls behind, live counts lag by that much.
+	ReportIngestBacklog(ctx context.Context, arg ReportIngestBacklogParams) ([]ReportIngestBacklogRow, error)
+	ReportLatestReadiness(ctx context.Context, campaignID uuid.UUID) (ReportLatestReadinessRow, error)
+	// The most recent campaign with results, for "See the last report instead".
+	ReportLatestSent(ctx context.Context, arg ReportLatestSentParams) (ReportLatestSentRow, error)
+	ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]ReportLinksRow, error)
+	// Each sending provider's share of the send: what was planned, the cost and
+	// the median time to delivery (stored at completion, else computed from the
+	// route's messages).
+	ReportRoutes(ctx context.Context, campaignID uuid.UUID) ([]ReportRoutesRow, error)
+	// A link by its token hash with its campaign and workspace (the public page).
+	ReportShareByToken(ctx context.Context, tokenHash []byte) (ReportShareByTokenRow, error)
+	// Read-only links -------------------------------------------------------
+	ReportShareCreate(ctx context.Context, arg ReportShareCreateParams) (ReportShare, error)
+	ReportShareGet(ctx context.Context, arg ReportShareGetParams) (ReportShare, error)
+	// Active links of a campaign, newest first, with who made them.
+	ReportShareList(ctx context.Context, arg ReportShareListParams) ([]ReportShareListRow, error)
+	ReportShareRevoke(ctx context.Context, arg ReportShareRevokeParams) (ReportShare, error)
+	ReportShareTouch(ctx context.Context, arg ReportShareTouchParams) error
+	ReportUnsubscribeReasons(ctx context.Context, arg ReportUnsubscribeReasonsParams) ([]ReportUnsubscribeReasonsRow, error)
+	// Warm-up plans of the campaign's providers (the day each was on when the
+	// campaign was sent).
+	ReportWarmupAt(ctx context.Context, providerIds []uuid.UUID) ([]ReportWarmupAtRow, error)
 	ResetUserTwoFactor(ctx context.Context, id uuid.UUID) error
 	ResolveAutomationAlert(ctx context.Context, arg ResolveAutomationAlertParams) (int64, error)
 	ResumeAutomation(ctx context.Context, arg ResumeAutomationParams) error
@@ -634,6 +783,49 @@ type Querier interface {
 	RoutingUpsertPolicy(ctx context.Context, arg RoutingUpsertPolicyParams) error
 	// A run still in progress (runs older than ten minutes are considered dead).
 	RunningDeliverabilityCheckRun(ctx context.Context, arg RunningDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
+	SSOCreateIdentity(ctx context.Context, arg SSOCreateIdentityParams) (UserIdentity, error)
+	SSOCreateMember(ctx context.Context, arg SSOCreateMemberParams) error
+	SSOCreateProvider(ctx context.Context, arg SSOCreateProviderParams) (SsoProvider, error)
+	SSOCreateUser(ctx context.Context, arg SSOCreateUserParams) (User, error)
+	SSODeleteProvider(ctx context.Context, id uuid.UUID) (int64, error)
+	// Another enabled provider already enforces one of these domains.
+	SSODomainEnforcedElsewhere(ctx context.Context, arg SSODomainEnforcedElsewhereParams) (string, error)
+	// Active accounts with an email at one of the domains, with what they sign in with today.
+	SSODomainUsers(ctx context.Context, arg SSODomainUsersParams) ([]SSODomainUsersRow, error)
+	// A person's active memberships that a group mapping granted, for the
+	// re-application of the mappings at every sign-in.
+	SSOGroupMemberships(ctx context.Context, userID uuid.UUID) ([]SSOGroupMembershipsRow, error)
+	// The people who sign in with this provider (for the enforcement preview).
+	SSOIdentityUsers(ctx context.Context, providerID *uuid.UUID) ([]SSOIdentityUsersRow, error)
+	SSOMarkBreakGlass(ctx context.Context, ids []uuid.UUID) (int64, error)
+	SSOMembership(ctx context.Context, arg SSOMembershipParams) (SSOMembershipRow, error)
+	// Active Owners of live workspaces, oldest membership first.
+	SSOOwners(ctx context.Context) ([]SSOOwnersRow, error)
+	SSOPendingInvitation(ctx context.Context, tokenHash []byte) (SSOPendingInvitationRow, error)
+	SSOProvider(ctx context.Context, id uuid.UUID) (SsoProvider, error)
+	SSOProviderBySlug(ctx context.Context, slug string) (SsoProvider, error)
+	// How many active people sign in with each SSO provider.
+	SSOProviderMemberCounts(ctx context.Context) ([]SSOProviderMemberCountsRow, error)
+	// SSO providers, social sign-in and the identities they link (W14).
+	SSOProviders(ctx context.Context) ([]SsoProvider, error)
+	SSOSetClientSecret(ctx context.Context, arg SSOSetClientSecretParams) error
+	SSOSetDiscovery(ctx context.Context, arg SSOSetDiscoveryParams) error
+	SSOSetEnforcement(ctx context.Context, arg SSOSetEnforcementParams) error
+	SSOSetLastTest(ctx context.Context, arg SSOSetLastTestParams) error
+	SSOSetMemberRole(ctx context.Context, arg SSOSetMemberRoleParams) error
+	SSOSetPreset(ctx context.Context, arg SSOSetPresetParams) error
+	SSOSetStatus(ctx context.Context, arg SSOSetStatusParams) (SsoProvider, error)
+	// Recent sign-in rejections for a provider (setup page "sign-ins rejected").
+	SSOSignInFailures(ctx context.Context, providerID string) ([]SSOSignInFailuresRow, error)
+	// How many people linked each social sign-in provider.
+	SSOSocialIdentityCounts(ctx context.Context) ([]SSOSocialIdentityCountsRow, error)
+	SSOTouchIdentity(ctx context.Context, arg SSOTouchIdentityParams) error
+	SSOUpdateProvider(ctx context.Context, arg SSOUpdateProviderParams) (SsoProvider, error)
+	SSOUserIdentityOfKind(ctx context.Context, arg SSOUserIdentityOfKindParams) (UserIdentity, error)
+	// The lists a group mapping can be scoped to, per live workspace.
+	SSOWorkspaceLists(ctx context.Context) ([]SSOWorkspaceListsRow, error)
+	// Workspaces and their roles, for the JIT default and group mapping pickers.
+	SSOWorkspaceRoles(ctx context.Context) ([]SSOWorkspaceRolesRow, error)
 	SaveComposerContent(ctx context.Context, arg SaveComposerContentParams) error
 	// 30-day sums per list or followed view.
 	ScopeTotalsSince(ctx context.Context, arg ScopeTotalsSinceParams) ([]ScopeTotalsSinceRow, error)
@@ -754,7 +946,7 @@ type Querier interface {
 	SendingRetryLater(ctx context.Context, arg SendingRetryLaterParams) error
 	SendingRetryNow(ctx context.Context, arg SendingRetryNowParams) error
 	// Routes ----------------------------------------------------------------
-	SendingRoutes(ctx context.Context, campaignID uuid.UUID) ([]CampaignRoute, error)
+	SendingRoutes(ctx context.Context, campaignID uuid.UUID) ([]SendingRoutesRow, error)
 	SendingSavePrepare(ctx context.Context, arg SendingSavePrepareParams) error
 	SendingSegmentNames(ctx context.Context, workspaceID uuid.UUID) ([]SendingSegmentNamesRow, error)
 	SendingSentSince(ctx context.Context, arg SendingSentSinceParams) ([]SendingSentSinceRow, error)

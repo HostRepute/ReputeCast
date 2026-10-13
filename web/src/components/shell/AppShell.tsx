@@ -1,4 +1,4 @@
-import { Link, Outlet } from '@tanstack/react-router'
+import { Link, Outlet, useMatchRoute } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { useMediaQuery } from '@/lib/hooks'
 import { ago } from '@/lib/format'
@@ -9,7 +9,8 @@ import { Tooltip } from '../ui/Menu'
 import { SystemBanners } from './SystemBanners'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 
-type NavItem = { to: string; label: string; icon: IconName; exact?: boolean }
+/** `also` lists other sections the item stands for (Instance admin lives under Settings). */
+type NavItem = { to: string; label: string; icon: IconName; exact?: boolean; also?: string[] }
 
 const NAV: NavItem[] = [
   { to: '/w/$workspace', label: 'Overview', icon: 'overview', exact: true },
@@ -19,7 +20,7 @@ const NAV: NavItem[] = [
   { to: '/w/$workspace/forms', label: 'Forms & pages', icon: 'forms' },
   { to: '/w/$workspace/deliverability', label: 'Deliverability', icon: 'deliverability' },
   { to: '/w/$workspace/providers', label: 'Sending providers', icon: 'providers' },
-  { to: '/w/$workspace/settings', label: 'Settings', icon: 'settings' },
+  { to: '/w/$workspace/settings', label: 'Settings', icon: 'settings', also: ['/w/$workspace/admin'] },
 ]
 
 /**
@@ -48,6 +49,7 @@ function Sidebar() {
   const { slug, me: ws } = useWorkspace()
   const { data: me } = useMe()
   const rail = useMediaQuery('(min-width: 768px) and (max-width: 1100px)')
+  const matchRoute = useMatchRoute()
   const user = me?.user
   return (
     <aside className="side" aria-label="Workspace navigation">
@@ -59,9 +61,18 @@ function Sidebar() {
       <nav className="nav" aria-label="Main">
         {NAV.map((item) => {
           // The router marks the current item with aria-current="page"; the
-          // overview is the workspace root, so it only matches exactly.
+          // overview is the workspace root, so it only matches exactly. An
+          // item is also current in the sections it stands for.
+          const section = item.also?.some((to) => matchRoute({ to, params: { workspace: slug }, fuzzy: true }))
           const link = (
-            <Link key={item.to} to={item.to} params={{ workspace: slug }} activeOptions={{ exact: Boolean(item.exact), includeSearch: false }}>
+            <Link
+              key={item.to}
+              to={item.to}
+              params={{ workspace: slug }}
+              activeOptions={{ exact: Boolean(item.exact), includeSearch: false }}
+              className={section ? 'on' : undefined}
+              aria-current={section ? 'true' : undefined}
+            >
               <Icon name={item.icon} />
               <span className="nl">{item.label}</span>
             </Link>
