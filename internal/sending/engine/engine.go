@@ -167,11 +167,12 @@ func ParseThresholds(raw json.RawMessage) Thresholds {
 var DefaultThrottles = map[string]float64{"outlook": 5, "yahoo": 4, "icloud": 3}
 
 // Sample sizes before a rate can trip a threshold, and the least number of
-// events, so one complaint among the first few hundred never pauses a send.
+// events, so a few complaints among the first few hundred never pause a
+// send (below five events the normal approximation in over is too kind).
 const (
 	minSampleCampaign = 1000
 	minSampleScoped   = 500
-	minEvents         = 3
+	minEvents         = 5
 	minDeferrals      = 5
 )
 
@@ -184,9 +185,9 @@ const zTrip = 1.28
 // rate above the limit, and the count high enough that chance alone is
 // unlikely, (events − expected) / √expected ≥ zTrip where expected is what
 // the limit allows. Three complaints among 1,900 delivered (0.16%) don't
-// pause a send whose true rate is 0.05%; 7 among 3,980 (0.18%, the
-// LiveMonitorPaused board) do. On large samples it comes down to "over the
-// limit".
+// pause a send whose true rate is 0.05%, nor do 3 among the first 1,284;
+// 7 among 3,980 (0.18%, the LiveMonitorPaused board) do. On large samples
+// it comes down to "over the limit".
 func over(events, base int64, limit float64, minEv int64) bool {
 	if events < minEv || base <= 0 || limit <= 0 {
 		return false
