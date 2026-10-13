@@ -18407,6 +18407,9 @@
             "format": "double",
             "type": "number"
           },
+          "group": {
+            "type": "string"
+          },
           "importedOnly": {
             "type": "boolean"
           },
@@ -18416,6 +18419,9 @@
           "rate": {
             "format": "double",
             "type": "number"
+          },
+          "source": {
+            "type": "string"
           }
         },
         "required": [

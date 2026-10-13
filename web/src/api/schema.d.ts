@@ -10159,10 +10159,12 @@ export interface components {
             exclude: number;
             /** Format: double */
             expected?: number;
+            group?: string;
             importedOnly: boolean;
             mailbox?: string;
             /** Format: double */
             rate?: number;
+            source?: string;
         };
         RoleCreated: {
             id: string;
