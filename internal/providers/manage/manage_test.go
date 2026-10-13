@@ -702,3 +702,34 @@ func TestHeldBroadcastDecision(t *testing.T) {
 		t.Fatal("decision not audited")
 	}
 }
+
+// The CloudEvents validation handshake (Azure Event Grid) is confirmed for a
+// known webhook URL only.
+func TestWebhookValidationHandshake(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	pm := providerByAdapter(t, env, "postmark")
+	// options answers the status and the allowed origin of a handshake.
+	options := func(path, origin string) (int, string) {
+		req, _ := http.NewRequestWithContext(ctx, http.MethodOptions, env.Server.URL+path, nil)
+		if origin != "" {
+			req.Header.Set("WebHook-Request-Origin", origin)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		return resp.StatusCode, resp.Header.Get("WebHook-Allowed-Origin")
+	}
+	if code, allowed := options("/hooks/postmark/"+pm.WebhookToken, "eventgrid.azure.net"); code != http.StatusOK || allowed != "eventgrid.azure.net" {
+		t.Fatalf("handshake answered %d, origin %q", code, allowed)
+	}
+	if code, _ := options("/hooks/postmark/nope-nope-nope-nope", "eventgrid.azure.net"); code != http.StatusNotFound {
+		t.Fatalf("unknown token answered %d", code)
+	}
+	if code, _ := options("/hooks/postmark/"+pm.WebhookToken, "bad origin/path"); code != http.StatusNotFound {
+		t.Fatalf("invalid origin answered %d", code)
+	}
+}

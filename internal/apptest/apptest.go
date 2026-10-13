@@ -13,11 +13,13 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/app"
 	"github.com/hostrepute/reputecast/internal/authn"
@@ -37,18 +39,41 @@ type Env struct {
 	Server *httptest.Server
 }
 
+// testKey seals secrets in every test app of this binary, so a database
+// cloned from the seeded demo template can open what the seed sealed.
+var testKey = secrets.GenerateKey()
+
+// demoTemplate is the demo data, seeded once per test binary.
+var demoTemplate struct {
+	once sync.Once
+	name string
+	err  error
+}
+
 // New starts the API on a fresh database.
 func New(t testing.TB) *Env {
 	t.Helper()
-	pool := testdb.New(t)
+	e := &Env{T: t}
+	e.start(testdb.New(t))
+	t.Cleanup(e.stop)
+	return e
+}
+
+// start runs the app and an HTTP server on pool's database.
+func (e *Env) start(pool *pgxpool.Pool) {
+	t := e.T
 	cfg := config.Defaults()
 	cfg.Env = "test"
 	cfg.Database.URL = testdb.URL(pool)
 	cfg.Roles = []string{config.RoleWeb, config.RoleIngest}
-	cfg.Secrets.Key = secrets.GenerateKey()
+	cfg.Secrets.Key = testKey
 	cfg.Auth.CookieSecure = false
 	cfg.HTTP.RateLimitAuth = 10000
 	cfg.HTTP.RateLimitAPI = 100000
+	// Fake provider APIs run on loopback in tests.
+	cfg.Providers.AllowPrivateNetworks = true
+	// Packages test in parallel against one server: keep each app's pool small.
+	cfg.Database.MaxConns = 6
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	if testing.Verbose() {
 		log = slog.New(slog.NewTextHandler(&testWriter{t}, &slog.HandlerOptions{Level: slog.LevelWarn}))
@@ -60,11 +85,16 @@ func New(t testing.TB) *Env {
 	srv := httptest.NewServer(a.Handler())
 	a.Cfg.HTTP.PublicURL = srv.URL
 	_, _ = a.Pool.Exec(context.Background(), `UPDATE instance_settings SET public_url = $1`, srv.URL)
-	t.Cleanup(func() {
-		srv.Close()
-		a.Close()
-	})
-	return &Env{T: t, App: a, Server: srv}
+	e.App, e.Server = a, srv
+}
+
+func (e *Env) stop() {
+	if e.Server != nil {
+		e.Server.Close()
+	}
+	if e.App != nil {
+		e.App.Close()
+	}
 }
 
 type testWriter struct{ t testing.TB }
@@ -227,9 +257,20 @@ func (c *Client) SignIn(email, password string) {
 // SeedDemo loads the Acme demo data into the test database.
 func (e *Env) SeedDemo() {
 	e.T.Helper()
-	if _, err := demo.Seed(context.Background(), e.App.Pool, e.App.Cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
-		e.T.Fatalf("seed demo: %v", err)
+	ctx := context.Background()
+	demoTemplate.once.Do(func() {
+		demoTemplate.name, demoTemplate.err = testdb.Template(ctx, "demo", func(pool *pgxpool.Pool) error {
+			_, err := demo.Seed(ctx, pool, e.App.Cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)))
+			return err
+		})
+	})
+	if demoTemplate.err != nil {
+		e.T.Fatalf("seed demo: %v", demoTemplate.err)
 	}
+	// Restart on a clone of the seeded database: milliseconds instead of a
+	// full seed per test.
+	e.stop()
+	e.start(testdb.NewFrom(e.T, demoTemplate.name))
 }
 
 // SignInDemo signs in as a demo user. Demo users with an authenticator get
