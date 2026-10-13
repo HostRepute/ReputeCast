@@ -49,12 +49,12 @@ type ComposerTestRecipient struct {
 
 // ComposerContext is the workspace data the composer needs once.
 type ComposerContext struct {
-	Senders         []ComposerSenderOption                `json:"senders"`
+	Senders         []ComposerSenderOption        `json:"senders"`
 	DefaultSenderID string                        `json:"defaultSenderId,omitempty"`
-	Lists           []ComposerAudienceOption              `json:"lists"`
-	Segments        []ComposerAudienceOption              `json:"segments"`
+	Lists           []ComposerAudienceOption      `json:"lists"`
+	Segments        []ComposerAudienceOption      `json:"segments"`
 	Tokens          []liquid.PersonalizationToken `json:"tokens"`
-	Members         []ComposerTestRecipient               `json:"members"`
+	Members         []ComposerTestRecipient       `json:"members"`
 	BroadcastRoute  ComposerRoute                 `json:"broadcastRoute"`
 	// PostalAddress is the workspace's address for footers, if set.
 	PostalAddress string `json:"postalAddress"`
@@ -220,12 +220,12 @@ type ComposerTokenValue struct {
 
 // ComposerPreview is the rendered email for one recipient.
 type ComposerPreview struct {
-	Subject   string          `json:"subject"`
-	Preheader string          `json:"preheader"`
-	HTML      string          `json:"html"`
-	Text      string          `json:"text"`
-	FromName  string          `json:"fromName"`
-	FromEmail string          `json:"fromEmail"`
+	Subject   string                  `json:"subject"`
+	Preheader string                  `json:"preheader"`
+	HTML      string                  `json:"html"`
+	Text      string                  `json:"text"`
+	FromName  string                  `json:"fromName"`
+	FromEmail string                  `json:"fromEmail"`
 	Contact   *ComposerPreviewContact `json:"contact,omitempty"`
 	Tokens    []ComposerTokenValue    `json:"tokens"`
 	// MissingFirstName counts audience contacts with no first name (they see the fallback).

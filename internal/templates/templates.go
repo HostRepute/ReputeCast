@@ -94,15 +94,15 @@ func (s *Service) now() time.Time {
 
 // EmailTemplateSummary is one tile of the gallery.
 type EmailTemplateSummary struct {
-	ID          string           `json:"id" example:"starter:weekly-digest"`
-	Kind        string           `json:"kind" enum:"template,section"`
-	Name        string           `json:"name"`
-	Description string           `json:"description"`
+	ID          string               `json:"id" example:"starter:weekly-digest"`
+	Kind        string               `json:"kind" enum:"template,section"`
+	Name        string               `json:"name"`
+	Description string               `json:"description"`
 	Thumb       []mjml.MJMLThumbItem `json:"thumb"`
-	Builtin     bool             `json:"builtin"`
-	UpdatedAt   *time.Time       `json:"updatedAt,omitempty"`
-	UpdatedBy   string           `json:"updatedBy,omitempty"`
-	SizeBytes   int              `json:"sizeBytes"`
+	Builtin     bool                 `json:"builtin"`
+	UpdatedAt   *time.Time           `json:"updatedAt,omitempty"`
+	UpdatedBy   string               `json:"updatedBy,omitempty"`
+	SizeBytes   int                  `json:"sizeBytes"`
 	// SourceCampaignID is the campaign a template was saved from.
 	SourceCampaignID string `json:"sourceCampaignId,omitempty"`
 }
@@ -116,18 +116,18 @@ type EmailTemplateDetail struct {
 
 // EmailTemplateLastCampaign is the most recent sent campaign, offered as "Copy of …".
 type EmailTemplateLastCampaign struct {
-	ID     string           `json:"id"`
-	Name   string           `json:"name"`
-	SentAt time.Time        `json:"sentAt"`
+	ID     string               `json:"id"`
+	Name   string               `json:"name"`
+	SentAt time.Time            `json:"sentAt"`
 	Thumb  []mjml.MJMLThumbItem `json:"thumb"`
 }
 
 // EmailTemplateGallery is the empty-canvas gallery and the Templates tab.
 type EmailTemplateGallery struct {
-	Starters     []EmailTemplateSummary `json:"starters"`
-	Templates    []EmailTemplateSummary `json:"templates"`
-	Sections     []EmailTemplateSummary `json:"sections"`
-	LastCampaign *EmailTemplateLastCampaign     `json:"lastCampaign,omitempty"`
+	Starters     []EmailTemplateSummary     `json:"starters"`
+	Templates    []EmailTemplateSummary     `json:"templates"`
+	Sections     []EmailTemplateSummary     `json:"sections"`
+	LastCampaign *EmailTemplateLastCampaign `json:"lastCampaign,omitempty"`
 }
 
 // Gallery lists starters, the workspace's templates and saved sections, and

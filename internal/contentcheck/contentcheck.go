@@ -64,7 +64,7 @@ type ContentCheckIssue struct {
 	// excluded); empty when the issue concerns the whole email.
 	Path []int `json:"path"`
 	// Section is the top-level section index, -1 for the whole email.
-	Section int          `json:"section"`
+	Section int               `json:"section"`
 	Fixes   []ContentCheckFix `json:"fixes"`
 	// URL is the link a link issue is about (to find it inside text).
 	URL string `json:"url,omitempty"`
@@ -94,11 +94,11 @@ type ContentCheckReport struct {
 	LinksBlocklisted int    `json:"linksBlocklisted"`
 	LinksBroken      int    `json:"linksBroken"`
 	// SubjectHeuristics names the spam heuristics the subject trips.
-	SubjectHeuristics []string         `json:"subjectHeuristics"`
+	SubjectHeuristics []string              `json:"subjectHeuristics"`
 	Issues            []ContentCheckIssue   `json:"issues"`
 	Sections          []ContentCheckSection `json:"sections"`
-	PlainText         string           `json:"plainText"`
-	CheckedAt         time.Time        `json:"checkedAt"`
+	PlainText         string                `json:"plainText"`
+	CheckedAt         time.Time             `json:"checkedAt"`
 }
 
 // Input is the content to check.
@@ -704,10 +704,8 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 			continue
 		}
 		lists := listings[host]
-		domain := host
 		if len(lists) == 0 {
-			domain = RegistrableDomain(host)
-			lists = listings[domain]
+			lists = listings[RegistrableDomain(host)]
 		}
 		if len(lists) > 0 {
 			r.LinksBlocklisted++

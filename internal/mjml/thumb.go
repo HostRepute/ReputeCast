@@ -6,9 +6,9 @@ import "strings"
 // a grey block of height H (px) and width W (% of the thumbnail; 0 = full),
 // an accent pill for buttons, or a row of blocks for columns.
 type MJMLThumbItem struct {
-	H      int         `json:"h,omitempty"`
-	W      int         `json:"w,omitempty"`
-	Accent bool        `json:"accent,omitempty"`
+	H      int             `json:"h,omitempty"`
+	W      int             `json:"w,omitempty"`
+	Accent bool            `json:"accent,omitempty"`
 	Row    []MJMLThumbItem `json:"row,omitempty"`
 }
 

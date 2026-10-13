@@ -260,7 +260,7 @@ func (p *parser) openTag(lt int) (*Node, bool, error) {
 			return n, true, nil
 		}
 		ns := i
-		for i < len(src) && !isSpace(src[i]) && src[i] != '=' && src[i] != '>' && !(src[i] == '/' && i+1 < len(src) && src[i+1] == '>') {
+		for i < len(src) && !isSpace(src[i]) && src[i] != '=' && src[i] != '>' && (src[i] != '/' || i+1 >= len(src) || src[i+1] != '>') {
 			i++
 		}
 		name := strings.ToLower(src[ns:i])

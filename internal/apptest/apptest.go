@@ -257,7 +257,7 @@ func (c *Client) DoRaw(method, path, contentType string, body io.Reader) *Respon
 	if strings.HasPrefix(path, "/workspaces/") {
 		target = c.env.Server.URL + "/api/v1" + path
 	}
-	req, err := http.NewRequest(method, target, body)
+	req, err := http.NewRequestWithContext(context.Background(), method, target, body)
 	if err != nil {
 		c.env.T.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func (c *Client) DoRaw(method, path, contentType string, body io.Reader) *Respon
 	if err != nil {
 		c.env.T.Fatalf("%s %s: %v", method, path, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	b, _ := io.ReadAll(resp.Body)
 	return &Response{Status: resp.StatusCode, Header: resp.Header, Body: b}
 }

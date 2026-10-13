@@ -159,7 +159,7 @@ func (p *HTTPProber) one(ctx context.Context, u string) ProbeResult {
 	}
 	resp, err := do(http.MethodHead)
 	if err == nil && (resp.StatusCode == http.StatusMethodNotAllowed || resp.StatusCode == http.StatusNotImplemented || resp.StatusCode == http.StatusForbidden) {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		resp, err = do(http.MethodGet)
 	}
 	if err != nil {
@@ -168,7 +168,7 @@ func (p *HTTPProber) one(ctx context.Context, u string) ProbeResult {
 		}
 		return ProbeResult{Broken: true, Error: fmt.Sprintf("no response: %v", err)}
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	broken := resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone || resp.StatusCode >= 500
 	return ProbeResult{Status: resp.StatusCode, Broken: broken}
 }

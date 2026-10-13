@@ -105,7 +105,7 @@ func TestCleanEmailIsReady(t *testing.T) {
 }
 
 func TestProberRefusesInternalAddresses(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }))
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) }))
 	defer srv.Close()
 	p := NewHTTPProber()
 	res := p.Probe(context.Background(), []string{srv.URL + "/ok"})

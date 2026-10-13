@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"image"
 	"image/gif"
@@ -111,14 +110,19 @@ func SafeFileName(name, contentType string) string {
 	return base + ext
 }
 
+// ImageError is why an upload was refused, worded for the person uploading.
+type ImageError string
+
+func (e ImageError) Error() string { return string(e) }
+
 // Inspect validates image bytes by their content and returns the type,
 // dimensions and whether the image has transparency.
 func Inspect(data []byte) (contentType string, width, height int, alpha bool, err error) {
 	if len(data) == 0 {
-		return "", 0, 0, false, errors.New("The file is empty.")
+		return "", 0, 0, false, ImageError("The file is empty.")
 	}
 	if len(data) > MaxBytes {
-		return "", 0, 0, false, fmt.Errorf("The image is %.1f MB; the limit is 5 MB. Email images work best under 200 KB.", float64(len(data))/(1<<20))
+		return "", 0, 0, false, ImageError(fmt.Sprintf("The image is %.1f MB; the limit is 5 MB. Email images work best under 200 KB.", float64(len(data))/(1<<20)))
 	}
 	sniffed := http.DetectContentType(data)
 	var cfg image.Config
@@ -130,18 +134,18 @@ func Inspect(data []byte) (contentType string, width, height int, alpha bool, er
 	case "image/gif":
 		cfg, err = gif.DecodeConfig(bytes.NewReader(data))
 	case "image/webp":
-		return "", 0, 0, false, errors.New("WebP images don't display in Outlook and several other email clients. Upload a PNG, JPEG or GIF.")
+		return "", 0, 0, false, ImageError("WebP images don't display in Outlook and several other email clients. Upload a PNG, JPEG or GIF.")
 	default:
 		if strings.Contains(string(data[:min(len(data), 512)]), "<svg") {
-			return "", 0, 0, false, errors.New("SVG images don't display in Gmail or Outlook. Upload a PNG, JPEG or GIF.")
+			return "", 0, 0, false, ImageError("SVG images don't display in Gmail or Outlook. Upload a PNG, JPEG or GIF.")
 		}
-		return "", 0, 0, false, errors.New("That file isn't an image ReputeCast can use. Upload a PNG, JPEG or GIF.")
+		return "", 0, 0, false, ImageError("That file isn't an image ReputeCast can use. Upload a PNG, JPEG or GIF.")
 	}
 	if err != nil {
-		return "", 0, 0, false, errors.New("The image is damaged or incomplete and couldn't be read. Export it again and retry.")
+		return "", 0, 0, false, ImageError("The image is damaged or incomplete and couldn't be read. Export it again and retry.")
 	}
 	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width*cfg.Height > MaxPixels {
-		return "", 0, 0, false, errors.New("The image dimensions are invalid or too large (100 megapixels at most).")
+		return "", 0, 0, false, ImageError("The image dimensions are invalid or too large (100 megapixels at most).")
 	}
 	return sniffed, cfg.Width, cfg.Height, hasAlpha(sniffed, data, cfg), nil
 }

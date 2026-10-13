@@ -39,7 +39,7 @@ type ComposerSaveContent struct {
 	MJML        string `json:"mjml,omitempty" maxLength:"2000000"`
 	// HTML compiled by the composer (mjml-browser). Empty: the server
 	// compiles the MJML with gomjml.
-	HTML   string  `json:"html,omitempty" maxLength:"2500000"`
+	HTML   string          `json:"html,omitempty" maxLength:"2500000"`
 	ABTest *ComposerABTest `json:"abTest,omitempty"`
 	// Label says what changed ("2-column section padding").
 	Label  string `json:"label,omitempty" maxLength:"200"`
@@ -231,10 +231,10 @@ func (s *Service) Versions(ctx context.Context, ws *store.Workspace, id uuid.UUI
 // ComposerVersionDetail is a version with its content (compare, restore).
 type ComposerVersionDetail struct {
 	ComposerVersion
-	Subject   string  `json:"subject"`
-	Preheader string  `json:"preheader"`
-	MJML      string  `json:"mjml"`
-	HTML      string  `json:"html"`
+	Subject   string          `json:"subject"`
+	Preheader string          `json:"preheader"`
+	MJML      string          `json:"mjml"`
+	HTML      string          `json:"html"`
 	ABTest    *ComposerABTest `json:"abTest,omitempty"`
 	// Sections are the labels of the sections that differ from the version before.
 	Sections []string `json:"sections"`

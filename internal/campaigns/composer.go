@@ -42,7 +42,7 @@ type ComposerAudienceInput struct {
 }
 
 func (in ComposerAudienceInput) def() ComposerAudience {
-	return ComposerAudience{Lists: in.Lists, Segments: in.Segments, ExcludeLists: in.ExcludeLists, ExcludeSegments: in.ExcludeSegments}
+	return ComposerAudience(in)
 }
 
 // dbAudience is the stored shape of campaigns.audience.
@@ -91,10 +91,10 @@ type ComposerABVariant struct {
 
 // ComposerABTest compares variants on a sample, then sends the winner to the rest.
 type ComposerABTest struct {
-	Kind        string      `json:"kind" enum:"subject,content,send_time"`
+	Kind        string              `json:"kind" enum:"subject,content,send_time"`
 	Variants    []ComposerABVariant `json:"variants" minItems:"2" maxItems:"3"`
-	TestPercent int         `json:"testPercent" minimum:"5" maximum:"50" doc:"Share of the audience in the test"`
-	Metric      string      `json:"metric" enum:"human_opens,clicks,manual"`
+	TestPercent int                 `json:"testPercent" minimum:"5" maximum:"50" doc:"Share of the audience in the test"`
+	Metric      string              `json:"metric" enum:"human_opens,clicks,manual"`
 	// DurationHours is how long the test runs before the winner is sent.
 	DurationHours int `json:"durationHours" minimum:"1" maximum:"72"`
 	// BestTime sends each recipient at their usual open time (send-time tests).
@@ -136,7 +136,7 @@ func abFromDB(raw json.RawMessage) *ComposerABTest {
 		out.Metric = "human_opens"
 	}
 	for _, v := range d.Variants {
-		out.Variants = append(out.Variants, ComposerABVariant{Key: v.Key, Subject: v.Subject, Preheader: v.Preheader, MJML: v.MJML, HTML: v.HTML, SendTime: v.SendTime})
+		out.Variants = append(out.Variants, ComposerABVariant(v))
 	}
 	return out
 }
@@ -147,7 +147,7 @@ func (t *ComposerABTest) toDB() json.RawMessage {
 	}
 	d := dbABTest{Kind: t.Kind, TestPercent: t.TestPercent, Metric: t.Metric, DurationHours: t.DurationHours, BestTime: t.BestTime, Winner: t.Winner}
 	for _, v := range t.Variants {
-		d.Variants = append(d.Variants, dbABVariant{Key: v.Key, Subject: v.Subject, Preheader: v.Preheader, MJML: v.MJML, HTML: v.HTML, SendTime: v.SendTime})
+		d.Variants = append(d.Variants, dbABVariant(v))
 	}
 	b, _ := json.Marshal(d)
 	return b
@@ -192,33 +192,33 @@ type ComposerAccess struct {
 
 // ComposerCampaign is everything the composer loads.
 type ComposerCampaign struct {
-	ID            string            `json:"id"`
-	Name          string            `json:"name"`
-	Status        string            `json:"status" enum:"draft,approval,approved,scheduled,sending,paused,sent,cancelled,failed"`
-	Subject       string            `json:"subject"`
-	Preheader     string            `json:"preheader"`
-	Sender        *ComposerSenderRef        `json:"sender,omitempty"`
-	ReplyTo       string            `json:"replyTo"`
-	Audience      ComposerAudience       `json:"audience"`
-	AudienceLabel string            `json:"audienceLabel"`
-	AudienceCount *int64            `json:"audienceCount,omitempty"`
-	EditorMode    string            `json:"editorMode" enum:"visual,mjml,html"`
-	MJML          string            `json:"mjml"`
-	HTML          string            `json:"html"`
-	PlainText     string            `json:"plainText"`
-	Version       int               `json:"version"`
-	VersionCount  int               `json:"versionCount"`
-	ContentHash   string            `json:"contentHash"`
-	ABTest        *ComposerABTest           `json:"abTest,omitempty"`
-	Settings      ComposerContentSettings   `json:"settings"`
-	ScheduledAt   *time.Time        `json:"scheduledAt,omitempty"`
-	CreatedAt     time.Time         `json:"createdAt"`
-	UpdatedAt     time.Time         `json:"updatedAt"`
-	UpdatedBy     string            `json:"updatedBy"`
-	AutosavedAt   *time.Time        `json:"autosavedAt,omitempty"`
-	Route         ComposerRoute     `json:"route"`
-	Readiness     *ReadinessSummary `json:"readiness,omitempty"`
-	Access        ComposerAccess    `json:"access"`
+	ID            string                  `json:"id"`
+	Name          string                  `json:"name"`
+	Status        string                  `json:"status" enum:"draft,approval,approved,scheduled,sending,paused,sent,cancelled,failed"`
+	Subject       string                  `json:"subject"`
+	Preheader     string                  `json:"preheader"`
+	Sender        *ComposerSenderRef      `json:"sender,omitempty"`
+	ReplyTo       string                  `json:"replyTo"`
+	Audience      ComposerAudience        `json:"audience"`
+	AudienceLabel string                  `json:"audienceLabel"`
+	AudienceCount *int64                  `json:"audienceCount,omitempty"`
+	EditorMode    string                  `json:"editorMode" enum:"visual,mjml,html"`
+	MJML          string                  `json:"mjml"`
+	HTML          string                  `json:"html"`
+	PlainText     string                  `json:"plainText"`
+	Version       int                     `json:"version"`
+	VersionCount  int                     `json:"versionCount"`
+	ContentHash   string                  `json:"contentHash"`
+	ABTest        *ComposerABTest         `json:"abTest,omitempty"`
+	Settings      ComposerContentSettings `json:"settings"`
+	ScheduledAt   *time.Time              `json:"scheduledAt,omitempty"`
+	CreatedAt     time.Time               `json:"createdAt"`
+	UpdatedAt     time.Time               `json:"updatedAt"`
+	UpdatedBy     string                  `json:"updatedBy"`
+	AutosavedAt   *time.Time              `json:"autosavedAt,omitempty"`
+	Route         ComposerRoute           `json:"route"`
+	Readiness     *ReadinessSummary       `json:"readiness,omitempty"`
+	Access        ComposerAccess          `json:"access"`
 }
 
 var editableStatuses = map[string]bool{"draft": true, "approval": true, "approved": true, "scheduled": true}
@@ -459,9 +459,9 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 // ComposerUpdateCampaign changes what isn't versioned content: name, sender,
 // reply-to, audience and content settings. Omitted fields stay.
 type ComposerUpdateCampaign struct {
-	Name     *string          `json:"name,omitempty" minLength:"1" maxLength:"200"`
-	SenderID *string          `json:"senderId,omitempty" doc:"A sender id, or empty to clear"`
-	ReplyTo  *string          `json:"replyTo,omitempty" maxLength:"254"`
+	Name     *string                  `json:"name,omitempty" minLength:"1" maxLength:"200"`
+	SenderID *string                  `json:"senderId,omitempty" doc:"A sender id, or empty to clear"`
+	ReplyTo  *string                  `json:"replyTo,omitempty" maxLength:"254"`
 	Audience *ComposerAudienceInput   `json:"audience,omitempty"`
 	Settings *ComposerContentSettings `json:"settings,omitempty"`
 }
@@ -533,7 +533,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if in.Settings != nil {
 			b, _ := json.Marshal(in.Settings)
 			if string(b) != string(settings) {
-				before["settings"], after["settings"] = json.RawMessage(settings), in.Settings
+				before["settings"], after["settings"] = settings, in.Settings
 				settings = b
 			}
 		}
