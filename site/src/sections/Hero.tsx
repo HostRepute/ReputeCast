@@ -33,7 +33,8 @@ export function Hero() {
   const frac = Math.round(SENT * p) / RECIPIENTS
   return (
     <section className="relative overflow-hidden border-b border-line-2 bg-ground-2">
-      <div className="blob top-[-140px] right-[-120px] h-[420px] w-[420px]" aria-hidden="true" />
+      {/* On phones the board shows only the small blob. */}
+      <div className="blob top-[-140px] right-[-120px] h-[420px] w-[420px] max-md:hidden" aria-hidden="true" />
       <div className="blob bottom-[-110px] left-[-90px] h-[260px] w-[260px] [animation-delay:-6s]" aria-hidden="true" />
       <div className="wrap relative flex flex-wrap items-center gap-10 pt-18 pb-18">
         <div className="flex flex-[1_1_460px] flex-col gap-5">
