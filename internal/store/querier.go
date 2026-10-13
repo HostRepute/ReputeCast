@@ -7,6 +7,7 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -41,16 +42,21 @@ type Querier interface {
 	ComposerUpdateCampaignMeta(ctx context.Context, arg ComposerUpdateCampaignMetaParams) error
 	// The MJML of recent versions, newest first (to find when a section was removed).
 	ComposerVersionSources(ctx context.Context, arg ComposerVersionSourcesParams) ([]ComposerVersionSourcesRow, error)
+	// A state is single use: reading it deletes it.
+	ConsumeHostReputeOAuthState(ctx context.Context, stateHash []byte) (HostreputeOauthState, error)
 	ConsumePasswordReset(ctx context.Context, tokenHash []byte) (PasswordReset, error)
 	ContentCheckLinkListings(ctx context.Context, domains []string) ([]LinkDomainListing, error)
 	ContentCheckUpsertLinkListing(ctx context.Context, arg ContentCheckUpsertLinkListingParams) error
 	CountActiveOwners(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountCampaigns(ctx context.Context, arg CountCampaignsParams) (int64, error)
 	CountCampaignsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountCampaignsByStatusRow, error)
+	CountDeliverabilityIncidents(ctx context.Context, arg CountDeliverabilityIncidentsParams) (int64, error)
 	CountUnusedRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountUsers(ctx context.Context) (int64, error)
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
 	CreateChallenge(ctx context.Context, arg CreateChallengeParams) (AuthChallenge, error)
+	CreateDeliverabilityCheckRun(ctx context.Context, arg CreateDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
+	CreateHostReputeOAuthState(ctx context.Context, arg CreateHostReputeOAuthStateParams) error
 	CreateIdentity(ctx context.Context, arg CreateIdentityParams) (UserIdentity, error)
 	CreateInvitation(ctx context.Context, arg CreateInvitationParams) (Invitation, error)
 	CreateMember(ctx context.Context, arg CreateMemberParams) (WorkspaceMember, error)
@@ -62,17 +68,29 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
 	DeleteChallenge(ctx context.Context, id uuid.UUID) error
+	DeleteDeliverabilityBlocklistResults(ctx context.Context, arg DeleteDeliverabilityBlocklistResultsParams) error
 	DeleteExpiredChallenges(ctx context.Context) (int64, error)
+	DeleteExpiredHostReputeOAuthStates(ctx context.Context) (int64, error)
 	DeleteExpiredSessions(ctx context.Context) (int64, error)
+	DeleteHostReputeConnection(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	// Disconnect forgets what was synced from HostRepute (HostRepute keeps it).
+	DeleteHostReputeData(ctx context.Context, workspaceID uuid.UUID) error
 	DeleteIdentity(ctx context.Context, arg DeleteIdentityParams) (int64, error)
 	DeleteMember(ctx context.Context, arg DeleteMemberParams) (int64, error)
 	DeletePasskey(ctx context.Context, arg DeletePasskeyParams) (int64, error)
 	DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) error
 	DeleteRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	DeleteStaleThrottle(ctx context.Context) (int64, error)
+	// Which streams each provider serves, as primary (in a split) or fallback.
+	DeliverabilityProviderStreams(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityProviderStreamsRow, error)
+	DeliverabilityWarmupPlans(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityWarmupPlansRow, error)
+	// Workspaces the daily checks look at: they send through something.
+	DeliverabilityWorkspaces(ctx context.Context) ([]uuid.UUID, error)
 	EmailTemplateNameTaken(ctx context.Context, arg EmailTemplateNameTakenParams) (bool, error)
 	// Must run inside the same transaction as PurgeAuditEvents (retention job only).
 	EnableAuditPurge(ctx context.Context) error
+	FailStaleDeliverabilityCheckRuns(ctx context.Context, aliveAfter time.Time) (int64, error)
+	FinishDeliverabilityCheckRun(ctx context.Context, arg FinishDeliverabilityCheckRunParams) error
 	GetAPIKey(ctx context.Context, arg GetAPIKeyParams) (ApiKey, error)
 	GetAPIKeyByToken(ctx context.Context, tokenHash []byte) (GetAPIKeyByTokenRow, error)
 	GetAuditEvent(ctx context.Context, id uuid.UUID) (AuditEvent, error)
@@ -82,7 +100,11 @@ type Querier interface {
 	GetComposerCampaign(ctx context.Context, arg GetComposerCampaignParams) (GetComposerCampaignRow, error)
 	GetComposerSender(ctx context.Context, arg GetComposerSenderParams) (GetComposerSenderRow, error)
 	GetComposerVersion(ctx context.Context, arg GetComposerVersionParams) (GetComposerVersionRow, error)
+	GetDeliverabilityBlocklistListing(ctx context.Context, arg GetDeliverabilityBlocklistListingParams) (BlocklistResult, error)
+	GetDeliverabilityCheckRun(ctx context.Context, arg GetDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
 	GetEmailTemplate(ctx context.Context, arg GetEmailTemplateParams) (GetEmailTemplateRow, error)
+	GetHostReputeConnection(ctx context.Context, workspaceID uuid.UUID) (HostreputeConnection, error)
+	GetHostReputeConnectionForUpdate(ctx context.Context, workspaceID uuid.UUID) (HostreputeConnection, error)
 	GetIdentity(ctx context.Context, arg GetIdentityParams) (UserIdentity, error)
 	GetInstanceSettings(ctx context.Context) (InstanceSetting, error)
 	GetInvitationByToken(ctx context.Context, tokenHash []byte) (GetInvitationByTokenRow, error)
@@ -102,12 +124,50 @@ type Querier interface {
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
 	HideMediaAsset(ctx context.Context, arg HideMediaAssetParams) (int64, error)
+	// The sending domains an asset list is built from (with the records their
+	// providers require). Connected providers come from ProvListActive.
+	HostReputeAssetSources(ctx context.Context, workspaceID uuid.UUID) ([]HostReputeAssetSourcesRow, error)
+	HostReputeCountAgents(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	HostReputeCountWebhooks(ctx context.Context, workspaceID uuid.UUID) (HostReputeCountWebhooksRow, error)
+	// Where Postmaster and SNDS data come from now (hostrepute, direct or none).
+	HostReputeDataSourceVia(ctx context.Context, workspaceID uuid.UUID) (HostReputeDataSourceViaRow, error)
+	// The connected provider that sends from a dedicated IP.
+	HostReputeProviderForIP(ctx context.Context, arg HostReputeProviderForIPParams) (HostReputeProviderForIPRow, error)
+	HostReputeUserName(ctx context.Context, id uuid.UUID) (HostReputeUserNameRow, error)
+	HostReputeWorkspaceSlug(ctx context.Context, id uuid.UUID) (string, error)
+	IngestAddSuppression(ctx context.Context, arg IngestAddSuppressionParams) (uuid.UUID, error)
+	IngestBumpCounters(ctx context.Context, arg IngestBumpCountersParams) error
+	// The provider event log: provider events (not ReputeCast's own opens and
+	// clicks), newest first, retained 90 days.
+	IngestEventLog(ctx context.Context, arg IngestEventLogParams) ([]IngestEventLogRow, error)
+	IngestEventLogCount(ctx context.Context, arg IngestEventLogCountParams) (int64, error)
+	IngestGetRaw(ctx context.Context, id uuid.UUID) (ProviderRawEvent, error)
+	IngestInsertEvent(ctx context.Context, arg IngestInsertEventParams) (uuid.UUID, error)
+	// W01 · Webhook ingest, normalization and the provider event log.
+	IngestInsertRaw(ctx context.Context, arg IngestInsertRawParams) error
+	IngestMarkNormalized(ctx context.Context, arg IngestMarkNormalizedParams) error
+	IngestMessageByID(ctx context.Context, arg IngestMessageByIDParams) (IngestMessageByIDRow, error)
+	IngestMessageByProviderID(ctx context.Context, arg IngestMessageByProviderIDParams) (IngestMessageByProviderIDRow, error)
+	IngestPurgeRaw(ctx context.Context, before time.Time) (int64, error)
+	IngestSetContactStatus(ctx context.Context, arg IngestSetContactStatusParams) error
+	// Verified payloads the normalization job never finished (recovery sweep).
+	IngestStaleRaw(ctx context.Context, arg IngestStaleRawParams) ([]uuid.UUID, error)
+	// Moves a message forward: delivered/deferred are replaced by bounces and
+	// complaints, never the other way round.
+	IngestUpdateMessage(ctx context.Context, arg IngestUpdateMessageParams) error
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
 	InsertComposerCampaign(ctx context.Context, arg InsertComposerCampaignParams) error
 	InsertComposerVersion(ctx context.Context, arg InsertComposerVersionParams) error
+	InsertDeliverabilityBlocklistResult(ctx context.Context, arg InsertDeliverabilityBlocklistResultParams) error
+	// Incidents with an external id (HostRepute alerts) are stored once; the
+	// returned row count says whether this one is new.
+	InsertDeliverabilityIncident(ctx context.Context, arg InsertDeliverabilityIncidentParams) (uuid.UUID, error)
 	InsertEmailTemplate(ctx context.Context, arg InsertEmailTemplateParams) error
 	// Uploading the same bytes twice returns the existing asset (and shows it again).
 	InsertMediaAsset(ctx context.Context, arg InsertMediaAssetParams) (InsertMediaAssetRow, error)
+	LastDeliverabilityAssetCheckAt(ctx context.Context, workspaceID uuid.UUID) (time.Time, error)
+	LatestDeliverabilityCheckRun(ctx context.Context, workspaceID uuid.UUID) (DeliverabilityCheckRun, error)
+	LatestFinishedDeliverabilityCheckRun(ctx context.Context, arg LatestFinishedDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
 	ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
 	ListCampaignIncidentSummaries(ctx context.Context, campaignIds []uuid.UUID) ([]ListCampaignIncidentSummariesRow, error)
@@ -118,6 +178,18 @@ type Querier interface {
 	ListCampaigns(ctx context.Context, arg ListCampaignsParams) ([]ListCampaignsRow, error)
 	ListComposerSenders(ctx context.Context, workspaceID uuid.UUID) ([]ListComposerSendersRow, error)
 	ListComposerVersions(ctx context.Context, arg ListComposerVersionsParams) ([]ListComposerVersionsRow, error)
+	// Workspaces whose HostRepute connection the hourly sync refreshes.
+	ListConnectedHostRepute(ctx context.Context) ([]uuid.UUID, error)
+	ListDeliverabilityAssetChecks(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityAssetCheck, error)
+	// Every blocklist result of a workspace, most important first: listings,
+	// then by the source's rank.
+	ListDeliverabilityBlocklistResults(ctx context.Context, workspaceID uuid.UUID) ([]BlocklistResult, error)
+	ListDeliverabilityDMARCReports(ctx context.Context, arg ListDeliverabilityDMARCReportsParams) ([]DmarcReport, error)
+	// The incident timeline. An incident without an explicit campaign is linked
+	// to the campaign that was sending through its provider when it happened.
+	ListDeliverabilityIncidents(ctx context.Context, arg ListDeliverabilityIncidentsParams) ([]ListDeliverabilityIncidentsRow, error)
+	ListDeliverabilityPostmasterDays(ctx context.Context, arg ListDeliverabilityPostmasterDaysParams) ([]PostmasterDaily, error)
+	ListDeliverabilitySNDSDays(ctx context.Context, arg ListDeliverabilitySNDSDaysParams) ([]SndsDaily, error)
 	ListEmailTemplates(ctx context.Context, arg ListEmailTemplatesParams) ([]ListEmailTemplatesRow, error)
 	ListIdentities(ctx context.Context, userID uuid.UUID) ([]UserIdentity, error)
 	ListMediaAssets(ctx context.Context, arg ListMediaAssetsParams) ([]ListMediaAssetsRow, error)
@@ -132,11 +204,74 @@ type Querier interface {
 	ListUsers(ctx context.Context) ([]User, error)
 	ListWorkspaceLists(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceListsRow, error)
 	ListWorkspaces(ctx context.Context) ([]Workspace, error)
+	// A sync finished: account, team, scopes and monitored assets as HostRepute
+	// reports them now.
+	MarkHostReputeSynced(ctx context.Context, arg MarkHostReputeSyncedParams) error
+	// HostRepute rejected the token (revoked on its side, or expired and not
+	// refreshable). Only the first rejection is recorded.
+	MarkHostReputeTokenRejected(ctx context.Context, arg MarkHostReputeTokenRejectedParams) (int64, error)
+	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
+	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
+	ProvAwaitingCount(ctx context.Context, arg ProvAwaitingCountParams) (ProvAwaitingCountRow, error)
+	ProvAwaitingProviderIDs(ctx context.Context, arg ProvAwaitingProviderIDsParams) ([]string, error)
+	// Messages a provider accepted with no event since (newest first).
+	ProvAwaitingStatus(ctx context.Context, arg ProvAwaitingStatusParams) ([]ProvAwaitingStatusRow, error)
+	// Broadcast recipients sent over the last weeks (campaign counters).
+	ProvBroadcastWeekly(ctx context.Context, arg ProvBroadcastWeeklyParams) (int64, error)
+	// API calls, failures and messages per provider since a time (rolling windows).
+	ProvCallWindowTotals(ctx context.Context, arg ProvCallWindowTotalsParams) ([]ProvCallWindowTotalsRow, error)
+	ProvCampaignRoutes(ctx context.Context, campaignID uuid.UUID) ([]ProvCampaignRoutesRow, error)
+	// Totals per provider over [since, until] (dates).
+	ProvDailyTotals(ctx context.Context, arg ProvDailyTotalsParams) ([]ProvDailyTotalsRow, error)
+	ProvDisconnect(ctx context.Context, id uuid.UUID) error
+	ProvEndFailovers(ctx context.Context, arg ProvEndFailoversParams) ([]StreamFailover, error)
+	ProvGet(ctx context.Context, arg ProvGetParams) (Provider, error)
+	ProvGetAny(ctx context.Context, id uuid.UUID) (Provider, error)
+	ProvGetByWebhookToken(ctx context.Context, arg ProvGetByWebhookTokenParams) (Provider, error)
+	// Campaign shares held on a provider (Broadcasts waiting for a decision).
+	ProvHeldRoutes(ctx context.Context, arg ProvHeldRoutesParams) ([]ProvHeldRoutesRow, error)
+	ProvIncidentsSince(ctx context.Context, arg ProvIncidentsSinceParams) ([]Incident, error)
+	ProvInsertIncident(ctx context.Context, arg ProvInsertIncidentParams) error
+	// W01 · Sending providers: connected providers, health inputs, actions.
+	// Query names start with Prov so they never collide with other domains.
+	ProvListActive(ctx context.Context, workspaceID uuid.UUID) ([]Provider, error)
+	// Every connected provider of every workspace (health and sync jobs).
+	ProvListAllActive(ctx context.Context) ([]Provider, error)
+	ProvMembersWithNames(ctx context.Context, ids []uuid.UUID) ([]ProvMembersWithNamesRow, error)
+	ProvPurgeCallWindows(ctx context.Context, before time.Time) (int64, error)
+	// Webhook events received per hour (webhook freshness chart).
+	ProvRawEventsByHour(ctx context.Context, arg ProvRawEventsByHourParams) ([]ProvRawEventsByHourRow, error)
+	ProvRecordCall(ctx context.Context, arg ProvRecordCallParams) error
+	ProvRecordDaily(ctx context.Context, arg ProvRecordDailyParams) error
+	// Delivery outcomes counted from normalized events (bounce and complaint rates).
+	ProvRecordOutcome(ctx context.Context, arg ProvRecordOutcomeParams) error
+	// Automation mail sent through a fallback since a time, per automation.
+	ProvReroutedByAutomation(ctx context.Context, arg ProvReroutedByAutomationParams) ([]ProvReroutedByAutomationRow, error)
+	ProvResolveIncidents(ctx context.Context, arg ProvResolveIncidentsParams) error
+	// Campaigns sending through a provider right now.
+	ProvSendingCampaignsOn(ctx context.Context, arg ProvSendingCampaignsOnParams) ([]ProvSendingCampaignsOnRow, error)
+	// System mail sent through a provider since a time, per kind.
+	ProvSentByKind(ctx context.Context, arg ProvSentByKindParams) ([]ProvSentByKindRow, error)
+	// Messages handed to each provider since a time, and since the provider's
+	// last webhook event (webhook freshness: mail went out but nothing came back).
+	ProvSentSince(ctx context.Context, arg ProvSentSinceParams) ([]ProvSentSinceRow, error)
+	ProvSetRouteStatus(ctx context.Context, arg ProvSetRouteStatusParams) (int64, error)
+	ProvStartFailover(ctx context.Context, arg ProvStartFailoverParams) error
+	// Messages per stream over a window (volume estimates on the routing screen).
+	ProvStreamVolume(ctx context.Context, arg ProvStreamVolumeParams) ([]ProvStreamVolumeRow, error)
+	ProvTouchLastEvent(ctx context.Context, arg ProvTouchLastEventParams) error
+	ProvUpdateCapabilities(ctx context.Context, arg ProvUpdateCapabilitiesParams) error
+	ProvUpdateConfig(ctx context.Context, arg ProvUpdateConfigParams) error
+	ProvUpdateCredentials(ctx context.Context, arg ProvUpdateCredentialsParams) error
+	ProvUpdateHealth(ctx context.Context, arg ProvUpdateHealthParams) error
+	ProvUpdateSettings(ctx context.Context, arg ProvUpdateSettingsParams) error
+	ProvUpdateTracking(ctx context.Context, arg ProvUpdateTrackingParams) error
 	ProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]ProviderNamesRow, error)
 	// Keeps the newest @keep versions; the first version and anything that is
 	// not an autosave (restores, imports, ⌘S) are always kept.
 	PruneComposerVersions(ctx context.Context, arg PruneComposerVersionsParams) (int64, error)
 	PurgeAuditEvents(ctx context.Context, arg PurgeAuditEventsParams) (int64, error)
+	RecordHostReputeSyncError(ctx context.Context, arg RecordHostReputeSyncErrorParams) error
 	RecordSignInFailure(ctx context.Context, arg RecordSignInFailureParams) (RecordSignInFailureRow, error)
 	RecordSignInSuccess(ctx context.Context, id uuid.UUID) error
 	RecordSignInThrottleFailure(ctx context.Context, arg RecordSignInThrottleFailureParams) (SignInThrottle, error)
@@ -149,7 +284,23 @@ type Querier interface {
 	RevokeInvitation(ctx context.Context, arg RevokeInvitationParams) (int64, error)
 	RevokeOtherSessions(ctx context.Context, arg RevokeOtherSessionsParams) (int64, error)
 	RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error)
+	RoutingContact(ctx context.Context, arg RoutingContactParams) (RoutingContactRow, error)
+	RoutingDeleteRules(ctx context.Context, workspaceID uuid.UUID) error
+	RoutingInsertRule(ctx context.Context, arg RoutingInsertRuleParams) error
+	RoutingIsSuppressed(ctx context.Context, arg RoutingIsSuppressedParams) (bool, error)
+	RoutingListPolicies(ctx context.Context, workspaceID uuid.UUID) ([]StreamPolicy, error)
+	// W01 · Routing rules, failover policies and the route tester.
+	RoutingListRules(ctx context.Context, workspaceID uuid.UUID) ([]RoutingRule, error)
+	RoutingLists(ctx context.Context, workspaceID uuid.UUID) ([]RoutingListsRow, error)
+	// When the routing was last saved and by whom.
+	RoutingSaved(ctx context.Context, workspaceID uuid.UUID) (RoutingSavedRow, error)
+	RoutingSenderDomains(ctx context.Context, workspaceID uuid.UUID) ([]RoutingSenderDomainsRow, error)
+	RoutingUpsertPolicy(ctx context.Context, arg RoutingUpsertPolicyParams) error
+	// A run still in progress (runs older than ten minutes are considered dead).
+	RunningDeliverabilityCheckRun(ctx context.Context, arg RunningDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
 	SaveComposerContent(ctx context.Context, arg SaveComposerContentParams) error
+	SetDeliverabilityBlocklistDelisting(ctx context.Context, arg SetDeliverabilityBlocklistDelistingParams) error
+	SetHostReputeMonitored(ctx context.Context, arg SetHostReputeMonitoredParams) error
 	SetLatestRelease(ctx context.Context, latestRelease json.RawMessage) error
 	SetMemberStatus(ctx context.Context, arg SetMemberStatusParams) error
 	SetUserBreakGlass(ctx context.Context, arg SetUserBreakGlassParams) error
@@ -162,6 +313,23 @@ type Querier interface {
 	SlugTaken(ctx context.Context, slug string) (bool, error)
 	SoftDeleteEmailTemplate(ctx context.Context, arg SoftDeleteEmailTemplateParams) (int64, error)
 	SoftDeleteWorkspace(ctx context.Context, id uuid.UUID) error
+	// Addresses each provider's bounce and complaint events added to the shared
+	// list (the "pulled in" count of providers without a suppression API).
+	SuppAddedByProvider(ctx context.Context, workspaceID uuid.UUID) ([]SuppAddedByProviderRow, error)
+	SuppCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	// Suppressions brought in by imports ("Brevo (import)"), per source.
+	SuppImportSources(ctx context.Context, workspaceID uuid.UUID) ([]SuppImportSourcesRow, error)
+	SuppLatestCreated(ctx context.Context, workspaceID uuid.UUID) (time.Time, error)
+	SuppPendingCount(ctx context.Context, arg SuppPendingCountParams) (int64, error)
+	SuppReasonCounts(ctx context.Context, workspaceID uuid.UUID) ([]SuppReasonCountsRow, error)
+	SuppSyncGet(ctx context.Context, providerID uuid.UUID) (ProviderSuppressionSync, error)
+	// W01 · Sync of the shared suppression list with each provider. The list
+	// itself (screens, manual adds, imports) belongs to the audience domain.
+	SuppSyncList(ctx context.Context, providerIds []uuid.UUID) ([]ProviderSuppressionSync, error)
+	SuppSyncUpsert(ctx context.Context, arg SuppSyncUpsertParams) error
+	// Addresses of the shared list created after a time that didn't come from
+	// the provider being pushed to (no point echoing its own list back).
+	SuppToPush(ctx context.Context, arg SuppToPushParams) ([]SuppToPushRow, error)
 	TouchAPIKey(ctx context.Context, arg TouchAPIKeyParams) error
 	TouchIdentity(ctx context.Context, id uuid.UUID) error
 	TouchMemberActive(ctx context.Context, arg TouchMemberActiveParams) error
@@ -169,7 +337,9 @@ type Querier interface {
 	TouchSession(ctx context.Context, id uuid.UUID) error
 	TouchUserActive(ctx context.Context, id uuid.UUID) error
 	UpdateAuthPolicy(ctx context.Context, arg UpdateAuthPolicyParams) (InstanceSetting, error)
+	UpdateDeliverabilityCheckRunProgress(ctx context.Context, arg UpdateDeliverabilityCheckRunProgressParams) error
 	UpdateEmailTemplate(ctx context.Context, arg UpdateEmailTemplateParams) error
+	UpdateHostReputeTokens(ctx context.Context, arg UpdateHostReputeTokensParams) error
 	UpdateInstanceBasics(ctx context.Context, arg UpdateInstanceBasicsParams) (InstanceSetting, error)
 	UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) (WorkspaceMember, error)
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)
@@ -178,7 +348,31 @@ type Querier interface {
 	UpdateWorkspaceApprovalPolicy(ctx context.Context, arg UpdateWorkspaceApprovalPolicyParams) (Workspace, error)
 	UpdateWorkspaceGeneral(ctx context.Context, arg UpdateWorkspaceGeneralParams) (Workspace, error)
 	UpdateWorkspaceJSON(ctx context.Context, arg UpdateWorkspaceJSONParams) (Workspace, error)
+	UpsertDeliverabilityAssetCheck(ctx context.Context, arg UpsertDeliverabilityAssetCheckParams) error
+	UpsertDeliverabilityDMARCReport(ctx context.Context, arg UpsertDeliverabilityDMARCReportParams) error
+	UpsertDeliverabilityPostmasterDay(ctx context.Context, arg UpsertDeliverabilityPostmasterDayParams) error
+	UpsertDeliverabilitySNDSDay(ctx context.Context, arg UpsertDeliverabilitySNDSDayParams) error
+	// Connect or reconnect: new tokens and account details, status back to
+	// connected. Monitored assets and alert history survive a reconnect.
+	UpsertHostReputeConnection(ctx context.Context, arg UpsertHostReputeConnectionParams) (HostreputeConnection, error)
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (uuid.UUID, error)
+	WarmupActiveForProvider(ctx context.Context, providerID uuid.UUID) (WarmupPlan, error)
+	// Every plan that is still running (daily warm-up job).
+	WarmupActivePlans(ctx context.Context) ([]WarmupActivePlansRow, error)
+	WarmupAddEvent(ctx context.Context, arg WarmupAddEventParams) error
+	WarmupDailyStats(ctx context.Context, arg WarmupDailyStatsParams) ([]WarmupDailyStatsRow, error)
+	WarmupGetPlan(ctx context.Context, arg WarmupGetPlanParams) (WarmupGetPlanRow, error)
+	WarmupInsertPlan(ctx context.Context, arg WarmupInsertPlanParams) error
+	// W01 · Warm-up plans for new providers and dedicated IPs.
+	// Plans of a workspace's providers, current first.
+	WarmupListPlans(ctx context.Context, workspaceID uuid.UUID) ([]WarmupListPlansRow, error)
+	WarmupLog(ctx context.Context, arg WarmupLogParams) ([]WarmupEvent, error)
+	// Scheduled campaigns with a share on the provider (the plan table shows
+	// "Weekly Digest #142 uses 3,160").
+	WarmupPlannedCampaignUse(ctx context.Context, arg WarmupPlannedCampaignUseParams) ([]WarmupPlannedCampaignUseRow, error)
+	WarmupSetProgress(ctx context.Context, arg WarmupSetProgressParams) error
+	WarmupSetStatus(ctx context.Context, arg WarmupSetStatusParams) error
+	WarmupUpdateSettings(ctx context.Context, arg WarmupUpdateSettingsParams) error
 }
 
 var _ Querier = (*Queries)(nil)

@@ -1,0 +1,13 @@
+{
+  "RecordType": "Delivery",
+  "ServerID": 23,
+  "MessageStream": "outbound",
+  "MessageID": "883953f4-6105-42a2-a16a-77a8eac79483",
+  "Recipient": "d.f@outlook.com",
+  "Tag": "",
+  "DeliveredAt": "2026-10-12T13:39:50.9070259Z",
+  "Details": "250 2.6.0 Queued mail for delivery (Outlook)",
+  "Metadata": {
+    "rc_message": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40"
+  }
+}

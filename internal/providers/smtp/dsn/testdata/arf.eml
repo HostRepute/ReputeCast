@@ -1,0 +1,34 @@
+From: Yahoo! Mail AntiSpam Feedback <feedback@arf.mail.yahoo.com>
+Date: Sun, 12 Oct 2026 13:40:49 +0000
+Subject: FW: Weekly Digest #142
+To: bounces@news.acme.io
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=feedback-report; boundary="----=_Part_ARF"
+
+------=_Part_ARF
+Content-Type: text/plain; charset=us-ascii
+
+This is an email abuse report for an email message received from IP
+203.0.113.25 on Sun, 12 Oct 2026 13:30:01 +0000.
+
+------=_Part_ARF
+Content-Type: message/feedback-report
+
+Feedback-Type: abuse
+User-Agent: Yahoo!-Mail-Feedback/2.0
+Version: 0.1
+Original-Mail-From: <bounces@news.acme.io>
+Original-Rcpt-To: <m.g@aol.com>
+Arrival-Date: Sun, 12 Oct 2026 13:30:01 +0000
+Source-IP: 203.0.113.25
+
+------=_Part_ARF
+Content-Type: text/rfc822-headers
+
+From: Acme Newsletter <news@news.acme.io>
+To: m.g@aol.com
+Subject: Weekly Digest #142
+Message-ID: <0199d5a8-2b6e-7c41-9a0e-000000000001@news.acme.io>
+X-ReputeCast-Message: 0199d5a8-2b6e-7c41-9a0e-000000000001
+
+------=_Part_ARF--

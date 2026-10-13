@@ -1,0 +1,23 @@
+{
+  "RecordType": "SpamComplaint",
+  "MessageStream": "outbound",
+  "ID": 42,
+  "Type": "SpamComplaint",
+  "TypeCode": 512,
+  "Name": "Spam complaint",
+  "Tag": "",
+  "MessageID": "00000000-0000-0000-0000-000000000000",
+  "Metadata": {
+    "rc_message": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e42"
+  },
+  "ServerID": 1234,
+  "Description": "",
+  "Details": "Spam notification",
+  "Email": "M.G@aol.com",
+  "From": "news@news.acme.io",
+  "BouncedAt": "2026-10-12T13:40:49Z",
+  "DumpAvailable": true,
+  "Inactive": true,
+  "CanActivate": false,
+  "Subject": "Welcome to Acme"
+}
