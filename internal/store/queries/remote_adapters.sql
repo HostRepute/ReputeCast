@@ -37,6 +37,13 @@ WHERE id = @id AND kind = 'remote';
 -- name: RemoteAdapterDelete :execrows
 DELETE FROM installed_adapters WHERE id = $1 AND kind = 'remote';
 
+-- name: CommunityAdapterList :many
+-- Every installed community adapter, any kind: the runtime registers the
+-- kinds it runs, and registry keys must not collide across kinds.
+SELECT id, name, kind, version, maintainer, manifest
+FROM installed_adapters
+ORDER BY installed_at, name;
+
 -- name: RemoteAdapterConnected :one
 SELECT count(*)::bigint FROM providers WHERE adapter = $1 AND disconnected_at IS NULL;
 

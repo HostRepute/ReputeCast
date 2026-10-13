@@ -38,11 +38,18 @@ const PreviousSecretGrace = 24 * time.Hour
 // secret (the current and the previous one).
 func SecretAD(adapterID uuid.UUID) string { return "adapter:" + adapterID.String() + ":secret" }
 
+// KindDescriptor builds the registry entry of an installed adapter of a
+// kind other than "remote" (the app wires the generic HTTP adapter's
+// httpgeneric.CommunityDescriptor for "http"). key is
+// providers.CommunityKey(name).
+type KindDescriptor func(key, name, version, maintainer string, manifest []byte) (providers.Descriptor, error)
+
 // Runtime keeps the provider registry in step with the installed community
-// adapters of kind "remote": each one is registered as "community:<id>" with
-// a descriptor whose constructor proxies to the adapter process. It also
-// implements manage.CommunityRuntime, the hook the Adapters tab calls when
-// an adapter is installed, updated or removed.
+// adapters: each one of kind "remote" is registered as "community:<id>"
+// with a descriptor whose constructor proxies to the adapter process, and
+// each one of a kind in Kinds as "community:<name>" with the descriptor that
+// kind builds. It also implements manage.CommunityRuntime, the hook the
+// Adapters tab calls when an adapter is installed, updated or removed.
 type Runtime struct {
 	Pool *pgxpool.Pool
 	Box  *secrets.Box
@@ -56,6 +63,8 @@ type Runtime struct {
 	HTTP *http.Client
 	// Interval overrides SyncInterval.
 	Interval time.Duration
+	// Kinds registers installed adapters of other kinds ("http").
+	Kinds map[string]KindDescriptor
 
 	syncMu   sync.Mutex
 	mu       sync.Mutex
@@ -63,6 +72,7 @@ type Runtime struct {
 	breakers map[string]*breaker
 	finger   string
 	stop     chan struct{}
+	done     chan struct{}
 	stopOnce sync.Once
 }
 
@@ -109,8 +119,8 @@ func (rt *Runtime) Start(ctx context.Context) {
 		rt.mu.Unlock()
 		return
 	}
-	rt.stop = make(chan struct{})
-	stop := rt.stop
+	rt.stop, rt.done = make(chan struct{}), make(chan struct{})
+	stop, done := rt.stop, rt.done
 	rt.mu.Unlock()
 	interval := rt.Interval
 	if interval <= 0 {
@@ -119,6 +129,7 @@ func (rt *Runtime) Start(ctx context.Context) {
 	// The loop outlives the start-up context: it ends with Stop or the pool.
 	base := context.WithoutCancel(ctx)
 	go func() {
+		defer close(done)
 		t := time.NewTicker(interval)
 		defer t.Stop()
 		for {
@@ -140,14 +151,21 @@ func (rt *Runtime) Start(ctx context.Context) {
 	}()
 }
 
-// Stop ends the sync loop.
+// Stop ends the sync loop and waits for a sync in progress to finish. A
+// runtime stopped before Start never starts its loop; Sync and Changed keep
+// working.
 func (rt *Runtime) Stop() {
 	rt.stopOnce.Do(func() {
 		rt.mu.Lock()
-		if rt.stop != nil {
-			close(rt.stop)
+		stop, done := rt.stop, rt.done
+		if stop == nil {
+			rt.stop = make(chan struct{})
 		}
 		rt.mu.Unlock()
+		if stop != nil {
+			close(stop)
+			<-done
+		}
 	})
 }
 
@@ -160,15 +178,29 @@ func (rt *Runtime) syncFailed(err error) {
 	rt.log().Warn("community adapters: sync failed", "err", err)
 }
 
-// Sync reads the installed remote adapters and registers them. A row that
-// can't be used (a manifest that no longer validates, a secret that can't be
-// opened) is skipped and reported; the others are registered.
+// Sync reads the installed community adapters and registers them: remote
+// adapters, and the kinds in Kinds. A row that can't be used (a manifest
+// that no longer validates, a secret that can't be opened, a key another
+// adapter already has) is skipped and reported; the others are registered.
 func (rt *Runtime) Sync(ctx context.Context) error {
 	rt.syncMu.Lock()
 	defer rt.syncMu.Unlock()
-	rows, err := store.New(rt.Pool).RemoteAdapterList(ctx)
+	q := store.New(rt.Pool)
+	rows, err := q.RemoteAdapterList(ctx)
 	if err != nil {
 		return err
+	}
+	others := []store.CommunityAdapterListRow{}
+	if len(rt.Kinds) > 0 {
+		all, err := q.CommunityAdapterList(ctx)
+		if err != nil {
+			return err
+		}
+		for _, a := range all {
+			if rt.Kinds[a.Kind] != nil {
+				others = append(others, a)
+			}
+		}
 	}
 	now := rt.now()
 	allow, public := rt.allowPrivate(), rt.publicURL()
@@ -178,6 +210,10 @@ func (rt *Runtime) Sync(ctx context.Context) error {
 		prevValid := r.PreviousValidUntil != nil && now.Before(*r.PreviousValidUntil)
 		fmt.Fprintf(h, "%s|%s|%s|%x|%v|%x|", r.ID, r.AdapterKey, r.EndpointUrl, r.SecretEnc, prevValid, r.PreviousSecretEnc)
 		h.Write(r.Manifest)
+	}
+	for _, a := range others {
+		fmt.Fprintf(h, "%s|%s|%s|%s|%s|", a.ID, a.Kind, a.Name, a.Version, a.Maintainer)
+		h.Write(a.Manifest)
 	}
 	finger := hex.EncodeToString(h.Sum(nil))
 	rt.mu.Lock()
@@ -198,6 +234,23 @@ func (rt *Runtime) Sync(ctx context.Context) error {
 		}
 		installs[in.Manifest.Key()] = in
 		descs = append(descs, in.Manifest.Descriptor(in.Open))
+	}
+	for _, a := range others {
+		key := providers.CommunityKey(a.Name)
+		if slices.ContainsFunc(descs, func(d providers.Descriptor) bool { return d.Adapter == key }) {
+			err := fmt.Errorf("%s: another installed adapter is registered as %s", a.Name, key)
+			errs = append(errs, err)
+			rt.log().Warn("community adapter skipped", "adapter", key, "err", err)
+			continue
+		}
+		d, err := rt.Kinds[a.Kind](key, a.Name, a.Version, a.Maintainer, a.Manifest)
+		if err != nil {
+			err = fmt.Errorf("%s: the stored %s manifest can't be used: %w", a.Name, a.Kind, err)
+			errs = append(errs, err)
+			rt.log().Warn("community adapter skipped", "adapter", key, "err", err)
+			continue
+		}
+		descs = append(descs, d)
 	}
 	if err := providers.SetRuntime(rt, descs); err != nil {
 		return err
@@ -288,13 +341,40 @@ func (rt *Runtime) Changed(ctx context.Context) {
 	}
 }
 
+// communityKeyOf is an installed adapter's registry key: its manifest id for
+// remote adapters, its name for the others ("" when it has none).
+func communityKeyOf(a store.CommunityAdapterListRow) string {
+	if a.Kind != Kind {
+		return providers.CommunityKey(a.Name)
+	}
+	if m, err := ParseManifest(a.Manifest); err == nil {
+		return m.Key()
+	}
+	return ""
+}
+
+// keyTaken returns the name of the installed adapter, other than except,
+// registered under key ("" when there is none).
+func keyTaken(ctx context.Context, q *store.Queries, key string, except uuid.UUID) (string, error) {
+	all, err := q.CommunityAdapterList(ctx)
+	if err != nil {
+		return "", err
+	}
+	for _, a := range all {
+		if a.ID != except && communityKeyOf(a) == key {
+			return a.Name, nil
+		}
+	}
+	return "", nil
+}
+
 // createRuntime stores the runtime row of a newly installed adapter and
 // returns its signing secret (to show once, or never).
 func createRuntime(ctx context.Context, q *store.Queries, box *secrets.Box, adapterID uuid.UUID, m Manifest, endpoint string) (string, error) {
-	if _, err := q.RemoteAdapterGetByKey(ctx, m.Key()); err == nil {
-		return "", api.Conflict("Another installed adapter already uses the id " + m.ID + ". Update or remove it instead.")
-	} else if !errors.Is(err, pgx.ErrNoRows) {
+	if other, err := keyTaken(ctx, q, m.Key(), adapterID); err != nil {
 		return "", err
+	} else if other != "" {
+		return "", api.Conflict(other + " is already registered as " + m.Key() + ". Update or remove it, or install the adapter under another id.")
 	}
 	secret := NewSecret()
 	sealed, err := box.SealString(secret, SecretAD(adapterID))

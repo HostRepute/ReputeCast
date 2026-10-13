@@ -215,19 +215,29 @@ func (s *Service) InstallAdapter(ctx context.Context, ws *store.Workspace, in Ad
 	if err != nil {
 		return AdapterCommunity{}, api.Invalid("body.manifestUrl", err.Error())
 	}
-	if m.Kind == CommunityKindRemote {
-		if s.Community == nil {
-			return AdapterCommunity{}, api.Invalid("body.manifestUrl", "This build can't run community adapters of kind remote.")
-		}
+	switch {
+	case m.Kind == CommunityKindRemote && s.Community == nil:
+		return AdapterCommunity{}, api.Invalid("body.manifestUrl", "This build can't run community adapters of kind remote.")
+	case m.Kind == CommunityKindRemote:
 		if _, _, err := s.Community.ParseManifest(raw); err != nil {
 			return AdapterCommunity{}, api.Invalid("body.manifestUrl", "This manifest can't be used: "+err.Error()+".")
+		}
+	case m.Kind == "http" && s.HTTPMappings != nil:
+		if err := s.HTTPMappings.Check(raw); err != nil {
+			return AdapterCommunity{}, api.Invalid("body.manifestUrl", "This HTTP adapter's mapping can't be used: "+err.Error())
 		}
 	}
 	if m.SourceURL == "" {
 		m.SourceURL = in.ManifestURL
 	}
+	key, _, _ := s.communityKey(m.Kind, m.Name, raw)
 	id := newID()
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		if other, err := s.communityKeyTaken(ctx, store.New(tx), key, uuid.Nil); err != nil {
+			return err
+		} else if other != "" {
+			return api.Conflict(other + " is already registered as " + key + ". Update or remove it first.")
+		}
 		if _, err := tx.Exec(ctx, `INSERT INTO installed_adapters (id, name, kind, version, maintainer, source_url, manifest, latest_version)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, id, m.Name, m.Kind, m.Version, m.Maintainer, in.ManifestURL, raw, nullable(m.Latest)); err != nil {
 			if strings.Contains(err.Error(), "installed_adapters_name_key") {
@@ -247,7 +257,7 @@ func (s *Service) InstallAdapter(ctx context.Context, ws *store.Workspace, in Ad
 	if err != nil {
 		return AdapterCommunity{}, err
 	}
-	s.communityChanged(ctx, m.Kind)
+	s.communityChanged(ctx)
 	return s.community(ctx, ws, id)
 }
 
@@ -321,6 +331,11 @@ func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id str
 			return AdapterCommunity{}, api.Conflict("The manifest at " + src + " now registers " + newKey + ", not " + oldKey + ". Nothing was changed.")
 		}
 	}
+	if kind == "http" && s.HTTPMappings != nil && !isDemoManifest(current) {
+		if err := s.HTTPMappings.Check(raw); err != nil {
+			return AdapterCommunity{}, api.Err(http.StatusUnprocessableEntity, api.CodeValidation, "The new manifest at "+src+" has a mapping that can't be used: "+err.Error()+". Nothing was changed.")
+		}
+	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `UPDATE installed_adapters SET version = $2, maintainer = $3, manifest = $4, latest_version = NULL WHERE id = $1`, aid, m.Version, m.Maintainer, raw); err != nil {
 			return err
@@ -332,7 +347,7 @@ func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id str
 	if err != nil {
 		return AdapterCommunity{}, err
 	}
-	s.communityChanged(ctx, kind)
+	s.communityChanged(ctx)
 	return s.community(ctx, ws, aid)
 }
 
@@ -368,38 +383,143 @@ func (s *Service) RemoveAdapter(ctx context.Context, ws *store.Workspace, id str
 	if err != nil {
 		return err
 	}
-	s.communityChanged(ctx, kind)
+	s.communityChanged(ctx)
 	return nil
 }
 
-// AdapterHTTPInput is a generic HTTP adapter mapping.
+// AdapterHTTPMapping is the generic HTTP adapter form: the send request,
+// where the response carries the message id, and how webhooks are
+// authenticated and read (docs/adapters.md › The generic HTTP adapter).
+type AdapterHTTPMapping struct {
+	Endpoint string `json:"endpoint" minLength:"10" maxLength:"2048" doc:"Method and URL, e.g. POST https://api.example-esp.com/v1/messages"`
+	// Headers are request header templates, usually the authentication:
+	// Authorization: Bearer {{ secrets.api_key }}.
+	Headers        []AdapterHTTPHeader `json:"headers,omitempty" maxItems:"20"`
+	BodyTemplate   string              `json:"bodyTemplate" maxLength:"20000"`
+	MessageIDPath  string              `json:"messageIdPath" maxLength:"200" doc:"JSONPath of the message id in the response, e.g. $.data.id"`
+	WebhookMapping string              `json:"webhookMapping" enum:"status,jsonpath"`
+	// WebhookAuth is how a webhook request proves it comes from the provider.
+	WebhookAuth string `json:"webhookAuth,omitempty" enum:"hmac,standard,basic,header,none" doc:"hmac (default): a signature header; standard: Standard Webhooks; basic: basic auth; header: the secret in a header; none: only the webhook URL"`
+	// WebhookHeader names the signature header (hmac, default X-Signature) or
+	// the header carrying the secret (header).
+	WebhookHeader string `json:"webhookHeader,omitempty" maxLength:"100"`
+	// WebhookPaths locate the events of a custom JSONPath map.
+	WebhookPaths *AdapterHTTPWebhookPaths `json:"webhookPaths,omitempty"`
+}
+
+// AdapterHTTPWebhookPaths are the JSONPaths a custom webhook map
+// (webhookMapping "jsonpath") reads: where the events are in a request and,
+// inside one event, its type, recipient and message id.
+type AdapterHTTPWebhookPaths struct {
+	Events    string `json:"events,omitempty" maxLength:"200" doc:"The events in one request, e.g. $.events[*] (default $: one event or an array of events)"`
+	Type      string `json:"type,omitempty" maxLength:"200" doc:"The event type, e.g. $.event"`
+	Recipient string `json:"recipient,omitempty" maxLength:"200" doc:"The recipient's address, e.g. $.email"`
+	MessageID string `json:"messageId,omitempty" maxLength:"200" doc:"The provider's message id, e.g. $.message_id"`
+}
+
+// AdapterHTTPHeader is one request header template.
+type AdapterHTTPHeader struct {
+	Name  string `json:"name" minLength:"1" maxLength:"100"`
+	Value string `json:"value" maxLength:"2000"`
+}
+
+// AdapterHTTPInput saves a generic HTTP adapter mapping under a name.
 type AdapterHTTPInput struct {
-	Name           string `json:"name" minLength:"2" maxLength:"60"`
-	Endpoint       string `json:"endpoint" minLength:"10" maxLength:"2048" doc:"Method and URL, e.g. POST https://api.example-esp.com/v1/messages"`
-	BodyTemplate   string `json:"bodyTemplate" maxLength:"20000"`
-	MessageIDPath  string `json:"messageIdPath" maxLength:"200" doc:"JSONPath of the message id in the response, e.g. $.data.id"`
-	WebhookMapping string `json:"webhookMapping" enum:"status,jsonpath"`
+	Name string `json:"name" minLength:"2" maxLength:"60"`
+	AdapterHTTPMapping
+}
+
+// httpManifest builds the manifest (kind "http") of a mapping.
+func httpManifest(name string, in AdapterHTTPMapping) ([]byte, error) {
+	method, target, err := parseEndpoint(in.Endpoint)
+	if err != nil {
+		return nil, api.Invalid("body.endpoint", err.Error())
+	}
+	mapping := map[string]any{"method": method, "url": target, "body": in.BodyTemplate, "message_id_path": in.MessageIDPath, "webhook_mapping": in.WebhookMapping}
+	if len(in.Headers) > 0 {
+		headers := map[string]string{}
+		for _, h := range in.Headers {
+			n := strings.TrimSpace(h.Name)
+			if _, dup := headers[n]; dup {
+				return nil, api.Invalid("body.headers", "The header "+n+" is listed twice.")
+			}
+			headers[n] = strings.TrimSpace(h.Value)
+		}
+		mapping["headers"] = headers
+	}
+	hook := map[string]any{}
+	if in.WebhookAuth != "" {
+		hook["auth"] = in.WebhookAuth
+	}
+	if h := strings.TrimSpace(in.WebhookHeader); h != "" {
+		switch in.WebhookAuth {
+		case "", "hmac":
+			hook["signature_header"] = h
+		case "header":
+			hook["token_header"] = h
+		}
+	}
+	if p := in.WebhookPaths; p != nil {
+		for k, v := range map[string]string{"events_path": p.Events, "type_path": p.Type, "recipient_path": p.Recipient, "message_id_path": p.MessageID} {
+			if v = strings.TrimSpace(v); v != "" {
+				hook[k] = v
+			}
+		}
+	}
+	if len(hook) > 0 {
+		mapping["webhook"] = hook
+	}
+	m := map[string]any{"kind": "http", "capabilities": []string{"webhooks"}, "http": mapping}
+	if name != "" {
+		m["name"] = name
+	}
+	return json.Marshal(m)
+}
+
+// checkMapping validates a mapping with the generic HTTP adapter when the
+// build has it, else checks that the body template is JSON.
+func (s *Service) checkMapping(in AdapterHTTPMapping, manifest []byte) error {
+	if s.HTTPMappings == nil {
+		if in.BodyTemplate != "" && !json.Valid([]byte(placeholderSafe(in.BodyTemplate))) {
+			return api.Invalid("body.bodyTemplate", "The body template isn't valid JSON once the {{ }} placeholders are filled in.")
+		}
+		return nil
+	}
+	if err := s.HTTPMappings.Check(manifest); err != nil {
+		return mappingProblem(err)
+	}
+	return nil
 }
 
 // SaveHTTPAdapter stores a generic HTTP adapter mapping as an installed
-// adapter. It can send once this build includes the generic HTTP adapter.
+// adapter (kind "http", registered as community:<name>). The mapping is
+// checked first: the request URL and headers, the body template as JSON,
+// the JSONPaths and the webhook authentication.
 func (s *Service) SaveHTTPAdapter(ctx context.Context, ws *store.Workspace, in AdapterHTTPInput) (AdapterCommunity, error) {
 	if err := instanceAdmin(ctx); err != nil {
 		return AdapterCommunity{}, err
 	}
-	method, target, err := parseEndpoint(in.Endpoint)
+	in.Name = strings.TrimSpace(in.Name)
+	manifest, err := httpManifest(in.Name, in.AdapterHTTPMapping)
 	if err != nil {
-		return AdapterCommunity{}, api.Invalid("body.endpoint", err.Error())
+		return AdapterCommunity{}, err
 	}
-	if in.BodyTemplate != "" && !json.Valid([]byte(placeholderSafe(in.BodyTemplate))) {
-		return AdapterCommunity{}, api.Invalid("body.bodyTemplate", "The body template isn't valid JSON once the {{ }} placeholders are filled in.")
+	if err := s.checkMapping(in.AdapterHTTPMapping, manifest); err != nil {
+		return AdapterCommunity{}, err
 	}
-	manifest, _ := json.Marshal(map[string]any{
-		"name": in.Name, "kind": "http", "capabilities": []string{"webhooks"},
-		"http": map[string]any{"method": method, "url": target, "body": in.BodyTemplate, "message_id_path": in.MessageIDPath, "webhook_mapping": in.WebhookMapping},
-	})
+	method, target, _ := parseEndpoint(in.Endpoint)
+	key := providers.CommunityKey(in.Name)
+	headerNames := []string{}
+	for _, h := range in.Headers {
+		headerNames = append(headerNames, strings.TrimSpace(h.Name))
+	}
 	id := newID()
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		if other, err := s.communityKeyTaken(ctx, store.New(tx), key, uuid.Nil); err != nil {
+			return err
+		} else if other != "" {
+			return api.Invalid("body.name", other+" is already registered as "+key+". Choose another name.")
+		}
 		if _, err := tx.Exec(ctx, `INSERT INTO installed_adapters (id, name, kind, version, maintainer, source_url, manifest)
 			VALUES ($1, $2, 'http', '0.1.0', $3, '', $4)`, id, in.Name, "local · "+principalName(ctx), manifest); err != nil {
 			if strings.Contains(err.Error(), "installed_adapters_name_key") {
@@ -408,13 +528,39 @@ func (s *Service) SaveHTTPAdapter(ctx context.Context, ws *store.Workspace, in A
 			return err
 		}
 		wsID := ws.ID
+		// Header values are templates that may hold a pasted credential:
+		// only their names are audited.
 		return s.Audit.LogWith(ctx, store.New(tx), audit.Event{WorkspaceID: &wsID, Action: "adapter.http_save", TargetType: "adapter", TargetID: id.String(), TargetName: in.Name,
-			After: map[string]any{"method": method, "url": target}})
+			After: map[string]any{"method": method, "url": target, "headers": headerNames, "webhook_mapping": in.WebhookMapping, "webhook_auth": in.WebhookAuth, "registry_key": key}})
 	})
 	if err != nil {
 		return AdapterCommunity{}, err
 	}
+	s.communityChanged(ctx)
 	return s.community(ctx, ws, id)
+}
+
+// PreviewHTTPAdapter renders the request a mapping would send for a sample
+// message, with secrets shown as "••••" ("Test with a sample message").
+func (s *Service) PreviewHTTPAdapter(ctx context.Context, in AdapterHTTPMapping) (AdapterHTTPPreview, error) {
+	if err := instanceAdmin(ctx); err != nil {
+		return AdapterHTTPPreview{}, err
+	}
+	if s.HTTPMappings == nil {
+		return AdapterHTTPPreview{}, api.Err(http.StatusNotImplemented, api.CodeUnavailable, "This build has no generic HTTP adapter.")
+	}
+	manifest, err := httpManifest("", in)
+	if err != nil {
+		return AdapterHTTPPreview{}, err
+	}
+	if err := s.checkMapping(in, manifest); err != nil {
+		return AdapterHTTPPreview{}, err
+	}
+	p, err := s.HTTPMappings.Preview(manifest)
+	if err != nil {
+		return AdapterHTTPPreview{}, mappingProblem(err)
+	}
+	return p, nil
 }
 
 func principalName(ctx context.Context) string {

@@ -13,6 +13,50 @@ import (
 	"github.com/google/uuid"
 )
 
+const communityAdapterList = `-- name: CommunityAdapterList :many
+SELECT id, name, kind, version, maintainer, manifest
+FROM installed_adapters
+ORDER BY installed_at, name
+`
+
+type CommunityAdapterListRow struct {
+	ID         uuid.UUID       `json:"id"`
+	Name       string          `json:"name"`
+	Kind       string          `json:"kind"`
+	Version    string          `json:"version"`
+	Maintainer string          `json:"maintainer"`
+	Manifest   json.RawMessage `json:"manifest"`
+}
+
+// Every installed community adapter, any kind: the runtime registers the
+// kinds it runs, and registry keys must not collide across kinds.
+func (q *Queries) CommunityAdapterList(ctx context.Context) ([]CommunityAdapterListRow, error) {
+	rows, err := q.db.Query(ctx, communityAdapterList)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommunityAdapterListRow{}
+	for rows.Next() {
+		var i CommunityAdapterListRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Kind,
+			&i.Version,
+			&i.Maintainer,
+			&i.Manifest,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const remoteAdapterConnected = `-- name: RemoteAdapterConnected :one
 SELECT count(*)::bigint FROM providers WHERE adapter = $1 AND disconnected_at IS NULL
 `

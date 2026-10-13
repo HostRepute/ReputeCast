@@ -6,12 +6,13 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
-import { Field, Input } from '@/components/ui/Field'
+import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { ProvidersTabs, throwIfForbidden } from './common'
+import { fieldErrors, parseHeaderLines, previewText, webhookAuths, webhookPathFields, type WebhookAuth, type WebhookPaths } from './http-adapter-model'
 
 type Overview = Schemas['AdaptersOverview']
 type Community = Schemas['AdapterCommunity']
@@ -283,19 +284,61 @@ function HTTPAdapterCard({ data, reason }: { data: Overview; reason?: string }) 
   const { slug } = useWorkspace()
   const refresh = useRefreshAdapters()
   const [endpoint, setEndpoint] = useState('POST https://api.example-esp.com/v1/messages')
+  const [headerText, setHeaderText] = useState('Authorization: Bearer {{ secrets.api_key }}')
   const [template, setTemplate] = useState(sampleTemplate)
   const [idPath, setIdPath] = useState('$.data.id')
   const [mapping, setMapping] = useState<'status' | 'jsonpath'>('status')
+  const [paths, setPaths] = useState<WebhookPaths>({ type: '$.event', recipient: '$.email', messageId: '$.message_id', events: '' })
+  const [auth, setAuth] = useState<WebhookAuth>('hmac')
+  const [authHeader, setAuthHeader] = useState('X-Signature')
   const [naming, setNaming] = useState(false)
   const [name, setName] = useState('')
   const [error, setError] = useState('')
+  const [saveError, setSaveError] = useState('')
+  // Problems per field, by location ("body.headers"), from the last test or save.
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [preview, setPreview] = useState<Schemas['AdapterHTTPPreview'] | null>(null)
+  const authOption = webhookAuths.find((a) => a.value === auth)
+  const parsed = parseHeaderLines(headerText)
+  const body = {
+    endpoint,
+    headers: parsed.headers,
+    bodyTemplate: template,
+    messageIdPath: idPath,
+    webhookMapping: mapping,
+    webhookAuth: auth,
+    ...(authOption?.header ? { webhookHeader: authHeader.trim() } : {}),
+    ...(mapping === 'jsonpath' ? { webhookPaths: paths } : {}),
+  }
+  const edited = () => {
+    setPreview(null)
+    setErrors({})
+    setError('')
+  }
   const save = $api.useMutation('post', '/api/v1/workspaces/{workspace}/adapters/http', {
     onSuccess: (a) => {
       void refresh()
       setNaming(false)
       toast({ kind: 'success', title: `${a.name} saved`, detail: 'Connect it from Add provider in any workspace.' })
     },
-    onError: (e) => setError(errorMessage(e)),
+    onError: (e) => {
+      const fe = fieldErrors(e)
+      setErrors(fe)
+      if (Object.keys(fe).some((k) => k !== 'body.name')) {
+        // A mapping problem: show it on its field in the form.
+        setNaming(false)
+        return
+      }
+      setSaveError(fe['body.name'] ? '' : errorMessage(e))
+    },
+  })
+  const test = $api.useMutation('post', '/api/v1/workspaces/{workspace}/adapters/http/preview', {
+    onSuccess: (p) => setPreview(p),
+    onError: (e) => {
+      const fe = fieldErrors(e)
+      setErrors(fe)
+      setError(Object.keys(fe).length ? '' : errorMessage(e))
+    },
   })
   const testReason = data.httpAdapter ? reason : 'Test sends need the generic HTTP adapter in this build; save the mapping now and test it once it ships.'
   return (
@@ -307,41 +350,157 @@ function HTTPAdapterCard({ data, reason }: { data: Overview; reason?: string }) 
         <span className="k">Send through any HTTP API without writing code. Map the request, response and webhook once.</span>
       </div>
       <div className="flex flex-col gap-3 px-5 py-4">
-        <Field label="Send endpoint">
-          <Input className="mono" value={endpoint} onChange={(e) => setEndpoint(e.target.value)} disabled={Boolean(reason)} />
+        <Field label="Send endpoint" error={errors['body.endpoint']}>
+          <Input
+            className="mono"
+            value={endpoint}
+            onChange={(e) => {
+              setEndpoint(e.target.value)
+              edited()
+            }}
+            disabled={Boolean(reason)}
+          />
         </Field>
-        <Field label="Request body template">
+        <Field label="Request headers" hint="One per line, as Name: value. {{ secrets.api_key }} is the key entered when connecting." error={parsed.error ?? errors['body.headers']}>
+          <Textarea
+            className="mono resize-y"
+            value={headerText}
+            spellCheck={false}
+            disabled={Boolean(reason)}
+            rows={Math.max(1, headerText.split('\n').length)}
+            onChange={(e) => {
+              setHeaderText(e.target.value)
+              edited()
+            }}
+          />
+        </Field>
+        <Field label="Request body template" error={errors['body.bodyTemplate']}>
           <textarea
             className="pv-pre min-h-[140px] resize-none border-0 outline-offset-2"
             value={template}
             spellCheck={false}
             disabled={Boolean(reason)}
             rows={template.split('\n').length}
-            onChange={(e) => setTemplate(e.target.value)}
+            onChange={(e) => {
+              setTemplate(e.target.value)
+              edited()
+            }}
           />
         </Field>
-        <Field label="Message id in response">
-          <Input className="mono" value={idPath} onChange={(e) => setIdPath(e.target.value)} disabled={Boolean(reason)} />
+        <Field label="Message id in response" error={errors['body.messageIdPath']}>
+          <Input
+            className="mono"
+            value={idPath}
+            onChange={(e) => {
+              setIdPath(e.target.value)
+              edited()
+            }}
+            disabled={Boolean(reason)}
+          />
         </Field>
-        <Field label="Webhook mapping">
-          <select className="in" value={mapping} disabled={Boolean(reason)} onChange={(e) => setMapping(e.target.value as 'status' | 'jsonpath')}>
+        <Field
+          label="Webhook mapping"
+          hint={mapping === 'jsonpath' ? 'Event types are read as delivered, bounce, spamreport, dropped, open, click…; map other names in a manifest.' : undefined}
+          error={errors['body.webhookMapping']}
+        >
+          <select
+            className="in"
+            value={mapping}
+            disabled={Boolean(reason)}
+            onChange={(e) => {
+              setMapping(e.target.value as 'status' | 'jsonpath')
+              edited()
+            }}
+          >
             <option value="status">status → delivered | bounced | complained</option>
             <option value="jsonpath">Custom JSONPath map</option>
           </select>
         </Field>
+        {mapping === 'jsonpath' ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {webhookPathFields.map((f) => (
+              <Field key={f.key} label={f.label} optional={f.optional} error={errors[`body.webhookPaths.${f.key}`]}>
+                <Input
+                  className="mono"
+                  value={paths[f.key]}
+                  placeholder={f.placeholder}
+                  disabled={Boolean(reason)}
+                  onChange={(e) => {
+                    setPaths({ ...paths, [f.key]: e.target.value })
+                    edited()
+                  }}
+                />
+              </Field>
+            ))}
+          </div>
+        ) : null}
+        <Field label="Webhook authentication" error={errors['body.webhookAuth']}>
+          <Select
+            value={auth}
+            disabled={Boolean(reason)}
+            onChange={(e) => {
+              const next = e.target.value as WebhookAuth
+              setAuth(next)
+              setAuthHeader(webhookAuths.find((a) => a.value === next)?.placeholder ?? '')
+              edited()
+            }}
+          >
+            {webhookAuths.map((a) => (
+              <option key={a.value} value={a.value}>
+                {a.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        {authOption?.header ? (
+          <Field label={authOption.header} error={errors['body.webhookHeader']}>
+            <Input
+              className="mono"
+              value={authHeader}
+              placeholder={authOption.placeholder}
+              onChange={(e) => {
+                setAuthHeader(e.target.value)
+                edited()
+              }}
+              disabled={Boolean(reason)}
+            />
+          </Field>
+        ) : null}
         {error ? (
           <span className="err" role="alert">
             {error}
           </span>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="primary" disabledReason={testReason}>
+          <Button
+            size="sm"
+            variant="primary"
+            disabledReason={testReason ?? parsed.error}
+            loading={test.isPending}
+            onClick={() => {
+              edited()
+              test.mutate({ params: { path: { workspace: slug } }, body })
+            }}
+          >
             Test with a sample message
           </Button>
-          <Button size="sm" disabledReason={reason} onClick={() => setNaming(true)}>
+          <Button
+            size="sm"
+            disabledReason={reason ?? parsed.error}
+            onClick={() => {
+              setSaveError('')
+              setNaming(true)
+            }}
+          >
             Save as adapter
           </Button>
         </div>
+        {preview ? (
+          <div className="flex flex-col gap-1.5" role="status" aria-label="Sample request">
+            <span className="k">The request for a sample message. Nothing was sent; secrets show as ••••.</span>
+            <pre className="pv-pre min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{previewText(preview)}</pre>
+          </div>
+        ) : null}
       </div>
       <Dialog
         open={naming}
@@ -356,8 +515,9 @@ function HTTPAdapterCard({ data, reason }: { data: Overview; reason?: string }) 
               variant="primary"
               loading={save.isPending}
               onClick={() => {
-                setError('')
-                save.mutate({ params: { path: { workspace: slug } }, body: { name: name.trim(), endpoint, bodyTemplate: template, messageIdPath: idPath, webhookMapping: mapping } })
+                setErrors({})
+                setSaveError('')
+                save.mutate({ params: { path: { workspace: slug } }, body: { name: name.trim(), ...body } })
               }}
             >
               Save adapter
@@ -365,9 +525,14 @@ function HTTPAdapterCard({ data, reason }: { data: Overview; reason?: string }) 
           </>
         }
       >
-        <Field label="Name" hint="Like the provider's name: “Example ESP”.">
-          <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoFocus />
+        <Field label="Name" hint="Like the provider's name: “Example ESP”." error={errors['body.name']}>
+          <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoFocus />
         </Field>
+        {saveError ? (
+          <span className="err" role="alert">
+            {saveError}
+          </span>
+        ) : null}
       </Dialog>
     </section>
   )

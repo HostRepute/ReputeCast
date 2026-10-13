@@ -787,6 +787,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/adapters/http/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Render the request a generic HTTP mapping sends for a sample message (instance admins)
+         * @description Nothing is sent. Secrets are shown as ••••.
+         */
+        post: operations["preview-http-adapter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/adapters/{adapterId}": {
         parameters: {
             query?: never;
@@ -4105,15 +4125,64 @@ export interface components {
             update: "up_to_date" | "update_available" | "unmaintained";
             version: string;
         };
+        AdapterHTTPHeader: {
+            name: string;
+            value: string;
+        };
         AdapterHTTPInput: {
             bodyTemplate: string;
             /** @description Method and URL, e.g. POST https://api.example-esp.com/v1/messages */
             endpoint: string;
+            headers?: components["schemas"]["AdapterHTTPHeader"][];
             /** @description JSONPath of the message id in the response, e.g. $.data.id */
             messageIdPath: string;
             name: string;
+            /**
+             * @description hmac (default): a signature header; standard: Standard Webhooks; basic: basic auth; header: the secret in a header; none: only the webhook URL
+             * @enum {string}
+             */
+            webhookAuth?: "hmac" | "standard" | "basic" | "header" | "none";
+            webhookHeader?: string;
             /** @enum {string} */
             webhookMapping: "status" | "jsonpath";
+            webhookPaths?: components["schemas"]["AdapterHTTPWebhookPaths"];
+        };
+        AdapterHTTPMapping: {
+            bodyTemplate: string;
+            /** @description Method and URL, e.g. POST https://api.example-esp.com/v1/messages */
+            endpoint: string;
+            headers?: components["schemas"]["AdapterHTTPHeader"][];
+            /** @description JSONPath of the message id in the response, e.g. $.data.id */
+            messageIdPath: string;
+            /**
+             * @description hmac (default): a signature header; standard: Standard Webhooks; basic: basic auth; header: the secret in a header; none: only the webhook URL
+             * @enum {string}
+             */
+            webhookAuth?: "hmac" | "standard" | "basic" | "header" | "none";
+            webhookHeader?: string;
+            /** @enum {string} */
+            webhookMapping: "status" | "jsonpath";
+            webhookPaths?: components["schemas"]["AdapterHTTPWebhookPaths"];
+        };
+        AdapterHTTPPreview: {
+            body: string;
+            headers: components["schemas"]["AdapterHTTPPreviewHeader"][];
+            method: string;
+            url: string;
+        };
+        AdapterHTTPPreviewHeader: {
+            name: string;
+            value: string;
+        };
+        AdapterHTTPWebhookPaths: {
+            /** @description The events in one request, e.g. $.events[*] (default $: one event or an array of events) */
+            events?: string;
+            /** @description The provider's message id, e.g. $.message_id */
+            messageId?: string;
+            /** @description The recipient's address, e.g. $.email */
+            recipient?: string;
+            /** @description The event type, e.g. $.event */
+            type?: string;
         };
         AdapterInstallInput: {
             /**
@@ -10753,6 +10822,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdapterCommunity"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-http-adapter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdapterHTTPMapping"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterHTTPPreview"];
                 };
             };
             /** @description Error */

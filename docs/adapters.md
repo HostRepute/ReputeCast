@@ -302,6 +302,14 @@ Adapters › Generic HTTP adapter** or installs a community manifest of kind
 credentials. A provider can also carry its mapping in its own settings
 (`{"http": {…}}`).
 
+The form covers the send request (method and URL, headers, body template),
+the message id path, the webhook mapping (the `status` vocabulary, or a
+custom JSONPath map: the events, and the type, recipient and message id of
+one event) and the webhook authentication with its header. It is checked
+like a manifest before it is saved. Everything else below (event type
+names, timestamps, algorithms, a health check, the connection form, terms)
+needs a manifest.
+
 ### Manifest
 
 The mapping is the manifest's `http` object. The Adapters tab saves it in

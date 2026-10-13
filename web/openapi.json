@@ -1026,6 +1026,25 @@
         ],
         "type": "object"
       },
+      "AdapterHTTPHeader": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ],
+        "type": "object"
+      },
       "AdapterHTTPInput": {
         "additionalProperties": false,
         "properties": {
@@ -1039,6 +1058,13 @@
             "minLength": 10,
             "type": "string"
           },
+          "headers": {
+            "items": {
+              "$ref": "#/components/schemas/AdapterHTTPHeader"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
           "messageIdPath": {
             "description": "JSONPath of the message id in the response, e.g. $.data.id",
             "maxLength": 200,
@@ -1049,12 +1075,30 @@
             "minLength": 2,
             "type": "string"
           },
+          "webhookAuth": {
+            "description": "hmac (default): a signature header; standard: Standard Webhooks; basic: basic auth; header: the secret in a header; none: only the webhook URL",
+            "enum": [
+              "hmac",
+              "standard",
+              "basic",
+              "header",
+              "none"
+            ],
+            "type": "string"
+          },
+          "webhookHeader": {
+            "maxLength": 100,
+            "type": "string"
+          },
           "webhookMapping": {
             "enum": [
               "status",
               "jsonpath"
             ],
             "type": "string"
+          },
+          "webhookPaths": {
+            "$ref": "#/components/schemas/AdapterHTTPWebhookPaths"
           }
         },
         "required": [
@@ -1064,6 +1108,134 @@
           "messageIdPath",
           "webhookMapping"
         ],
+        "type": "object"
+      },
+      "AdapterHTTPMapping": {
+        "additionalProperties": false,
+        "properties": {
+          "bodyTemplate": {
+            "maxLength": 20000,
+            "type": "string"
+          },
+          "endpoint": {
+            "description": "Method and URL, e.g. POST https://api.example-esp.com/v1/messages",
+            "maxLength": 2048,
+            "minLength": 10,
+            "type": "string"
+          },
+          "headers": {
+            "items": {
+              "$ref": "#/components/schemas/AdapterHTTPHeader"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "messageIdPath": {
+            "description": "JSONPath of the message id in the response, e.g. $.data.id",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "webhookAuth": {
+            "description": "hmac (default): a signature header; standard: Standard Webhooks; basic: basic auth; header: the secret in a header; none: only the webhook URL",
+            "enum": [
+              "hmac",
+              "standard",
+              "basic",
+              "header",
+              "none"
+            ],
+            "type": "string"
+          },
+          "webhookHeader": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "webhookMapping": {
+            "enum": [
+              "status",
+              "jsonpath"
+            ],
+            "type": "string"
+          },
+          "webhookPaths": {
+            "$ref": "#/components/schemas/AdapterHTTPWebhookPaths"
+          }
+        },
+        "required": [
+          "endpoint",
+          "bodyTemplate",
+          "messageIdPath",
+          "webhookMapping"
+        ],
+        "type": "object"
+      },
+      "AdapterHTTPPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "headers": {
+            "items": {
+              "$ref": "#/components/schemas/AdapterHTTPPreviewHeader"
+            },
+            "type": "array"
+          },
+          "method": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "method",
+          "url",
+          "headers",
+          "body"
+        ],
+        "type": "object"
+      },
+      "AdapterHTTPPreviewHeader": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ],
+        "type": "object"
+      },
+      "AdapterHTTPWebhookPaths": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "description": "The events in one request, e.g. $.events[*] (default $: one event or an array of events)",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "messageId": {
+            "description": "The provider's message id, e.g. $.message_id",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "recipient": {
+            "description": "The recipient's address, e.g. $.email",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "type": {
+            "description": "The event type, e.g. $.event",
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "AdapterInstallInput": {
@@ -20914,6 +21086,71 @@
           }
         ],
         "summary": "Save a generic HTTP adapter mapping (instance admins)",
+        "tags": [
+          "Adapters"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/adapters/http/preview": {
+      "post": {
+        "description": "Nothing is sent. Secrets are shown as ••••.",
+        "operationId": "preview-http-adapter",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdapterHTTPMapping"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterHTTPPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Render the request a generic HTTP mapping sends for a sample message (instance admins)",
         "tags": [
           "Adapters"
         ],

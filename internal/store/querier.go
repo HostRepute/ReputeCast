@@ -113,6 +113,9 @@ type Querier interface {
 	ClearSegmentMembers(ctx context.Context, segmentID uuid.UUID) error
 	ClearSignInThrottle(ctx context.Context, email string) error
 	ClearUserLockout(ctx context.Context, id uuid.UUID) error
+	// Every installed community adapter, any kind: the runtime registers the
+	// kinds it runs, and registry keys must not collide across kinds.
+	CommunityAdapterList(ctx context.Context) ([]CommunityAdapterListRow, error)
 	CompleteInstanceSetup(ctx context.Context, arg CompleteInstanceSetupParams) (InstanceSetting, error)
 	// Lists with their subscribed, active contacts (suppressed addresses excluded).
 	ComposerAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceListsRow, error)
