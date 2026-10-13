@@ -2,6 +2,7 @@ package forms
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	_ "embed"
 	"encoding/hex"
@@ -20,6 +21,15 @@ var embedScript string
 
 //go:embed embed/form.css
 var embedCSS []byte
+
+// gzipKB is the gzipped size of b in KB, rounded up.
+func gzipKB(b []byte) int {
+	var buf bytes.Buffer
+	zw, _ := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	_, _ = zw.Write(b)
+	_ = zw.Close()
+	return (buf.Len() + 1023) / 1024
+}
 
 // EmbedCSS is the stylesheet of embedded and popup forms (/p/_/embed.css).
 func EmbedCSS() []byte { return embedCSS }

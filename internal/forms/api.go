@@ -15,13 +15,15 @@ import (
 // single key for this area, forms:edit, which every change needs.
 const viewPerm = authz.SubscribersView
 
-type formInput struct {
+// FormPath names a form in the path. It is exported because Huma only
+// reads parameters through exported embedded structs.
+type FormPath struct {
 	api.WorkspaceInput
 	Form string `path:"form" format:"uuid" doc:"Form id"`
 }
 
 type formBody[T any] struct {
-	formInput
+	FormPath
 	Body T
 }
 
@@ -67,7 +69,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "get-signup-form", Path: "/workspaces/{workspace}/forms/{form}", Summary: "Get a signup form with its numbers for the last 30 days",
 		Tags: tags, Access: api.Workspace(viewPerm)},
-		func(ctx context.Context, in *formInput) (*api.Body[SignupForm], error) {
+		func(ctx context.Context, in *FormPath) (*api.Body[SignupForm], error) {
 			out, err := s.Get(ctx, api.WorkspaceFrom(ctx), in.Form)
 			return api.OK(out), err
 		})
@@ -94,7 +96,7 @@ func Register(h huma.API, s *Service) {
 	api.Delete(h, api.Op{ID: "delete-signup-form", Path: "/workspaces/{workspace}/forms/{form}", Summary: "Delete a signup form",
 		Description: "Contacts the form brought in stay. Embedded copies stop accepting submissions.",
 		Tags:        tags, Access: api.Workspace(authz.FormsEdit)},
-		func(ctx context.Context, in *formInput) (*api.Empty, error) {
+		func(ctx context.Context, in *FormPath) (*api.Empty, error) {
 			return api.NoContent, s.Delete(ctx, api.WorkspaceFrom(ctx), in.Form)
 		})
 	api.Post(h, api.Op{ID: "allow-signup-form-origin", Path: "/workspaces/{workspace}/forms/{form}/allowed-origins", Summary: "Allow a site to submit a form",

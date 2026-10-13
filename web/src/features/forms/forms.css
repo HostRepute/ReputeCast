@@ -1,0 +1,450 @@
+/* Forms & public pages (boards FormBuilder, FormsStates and the page tabs):
+   the classes these boards define beyond the shared ones in app.css, with
+   the boards' exact values. The columns run edge to edge under the top bar
+   like the board (no content padding), so the overrides of .content sit
+   outside the layers, next to the shell's own breakpoints. */
+
+@layer components {
+  /* Three columns: settings · live preview · embed and numbers. */
+  .fb-cols {
+    display: flex;
+    flex-wrap: wrap;
+    flex: 1;
+    align-items: stretch;
+  }
+  .fb-left {
+    flex: 1 1 320px;
+    max-width: 340px;
+    background: #fff;
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+  }
+  .fb-right {
+    flex: 1 1 320px;
+    max-width: 360px;
+    background: #fff;
+    border-left: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+  }
+  .fb-center {
+    flex: 999 1 420px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #e9ecf0;
+  }
+  .fb-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 14px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+  .fb-stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 36px 24px;
+  }
+  .fb-stage > * {
+    width: 100%;
+    max-width: 520px;
+    box-sizing: border-box;
+  }
+  .fb-stage.wide > * {
+    max-width: 720px;
+  }
+  .fb-stage.phone > .fb-frame {
+    max-width: 390px;
+  }
+
+  /* A settings block of a side column. */
+  .fb-sec {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-2);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .fb-sec.last {
+    border-bottom: 0;
+  }
+  .fb-title {
+    font-weight: 600;
+  }
+  .fb-check {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 13px;
+  }
+  .fb-check.start {
+    align-items: flex-start;
+  }
+  .fb-check.start input {
+    margin-top: 3px;
+  }
+
+  /* Inputs of the side columns and the branding card: 34px and full width. */
+  .fb-in {
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--line-input);
+    border-radius: 8px;
+    background: #fff;
+    font: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    box-sizing: border-box;
+    min-width: 0;
+    width: 100%;
+  }
+  .fb-in[aria-invalid='true'] {
+    border-color: var(--bad-bar);
+  }
+  .fb-in:disabled {
+    background: var(--ground);
+    color: var(--ink-3);
+  }
+  textarea.fb-in {
+    height: 70px;
+    padding: 8px 10px;
+    resize: vertical;
+  }
+  .fb-in.warn {
+    border-color: #f59e0b;
+    background: #fffbeb;
+  }
+
+  /* Segmented control of the builder (Type, Desktop · Mobile). */
+  .fb-seg {
+    display: inline-flex;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    overflow: hidden;
+    align-self: flex-start;
+  }
+  .fb-seg button {
+    height: 32px;
+    padding: 0 12px;
+    border: 0;
+    background: #fff;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+  .fb-seg button[aria-pressed='true'] {
+    background: var(--ink);
+    color: #fff;
+  }
+  .fb-seg button[aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+
+  /* The embed snippet. */
+  .fb-pre {
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--ink);
+    color: #d1d5db;
+    font-family: var(--font-family-mono);
+    font-size: 11.5px;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  /* The live preview of a form (".pf" on the board). */
+  .pf {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    font-family: var(--font-family-sans);
+    color: #1f2937;
+  }
+  .pf-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .pf-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: var(--ink);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 14px;
+    flex: none;
+    overflow: hidden;
+  }
+  .pf-mark img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .pf-mark.logo {
+    background: transparent;
+  }
+  .pf-desc {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink-nav);
+  }
+  .pf-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .pf-field input,
+  .pf-field select {
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid var(--line-hover);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    background: #fff;
+    color: inherit;
+  }
+  .pf-opt {
+    font-weight: 400;
+    color: #6b7280;
+  }
+  .pf-lists {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .pf-check {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 13px;
+  }
+  .pf-consent {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .pf-consent input {
+    margin-top: 3px;
+  }
+  .pf-submit {
+    height: 46px;
+    border: 0;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .pf-foot {
+    font-size: 11.5px;
+    color: #6b7280;
+    text-align: center;
+  }
+  .pf-done {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* Number pairs of "Last 30 days". */
+  .fb-nums {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  /* Alert cards (blocked origin, Turnstile), as on FormsStates. */
+  .fb-alert {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .fb-alert.bad {
+    border-color: var(--bad-line);
+  }
+  .fb-alert.warn {
+    border-color: #fcd34d;
+  }
+
+  /* FormsStates: the state strips, skeleton blocks, colour swatches. */
+  .fs-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .fs-sk {
+    background: #e9ecf0;
+    border-radius: 6px;
+    display: inline-block;
+  }
+  .fs-sw {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid var(--line-strong);
+    flex: none;
+  }
+  .fs-sw input[type='color'] {
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    cursor: pointer;
+  }
+  .fs-preview {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .fs-mark {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: var(--ink);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 12px;
+    flex: none;
+    overflow: hidden;
+  }
+  .fs-mark img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .fs-mark.logo {
+    background: transparent;
+  }
+  .fs-input {
+    height: 34px;
+    border: 1px solid var(--line-hover);
+    border-radius: 7px;
+    background: #fff;
+  }
+  .fs-button {
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  /* The public page previews of the page tabs. */
+  .fb-frame {
+    display: block;
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+  }
+  .fb-frame iframe {
+    display: block;
+    width: 100%;
+    border: 0;
+  }
+
+  /* Archive tab: issue rows. */
+  .fb-issue {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .fb-issue:first-child {
+    border-top: 0;
+  }
+}
+
+/* The builder's columns sit flush under the top bar at every width. */
+.content.fb-main {
+  padding: 0;
+  gap: 0;
+  flex: 1;
+}
+/* FormsStates' content column: 24px 28px, 28px between the sections. */
+.content.fs-main {
+  gap: 28px;
+}
+@media (max-width: 1100px) {
+  .content.fb-main {
+    padding: 0;
+  }
+}
+@media (max-width: 767px) {
+  .content.fb-main {
+    padding: 0;
+    gap: 0;
+  }
+  /* The board stacks the columns; the side columns keep their widths. */
+  .fb-left,
+  .fb-right {
+    max-width: 340px;
+  }
+  .fb-right {
+    max-width: 360px;
+  }
+  .fb-left select.fb-in,
+  .fb-left input.fb-in {
+    width: 0;
+    min-width: 100%;
+  }
+  .fb-row {
+    flex-wrap: wrap;
+  }
+  .pf .badge,
+  .fb-sec .badge {
+    white-space: normal;
+  }
+}

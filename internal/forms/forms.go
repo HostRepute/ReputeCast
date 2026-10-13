@@ -356,6 +356,8 @@ type SignupFormURLs struct {
 	// Script is the embed script; Submit receives submissions.
 	Script string `json:"script"`
 	Submit string `json:"submit"`
+	// ScriptKB is what the embed script weighs on the wire (gzip), rounded up.
+	ScriptKB int `json:"scriptKb"`
 }
 
 // SignupFormSummary is a form in the selector.
@@ -565,6 +567,7 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, f store.Form)
 		return out, err
 	}
 	out.PlainHTML = PlainHTML(c, links, lists, customs, set.Branding)
+	out.URLs.ScriptKB = gzipKB(EmbedScript(c, links, set.Branding, lists, customs))
 	loc := location(ws)
 	today := s.now().In(loc)
 	since := dayOf(today.AddDate(0, 0, -29), loc)

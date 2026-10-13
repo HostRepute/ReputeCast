@@ -2041,6 +2041,120 @@ export interface paths {
         patch: operations["update-field"];
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List signup forms with the lists, fields and branding they use */
+        get: operations["list-signup-forms"];
+        put?: never;
+        /** Create a signup form (a draft until it's published) */
+        post: operations["create-signup-form"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a signup form with its numbers for the last 30 days */
+        get: operations["get-signup-form"];
+        /**
+         * Save a signup form (Save & publish)
+         * @description Changing the consent text starts a new consent version; every consent event records the exact text and its version.
+         */
+        put: operations["update-signup-form"];
+        post?: never;
+        /**
+         * Delete a signup form
+         * @description Contacts the form brought in stay. Embedded copies stop accepting submissions.
+         */
+        delete: operations["delete-signup-form"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/allowed-origins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Allow a site to submit a form */
+        post: operations["allow-signup-form-origin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/blocked-origins/keep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep a rejected site blocked and dismiss its alert */
+        post: operations["keep-signup-form-origin-blocked"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/rename": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rename a signup form
+         * @description The form's hosted page follows the new name (/subscribe/<name>); embed code keeps working.
+         */
+        post: operations["rename-signup-form"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause or resume a signup form */
+        post: operations["set-signup-form-status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/imports": {
         parameters: {
             query?: never;
@@ -3112,6 +3226,196 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/public-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the public pages' branding, options, domain and Turnstile set-up
+         * @description The Turnstile secret is write-only: only whether one is stored is returned.
+         */
+        get: operations["get-public-pages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/archive/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the archive's issues, hidden ones included
+         * @description Sent campaigns of the archived lists are filed the first time the archive is read after they finish.
+         */
+        get: operations["list-archive-issues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/archive/issues/{campaign}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Hide, show or retitle an archived issue */
+        put: operations["update-archive-issue"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the public page branding
+         * @description Hover, tint and link colours are derived from the accent and the background so every text keeps WCAG 2.2 AA contrast.
+         */
+        put: operations["save-public-branding"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the custom domain of the public pages
+         * @description The pages move to the domain once its DNS points at this server (a CNAME, matching addresses or the TXT record _reputecast.<domain>).
+         */
+        put: operations["set-public-domain"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/domain/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the custom domain's DNS now */
+        post: operations["check-public-domain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload the publisher's logo */
+        put: operations["upload-public-logo"];
+        post?: never;
+        /** Remove the logo (the pages show the publisher's initial) */
+        delete: operations["remove-public-logo"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the options of the public pages
+         * @description Send the pages to change; the others keep their options.
+         */
+        put: operations["save-public-pages"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/preview/{page}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview a public page as a subscriber sees it */
+        get: operations["preview-public-page"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/turnstile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the Cloudflare Turnstile keys
+         * @description The secret is stored encrypted and never returned. Cloudflare checks it when it's saved.
+         */
+        put: operations["save-public-turnstile"];
+        post?: never;
+        /** Remove the Turnstile keys */
+        delete: operations["remove-public-turnstile"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/roles": {
         parameters: {
             query?: never;
@@ -4077,6 +4381,58 @@ export interface components {
             emails: string[];
             /** @description Why, shown as the original code */
             note?: string;
+        };
+        ArchiveIssueInput: {
+            /** @description Empty uses the preheader */
+            excerpt: string;
+            /** @description Hide the issue from the archive, the feed and the sitemap */
+            hidden: boolean;
+            /** @example #141 */
+            label: string;
+            /** @description The list the issue is filed under */
+            listId: string;
+            /** @description Empty uses the subject */
+            title: string;
+        };
+        ArchiveIssueItem: {
+            campaignId: string;
+            excerpt: string;
+            excerptOverride: string;
+            hidden: boolean;
+            label: string;
+            listId: string;
+            listName: string;
+            /** Format: date-time */
+            sentAt: string;
+            slug: string;
+            subject: string;
+            title: string;
+            titleOverride: string;
+            url: string;
+        };
+        ArchiveIssuePage: {
+            issues: components["schemas"]["ArchiveIssueItem"][];
+            lists: components["schemas"]["ArchiveListCount"][];
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pageSize: number;
+            /** Format: int64 */
+            published: number;
+            /** Format: int64 */
+            total: number;
+        };
+        ArchiveListCount: {
+            /** Format: int64 */
+            issues: number;
+            listId: string;
+            name: string;
+        };
+        ArchivePage: {
+            enabled: boolean;
+            index: boolean;
+            lists: string[];
+            subscribeBox: boolean;
         };
         AudienceListInput: {
             description?: string;
@@ -5293,6 +5649,15 @@ export interface components {
         };
         "Confirm-email-changeRequest": {
             token: string;
+        };
+        ConfirmPage: {
+            inboxTip: boolean;
+            listText: {
+                [key: string]: string;
+            };
+            offerText: {
+                [key: string]: string;
+            };
         };
         ContactActivityItem: {
             actor?: string;
@@ -7064,6 +7429,14 @@ export interface components {
             confirmUrl?: string;
             sent: boolean;
         };
+        Pages: {
+            archive: components["schemas"]["ArchivePage"];
+            confirm: components["schemas"]["ConfirmPage"];
+            preferences: components["schemas"]["PreferencesPage"];
+            previewEmail: string;
+            subscribe: components["schemas"]["SubscribePage"];
+            unsubscribe: components["schemas"]["UnsubscribePage"];
+        };
         "Passkey-registerRequest": {
             challenge: string;
             /** @description The browser's RegistrationResponseJSON */
@@ -7119,6 +7492,15 @@ export interface components {
         };
         PreferenceLinkResult: {
             url: string;
+        };
+        PreferencesPage: {
+            firstName: boolean;
+            frequency: boolean;
+            listText: {
+                [key: string]: string;
+            };
+            lists: string[];
+            pause: boolean;
         };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
@@ -7654,6 +8036,128 @@ export interface components {
             suppressions: number;
             /** Format: date-time */
             syncedAt?: string;
+        };
+        PublicBranding: {
+            accent: string;
+            accentHover: string;
+            accentSoft: string;
+            accentText: string;
+            background: string;
+            customFontFamily: string;
+            customFontUrl: string;
+            /** @enum {string} */
+            font: "plex" | "system" | "custom";
+            /** @description The letter on the logo tile when there is no logo */
+            initial: string;
+            logo?: components["schemas"]["PublicBrandingLogo"];
+            notes: string[];
+            onAccent: string;
+            /** @description Show "Sent with ReputeCast" in the footer */
+            poweredBy: boolean;
+            privacyUrl: string;
+            publisherName: string;
+        };
+        PublicBrandingInput: {
+            /** @example #4338CA */
+            accent: string;
+            /** @example #F5F3FF */
+            background: string;
+            customFontFamily?: string;
+            /** @description https URL of a .woff2 or .woff file */
+            customFontUrl?: string;
+            /** @enum {string} */
+            font: "plex" | "system" | "custom";
+            poweredBy: boolean;
+            privacyUrl?: string;
+            publisherName: string;
+        };
+        PublicBrandingLogo: {
+            /** @example acme-mark.svg */
+            name: string;
+            /** @example image/svg+xml */
+            type: string;
+            url: string;
+        };
+        PublicCustomDomain: {
+            /** Format: date-time */
+            checkedAt?: string;
+            detail: string;
+            /** @example news.acme.io */
+            domain: string;
+            /** @enum {string} */
+            status: "none" | "pending" | "verified" | "failed";
+            /** @example reputecast.acme.io */
+            target: string;
+            txtName: string;
+            txtValue: string;
+            /** Format: date-time */
+            verifiedAt?: string;
+        };
+        PublicDomainInput: {
+            /**
+             * @description Empty removes the custom domain
+             * @example news.acme.io
+             */
+            domain: string;
+        };
+        PublicPageInput: {
+            archive?: components["schemas"]["ArchivePage"];
+            confirm?: components["schemas"]["ConfirmPage"];
+            hostedFormId?: string;
+            preferences?: components["schemas"]["PreferencesPage"];
+            previewEmail?: string;
+            subscribe?: components["schemas"]["SubscribePage"];
+            unsubscribe?: components["schemas"]["UnsubscribePage"];
+        };
+        PublicPageList: {
+            description: string;
+            id: string;
+            name: string;
+            public: boolean;
+            /** Format: int64 */
+            subscribed: number;
+        };
+        PublicPagePreview: {
+            contact: string;
+            html: string;
+            url: string;
+        };
+        PublicPageURLs: {
+            archive: string;
+            feed: string;
+            /** @description Asks for a preference link by email */
+            preferences: string;
+            sitemap: string;
+            subscribe: string;
+        };
+        PublicPagesSettings: {
+            branding: components["schemas"]["PublicBranding"];
+            domain: components["schemas"]["PublicCustomDomain"];
+            forms: components["schemas"]["SignupFormSummary"][];
+            hostedFormId: string;
+            lists: components["schemas"]["PublicPageList"][];
+            pages: components["schemas"]["Pages"];
+            senderEmail: string;
+            turnstile: components["schemas"]["PublicTurnstile"];
+            /** Format: date-time */
+            updatedAt: string;
+            urls: components["schemas"]["PublicPageURLs"];
+        };
+        PublicTurnstile: {
+            /** Format: date-time */
+            checkedAt?: string;
+            /** @description Why Cloudflare rejected the keys, with its error code */
+            error: string;
+            hasSecret: boolean;
+            siteKey: string;
+            /** @enum {string} */
+            status: "off" | "ok" | "error";
+        };
+        PublicTurnstileInput: {
+            /** @description Write-only; omit to keep the stored secret */
+            secret?: string;
+            /** @example 0x4AAAAAAA… */
+            siteKey: string;
         };
         ReadinessSummary: {
             /** Format: int64 */
@@ -8252,6 +8756,212 @@ export interface components {
             /** @enum {string} */
             status: "signed_in" | "two_factor";
         };
+        SignupForm: {
+            /** @enum {string} */
+            afterSubmit: "message" | "redirect";
+            allowedOrigins: string[];
+            blockedOrigins: components["schemas"]["SignupFormBlockedOrigin"][];
+            consentText: string;
+            /** Format: int64 */
+            consentVersion: number;
+            content: components["schemas"]["SignupFormContent"];
+            /** @description Offered lists that start checked */
+            defaultListIds: string[];
+            doubleOptIn: boolean;
+            fields: components["schemas"]["SignupFormField"][];
+            hostedPage: boolean;
+            hostedUrl: string;
+            id: string;
+            /** @enum {string} */
+            kind: "embedded" | "popup" | "hosted";
+            /** @description Visitors pick lists; off joins every offered list */
+            listChoice: boolean;
+            /** @description Lists offered on the form */
+            listIds: string[];
+            name: string;
+            plainHtml: string;
+            /** @example frm_8c2e1a */
+            publicId: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            redirectUrl: string;
+            slug: string;
+            spam: components["schemas"]["SignupFormSpam"];
+            stats: components["schemas"]["SignupFormStats"];
+            /** @enum {string} */
+            status: "draft" | "live" | "paused";
+            /** Format: date-time */
+            updatedAt: string;
+            urls: components["schemas"]["SignupFormURLs"];
+        };
+        SignupFormBlockedOrigin: {
+            /** Format: int64 */
+            count: number;
+            /** Format: date-time */
+            lastAt: string;
+            /** @example staging.acme.io */
+            origin: string;
+        };
+        SignupFormContent: {
+            button: string;
+            description: string;
+            emailPlaceholder: string;
+            footnote: string;
+            heading: string;
+            listsLabel: string;
+            namePlaceholder: string;
+            /**
+             * Format: int64
+             * @description Seconds before a popup opens
+             */
+            popupDelay: number;
+            /**
+             * Format: int64
+             * @description Days a closed popup stays closed
+             */
+            popupRepeatDays: number;
+            /**
+             * Format: int64
+             * @description Percent of the page scrolled before a popup opens; 0 is off
+             */
+            popupScroll: number;
+        };
+        SignupFormCreateInput: {
+            /** @enum {string} */
+            kind: "embedded" | "popup" | "hosted";
+            name: string;
+        };
+        SignupFormCustomField: {
+            key: string;
+            label: string;
+            options: string[];
+            /** @enum {string} */
+            type: "text" | "number" | "date" | "boolean" | "select";
+        };
+        SignupFormField: {
+            /** @description email, first_name, last_name, company or a custom field key */
+            key: string;
+            /** @description Shown above the input; empty uses the field's name */
+            label: string;
+            required: boolean;
+        };
+        SignupFormInput: {
+            /** @enum {string} */
+            afterSubmit: "message" | "redirect";
+            allowedOrigins: string[];
+            consentText: string;
+            content: components["schemas"]["SignupFormContent"];
+            defaultListIds: string[];
+            doubleOptIn: boolean;
+            fields: components["schemas"]["SignupFormField"][];
+            /** @enum {string} */
+            kind: "embedded" | "popup" | "hosted";
+            listChoice: boolean;
+            listIds: string[];
+            name: string;
+            publish: boolean;
+            redirectUrl: string;
+            spam: components["schemas"]["SignupFormSpam"];
+        };
+        SignupFormList: {
+            description: string;
+            id: string;
+            name: string;
+            public: boolean;
+            /** Format: int64 */
+            subscribed: number;
+        };
+        SignupFormOriginInput: {
+            /** @example staging.acme.io */
+            origin: string;
+        };
+        SignupFormRenameInput: {
+            name: string;
+        };
+        SignupFormSpam: {
+            blockDisposable: boolean;
+            honeypot: boolean;
+            /**
+             * Format: int64
+             * @description Submissions faster than this look automated
+             */
+            minSeconds: number;
+            /**
+             * Format: int64
+             * @description Submissions per minute from one address
+             */
+            rateLimitPerIp: number;
+            turnstile: boolean;
+        };
+        SignupFormStats: {
+            /**
+             * Format: int64
+             * @description Submissions blocked as spam
+             */
+            blocked: number;
+            /** Format: int64 */
+            confirmed: number;
+            /** Format: double */
+            confirmedRate: number;
+            /** Format: int64 */
+            days: number;
+            /**
+             * Format: int64
+             * @description Double opt-in confirmations not clicked yet
+             */
+            pending: number;
+            /** Format: double */
+            submissionRate: number;
+            /** Format: int64 */
+            submissions: number;
+            /** Format: int64 */
+            views: number;
+        };
+        SignupFormStatusInput: {
+            /** @enum {string} */
+            status: "live" | "paused";
+        };
+        SignupFormSummary: {
+            hostedPage: boolean;
+            hostedUrl: string;
+            id: string;
+            /** @enum {string} */
+            kind: "embedded" | "popup" | "hosted";
+            name: string;
+            /** @example frm_8c2e1a */
+            publicId: string;
+            slug: string;
+            /** @enum {string} */
+            status: "draft" | "live" | "paused";
+        };
+        SignupFormURLs: {
+            hosted: string;
+            script: string;
+            /** Format: int64 */
+            scriptKb: number;
+            submit: string;
+        };
+        SignupFormsOverview: {
+            branding: components["schemas"]["PublicBranding"];
+            customFields: components["schemas"]["SignupFormCustomField"][];
+            domain: components["schemas"]["PublicCustomDomain"];
+            forms: components["schemas"]["SignupFormSummary"][];
+            hostedFormId: string;
+            hostedUrl: string;
+            lists: components["schemas"]["SignupFormList"][];
+            ownOrigins: string[];
+            systemProvider: string;
+            turnstile: components["schemas"]["PublicTurnstile"];
+        };
+        SubscribePage: {
+            description: string;
+            footnote: string;
+            heading: string;
+            index: boolean;
+            listText: {
+                [key: string]: string;
+            };
+        };
         SunsetPolicy: {
             /** Format: int64 */
             activeDays: number;
@@ -8690,6 +9400,15 @@ export interface components {
             dns: components["schemas"]["CheckLine"];
             reachable: components["schemas"]["CheckLine"];
             tls: components["schemas"]["CheckLine"];
+        };
+        UnsubscribePage: {
+            /** @description Offer the monthly best-of instead */
+            fewer: boolean;
+            fewerButton: string;
+            fewerText: string;
+            fewerTitle: string;
+            /** @description Ask why, optionally */
+            reasons: boolean;
         };
         WarmupCampaignUse: {
             /** Format: int64 */
@@ -13711,6 +14430,330 @@ export interface operations {
             };
         };
     };
+    "list-signup-forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormsOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-signup-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormCreateInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-signup-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-signup-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-signup-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "allow-signup-form-origin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormOriginInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "keep-signup-form-origin-blocked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormOriginInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rename-signup-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormRenameInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-signup-form-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormStatusInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupForm"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-imports": {
         parameters: {
             query?: never;
@@ -16260,6 +17303,437 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderWebhookTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-public-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-archive-issues": {
+        parameters: {
+            query?: {
+                /** @description Search titles, subjects and excerpts */
+                q?: string;
+                /** @description Only issues filed under this list (id) */
+                list?: string;
+                /** @description Page, from 1 (25 issues a page) */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveIssuePage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-archive-issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The issue's campaign id */
+                campaign: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArchiveIssueInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveIssueItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-public-branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicBrandingInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-public-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicDomainInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-public-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-public-logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description SVG, PNG, JPEG, GIF or WebP, up to 256 KB
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-public-logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-public-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicPageInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-public-page": {
+        parameters: {
+            query?: {
+                /** @description Show a form's hosted page (drafts too) instead of the subscribe page */
+                form?: string;
+                /** @description Unsaved page options to show: the body of save-public-pages, as JSON */
+                draft?: string;
+                /** @description Preview the pages of this subscriber */
+                contact?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                page: "subscribe" | "confirm" | "preferences" | "unsubscribe" | "archive";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-public-turnstile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicTurnstileInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-public-turnstile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagesSettings"];
                 };
             };
             /** @description Error */
