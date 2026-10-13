@@ -245,6 +245,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/adapters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Built-in and community adapters */
+        get: operations["list-adapters"];
+        put?: never;
+        /** Install a community adapter from its manifest (instance admins) */
+        post: operations["install-adapter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/adapters/http": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save a generic HTTP adapter mapping (instance admins) */
+        post: operations["save-http-adapter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a community adapter (instance admins) */
+        delete: operations["remove-adapter"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update a community adapter to its latest version (instance admins) */
+        post: operations["update-adapter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns": {
         parameters: {
             query?: never;
@@ -563,10 +632,447 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/provider-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Provider events beside their normalized form
+         * @description Recipients are masked. Events are kept 90 days.
+         */
+        get: operations["list-provider-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/provider-events/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export the provider event log as CSV
+         * @description Full recipient addresses need subscribers:export; otherwise they are masked. Every export is audited.
+         */
+        get: operations["export-provider-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Connected providers with health, quota, cost, capabilities and routing
+         * @description Credentials are never returned. Outage, webhooks-silent and rejected-credential states are included when they apply.
+         */
+        get: operations["list-providers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/providers/{providerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Disconnect a provider no route uses */
+        delete: operations["disconnect-provider"];
+        options?: never;
+        head?: never;
+        /** Change a provider's label, pricing or limits */
+        patch: operations["update-provider"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/providers/{providerId}/backfill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pull message status from the provider's API */
+        post: operations["backfill-provider-events"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/providers/{providerId}/broadcast-stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create the stream a provider's terms require for bulk mail */
+        post: operations["create-broadcast-stream"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/providers/{providerId}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check a provider's health now */
+        post: operations["check-provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/providers/{providerId}/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace write-only credentials
+         * @description The provider checks the new credentials before they are stored, encrypted. They are never returned.
+         */
+        put: operations["replace-provider-credentials"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/providers/{providerId}/held/{campaignId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wait, move or cancel a broadcast share held on a provider that is down
+         * @description Cancelling needs campaigns:pause; waiting for the provider and moving the held recipients resume the send and need campaigns:send.
+         */
+        post: operations["decide-held-broadcast"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/providers/{providerId}/tracking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn off provider-side tracking or keep it */
+        post: operations["provider-tracking-action"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/providers/{providerId}/webhook/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register the webhook at the provider again */
+        post: operations["register-provider-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/providers/{providerId}/webhook/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Self-test the webhook endpoint and ask the provider for a test event */
+        post: operations["test-provider-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/routing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Routing rules, fallbacks and failover policy per stream */
+        get: operations["get-routing"];
+        /**
+         * Replace the routing of one or more streams
+         * @description Validates splits, fallbacks and conditions against the connected providers. A Broadcast route that a provider's terms don't allow is refused with code bulk_terms unless acknowledgeBulkTerms is set; the decision is audited.
+         */
+        put: operations["save-routing"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/routing/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Which provider would send this email? */
+        post: operations["test-route"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/suppression-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sync of the shared suppression list with each provider */
+        get: operations["get-suppression-sync"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/suppression-sync/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync the shared suppression list with every provider now */
+        post: operations["run-suppression-sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/tracking-checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider-side open and click tracking per provider */
+        get: operations["list-tracking-checks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/warmup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Warm-up plans with their ramp, progress and log */
+        get: operations["get-warmup"];
+        put?: never;
+        /** Start a warm-up plan for a provider or dedicated IP */
+        post: operations["create-warmup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/warmup/{planId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a plan's length, ordering and guards */
+        put: operations["update-warmup"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/warmup/{planId}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause a warm-up plan */
+        post: operations["pause-warmup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/warmup/{planId}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a paused warm-up plan */
+        post: operations["resume-warmup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AdapterBuiltin: {
+            adapter: string;
+            /** Format: int64 */
+            connected: number;
+            domainSetup: string;
+            events: string;
+            maintainer: string;
+            name: string;
+            suppressionSync: string;
+            version: string;
+        };
+        AdapterCommunity: {
+            capabilities: string[];
+            /** Format: int64 */
+            connected: number;
+            id: string;
+            /** Format: date-time */
+            installedAt: string;
+            /** @enum {string} */
+            kind: "http" | "wasm";
+            /** Format: date-time */
+            lastRelease?: string;
+            latest?: string;
+            maintainer: string;
+            name: string;
+            sourceUrl?: string;
+            /** @enum {string} */
+            update: "up_to_date" | "update_available" | "unmaintained";
+            version: string;
+        };
+        AdapterHTTPInput: {
+            bodyTemplate: string;
+            /** @description Method and URL, e.g. POST https://api.example-esp.com/v1/messages */
+            endpoint: string;
+            /** @description JSONPath of the message id in the response, e.g. $.data.id */
+            messageIdPath: string;
+            name: string;
+            /** @enum {string} */
+            webhookMapping: "status" | "jsonpath";
+        };
+        AdapterInstallInput: {
+            /**
+             * Format: uri
+             * @description HTTPS URL of the adapter's manifest.json
+             */
+            manifestUrl: string;
+        };
+        AdaptersOverview: {
+            builtin: components["schemas"]["AdapterBuiltin"][];
+            canInstall: boolean;
+            community: components["schemas"]["AdapterCommunity"][];
+            httpAdapter: boolean;
+            latest?: string;
+            registryUrl: string;
+            sdkUrl: string;
+            templateUrl: string;
+            upToDate: boolean;
+            version: string;
+        };
         "Auth-identifyRequest": {
             /** Format: email */
             email: string;
@@ -1279,6 +1785,26 @@ export interface components {
             /** Format: int64 */
             subscribers: number;
         };
+        NewPlanInput: {
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            days: 14 | 21 | 30;
+            engagedFirst: boolean;
+            /** @enum {string} */
+            guardAction: "hold" | "step_back" | "pause";
+            /** Format: double */
+            guardBounce: number;
+            /** Format: double */
+            guardComplaint: number;
+            ip?: string;
+            /** Format: uuid */
+            providerId: string;
+            spreadMailbox: boolean;
+            /** Format: int64 */
+            targetVolume?: number;
+        };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
             code?: string;
@@ -1321,11 +1847,498 @@ export interface components {
              */
             type: string;
         };
+        ProviderAuthFailure: {
+            down: components["schemas"]["ProviderDownState"];
+            provider: string;
+            providerId: string;
+            /** Format: int64 */
+            rerouted: number;
+            short: string;
+            streams: components["schemas"]["ProviderOutageStream"][];
+        };
+        ProviderAwaitingMessage: {
+            /** Format: date-time */
+            at: string;
+            /** Format: date-time */
+            deliveredAt?: string;
+            providerMessageId: string;
+            /** @description Masked */
+            recipient: string;
+            source: string;
+            /** @enum {string} */
+            status: "accepted" | "delivered" | "bounced" | "deferred" | "complained" | "rejected";
+        };
+        ProviderBackfillResult: {
+            /** Format: int64 */
+            queued: number;
+        };
+        ProviderBroadcastStreamResult: {
+            streamId: string;
+        };
+        ProviderCallError: {
+            /** Format: date-time */
+            at: string;
+            code: string;
+            message: string;
+            op: string;
+            /** Format: int64 */
+            status: number;
+        };
+        ProviderCapabilityBadge: {
+            /** @enum {string} */
+            kind: "yes" | "partial" | "no" | "info";
+            label: string;
+        };
+        ProviderCard: {
+            account: string;
+            /** @enum {string} */
+            accountKind: "account" | "server";
+            adapter: string;
+            bounce: components["schemas"]["ProviderLimitRate"];
+            capabilities: components["schemas"]["ProviderCapabilityBadge"][];
+            /** Format: date-time */
+            checkedAt?: string;
+            /** @enum {string} */
+            color: "ses" | "postal" | "postmark" | "other";
+            complaint: components["schemas"]["ProviderLimitRate"];
+            /** Format: date-time */
+            connectedAt: string;
+            cost: components["schemas"]["ProviderCostToDate"];
+            credentials: components["schemas"]["ProviderCredentialField"][];
+            down?: components["schemas"]["ProviderDownState"];
+            /** Format: double */
+            errorRate3m?: number;
+            /**
+             * Format: double
+             * @description Percent of API calls that failed
+             */
+            errorRate7d?: number;
+            id: string;
+            /** @enum {string} */
+            ipMode: "shared" | "dedicated";
+            ips: string[];
+            label: string;
+            name: string;
+            quota: components["schemas"]["ProviderQuotaUse"];
+            rate: components["schemas"]["ProviderSendRate"];
+            roles: components["schemas"]["ProviderStreamRole"][];
+            short: string;
+            /** @enum {string} */
+            status: "healthy" | "degraded" | "down" | "sandbox" | "warming_up" | "paused";
+            takingFailover: string[];
+            warmup?: components["schemas"]["ProviderWarmupBrief"];
+            webhook: components["schemas"]["ProviderWebhookFeed"];
+        };
         ProviderCost: {
             /** Format: double */
             cost: number;
             provider: string;
             short: string;
+        };
+        ProviderCostToDate: {
+            /** @enum {string} */
+            basis: "metered" | "plan" | "self_hosted";
+            /** Format: double */
+            monthly?: number;
+            /** Format: double */
+            per1000?: number;
+            source?: string;
+            /**
+             * Format: double
+             * @description Dollars this month
+             */
+            toDate: number;
+        };
+        ProviderCredentialField: {
+            key: string;
+            label: string;
+            set: boolean;
+        };
+        ProviderCredentialsInput: {
+            /** @description Credential keys and their new values. Keys not listed keep their current value. */
+            values: {
+                [key: string]: string;
+            };
+        };
+        ProviderDownState: {
+            credentialLabel?: string;
+            errors: components["schemas"]["ProviderCallError"][];
+            /** Format: date-time */
+            lastSuccessAt?: string;
+            lastSuccessOp?: string;
+            /** @enum {string} */
+            reason: "outage" | "auth";
+            /** Format: date-time */
+            since: string;
+            statusLabel?: string;
+            statusSummary?: string;
+            statusUrl?: string;
+        };
+        ProviderEventLog: {
+            items: components["schemas"]["ProviderLogEvent"][];
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pageSize: number;
+            /** Format: int64 */
+            retentionDays: number;
+            /** Format: int64 */
+            total: number;
+        };
+        ProviderFailoverAlternative: {
+            exceedsCap: boolean;
+            name: string;
+            providerId: string;
+            recommended: boolean;
+            short: string;
+            warmingUp: boolean;
+        };
+        ProviderHeldCampaign: {
+            /** @description wait, move or cancel once someone decided */
+            decision?: string;
+            /** Format: int64 */
+            held: number;
+            id: string;
+            name: string;
+            otherShares: components["schemas"]["ProviderRouteShare"][];
+            /** Format: int64 */
+            planned: number;
+            /** Format: int64 */
+            sent: number;
+        };
+        ProviderHeldDecisionInput: {
+            /** @enum {string} */
+            action: "wait" | "move" | "cancel";
+            /** @description Provider to move the held share to (move) */
+            targetProviderId?: string;
+        };
+        ProviderHeldDecisionResult: {
+            action: string;
+            /** Format: int64 */
+            moved: number;
+        };
+        ProviderIncidentEntry: {
+            /** Format: date-time */
+            at: string;
+            campaignId?: string;
+            detail: string;
+            id: string;
+            kind: string;
+            /** @enum {string} */
+            severity: "info" | "ok" | "warn" | "bad";
+            title: string;
+        };
+        ProviderLimitRate: {
+            label?: string;
+            /** Format: double */
+            limit: number;
+            /** Format: double */
+            pause?: number;
+            /** Format: double */
+            review?: number;
+            stale: boolean;
+            /**
+             * Format: double
+             * @description Percent over the last 7 days
+             */
+            value?: number;
+        };
+        ProviderLimitsInput: {
+            /** Format: double */
+            bounce: number;
+            /** Format: double */
+            complaint: number;
+        };
+        ProviderLogEvent: {
+            bounceClass: string;
+            campaignId?: string;
+            /** @enum {string} */
+            channel: "webhook" | "bounce_mailbox" | "backfill" | "test" | "internal";
+            code: string;
+            diagnostic: string;
+            id: string;
+            /** Format: date-time */
+            occurredAt: string;
+            provider: string;
+            providerId?: string;
+            providerMessageId: string;
+            rawType: string;
+            /** Format: date-time */
+            receivedAt: string;
+            /** @description Masked */
+            recipient: string;
+            source: string;
+            /** @enum {string} */
+            type: "delivered" | "deferred" | "hard_bounce" | "soft_bounce" | "complaint" | "rejected";
+        };
+        ProviderMonthAmount: {
+            providerId: string;
+            short: string;
+            /** Format: double */
+            value: number;
+        };
+        ProviderNamedCount: {
+            /** Format: int64 */
+            count: number;
+            name: string;
+        };
+        ProviderOutage: {
+            codes: string[];
+            down: components["schemas"]["ProviderDownState"];
+            /** Format: double */
+            errorRate?: number;
+            forecasts: components["schemas"]["ProviderQuotaForecast"][];
+            incidents: components["schemas"]["ProviderIncidentEntry"][];
+            operation: string;
+            provider: string;
+            providerId: string;
+            short: string;
+            /** Format: date-time */
+            since: string;
+            streams: components["schemas"]["ProviderOutageStream"][];
+            whyNot: components["schemas"]["ProviderWhyNotMove"][];
+        };
+        ProviderOutageStream: {
+            alternatives: components["schemas"]["ProviderFailoverAlternative"][];
+            campaign?: components["schemas"]["ProviderHeldCampaign"];
+            fallback?: string;
+            fallbackShort?: string;
+            /** @enum {string} */
+            policy: "automatic" | "pause_and_ask" | "warm_only";
+            primary?: string;
+            /** Format: int64 */
+            rerouted: number;
+            reroutedBy: components["schemas"]["ProviderNamedCount"][];
+            /** @enum {string} */
+            role: "primary" | "split" | "fallback" | "condition";
+            /** Format: date-time */
+            since: string;
+            /** @enum {string} */
+            state: "failover_active" | "waiting" | "held" | "fallback_unavailable";
+            /** @enum {string} */
+            stream: "broadcast" | "automation" | "system";
+            suggestion?: string;
+            /** Format: int64 */
+            switchBackMinutes: number;
+        };
+        ProviderPricingInput: {
+            /** @enum {string} */
+            model: "metered" | "plan" | "self_hosted";
+            /** Format: double */
+            monthly?: number;
+            /** Format: int64 */
+            nextTierAdds?: number;
+            /** Format: double */
+            nextTierPrice?: number;
+            /** Format: double */
+            per1000?: number;
+        };
+        ProviderQuotaForecast: {
+            /** Format: int64 */
+            nextTierAdds?: number;
+            /** Format: double */
+            nextTierPrice?: number;
+            /** Format: int64 */
+            perDay: number;
+            providerId: string;
+            /** Format: date-time */
+            runsOutOn?: string;
+            stream: string;
+        };
+        ProviderQuotaUse: {
+            /** Format: int64 */
+            fromFailover: number;
+            /** @enum {string} */
+            kind: "rolling_24h" | "monthly_plan" | "warmup_daily" | "none";
+            /** Format: int64 */
+            max: number;
+            /** Format: int64 */
+            used: number;
+        };
+        ProviderRouteShare: {
+            /** @enum {string} */
+            color: "ses" | "postal" | "postmark" | "other";
+            /** Format: int64 */
+            percent: number;
+            providerId: string;
+            short: string;
+        };
+        ProviderSendRate: {
+            label?: string;
+            /** Format: double */
+            max: number;
+            /** Format: double */
+            now: number;
+            /** Format: double */
+            peakToday: number;
+            throttled: boolean;
+        };
+        ProviderSettingsInput: {
+            label?: string;
+            limits?: components["schemas"]["ProviderLimitsInput"];
+            pricing?: components["schemas"]["ProviderPricingInput"];
+        };
+        ProviderStatusCount: {
+            /** Format: int64 */
+            count: number;
+            /** @enum {string} */
+            status: "healthy" | "degraded" | "down" | "sandbox" | "warming_up" | "paused";
+        };
+        ProviderStreamRole: {
+            active: boolean;
+            held: boolean;
+            /** Format: int64 */
+            percent: number;
+            /** @enum {string} */
+            role: "primary" | "split" | "fallback" | "condition";
+            /** @enum {string} */
+            stream: "broadcast" | "automation" | "system";
+        };
+        ProviderStreamRoute: {
+            /** Format: int64 */
+            conditions: number;
+            /** @enum {string} */
+            failover: "automatic" | "pause_and_ask" | "warm_only";
+            fallback?: components["schemas"]["ProviderRouteShare"];
+            splits: components["schemas"]["ProviderRouteShare"][];
+            /** @enum {string} */
+            stream: "broadcast" | "automation" | "system";
+        };
+        ProviderTrackingActionInput: {
+            /** @enum {string} */
+            action: "disable" | "keep_provider" | "use_reputecast" | "recheck";
+        };
+        ProviderTrackingCheck: {
+            canDisable: boolean;
+            /** Format: date-time */
+            checkedAt?: string;
+            detail: string;
+            linkRewrite: boolean;
+            /** @enum {string} */
+            mode: "reputecast" | "provider";
+            openPixel: boolean;
+            provider: string;
+            providerId: string;
+            scope: string;
+            /** @enum {string} */
+            status: "ok" | "warn" | "unknown";
+        };
+        ProviderTrackingChecks: {
+            items: components["schemas"]["ProviderTrackingCheck"][];
+        };
+        ProviderWarmupBrief: {
+            /** Format: int64 */
+            day: number;
+            /** Format: int64 */
+            days: number;
+            planId: string;
+            /** Format: double */
+            rate: number;
+            /** Format: int64 */
+            sentToday: number;
+            /** Format: int64 */
+            share: number;
+            /** @enum {string} */
+            status: "active" | "slowed" | "paused" | "done";
+            /** Format: int64 */
+            todayCap: number;
+        };
+        ProviderWebhookCheck: {
+            /** Format: date-time */
+            at?: string;
+            /** Format: int64 */
+            count?: number;
+            detail?: string;
+            id?: string;
+            /** @enum {string} */
+            key: "api" | "registered" | "endpoint" | "provider_log";
+            ok?: boolean;
+            /** Format: int64 */
+            queued?: number;
+            url?: string;
+        };
+        ProviderWebhookFeed: {
+            kind: string;
+            /** Format: date-time */
+            lastEventAt?: string;
+            /** Format: date-time */
+            silentSince?: string;
+        };
+        ProviderWebhookTestResult: {
+            endpointDetail: string;
+            endpointOk: boolean;
+            /** Format: int64 */
+            endpointStatus: number;
+            providerTest: boolean;
+            providerTestDetail?: string;
+        };
+        ProviderWebhooksSilent: {
+            /** Format: int64 */
+            accepted: number;
+            awaiting: components["schemas"]["ProviderAwaitingMessage"][];
+            /** @enum {string} */
+            broadcastPolicy: "automatic" | "pause_and_ask" | "warm_only";
+            broadcastShareHeld: boolean;
+            campaigns: components["schemas"]["ProviderNamedCount"][];
+            canBackfill: boolean;
+            canRegister: boolean;
+            canSendTest: boolean;
+            causes: string[];
+            checks: components["schemas"]["ProviderWebhookCheck"][];
+            hourly: number[];
+            /** Format: date-time */
+            hourlyFrom: string;
+            provider: string;
+            providerId: string;
+            short: string;
+            /** Format: date-time */
+            since: string;
+            webhookUrl: string;
+        };
+        ProviderWhyNotMove: {
+            /** Format: int64 */
+            ageDays: number;
+            /** Format: int64 */
+            held: number;
+            /** Format: double */
+            multiple: number;
+            providerId: string;
+            /** Format: double */
+            rate: number;
+            /** Format: int64 */
+            todayCap: number;
+        };
+        ProvidersOverview: {
+            authFailure?: components["schemas"]["ProviderAuthFailure"];
+            outage?: components["schemas"]["ProviderOutage"];
+            providers: components["schemas"]["ProviderCard"][];
+            routing: components["schemas"]["ProviderStreamRoute"][];
+            silent?: components["schemas"]["ProviderWebhooksSilent"];
+            summary: components["schemas"]["ProvidersSummary"];
+        };
+        ProvidersSummary: {
+            byStatus: components["schemas"]["ProviderStatusCount"][];
+            /** Format: date-time */
+            checkedAt?: string;
+            /** Format: int64 */
+            connected: number;
+            /** Format: double */
+            costPer1000?: number;
+            /**
+             * Format: double
+             * @description Dollars
+             */
+            costToDate: number;
+            inSync: boolean;
+            /** Format: date-time */
+            monthStart: string;
+            sentBy: components["schemas"]["ProviderMonthAmount"][];
+            /** Format: int64 */
+            sentThisMonth: number;
+            /** Format: int64 */
+            suppressions: number;
+            /** Format: date-time */
+            syncedAt?: string;
         };
         ReadinessSummary: {
             /** Format: int64 */
@@ -1350,6 +2363,184 @@ export interface components {
             sent: number;
             /** @example SES */
             short: string;
+        };
+        RouteTestCost: {
+            /** @enum {string} */
+            basis: "metered" | "plan" | "self_hosted";
+            /** Format: double */
+            per1000?: number;
+            /** Format: double */
+            perMessage?: number;
+        };
+        RouteTestFallback: {
+            /** @enum {string} */
+            policy: "automatic" | "pause_and_ask" | "warm_only";
+            provider?: string;
+            short?: string;
+        };
+        RouteTestInput: {
+            draft?: components["schemas"]["RoutingSaveInput"];
+            email: string;
+            listId?: string;
+            senderDomain?: string;
+            /** @enum {string} */
+            stream: "broadcast" | "automation" | "system";
+        };
+        RouteTestResult: {
+            /** @enum {string} */
+            color: "ses" | "postal" | "postmark" | "other";
+            cost: components["schemas"]["RouteTestCost"];
+            dkimSelector: string;
+            fallback: components["schemas"]["RouteTestFallback"];
+            held: boolean;
+            mailboxProvider: string;
+            provider: string;
+            providerId: string;
+            short: string;
+            steps: components["schemas"]["RouteTestStep"][];
+            suppressed: boolean;
+        };
+        RouteTestSplit: {
+            short: string;
+            /** Format: int64 */
+            weight: number;
+        };
+        RouteTestStep: {
+            /** Format: int64 */
+            bucket: number;
+            /** Format: int64 */
+            conditions: number;
+            email?: string;
+            field?: string;
+            /** @enum {string} */
+            kind: "stream" | "condition" | "split" | "primary" | "suppression" | "held";
+            provider?: string;
+            reason?: string;
+            splits?: components["schemas"]["RouteTestSplit"][];
+            stream?: string;
+            suppressed: boolean;
+            value?: string;
+            warming?: string;
+        };
+        RoutingCondition: {
+            /** @enum {string} */
+            field: "mailbox_provider" | "list" | "sender_domain";
+            note?: string;
+            /** Format: uuid */
+            providerId: string;
+            values: string[];
+        };
+        RoutingConditionView: {
+            /** @enum {string} */
+            field: "mailbox_provider" | "list" | "sender_domain";
+            note?: string;
+            /** Format: uuid */
+            providerId: string;
+            valueLabels: string[];
+            values: string[];
+        };
+        RoutingConfig: {
+            issues: components["schemas"]["RoutingIssue"][];
+            lists: components["schemas"]["RoutingNamed"][];
+            providers: components["schemas"]["RoutingProvider"][];
+            /** Format: date-time */
+            savedAt?: string;
+            savedBy: string;
+            senderDomains: string[];
+            shared: components["schemas"]["RoutingShared"];
+            streams: components["schemas"]["RoutingStreamView"][];
+        };
+        RoutingIssue: {
+            blocking: boolean;
+            code: string;
+            field?: string;
+            message: string;
+            providerId?: string;
+            stream: string;
+        };
+        RoutingNamed: {
+            id: string;
+            name: string;
+        };
+        RoutingProvider: {
+            adapter: string;
+            broadcastStreamCreatable: boolean;
+            /** @enum {string} */
+            bulk: "allowed" | "broadcast_streams_only" | "forbidden" | "your_policy";
+            bulkAllowed: boolean;
+            /** @enum {string} */
+            color: "ses" | "postal" | "postmark" | "other";
+            id: string;
+            label: string;
+            name: string;
+            shareSteps: components["schemas"]["RoutingShareStep"][];
+            short: string;
+            status: string;
+            terms: components["schemas"]["RoutingTerms"][];
+            warmingUp: boolean;
+            /** Format: int64 */
+            warmupDay?: number;
+            /** Format: int64 */
+            warmupDays?: number;
+        };
+        RoutingSaveInput: {
+            acknowledgeBulkTerms?: boolean;
+            streams: components["schemas"]["RoutingStreamInput"][];
+        };
+        RoutingShareStep: {
+            /** Format: int64 */
+            day: number;
+            /** Format: int64 */
+            share: number;
+        };
+        RoutingShared: {
+            /** Format: int64 */
+            suppressions: number;
+            /** Format: date-time */
+            syncedAt?: string;
+        };
+        RoutingSplit: {
+            /** Format: uuid */
+            providerId: string;
+            /** Format: int64 */
+            weight: number;
+        };
+        RoutingStreamInput: {
+            conditions: components["schemas"]["RoutingCondition"][];
+            /** @enum {string} */
+            failover: "automatic" | "pause_and_ask" | "warm_only";
+            /** @description Provider id, or empty for none */
+            fallback?: string;
+            splits: components["schemas"]["RoutingSplit"][];
+            /** @enum {string} */
+            stream: "broadcast" | "automation" | "system";
+        };
+        RoutingStreamView: {
+            /** Format: date-time */
+            bulkTermsAcknowledgedAt?: string;
+            conditions: components["schemas"]["RoutingConditionView"][];
+            /** @enum {string} */
+            failover: "automatic" | "pause_and_ask" | "warm_only";
+            fallback: string;
+            splits: components["schemas"]["RoutingSplit"][];
+            /** @enum {string} */
+            stream: "broadcast" | "automation" | "system";
+            volume?: components["schemas"]["RoutingVolume"];
+        };
+        RoutingTerms: {
+            active: boolean;
+            available: boolean;
+            /** @enum {string} */
+            bulk: "allowed" | "broadcast_streams_only" | "forbidden" | "your_policy";
+            note: string;
+            streams: string[];
+            variant: string;
+        };
+        RoutingVolume: {
+            /** Format: int64 */
+            count: number;
+            /** @enum {string} */
+            per: "day" | "week";
         };
         SSOOption: {
             id: string;
@@ -1391,6 +2582,39 @@ export interface components {
             /** @enum {string} */
             status: "signed_in" | "two_factor";
         };
+        SuppressionReasonCount: {
+            /** Format: int64 */
+            count: number;
+            reason: string;
+        };
+        SuppressionSyncRow: {
+            detail?: string;
+            /** @enum {string} */
+            direction: "two_way" | "push" | "pull" | "off" | "local" | "import";
+            /** Format: date-time */
+            lastSync?: string;
+            /** Format: int64 */
+            pending: number;
+            provider: string;
+            providerId?: string;
+            /** Format: int64 */
+            pulled: number;
+            /** Format: int64 */
+            pushed?: number;
+            scope: string;
+            /** @enum {string} */
+            status: "in_sync" | "syncing" | "error" | "local" | "done" | "off";
+        };
+        SuppressionSyncRun: {
+            /** Format: int64 */
+            queued: number;
+        };
+        SuppressionSyncStatus: {
+            reasons: components["schemas"]["SuppressionReasonCount"][];
+            rows: components["schemas"]["SuppressionSyncRow"][];
+            /** Format: int64 */
+            total: number;
+        };
         TOTPSetup: {
             account: string;
             /** @description Pass back with the first code to confirm */
@@ -1411,6 +2635,124 @@ export interface components {
             dns: components["schemas"]["CheckLine"];
             reachable: components["schemas"]["CheckLine"];
             tls: components["schemas"]["CheckLine"];
+        };
+        WarmupCampaignUse: {
+            /** Format: int64 */
+            count: number;
+            name: string;
+        };
+        WarmupCandidate: {
+            ips: string[];
+            name: string;
+            providerId: string;
+        };
+        WarmupDay: {
+            /** Format: double */
+            bounce?: number;
+            /** Format: int64 */
+            cap: number;
+            /** Format: double */
+            complaint?: number;
+            /** Format: date-time */
+            date: string;
+            /** Format: int64 */
+            day: number;
+            eligible: boolean;
+            held: boolean;
+            /** Format: int64 */
+            plannedCap: number;
+            /** Format: int64 */
+            sent?: number;
+            /** Format: int64 */
+            share: number;
+            shareChange: boolean;
+            /** @enum {string} */
+            status: "done" | "slowdown" | "resumed" | "today" | "planned";
+            tiers: string[];
+            uses: components["schemas"]["WarmupCampaignUse"][];
+        };
+        WarmupLogEntry: {
+            /** Format: date-time */
+            at: string;
+            body: string;
+            kind: string;
+            title: string;
+        };
+        WarmupOverview: {
+            candidates: components["schemas"]["WarmupCandidate"][];
+            plans: components["schemas"]["WarmupPlanView"][];
+        };
+        WarmupPlanView: {
+            /** Format: double */
+            bounceRate?: number;
+            /** Format: double */
+            complaintRate?: number;
+            createdBy: string;
+            /** Format: int64 */
+            day: number;
+            /** Format: int64 */
+            days: number;
+            /** Format: date-time */
+            endDate: string;
+            id: string;
+            ip: string;
+            lastSlowdown?: components["schemas"]["WarmupSlowdown"];
+            log: components["schemas"]["WarmupLogEntry"][];
+            nextRate?: components["schemas"]["WarmupStep"];
+            /** Format: int64 */
+            plannedToDate: number;
+            /**
+             * Format: double
+             * @description Percent of the plan's days
+             */
+            progress: number;
+            provider: string;
+            providerId: string;
+            /** Format: double */
+            rateToday: number;
+            schedule: components["schemas"]["WarmupDay"][];
+            /** Format: int64 */
+            sentToday: number;
+            /** Format: int64 */
+            sentTotal: number;
+            settings: components["schemas"]["WarmupSettings"];
+            short: string;
+            /** Format: int64 */
+            slowdowns: number;
+            /** Format: date-time */
+            startDate: string;
+            /** @enum {string} */
+            status: "active" | "slowed" | "paused" | "done";
+            statusDetail: string;
+            /** Format: int64 */
+            todayCap: number;
+        };
+        WarmupSettings: {
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            days: 14 | 21 | 30;
+            engagedFirst: boolean;
+            /** @enum {string} */
+            guardAction: "hold" | "step_back" | "pause";
+            /** Format: double */
+            guardBounce: number;
+            /** Format: double */
+            guardComplaint: number;
+            spreadMailbox: boolean;
+        };
+        WarmupSlowdown: {
+            /** Format: double */
+            bounce: number;
+            /** Format: int64 */
+            day: number;
+        };
+        WarmupStep: {
+            /** Format: int64 */
+            day: number;
+            /** Format: double */
+            value: number;
         };
         WorkspaceMe: {
             /** @enum {string} */
@@ -1859,6 +3201,174 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CreatedWorkspace"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-adapters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdaptersOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "install-adapter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdapterInstallInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterCommunity"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-http-adapter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdapterHTTPInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterCommunity"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-adapter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-adapter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterCommunity"];
                 };
             };
             /** @description Error */
@@ -2468,6 +3978,815 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceMe"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-provider-events": {
+        parameters: {
+            query?: {
+                /** @description Sending provider id */
+                provider?: string;
+                type?: "delivered" | "deferred" | "hard_bounce" | "soft_bounce" | "complaint" | "rejected";
+                /** @description Recipient or provider message id */
+                q?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderEventLog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-provider-events": {
+        parameters: {
+            query?: {
+                /** @description Sending provider id */
+                provider?: string;
+                type?: "delivered" | "deferred" | "hard_bounce" | "soft_bounce" | "complaint" | "rejected";
+                /** @description Recipient or provider message id */
+                q?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProvidersOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderCard"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "backfill-provider-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderBackfillResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-broadcast-stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderBroadcastStreamResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderCard"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "replace-provider-credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderCredentialsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderCard"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-held-broadcast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderHeldDecisionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderHeldDecisionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "provider-tracking-action": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderTrackingActionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderTrackingCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "register-provider-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-provider-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderWebhookTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-routing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingConfig"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-routing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoutingSaveInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingConfig"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-route": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RouteTestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-suppression-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuppressionSyncStatus"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "run-suppression-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuppressionSyncRun"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-tracking-checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderTrackingChecks"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-warmup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-warmup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewPlanInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupPlanView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-warmup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarmupSettings"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupPlanView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-warmup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupPlanView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-warmup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupPlanView"];
                 };
             };
             /** @description Error */

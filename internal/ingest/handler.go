@@ -1,0 +1,196 @@
+// Package ingest receives provider events: the webhook endpoint
+// (POST /hooks/{adapter}/{token}) verifies the signature, stores the raw
+// payload and answers immediately; a River job normalizes it into
+// delivery_events, moves messages and campaign counters forward, updates
+// the provider's webhook freshness and adds hard bounces and complaints to
+// the shared suppression list. SMTP bounces arrive through the bounce
+// mailbox poller and take the same path. The provider event log is served
+// from here too.
+package ingest
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"log/slog"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/providers"
+	"github.com/hostrepute/reputecast/internal/providers/manage"
+	"github.com/hostrepute/reputecast/internal/store"
+)
+
+// MaxBody is the largest webhook payload accepted.
+const MaxBody = 5 << 20
+
+// Handler serves the webhook endpoint.
+type Handler struct {
+	Pool    *pgxpool.Pool
+	Q       *store.Queries
+	Factory *manage.Factory
+	Jobs    func() *jobs.Client
+	Log     *slog.Logger
+	Now     func() time.Time
+}
+
+func (h *Handler) now() time.Time {
+	if h.Now != nil {
+		return h.Now()
+	}
+	return time.Now()
+}
+
+// Routes mounts the endpoint.
+func (h *Handler) Routes(r chi.Router) {
+	r.Post("/hooks/{adapter}/{token}", h.ServeHTTP)
+}
+
+func reply(w http.ResponseWriter, status int, body string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(status)
+	_, _ = io.WriteString(w, body)
+}
+
+// ServeHTTP verifies, stores and acknowledges one webhook request.
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	adapter, token := chi.URLParam(r, "adapter"), chi.URLParam(r, "token")
+	if len(token) < 16 || adapter == "" {
+		reply(w, http.StatusNotFound, `{"error":"unknown webhook"}`)
+		return
+	}
+	p, err := h.Q.ProvGetByWebhookToken(ctx, store.ProvGetByWebhookTokenParams{WebhookToken: token, Adapter: adapter})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			reply(w, http.StatusNotFound, `{"error":"unknown webhook"}`)
+			return
+		}
+		h.Log.ErrorContext(ctx, "webhook lookup", "err", err)
+		reply(w, http.StatusServiceUnavailable, `{"error":"try again"}`)
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, MaxBody+1))
+	if err != nil {
+		reply(w, http.StatusBadRequest, `{"error":"unreadable body"}`)
+		return
+	}
+	if len(body) > MaxBody {
+		reply(w, http.StatusRequestEntityTooLarge, `{"error":"payload too large"}`)
+		return
+	}
+	// The endpoint self-test only proves the URL is reachable from outside.
+	if v := r.Header.Get(manage.SelfTestHeader); v != "" {
+		if manage.VerifySelfTest(p.WebhookToken, v, h.now()) {
+			reply(w, http.StatusOK, `{"ok":true,"selfTest":true}`)
+		} else {
+			reply(w, http.StatusUnauthorized, `{"error":"bad self-test signature"}`)
+		}
+		return
+	}
+	prov, err := h.Factory.Open(ctx, p)
+	if err != nil {
+		h.Log.ErrorContext(ctx, "webhook adapter", "provider", p.ID, "err", err)
+		reply(w, http.StatusServiceUnavailable, `{"error":"provider not available"}`)
+		return
+	}
+	if hs, ok := prov.(providers.WebhookHandshaker); ok {
+		handled, resp, err := hs.Handshake(ctx, r, body)
+		if handled {
+			switch {
+			case errors.Is(err, providers.ErrBadSignature):
+				reply(w, http.StatusUnauthorized, `{"error":"signature verification failed"}`)
+			case err != nil:
+				h.Log.WarnContext(ctx, "webhook handshake", "provider", p.ID, "err", err)
+				reply(w, http.StatusBadGateway, `{"error":"handshake failed"}`)
+			default:
+				if len(resp) == 0 {
+					resp = []byte(`{"ok":true}`)
+				}
+				reply(w, http.StatusOK, string(resp))
+			}
+			return
+		}
+	}
+	var verr error
+	if v, ok := prov.(providers.WebhookVerifier); ok {
+		verr = v.VerifyWebhook(ctx, r, body)
+	} else {
+		_, verr = prov.ParseWebhook(ctx, r, body)
+	}
+	sigOK := !errors.Is(verr, providers.ErrBadSignature)
+	stored := body
+	if !sigOK && len(stored) > 2048 {
+		stored = stored[:2048] // unverified payloads are kept only for diagnosis
+	}
+	id := newID()
+	err = db.Tx(ctx, h.Pool, func(tx pgx.Tx) error {
+		if err := store.New(tx).IngestInsertRaw(ctx, store.IngestInsertRawParams{
+			ID: id, WorkspaceID: p.WorkspaceID, ProviderID: p.ID, ReceivedAt: h.now(), ContentType: r.Header.Get("Content-Type"),
+			Body: stored, Headers: keepHeaders(r.Header), SignatureOk: sigOK, Source: "webhook",
+		}); err != nil {
+			return err
+		}
+		if sigOK && h.Jobs != nil {
+			if c := h.Jobs(); c != nil {
+				if _, err := c.InsertTx(ctx, tx, NormalizeArgs{RawEventID: id}, nil); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		h.Log.ErrorContext(ctx, "store webhook", "provider", p.ID, "err", err)
+		reply(w, http.StatusServiceUnavailable, `{"error":"try again"}`)
+		return
+	}
+	if !sigOK {
+		reply(w, http.StatusUnauthorized, `{"error":"signature verification failed"}`)
+		return
+	}
+	reply(w, http.StatusOK, `{"ok":true}`)
+}
+
+// keepHeaders stores the request headers parsing may need, never
+// credentials.
+func keepHeaders(h http.Header) json.RawMessage {
+	out := map[string]string{}
+	size := 0
+	for k, v := range h {
+		lk := strings.ToLower(k)
+		if lk == "authorization" || lk == "cookie" || lk == "proxy-authorization" || len(v) == 0 {
+			continue
+		}
+		val := v[0]
+		if size += len(k) + len(val); size > 16<<10 {
+			break
+		}
+		out[k] = val
+	}
+	b, _ := json.Marshal(out)
+	return b
+}
+
+// rebuild recreates the request ParseWebhook reads from stored headers.
+func rebuild(raw store.ProviderRawEvent) *http.Request {
+	r, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "http://ingest.internal/", strings.NewReader(string(raw.Body)))
+	var hs map[string]string
+	_ = json.Unmarshal(raw.Headers, &hs)
+	for k, v := range hs {
+		r.Header.Set(k, v)
+	}
+	if raw.ContentType != "" {
+		r.Header.Set("Content-Type", raw.ContentType)
+	}
+	return r
+}

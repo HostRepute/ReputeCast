@@ -360,24 +360,29 @@ type DeliverabilityCheckRun struct {
 }
 
 type DeliveryEvent struct {
-	ID              uuid.UUID   `json:"id"`
-	WorkspaceID     uuid.UUID   `json:"workspaceId"`
-	MessageID       *uuid.UUID  `json:"messageId"`
-	CampaignID      *uuid.UUID  `json:"campaignId"`
-	ContactID       *uuid.UUID  `json:"contactId"`
-	ProviderID      *uuid.UUID  `json:"providerId"`
-	RawEventID      *uuid.UUID  `json:"rawEventId"`
-	Type            string      `json:"type"`
-	OccurredAt      time.Time   `json:"occurredAt"`
-	MailboxProvider string      `json:"mailboxProvider"`
-	OriginalType    string      `json:"originalType"`
-	OriginalCode    string      `json:"originalCode"`
-	Diagnostic      string      `json:"diagnostic"`
-	BounceClass     string      `json:"bounceClass"`
-	Machine         bool        `json:"machine"`
-	Url             string      `json:"url"`
-	UserAgent       string      `json:"userAgent"`
-	Ip              *netip.Addr `json:"ip"`
+	ID                uuid.UUID   `json:"id"`
+	WorkspaceID       uuid.UUID   `json:"workspaceId"`
+	MessageID         *uuid.UUID  `json:"messageId"`
+	CampaignID        *uuid.UUID  `json:"campaignId"`
+	ContactID         *uuid.UUID  `json:"contactId"`
+	ProviderID        *uuid.UUID  `json:"providerId"`
+	RawEventID        *uuid.UUID  `json:"rawEventId"`
+	Type              string      `json:"type"`
+	OccurredAt        time.Time   `json:"occurredAt"`
+	MailboxProvider   string      `json:"mailboxProvider"`
+	OriginalType      string      `json:"originalType"`
+	OriginalCode      string      `json:"originalCode"`
+	Diagnostic        string      `json:"diagnostic"`
+	BounceClass       string      `json:"bounceClass"`
+	Machine           bool        `json:"machine"`
+	Url               string      `json:"url"`
+	UserAgent         string      `json:"userAgent"`
+	Ip                *netip.Addr `json:"ip"`
+	Recipient         string      `json:"recipient"`
+	ProviderMessageID string      `json:"providerMessageId"`
+	Source            string      `json:"source"`
+	ReceivedAt        time.Time   `json:"receivedAt"`
+	DedupeKey         string      `json:"dedupeKey"`
 }
 
 type DmarcReport struct {
@@ -604,6 +609,7 @@ type Message struct {
 	OpenedAt          *time.Time `json:"openedAt"`
 	ClickedAt         *time.Time `json:"clickedAt"`
 	Error             string     `json:"error"`
+	Kind              string     `json:"kind"`
 }
 
 type Notification struct {
@@ -678,6 +684,14 @@ type Provider struct {
 	DisconnectedAt   *time.Time      `json:"disconnectedAt"`
 }
 
+type ProviderCallWindow struct {
+	ProviderID uuid.UUID `json:"providerId"`
+	Minute     time.Time `json:"minute"`
+	Calls      int32     `json:"calls"`
+	Errors     int32     `json:"errors"`
+	Messages   int32     `json:"messages"`
+}
+
 type ProviderDailyStat struct {
 	ProviderID uuid.UUID `json:"providerId"`
 	Day        time.Time `json:"day"`
@@ -691,15 +705,18 @@ type ProviderDailyStat struct {
 }
 
 type ProviderRawEvent struct {
-	ID             uuid.UUID  `json:"id"`
-	WorkspaceID    uuid.UUID  `json:"workspaceId"`
-	ProviderID     uuid.UUID  `json:"providerId"`
-	ReceivedAt     time.Time  `json:"receivedAt"`
-	ContentType    string     `json:"contentType"`
-	Body           []byte     `json:"body"`
-	SignatureOk    bool       `json:"signatureOk"`
-	NormalizedAt   *time.Time `json:"normalizedAt"`
-	NormalizeError *string    `json:"normalizeError"`
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	ProviderID     uuid.UUID       `json:"providerId"`
+	ReceivedAt     time.Time       `json:"receivedAt"`
+	ContentType    string          `json:"contentType"`
+	Body           []byte          `json:"body"`
+	SignatureOk    bool            `json:"signatureOk"`
+	NormalizedAt   *time.Time      `json:"normalizedAt"`
+	NormalizeError *string         `json:"normalizeError"`
+	Headers        json.RawMessage `json:"headers"`
+	Source         string          `json:"source"`
+	Events         int32           `json:"events"`
 }
 
 type ProviderSuppressionSync struct {
@@ -866,10 +883,25 @@ type SsoProvider struct {
 	UpdatedAt       time.Time       `json:"updatedAt"`
 }
 
+type StreamFailover struct {
+	ID                 uuid.UUID       `json:"id"`
+	WorkspaceID        uuid.UUID       `json:"workspaceId"`
+	Stream             string          `json:"stream"`
+	ProviderID         uuid.UUID       `json:"providerId"`
+	FallbackProviderID *uuid.UUID      `json:"fallbackProviderId"`
+	Mode               string          `json:"mode"`
+	StartedAt          time.Time       `json:"startedAt"`
+	EndedAt            *time.Time      `json:"endedAt"`
+	EndReason          string          `json:"endReason"`
+	Detail             json.RawMessage `json:"detail"`
+}
+
 type StreamPolicy struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	Stream      string    `json:"stream"`
-	Failover    string    `json:"failover"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	Stream         string     `json:"stream"`
+	Failover       string     `json:"failover"`
+	BulkTermsAckAt *time.Time `json:"bulkTermsAckAt"`
+	BulkTermsAckBy *uuid.UUID `json:"bulkTermsAckBy"`
 }
 
 type SubscriberToken struct {
@@ -981,6 +1013,15 @@ type UserRecoveryCode struct {
 	CreatedAt time.Time  `json:"createdAt"`
 }
 
+type WarmupEvent struct {
+	ID         uuid.UUID `json:"id"`
+	PlanID     uuid.UUID `json:"planId"`
+	OccurredAt time.Time `json:"occurredAt"`
+	Kind       string    `json:"kind"`
+	Title      string    `json:"title"`
+	Body       string    `json:"body"`
+}
+
 type WarmupPlan struct {
 	ID                uuid.UUID       `json:"id"`
 	ProviderID        uuid.UUID       `json:"providerId"`
@@ -995,6 +1036,11 @@ type WarmupPlan struct {
 	StatusDetail      string          `json:"statusDetail"`
 	Progress          json.RawMessage `json:"progress"`
 	CreatedAt         time.Time       `json:"createdAt"`
+	GuardAction       string          `json:"guardAction"`
+	SpreadMailbox     bool            `json:"spreadMailbox"`
+	CreatedBy         *uuid.UUID      `json:"createdBy"`
+	PausedAt          *time.Time      `json:"pausedAt"`
+	UpdatedAt         time.Time       `json:"updatedAt"`
 }
 
 type Webhook struct {
