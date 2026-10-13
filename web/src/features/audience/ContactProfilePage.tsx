@@ -492,7 +492,7 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
         <h2 className="h2" id="activity-h">
           Activity
         </h2>
-        <div className="flex gap-1.5" role="group" aria-label="Show">
+        <div className="flex gap-1.5 max-md:flex-wrap" role="group" aria-label="Show">
           {(
             [
               ['all', 'All'],

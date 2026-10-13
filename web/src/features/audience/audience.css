@@ -1,137 +1,243 @@
 /* Audience screens (Contacts, Contact profile, Segments, List health,
    Suppression list): the classes these boards define beyond the shared
-   ones in app.css, with the boards' exact values. */
+   ones in app.css, with the boards' exact values. They live in the
+   components layer, so Tailwind utilities still override them and the
+   shell's phone rules (unlayered) still apply. */
 
-/* Tier badges: darkest blue is Active (Contacts, Segments, List health). */
-.badge.t1 {
-  background: #104281;
-  color: #fff;
-}
-.badge.t2 {
-  background: #256abf;
-  color: #fff;
-}
-.badge.t3 {
-  background: #5598e7;
-  color: var(--ink);
-}
-.badge.t4 {
-  background: #86b6ef;
-  color: var(--ink);
-}
+@layer components {
+  /* Tier badges: darkest blue is Active (Contacts, Segments, List health). */
+  .badge.t1 {
+    background: #104281;
+    color: #fff;
+  }
+  .badge.t2 {
+    background: #256abf;
+    color: #fff;
+  }
+  .badge.t3 {
+    background: #5598e7;
+    color: var(--ink);
+  }
+  .badge.t4 {
+    background: #86b6ef;
+    color: var(--ink);
+  }
 
-/* Saved-view chips above the contacts table (30px, as on the board). */
-.vchip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid var(--line-strong);
-  background: #fff;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--ink-nav);
-  cursor: pointer;
-}
-.vchip:hover {
-  background: var(--ground);
-}
-.vchip[aria-pressed='true'] {
-  background: var(--accent-soft);
-  border-color: var(--accent-line);
-  color: var(--accent);
-  font-weight: 600;
-}
-.vchip.dashed {
-  border-style: dashed;
-}
+  /* Saved-view chips above the contacts table (30px, as on the board). */
+  .vchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink-nav);
+    cursor: pointer;
+  }
+  .vchip:hover {
+    background: var(--ground);
+  }
+  .vchip[aria-pressed='true'] {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .vchip.dashed {
+    border-style: dashed;
+  }
 
-/* Selected table rows. */
-.tbl tr.sel td {
-  background: var(--accent-tint);
-}
+  /* Selected table rows. */
+  .tbl tr.sel td {
+    background: var(--accent-tint);
+  }
 
-/* Contacts table: 10px cells, single-line secondary columns. */
-.ctbl td {
-  padding: 10px 12px;
-  white-space: nowrap;
-}
-.ctbl td.lists {
-  white-space: normal;
-  min-width: 170px;
-}
+  /* Contacts table: 10px cells, single-line secondary columns. */
+  .ctbl td {
+    padding: 10px 12px;
+    white-space: nowrap;
+  }
+  .ctbl td.lists {
+    white-space: normal;
+    min-width: 170px;
+  }
 
-/* Screens whose top bar shows a breadcrumb instead of the title keep the
-   h1 for screen readers only (Contact profile). */
-.mainc:has(> main.aud-crumbs) > .top > h1 {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
+  /* Screens whose top bar shows a breadcrumb instead of the title keep the
+     h1 for screen readers only (Contact profile). */
+  .mainc:has(> main.aud-crumbs) > .top > h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
 
-/* Contact profile: key/value rows, tags, the activity timeline. */
-.pkv {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13px;
-  padding: 7px 0;
-  border-bottom: 1px solid var(--line-2);
-}
-.pkv:last-child {
-  border-bottom: 0;
-}
-.ptag {
-  display: inline-flex;
-  align-items: center;
-  height: 24px;
-  padding: 0 8px;
-  border-radius: 6px;
-  background: var(--ground);
-  border: 1px solid var(--line);
-  font-size: 12px;
-  font-weight: 500;
-}
-.ev {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 11px 18px;
-  border-top: 1px solid var(--line-2);
-  font-size: 13px;
-}
-.ev .ic {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-}
-button.badge.afilter {
-  border: 0;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-button.badge.afilter:hover {
-  background: var(--line);
-}
-button.badge.afilter[aria-pressed='true'] {
-  background: var(--ink);
-  color: #fff;
-}
+  /* Contact profile: key/value rows, tags, the activity timeline. */
+  .pkv {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .pkv:last-child {
+    border-bottom: 0;
+  }
+  .ptag {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 6px;
+    background: var(--ground);
+    border: 1px solid var(--line);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .ev {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 11px 18px;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .ev .ic {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  button.badge.afilter {
+    border: 0;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.badge.afilter:hover {
+    background: var(--line);
+  }
+  button.badge.afilter[aria-pressed='true'] {
+    background: var(--ink);
+    color: #fff;
+  }
 
-/* Danger-outlined small buttons in the bulk bar and on the profile. */
-.btn.dline {
-  color: var(--bad-fg);
-  border-color: var(--bad-line);
+  /* Danger-outlined small buttons in the bulk bar and on the profile. */
+  .btn.dline {
+    color: var(--bad-fg);
+    border-color: var(--bad-line);
+  }
+
+  /* Segment builder: 34px controls, groups, conditions and the SQL pane. */
+  .segb .in {
+    height: 34px;
+  }
+  .segb .in.segname {
+    height: 38px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .segb .in.match {
+    height: 30px;
+  }
+  .segb .in.fit {
+    width: var(--fitw, auto);
+  }
+  /* Phones: every control takes the full row, as on the board. */
+  @media (max-width: 767px) {
+    .segb .in,
+    .segb .in.fit {
+      width: 0;
+      min-width: 100%;
+    }
+  }
+  .sgroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--ground-3);
+  }
+  .scond {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+  }
+  .scond.invalid {
+    border-color: var(--bad-line);
+    background: var(--bad-tint);
+  }
+  .sop {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .sop.and {
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--line-strong);
+  }
+  pre.sqlpre {
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: var(--ink);
+    color: #d1d5db;
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    line-height: 1.55;
+    overflow-x: auto;
+  }
+  .sqlpre .kw {
+    color: #93c5fd;
+  }
+  .sqlpre .st {
+    color: #86efac;
+  }
+  .sqlpre .nm {
+    color: #fde68a;
+  }
+  .sqled .cm-editor {
+    min-height: 180px;
+  }
+  .sqled.invalid .cm-editor {
+    box-shadow: 0 0 0 2px var(--bad-bar);
+  }
+  .segrow {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    padding: 9px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .segrow.first {
+    border-top: 0;
+  }
 }
