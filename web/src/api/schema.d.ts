@@ -821,6 +821,368 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/automation-emails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create an email for a send step */
+        post: operations["create-automation-email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an email version (for previews) */
+        get: operations["get-automation-email"];
+        /** Save new content as the email's next version */
+        put: operations["update-automation-email"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List automations with their 30-day performance */
+        get: operations["list-automations"];
+        put?: never;
+        /** Create a draft automation from a starter template or a blank canvas */
+        post: operations["create-automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send an API event for a contact (triggers, goals and branches listen to it) */
+        post: operations["send-automation-event"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists, forms, fields, emails, providers, tags and events steps can use */
+        get: operations["automation-options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contacts in flows now and the last N days of automation email */
+        get: operations["automations-summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List starter templates */
+        get: operations["list-automation-templates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an automation with its draft graph */
+        get: operations["get-automation"];
+        put?: never;
+        post?: never;
+        /** Delete an automation; contacts in it leave (published flows need automations:publish) */
+        delete: operations["delete-automation"];
+        options?: never;
+        head?: never;
+        /** Rename an automation or change its description */
+        patch: operations["update-automation"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compare two versions (live → draft by default) */
+        get: operations["automation-diff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save the canvas as the draft */
+        put: operations["save-automation-draft"];
+        post?: never;
+        /** Discard unpublished changes */
+        delete: operations["discard-automation-draft"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy an automation's draft into a new draft */
+        post: operations["duplicate-automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause a live automation */
+        post: operations["pause-automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish the draft as the live version (may need approval) */
+        post: operations["publish-automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/publish-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What publishing the draft would change, for whom, and the pre-publish checks */
+        get: operations["automation-publish-preview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a paused automation */
+        post: operations["resume-automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Live stats per step */
+        get: operations["automation-stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/steps/{node}/calls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Delivery log of a webhook step */
+        get: operations["list-automation-webhook-calls"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/steps/{node}/secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set or clear a webhook step's signing secret (write-only) */
+        put: operations["set-automation-step-secret"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Version history */
+        get: operations["list-automation-versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one version's graph */
+        get: operations["get-automation-version"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/versions/{version}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make an earlier version the draft */
+        post: operations["restore-automation-version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns": {
         parameters: {
             query?: never;
@@ -1871,6 +2233,608 @@ export interface components {
             code: string;
             /** @enum {string} */
             method: "totp" | "recovery";
+        };
+        AutomationAlert: {
+            actions: components["schemas"]["AutomationAlertAction"][];
+            automation: string;
+            automationId: string;
+            detail: string;
+            /** Format: int64 */
+            failures: number;
+            id: string;
+            /** @enum {string} */
+            kind: "sending_held" | "step_failing";
+            nodeId?: string;
+            /** Format: date-time */
+            since: string;
+            title: string;
+        };
+        AutomationAlertAction: {
+            /** @enum {string} */
+            kind: "open_step" | "step_log" | "providers" | "routing";
+            /** @example Open the step */
+            label: string;
+            nodeId?: string;
+        };
+        AutomationCondition: {
+            event?: string;
+            field?: string;
+            humanOnly?: boolean;
+            /** @enum {string} */
+            kind: "opened" | "clicked" | "field" | "tag" | "list" | "event";
+            listId?: string;
+            /** @description equals, not_equals, contains, is_set, is_not_set */
+            op?: string;
+            step?: string;
+            tag?: string;
+            urlContains?: string;
+            value?: string;
+            within?: components["schemas"]["AutomationDuration"];
+        };
+        AutomationCreateBody: {
+            name?: string;
+            /**
+             * @description Starter template; omit for a blank canvas
+             * @enum {string}
+             */
+            template?: "welcome-series" | "re-engagement" | "onboarding";
+        };
+        AutomationCreated: {
+            id: string;
+        };
+        AutomationDetail: {
+            /**
+             * Format: int64
+             * @description Unpublished changes, as counted by the version diff
+             */
+            changes: number;
+            description: string;
+            /** Format: int64 */
+            draftVersion: number;
+            graph: components["schemas"]["AutomationGraph"];
+            id: string;
+            /** Format: int64 */
+            inFlow: number;
+            issues: components["schemas"]["AutomationGraphIssue"][];
+            liveNodeIds: string[];
+            /** Format: int64 */
+            liveVersion?: number;
+            name: string;
+            pauseReason?: string;
+            /** Format: date-time */
+            pausedAt?: string;
+            pausedBy?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            publishedNodeIds: string[];
+            /** Format: int64 */
+            revision: number;
+            route: components["schemas"]["AutomationRoute"];
+            /** @enum {string} */
+            status: "draft" | "live" | "paused";
+            templateKey?: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AutomationDiff: {
+            /** Format: int64 */
+            changes: number;
+            /** Format: int64 */
+            from: number;
+            items: components["schemas"]["AutomationDiffItem"][];
+            /** Format: int64 */
+            to: number;
+        };
+        AutomationDiffItem: {
+            detail?: string;
+            /** @enum {string} */
+            kind: "added" | "changed" | "removed" | "unchanged";
+            nodeIds: string[];
+            title: string;
+        };
+        AutomationDraftBody: {
+            graph: components["schemas"]["AutomationGraph"];
+            /** Format: int64 */
+            revision: number;
+        };
+        AutomationDraftSaved: {
+            /**
+             * Format: int64
+             * @description Unpublished changes compared with the live version
+             */
+            changes: number;
+            /** Format: int64 */
+            draftVersion: number;
+            issues: components["schemas"]["AutomationGraphIssue"][];
+            /** Format: int64 */
+            revision: number;
+        };
+        AutomationDuration: {
+            /** Format: int64 */
+            amount: number;
+            /** @enum {string} */
+            unit: "minutes" | "hours" | "days" | "weeks";
+        };
+        AutomationEdge: {
+            data: components["schemas"]["AutomationEdgeData"];
+            id: string;
+            source: string;
+            target: string;
+        };
+        AutomationEdgeData: {
+            path?: string;
+        };
+        AutomationEmailContent: {
+            html: string;
+            id: string;
+            /** Format: int64 */
+            latestVersion: number;
+            name: string;
+            preheader: string;
+            subject: string;
+            text: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationEmailCreateBody: {
+            automationId?: string;
+            name: string;
+            subject?: string;
+        };
+        AutomationEmailOption: {
+            id: string;
+            /** Format: int64 */
+            latestVersion: number;
+            name: string;
+            subject: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AutomationEmailStep: {
+            emailId?: string;
+            /** Format: int64 */
+            emailVersion?: number;
+            route?: string;
+            sendWindow?: components["schemas"]["AutomationSendWindow"];
+            skipListId?: string;
+            /** Format: int64 */
+            skipRecentHours?: number;
+            subject?: string;
+        };
+        AutomationEmailUpdateBody: {
+            html: string;
+            preheader: string;
+            subject: string;
+            text?: string;
+        };
+        AutomationEventBody: {
+            contactId?: string;
+            /** Format: email */
+            email?: string;
+            /** @example workspace.created */
+            event: string;
+            properties?: {
+                [key: string]: unknown;
+            };
+        };
+        AutomationEventResult: {
+            accepted: boolean;
+            contactId: string;
+            /**
+             * Format: int64
+             * @description Live automations triggered by this event
+             */
+            flows: number;
+        };
+        AutomationFieldOption: {
+            key: string;
+            label: string;
+            type: string;
+        };
+        AutomationFormOption: {
+            id: string;
+            name: string;
+            slug: string;
+        };
+        AutomationGoal: {
+            /** @example Clicked docs */
+            label: string;
+            /**
+             * Format: double
+             * @description Contacts who reached the goal, % of those who entered in the window
+             */
+            percent?: number;
+        };
+        AutomationGoalCount: {
+            /** Format: int64 */
+            count: number;
+            /** @example welcome */
+            name: string;
+        };
+        AutomationGraph: {
+            edges: components["schemas"]["AutomationEdge"][];
+            nodes: components["schemas"]["AutomationNode"][];
+        };
+        AutomationGraphIssue: {
+            code: string;
+            edgeId?: string;
+            message: string;
+            nodeId?: string;
+            /** @enum {string} */
+            severity: "error" | "warning";
+        };
+        AutomationList: {
+            alerts: components["schemas"]["AutomationAlert"][];
+            counts: components["schemas"]["AutomationStatusCounts"];
+            /** Format: int64 */
+            days: number;
+            items: components["schemas"]["AutomationListItem"][];
+            route: components["schemas"]["AutomationRoute"];
+        };
+        AutomationListAction: {
+            /** @enum {string} */
+            kind: "add_list" | "remove_list" | "add_tag" | "remove_tag" | "unsubscribe_all";
+            listId?: string;
+            tag?: string;
+        };
+        AutomationListItem: {
+            /**
+             * Format: double
+             * @description % of entrants who finished the flow (goal or end)
+             */
+            completed?: number;
+            description: string;
+            /** Format: int64 */
+            draftVersion: number;
+            /** Format: int64 */
+            entered?: number;
+            goal?: components["schemas"]["AutomationGoal"];
+            /**
+             * Format: double
+             * @description Human opens, % of delivered
+             */
+            humanOpens?: number;
+            id: string;
+            /** Format: int64 */
+            inFlow?: number;
+            /** Format: int64 */
+            liveVersion?: number;
+            name: string;
+            pauseReason?: string;
+            /** Format: date-time */
+            pausedAt?: string;
+            pausedBy?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            /** @enum {string} */
+            status: "draft" | "live" | "paused";
+            /** Format: int64 */
+            steps: number;
+            trigger: string;
+            unpublishedChanges: boolean;
+        };
+        AutomationMetaBody: {
+            description: string;
+            name: string;
+        };
+        AutomationNode: {
+            data: components["schemas"]["AutomationNodeData"];
+            id: string;
+            position: components["schemas"]["AutomationNodePosition"];
+            /** @enum {string} */
+            type: "trigger" | "delay" | "email" | "branch" | "filter" | "split" | "webhook" | "list" | "goal" | "exit";
+        };
+        AutomationNodeData: {
+            action?: components["schemas"]["AutomationListAction"];
+            /** @description Branch, filter and goal condition */
+            condition?: components["schemas"]["AutomationCondition"];
+            delay?: components["schemas"]["AutomationDuration"];
+            email?: components["schemas"]["AutomationEmailStep"];
+            label?: string;
+            trigger?: components["schemas"]["AutomationTrigger"];
+            variants?: components["schemas"]["AutomationSplitVariant"][];
+            webhook?: components["schemas"]["AutomationWebhook"];
+        };
+        AutomationNodePosition: {
+            /** Format: double */
+            x: number;
+            /** Format: double */
+            y: number;
+        };
+        AutomationOptionItem: {
+            id: string;
+            name: string;
+        };
+        AutomationOptions: {
+            emails: components["schemas"]["AutomationEmailOption"][];
+            events: string[];
+            fields: components["schemas"]["AutomationFieldOption"][];
+            forms: components["schemas"]["AutomationFormOption"][];
+            lists: components["schemas"]["AutomationOptionItem"][];
+            providers: components["schemas"]["AutomationRouteProvider"][];
+            tags: string[];
+        };
+        AutomationPathCount: {
+            /** Format: int64 */
+            count: number;
+            /** @example yes */
+            path: string;
+        };
+        AutomationPauseBody: {
+            reason?: string;
+        };
+        AutomationProviderSends: {
+            fallback: boolean;
+            /**
+             * Format: date
+             * @example 2026-10-02
+             */
+            lastDay?: string;
+            provider: string;
+            providerId: string;
+            /** Format: int64 */
+            sent: number;
+            short: string;
+        };
+        AutomationPublishBody: {
+            /**
+             * @description finish: contacts in the flow finish on the old version; move: they move to the new one at their current step
+             * @enum {string}
+             */
+            migration: "finish" | "move";
+            /**
+             * Format: int64
+             * @description The draft version reviewed in the publish dialog
+             */
+            version: number;
+        };
+        AutomationPublishCheck: {
+            label: string;
+            /** @enum {string} */
+            status: "ok" | "warn" | "bad";
+        };
+        AutomationPublishPreview: {
+            blocker?: string;
+            canPublish: boolean;
+            /** Format: int64 */
+            changes: number;
+            checks: components["schemas"]["AutomationPublishCheck"][];
+            /** @example about 9 days */
+            finishEstimate: string;
+            /** Format: int64 */
+            fromVersion?: number;
+            /** Format: int64 */
+            inFlow: number;
+            items: components["schemas"]["AutomationDiffItem"][];
+            /** Format: date-time */
+            livePublishedAt?: string;
+            livePublishedBy?: string;
+            moveImpact: string;
+            name: string;
+            /** Format: int64 */
+            toVersion: number;
+        };
+        AutomationPublishResult: {
+            approvalId?: string;
+            message?: string;
+            /** @enum {string} */
+            status: "published" | "approval_required";
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationRoute: {
+            fallback?: components["schemas"]["AutomationRouteProvider"];
+            /** @description A provider on the route can send right now */
+            healthy: boolean;
+            /** @example SES, failover Postmark */
+            label: string;
+            primary: components["schemas"]["AutomationRouteProvider"][];
+        };
+        AutomationRouteProvider: {
+            adapter: string;
+            detail?: string;
+            downReason?: string;
+            /** Format: date-time */
+            downSince?: string;
+            id: string;
+            /** Format: int64 */
+            lastErrorStatus?: number;
+            /** @example Amazon SES */
+            name: string;
+            /** @example SES */
+            short: string;
+            /** @description healthy, degraded, down, sandbox, warming_up or paused */
+            status: string;
+            /** Format: int64 */
+            weight?: number;
+        };
+        AutomationSecretBody: {
+            secret: string;
+        };
+        AutomationSendWindow: {
+            enabled: boolean;
+            end: string;
+            /** @description HH:MM, recipient-local */
+            start: string;
+        };
+        AutomationSplitVariant: {
+            key: string;
+            /** Format: int64 */
+            weight: number;
+        };
+        AutomationStarterTemplate: {
+            /** @enum {string} */
+            key: "welcome-series" | "re-engagement" | "onboarding";
+            name: string;
+            outline: string;
+            preview: string[];
+            /** Format: int64 */
+            steps: number;
+            summary: string;
+        };
+        AutomationStats: {
+            /** Format: int64 */
+            days: number;
+            /** Format: int64 */
+            entered: number;
+            /** Format: int64 */
+            inFlow: number;
+            /** Format: date-time */
+            since: string;
+            steps: components["schemas"]["AutomationStepStats"][];
+        };
+        AutomationStatusCounts: {
+            /** Format: int64 */
+            all: number;
+            /** Format: int64 */
+            drafts: number;
+            /** Format: int64 */
+            live: number;
+            /** Format: int64 */
+            paused: number;
+        };
+        AutomationStepStats: {
+            /** Format: int64 */
+            bounced: number;
+            /** Format: int64 */
+            clicked: number;
+            /** Format: int64 */
+            complained: number;
+            /**
+             * Format: int64
+             * @description Moved on to the next step
+             */
+            completed: number;
+            /** Format: int64 */
+            delivered: number;
+            /**
+             * Format: int64
+             * @description Left early: filtered out, unsubscribed or removed
+             */
+            dropped: number;
+            /** Format: int64 */
+            entered: number;
+            /**
+             * Format: int64
+             * @description Finished the flow at this step
+             */
+            exited: number;
+            /**
+             * Format: int64
+             * @description Webhook calls that failed
+             */
+            failed: number;
+            /** Format: int64 */
+            goalReached: number;
+            /** Format: int64 */
+            inFlowNow: number;
+            nodeId: string;
+            /** Format: int64 */
+            opened: number;
+            /** Format: int64 */
+            openedHuman: number;
+            paths: components["schemas"]["AutomationPathCount"][];
+            providers: components["schemas"]["AutomationProviderSends"][];
+            /** Format: int64 */
+            sent: number;
+            /**
+             * Format: int64
+             * @description Emails skipped by a rule
+             */
+            skipped: number;
+            /** Format: int64 */
+            unsubscribed: number;
+        };
+        AutomationSummary: {
+            /** Format: double */
+            clicks?: number;
+            /** Format: int64 */
+            days: number;
+            /** Format: int64 */
+            goals: number;
+            goalsBy: components["schemas"]["AutomationGoalCount"][];
+            /** Format: double */
+            humanOpens?: number;
+            /** Format: int64 */
+            inFlow: number;
+            /** Format: int64 */
+            liveCount: number;
+            /** Format: int64 */
+            sent: number;
+            sentBy: components["schemas"]["AutomationProviderSends"][];
+        };
+        AutomationTemplates: {
+            templates: components["schemas"]["AutomationStarterTemplate"][];
+        };
+        AutomationTrigger: {
+            at?: string;
+            confirmedOnly?: boolean;
+            event?: string;
+            field?: string;
+            formId?: string;
+            includeImports?: boolean;
+            /** @enum {string} */
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field";
+            listId?: string;
+            /** Format: int64 */
+            offsetDays?: number;
+            reentry?: string;
+            tag?: string;
+            yearly?: boolean;
+        };
+        AutomationVersionGraph: {
+            graph: components["schemas"]["AutomationGraph"];
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationVersionItem: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /** Format: int64 */
+            inFlow: number;
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            /** Format: date-time */
+            retiredAt?: string;
+            /**
+             * @description retiring: replaced, but contacts are still finishing on it
+             * @enum {string}
+             */
+            status: "draft" | "live" | "retiring" | "retired";
+            summary: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationVersions: {
+            name: string;
+            versions: components["schemas"]["AutomationVersionItem"][];
+        };
+        AutomationWebhook: {
+            readonly hasSecret?: boolean;
+            method?: string;
+            name?: string;
+            url?: string;
+        };
+        AutomationWebhookCall: {
+            /** Format: int64 */
+            attempt: number;
+            /** Format: date-time */
+            calledAt: string;
+            /** Format: int64 */
+            durationMs: number;
+            error?: string;
+            id: string;
+            /** Format: int64 */
+            statusCode: number;
+            url: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationWebhookCalls: {
+            calls: components["schemas"]["AutomationWebhookCall"][];
         };
         CampaignList: {
             counts: components["schemas"]["CampaignStatusCounts"];
@@ -5506,6 +6470,924 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdapterCommunity"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-automation-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationEmailCreateBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationEmailOption"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation-email": {
+        parameters: {
+            query?: {
+                /** @description Defaults to the latest version */
+                version?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationEmailContent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-automation-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationEmailUpdateBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationEmailContent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-automations": {
+        parameters: {
+            query?: {
+                status?: "all" | "live" | "paused" | "drafts";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationCreateBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-automation-event": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationEventBody"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationEventResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "automation-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationOptions"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "automations-summary": {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-automation-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationTemplates"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationMetaBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "automation-diff": {
+        parameters: {
+            query?: {
+                /** @description Defaults to the live version */
+                from?: number;
+                /** @description Defaults to the draft */
+                to?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDiff"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-automation-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationDraftBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDraftSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "discard-automation-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "duplicate-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationPauseBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationPublishBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationPublishResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "automation-publish-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationPublishPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "automation-stats": {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationStats"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-automation-webhook-calls": {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+                node: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationWebhookCalls"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-automation-step-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+                node: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationSecretBody"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-automation-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationVersions"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationVersionGraph"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-automation-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDraftSaved"];
                 };
             };
             /** @description Error */

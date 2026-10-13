@@ -17,7 +17,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 | **M6 Composer** | GrapesJS + MJML wrapper, code view, previews, Liquid tokens, templates, versions, inline warnings | W05 | 🚧 |
 | **M7 Review & send, approvals, live monitor** | Review & send, approval policy/inbox/review, sending pipeline, live monitor (SSE), auto-pause, outage handling | W11, W12 | ⏳ |
 | **M8 Reports** | Campaign report, honest analytics (human vs machine opens), click map, provider comparisons, A/B, share links; Overview | W09 | ⏳ (campaigns list ✅) |
-| **M9 Automations** | React Flow editor, triggers and steps, runs engine, live stats, versions and publish diff, templates | W06 | 🚧 |
+| **M9 Automations** | React Flow editor, triggers and steps, runs engine, live stats, versions and publish diff, templates | W06 | ✅ (emails queue until W12's mailer sends them; approvals hook for W11) |
 | **M10 Forms and public pages** | Signup forms, double opt-in, preference center, unsubscribe (RFC 8058), archive | W13 | ⏳ |
 | **M11 SSO, social sign-in, API keys, MCP, webhooks** | OIDC SSO with JIT and group mapping, social sign-in, instance admin, API keys & MCP server, outgoing webhooks | W14, W03 | ⏳ |
 | **M12 Remaining adapters** | Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, generic HTTP | W01 (follow-up) | ⏳ |
@@ -50,3 +50,12 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 - Session: a warning two minutes before the idle timeout with "Extend 12 hours" (`GET /me/session`, `POST /me/session/extend`), and a sign-in dialog over the page that keeps unsaved work when the session has ended.
 - Offline/unreachable and read-only maintenance banners and the API rate-limit notice, wired for every screen; reconnecting and quota-reached banners for the screens that own those states.
 - Confirmation dialogs (typed name, reason, options, bulk results, unsaved changes), toasts with Undo, Retry and Hide, a form-level error summary, empty search results, disabled controls that say why, keyboard shortcuts with a `?` sheet, and the background jobs tray (job list behind `JobsSource` until the import/export API lands).
+
+## Done so far (W06: automations)
+
+- Automations list (AutomationsList board at 1440, 834 and 390): 30-day performance per flow, filters, the Automations route, 7-day KPIs, alerts for held sending and failing steps, starter templates, and the empty, loading and error states (AutomationsStates).
+- Flow editor (AutomationFlow board): a React Flow canvas with the board's steps, orthogonal edges with Yes/No and A/B labels, the pulse-through-steps motion (pausable, off with reduced motion), count-up stats, minimap and controls, snap to grid, drag from the palette onto the canvas or onto an edge, drawing edges between handles, deletion that reconnects the flow, and side panels for every step type. The draft saves itself (revision-checked, ⌘S saves now); `/automations/new?template=…` starts from a template.
+- Versions: publish dialog with the diff since the live version, "let them finish" or "move them at their current step", and pre-publish checks (AutomationPublish board); version history with compare and restore; pause and resume.
+- Triggers: joined list, form submitted, tag added, API event (`POST /workspaces/{workspace}/automations/events`) and date fields. Steps: delay, send email (Automations route unless overridden, send window, skip rules), branch (opened, clicked, field, tag, list, event), filter, A/B split, webhook (SSRF-safe, signed, retried, logged), list and tag actions, goal and exit.
+- Runs engine on River: enrollment from trigger events, delays, branch waits woken by engagement, goal detection, per-step daily stats, retiring old versions, alerts. Emails go through the `automations.Mailer` seam (queued until the sending pipeline lands); publishing goes through `automations.PublishGate` for approvals.
+- Demo: the Welcome series (v3 live, v4 draft whose diff the publish dialog shows), Onboarding, Re-engagement, the Re-permission draft and the paused Beta invite, with 30 days of per-step stats and contacts in each flow.
