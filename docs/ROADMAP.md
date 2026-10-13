@@ -20,7 +20,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 | **M9 Automations** | React Flow editor, triggers and steps, runs engine, live stats, versions and publish diff, templates | W06 | ✅ (emails queue until W12's mailer sends them; approvals hook for W11) |
 | **M10 Forms and public pages** | Signup forms, double opt-in, preference center, unsubscribe (RFC 8058), archive | W13 | ⏳ |
 | **M11 SSO, social sign-in, API keys, MCP, webhooks** | OIDC SSO with JIT and group mapping, social sign-in, instance admin, API keys & MCP server, outgoing webhooks | W14, W03 | ⏳ |
-| **M12 Remaining adapters** | Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, generic HTTP | W01 (follow-up) | ⏳ |
+| **M12 Remaining adapters** | Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, generic HTTP, adapter guide | W15 | ✅ (community adapter runtime and SDK: W16) |
 | **M13 Deliverability and HostRepute** | Domain/IP health, provider account health, blocklists, Postmaster, SNDS, DMARC, incidents, Connect HostRepute | W07 | 🚧 |
 | **M14 Migration, landing, docs, v1.0** | Importers from Brevo, Mailchimp, MailerLite, listmonk, Keila; landing page and README banner; documentation; release | W02, W08 | 🚧 (landing page ✅, README banner ✅) |
 
@@ -41,6 +41,12 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 - Health job: quota and rate discovery, call windows, outage detection (error rate or two failed probes), automatic failover per stream policy, held Broadcast shares with wait/move/cancel decisions, recovery after ten healthy minutes, rejected credentials, webhooks silent after six hours with a diagnosis and backfill, incidents, notifications and system audit entries.
 - Routing per stream (primary, weighted split, conditions on mailbox provider/list/sender domain, fallback, failover policy), bulk-terms validation with an acknowledged override, route tester; warm-up plans with guards, slowdowns, share steps and a daily job; suppression sync per provider; provider-side tracking checks; community and generic HTTP adapters (instance admins).
 - Screens: Providers (healthy, outage, webhooks silent, rejected credentials, empty, loading), Routing & failover (with the bulk-terms fix view), Warm-up, Events & sync, Adapters, provider settings with write-only credentials. Demo data matches the boards; `internal/providers/state` and `manage.UsageOf` are the contract other screens read.
+
+## Done so far (W15: remaining adapters, M12)
+
+- Adapters for Mailgun (US/EU, HMAC-signed webhooks with the account signing key read from the API, domain webhooks next to existing URLs, custom sending limit and metrics), SendGrid (signed Event Webhook with ECDSA P-256, checked against SendGrid's test vector; credits, reputation, domain authentication), Resend (100-message batches with idempotency keys, Standard Webhooks/Svix, webhook and suppression APIs, per-domain tracking), SparkPost (existing accounts, idempotent transmissions, basic-auth webhooks, bounce classes, usage and deliverability metrics), Mailjet (50-message batches, basic-auth callbacks, campaign exclusions, statistics counters), Brevo (idempotency keys, bearer-token webhooks, blocked contacts pulled, credits) and Azure Communication Services Email (HMAC or Entra ID, Event Grid handshake and secret header, operation id as message id). Each passes the contract suite against a fake API and recorded payloads, declares badges backed by the provider's current terms (cited in the package) and implements every optional interface the API supports.
+- Generic HTTP adapter (`httpgeneric`): a mapping (the manifest's `http` object the Adapters tab saves) with a JSON body template whose Liquid-style fields are escaped for where they appear, header and URL templates, the message id from a JSONPath or a header, an optional credential check, and webhooks mapped by status vocabulary or JSONPath, authenticated by HMAC, Standard Webhooks, basic auth or a header secret.
+- Shared helpers: `apiclient.Exec` and `apiclient.Fanout`, `internal/providers/webhookauth`; the suppression sync turns pull-only for providers that can't take suppressions. Guide: `docs/adapters.md`.
 
 ## Done so far (W08: landing, README banner, cross-cutting states)
 
