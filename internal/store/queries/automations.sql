@@ -457,12 +457,12 @@ UPDATE automation_alerts SET resolved_at = now()
 WHERE automation_id = @automation_id AND kind = @kind AND node_id = @node_id AND resolved_at IS NULL;
 
 -- name: ListAutomationAlerts :many
+-- Open alerts, held sending first: nothing goes out until it is fixed.
 SELECT al.id, al.automation_id, al.kind, al.node_id, al.detail, al.failures, al.first_at, al.last_at,
        a.name AS automation_name, a.draft_version, a.live_version
 FROM automation_alerts al
 JOIN automations a ON a.id = al.automation_id
 WHERE a.workspace_id = @workspace_id AND a.deleted_at IS NULL AND al.resolved_at IS NULL
--- Held sending first: nothing goes out until it is fixed.
 ORDER BY al.kind = 'sending_held' DESC, al.first_at;
 
 -- name: AutomationStepFailures :many

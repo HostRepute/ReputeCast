@@ -2146,7 +2146,7 @@ type ListAutomationAlertsRow struct {
 	LiveVersion    *int32          `json:"liveVersion"`
 }
 
-// Held sending first: nothing goes out until it is fixed.
+// Open alerts, held sending first: nothing goes out until it is fixed.
 func (q *Queries) ListAutomationAlerts(ctx context.Context, workspaceID uuid.UUID) ([]ListAutomationAlertsRow, error) {
 	rows, err := q.db.Query(ctx, listAutomationAlerts, workspaceID)
 	if err != nil {
