@@ -891,6 +891,183 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/approval-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The approval policy and what it matches today */
+        get: operations["get-approval-policy"];
+        /** Change the approval policy */
+        put: operations["update-approval-policy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The approval inbox: approvers see every request, authors their own */
+        get: operations["list-approvals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An approval request with its snapshot, readiness, diff and discussion */
+        get: operations["get-approval"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a request (its author or an Owner) */
+        post: operations["cancel-approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add to the discussion (author and approvers) */
+        post: operations["comment-approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve, request changes or reject
+         * @description Authors can't decide on their own request. Deciding on an invalidated request decides on the campaign as it stands (a new request with the diff).
+         */
+        post: operations["decide-approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The email an approval covers */
+        get: operations["preview-approval"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/remind": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remind the approvers (once an hour) */
+        post: operations["remind-approvers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put the campaign back as approved (keeps the approval) */
+        post: operations["restore-approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Schedule an approved campaign as approved
+         * @description The author can schedule an approved campaign without campaigns:send: the approval is the permission for this exact snapshot.
+         */
+        post: operations["schedule-approved"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/audience": {
         parameters: {
             query?: never;
@@ -1443,6 +1620,43 @@ export interface paths {
         patch: operations["update-campaign"];
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the approvers to approve this send */
+        post: operations["request-approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/bypass": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send without approval (Owners, with a reason)
+         * @description Logged as campaign.approval_bypassed with the reason and the snapshot; every approver is notified. Send Readiness still runs and a Blocked result still stops the send.
+         */
+        post: operations["bypass-approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/checks": {
         parameters: {
             query?: never;
@@ -1534,6 +1748,140 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Send Readiness on a campaign now
+         * @description Runs every check and stores the result. Fails with 409 readiness_running while a run is in progress; poll …/readiness/progress.
+         */
+        post: operations["run-send-readiness"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/fixes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply one-click fixes, then run the checks again
+         * @description Content fixes save a new version; audience and route fixes change the campaign. Changing route needs campaigns:send. Changes invalidate an approval.
+         */
+        post: operations["apply-readiness-fixes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Send Readiness run in progress */
+        get: operations["get-send-readiness-progress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/{runId}/accept-unknown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Continue with provider data only
+         * @description Accepts the checks that couldn't run (HostRepute unreachable). The skipped checks are recorded in the audit log and re-tried during the send.
+         */
+        post: operations["accept-unknown-readiness"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review & send: the latest Send Readiness run, estimates, schedule, thresholds, test sends and approval state */
+        get: operations["get-campaign-review"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Schedule or start a campaign after Send Readiness
+         * @description Needs a fresh, unblocked Send Readiness run, every warning confirmed, the recipient count typed for large sends, and an approval when the policy asks for one.
+         */
+        post: operations["send-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/send-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change the auto-pause thresholds or the schedule
+         * @description The schedule is part of what an approval covers: changing it invalidates the approval.
+         */
+        patch: operations["update-send-settings"];
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/test": {
         parameters: {
             query?: never;
@@ -1548,6 +1896,23 @@ export interface paths {
          * @description Goes through the System route. Without campaigns:send, test emails can only go to your own address.
          */
         post: operations["send-campaign-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/unschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a scheduled campaign back */
+        post: operations["unschedule-campaign"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4078,6 +4443,369 @@ export interface components {
             /** @description Why, shown as the original code */
             note?: string;
         };
+        ApprovalAudienceRule: {
+            enabled: boolean;
+            /** Format: int64 */
+            n: number;
+        };
+        ApprovalAudienceView: {
+            /** Format: double */
+            changePct: number;
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            current: number;
+            excluded: string;
+            lists: string[];
+        };
+        ApprovalAuditLine: {
+            action: string;
+            actor: string;
+            /** Format: date-time */
+            at: string;
+            ip?: string;
+        };
+        ApprovalAutomationSnapshot: {
+            changes: string[];
+            migration: string;
+            /** Format: int64 */
+            version: number;
+        };
+        ApprovalBypassInput: {
+            acknowledged?: string[];
+            confirm?: string;
+            password?: string;
+            reason: string;
+            /** Format: uuid */
+            runId: string;
+            schedule?: components["schemas"]["ReadinessSchedule"];
+        };
+        ApprovalCampaignView: {
+            /** Format: date-time */
+            editedAt?: string;
+            editedBy?: string;
+            from: string;
+            id: string;
+            preheader: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+            status: string;
+            subject: string;
+            /** Format: int64 */
+            version: number;
+        };
+        ApprovalCan: {
+            cancel: boolean;
+            comment: boolean;
+            decide: boolean;
+            decideReason?: string;
+            isAuthor: boolean;
+            remind: boolean;
+            restore: boolean;
+            schedule: boolean;
+        };
+        ApprovalChange: {
+            after: string;
+            before: string;
+            /** @enum {string} */
+            field: "subject" | "preheader" | "link" | "content" | "sender" | "audience" | "audience_count" | "route" | "schedule";
+            label: string;
+        };
+        ApprovalCommentInput: {
+            body: string;
+        };
+        ApprovalCommentView: {
+            /** Format: date-time */
+            at: string;
+            author: components["schemas"]["ApprovalPerson"];
+            body: string;
+            id: string;
+        };
+        ApprovalCounts: {
+            /** Format: int64 */
+            all: number;
+            /** Format: int64 */
+            approved: number;
+            /** Format: int64 */
+            changesRequested: number;
+            /** Format: int64 */
+            invalidated: number;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            rejected: number;
+        };
+        ApprovalDecisionInput: {
+            comment?: string;
+            /** @enum {string} */
+            decision: "approve" | "request_changes" | "reject";
+        };
+        ApprovalDecisionView: {
+            approver: components["schemas"]["ApprovalPerson"];
+            /** Format: date-time */
+            at: string;
+            comment: string;
+            /** @enum {string} */
+            decision: "approve" | "request_changes" | "reject";
+        };
+        ApprovalDetail: {
+            approvers: components["schemas"]["ApprovalPerson"][];
+            audience?: components["schemas"]["ApprovalAudienceView"];
+            audit?: components["schemas"]["ApprovalAuditLine"];
+            author: components["schemas"]["ApprovalPerson"];
+            automation?: components["schemas"]["ApprovalAutomationSnapshot"];
+            bypassReason?: string;
+            campaign?: components["schemas"]["ApprovalCampaignView"];
+            can: components["schemas"]["ApprovalCan"];
+            changes: components["schemas"]["ApprovalChange"][];
+            changesSince: components["schemas"]["ApprovalChange"][];
+            comment?: string;
+            comments: components["schemas"]["ApprovalCommentView"][];
+            /** Format: date-time */
+            decidedAt?: string;
+            decidedBy?: string;
+            decisions: components["schemas"]["ApprovalDecisionView"][];
+            followsId?: string;
+            /** Format: int64 */
+            given: number;
+            held?: components["schemas"]["ReviewHeld"];
+            id: string;
+            /** Format: date-time */
+            invalidatedAt?: string;
+            invalidatedBy?: string;
+            invalidatedReason?: string;
+            name: string;
+            /** Format: int64 */
+            needed: number;
+            nextId?: string;
+            note: string;
+            readiness?: components["schemas"]["ApprovalReadinessView"];
+            /** Format: date-time */
+            requestedAt: string;
+            requestedBy: components["schemas"]["ApprovalPerson"];
+            route?: components["schemas"]["ApprovalRouteView"];
+            rules: components["schemas"]["ApprovalRuleMatch"][];
+            schedule?: components["schemas"]["ApprovalScheduleView"];
+            snapshot: components["schemas"]["ApprovalSnapshotSummary"];
+            /** @enum {string} */
+            status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
+            /** @enum {string} */
+            subjectType: "campaign" | "automation";
+            /** Format: int64 */
+            version: number;
+        };
+        ApprovalFilterOption: {
+            id: string;
+            name: string;
+        };
+        ApprovalList: {
+            allRequests: boolean;
+            approvers: components["schemas"]["ApprovalFilterOption"][];
+            authors: components["schemas"]["ApprovalFilterOption"][];
+            canManage: boolean;
+            counts: components["schemas"]["ApprovalCounts"];
+            items: components["schemas"]["ApprovalListItem"][];
+            policy: components["schemas"]["ApprovalPolicySummary"];
+        };
+        ApprovalListItem: {
+            /** Format: int64 */
+            audience: number;
+            /** Format: int64 */
+            audienceNow?: number;
+            author: components["schemas"]["ApprovalPerson"];
+            automationId?: string;
+            campaignId?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            decidedBy?: string;
+            id: string;
+            name: string;
+            note?: string;
+            /** Format: date-time */
+            requestedAt: string;
+            route: string;
+            rules: string;
+            /** Format: date-time */
+            scheduleAt?: string;
+            /** @enum {string} */
+            scheduleMode: "now" | "at" | "best_time";
+            /** Format: date-time */
+            sentAt?: string;
+            /** @enum {string} */
+            status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
+            /** @enum {string} */
+            subjectType: "campaign" | "automation";
+        };
+        ApprovalPendingItem: {
+            /** Format: int64 */
+            audience: number;
+            author: components["schemas"]["ApprovalPerson"];
+            id: string;
+            name: string;
+            /** Format: date-time */
+            requestedAt: string;
+        };
+        ApprovalPerson: {
+            color: string;
+            email: string;
+            id: string;
+            initials: string;
+            name: string;
+            presence?: string;
+            role: string;
+        };
+        ApprovalPolicy: {
+            approvalLists: boolean;
+            /** Format: int64 */
+            approvalsRequired: number;
+            audienceMin: components["schemas"]["ApprovalAudienceRule"];
+            authorLacksSend: boolean;
+            automationPublish: boolean;
+            emergencyBypass: boolean;
+            /** Format: int64 */
+            newProviderDays: number;
+            readyWithWarnings: boolean;
+            warmingProvider: boolean;
+        };
+        ApprovalPolicyMatches: {
+            approvalLists: string[];
+            lacksSend: string[];
+            lacksSendRoles: string[];
+            warming: string;
+        };
+        ApprovalPolicySummary: {
+            /** Format: int64 */
+            approvalsRequired: number;
+            approvers: string[];
+            /** Format: int64 */
+            medianWaitMinutes?: number;
+            rules: string[];
+        };
+        ApprovalPolicyView: {
+            approvers: components["schemas"]["ApprovalPerson"][];
+            /** Format: int64 */
+            bypassCount: number;
+            canManage: boolean;
+            matches: components["schemas"]["ApprovalPolicyMatches"];
+            pending: components["schemas"]["ApprovalPendingItem"][];
+            policy: components["schemas"]["ApprovalPolicy"];
+            reason?: string;
+        };
+        ApprovalPreview: {
+            html: string;
+            preheader: string;
+            subject: string;
+            /** Format: int64 */
+            version: number;
+        };
+        ApprovalReadinessView: {
+            /** Format: int64 */
+            blocks: number;
+            /** Format: date-time */
+            checkedAt: string;
+            issues: components["schemas"]["ReadinessCheck"][];
+            /** Format: int64 */
+            passed: number;
+            /** Format: int64 */
+            total: number;
+            /** @enum {string} */
+            verdict: "ready" | "warnings" | "blocked";
+            /** Format: int64 */
+            warnings: number;
+        };
+        ApprovalRequestInput: {
+            /** @description A note for approvers */
+            note?: string;
+        };
+        ApprovalRequestView: {
+            audit?: components["schemas"]["ApprovalAuditLine"];
+            bypassReason?: string;
+            changes: components["schemas"]["ApprovalChange"][];
+            comment?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            decidedBy?: string;
+            decisions: components["schemas"]["ApprovalDecisionView"][];
+            followsId?: string;
+            /** Format: int64 */
+            given: number;
+            id: string;
+            /** Format: date-time */
+            invalidatedAt?: string;
+            invalidatedBy?: string;
+            invalidatedReason?: string;
+            /** Format: int64 */
+            needed: number;
+            note: string;
+            /** Format: date-time */
+            requestedAt: string;
+            requestedBy: components["schemas"]["ApprovalPerson"];
+            rules: components["schemas"]["ApprovalRuleMatch"][];
+            snapshot: components["schemas"]["ApprovalSnapshotSummary"];
+            /** @enum {string} */
+            status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
+            /** @enum {string} */
+            subjectType: "campaign" | "automation";
+            /** Format: int64 */
+            version: number;
+        };
+        ApprovalRequested: {
+            id: string;
+        };
+        ApprovalRouteView: {
+            shares: components["schemas"]["ApprovalShare"][];
+            splitLabel: string;
+        };
+        ApprovalRuleMatch: {
+            author?: string;
+            badge: string;
+            /** @enum {string} */
+            key: "audience_min" | "warming_provider" | "new_provider" | "ready_with_warnings" | "author_lacks_send" | "approval_lists" | "automation_publish";
+            label: string;
+            role?: string;
+            short: string;
+        };
+        ApprovalScheduleView: {
+            /** Format: date-time */
+            at?: string;
+            autoPause: string;
+            /** Format: int64 */
+            minutes: number;
+            /** @enum {string} */
+            mode: "now" | "at" | "best_time";
+            timezone: string;
+        };
+        ApprovalShare: {
+            /** @enum {string} */
+            color: "ses" | "postal" | "postmark" | "other";
+            /** Format: double */
+            cost: number;
+            label?: string;
+            name: string;
+            priceLabel: string;
+            providerId: string;
+            /** Format: int64 */
+            recipients: number;
+            short: string;
+            status: string;
+            statusLabel: string;
+        };
+        ApprovalSnapshotSummary: {
+            /** Format: int64 */
+            audienceCount: number;
+            routeLabel: string;
+            routeText: string;
+            /** Format: date-time */
+            scheduleAt?: string;
+            /** @enum {string} */
+            scheduleMode: "now" | "at" | "best_time";
+            scheduleText: string;
+            splitLabel: string;
+            subject: string;
+            timezone?: string;
+            /** Format: int64 */
+            version: number;
+        };
         AudienceListInput: {
             description?: string;
             /** @description New signups confirm by email first (default true) */
@@ -4909,6 +5637,22 @@ export interface components {
             updatedAt: string;
             updatedBy: string;
         };
+        CampaignReview: {
+            access: components["schemas"]["ReviewAccess"];
+            approval: components["schemas"]["ReviewApproval"];
+            campaign: components["schemas"]["ReviewCampaign"];
+            held?: components["schemas"]["ReviewHeld"];
+            /** Format: int64 */
+            largeSend: number;
+            run?: components["schemas"]["ReadinessRun"];
+            running?: components["schemas"]["ReadinessProgress"];
+            schedule: components["schemas"]["ReadinessSchedule"];
+            scheduled?: components["schemas"]["ReviewScheduled"];
+            stale: boolean;
+            testSends: components["schemas"]["ReviewTestSend"][];
+            thresholds: components["schemas"]["ReadinessThresholds"];
+            timezone: string;
+        };
         CampaignStatusCounts: {
             /** Format: int64 */
             all: number;
@@ -5066,11 +5810,14 @@ export interface components {
             clipBytes: number;
             /** Format: date-time */
             footerRemovedAt?: string;
+            /** Format: double */
+            imageShare: number;
             /** Format: int64 */
             images: number;
             /** Format: int64 */
             imagesMissingAlt: number;
             issues: components["schemas"]["ContentCheckIssue"][];
+            linkList: components["schemas"]["ContentCheckLink"][];
             /** Format: int64 */
             links: number;
             /** Format: int64 */
@@ -5087,6 +5834,8 @@ export interface components {
             verdict: "ready" | "warnings" | "blocked";
             /** Format: int64 */
             warnings: number;
+            /** Format: int64 */
+            words: number;
         };
         ComposerChecksRequest: {
             html?: string;
@@ -5578,6 +6327,21 @@ export interface components {
             tag?: string;
             title: string;
             url?: string;
+        };
+        ContentCheckLink: {
+            broken?: boolean;
+            final?: string;
+            host: string;
+            /** @enum {string} */
+            kind: "button" | "link" | "image" | "nav" | "social";
+            /** Format: int64 */
+            millis?: number;
+            path: number[];
+            probed: boolean;
+            /** Format: int64 */
+            status?: number;
+            text: string;
+            url: string;
         };
         ContentCheckSection: {
             /** Format: int64 */
@@ -7655,11 +8419,251 @@ export interface components {
             /** Format: date-time */
             syncedAt?: string;
         };
+        ReadinessAudience: {
+            /** Format: int64 */
+            duplicates: number;
+            /** Format: int64 */
+            final: number;
+            lists: string[];
+            /** Format: int64 */
+            role: number;
+            rows: components["schemas"]["ReadinessAudienceRow"][];
+            /** Format: int64 */
+            suppressed: number;
+            /** Format: int64 */
+            unengaged: number;
+            unengagedExcluded: boolean;
+        };
+        ReadinessAudienceRow: {
+            /** Format: int64 */
+            count: number;
+            /** @enum {string} */
+            kind: "base" | "minus" | "plus";
+            label: string;
+        };
+        ReadinessCheck: {
+            ack?: string;
+            detail?: string;
+            evidence?: string;
+            fixes: components["schemas"]["ReadinessFix"][];
+            flatTitle: string;
+            /** @enum {string} */
+            group: "reputation" | "authentication" | "content" | "links" | "compliance" | "audience" | "routing";
+            key: string;
+            label?: string;
+            mono?: boolean;
+            note?: string;
+            short?: string;
+            /** @enum {string} */
+            status: "pass" | "warn" | "block" | "unknown";
+            title: string;
+        };
+        ReadinessCounts: {
+            /** Format: int64 */
+            blocks: number;
+            /** Format: int64 */
+            passed: number;
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            unknown: number;
+            /** Format: int64 */
+            warnings: number;
+        };
+        ReadinessEstimates: {
+            audience: components["schemas"]["ReadinessAudience"];
+            route: components["schemas"]["ReadinessRoute"];
+            throttling: components["schemas"]["ReadinessThrottle"][];
+        };
+        ReadinessFix: {
+            /** @enum {string} */
+            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify";
+            href?: string;
+            /** @enum {string} */
+            kind: "apply" | "link";
+            label: string;
+            params?: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            tone?: "primary" | "danger";
+        };
+        ReadinessFixOutcome: {
+            applied: string[];
+            run?: components["schemas"]["ReadinessRun"];
+            /** Format: int64 */
+            version: number;
+        };
+        ReadinessFixRequest: {
+            /** @enum {string} */
+            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify";
+            params?: {
+                [key: string]: string;
+            };
+        };
+        ReadinessFixesInput: {
+            fixes: components["schemas"]["ReadinessFixRequest"][];
+        };
+        ReadinessGroup: {
+            caption: string;
+            /** @enum {string} */
+            key: "reputation" | "authentication" | "content" | "links" | "compliance" | "audience" | "routing";
+            /** Format: int64 */
+            passed: number;
+            running: string;
+            /** @enum {string} */
+            status: "pass" | "warn" | "block" | "unknown";
+            summary: string;
+            title: string;
+            /** Format: int64 */
+            total: number;
+        };
+        ReadinessHeldMove: {
+            /** Format: double */
+            addCost: number;
+            /** Format: int64 */
+            addMinutes: number;
+            from: string;
+            to: string;
+            toId: string;
+        };
+        ReadinessProgress: {
+            /** Format: int64 */
+            done: number;
+            groups: components["schemas"]["ReadinessProgressGroup"][];
+            runId: string;
+            /** Format: date-time */
+            startedAt: string;
+            startedBy?: string;
+            /** Format: int64 */
+            total: number;
+            trigger: string;
+        };
+        ReadinessProgressGroup: {
+            /** Format: int64 */
+            checked: number;
+            /** Format: int64 */
+            done: number;
+            /** @enum {string} */
+            key: "reputation" | "authentication" | "content" | "links" | "compliance" | "audience" | "routing";
+            /** @enum {string} */
+            status: "queued" | "running" | "pass" | "warn" | "block" | "unknown";
+            text: string;
+            title: string;
+            /** Format: int64 */
+            total: number;
+        };
+        ReadinessProgressView: {
+            running?: components["schemas"]["ReadinessProgress"];
+        };
+        ReadinessRoute: {
+            /** Format: int64 */
+            down: number;
+            move?: components["schemas"]["ReadinessHeldMove"];
+            override: boolean;
+            /** @enum {string} */
+            policy: "automatic" | "pause_and_ask" | "warm_only";
+            shares: components["schemas"]["ReadinessRouteShare"][];
+            splitLabel: string;
+            /** @enum {string} */
+            stream: "broadcast" | "automation" | "system";
+            streamLabel: string;
+            /** Format: double */
+            totalCost: number;
+            /** Format: int64 */
+            totalMinutes: number;
+        };
+        ReadinessRouteShare: {
+            adapter: string;
+            available: boolean;
+            /** @enum {string} */
+            color: "ses" | "postal" | "postmark" | "other";
+            /** Format: double */
+            cost: number;
+            label?: string;
+            /** Format: int64 */
+            minutes: number;
+            name: string;
+            /** Format: double */
+            percent: number;
+            priceLabel: string;
+            providerId: string;
+            /** Format: double */
+            rate: number;
+            rateLabel: string;
+            /** Format: int64 */
+            recipients: number;
+            short: string;
+            status: string;
+            statusLabel: string;
+            /** Format: int64 */
+            warmupDay?: number;
+            /** Format: int64 */
+            warmupDays?: number;
+        };
+        ReadinessRun: {
+            campaignId: string;
+            checks: components["schemas"]["ReadinessCheck"][];
+            counts: components["schemas"]["ReadinessCounts"];
+            /** Format: int64 */
+            durationMs: number;
+            estimates: components["schemas"]["ReadinessEstimates"];
+            groups: components["schemas"]["ReadinessGroup"][];
+            id: string;
+            incomplete: boolean;
+            problem?: string;
+            /** Format: date-time */
+            ranAt: string;
+            ranBy?: string;
+            /** @enum {string} */
+            trigger: "manual" | "composer" | "schedule" | "send_time" | "approval";
+            /** Format: date-time */
+            unknownAcceptedAt?: string;
+            unknownAcceptedBy?: string;
+            /** @enum {string} */
+            verdict: "ready" | "warnings" | "blocked";
+            /** Format: int64 */
+            version: number;
+        };
+        ReadinessSchedule: {
+            /** Format: date-time */
+            readonly at?: string;
+            date?: string;
+            /** @enum {string} */
+            mode: "now" | "at" | "best_time";
+            time?: string;
+            timezone?: string;
+        };
+        ReadinessSendSettings: {
+            schedule?: components["schemas"]["ReadinessSchedule"];
+            thresholds?: components["schemas"]["ReadinessThresholds"];
+        };
         ReadinessSummary: {
             /** Format: int64 */
             issues: number;
             /** @enum {string} */
             verdict: "ready" | "warnings" | "blocked";
+        };
+        ReadinessThresholds: {
+            /** Format: double */
+            bounce: number;
+            /** Format: double */
+            complaint: number;
+            /** Format: double */
+            mailboxComplaint: number;
+            /** Format: double */
+            providerErrors: number;
+            /** @enum {string} */
+            scope: "route" | "campaign";
+        };
+        ReadinessThrottle: {
+            /** @enum {string} */
+            key: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
+            name: string;
+            /** Format: double */
+            rate: number;
+            /** Format: int64 */
+            recipients: number;
         };
         RecoveryCodes: {
             codes: string[];
@@ -7669,6 +8673,103 @@ export interface components {
         };
         "Rename-passkeyRequest": {
             name: string;
+        };
+        ReviewAB: {
+            /** Format: int64 */
+            durationHours: number;
+            /** @enum {string} */
+            kind: "subject" | "content" | "send_time";
+            label: string;
+            /** Format: int64 */
+            testPercent: number;
+            /** Format: int64 */
+            variants: number;
+        };
+        ReviewAccess: {
+            canApprove: boolean;
+            canEdit: boolean;
+            canManageRouting: boolean;
+            canSend: boolean;
+            canSendTestToOthers: boolean;
+            email: string;
+            hasPassword: boolean;
+            isOwner: boolean;
+            sendHelpers: string[];
+        };
+        ReviewApproval: {
+            approvers: components["schemas"]["ApprovalPerson"][];
+            canBypass: boolean;
+            canRequest: boolean;
+            /** Format: int64 */
+            medianWaitMinutes?: number;
+            /** Format: int64 */
+            needed: number;
+            policyRules: string[];
+            request?: components["schemas"]["ApprovalRequestView"];
+            requestReason?: string;
+            required: boolean;
+            rules: components["schemas"]["ApprovalRuleMatch"][];
+            valid: boolean;
+        };
+        ReviewCampaign: {
+            ab?: components["schemas"]["ReviewAB"];
+            audienceLabel: string;
+            /** Format: date-time */
+            autosavedAt?: string;
+            editable: boolean;
+            from: string;
+            id: string;
+            name: string;
+            preheader: string;
+            replyTo: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** @enum {string} */
+            status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
+            subject: string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: string;
+            /** Format: int64 */
+            version: number;
+        };
+        ReviewHeld: {
+            blocks: components["schemas"]["ReadinessCheck"][];
+            /** Format: int64 */
+            held: number;
+            reason: string;
+            /** Format: date-time */
+            since: string;
+        };
+        ReviewScheduled: {
+            /** Format: date-time */
+            at: string;
+            by: string;
+        };
+        ReviewSendInput: {
+            acknowledged?: string[];
+            confirm?: string;
+            /** Format: uuid */
+            runId: string;
+            schedule?: components["schemas"]["ReadinessSchedule"];
+        };
+        ReviewSendResult: {
+            /** Format: int64 */
+            recipients: number;
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** @enum {string} */
+            status: "scheduled" | "sending";
+        };
+        ReviewTestSend: {
+            /** Format: date-time */
+            at: string;
+            by: string;
+            delivered?: string;
+            provider: string;
+            to: string;
         };
         RoleCreated: {
             id: string;
@@ -10918,6 +12019,382 @@ export interface operations {
             };
         };
     };
+    "get-approval-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalPolicyView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-approval-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalPolicy"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalPolicyView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-approvals": {
+        parameters: {
+            query?: {
+                status?: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "all";
+                /** @description Requester user id */
+                author?: string;
+                /** @description Approver user id */
+                approver?: string;
+                /** @description Requested in the last N days (0: all) */
+                days?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                approvalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                approvalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "comment-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                approvalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalCommentInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                approvalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalDecisionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                approvalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remind-approvers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                approvalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                approvalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "schedule-approved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                approvalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewSendInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewSendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "audience-summary": {
         parameters: {
             query?: never;
@@ -12346,6 +13823,80 @@ export interface operations {
             };
         };
     };
+    "request-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalRequestInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRequested"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "bypass-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalBypassInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewSendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "check-campaign-content": {
         parameters: {
             query?: never;
@@ -12525,6 +14076,248 @@ export interface operations {
             };
         };
     };
+    "run-send-readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessRun"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "apply-readiness-fixes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadinessFixesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessFixOutcome"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-send-readiness-progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessProgressView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "accept-unknown-readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessRun"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-campaign-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignReview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewSendInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewSendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-send-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadinessSendSettings"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "send-campaign-test": {
         parameters: {
             query?: never;
@@ -12550,6 +14343,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ComposerTestSendResult"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unschedule-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
