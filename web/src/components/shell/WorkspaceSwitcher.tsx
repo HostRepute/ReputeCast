@@ -7,7 +7,8 @@ import { Avatar } from '../ui/Avatar'
 
 const wsColors = ['#0F766E', '#1D4ED8', '#7C3AED', '#B45309', '#BE185D', '#047857']
 
-function wsColor(i: number) {
+/** The colour of a workspace's initials square, by its position in my list. */
+export function wsColor(i: number) {
   return wsColors[i % wsColors.length]!
 }
 
@@ -72,7 +73,7 @@ export function WorkspaceSwitcher() {
   )
 }
 
-function initials(name: string) {
+export function initials(name: string) {
   return name
     .split(/\s+/)
     .filter(Boolean)

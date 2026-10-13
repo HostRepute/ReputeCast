@@ -2,9 +2,11 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { DropdownMenu } from 'radix-ui'
 import { http } from '@/api/client'
+import { useMediaQuery } from '@/lib/hooks'
 import { useMe, useOptionalWorkspace } from '@/lib/session'
 import { Icon } from '../icons/Icon'
 import { Avatar } from '../ui/Avatar'
+import { initials, wsColor } from './WorkspaceSwitcher'
 
 /** Account menu: Account & security, notification preferences, settings, instance admin, sign out (ShellUserMenu). */
 export function UserMenu() {
@@ -12,6 +14,9 @@ export function UserMenu() {
   const ws = useOptionalWorkspace()
   const qc = useQueryClient()
   const navigate = useNavigate()
+  // The sidebar's workspace switcher is hidden on the icon rail and the
+  // bottom tab bar (≤1100px), so the menu lists the workspaces there.
+  const railed = useMediaQuery('(max-width: 1100px)')
   if (!me) return null
   const u = me.user
   const first = (u.name || u.email).split(/\s+/)[0]
@@ -43,6 +48,23 @@ export function UserMenu() {
             </span>
           </div>
           <DropdownMenu.Separator />
+          {railed && me.workspaces.length > 1 ? (
+            <DropdownMenu.Group aria-label="Your workspaces">
+              <DropdownMenu.Label className="mh">Your workspaces</DropdownMenu.Label>
+              {me.workspaces.map((w, i) => (
+                <DropdownMenu.Item key={w.id} asChild>
+                  <Link to="/w/$workspace" params={{ workspace: w.slug }} aria-current={w.slug === slug ? 'true' : undefined}>
+                    <span className="av" style={{ width: 20, height: 20, fontSize: 9, background: wsColor(i), color: '#fff', borderRadius: 5 }} aria-hidden="true">
+                      {initials(w.name)}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{w.name}</span>
+                    {w.slug === slug ? <Icon name="check" size={14} className="text-accent" /> : null}
+                  </Link>
+                </DropdownMenu.Item>
+              ))}
+              <DropdownMenu.Separator />
+            </DropdownMenu.Group>
+          ) : null}
           <DropdownMenu.Item asChild>
             <Link to="/w/$workspace/account" params={{ workspace: slug }}>
               <Icon name="user" />
