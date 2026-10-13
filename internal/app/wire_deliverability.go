@@ -37,7 +37,7 @@ func deliverabilityServices(a *App) (*hostrepute.Service, *deliverability.Servic
 	if cfg.IsDevelopment() {
 		// The Acme sample domains answer from the demo zone, so checks in
 		// the demo look like the design instead of failing on real DNS.
-		resolver = demo.DNSOverlay(resolver)
+		resolver = demo.DeliverabilityDNSOverlay(resolver)
 	}
 	jobs := lazyJobs{a}
 	hr := &hostrepute.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Cfg: cfg, Log: a.Log, Jobs: jobs}

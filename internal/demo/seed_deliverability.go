@@ -20,36 +20,36 @@ func init() { seedDeliverability = seedDeliverabilityImpl }
 // p=quarantine aligned on every provider, custom return paths, and the
 // Postal IP 203.0.113.25 with forward-confirmed reverse DNS mta.acme.io.
 var (
-	sesDKIMTokens = []string{"4fpa3xq7utjl2kdrmw5a3zvyxnoqbe2h", "w6c2fzl3ryq7h4dk5xg2qkzv7m3jp4xa", "kd7a2hx9pq3mzl4w5vbn8rt6yc2ej7fs"}
-	demoKey       = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA" + strings.Repeat("u3Zq8xN2pL7vR4kT9wY6bH1mC5", 13) + "IDAQAB"
-	postmarkSel   = "20260807pm"
-	postalSel     = "postal-x7kq2"
+	deliverabilitySESDKIMTokens = []string{"4fpa3xq7utjl2kdrmw5a3zvyxnoqbe2h", "w6c2fzl3ryq7h4dk5xg2qkzv7m3jp4xa", "kd7a2hx9pq3mzl4w5vbn8rt6yc2ej7fs"}
+	deliverabilityDemoKey       = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA" + strings.Repeat("u3Zq8xN2pL7vR4kT9wY6bH1mC5", 13) + "IDAQAB"
+	deliverabilityPostmarkSel   = "20260807pm"
+	deliverabilityPostalSel     = "postal-x7kq2"
 )
 
-// demoRecords are the records each provider requires for news.acme.io.
-func demoRecords(s *Seeder) []map[string]any {
+// deliverabilityDemoRecords are the records each provider requires for news.acme.io.
+func deliverabilityDemoRecords(s *Seeder) []map[string]any {
 	ses, postmark, postal := s.Providers["ses"].String(), s.Providers["postmark"].String(), s.Providers["postal"].String()
 	var out []map[string]any
 	rec := func(provider, purpose, typ, name, value string) {
 		out = append(out, map[string]any{"provider_id": provider, "purpose": purpose, "type": typ, "name": name, "value": value, "status": "verified"})
 	}
-	for _, t := range sesDKIMTokens {
+	for _, t := range deliverabilitySESDKIMTokens {
 		rec(ses, "dkim", "CNAME", t+"._domainkey.news.acme.io", t+".dkim.amazonses.com")
 	}
 	rec(ses, "return_path", "MX", "bounce.news.acme.io", "10 feedback-smtp.us-east-1.amazonses.com")
 	rec(ses, "spf", "TXT", "bounce.news.acme.io", "v=spf1 include:amazonses.com ~all")
-	rec(postmark, "dkim", "TXT", postmarkSel+"._domainkey.news.acme.io", "k=rsa; p="+demoKey)
+	rec(postmark, "dkim", "TXT", deliverabilityPostmarkSel+"._domainkey.news.acme.io", "k=rsa; p="+deliverabilityDemoKey)
 	rec(postmark, "return_path", "CNAME", "pm-bounces.news.acme.io", "pm.mtasv.net")
-	rec(postal, "dkim", "TXT", postalSel+"._domainkey.news.acme.io", "v=DKIM1; t=s; h=sha256; p="+demoKey)
+	rec(postal, "dkim", "TXT", deliverabilityPostalSel+"._domainkey.news.acme.io", "v=DKIM1; t=s; h=sha256; p="+deliverabilityDemoKey)
 	rec(postal, "return_path", "CNAME", "rp.news.acme.io", "rp.mta.acme.io")
 	rec(postal, "spf", "TXT", "news.acme.io", "ip4:203.0.113.25")
 	return out
 }
 
-// DNSZone answers the demo's DNS: the acme.io names, the provider names
+// DeliverabilityDNSZone answers the demo's DNS: the acme.io names, the provider names
 // they point to, and every built-in blocklist lookup of the demo assets
 // (not listed).
-func DNSZone() (*dnscheck.Zone, []string) {
+func DeliverabilityDNSZone() (*dnscheck.Zone, []string) {
 	z := dnscheck.NewZone()
 	z.Add("news.acme.io", "TXT", "v=spf1 include:amazonses.com include:spf.mtasv.net ip4:203.0.113.25 -all")
 	z.Add("news.acme.io", "MX", "10 mx.acme.io")
@@ -68,12 +68,12 @@ func DNSZone() (*dnscheck.Zone, []string) {
 	z.Add("rp.mta.acme.io", "TXT", "v=spf1 a:mta.acme.io -all")
 	z.Add("mta.acme.io", "A", "203.0.113.25")
 	z.Add("203.0.113.25", "PTR", "mta.acme.io.")
-	for _, t := range sesDKIMTokens {
+	for _, t := range deliverabilitySESDKIMTokens {
 		z.Add(t+"._domainkey.news.acme.io", "CNAME", t+".dkim.amazonses.com")
-		z.Add(t+".dkim.amazonses.com", "TXT", "p="+demoKey)
+		z.Add(t+".dkim.amazonses.com", "TXT", "p="+deliverabilityDemoKey)
 	}
-	z.Add(postmarkSel+"._domainkey.news.acme.io", "TXT", "k=rsa; p="+demoKey)
-	z.Add(postalSel+"._domainkey.news.acme.io", "TXT", "v=DKIM1; t=s; h=sha256; p="+demoKey)
+	z.Add(deliverabilityPostmarkSel+"._domainkey.news.acme.io", "TXT", "k=rsa; p="+deliverabilityDemoKey)
+	z.Add(deliverabilityPostalSel+"._domainkey.news.acme.io", "TXT", "v=DKIM1; t=s; h=sha256; p="+deliverabilityDemoKey)
 	owned := []string{"acme.io"}
 	for _, l := range dnscheck.Builtin {
 		for _, a := range []string{"news.acme.io", "203.0.113.25"} {
@@ -85,9 +85,9 @@ func DNSZone() (*dnscheck.Zone, []string) {
 	return z, owned
 }
 
-// DNSOverlay answers the demo names from DNSZone and everything else from r.
-func DNSOverlay(r dnscheck.Resolver) dnscheck.Resolver {
-	z, owned := DNSZone()
+// DeliverabilityDNSOverlay answers the demo names from DeliverabilityDNSZone and everything else from r.
+func DeliverabilityDNSOverlay(r dnscheck.Resolver) dnscheck.Resolver {
+	z, owned := DeliverabilityDNSZone()
 	return dnscheck.Overlay(z, owned, r)
 }
 
@@ -103,7 +103,7 @@ func seedDeliverabilityImpl(ctx context.Context, s *Seeder) error {
 
 	// The sending domain (the senders seeder may have created it already).
 	domainID, ok := s.Domains["news.acme.io"]
-	records, _ := json.Marshal(demoRecords(s))
+	records, _ := json.Marshal(deliverabilityDemoRecords(s))
 	if !ok {
 		auth := json.RawMessage(`{"spf":"pass","dkim":"pass","dmarc":"quarantine","bimi":"missing","return_path":"aligned"}`)
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO sending_domains (id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at)
@@ -118,7 +118,7 @@ func seedDeliverabilityImpl(ctx context.Context, s *Seeder) error {
 	}
 
 	// Local DNS checks, run for real against the demo zone.
-	z, owned := DNSZone()
+	z, owned := DeliverabilityDNSZone()
 	r := dnscheck.Overlay(z, owned, dnscheck.NewZone())
 	checked := s.Ago(65 * time.Minute).Truncate(time.Minute)
 	var dnsRecords json.RawMessage
