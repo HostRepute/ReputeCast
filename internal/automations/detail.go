@@ -226,8 +226,7 @@ func (s *Service) Stats(ctx context.Context, ws *store.Workspace, id uuid.UUID, 
 			ps.Provider, ps.Short = "Removed provider", "Removed"
 		}
 		ps.Fallback = route.Fallback != nil && route.Fallback.ID == p.ProviderID
-		day := p.LastDay
-		ps.LastDay = &day
+		ps.LastDay = p.LastDay.Format(time.DateOnly)
 		st.Providers = append(st.Providers, ps)
 	}
 	for _, n := range now {

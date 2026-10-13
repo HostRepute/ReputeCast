@@ -629,11 +629,10 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
               <input type="checkbox" checked={snap} onChange={(e) => setSnap(e.target.checked)} />
               Snap to grid
             </label>
-            <label title={reduced ? 'Motion is reduced in your system settings.' : undefined}>
+            <label title={reduced ? 'Your system asks for reduced motion, so the flow stays still.' : undefined}>
               <input
                 type="checkbox"
-                checked={animate && !reduced}
-                disabled={reduced}
+                checked={animate}
                 onChange={(e) => {
                   setAnimate(e.target.checked)
                   writeAnimatePref(e.target.checked)

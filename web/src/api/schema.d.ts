@@ -990,7 +990,10 @@ export interface components {
         };
         AutomationProviderSends: {
             fallback: boolean;
-            /** Format: date-time */
+            /**
+             * Format: date
+             * @example 2026-10-02
+             */
             lastDay?: string;
             provider: string;
             providerId: string;

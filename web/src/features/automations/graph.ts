@@ -395,23 +395,24 @@ export interface EdgeGeometry {
 /**
  * Orthogonal edges like the board: a straight drop when the steps line up,
  * otherwise down from the source, across on a bus line, and down into the
- * target. Fork buses sit 24px (branch) or 22px (split) under the source step,
- * merge buses 18px above the target step. sx/sy and tx/ty are the handle
- * points (5px outside each step).
+ * target. sx/sy and tx/ty are the handle points (5px outside each step).
  */
 export function edgeGeometry(sx: number, sy: number, tx: number, ty: number, kind: 'branch' | 'split' | 'merge' | 'plain'): EdgeGeometry {
   if (Math.abs(sx - tx) < 0.5) {
     return { path: `M${sx},${sy} L${tx},${ty}`, length: Math.abs(ty - sy) }
   }
+  // The board draws a bus as a 2px bar whose top is 24px (branch) or 22px
+  // (split) under the step, or 18px above the merge target: its centre line
+  // is 1px lower.
   let busY: number
-  if (kind === 'branch') busY = sy - 5 + 24
-  else if (kind === 'split') busY = sy - 5 + 22
-  else if (kind === 'merge') busY = ty + 5 - 18
+  if (kind === 'branch') busY = sy - 5 + 25
+  else if (kind === 'split') busY = sy - 5 + 23
+  else if (kind === 'merge') busY = ty + 5 - 17
   else busY = (sy + ty) / 2
   busY = Math.min(Math.max(busY, Math.min(sy, ty)), Math.max(sy, ty))
   const length = Math.abs(busY - sy) + Math.abs(tx - sx) + Math.abs(ty - busY)
   const out: EdgeGeometry = { path: `M${sx},${sy} L${sx},${busY} L${tx},${busY} L${tx},${ty}`, length, busY }
-  if (kind === 'branch' || kind === 'split') out.label = { x: tx + (kind === 'branch' ? 14 : 8), y: busY - 11 }
+  if (kind === 'branch' || kind === 'split') out.label = { x: tx + (kind === 'branch' ? 14 : 8), y: busY - 12 }
   return out
 }
 
@@ -505,7 +506,8 @@ export function timeline(g: FlowGraph, boxes: Map<string, Box>, shares?: Map<str
       if (Math.abs(sx - tx) < 0.5) segs.push([sx, sy, tx, ty])
       else {
         const geo = edgeGeometry(sx, sy + 5, tx, ty - 5, kind)
-        const busY = geo.busY!
+        // The board's pulses run along the top of the bus bar.
+        const busY = geo.busY! - 1
         segs.push([sx, sy, sx, busY], [sx, busY, tx, busY], [tx, busY, tx, ty])
       }
       let clock = leave

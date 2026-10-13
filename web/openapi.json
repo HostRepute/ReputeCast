@@ -1237,7 +1237,10 @@
             "type": "boolean"
           },
           "lastDay": {
-            "format": "date-time",
+            "examples": [
+              "2026-10-02"
+            ],
+            "format": "date",
             "type": "string"
           },
           "provider": {

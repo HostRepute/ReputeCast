@@ -208,6 +208,13 @@
   gap: 6px;
   font-size: 12.5px;
 }
+/* The board's checkboxes keep the browser's default margins, and next to a
+   long label they give way a little, as there. */
+.fe-tools input[type='checkbox'],
+.fe-chk input[type='checkbox'] {
+  margin: 3px 3px 3px 4px;
+  flex: 0 1 auto;
+}
 
 /* Canvas */
 .fe-canvas {
@@ -393,6 +400,8 @@
   stroke: #9aa3b2;
   stroke-width: 2;
   fill: none;
+  /* Square lines on whole pixels, like the board's 2px bars. */
+  shape-rendering: crispEdges;
 }
 .fe-canvas .react-flow__edge.selected .fe-edge,
 .fe-canvas .react-flow__edge:focus-visible .fe-edge {

@@ -29,15 +29,16 @@ describe('edge geometry', () => {
   it('drops straight when steps line up', () => {
     expect(edgeGeometry(482, 131, 482, 139, 'plain')).toEqual({ path: 'M482,131 L482,139', length: 8 })
   })
-  it('routes a branch path along a bus 24px under the step, label at the drop', () => {
+  it('routes a branch path along the bus bar of the board (top 24px under the step), label at the drop', () => {
     const geo = edgeGeometry(482, 482, 262, 526, 'branch')
-    expect(geo.busY).toBe(501)
+    // Bar 501–503: its centre line is 502.
+    expect(geo.busY).toBe(502)
     expect(geo.label).toEqual({ x: 276, y: 490 })
-    expect(geo.path).toBe('M482,482 L482,501 L262,501 L262,526')
+    expect(geo.path).toBe('M482,482 L482,502 L262,502 L262,526')
   })
-  it('puts split buses 22px under the step and merges 18px above the target', () => {
-    expect(edgeGeometry(262, 777, 142, 811, 'split')).toMatchObject({ busY: 794, label: { x: 150, y: 783 } })
-    expect(edgeGeometry(142, 899, 262, 927, 'merge').busY).toBe(914)
+  it('puts split bars 22px under the step and merge bars 18px above the target', () => {
+    expect(edgeGeometry(262, 777, 142, 811, 'split')).toMatchObject({ busY: 795, label: { x: 150, y: 783 } })
+    expect(edgeGeometry(142, 899, 262, 927, 'merge').busY).toBe(915)
   })
   it('classifies edges', () => {
     const g = welcomeV4()

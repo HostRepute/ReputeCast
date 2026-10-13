@@ -108,11 +108,11 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
                 pr.fallback ? (
                   <span key={pr.providerId} className="badge mut">
                     <span className="dot" style={{ color: providerColors[adapterOf(v, pr.providerId)] ?? 'var(--ink-3)' }} aria-hidden="true" />
-                    {pr.short} {n(pr.sent)} · failover
+                    {pr.short} <span>{n(pr.sent)}</span> · failover
                   </span>
                 ) : (
                   <span key={pr.providerId} className="badge pur">
-                    {pr.short} {n(pr.sent)}
+                    {pr.short} <span>{n(pr.sent)}</span>
                   </span>
                 ),
               )}

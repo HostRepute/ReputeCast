@@ -417,7 +417,7 @@ type AutomationProviderSends struct {
 	// Fallback is true for the Automations route's fallback provider.
 	Fallback bool `json:"fallback"`
 	// LastDay is the last day it sent in the window.
-	LastDay *time.Time `json:"lastDay,omitempty"`
+	LastDay string `json:"lastDay,omitempty" format:"date" example:"2026-10-02"`
 }
 
 // AutomationGoalCount is goals reached by one flow.
@@ -504,8 +504,7 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace, days int) (A
 			ps.Provider, ps.Short = "Removed provider", "Removed"
 		}
 		ps.Fallback = route.Fallback != nil && route.Fallback.ID == sd.ProviderID
-		day := sd.LastDay
-		ps.LastDay = &day
+		ps.LastDay = sd.LastDay.Format(time.DateOnly)
 		out.Sent += sd.N
 		out.SentBy = append(out.SentBy, ps)
 	}

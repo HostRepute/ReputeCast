@@ -294,7 +294,7 @@ func seedAutomationsImpl(ctx context.Context, s *Seeder) error {
 		{a: welcome, v: 3, node: "w1", from: 12, c: autoCounters{"entered": 1284, "completed": 1284, "failed": 1284}},
 		{a: welcome, v: 3, node: "n2", from: 12, c: autoCounters{"entered": 1284, "completed": 1284, "waiting": 1284}},
 		{a: welcome, v: 3, node: "n3", from: 12, c: autoCounters{"entered": 1284, "completed": 1284, "sent": 1276, "skipped": 8, "delivered": 1267, "bounced": 6, "opened": 958, "opened_human": 775, "clicked": 177},
-			providers: map[string]int64{ses: 1266}, extraProviders: []autoDayProvider{{provider: postmark, n: 10, day: 10}}},
+			providers: map[string]int64{ses: 1266}, extraProviders: []autoDayProvider{{provider: postmark, n: 10, day: 4}}},
 		{a: welcome, v: 3, node: "n4", from: 12, c: autoCounters{"entered": 1284, "completed": 1276, "waiting": 1284, "branch_yes": 778, "branch_no": 498}, paths: map[string]int64{"yes": 778, "no": 498}},
 		{a: welcome, v: 3, node: "n5", from: 11, c: autoCounters{"entered": 778, "completed": 778, "waiting": 778}},
 		{a: welcome, v: 3, node: "n6", from: 10, c: autoCounters{"entered": 778, "completed": 778, "sent": 778, "delivered": 773, "bounced": 3, "opened": 560, "opened_human": 441, "clicked": 147},
@@ -590,18 +590,18 @@ func autoOnboardingStats(a uuid.UUID, ses string) []autoNodeStats {
 	}
 	return []autoNodeStats{
 		mk("n1", 29, autoCounters{"entered": 906, "completed": 906}, 0),
-		mk("n2", 29, autoEmailCounters(906, 902, 0.62, 0.21), 902),
+		mk("n2", 29, autoEmailCounters(906, 902, 0.595, 0.048), 902),
 		mk("n3", 28, autoCounters{"entered": 902, "completed": 806, "waiting": 902}, 0),
-		mk("n4", 28, autoEmailCounters(806, 801, 0.58, 0.19), 801),
+		mk("n4", 28, autoEmailCounters(806, 801, 0.58, 0.043), 801),
 		mk("n5", 28, autoCounters{"entered": 806, "completed": 806, "failed": 4}, 0),
 		{a: a, v: v, node: "n6", from: 27, c: autoCounters{"entered": 806, "completed": 663, "waiting": 806, "branch_yes": 452, "branch_no": 211}, paths: map[string]int64{"yes": 452, "no": 211}},
-		mk("n7", 26, autoEmailCounters(452, 449, 0.57, 0.18), 449),
-		mk("n8", 25, autoEmailCounters(211, 210, 0.41, 0.09), 210),
+		mk("n7", 26, autoEmailCounters(452, 449, 0.57, 0.041), 449),
+		mk("n8", 25, autoEmailCounters(211, 210, 0.41, 0.02), 210),
 		mk("n9", 25, autoCounters{"entered": 663, "completed": 542, "waiting": 663}, 0),
-		mk("n10", 24, autoEmailCounters(542, 539, 0.52, 0.31), 539),
+		mk("n10", 24, autoEmailCounters(542, 539, 0.52, 0.07), 539),
 		mk("n11", 24, autoCounters{"entered": 542, "completed": 542, "failed": 2}, 0),
 		mk("n12", 24, autoCounters{"entered": 542, "completed": 461, "waiting": 542}, 0),
-		mk("n13", 22, autoEmailCounters(461, 458, 0.49, 0.12), 458),
+		mk("n13", 22, autoEmailCounters(461, 458, 0.49, 0.027), 458),
 		{a: a, v: v, node: "n14", from: 29, c: autoCounters{"entered": 643, "goal_reached": 123, "exited": 299},
 			split: map[string][2]int{"goal_reached": {29, 7}}},
 		// The last week's goals, on top of the earlier ones (KPI "onboarding 221").
@@ -613,7 +613,10 @@ func autoReengagementStats(a uuid.UUID, ses string) []autoNodeStats {
 	const v = 2
 	return []autoNodeStats{
 		{a: a, v: v, node: "n1", from: 29, c: autoCounters{"entered": 4811, "completed": 4811}},
-		{a: a, v: v, node: "n2", from: 29, c: autoEmailCounters(4811, 4797, 0.142, 0.031), providers: map[string]int64{ses: 4797}},
+		// Most "still want these?" emails went out when the Sunset tier was first
+		// assigned; the last week is a trickle (the KPI row: 51.3% human opens).
+		{a: a, v: v, node: "n2", from: 29, to: 7, c: autoEmailCounters(4585, 4571, 0.1415, 0.031), providers: map[string]int64{ses: 4571}},
+		{a: a, v: v, node: "n2", from: 6, c: autoEmailCounters(226, 226, 0.15, 0.031), providers: map[string]int64{ses: 226}},
 		{a: a, v: v, node: "n3", from: 29, c: autoCounters{"entered": 4811, "completed": 3993, "waiting": 4811, "branch_yes": 885, "branch_no": 3108}, paths: map[string]int64{"yes": 885, "no": 3108}},
 		{a: a, v: v, node: "n4", from: 29, c: autoCounters{"entered": 885, "goal_reached": 814}, split: map[string][2]int{"goal_reached": {29, 7}}},
 		{a: a, v: v, node: "n4", from: 6, c: autoCounters{"goal_reached": 71}},
