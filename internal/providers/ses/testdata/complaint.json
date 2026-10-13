@@ -1,0 +1,17 @@
+{
+  "notificationType": "Complaint",
+  "complaint": {
+    "complainedRecipients": [{ "emailAddress": "m.g@yahoo.com" }],
+    "timestamp": "2026-10-12T13:40:49.000Z",
+    "feedbackId": "0100018f2b4d5c6e-complaint",
+    "userAgent": "Yahoo!-Mail-Feedback/2.0",
+    "complaintFeedbackType": "abuse"
+  },
+  "mail": {
+    "timestamp": "2026-10-11T09:00:00.000Z",
+    "source": "news@news.acme.io",
+    "messageId": "0100018f2b4d5c6e-22222222-0d1e-4f2a-8b3c-4d5e6f7a8b9c-000000",
+    "destination": ["m.g@yahoo.com"],
+    "tags": {}
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "RecordType": "Bounce",
+  "MessageStream": "outbound",
+  "ID": 4323372036854775807,
+  "Type": "HardBounce",
+  "TypeCode": 1,
+  "Name": "Hard bounce",
+  "Tag": "",
+  "MessageID": "9a3f1c00-6105-42a2-a16a-77a8eac79483",
+  "Metadata": {
+    "rc_message": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e41"
+  },
+  "ServerID": 23,
+  "Description": "The server was unable to deliver your message (ex: unknown user, mailbox not found).",
+  "Details": "smtp;550 5.1.1 The email account that you tried to reach does not exist.",
+  "Email": "John@example.com",
+  "From": "news@news.acme.io",
+  "BouncedAt": "2026-10-12T13:41:02.0000000Z",
+  "DumpAvailable": true,
+  "Inactive": true,
+  "CanActivate": true,
+  "Subject": "Weekly Digest #142",
+  "Content": null
+}

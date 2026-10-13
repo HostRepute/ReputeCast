@@ -47,10 +47,17 @@ type Capabilities struct {
 	DomainAPI       string     `json:"domainApi"` // "full", "dkim_only", ""
 	SuppressionSync bool       `json:"suppressionSync"`
 	BatchSize       int        `json:"batchSize"` // messages per API call; 1 = no batching
-	DedicatedIPs    string     `json:"dedicatedIps"`
-	Sandbox         string     `json:"sandbox"` // "detection", "test token", "mode", ""
-	QuotaDiscovery  bool       `json:"quotaDiscovery"`
-	Pricing         string     `json:"pricing"` // human summary: "$0.10 per 1,000"
+	// DedicatedIPs is the dedicated-IP option as capability badges and
+	// Deliverability show it ("optional, $24.95 per IP per month", "from
+	// 300k per month"); "" when the provider offers none. A connection on a
+	// dedicated IP (providers.ip_mode) shows as "Dedicated IP" instead.
+	DedicatedIPs   string `json:"dedicatedIps"`
+	Sandbox        string `json:"sandbox"` // "detection", "test token", "mode", ""
+	QuotaDiscovery bool   `json:"quotaDiscovery"`
+	// RateDiscovery is true when the API also reports the maximum send rate
+	// (SES: "Quota & rate discovery"; Postmark only reports quota).
+	RateDiscovery bool   `json:"rateDiscovery"`
+	Pricing       string `json:"pricing"` // human summary: "$0.10 per 1,000"
 	// RewritesLinks / AddsOpenPixel are true when provider-side tracking is
 	// on by default and should be turned off to avoid double tracking.
 	RewritesLinks bool `json:"rewritesLinks"`
@@ -229,7 +236,26 @@ type Descriptor struct {
 	Maintainer   string       `json:"maintainer"`
 	// Fields lists what the connection step asks for.
 	Fields []Field `json:"fields"`
-	New    func(Config) (Provider, error)
+	// Terms summarizes what the provider's terms allow, per account variant
+	// (Postmark: Transactional and Broadcast streams). Shown on the routing
+	// screen and used by Send Readiness.
+	Terms []Terms `json:"terms,omitempty"`
+	// Events, DomainSetup and SuppressionSync describe the adapter on the
+	// Adapters tab ("SNS webhooks", "API", "Two-way").
+	Events          string `json:"events,omitempty"`
+	DomainSetup     string `json:"domainSetup,omitempty"`
+	SuppressionMode string `json:"suppressionMode,omitempty"`
+	New             func(Config) (Provider, error)
+}
+
+// Terms is what one variant of a provider account may be used for.
+type Terms struct {
+	// Variant names the account kind ("Transactional stream"); empty for the
+	// provider as a whole.
+	Variant string     `json:"variant,omitempty"`
+	Bulk    BulkPolicy `json:"bulk"`
+	Note    string     `json:"note"`
+	Streams []Stream   `json:"streams"`
 }
 
 // Field is one input of a provider's connection form.

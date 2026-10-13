@@ -1,0 +1,19 @@
+{
+  "eventType": "Delivery",
+  "mail": {
+    "timestamp": "2026-10-12T13:40:56.000Z",
+    "source": "news@news.acme.io",
+    "messageId": "0100018f2b4d5c6e-11111111-0d1e-4f2a-8b3c-4d5e6f7a8b9c-000000",
+    "destination": ["a.k@gmail.com"],
+    "tags": {
+      "rc_message": ["0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e61"]
+    }
+  },
+  "delivery": {
+    "timestamp": "2026-10-12T13:40:58.000Z",
+    "processingTimeMillis": 1820,
+    "recipients": ["a.k@gmail.com"],
+    "smtpResponse": "250 2.0.0 OK 1760276458 ly5si31746220wjb.95 - gsmtp",
+    "reportingMTA": "gmail-smtp-in.l.google.com"
+  }
+}
