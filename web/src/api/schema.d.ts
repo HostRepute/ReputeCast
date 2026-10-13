@@ -1921,6 +1921,7 @@ export interface components {
         AuditEventItem: {
             action: string;
             actor: components["schemas"]["AuditActor"];
+            changes: boolean;
             id: string;
             /** Format: date-time */
             occurredAt: string;

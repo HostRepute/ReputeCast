@@ -58,7 +58,7 @@ func seedAuditImpl(ctx context.Context, s *Seeder) error {
 			meta: m("summary", "subscribers:create · Weekly Digest only · no expiry", "target", "API key “Website signup form”", "permission", "apikeys:manage")},
 		{at: s.Ago(10*time.Minute + 12*time.Second), actorType: "mcp_agent", actor: "Claude — analytics", action: "report.read", targetType: "campaign", targetID: camp("October Product Update"), target: "October Product Update",
 			ip: "203.0.113.9", ua: uaClaude, meta: m("summary", "MCP agent “Claude — analytics” · tool get_campaign_report", "tool", "get_campaign_report", "source", "mcp", "via", "rc_agent_7a…c2",
-				"outcome", "October Product Update: 99.1% delivered, 41.2% human opens, 6.3% clicks", "permission", "reports:view")},
+				"outcome", "October Product Update · full report read", "permission", "reports:view")},
 		{at: s.Ago(23*time.Minute + 30*time.Second), actorType: "mcp_agent", actor: "Ops agent", action: "campaign.resumed", targetType: "campaign", targetID: camp("October Product Update"), target: "October Product Update",
 			result: "denied", reason: "missing campaigns:send", ip: "10.0.7.3", ua: "ops-runbook/2.3 (mcp-go)",
 			meta: m("summary", "MCP agent “Ops agent” · tool resume_campaign", "tool", "resume_campaign", "source", "mcp", "via", "rc_agent_e0…44",
@@ -68,11 +68,11 @@ func seedAuditImpl(ctx context.Context, s *Seeder) error {
 		{at: s.Ago(25*time.Minute + 50*time.Second), actorType: "mcp_agent", actor: "Ops agent", action: "campaign.paused", targetType: "campaign", targetID: camp("October Product Update"), target: "October Product Update",
 			ip: "10.0.7.3", ua: "ops-runbook/2.3 (mcp-go)", before: map[string]any{"status": "sending"}, after: map[string]any{"status": "paused"},
 			meta: m("summary", "MCP agent “Ops agent” · tool pause_campaign", "tool", "pause_campaign", "source", "mcp", "via", "rc_agent_e0…44", "detail", "Outlook route",
-				"note", "campaigns:pause", "outcome", "Paused October Product Update · Outlook route · complaints 0.18%", "permission", "campaigns:pause")},
+				"note", "campaigns:pause", "outcome", "Paused October Product Update on the Outlook route · complaint rate 0.18%", "permission", "campaigns:pause")},
 		{at: s.Ago(26*time.Minute + 30*time.Second), actorType: "mcp_agent", actor: "Ops agent", action: "provider.health_read", targetType: "provider", target: "All providers",
 			ip: "10.0.7.3", ua: "ops-runbook/2.3 (mcp-go)",
 			meta: m("summary", "MCP agent “Ops agent” · tool get_provider_health", "tool", "get_provider_health", "source", "mcp", "via", "rc_agent_e0…44",
-				"outcome", "All providers · Postal warming up · SES and Postmark healthy", "permission", "providers:view")},
+				"outcome", "All providers · Postal degraded, SES and Postmark healthy", "permission", "providers:view")},
 		{at: s.Ago(54*time.Minute + 50*time.Second), actorType: "user", actor: "aisha@acme.io", action: "subscribers.export", targetType: "contacts", target: "Contacts",
 			result: "denied", reason: "missing subscribers:export", ip: "198.51.100.77", ua: uaSafariMac,
 			meta: m("target", "Contacts · 48,213 rows", "permission", "subscribers:export")},
@@ -104,7 +104,7 @@ func seedAuditImpl(ctx context.Context, s *Seeder) error {
 		// Mon 6 Oct.
 		{at: s.designDay(6, 8, 2), actorType: "mcp_agent", actor: "Claude — analytics", action: "deliverability.read", targetType: "sending_domain", target: "news.acme.io",
 			ip: "203.0.113.9", ua: uaClaude, meta: m("summary", "MCP agent “Claude — analytics” · tool get_deliverability", "tool", "get_deliverability", "source", "mcp", "via", "rc_agent_7a…c2",
-				"outcome", "news.acme.io · clean on 80+ blocklists · Postmaster high", "permission", "deliverability:view")},
+				"outcome", "news.acme.io · clean on 84 blocklists · Postmaster high", "permission", "deliverability:view")},
 	}
 	for _, e := range events {
 		if err := s.insertAudit(ctx, ws.ID, e); err != nil {

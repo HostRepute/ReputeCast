@@ -89,6 +89,9 @@ type AuditEventItem struct {
 	Result    string      `json:"result" enum:"allowed,denied,error"`
 	Reason    string      `json:"reason,omitempty"`
 	RequestID string      `json:"requestId,omitempty"`
+	// Changes tells that the entry changed an existing object: it has both a
+	// before and an after to compare.
+	Changes bool `json:"changes"`
 }
 
 // AuditEventList is one page of the log.
@@ -334,7 +337,9 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, f Filter) (Audi
 			out.NextCursor = encodeCursor(last.OccurredAt, last.ID)
 			break
 		}
-		out.Items = append(out.Items, item(r.ID, r.OccurredAt, r.ActorType, r.ActorID, r.ActorName, r.ActorColor, r.ActorRole, r.Action, r.TargetType, r.TargetID, r.TargetName, r.Result, r.Reason, ipString(r.Ip), r.RequestID, r.Metadata, nil, nil))
+		it := item(r.ID, r.OccurredAt, r.ActorType, r.ActorID, r.ActorName, r.ActorColor, r.ActorRole, r.Action, r.TargetType, r.TargetID, r.TargetName, r.Result, r.Reason, ipString(r.Ip), r.RequestID, r.Metadata, nil, nil)
+		it.Changes = r.HasChanges
+		out.Items = append(out.Items, it)
 	}
 	if out.Total, err = s.Q.AuditLogCount(ctx, &ws.ID); err != nil {
 		return AuditEventList{}, err
@@ -519,9 +524,9 @@ func Describe(action, targetType, targetName string) string {
 	if v == "" {
 		v = strings.ToUpper(verb[:1]) + strings.ReplaceAll(verb[1:], "_", " ")
 	}
-	obj := strings.ReplaceAll(targetType, "_", " ")
+	obj := TypeLabel(targetType, false)
 	if obj == "" {
-		obj = strings.ReplaceAll(noun, "_", " ")
+		obj = TypeLabel(noun, false)
 	}
 	if targetName != "" {
 		if targetType == "routing_rule" {
@@ -530,6 +535,23 @@ func Describe(action, targetType, targetName string) string {
 		return fmt.Sprintf("%s %s %s", v, obj, quoteName(targetName))
 	}
 	return fmt.Sprintf("%s %s", v, obj)
+}
+
+// acronyms keep their case in type names: api_key → "API key".
+var acronyms = map[string]string{"api": "API", "mcp": "MCP", "sso": "SSO", "dns": "DNS", "smtp": "SMTP", "ip": "IP", "url": "URL"}
+
+// TypeLabel turns a target type into words: "routing_rule" → "routing rule"
+// ("Routing rule" with capital), "api_key" → "API key".
+func TypeLabel(t string, capital bool) string {
+	words := strings.FieldsFunc(t, func(r rune) bool { return r == '_' || r == '-' })
+	for i, w := range words {
+		if a, ok := acronyms[strings.ToLower(w)]; ok {
+			words[i] = a
+		} else if i == 0 && capital {
+			words[i] = strings.ToUpper(w[:1]) + w[1:]
+		}
+	}
+	return strings.Join(words, " ")
 }
 
 func quoteName(n string) string {

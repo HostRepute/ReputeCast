@@ -22,6 +22,7 @@ type eventList struct {
 		ID, Action, Target, Summary, Result, Reason, RequestID string
 		Actor                                                  struct{ Type, Name, Label, Role string }
 		Source                                                 struct{ Channel, Detail string }
+		Changes                                                bool
 	}
 	NextCursor   string
 	Total        int64
@@ -75,8 +76,8 @@ func TestAuditLog(t *testing.T) {
 		t.Fatalf("agent events: %d", len(l.Items))
 	}
 	c.Do("GET", ws+"/audit?q=req_8c1f2a9d", nil).MustStatus(t, 200).JSON(t, &l)
-	if len(l.Items) != 1 {
-		t.Fatalf("request id search: %d", len(l.Items))
+	if len(l.Items) != 1 || !l.Items[0].Changes {
+		t.Fatalf("request id search: %+v", l.Items)
 	}
 	c.Do("GET", ws+"/audit?action=routing&range=all", nil).MustStatus(t, 200).JSON(t, &l)
 	if len(l.Items) != 2 {
@@ -196,5 +197,13 @@ func TestDiffAndFormat(t *testing.T) {
 	}
 	if got := auditlog.Describe("member.role_changed", "member", "Aisha Bello"); got != "Changed the role of member “Aisha Bello”" {
 		t.Fatalf("describe: %q", got)
+	}
+	if got := auditlog.Describe("apikey.created", "api_key", "Website signup form"); got != "Created API key “Website signup form”" {
+		t.Fatalf("describe a key: %q", got)
+	}
+	for in, want := range map[string]string{"routing_rule": "Routing rule", "api_key": "API key", "mcp_agent": "MCP agent", "sso_provider": "SSO provider"} {
+		if got := auditlog.TypeLabel(in, true); got != want {
+			t.Fatalf("type label %s: %q", in, got)
+		}
 	}
 }

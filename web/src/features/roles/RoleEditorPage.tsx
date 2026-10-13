@@ -197,7 +197,7 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
   const groups = list.groups.map((g) => ({ g, rows: catalog.filter((p) => p.group === g) })).filter((x) => x.rows.length > 0)
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-5 max-[1100px]:grid-cols-1">
+    <div className="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-5 max-md:grid-cols-1">
       <div className="col gap-5">
         {saved && role && !dirty ? (
           <Note tone="ok" label="Saved">
@@ -344,7 +344,7 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
           <div className="h-2" />
         </section>
       </div>
-      <section className="card min-[1101px]:sticky min-[1101px]:top-4" aria-labelledby="impact-h">
+      <section className="card md:sticky md:top-4" aria-labelledby="impact-h">
         <div className="sec">
           <h2 className="h2" id="impact-h">
             Impact preview
@@ -432,7 +432,7 @@ function ImpactValues({ role, impact, readOnly }: { role?: Role; impact?: Impact
 
 function EditorSkeleton() {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-5 max-[1100px]:grid-cols-1" aria-busy="true">
+    <div className="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-5 max-md:grid-cols-1" aria-busy="true">
       <span className="vh" role="status">
         Loading the role
       </span>

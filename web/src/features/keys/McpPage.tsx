@@ -122,7 +122,7 @@ function ConnectCard({ o }: { o: Overview }) {
   ].join('\n')
   return (
     <section className="card flex flex-wrap items-start gap-5 px-5 py-4.5" aria-labelledby="mcp-h">
-      <div className="flex flex-[1_1_380px] flex-col gap-2.5">
+      <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-2.5">
         <h2 className="h2" id="mcp-h">
           Let AI agents work in this workspace, with limits
         </h2>
@@ -147,7 +147,7 @@ function ConnectCard({ o }: { o: Overview }) {
           </span>
         </label>
       </div>
-      <div className="flex flex-[1_1_380px] flex-col gap-2">
+      <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-2">
         <span className="k">Connect from Claude Desktop, Claude Code or any MCP client</span>
         <pre className="pre" aria-label="Client configuration">
           {snippet}
@@ -418,13 +418,13 @@ function McpSkeleton() {
         Loading the MCP server settings
       </span>
       <section className="card flex flex-wrap gap-5 px-5 py-4.5">
-        <div className="flex flex-[1_1_380px] flex-col gap-3">
+        <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-3">
           <Skeleton w="70%" h={16} />
           <Skeleton w="95%" h={12} />
           <Skeleton h={36} />
           <Skeleton h={36} />
         </div>
-        <Skeleton className="flex-[1_1_380px]" h={170} r={8} />
+        <Skeleton className="min-w-0 flex-[1_1_380px]" h={170} r={8} />
       </section>
       <section className="card">
         <TableSkeleton rows={2} label="Loading the agents" />

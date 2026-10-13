@@ -7,7 +7,6 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { CardSection } from '@/components/ui/Card'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { KeyValues } from '@/components/ui/Data'
-import { Grid } from '@/components/ui/Layout'
 import { toast } from '@/components/ui/Toast'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { andList, count } from '@/lib/format'
@@ -15,6 +14,12 @@ import { useWorkspace, workspaceMeKey } from '@/lib/session'
 import { DeleteWorkspaceDialog } from './DeleteWorkspaceDialog'
 import { TransferDialog } from './TransferDialog'
 import { timezoneOptions } from './timezones'
+
+/**
+ * Cards at least 460px wide; on phones the board lays them out two by two
+ * (its narrow-screen rule: columns of at least 140px).
+ */
+const cardGrid = 'grid items-start gap-5 [&>*]:min-w-0 grid-cols-[repeat(auto-fit,minmax(min(460px,100%),1fr))] max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]'
 
 /** Settings › General (WorkspaceSettings, WorkspaceDialogs). */
 export function GeneralPage() {
@@ -40,7 +45,7 @@ function General({ s }: { s: Schemas['WorkspaceSettings'] }) {
   const [del, setDel] = useState(false)
   const ownerOnly = 'Only the Owner can do this.'
   return (
-    <Grid min={460} gap={20} className="items-start">
+    <div className={cardGrid}>
       {/* Saved values come back from the server; remounting resets the form to them. */}
       <WorkspaceCard key={`${s.name}|${s.timezone}|${s.defaultSenderId ?? ''}`} s={s} />
       <ApprovalsCard s={s} />
@@ -73,7 +78,7 @@ function General({ s }: { s: Schemas['WorkspaceSettings'] }) {
       </section>
       {transfer ? <TransferDialog settings={s} open onOpenChange={setTransfer} /> : null}
       {del ? <DeleteWorkspaceDialog settings={s} open onOpenChange={setDel} /> : null}
-    </Grid>
+    </div>
   )
 }
 
@@ -242,7 +247,7 @@ function MembersCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
 
 function GeneralSkeleton() {
   return (
-    <Grid min={460} gap={20} className="items-start" aria-busy="true">
+    <div className={cardGrid} aria-busy="true">
       <span className="vh" role="status">
         Loading the workspace settings
       </span>
@@ -261,6 +266,6 @@ function GeneralSkeleton() {
           </div>
         </section>
       ))}
-    </Grid>
+    </div>
   )
 }

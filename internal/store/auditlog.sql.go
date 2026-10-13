@@ -289,7 +289,8 @@ const auditLogList = `-- name: AuditLogList :many
 
 SELECT e.id, e.workspace_id, e.occurred_at, e.actor_type, e.actor_id, e.actor_name, e.action, e.target_type, e.target_id,
        e.target_name, e.result, e.reason, e.ip, e.user_agent, e.request_id, e.metadata,
-       coalesce(u.avatar_color, '')::text AS actor_color, coalesce(r.name, '')::text AS actor_role
+       coalesce(u.avatar_color, '')::text AS actor_color, coalesce(r.name, '')::text AS actor_role,
+       (e.before IS NOT NULL AND e.after IS NOT NULL)::boolean AS has_changes
 FROM audit_events e
 LEFT JOIN users u ON e.actor_type = 'user' AND u.id = e.actor_id
 LEFT JOIN workspace_members m ON e.actor_type = 'user' AND m.workspace_id = e.workspace_id AND m.user_id = e.actor_id
@@ -343,6 +344,7 @@ type AuditLogListRow struct {
 	Metadata    json.RawMessage `json:"metadata"`
 	ActorColor  string          `json:"actorColor"`
 	ActorRole   string          `json:"actorRole"`
+	HasChanges  bool            `json:"hasChanges"`
 }
 
 // Workspace audit log views, export and stream (W03). The instance-level
@@ -387,6 +389,7 @@ func (q *Queries) AuditLogList(ctx context.Context, arg AuditLogListParams) ([]A
 			&i.Metadata,
 			&i.ActorColor,
 			&i.ActorRole,
+			&i.HasChanges,
 		); err != nil {
 			return nil, err
 		}

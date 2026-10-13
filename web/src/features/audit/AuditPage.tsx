@@ -58,6 +58,8 @@ export function AuditPage({ search }: { search: AuditSearch }) {
   })
   const first = q.data?.pages[0]
   const items = q.data?.pages.flatMap((p) => p.items) ?? []
+  // Without a pick, the panel shows the latest entry that changed something (as on the board).
+  const selected = search.event ?? items.find((i) => i.changes)?.id
   return (
     <Page title="Settings" tabs={settingsTabs(slug)}>
       {!can ? (
@@ -67,7 +69,7 @@ export function AuditPage({ search }: { search: AuditSearch }) {
       ) : (
         <>
           <TopBar list={first} filters={filters} />
-          <div className="grid grid-cols-[minmax(0,1fr)_380px] items-start gap-5 max-[1100px]:grid-cols-1">
+          <div className="grid grid-cols-[minmax(0,1fr)_380px] items-start gap-5 max-md:grid-cols-1">
             <section className="card" aria-labelledby="ev-h">
               <div className="sec">
                 <div className="flex min-w-0 flex-col gap-0.5">
@@ -111,7 +113,7 @@ export function AuditPage({ search }: { search: AuditSearch }) {
                           </span>
                         </EmptyRow>
                       ) : (
-                        items.map((it) => <EventRow key={it.id} it={it} selected={it.id === search.event} search={search} />)
+                        items.map((it) => <EventRow key={it.id} it={it} selected={it.id === selected} search={search} />)
                       )}
                     </tbody>
                   </AccessTable>
@@ -125,7 +127,7 @@ export function AuditPage({ search }: { search: AuditSearch }) {
                 </>
               )}
             </section>
-            <Detail id={search.event} />
+            <Detail id={selected} pending={!q.data} />
           </div>
         </>
       )}
@@ -216,7 +218,7 @@ function Filters({ search, list }: { search: AuditSearch; list?: List }) {
       </label>
       <input id="aq" className="in w-[220px] max-sm:w-full" placeholder="Search target or request ID" value={q} onChange={(e) => setQ(e.target.value)} type="search" />
       <select
-        className="in w-[150px]"
+        className="in w-[150px] max-md:w-full"
         aria-label="Filter by actor type"
         value={search.actorType ?? ''}
         onChange={(e) => set({ actorType: (e.target.value || undefined) as AuditSearch['actorType'], actor: undefined })}
@@ -228,7 +230,7 @@ function Filters({ search, list }: { search: AuditSearch; list?: List }) {
         <option value="system">System</option>
       </select>
       <select
-        className="in w-[150px]"
+        className="in w-[150px] max-md:w-full"
         aria-label="Filter by action"
         value={search.category ?? (search.action ? `a:${search.action}` : '')}
         onChange={(e) => {
@@ -245,7 +247,7 @@ function Filters({ search, list }: { search: AuditSearch; list?: List }) {
         {search.action ? <option value={`a:${search.action}`}>{search.action}</option> : null}
       </select>
       <select
-        className="in w-[120px]"
+        className="in w-[120px] max-md:w-full"
         aria-label="Filter by result"
         value={search.result ?? ''}
         onChange={(e) => set({ result: (e.target.value || undefined) as AuditSearch['result'] })}
@@ -256,7 +258,7 @@ function Filters({ search, list }: { search: AuditSearch; list?: List }) {
         <option value="error">Error</option>
       </select>
       <select
-        className="in w-[130px]"
+        className="in w-[130px] max-md:w-full"
         aria-label="Date range"
         value={search.range ?? '7d'}
         onChange={(e) => set({ range: e.target.value === '7d' ? undefined : (e.target.value as AuditSearch['range']) })}
@@ -271,11 +273,11 @@ function Filters({ search, list }: { search: AuditSearch; list?: List }) {
         <>
           <label className="row gap-1.5 text-[12.5px]">
             From
-            <input className="in w-[150px]" type="date" value={search.since ?? ''} onChange={(e) => set({ since: e.target.value || undefined })} />
+            <input className="in w-[150px] max-md:w-full" type="date" value={search.since ?? ''} onChange={(e) => set({ since: e.target.value || undefined })} />
           </label>
           <label className="row gap-1.5 text-[12.5px]">
             To
-            <input className="in w-[150px]" type="date" value={search.until ?? ''} onChange={(e) => set({ until: e.target.value || undefined })} />
+            <input className="in w-[150px] max-md:w-full" type="date" value={search.until ?? ''} onChange={(e) => set({ until: e.target.value || undefined })} />
           </label>
         </>
       ) : null}
@@ -309,7 +311,8 @@ function ActorCell({ a }: { a: Item['actor'] }) {
       <Avatar name={a.name} color={a.avatarColor || 'info'} />
     )
   return (
-    <div className="flex min-w-0 items-center gap-2.5">
+    // Members wrap under the avatar on phones; agents and the system stay on one line (as on the board).
+    <div className={a.type === 'user' ? 'flex min-w-0 items-center gap-2.5 max-md:flex-wrap' : 'flex min-w-0 items-center gap-2.5'}>
       {avatar}
       <div className="flex min-w-0 flex-col leading-[1.3]">
         <span className="font-semibold">{a.name}</span>
@@ -357,19 +360,24 @@ function EventRow({ it, selected, search }: { it: Item; selected: boolean; searc
   )
 }
 
-/** "routing_rule" → "Routing rule" */
+const ACRONYMS: Record<string, string> = { api: 'API', mcp: 'MCP', sso: 'SSO', dns: 'DNS', smtp: 'SMTP', ip: 'IP', url: 'URL' }
+
+/** "routing_rule" → "Routing rule", "api_key" → "API key" */
 function typeLabel(t: string) {
-  const s = t.replace(/_/g, ' ')
-  return s.charAt(0).toUpperCase() + s.slice(1)
+  return t
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((w, i) => ACRONYMS[w.toLowerCase()] ?? (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(' ')
 }
 
-function Detail({ id }: { id?: string }) {
+function Detail({ id, pending }: { id?: string; pending?: boolean }) {
   const { slug, me } = useWorkspace()
   const router = useRouter()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/audit/events/{eventId}', { params: { path: { workspace: slug, eventId: id ?? '' } } }, { enabled: Boolean(id) })
-  if (!id)
+  if (!id && !pending)
     return (
-      <section className="card pad col gap-1.5 min-[1101px]:sticky min-[1101px]:top-4" aria-label="Entry details">
+      <section className="card pad col gap-1.5 md:sticky md:top-4" aria-label="Entry details">
         <span className="font-semibold">Entry details</span>
         <span className="k">Pick an entry to see who did it, from where, the permission it needed and what changed.</span>
       </section>
@@ -397,7 +405,7 @@ function Detail({ id }: { id?: string }) {
   const e = d.event
   const result = e.result === 'allowed' ? 'Allowed' : e.result === 'denied' ? 'Denied' : 'Error'
   return (
-    <section className="card min-[1101px]:sticky min-[1101px]:top-4" aria-labelledby="h-ev">
+    <section className="card md:sticky md:top-4" aria-labelledby="h-ev">
       <div className="sec">
         <div className="col gap-0.5">
           <h2 className="h2" id="h-ev">

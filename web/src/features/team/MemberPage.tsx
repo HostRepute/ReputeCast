@@ -124,7 +124,7 @@ function Member({ d }: { d: Detail }) {
           </Button>
         </div>
       </section>
-      <div className="grid grid-cols-[minmax(0,2fr)_minmax(300px,1fr)] items-start gap-5 max-[1100px]:grid-cols-1">
+      <div className="grid grid-cols-[minmax(0,2fr)_minmax(300px,1fr)] items-start gap-5 max-md:grid-cols-1">
         <div className="col gap-5">
           <section className="card" aria-labelledby="perm-h">
             <CardSection
@@ -445,7 +445,7 @@ function MemberSkeleton() {
           <Skeleton w={380} h={12} />
         </div>
       </section>
-      <div className="grid grid-cols-[minmax(0,2fr)_minmax(300px,1fr)] items-start gap-5 max-[1100px]:grid-cols-1">
+      <div className="grid grid-cols-[minmax(0,2fr)_minmax(300px,1fr)] items-start gap-5 max-md:grid-cols-1">
         <section className="card pad flex flex-col gap-3">
           {Array.from({ length: 10 }, (_, i) => (
             <Skeleton key={i} h={12} w={`${90 - (i % 4) * 10}%`} />

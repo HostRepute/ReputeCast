@@ -6,7 +6,10 @@ import { Badge, SensitiveFlag, type Tone } from '@/components/ui/Badge'
 import { Table } from '@/components/ui/Table'
 import { cn } from '@/lib/cn'
 
-/** The avatar + name + mono email cell of the team and keys tables. */
+/**
+ * The avatar + name + mono email cell of the team and keys tables. On phones
+ * the name drops under the avatar when the column is narrow, as on the boards.
+ */
 export function PersonCell({
   name,
   sub,
@@ -22,7 +25,7 @@ export function PersonCell({
   muted?: boolean
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-2.5">
+    <div className="flex min-w-0 items-center gap-2.5 max-md:flex-wrap">
       <Avatar name={typeof name === 'string' ? name : '?'} color={muted ? 'muted' : color} text={text} />
       <div className="flex min-w-0 flex-col leading-[1.3]">
         <span className="font-semibold">{name}</span>

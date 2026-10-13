@@ -650,6 +650,9 @@
           "actor": {
             "$ref": "#/components/schemas/AuditActor"
           },
+          "changes": {
+            "type": "boolean"
+          },
           "id": {
             "type": "string"
           },
@@ -701,7 +704,8 @@
           "target",
           "summary",
           "source",
-          "result"
+          "result",
+          "changes"
         ],
         "type": "object"
       },
