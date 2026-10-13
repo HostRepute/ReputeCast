@@ -335,7 +335,8 @@ function ActorCell({ a }: { a: Item['actor'] }) {
       <Avatar name={a.name} color={a.avatarColor || 'info'} />
     )
   return (
-    <div className="flex min-w-0 items-center gap-2.5">
+    // Members wrap under the avatar on phones; the system stays on one line (as on the board).
+    <div className={a.type === 'user' ? 'flex min-w-0 items-center gap-2.5 max-md:flex-wrap' : 'flex min-w-0 items-center gap-2.5'}>
       {avatar}
       <div className="flex min-w-0 flex-col leading-[1.3]">
         <span className="font-semibold">{a.name}</span>
