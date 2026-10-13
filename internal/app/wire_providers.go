@@ -30,7 +30,8 @@ import (
 func (a *App) providerFactory() *manage.Factory {
 	// Provider URLs come from workspace admins: every adapter call goes through
 	// the SSRF guard (metadata and link-local addresses are always refused).
-	guard := netguard.Policy{AllowPrivate: a.Cfg.Providers.AllowPrivateNetworks}
+	// (The OpenAPI command registers operations on an App without config.)
+	guard := netguard.Policy{AllowPrivate: a.Cfg != nil && a.Cfg.Providers.AllowPrivateNetworks}
 	return &manage.Factory{Box: a.Secrets, HTTP: guard.Client(30 * time.Second)}
 }
 
@@ -39,6 +40,9 @@ func (a *App) providersService() *manage.Service {
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Factory: a.providerFactory(), URLs: a.URLs, Log: a.Log,
 		Jobs:    func() *jobs.Client { return a.Jobs },
 		Sending: func() sending.Starter { return a.Sending },
+		// W16: installed community adapters and the generic HTTP form (wire_remote.go).
+		Community:    a.remoteRuntime(),
+		HTTPMappings: httpMappings{},
 	}
 }
 

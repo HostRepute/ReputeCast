@@ -47,7 +47,8 @@ type Config struct {
 	Updates  UpdatesConfig  `koanf:"updates"`
 	Metrics  MetricsConfig  `koanf:"metrics"`
 	Webhooks WebhooksConfig `koanf:"webhooks"`
-	// Providers configures outbound calls to sending-provider APIs.
+	// Providers configures outbound calls to sending-provider APIs and
+	// community adapters.
 	Providers ProvidersConfig `koanf:"providers"`
 	// HostRepute and DNS configure Deliverability (internal/hostrepute, internal/dnscheck).
 	HostRepute HostReputeConfig `koanf:"hostrepute"`
@@ -155,6 +156,8 @@ type ProvidersConfig struct {
 	// and private (RFC 1918) addresses, for providers on the same network.
 	// Off by default so workspace admins can't reach internal services
 	// (SSRF); link-local and cloud metadata addresses are always blocked.
+	// It also decides whether a community adapter's process may listen on
+	// such an address (a sidecar); plain http:// only reaches those.
 	AllowPrivateNetworks bool `koanf:"allow_private_networks"`
 }
 

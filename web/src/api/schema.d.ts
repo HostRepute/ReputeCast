@@ -681,6 +681,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/shared-reports/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The report behind a read-only link (public, rate-limited)
+         * @description Anyone with the link sees the campaign's aggregate numbers, never contact data. Limited per client address.
+         */
+        get: operations["get-shared-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/{id}/avatar": {
         parameters: {
             query?: never;
@@ -787,6 +807,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/adapters/http/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Render the request a generic HTTP mapping sends for a sample message (instance admins)
+         * @description Nothing is sent. Secrets are shown as ••••.
+         */
+        post: operations["preview-http-adapter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/adapters/{adapterId}": {
         parameters: {
             query?: never;
@@ -799,6 +839,67 @@ export interface paths {
         post?: never;
         /** Remove a community adapter (instance admins) */
         delete: operations["remove-adapter"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where a community adapter runs, its secret's age and its health (instance admins)
+         * @description The signing secret is never returned.
+         */
+        get: operations["get-adapter-runtime"];
+        /**
+         * Set where a community adapter's process listens (instance admins)
+         * @description Loopback and private addresses need providers.allow_private_networks; plain http:// only reaches them.
+         */
+        put: operations["update-adapter-runtime"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Call a community adapter's health operation now (instance admins) */
+        post: operations["check-adapter-runtime"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/adapters/{adapterId}/runtime/secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue a new signing secret for a community adapter; it is shown once (instance admins)
+         * @description The previous secret keeps working for 24 hours, so the adapter process can be updated without downtime.
+         */
+        post: operations["issue-adapter-secret"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1529,6 +1630,135 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Campaign report: headline metrics, 72-hour engagement, click map, providers, bounces, unsubscribes, A/B
+         * @description Aggregate numbers only. Rates are percentages: delivered and bounces of sent; opens, clicks, unsubscribes and complaints of delivered.
+         */
+        get: operations["get-campaign-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/bounces/{type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the providers said for one bounce type (no addresses) */
+        get: operations["get-campaign-report-bounce-review"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/bounces/{type}/suppress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add the bounced addresses of one type to the shared suppression list */
+        post: operations["suppress-campaign-report-bounces"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the report as CSV, one section per table (logged)
+         * @description Exporting takes the report outside the workspace, so it needs the same permission as sharing it.
+         */
+        get: operations["export-campaign-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/print": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a PDF export of the printable report (logged)
+         * @description The browser prints the report to PDF; this records the export in the audit log.
+         */
+        post: operations["record-campaign-report-print"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active read-only links of a report */
+        get: operations["list-campaign-report-shares"];
+        put?: never;
+        /** Create a read-only link (no sign-in needed), optionally expiring */
+        post: operations["create-campaign-report-share"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/shares/{shareId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke a read-only link */
+        delete: operations["revoke-campaign-report-share"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3006,6 +3236,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/overview/audience": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Subscriber growth over the period and engagement tiers with the sunset policy */
+        get: operations["overview-audience"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/overview/next-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The next scheduled campaign with its Send Readiness, route split and estimates */
+        get: operations["overview-next-campaign"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/overview/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Each sending provider's status, rates against its limits, quota, rate, last webhook and cost */
+        get: operations["overview-providers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/overview/recent-campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest campaigns that went out, as the campaigns list shows them */
+        get: operations["overview-recent-campaigns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/overview/sender-health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sender health: a 0–100 score, its word and the reasons behind it
+         * @description From the Deliverability checks (blocklists, authentication) and each provider's bounce and complaint rates against its own limits, warm-up and status.
+         */
+        get: operations["overview-sender-health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/provider-events": {
         parameters: {
             query?: never;
@@ -4354,7 +4672,7 @@ export interface components {
             /** Format: date-time */
             installedAt: string;
             /** @enum {string} */
-            kind: "http" | "wasm";
+            kind: "http" | "wasm" | "remote";
             /** Format: date-time */
             lastRelease?: string;
             latest?: string;
@@ -4365,15 +4683,64 @@ export interface components {
             update: "up_to_date" | "update_available" | "unmaintained";
             version: string;
         };
+        AdapterHTTPHeader: {
+            name: string;
+            value: string;
+        };
         AdapterHTTPInput: {
             bodyTemplate: string;
             /** @description Method and URL, e.g. POST https://api.example-esp.com/v1/messages */
             endpoint: string;
+            headers?: components["schemas"]["AdapterHTTPHeader"][];
             /** @description JSONPath of the message id in the response, e.g. $.data.id */
             messageIdPath: string;
             name: string;
+            /**
+             * @description hmac (default): a signature header; standard: Standard Webhooks; basic: basic auth; header: the secret in a header; none: only the webhook URL
+             * @enum {string}
+             */
+            webhookAuth?: "hmac" | "standard" | "basic" | "header" | "none";
+            webhookHeader?: string;
             /** @enum {string} */
             webhookMapping: "status" | "jsonpath";
+            webhookPaths?: components["schemas"]["AdapterHTTPWebhookPaths"];
+        };
+        AdapterHTTPMapping: {
+            bodyTemplate: string;
+            /** @description Method and URL, e.g. POST https://api.example-esp.com/v1/messages */
+            endpoint: string;
+            headers?: components["schemas"]["AdapterHTTPHeader"][];
+            /** @description JSONPath of the message id in the response, e.g. $.data.id */
+            messageIdPath: string;
+            /**
+             * @description hmac (default): a signature header; standard: Standard Webhooks; basic: basic auth; header: the secret in a header; none: only the webhook URL
+             * @enum {string}
+             */
+            webhookAuth?: "hmac" | "standard" | "basic" | "header" | "none";
+            webhookHeader?: string;
+            /** @enum {string} */
+            webhookMapping: "status" | "jsonpath";
+            webhookPaths?: components["schemas"]["AdapterHTTPWebhookPaths"];
+        };
+        AdapterHTTPPreview: {
+            body: string;
+            headers: components["schemas"]["AdapterHTTPPreviewHeader"][];
+            method: string;
+            url: string;
+        };
+        AdapterHTTPPreviewHeader: {
+            name: string;
+            value: string;
+        };
+        AdapterHTTPWebhookPaths: {
+            /** @description The events in one request, e.g. $.events[*] (default $: one event or an array of events) */
+            events?: string;
+            /** @description The provider's message id, e.g. $.message_id */
+            messageId?: string;
+            /** @description The recipient's address, e.g. $.email */
+            recipient?: string;
+            /** @description The event type, e.g. $.event */
+            type?: string;
         };
         AdapterInstallInput: {
             /**
@@ -4381,6 +4748,53 @@ export interface components {
              * @description HTTPS URL of the adapter's manifest.json
              */
             manifestUrl: string;
+        };
+        AdapterRuntime: {
+            /** @example community:example-esp */
+            adapter: string;
+            /** Format: uuid */
+            adapterId: string;
+            /** @enum {string} */
+            breaker: "closed" | "open" | "half_open";
+            /** Format: date-time */
+            breakerOpenUntil?: string;
+            capabilities: string[];
+            check?: components["schemas"]["AdapterRuntimeCheck"];
+            /**
+             * Format: int64
+             * @description Connected providers using the adapter, in every workspace
+             */
+            connected: number;
+            endpointProblem?: string;
+            endpointUrl: string;
+            lastFailure?: string;
+            name: string;
+            network: string[];
+            operations: string[];
+            /** Format: date-time */
+            previousSecretValidUntil?: string;
+            registered: boolean;
+            /** Format: date-time */
+            secretIssuedAt: string;
+            /** @description Version of the installed manifest */
+            version: string;
+        };
+        AdapterRuntimeCheck: {
+            /** Format: date-time */
+            at: string;
+            detail: string;
+            ok: boolean;
+            runningVersion?: string;
+        };
+        AdapterRuntimeInput: {
+            /** @description Base URL of the adapter process, like http://example-esp:4600 */
+            endpointUrl: string;
+        };
+        AdapterRuntimeSecret: {
+            /** Format: date-time */
+            previousSecretValidUntil?: string;
+            /** @description The new signing secret. Shown only in this response; set it on the adapter process as REPUTECAST_ADAPTER_SECRET. */
+            secret: string;
         };
         AdaptersOverview: {
             builtin: components["schemas"]["AdapterBuiltin"][];
@@ -5281,6 +5695,19 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             updatedBy: string;
+        };
+        CampaignReport: {
+            abTest?: components["schemas"]["ReportABTest"];
+            backlog?: components["schemas"]["ReportIngestBacklog"];
+            bounces: components["schemas"]["ReportBounceTable"];
+            campaign: components["schemas"]["ReportCampaignInfo"];
+            clickMap: components["schemas"]["ReportClickMap"];
+            engagement: components["schemas"]["ReportEngagement"];
+            headline: components["schemas"]["ReportHeadline"];
+            mailboxes: components["schemas"]["ReportMailboxRow"][];
+            notSent?: components["schemas"]["ReportNotSent"];
+            providers: components["schemas"]["ReportProviderTable"];
+            unsubscribes: components["schemas"]["ReportUnsubscribes"];
         };
         CampaignStatusCounts: {
             /** Format: int64 */
@@ -7446,6 +7873,158 @@ export interface components {
             confirmUrl?: string;
             sent: boolean;
         };
+        OverviewAudience: {
+            /** Format: int64 */
+            days: number;
+            lists: components["schemas"]["OverviewListGrowth"][];
+            /** Format: int64 */
+            net: number;
+            /** Format: double */
+            netPercent?: number;
+            policy: string;
+            policyEnabled: boolean;
+            series: components["schemas"]["OverviewAudiencePoint"][];
+            /** Format: int64 */
+            subscribers: number;
+            tiers: components["schemas"]["OverviewTier"][];
+            /** Format: int64 */
+            total: number;
+        };
+        OverviewAudiencePoint: {
+            /** Format: date */
+            day: string;
+            /** Format: int64 */
+            subscribers: number;
+        };
+        OverviewHealthAction: {
+            asset?: string;
+            /** @enum {string} */
+            kind: "delisting" | "deliverability" | "providers" | "warmup" | "integrations";
+            /** @description request delisting */
+            label: string;
+        };
+        OverviewHealthReason: {
+            action?: components["schemas"]["OverviewHealthAction"];
+            /** @enum {string} */
+            key: "blocklist_domain" | "auth" | "rates" | "blocklist_ip" | "warmup" | "provider_status" | "checks";
+            text: string;
+            /** @enum {string} */
+            tone: "ok" | "warn" | "bad";
+        };
+        OverviewListGrowth: {
+            /** Format: int64 */
+            contacts: number;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            net: number;
+        };
+        OverviewNextCampaign: {
+            campaign?: components["schemas"]["OverviewScheduledCampaign"];
+            /** Format: int64 */
+            drafts: number;
+        };
+        OverviewProviderCard: {
+            card: components["schemas"]["ProviderCard"];
+            detail: string;
+            displayName: string;
+            refresh?: components["schemas"]["OverviewRefreshFailure"];
+            statusLabel?: string;
+            statusUrl?: string;
+        };
+        OverviewProviders: {
+            /** Format: int64 */
+            connected: number;
+            /** Format: date-time */
+            monthStart: string;
+            providers: components["schemas"]["OverviewProviderCard"][];
+        };
+        OverviewReadiness: {
+            issues: components["schemas"]["OverviewReadinessIssue"][];
+            /** Format: date-time */
+            ranAt: string;
+            /** @enum {string} */
+            verdict: "ready" | "warnings" | "blocked";
+        };
+        OverviewReadinessIssue: {
+            /** @enum {string} */
+            status: "warn" | "block";
+            title: string;
+        };
+        OverviewRecentCampaigns: {
+            items: components["schemas"]["CampaignListItem"][];
+        };
+        OverviewRefreshFailure: {
+            attempts: string[];
+            code?: string;
+            /** Format: date-time */
+            lastSuccessAt?: string;
+            message?: string;
+            /** @description GetAccount */
+            op: string;
+            /** Format: int64 */
+            status?: number;
+            statusLabel?: string;
+            statusUrl?: string;
+        };
+        OverviewRouteShare: {
+            adapter: string;
+            /** @enum {string} */
+            color: "ses" | "postal" | "postmark" | "other";
+            /** Format: double */
+            percent: number;
+            /** Format: int64 */
+            planned: number;
+            short: string;
+        };
+        OverviewScheduledCampaign: {
+            /** Format: double */
+            cost: number;
+            /** Format: double */
+            durationMinutes?: number;
+            id: string;
+            name: string;
+            readiness?: components["schemas"]["OverviewReadiness"];
+            /** Format: int64 */
+            recipients: number;
+            routes: components["schemas"]["OverviewRouteShare"][];
+            /** Format: date-time */
+            scheduledAt: string;
+            timezone: string;
+        };
+        OverviewSenderHealth: {
+            /** Format: date-time */
+            checkedAt?: string;
+            domain: string;
+            /** @enum {string} */
+            label: "Good" | "Fair" | "Poor" | "";
+            reasons: components["schemas"]["OverviewHealthReason"][];
+            /** Format: int64 */
+            score: number;
+            /**
+             * Format: int64
+             * @description Blocklists checked
+             */
+            sources: number;
+            /** @enum {string} */
+            state: "ready" | "pending";
+            /** @enum {string} */
+            tone: "ok" | "warn" | "bad" | "neutral";
+            /** @enum {string} */
+            via: "hostrepute" | "builtin" | "none";
+        };
+        OverviewTier: {
+            /** Format: int64 */
+            count: number;
+            description: string;
+            /**
+             * Format: double
+             * @description Share of all contacts, percent
+             */
+            pct: number;
+            /** @enum {string} */
+            tier: "active" | "cooling" | "at_risk" | "sunset";
+        };
         Pages: {
             archive: components["schemas"]["ArchivePage"];
             confirm: components["schemas"]["ConfirmPage"];
@@ -8191,6 +8770,378 @@ export interface components {
         "Rename-passkeyRequest": {
             name: string;
         };
+        ReportABTest: {
+            /** Format: double */
+            confidence?: number;
+            /** Format: date-time */
+            decidedAt?: string;
+            /** @enum {string} */
+            kind: "subject" | "content" | "send_time";
+            /** @description subject line, content, send time */
+            label: string;
+            /** Format: double */
+            lift?: number;
+            /** @enum {string} */
+            metric: "human_opens" | "clicks";
+            /** Format: double */
+            pValue?: number;
+            /** Format: int64 */
+            remaining: number;
+            /** Format: date-time */
+            rolloutAt?: string;
+            /** @description p below 0.05 */
+            significant: boolean;
+            /** @enum {string} */
+            state: "decided" | "testing" | "no_winner";
+            variants: components["schemas"]["ReportABVariant"][];
+            /** Format: double */
+            windowHours: number;
+            winner?: string;
+        };
+        ReportABVariant: {
+            /** Format: double */
+            clickRate?: number;
+            /** Format: double */
+            complaintRate?: number;
+            /** Format: double */
+            humanOpenRate?: number;
+            key: string;
+            /** @description The subject line, or what differs */
+            label: string;
+            /** Format: int64 */
+            recipients: number;
+            /** Format: int64 */
+            remaining: number;
+            /** Format: double */
+            samplePercent: number;
+            winner: boolean;
+        };
+        ReportBacklogProvider: {
+            /** @description How its events arrive: SNS, webhook, bounce mailbox */
+            feed: string;
+            name: string;
+            providerId: string;
+            short: string;
+            /** Format: date-time */
+            since: string;
+            /** Format: int64 */
+            waiting: number;
+        };
+        ReportBounceDiagnostic: {
+            code: string;
+            /** Format: int64 */
+            count: number;
+            diagnostic: string;
+            provider: string;
+            type: string;
+        };
+        ReportBounceReview: {
+            /** Format: int64 */
+            count: number;
+            diagnostics: components["schemas"]["ReportBounceDiagnostic"][];
+            label: string;
+            type: string;
+            /** Format: int64 */
+            unsuppressed: number;
+        };
+        ReportBounceRow: {
+            codes: components["schemas"]["ReportCodeCount"][];
+            /** Format: int64 */
+            count: number;
+            label: string;
+            /** @enum {string} */
+            suppression: "auto" | "retry" | "add" | "review" | "suppressed";
+            /** @enum {string} */
+            tone: "bad" | "warn" | "neutral";
+            /** @enum {string} */
+            type: "unknown_user" | "domain_invalid" | "mailbox_full" | "deferral_expired" | "blocked" | "other";
+            /** Format: int64 */
+            unsuppressed: number;
+        };
+        ReportBounceTable: {
+            rows: components["schemas"]["ReportBounceRow"][];
+            /** Format: int64 */
+            total: number;
+        };
+        ReportCampaignInfo: {
+            audience: string;
+            /** Format: date-time */
+            completedAt?: string;
+            final: boolean;
+            /** Format: date-time */
+            finalAt?: string;
+            id: string;
+            name: string;
+            notes: string[];
+            origin?: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** @enum {string} */
+            status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
+            timezone?: string;
+        };
+        ReportCampaignRef: {
+            id: string;
+            name: string;
+        };
+        ReportClickMap: {
+            available: boolean;
+            html: string;
+            links: components["schemas"]["ReportLink"][];
+            other?: components["schemas"]["ReportLinkGroup"];
+            /**
+             * Format: double
+             * @description Links under this share (percent) are grouped as Other
+             */
+            threshold: number;
+            /**
+             * Format: int64
+             * @description All link clicks
+             */
+            total: number;
+        };
+        ReportCodeCount: {
+            /** @description SMTP reply or provider code: 550 5.1.1 */
+            code: string;
+            /** Format: int64 */
+            count: number;
+            /** @description Short name: SES, Postal */
+            provider: string;
+            /** @description The provider's event name: Permanent/General, HardFail */
+            type: string;
+        };
+        ReportEngagement: {
+            available: boolean;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: int64 */
+            hours: number;
+            /** Format: double */
+            humanWithin6h?: number;
+            points: components["schemas"]["ReportEngagementPoint"][];
+            rollout?: components["schemas"]["ReportRollout"];
+        };
+        ReportEngagementPoint: {
+            /** Format: int64 */
+            clicks: number;
+            /** Format: int64 */
+            hour: number;
+            /** Format: int64 */
+            humanOpens: number;
+            /** Format: int64 */
+            machineOpens: number;
+        };
+        ReportHeadline: {
+            /** Format: double */
+            bounceRate?: number;
+            /** Format: int64 */
+            bounces: number;
+            /** Format: double */
+            clickRate?: number;
+            /** Format: double */
+            clickToOpen?: number;
+            /** Format: int64 */
+            clicks: number;
+            /** Format: double */
+            complaintRate?: number;
+            /** Format: int64 */
+            complaints: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveredRate?: number;
+            /** Format: int64 */
+            hardBounces: number;
+            /** Format: double */
+            humanOpenRate?: number;
+            /** Format: int64 */
+            humanOpens: number;
+            /** Format: double */
+            machineOpenRate?: number;
+            /** Format: int64 */
+            machineOpens: number;
+            /** Format: int64 */
+            rejected: number;
+            /** Format: int64 */
+            sent: number;
+            sentBy: components["schemas"]["ReportProviderCount"][];
+            /** Format: int64 */
+            softBounces: number;
+            /** Format: int64 */
+            undelivered: number;
+            /** Format: double */
+            unsubscribeRate?: number;
+            /** Format: int64 */
+            unsubscribes: number;
+        };
+        ReportIngestBacklog: {
+            current: string[];
+            /** Format: int64 */
+            minutes: number;
+            providers: components["schemas"]["ReportBacklogProvider"][];
+            /** Format: date-time */
+            since: string;
+        };
+        ReportLink: {
+            /** Format: int64 */
+            clicks: number;
+            grouped: boolean;
+            hot: boolean;
+            id: string;
+            label: string;
+            /** Format: int64 */
+            position: number;
+            /** Format: double */
+            share: number;
+            /** Format: int64 */
+            uniqueClicks: number;
+            url: string;
+        };
+        ReportLinkGroup: {
+            /** Format: int64 */
+            clicks: number;
+            /** @description The most-clicked links in the group, for the caption */
+            labels: string[];
+            /** Format: int64 */
+            links: number;
+            /** Format: double */
+            share: number;
+        };
+        ReportMailboxRow: {
+            /** Format: double */
+            bounceRate?: number;
+            /** Format: double */
+            clickRate?: number;
+            /** Format: double */
+            complaintRate?: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveredRate?: number;
+            /** Format: double */
+            humanOpenRate?: number;
+            /** @enum {string} */
+            key: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
+            /** Format: double */
+            machineOpenRate?: number;
+            name: string;
+            /** Format: int64 */
+            sent: number;
+            /** Format: double */
+            unsubscribeRate?: number;
+        };
+        ReportNotSent: {
+            lastReport?: components["schemas"]["ReportCampaignRef"];
+            /** @enum {string} */
+            readiness?: "ready" | "warnings" | "blocked" | "";
+            /** Format: date-time */
+            scheduledAt?: string;
+            status: string;
+            timezone?: string;
+        };
+        ReportProviderColumn: {
+            adapter: string;
+            /** Format: double */
+            bounceRate?: number;
+            /** Format: double */
+            clickRate?: number;
+            /** @enum {string} */
+            color: "ses" | "postal" | "postmark" | "other";
+            /** Format: double */
+            complaintRate?: number;
+            /**
+             * Format: double
+             * @description Dollars
+             */
+            cost?: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveredRate?: number;
+            engagedFirst: boolean;
+            /** Format: double */
+            humanOpenRate?: number;
+            /** Format: double */
+            machineOpenRate?: number;
+            /** Format: int64 */
+            medianDeliveryMs?: number;
+            name: string;
+            /** Format: double */
+            percent: number;
+            providerId: string;
+            /** Format: int64 */
+            sent: number;
+            short: string;
+            /** Format: double */
+            unsubscribeRate?: number;
+            /** Format: int64 */
+            warmupDay?: number;
+        };
+        ReportProviderCount: {
+            /** Format: int64 */
+            count: number;
+            providerId: string;
+            short: string;
+        };
+        ReportProviderTable: {
+            columns: components["schemas"]["ReportProviderColumn"][];
+            split: boolean;
+        };
+        ReportRollout: {
+            /** Format: date-time */
+            at: string;
+            /** Format: double */
+            hour: number;
+            variant: string;
+        };
+        ReportShareLink: {
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            id: string;
+            /** Format: date-time */
+            lastViewedAt?: string;
+            url: string;
+            /** Format: int64 */
+            views: number;
+        };
+        ReportShareList: {
+            items: components["schemas"]["ReportShareLink"][];
+        };
+        ReportSuppressResult: {
+            /** Format: int64 */
+            added: number;
+            /**
+             * Format: int64
+             * @description Already on the list
+             */
+            already: number;
+        };
+        ReportUnsubscribeReason: {
+            /** Format: int64 */
+            count: number;
+            /** @enum {string} */
+            key: "too_frequent" | "not_relevant" | "none" | "never_signed_up" | "spam" | "other";
+            label: string;
+            /**
+             * Format: double
+             * @description Share of unsubscribes, percent
+             */
+            share: number;
+            /** @enum {string} */
+            tone: "ink" | "muted" | "bad";
+        };
+        ReportUnsubscribes: {
+            /** Format: int64 */
+            choseFewer: number;
+            reasons: components["schemas"]["ReportUnsubscribeReason"][];
+            /** Format: int64 */
+            total: number;
+        };
         RoleCreated: {
             id: string;
         };
@@ -8751,6 +9702,19 @@ export interface components {
             /** @enum {string} */
             key: "password" | "second_factor" | "recovery_codes" | "instance" | "workspace" | "provider";
             label: string;
+        };
+        ShareInput: {
+            /**
+             * Format: int64
+             * @description 0 keeps the link until it is revoked
+             */
+            expiresInDays?: number;
+        };
+        SharedCampaignReport: {
+            /** Format: date-time */
+            expiresAt?: string;
+            report: components["schemas"]["CampaignReport"];
+            workspace: string;
         };
         ShellHostRepute: {
             /** Format: date-time */
@@ -11173,6 +12137,40 @@ export interface operations {
             };
         };
     };
+    "get-shared-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The token from the link */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "X-Robots-Tag"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedCampaignReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-avatar": {
         parameters: {
             query?: never;
@@ -11415,6 +12413,42 @@ export interface operations {
             };
         };
     };
+    "preview-http-adapter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdapterHTTPMapping"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterHTTPPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "remove-adapter": {
         parameters: {
             query?: never;
@@ -11434,6 +12468,142 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-adapter-runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRuntime"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-adapter-runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdapterRuntimeInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRuntime"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-adapter-runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRuntime"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "issue-adapter-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                adapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRuntimeSecret"];
+                };
             };
             /** @description Error */
             default: {
@@ -13270,6 +14440,287 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ComposerPreviewContactList"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-campaign-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-campaign-report-bounce-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+                /** @description Bounce type */
+                type: "unknown_user" | "domain_invalid" | "mailbox_full" | "deferral_expired" | "blocked" | "other";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportBounceReview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "suppress-campaign-report-bounces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+                /** @description Bounce type */
+                type: "unknown_user" | "domain_invalid" | "mailbox_full" | "deferral_expired" | "blocked" | "other";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSuppressResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-campaign-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "record-campaign-report-print": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-campaign-report-shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportShareList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-campaign-report-share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportShareLink"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-campaign-report-share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+                /** @description Link id */
+                shareId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -16885,6 +18336,168 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "overview-audience": {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewAudience"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "overview-next-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewNextCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "overview-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewProviders"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "overview-recent-campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewRecentCampaigns"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "overview-sender-health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewSenderHealth"];
+                };
             };
             /** @description Error */
             default: {

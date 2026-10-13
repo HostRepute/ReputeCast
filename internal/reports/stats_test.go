@@ -1,0 +1,159 @@
+package reports
+
+import (
+	"math"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/store"
+)
+
+func TestZTest(t *testing.T) {
+	// 710/2690 vs 785/2690: lift +2.8 points, p ≈ 0.022 (98% confidence).
+	lift, z, p, ok := ZTest(710, 2690, 785, 2690)
+	if !ok || math.Abs(lift-2.788) > 0.01 || math.Abs(z-2.28) > 0.01 || math.Abs(p-0.0225) > 0.001 {
+		t.Fatalf("lift %.3f z %.3f p %.4f", lift, z, p)
+	}
+	// Equal results are not significant.
+	if _, _, p, ok := ZTest(400, 1000, 400, 1000); !ok || p < 0.99 {
+		t.Fatalf("equal samples: p %.3f", p)
+	}
+	// Small samples: a big gap that isn't significant yet.
+	if _, _, p, _ := ZTest(4, 20, 8, 20); p < Significance {
+		t.Fatalf("20-recipient samples shouldn't be significant: p %.3f", p)
+	}
+	// Nothing to test.
+	if _, _, _, ok := ZTest(0, 0, 3, 10); ok {
+		t.Fatal("empty sample")
+	}
+	if _, _, _, ok := ZTest(0, 10, 0, 10); ok {
+		t.Fatal("no variance")
+	}
+}
+
+func TestBounceTable(t *testing.T) {
+	ses, postal := uuid.New(), uuid.New()
+	rows := []store.ReportBounceCodesRow{
+		{BounceClass: "mailbox_unknown", Type: "hard_bounce", ProviderID: &ses, ProviderName: "Amazon SES", Adapter: "ses", OriginalType: "Permanent/General", OriginalCode: "550 5.1.1", N: 145, Recipients: 145, Suppressed: 145},
+		{BounceClass: "mailbox_unknown", Type: "hard_bounce", ProviderID: &postal, ProviderName: "Postal", Adapter: "postal", OriginalType: "HardFail", OriginalCode: "550 5.1.1", N: 26, Recipients: 26, Suppressed: 26},
+		{BounceClass: "temporary", Type: "soft_bounce", ProviderID: &postal, ProviderName: "Postal", Adapter: "postal", OriginalCode: "421 4.7.0 TSS04", N: 8, Recipients: 8},
+		{BounceClass: "reputation", Type: "hard_bounce", ProviderID: &postal, ProviderName: "Postal", Adapter: "postal", OriginalCode: "550 5.7.1", N: 3, Recipients: 3, Suppressed: 1},
+		{BounceClass: "policy_block", Type: "hard_bounce", ProviderID: &ses, ProviderName: "Amazon SES", Adapter: "ses", OriginalType: "Permanent/Suppressed", N: 4, Recipients: 4},
+		{BounceClass: "", Type: "soft_bounce", ProviderID: &ses, ProviderName: "Amazon SES", Adapter: "ses", OriginalType: "Undetermined", N: 2},
+	}
+	tbl := bounceTable(rows)
+	if tbl.Total != 188 || len(tbl.Rows) != 4 {
+		t.Fatalf("table: %+v", tbl)
+	}
+	want := []struct {
+		typ, state  string
+		count, left int64
+		first       string
+	}{
+		{"unknown_user", "auto", 171, 0, "SES Permanent/General 550 5.1.1"},
+		{"deferral_expired", "retry", 8, 8, "Postal 421 4.7.0 TSS04"},
+		{"blocked", "add", 7, 6, "SES Permanent/Suppressed"},
+		{"other", "review", 2, 0, "SES Undetermined"},
+	}
+	for i, w := range want {
+		r := tbl.Rows[i]
+		if r.Type != w.typ || r.Suppression != w.state || r.Count != w.count || r.Unsuppressed != w.left || r.Codes[0].CodeText() != w.first {
+			t.Errorf("row %d: %+v (codes %v)", i, r, r.Codes)
+		}
+	}
+}
+
+func TestUnsubscribes(t *testing.T) {
+	u := unsubscribes(112, []store.ReportUnsubscribeReasonsRow{
+		{Reason: "too_frequent", N: 41}, {Reason: "not_relevant", N: 33}, {Reason: "never_signed_up", N: 9}, {Reason: "other", N: 7},
+		{Reason: "too_frequent", ChoseFewer: true, N: 28}, {Reason: "one_click", N: 5},
+	})
+	got := []string{}
+	for _, r := range u.Reasons {
+		got = append(got, r.Key)
+	}
+	if strings.Join(got, ",") != "too_frequent,not_relevant,none,never_signed_up,other" || u.Reasons[2].Count != 22 || u.ChoseFewer != 28 || u.Reasons[0].Share != 36.6 {
+		t.Fatalf("reasons: %+v", u)
+	}
+	// More answers than counted unsubscribes (counters still catching up).
+	if u := unsubscribes(3, []store.ReportUnsubscribeReasonsRow{{Reason: "spam", N: 5}}); u.Total != 5 || len(u.Reasons) != 1 {
+		t.Fatalf("catch-up: %+v", u)
+	}
+}
+
+func TestClickMap(t *testing.T) {
+	rows := []store.ReportLinksRow{
+		{ID: uuid.New(), Url: "https://docs.acme.io/flags", Label: "Read the docs", Position: 0, Clicks: 380},
+		{ID: uuid.New(), Url: "https://acme.io/changelog", Label: "", Position: 1, Clicks: 240},
+		{ID: uuid.New(), Url: "https://acme.io/blog", Label: "Blog", Position: 2, Clicks: 300},
+		{ID: uuid.New(), Url: "{{ unsubscribe_url }}", Label: "Unsubscribe", Position: 3, Clicks: 40},
+		{ID: uuid.New(), Url: "{{ preferences_url }}", Label: "Preferences", Position: 4, Clicks: 40},
+	}
+	m := clickMap("<a href='x'>x</a>", rows)
+	if !m.Available || m.Total != 1000 || m.Links[1].Label != "acme.io/changelog" || !m.Links[0].Hot || !m.Links[1].Hot || m.Links[3].Hot || !m.Links[3].Grouped {
+		t.Fatalf("map: %+v", m)
+	}
+	if m.Other == nil || m.Other.Links != 2 || m.Other.Share != 8 || strings.Join(m.Other.Labels, ",") != "Unsubscribe,Preferences" {
+		t.Fatalf("other: %+v", m.Other)
+	}
+	if clickMap("  ", rows).Available {
+		t.Fatal("missing content must not render")
+	}
+}
+
+func TestEngagement(t *testing.T) {
+	rows := []store.ReportHourlyRow{{Hour: 0, OpenedHuman: 50, Clicked: 5}, {Hour: 5, OpenedHuman: 12}, {Hour: 30, OpenedHuman: 38, OpenedMachine: 4}}
+	e := engagement(rows, 1000, 72)
+	if !e.Available || len(e.Points) != 73 || e.Points[72].HumanOpens != 100 || e.Points[6].HumanOpens != 62 || e.HumanWithin6h == nil || *e.HumanWithin6h != 62 {
+		t.Fatalf("engagement: %+v", e)
+	}
+	// A live report only draws the hours so far.
+	if e := engagement(rows[:1], 1000, 3); len(e.Points) != 4 {
+		t.Fatalf("live points: %d", len(e.Points))
+	}
+	if e := engagement(nil, 1000, 72); e.Available || len(e.Points) != 0 {
+		t.Fatalf("no data: %+v", e)
+	}
+}
+
+func TestLimiter(t *testing.T) {
+	l := &Limiter{Requests: 3, Misses: 2, Window: time.Minute, MissWindow: 10 * time.Minute}
+	now := time.Now()
+	for i := 0; i < 3; i++ {
+		if !l.Allow("a", now) {
+			t.Fatalf("request %d refused", i)
+		}
+	}
+	if l.Allow("a", now) {
+		t.Fatal("4th request in a minute allowed")
+	}
+	if !l.Allow("b", now) {
+		t.Fatal("other clients are separate")
+	}
+	if !l.Allow("a", now.Add(61*time.Second)) {
+		t.Fatal("next window refused")
+	}
+	l.Miss("c", now)
+	l.Miss("c", now)
+	if l.Allow("c", now) {
+		t.Fatal("too many unknown links allowed")
+	}
+	if !l.Allow("c", now.Add(11*time.Minute)) {
+		t.Fatal("misses expire")
+	}
+}
+
+func TestFileStem(t *testing.T) {
+	if got := fileStem("Weekly Digest #142"); got != "weekly-digest-142" {
+		t.Fatal(got)
+	}
+	if got := fileStem("!!!"); got != "campaign" {
+		t.Fatal(got)
+	}
+	if got := csvSafe("=HYPERLINK(1)", "ok")[0]; got != "'=HYPERLINK(1)" {
+		t.Fatal(got)
+	}
+}

@@ -1,11 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { ReportPage } from '@/features/reports/ReportPage'
 
 export const Route = createFileRoute('/w/$workspace/_app/campaigns/$campaignId/report')({
-  component: () => (
-    <Page title="Campaign report">
-      <NotBuilt screen="Campaign report" />
-    </Page>
-  ),
+  component: function ReportRoute() {
+    const { campaignId } = Route.useParams()
+    return <ReportPage key={campaignId} campaignId={campaignId} />
+  },
 })

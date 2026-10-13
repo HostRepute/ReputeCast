@@ -134,6 +134,9 @@ type Querier interface {
 	ClearSegmentMembers(ctx context.Context, segmentID uuid.UUID) error
 	ClearSignInThrottle(ctx context.Context, email string) error
 	ClearUserLockout(ctx context.Context, id uuid.UUID) error
+	// Every installed community adapter, any kind: the runtime registers the
+	// kinds it runs, and registry keys must not collide across kinds.
+	CommunityAdapterList(ctx context.Context) ([]CommunityAdapterListRow, error)
 	CompleteInstanceSetup(ctx context.Context, arg CompleteInstanceSetupParams) (InstanceSetting, error)
 	// Lists with their subscribed, active contacts (suppressed addresses excluded).
 	ComposerAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceListsRow, error)
@@ -588,6 +591,16 @@ type Querier interface {
 	McpUpdateDraft(ctx context.Context, arg McpUpdateDraftParams) (McpUpdateDraftRow, error)
 	// Records a failure: opens the alert or adds to the open one.
 	OpenAutomationAlert(ctx context.Context, arg OpenAutomationAlertParams) error
+	OverviewCampaignRoutes(ctx context.Context, campaignID uuid.UUID) ([]OverviewCampaignRoutesRow, error)
+	OverviewDraftCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	OverviewLatestReadiness(ctx context.Context, campaignID uuid.UUID) (OverviewLatestReadinessRow, error)
+	// Joins and departures across the workspace's lists in each 24-hour step
+	// since a time, counted the way List health counts a list's net growth
+	// (ListGrowthSince): joins of members still subscribed, and departures.
+	OverviewListChanges(ctx context.Context, arg OverviewListChangesParams) ([]OverviewListChangesRow, error)
+	// W09 · Overview (spec 7.1).
+	// The next campaign due to go out.
+	OverviewNextScheduled(ctx context.Context, arg OverviewNextScheduledParams) (OverviewNextScheduledRow, error)
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
@@ -697,7 +710,61 @@ type Querier interface {
 	RecoveryCodeStats(ctx context.Context, userID uuid.UUID) (RecoveryCodeStatsRow, error)
 	RefreshInvitation(ctx context.Context, arg RefreshInvitationParams) (Invitation, error)
 	ReleaseAutomationHeldMessages(ctx context.Context, arg ReleaseAutomationHeldMessagesParams) (int64, error)
+	RemoteAdapterConnected(ctx context.Context, adapter string) (int64, error)
+	RemoteAdapterDelete(ctx context.Context, id uuid.UUID) (int64, error)
+	RemoteAdapterGet(ctx context.Context, id uuid.UUID) (RemoteAdapterGetRow, error)
+	RemoteAdapterGetByKey(ctx context.Context, adapterKey string) (RemoteAdapterGetByKeyRow, error)
+	RemoteAdapterInsert(ctx context.Context, arg RemoteAdapterInsertParams) error
+	// Community adapters of kind "remote" and their runtime (internal/providers/remote).
+	RemoteAdapterList(ctx context.Context) ([]RemoteAdapterListRow, error)
+	RemoteAdapterUpdateManifest(ctx context.Context, arg RemoteAdapterUpdateManifestParams) error
+	RemoteRuntimeCreate(ctx context.Context, arg RemoteRuntimeCreateParams) error
+	RemoteRuntimeRecordCheck(ctx context.Context, arg RemoteRuntimeRecordCheckParams) error
+	RemoteRuntimeSetEndpoint(ctx context.Context, arg RemoteRuntimeSetEndpointParams) error
+	RemoteRuntimeSetSecret(ctx context.Context, arg RemoteRuntimeSetSecretParams) error
+	RemoteRuntimeTouch(ctx context.Context, adapterID uuid.UUID) error
 	RenamePasskey(ctx context.Context, arg RenamePasskeyParams) error
+	// Bounces of a campaign by taxonomy class, sending provider and the
+	// provider's original event and code, with how many of the bounced
+	// addresses are on the shared suppression list now.
+	ReportBounceCodes(ctx context.Context, arg ReportBounceCodesParams) ([]ReportBounceCodesRow, error)
+	// The diagnostics behind one group of bounce classes (the Review dialog).
+	// Addresses are never returned: an address inside a provider's words reads
+	// "<address>", so the same answer for many recipients is one line.
+	ReportBounceDiagnostics(ctx context.Context, arg ReportBounceDiagnosticsParams) ([]ReportBounceDiagnosticsRow, error)
+	// Bounced addresses of some classes that aren't suppressed yet (for "Add
+	// to suppression"). Never sent to the browser.
+	ReportBounceRecipients(ctx context.Context, arg ReportBounceRecipientsParams) ([]string, error)
+	// W09 · Campaign reports (spec 7.7, 5.5) and read-only report links.
+	ReportCampaign(ctx context.Context, arg ReportCampaignParams) (ReportCampaignRow, error)
+	// Final or live counters per sending provider × mailbox provider × A/B
+	// variant, with the provider's name for the per-provider comparison.
+	ReportCounterCells(ctx context.Context, campaignID uuid.UUID) ([]ReportCounterCellsRow, error)
+	ReportHourly(ctx context.Context, arg ReportHourlyParams) ([]ReportHourlyRow, error)
+	// Provider events received but not normalized yet, per provider: when the
+	// normalization job falls behind, live counts lag by that much.
+	ReportIngestBacklog(ctx context.Context, arg ReportIngestBacklogParams) ([]ReportIngestBacklogRow, error)
+	ReportLatestReadiness(ctx context.Context, campaignID uuid.UUID) (ReportLatestReadinessRow, error)
+	// The most recent campaign with results, for "See the last report instead".
+	ReportLatestSent(ctx context.Context, arg ReportLatestSentParams) (ReportLatestSentRow, error)
+	ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]ReportLinksRow, error)
+	// Each sending provider's share of the send: what was planned, the cost and
+	// the median time to delivery (stored at completion, else computed from the
+	// route's messages).
+	ReportRoutes(ctx context.Context, campaignID uuid.UUID) ([]ReportRoutesRow, error)
+	// A link by its token hash with its campaign and workspace (the public page).
+	ReportShareByToken(ctx context.Context, tokenHash []byte) (ReportShareByTokenRow, error)
+	// Read-only links -------------------------------------------------------
+	ReportShareCreate(ctx context.Context, arg ReportShareCreateParams) (ReportShare, error)
+	ReportShareGet(ctx context.Context, arg ReportShareGetParams) (ReportShare, error)
+	// Active links of a campaign, newest first, with who made them.
+	ReportShareList(ctx context.Context, arg ReportShareListParams) ([]ReportShareListRow, error)
+	ReportShareRevoke(ctx context.Context, arg ReportShareRevokeParams) (ReportShare, error)
+	ReportShareTouch(ctx context.Context, arg ReportShareTouchParams) error
+	ReportUnsubscribeReasons(ctx context.Context, arg ReportUnsubscribeReasonsParams) ([]ReportUnsubscribeReasonsRow, error)
+	// Warm-up plans of the campaign's providers (the day each was on when the
+	// campaign was sent).
+	ReportWarmupAt(ctx context.Context, providerIds []uuid.UUID) ([]ReportWarmupAtRow, error)
 	ResetUserTwoFactor(ctx context.Context, id uuid.UUID) error
 	ResolveAutomationAlert(ctx context.Context, arg ResolveAutomationAlertParams) (int64, error)
 	ResumeAutomation(ctx context.Context, arg ResumeAutomationParams) error

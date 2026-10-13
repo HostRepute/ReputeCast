@@ -1,0 +1,15 @@
+packages:
+  - adapter-sdk
+  - adapter-template
+
+# The template depends on the SDK by version; inside this repository it is
+# linked to the workspace copy, and a copy of the template outside it
+# installs the published package.
+linkWorkspacePackages: true
+
+# Same pins as web/: these releases are newer than pnpm's minimum release age
+# but are the versions the stack is built and tested on (docs/TECH_STACK.md).
+minimumReleaseAgeExclude:
+  - '@vitest/mocker@5.0.4'
+  - '@vitest/spy@5.0.4'
+  - vitest@5.0.4
