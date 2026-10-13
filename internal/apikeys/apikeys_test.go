@@ -173,3 +173,27 @@ func TestClientLabel(t *testing.T) {
 		}
 	}
 }
+
+// A call with a revoked key is refused and counted, so the keys screen can
+// show what still uses it.
+func TestRejectedKeyCallsAreCounted(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	var k created
+	c.Do("POST", ws+"/api-keys", map[string]any{"name": "Old sync", "permissions": []string{"campaigns:view"}}).MustStatus(t, 201).JSON(t, &k)
+	c.Do("POST", ws+"/api-keys/"+k.Key.ID+"/revoke", nil).MustStatus(t, 204)
+
+	b := env.Client()
+	b.Bearer = k.Secret
+	b.Do("GET", ws+"/campaigns", nil).MustStatus(t, 401)
+
+	var n int
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM api_key_rejections WHERE api_key_id = $1 AND reason = 'revoked'`, uuid.MustParse(k.Key.ID)).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatalf("rejections recorded: %d, want 1", n)
+	}
+}
