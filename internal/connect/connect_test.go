@@ -743,3 +743,49 @@ func TestDemoSetupAndSettings(t *testing.T) {
 	v.Do("PUT", ws+"/settings/providers", map[string]any{"bounce": 2}).MustStatus(t, 403)
 	v.Do("POST", ws+"/settings/providers/rotate-secrets", nil).MustStatus(t, 403)
 }
+
+// An installed community adapter is found under its registry key
+// (providers.InstalledKey) with the capabilities and connection form of its
+// registry entry, and the wizard starts for it like for a built-in one.
+func TestCatalogCommunityAdapter(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	c.Do("POST", ws+"/adapters/http", map[string]any{"name": "Example ESP", "endpoint": "POST https://api.example-esp.com/v1/messages",
+		"headers":      []map[string]string{{"name": "Authorization", "value": "Bearer {{ secrets.api_key }}"}},
+		"bodyTemplate": `{"to": "{{ recipient }}", "headers": {{ headers_json }}}`, "messageIdPath": "$.data.id", "webhookMapping": "status"}).MustStatus(t, 201)
+	var cat struct {
+		Community []struct{ Name, Summary, Adapter, Reason string }
+	}
+	c.Do("GET", ws+"/connect/catalog", nil).MustStatus(t, 200).JSON(t, &cat)
+	found := false
+	for _, e := range cat.Community {
+		switch e.Name {
+		case "Example ESP":
+			found = true
+			if e.Adapter != "community:example-esp" || e.Reason != "" || !strings.Contains(e.Summary, "webhooks") {
+				t.Fatalf("registered community adapter: %+v", e)
+			}
+		case "Scaleway Transactional Email":
+			// The demo's WASM adapters can't run in this build.
+			if e.Adapter != "" || e.Reason == "" || !strings.Contains(e.Summary, "webhooks, suppression pull") {
+				t.Fatalf("unregistered community adapter: %+v", e)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("Example ESP missing: %+v", cat.Community)
+	}
+	var st struct {
+		Adapter string
+		Info    struct {
+			Name   string
+			Fields []struct{ Key string }
+		}
+	}
+	c.Do("POST", ws+"/connect/setups", map[string]any{"adapter": "community:example-esp"}).MustStatus(t, 201).JSON(t, &st)
+	if st.Adapter != "community:example-esp" || st.Info.Name != "Example ESP" || len(st.Info.Fields) == 0 {
+		t.Fatalf("setup: %+v", st)
+	}
+}

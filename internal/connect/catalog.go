@@ -112,7 +112,7 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (ConnectCata
 		case d.Adapter == "httpgeneric":
 			httpAdapter = true
 			continue
-		case d.Kind == "community" || strings.HasPrefix(d.Adapter, "community:"):
+		case d.Kind == "community" || strings.HasPrefix(d.Adapter, providers.RuntimePrefix):
 			continue
 		}
 		c := copyFor(d)
@@ -142,8 +142,7 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (ConnectCata
 		}
 		c.ID = id.String()
 		var m struct {
-			Capabilities []string  `json:"capabilities"`
-			LastRelease  time.Time `json:"last_release"`
+			LastRelease time.Time `json:"last_release"`
 		}
 		_ = json.Unmarshal(manifest, &m)
 		// Adapters without a release for a year are not offered for new
@@ -151,25 +150,26 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (ConnectCata
 		if !m.LastRelease.IsZero() && s.now().Sub(m.LastRelease) > 365*24*time.Hour {
 			continue
 		}
-		caps := []string{}
-		for _, cp := range m.Capabilities {
-			cp = strings.ReplaceAll(cp, "domain setup via API", "domain via API")
-			if !strings.HasPrefix(cp, "batch") {
-				caps = append(caps, cp)
-			}
+		// The registry entry the runtime made for the row: its capabilities,
+		// terms and connection form. A row that isn't registered (a kind or a
+		// manifest this build can't run) is listed but can't be connected.
+		key := providers.InstalledKey(kind, c.Name, manifest)
+		d, registered := providers.Descriptor{}, false
+		if key != "" {
+			d, registered = providers.Lookup(key)
+		}
+		caps := manifestCapabilities(manifest)
+		if registered {
+			caps = capabilityWords(d)
 		}
 		c.Summary = c.Maintainer
 		if len(caps) > 0 {
 			c.Summary += " · " + strings.Join(caps, ", ")
 		}
-		key := "community:" + c.Name
-		switch {
-		case providers.Registered(key):
+		if registered && d.New != nil {
 			c.Adapter = key
-		case kind == "http" && httpAdapter:
-			c.Adapter = "httpgeneric"
-		default:
-			c.Reason = c.Name + " is installed, but this build can't run community adapters yet. It becomes available with the adapter runtime."
+		} else {
+			c.Reason = c.Name + " is installed, but this build can't run it. The Adapters page says why."
 		}
 		out.Community = append(out.Community, c)
 	}
@@ -195,4 +195,55 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (ConnectCata
 		out.CanConnect = p.Can(authz.ProvidersManage)
 	}
 	return out, nil
+}
+
+// capabilityWords lists what a community adapter does for the catalog
+// ("webhooks, suppression pull, domain via API"): how events come back,
+// suppressions and domain setup, as the Adapters page words them.
+func capabilityWords(d providers.Descriptor) []string {
+	caps := d.Capabilities
+	out := []string{}
+	switch caps.Webhooks {
+	case "":
+	case "Bounce mailbox":
+		out = append(out, "bounce mailbox")
+	default:
+		out = append(out, "webhooks")
+	}
+	switch {
+	case strings.EqualFold(d.SuppressionMode, "Pull only"):
+		out = append(out, "suppression pull")
+	case strings.EqualFold(d.SuppressionMode, "Push only"):
+		out = append(out, "suppression push")
+	case caps.SuppressionSync:
+		out = append(out, "suppression sync")
+	}
+	switch caps.DomainAPI {
+	case "full":
+		out = append(out, "domain via API")
+	case "dkim_only":
+		out = append(out, "DKIM via API")
+	}
+	return out
+}
+
+// manifestCapabilities reads the capability words of an installed adapter
+// that isn't registered, when its manifest lists them as words ("webhooks",
+// "domain setup via API"); batch sizes aren't shown.
+func manifestCapabilities(manifest []byte) []string {
+	var m struct {
+		Capabilities json.RawMessage `json:"capabilities"`
+	}
+	var words []string
+	if json.Unmarshal(manifest, &m) != nil || json.Unmarshal(m.Capabilities, &words) != nil {
+		return []string{}
+	}
+	out := []string{}
+	for _, w := range words {
+		w = strings.ReplaceAll(w, "domain setup via API", "domain via API")
+		if w != "" && !strings.HasPrefix(w, "batch") {
+			out = append(out, w)
+		}
+	}
+	return out
 }
