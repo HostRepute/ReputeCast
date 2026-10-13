@@ -69,6 +69,8 @@ func Badges(c state.Snapshot, dedicatedIP bool) []ProviderCapabilityBadge {
 		add("yes", "Sandbox · test token")
 	case "mode":
 		add("yes", "Sandbox mode")
+	case "test addresses":
+		add("yes", "Sandbox · test addresses")
 	default:
 		add("no", "Sandbox mode")
 	}

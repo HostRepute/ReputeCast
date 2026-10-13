@@ -28,6 +28,10 @@ import (
 // request is treated as a replay.
 const Tolerance = 5 * time.Minute
 
+// ErrStale is a signed timestamp outside Tolerance (a replay, or a clock
+// that is off); it wraps providers.ErrBadSignature.
+var ErrStale = fmt.Errorf("%w: timestamp outside the %s window", providers.ErrBadSignature, Tolerance)
+
 // Standard verifies a Standard Webhooks request (standardwebhooks.com, the
 // scheme Svix signs with): the headers webhook-id, webhook-timestamp and
 // webhook-signature (or their svix- equivalents) and an HMAC-SHA256 over
@@ -106,7 +110,7 @@ func Fresh(ts string, now time.Time) error {
 	}
 	t := time.Unix(int64(f), 0)
 	if d := now.Sub(t); d > Tolerance || d < -Tolerance {
-		return fmt.Errorf("%w: timestamp outside the %s window", providers.ErrBadSignature, Tolerance)
+		return ErrStale
 	}
 	return nil
 }
