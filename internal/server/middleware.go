@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"regexp"
 	"strings"
 	"time"
 
@@ -141,6 +142,29 @@ func SecurityHeaders(httpsOnly bool) func(http.Handler) http.Handler {
 	}
 }
 
+// secretSegments match paths whose last part is a bearer secret: tracking
+// and email links, shared reports, provider webhooks, invitations and
+// password resets (API and app routes).
+var secretSegments = []*regexp.Regexp{
+	regexp.MustCompile(`^(/t/[oc]/)[^/]+`),
+	regexp.MustCompile(`^(/p/[^/]+/(?:unsubscribe|preferences|confirm|view)/)[^/]+`),
+	regexp.MustCompile(`^(/r/)[^/]+`),
+	regexp.MustCompile(`^(/hooks/[^/]+/)[^/]+`),
+	regexp.MustCompile(`^(/(?:invite|reset-password)/)[^/]+`),
+	regexp.MustCompile(`^(/api/v1/(?:auth/password-reset|invitations|shared-reports)/)[^/]+`),
+}
+
+// RedactPath replaces the secret part of a path with {token}, so logs never
+// hold a working link.
+func RedactPath(p string) string {
+	for _, re := range secretSegments {
+		if m := re.FindStringSubmatchIndex(p); m != nil {
+			return p[:m[3]] + "{token}" + p[m[1]:]
+		}
+	}
+	return p
+}
+
 // RequestLogger logs one line per request at info (errors at warn/error).
 func RequestLogger(log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -163,7 +187,7 @@ func RequestLogger(log *slog.Logger) func(http.Handler) http.Handler {
 			}
 			log.Log(r.Context(), level, "http",
 				"method", r.Method,
-				"path", r.URL.Path,
+				"path", RedactPath(r.URL.Path),
 				"status", status,
 				"bytes", ww.BytesWritten(),
 				"duration_ms", time.Since(start).Milliseconds(),
