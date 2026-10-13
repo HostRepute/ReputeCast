@@ -328,7 +328,9 @@ func (b base) webhookRequest(r *http.Request, body []byte) WebhookRequest {
 		w.Method = http.MethodPost
 	}
 	switch {
-	case r.URL != nil && r.URL.IsAbs():
+	// The normalization job rebuilds stored requests on http://ingest.internal/
+	// (internal/ingest), which is not where the provider posted.
+	case r.URL != nil && r.URL.IsAbs() && r.URL.Host != "ingest.internal":
 		w.URL = r.URL.String()
 	case r.URL != nil && strings.HasPrefix(r.URL.Path, "/hooks/"):
 		w.URL = b.in.PublicURL + r.URL.RequestURI()
