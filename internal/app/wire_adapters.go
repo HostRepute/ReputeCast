@@ -4,6 +4,7 @@ package app
 // providers registry from its init function; the catalog, the connect
 // wizard and the Adapters tab list them from there.
 import (
+	_ "github.com/hostrepute/reputecast/internal/providers/brevo"
 	_ "github.com/hostrepute/reputecast/internal/providers/httpgeneric"
 	_ "github.com/hostrepute/reputecast/internal/providers/mailgun"
 	_ "github.com/hostrepute/reputecast/internal/providers/mailjet"
