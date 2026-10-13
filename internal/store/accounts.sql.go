@@ -551,6 +551,26 @@ func (q *Queries) InvalidatePasswordResets(ctx context.Context, userID uuid.UUID
 	return err
 }
 
+const lastAuditAt = `-- name: LastAuditAt :one
+SELECT occurred_at FROM audit_events
+WHERE action = $1 AND target_id = $2
+ORDER BY occurred_at DESC
+LIMIT 1
+`
+
+type LastAuditAtParams struct {
+	Action   string `json:"action"`
+	TargetID string `json:"targetId"`
+}
+
+// When an action was last recorded for a target (throttles repeated emails).
+func (q *Queries) LastAuditAt(ctx context.Context, arg LastAuditAtParams) (time.Time, error) {
+	row := q.db.QueryRow(ctx, lastAuditAt, arg.Action, arg.TargetID)
+	var occurred_at time.Time
+	err := row.Scan(&occurred_at)
+	return occurred_at, err
+}
+
 const lastPasswordResetAt = `-- name: LastPasswordResetAt :one
 SELECT created_at FROM password_resets
 WHERE user_id = $1 AND source = 'email'

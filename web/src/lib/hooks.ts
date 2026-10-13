@@ -51,10 +51,17 @@ export function useOverflowX(ref: RefObject<HTMLElement | null>): boolean {
     if (!el || typeof ResizeObserver === 'undefined') return
     const check = () => setOver(el.scrollWidth > el.clientWidth + 1)
     check()
+    // The box resizing, or its content changing (a longer query in a code
+    // block, a new first child), can both change whether it scrolls.
     const ro = new ResizeObserver(check)
     ro.observe(el)
     if (el.firstElementChild) ro.observe(el.firstElementChild)
-    return () => ro.disconnect()
+    const mo = new MutationObserver(check)
+    mo.observe(el, { childList: true, subtree: true, characterData: true })
+    return () => {
+      ro.disconnect()
+      mo.disconnect()
+    }
   }, [ref])
   return over
 }

@@ -140,4 +140,14 @@ func TestPasswordResetExpiresAndSSOAccounts(t *testing.T) {
 	if msg := mail.last(t); msg.To != "marcus@acme.io" || !strings.Contains(msg.Text, "signs in with Google Workspace") || strings.Contains(msg.Text, "/reset-password/") {
 		t.Fatalf("reminder: %+v", msg)
 	}
+	// Like reset emails, one reminder a minute at most; each is audited.
+	sent := len(mail.sent)
+	mc.Do("POST", "/auth/password-reset", map[string]any{"email": "marcus@acme.io"}).MustStatus(t, 200)
+	if len(mail.sent) != sent {
+		t.Fatalf("a second reminder within the minute: %d emails", len(mail.sent))
+	}
+	var n int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action = 'account.sso_reminder' AND target_id = $1`, marcus.ID.String()).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("reminder audit entries: %d %v", n, err)
+	}
 }
