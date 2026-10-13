@@ -88,7 +88,8 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
     <>
       <section className="card flex flex-col">
         <TableScroll label="Consent per source status">
-          <table className="tbl">
+          {/* The board lets the status badges wrap on phones ("archived with "abuse" complaint"). */}
+          <table className="tbl phone-wrap">
             <thead>
               <tr>
                 <th scope="col">{d.sourceName} status</th>
@@ -155,7 +156,7 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
           />
         </fieldset>
         <label className="flex items-start gap-2.5 text-[13px]">
-          <input type="checkbox" className="mt-[3px]" checked={pull} onChange={(e) => setPull(e.target.checked)} />
+          <input type="checkbox" className="mt-[3px] flex-initial max-md:min-w-0" checked={pull} onChange={(e) => setPull(e.target.checked)} />
           <span>
             Pull existing suppressions from connected sending providers before importing{' '}
             {m.providers.length > 0 ? (
@@ -166,7 +167,7 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
           </span>
         </label>
         <label className="flex items-start gap-2.5 text-[13px]">
-          <input type="checkbox" className="mt-[3px]" checked={history} onChange={(e) => setHistory(e.target.checked)} />
+          <input type="checkbox" className="mt-[3px] flex-initial max-md:min-w-0" checked={history} onChange={(e) => setHistory(e.target.checked)} />
           <span>
             Record the import in each contact's consent history {m.historyExample ? <span className="k">· "{m.historyExample}"</span> : null}
           </span>
@@ -190,7 +191,8 @@ function Choice({ checked, onPick, title, description }: { checked: boolean; onP
   const id = useId()
   return (
     <label className={`opt ${checked ? 'opt-on' : ''}`} aria-label={title}>
-      <input type="radio" name="evidence" checked={checked} onChange={onPick} aria-describedby={id} />
+      {/* Shrinks beside the long text like the board's radio (13px; on phones less). */}
+      <input type="radio" name="evidence" className="flex-initial max-md:min-w-0" checked={checked} onChange={onPick} aria-describedby={id} />
       <span>
         <span className="font-semibold">{title}</span>
         <br />
