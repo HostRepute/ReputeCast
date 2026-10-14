@@ -99,6 +99,23 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
     if (!hit) throw new Error(`no ${adapter} setup`)
     return hit.id
   },
+  // QA1: ids the demo generates at seed time ({member:daniel@acme.io}, {role:Content Writer},
+  // {automation:Welcome series}, {contact:sam.rivera@outlook.com}, {import:draft} or {import:brevo}).
+  member: (ctx, email) => lookup(ctx, 'members', 'items', (m) => m.email === email, `no member ${email}`),
+  role: (ctx, name) => lookup(ctx, 'roles', 'roles', (r) => r.name === name, `no role named ${name}`),
+  automation: (ctx, name) => lookup(ctx, 'automations', 'items', (a) => a.name === name, `no automation named ${name}`),
+  contact: (ctx, email) => lookup(ctx, `contacts?q=${encodeURIComponent(email)}`, 'items', (c) => c.email === email, `no contact ${email}`),
+  import: (ctx, which) =>
+    lookup(ctx, 'imports', 'items', (i) => (which === 'draft' ? i.status === 'draft' : i.source === which && i.status === 'done'), `no ${which} import`),
+}
+
+/** The id of the first item of a workspace list that matches. */
+async function lookup(ctx: BrowserContext, list: string, key: string, match: (item: Record<string, unknown>) => boolean, missing: string) {
+  const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/${list}`)
+  const body = (await r.json()) as Record<string, Record<string, unknown>[] | undefined>
+  const hit = body[key]?.find(match)
+  if (!hit) throw new Error(missing)
+  return String(hit.id)
 }
 
 async function resolvePath(ctx: BrowserContext, path: string) {

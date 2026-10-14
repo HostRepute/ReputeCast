@@ -35,7 +35,16 @@ type Node = { target: string[]; html: string; failureSummary?: string }
 type Violation = { id: string; impact: string | null; help: string; helpUrl: string; nodes: Node[] }
 type Finding = { path: string; width: number; violations: Violation[] }
 
-/** Looks up the ids behind {campaign:Name} and {sso:Name} in a path. */
+type Item = Record<string, unknown>
+const lists: Record<string, (v: string) => [string, string, (i: Item) => boolean]> = {
+  member: (email) => ['members', 'items', (m) => m.email === email],
+  role: (name) => ['roles', 'roles', (r) => r.name === name],
+  automation: (name) => ['automations', 'items', (a) => a.name === name],
+  contact: (email) => [`contacts?q=${encodeURIComponent(email)}`, 'items', (c) => c.email === email],
+  import: (which) => ['imports', 'items', (i) => (which === 'draft' ? i.status === 'draft' : i.source === which && i.status === 'done')],
+}
+
+/** Looks up the ids behind {campaign:Name}, {sso:Name} and the kinds in `lists` in a path. */
 async function resolvePath(ctx: BrowserContext, path: string) {
   let outPath = path
   for (const m of path.matchAll(/\{(\w+):([^}]+)\}/g)) {
@@ -51,6 +60,11 @@ async function resolvePath(ctx: BrowserContext, path: string) {
       // W10: the latest provider setup of an adapter ({setup:ses}).
       const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/connect/setups`, { params: { adapter: name } })
       id = ((await r.json()) as { items?: { id: string }[] }).items?.[0]?.id
+    } else if (kind in lists) {
+      // QA1: ids the demo generates at seed time (see scripts/qa.ts).
+      const [list, key, match] = lists[kind]!(name)
+      const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/${list}`)
+      id = ((await r.json()) as Record<string, Record<string, unknown>[] | undefined>)[key]?.find(match)?.id as string | undefined
     }
     if (!id) return undefined
     outPath = outPath.replace(m[0], encodeURIComponent(id))
