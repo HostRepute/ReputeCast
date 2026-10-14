@@ -297,15 +297,17 @@ Authentication**, not in configuration.
   with Vite and embedded in the binary; API types are generated from the
   OpenAPI document.
 - **Adding a provider:** [docs/adapters.md](docs/adapters.md) shows how an adapter is written and contract-tested, and how to map any HTTP API without code.
-- **Sends are guarded.** A send builds its recipient list in pages, routes
-  each recipient, then hands batches to the providers from River jobs within
-  each provider's rate and each mailbox provider's throttle; every message is
-  claimed before it goes out, so nothing is sent twice. Bounce, complaint and
-  deferral rates are checked every two seconds against the campaign's
-  thresholds, and a rate that is over its limit with enough evidence pauses
-  just the mailbox provider or sending provider it concerns. Opens and clicks
-  come back through `/t/o` and `/t/c`, with privacy-proxy and scanner
-  traffic counted apart.
+- **Sends are guarded.** Send Readiness runs again as a send starts; a
+  scheduled send it blocks is held, and starts once a recheck passes. A send
+  builds its recipient list in pages, routes each recipient, then hands
+  batches to the providers from River jobs within each provider's rate and
+  each mailbox provider's throttle; every message is claimed before it goes
+  out, so nothing is sent twice. Bounce, complaint and deferral rates are
+  checked every two seconds against the campaign's thresholds, and a rate
+  that is over its limit with enough evidence pauses just the mailbox
+  provider or sending provider it concerns. Opens and clicks come back
+  through `/t/o` and `/t/c`, with privacy-proxy and scanner traffic counted
+  apart.
 
 ## Security
 
