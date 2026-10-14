@@ -4,6 +4,7 @@
 // in REPUTECAST_TEST_DATABASE_URL, which is faster locally: point it at the
 // docker compose Postgres), migrates a template database once, and then
 // clones it per test with CREATE DATABASE … TEMPLATE, which takes a few ms.
+// Each run first drops what finished runs left behind (see sweep).
 package testdb
 
 import (
@@ -17,7 +18,6 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -67,7 +67,15 @@ func setup() {
 			return
 		}
 	}
-	initErr = ensureTemplate(ctx)
+	if initErr = ensureTemplate(ctx); initErr != nil {
+		return
+	}
+	if admin, err := pgx.Connect(ctx, withDB(baseURL, "postgres")); err == nil {
+		now := time.Now()
+		_, _ = admin.Exec(ctx, `COMMENT ON DATABASE `+templateName+` IS '`+templateComment(migrationsHash(), now)+`'`)
+		sweep(ctx, admin, now)
+		_ = admin.Close(ctx)
+	}
 }
 
 // ensureTemplate creates and migrates the template database once. Several
@@ -89,8 +97,8 @@ func ensureTemplate(ctx context.Context) error {
 		coalesce((SELECT shobj_description(oid, 'pg_database') FROM pg_database WHERE datname = $1), '')`, templateName).Scan(&exists, &have); err != nil {
 		return err
 	}
-	// A template is complete once it carries the fingerprint comment.
-	if exists && have == want && os.Getenv("REPUTECAST_TEST_REBUILD_TEMPLATE") == "" {
+	// A template is complete once its comment starts with the fingerprint.
+	if exists && strings.HasPrefix(have+" ", want+" ") && os.Getenv("REPUTECAST_TEST_REBUILD_TEMPLATE") == "" {
 		return nil
 	}
 	if exists {
@@ -111,7 +119,7 @@ func ensureTemplate(ctx context.Context) error {
 		return fmt.Errorf("migrate template: %w", err)
 	}
 	pool.Close()
-	_, err = admin.Exec(ctx, `COMMENT ON DATABASE `+templateName+` IS '`+want+`'`)
+	_, err = admin.Exec(ctx, `COMMENT ON DATABASE `+templateName+` IS '`+templateComment(want, time.Now())+`'`)
 	return err
 }
 
@@ -149,7 +157,7 @@ func NewFrom(t testing.TB, template string) *pgxpool.Pool {
 		template = templateName
 	}
 	ctx := context.Background()
-	name := "rc_test_" + randHex(6)
+	name := owned("rc_test")
 	admin, err := pgx.Connect(ctx, withDB(baseURL, "postgres"))
 	if err != nil {
 		t.Fatalf("testdb connect: %v", err)
@@ -177,7 +185,6 @@ func NewFrom(t testing.TB, template string) *pgxpool.Pool {
 // Template builds a database on top of the migrated template with fill
 // (the demo data, say) and returns its name for NewFrom. Call it once per
 // test binary: cloning is a few milliseconds where filling may take seconds.
-// Templates older than two hours, left by earlier runs, are dropped.
 func Template(ctx context.Context, key string, fill func(*pgxpool.Pool) error) (string, error) {
 	once.Do(setup)
 	if initErr != nil {
@@ -188,8 +195,7 @@ func Template(ctx context.Context, key string, fill func(*pgxpool.Pool) error) (
 		return "", err
 	}
 	defer func() { _ = admin.Close(ctx) }()
-	dropStaleTemplates(ctx, admin)
-	name := "rc_fill_" + key + "_" + strconv.FormatInt(time.Now().Unix(), 10) + "_" + randHex(3)
+	name := owned("rc_fill_" + key)
 	if _, err := admin.Exec(ctx, `CREATE DATABASE `+name+` TEMPLATE `+templateName); err != nil {
 		return "", err
 	}
@@ -204,25 +210,6 @@ func Template(ctx context.Context, key string, fill func(*pgxpool.Pool) error) (
 		return "", err
 	}
 	return name, nil
-}
-
-// dropStaleTemplates removes Template databases more than two hours old.
-func dropStaleTemplates(ctx context.Context, admin *pgx.Conn) {
-	rows, err := admin.Query(ctx, `SELECT datname FROM pg_database WHERE datname LIKE 'rc\_fill\_%'`)
-	if err != nil {
-		return
-	}
-	names, _ := pgx.CollectRows(rows, pgx.RowTo[string])
-	cutoff := time.Now().Add(-2 * time.Hour).Unix()
-	for _, n := range names {
-		parts := strings.Split(n, "_")
-		if len(parts) < 2 {
-			continue
-		}
-		if ts, err := strconv.ParseInt(parts[len(parts)-2], 10, 64); err == nil && ts < cutoff {
-			_, _ = admin.Exec(ctx, `DROP DATABASE IF EXISTS `+n+` WITH (FORCE)`)
-		}
-	}
 }
 
 // URL returns the connection URL of the database behind pool's config.
