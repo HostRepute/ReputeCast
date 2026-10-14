@@ -493,7 +493,7 @@ func TestManualWebhookSecret(t *testing.T) {
 	}
 	c.Do("POST", ws+"/connect/setups", map[string]any{"adapter": "fakemanual"}).MustStatus(t, 201).JSON(t, &st)
 	base := ws + "/connect/setups/" + st.ID
-	// Before the connection there's no secret to show.
+	// Before the connection there's no webhook to issue a secret for.
 	c.Do("POST", base+"/webhook-secret", nil).MustStatus(t, 409)
 	c.Do("POST", base+"/connection", map[string]any{"values": map[string]string{"connection_string": "endpoint=https://x;accesskey=y", "per_minute": "30"}}).MustStatus(t, 200).JSON(t, &st)
 	w := st.Connection.Webhook
@@ -510,8 +510,14 @@ func TestManualWebhookSecret(t *testing.T) {
 	if strings.Contains(string(c.Do("GET", base, nil).MustStatus(t, 200).Body), sec.Secret) {
 		t.Fatal("the secret is in the setup")
 	}
-	if audits(t, env, "provider.webhook_secret_show") != 1 {
-		t.Fatal("showing the secret isn't audited")
+	if audits(t, env, "provider.webhook_secret_rotate") != 1 {
+		t.Fatal("issuing the secret isn't audited")
+	}
+	// A stored secret is never returned: each request issues a new one.
+	var again struct{ Secret string }
+	c.Do("POST", base+"/webhook-secret", nil).MustStatus(t, 200).JSON(t, &again)
+	if again.Secret == "" || again.Secret == sec.Secret {
+		t.Fatalf("second secret: %q", again.Secret)
 	}
 	v := env.Client()
 	v.SignInDemo("aisha@acme.io")

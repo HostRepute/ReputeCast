@@ -155,8 +155,8 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "show-provider-webhook-secret", Path: base + "/webhook-secret",
-		Summary:     "Show the webhook secret to set up in the provider by hand",
-		Description: "Only for providers whose webhook ReputeCast can't register itself (Azure Event Grid, the generic HTTP adapter). Showing it is audited.",
+		Summary:     "Issue a new webhook secret to set up in the provider by hand",
+		Description: "Only for providers whose webhook ReputeCast can't register itself (Azure Event Grid, the generic HTTP adapter). The secret is returned this once and replaces the previous one; stored secrets are never returned. Audited.",
 		Tags:        tags, Access: api.WorkspaceHuman(authz.ProvidersManage)},
 		func(ctx context.Context, in *setupIDInput) (*api.Body[ConnectWebhookSecret], error) {
 			out, err := s.WebhookSecret(ctx, api.WorkspaceFrom(ctx), in.SetupID)
