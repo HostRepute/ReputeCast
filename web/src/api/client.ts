@@ -5,12 +5,25 @@ import type { components, paths } from './schema'
 export type Schemas = components['schemas']
 export type Problem = Schemas['Problem']
 
+/**
+ * The problem's detail as a sentence. ReputeCast's own details already are;
+ * the router's fallback for an unhandled error ("unexpected error occurred")
+ * gets the product voice, and any other bare phrase a capital and a full
+ * stop, so screens can add "Nothing was changed." after it.
+ */
+export function problemSentence(status: number, problem: Pick<Problem, 'detail' | 'title'>): string {
+  const raw = (problem.detail || problem.title || `The server answered ${status}`).trim()
+  if (status >= 500 && raw === 'unexpected error occurred') return 'ReputeCast hit an unexpected error; the details are in the server log.'
+  const text = raw.charAt(0).toUpperCase() + raw.slice(1)
+  return /[.!?…:)"”]$/.test(text) ? text : `${text}.`
+}
+
 /** Error thrown for non-2xx responses; carries the RFC 9457 problem body. */
 export class ApiError extends Error {
   readonly status: number
   readonly problem: Problem
   constructor(status: number, problem: Problem) {
-    super(problem.detail || problem.title || `HTTP ${status}`)
+    super(problemSentence(status, problem))
     this.name = 'ApiError'
     this.status = status
     this.problem = problem
