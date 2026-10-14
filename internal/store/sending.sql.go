@@ -168,7 +168,7 @@ func (q *Queries) SendingApproval(ctx context.Context, campaignID *uuid.UUID) (S
 const sendingAudienceAddresses = `-- name: SendingAudienceAddresses :many
 WITH members AS (
     SELECT m.contact_id AS id FROM list_memberships m
-    WHERE m.list_id = ANY($4::uuid[]) AND m.status = 'subscribed'
+    WHERE m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($4::uuid[]) AND ll.deleted_at IS NULL)) AND m.status = 'subscribed'
     UNION
     SELECT st.contact_id FROM campaign_audience_stage st
     WHERE st.campaign_id = $3 AND NOT st.exclude
@@ -199,7 +199,9 @@ type SendingAudienceAddressesRow struct {
 // not suppressed, in no excluded list or segment): the audience build
 // leaves out a second contact that reaches the same mailbox (an alias), as
 // Send Readiness counts them. The one kept is the one the sunset policy
-// didn't stop, then the oldest, so the mailbox still gets the send.
+// didn't stop, then the oldest, so the mailbox still gets the send. A
+// deleted list (restorable for 30 days) adds nobody; as an exclusion it
+// still excludes.
 func (q *Queries) SendingAudienceAddresses(ctx context.Context, arg SendingAudienceAddressesParams) ([]SendingAudienceAddressesRow, error) {
 	rows, err := q.db.Query(ctx, sendingAudienceAddresses,
 		arg.WorkspaceID,
@@ -231,7 +233,7 @@ WITH page AS (
     -- staged segment members), so a page reads about a page per source
     -- wherever the cursor is, not every member after it.
     SELECT DISTINCT u.id FROM (
-        SELECT x.id FROM unnest($3::uuid[]) AS l(list_id)
+        SELECT x.id FROM unnest(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($3::uuid[]) AND ll.deleted_at IS NULL)) AS l(list_id)
         CROSS JOIN LATERAL (
             SELECT m.contact_id AS id FROM list_memberships m
             WHERE m.list_id = l.list_id AND m.contact_id > $4::uuid AND m.status = 'subscribed'
@@ -254,7 +256,7 @@ WITH page AS (
 ), member_lists AS (
     SELECT m.contact_id, array_agg(m.list_id ORDER BY m.list_id)::uuid[] AS lists
     FROM list_memberships m
-    WHERE m.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND m.list_id = ANY($3::uuid[]) AND m.status = 'subscribed'
+    WHERE m.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($3::uuid[]) AND ll.deleted_at IS NULL)) AND m.status = 'subscribed'
     GROUP BY m.contact_id
 ), excluded AS (
     SELECT DISTINCT x.contact_id
@@ -324,7 +326,8 @@ type SendingAudiencePageRow struct {
 // the whole page, so a page costs the same whatever the workspace's size
 // and whatever the planner's statistics say right after a large import.
 // gone marks a member whose contact was erased or isn't the workspace's:
-// the caller skips it and the cursor moves on.
+// the caller skips it and the cursor moves on. A deleted list (restorable
+// for 30 days) adds nobody.
 func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePageParams) ([]SendingAudiencePageRow, error) {
 	rows, err := q.db.Query(ctx, sendingAudiencePage,
 		arg.Now,

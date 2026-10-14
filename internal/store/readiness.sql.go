@@ -419,7 +419,7 @@ SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address,
        EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > $1::timestamptz) AS bounced
 FROM contacts c
 WHERE c.workspace_id = $2 AND c.status = 'active' AND c.erased_at IS NULL
-  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY($3::uuid[]))
+  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($3::uuid[]) AND ll.deleted_at IS NULL)))
        OR c.id = ANY($4::uuid[]))
   AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($5::uuid[]))
   AND NOT (c.id = ANY($6::uuid[]))
@@ -448,7 +448,8 @@ type ReadinessRecipientsRow struct {
 
 // The audience before suppressions and exclusions by address: active
 // contacts subscribed to the lists (or in the segments), minus excluded lists
-// and segments, with what the counts need per contact.
+// and segments, with what the counts need per contact. A deleted list
+// (restorable for 30 days) adds nobody; as an exclusion it still excludes.
 func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipientsParams) ([]ReadinessRecipientsRow, error) {
 	rows, err := q.db.Query(ctx, readinessRecipients,
 		arg.BouncedSince,

@@ -199,12 +199,13 @@ ORDER BY l.created_at;
 SELECT id, name, cached_count FROM segments WHERE workspace_id = @workspace_id ORDER BY name;
 
 -- name: ComposerCountListAudience :one
--- Recipients of lists minus excluded lists and suppressions.
+-- Recipients of lists minus excluded lists and suppressions. A deleted list
+-- (restorable for 30 days) adds nobody; as an exclusion it still excludes.
 SELECT count(DISTINCT c.id)::bigint
 FROM contacts c
 JOIN list_memberships m ON m.contact_id = c.id
 WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS NULL
-  AND m.status = 'subscribed' AND m.list_id = ANY(@lists::uuid[])
+  AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL))
   AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY(@exclude_lists::uuid[]))
   AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email);
 
@@ -214,7 +215,7 @@ SELECT count(DISTINCT c.id)::bigint
 FROM contacts c
 JOIN list_memberships m ON m.contact_id = c.id
 WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS NULL
-  AND m.status = 'subscribed' AND m.list_id = ANY(@lists::uuid[]) AND c.first_name = '';
+  AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL)) AND c.first_name = '';
 
 -- name: ComposerPreviewContacts :many
 -- Contacts to preview as: the campaign's audience first, people with a first name first.
@@ -222,7 +223,7 @@ SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier
 FROM contacts c
 WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL AND c.status = 'active'
   AND (@query::text = '' OR c.email ILIKE '%' || @query::text || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || @query::text || '%')
-  AND (cardinality(@lists::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(@lists::uuid[])))
+  AND (cardinality(@lists::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL))))
 ORDER BY (c.first_name = '') ASC, c.last_open_at DESC NULLS LAST, c.email
 LIMIT @lim;
 

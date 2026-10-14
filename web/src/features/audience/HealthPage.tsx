@@ -2,16 +2,19 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
+import { Icon } from '@/components/icons/Icon'
 import { Page } from '@/components/shell/Page'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
+import { Menu, MenuItem } from '@/components/ui/Menu'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { TableScroll } from '@/components/ui/Table'
 import { clock, count, pct, rate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { AudienceTabs } from './AudienceTabs'
+import { DeleteListDialog } from './DeleteListDialog'
 import { tierColor, tierLabel, tierWindow, tiers, type Tier } from './labels'
 import './audience.css'
 
@@ -300,6 +303,10 @@ const healthTone: Record<string, Tone> = { ok: 'ok', warn: 'warn', bad: 'bad' }
 
 function PerList({ h }: { h: Health }) {
   const { slug } = useWorkspace()
+  // Lists are deleted from their row's menu, for people who manage lists.
+  const manage = !usePermissionReason('lists:manage')
+  const [deleting, setDeleting] = useState<{ id: string; name: string }>()
+  const [menu, setMenu] = useState<string>()
   return (
     <section className="card" aria-labelledby="perlist-h">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
@@ -352,6 +359,33 @@ function PerList({ h }: { h: Health }) {
                       <>
                         {r.name} <span className="k">(saved view)</span>
                       </>
+                    ) : manage ? (
+                      // The row menu sits with the name, so the table keeps
+                      // the board's columns and the menu is in view on phones.
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="min-w-0">{r.name}</span>
+                        <Menu
+                          label={`Actions for ${r.name}`}
+                          align="start"
+                          open={menu === r.id}
+                          onOpenChange={(o) => setMenu(o ? r.id : undefined)}
+                          trigger={
+                            <button
+                              type="button"
+                              className="ibtn -my-2 flex-none"
+                              aria-label={`Actions for ${r.name}`}
+                              style={menu === r.id ? { background: 'var(--line-2)' } : undefined}
+                            >
+                              ⋯
+                            </button>
+                          }
+                        >
+                          <MenuItem className="text-bad-fg" onSelect={() => setDeleting({ id: r.id, name: r.name })}>
+                            <Icon name="trash" />
+                            Delete list
+                          </MenuItem>
+                        </Menu>
+                      </div>
                     ) : (
                       r.name
                     )}
@@ -401,6 +435,7 @@ function PerList({ h }: { h: Health }) {
           </ButtonLink>
         </div>
       ) : null}
+      {deleting ? <DeleteListDialog list={deleting} open onOpenChange={(o) => !o && setDeleting(undefined)} /> : null}
     </section>
   )
 }

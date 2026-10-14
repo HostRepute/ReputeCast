@@ -78,6 +78,9 @@ func (s *Service) UpdateList(ctx context.Context, ws *store.Workspace, id uuid.U
 		if err != nil {
 			return api.MapError(err, "List")
 		}
+		if err := listInScope(ctx, id); err != nil {
+			return err
+		}
 		name := strings.TrimSpace(in.Name)
 		if name == "" {
 			return api.Invalid("body.name", "Give the list a name.")
@@ -103,27 +106,6 @@ func (s *Service) UpdateList(ctx context.Context, ws *store.Workspace, id uuid.U
 			After:  map[string]any{"name": l.Name, "description": l.Description, "doubleOptIn": l.DoubleOptIn}})
 	})
 	return out, err
-}
-
-// DeleteList removes a list. Its contacts stay; only their membership of
-// this list goes.
-func (s *Service) DeleteList(ctx context.Context, ws *store.Workspace, id uuid.UUID) error {
-	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		l, err := q.GetList(ctx, store.GetListParams{WorkspaceID: ws.ID, ID: id})
-		if err != nil {
-			return api.MapError(err, "List")
-		}
-		var members int64
-		if err := tx.QueryRow(ctx, `SELECT count(*) FROM list_memberships WHERE list_id = $1 AND status = 'subscribed'`, id).Scan(&members); err != nil {
-			return err
-		}
-		if _, err := q.SoftDeleteList(ctx, store.SoftDeleteListParams{WorkspaceID: ws.ID, ID: id}); err != nil {
-			return err
-		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "list.delete", TargetType: "list", TargetID: id.String(), TargetName: l.Name,
-			Before: map[string]any{"name": l.Name, "subscribed": members}})
-	})
 }
 
 // CustomFieldDef is a custom field definition.

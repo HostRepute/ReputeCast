@@ -13,9 +13,10 @@ import { Note } from '@/components/ui/Note'
 import { EmptyRow, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
-import { auditTime, count, monthDayTimeSeconds } from '@/lib/format'
+import { useRestoreList } from '@/features/audience/DeleteListDialog'
+import { auditTime, count, monthDayTimeSeconds, shortDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
-import { useCan, useMe, useWorkspace } from '@/lib/session'
+import { useCan, useMe, usePermissionReason, useWorkspace } from '@/lib/session'
 import type { AuditSearch } from '@/routes/w/$workspace/_app/settings/audit'
 import { AccessTable, copyText } from '../access/parts'
 import { AuditStreamDialog } from './AuditStreamDialog'
@@ -374,6 +375,10 @@ function Detail({ id, pending }: { id?: string; pending?: boolean }) {
   const { slug, me } = useWorkspace()
   const router = useRouter()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/audit/events/{eventId}', { params: { path: { workspace: slug, eventId: id ?? '' } } }, { enabled: Boolean(id) })
+  // A deleted list comes back from its entry for 30 days.
+  const restoreList = useRestoreList()
+  const cantRestore = usePermissionReason('lists:manage')
+  const [restoring, setRestoring] = useState(false)
   if (!id && !pending)
     return (
       <section className="card pad col gap-1.5 md:sticky md:top-4" aria-label="Entry details">
@@ -466,6 +471,21 @@ function Detail({ id, pending }: { id?: string; pending?: boolean }) {
           Entries can&apos;t be edited or deleted from the UI.{d.related.length ? ` Related: ${d.related.join('; ')}.` : ''}
         </Note>
         <div className="row gap-2">
+          {d.restore ? (
+            <Button
+              size="sm"
+              loading={restoring}
+              busyLabel="Restoring…"
+              disabledReason={cantRestore}
+              onClick={async () => {
+                setRestoring(true)
+                await restoreList(d.restore!.id, d.restore!.name)
+                setRestoring(false)
+              }}
+            >
+              Restore list
+            </Button>
+          ) : null}
           {d.link ? (
             <Button size="sm" onClick={() => router.history.push(d.link!)}>
               {d.linkLabel || 'Open'}
@@ -480,6 +500,7 @@ function Detail({ id, pending }: { id?: string; pending?: boolean }) {
           >
             Copy JSON
           </Button>
+          {d.restore ? <span className="k">restorable until {shortDate(d.restore.until)}</span> : null}
         </div>
       </div>
     </section>

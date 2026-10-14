@@ -16,7 +16,8 @@ WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.deleted_at IS NULL;
 -- name: ReadinessRecipients :many
 -- The audience before suppressions and exclusions by address: active
 -- contacts subscribed to the lists (or in the segments), minus excluded lists
--- and segments, with what the counts need per contact.
+-- and segments, with what the counts need per contact. A deleted list
+-- (restorable for 30 days) adds nobody; as an exclusion it still excludes.
 SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS broadcasts_stopped,
        coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')::uuid[] AS list_ids,
@@ -24,7 +25,7 @@ SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address,
        EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > @bounced_since::timestamptz) AS bounced
 FROM contacts c
 WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS NULL
-  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(@lists::uuid[]))
+  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL)))
        OR c.id = ANY(@contacts::uuid[]))
   AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY(@exclude_lists::uuid[]))
   AND NOT (c.id = ANY(@exclude_contacts::uuid[]));

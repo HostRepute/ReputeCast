@@ -187,7 +187,8 @@ type Querier interface {
 	// Lists with their subscribed, active contacts (suppressed addresses excluded).
 	ComposerAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceListsRow, error)
 	ComposerAudienceSegments(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceSegmentsRow, error)
-	// Recipients of lists minus excluded lists and suppressions.
+	// Recipients of lists minus excluded lists and suppressions. A deleted list
+	// (restorable for 30 days) adds nobody; as an exclusion it still excludes.
 	ComposerCountListAudience(ctx context.Context, arg ComposerCountListAudienceParams) (int64, error)
 	// Audience contacts whose first name is empty (they see the fallback).
 	ComposerCountMissingField(ctx context.Context, arg ComposerCountMissingFieldParams) (int64, error)
@@ -686,6 +687,7 @@ type Querier interface {
 	ListConnectedHostRepute(ctx context.Context) ([]uuid.UUID, error)
 	// Custom fields ------------------------------------------------------------
 	ListCustomFields(ctx context.Context, workspaceID uuid.UUID) ([]CustomField, error)
+	ListDeletedAt(ctx context.Context, arg ListDeletedAtParams) (*time.Time, error)
 	ListDeliverabilityAssetChecks(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityAssetCheck, error)
 	// Every blocklist result of a workspace, most important first: listings,
 	// then by the source's rank.
@@ -700,6 +702,17 @@ type Querier interface {
 	ListGrowthSince(ctx context.Context, arg ListGrowthSinceParams) ([]ListGrowthSinceRow, error)
 	ListIdentities(ctx context.Context, userID uuid.UUID) ([]UserIdentity, error)
 	ListIdentitiesWithProvider(ctx context.Context, userID uuid.UUID) ([]ListIdentitiesWithProviderRow, error)
+	// Live automations that start when someone joins the list.
+	ListImpactAutomations(ctx context.Context, arg ListImpactAutomationsParams) ([]ListImpactAutomationsRow, error)
+	// Scheduled campaigns that send to the list.
+	ListImpactCampaigns(ctx context.Context, arg ListImpactCampaignsParams) ([]ListImpactCampaignsRow, error)
+	// Live signup forms that subscribe people to the list.
+	ListImpactForms(ctx context.Context, arg ListImpactFormsParams) ([]ListImpactFormsRow, error)
+	// The list's subscribers, and how many of them another list keeps
+	// subscribed.
+	ListImpactMembers(ctx context.Context, id uuid.UUID) (ListImpactMembersRow, error)
+	// The other lists the subscribers are on, most shared first.
+	ListImpactOtherLists(ctx context.Context, id uuid.UUID) ([]ListImpactOtherListsRow, error)
 	ListImportLog(ctx context.Context, importID uuid.UUID) ([]ImportLog, error)
 	ListImports(ctx context.Context, workspaceID uuid.UUID) ([]ListImportsRow, error)
 	// Lists ------------------------------------------------------------------
@@ -715,8 +728,16 @@ type Querier interface {
 	// Unread first, then newest first (the notification center and the bell).
 	ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]Notification, error)
 	ListPasskeys(ctx context.Context, userID uuid.UUID) ([]UserPasskey, error)
+	ListPauseAutomation(ctx context.Context, arg ListPauseAutomationParams) (int64, error)
+	ListPauseForm(ctx context.Context, arg ListPauseFormParams) (int64, error)
 	ListPendingEmailNotifications(ctx context.Context, userID uuid.UUID) ([]ListPendingEmailNotificationsRow, error)
 	ListPendingInvitations(ctx context.Context, workspaceID uuid.UUID) ([]ListPendingInvitationsRow, error)
+	// Only a campaign nobody changed since deleting the list took it off the
+	// schedule.
+	ListRescheduleCampaign(ctx context.Context, arg ListRescheduleCampaignParams) (int64, error)
+	ListResumeAutomation(ctx context.Context, arg ListResumeAutomationParams) (int64, error)
+	// Only a form still paused the way deleting the list left it.
+	ListResumeForm(ctx context.Context, arg ListResumeFormParams) (int64, error)
 	// Published versions that are no longer live but not yet retired: they
 	// retire once their last contact leaves.
 	ListRetiringAutomationVersions(ctx context.Context) ([]ListRetiringAutomationVersionsRow, error)
@@ -726,6 +747,7 @@ type Querier interface {
 	ListSegments(ctx context.Context, workspaceID uuid.UUID) ([]ListSegmentsRow, error)
 	// Tier mix and size of each list (subscribed members).
 	ListTierMix(ctx context.Context, workspaceID uuid.UUID) ([]ListTierMixRow, error)
+	ListUnscheduleCampaign(ctx context.Context, arg ListUnscheduleCampaignParams) (int64, error)
 	ListUserSessions(ctx context.Context, userID uuid.UUID) ([]Session, error)
 	ListUserWorkspaces(ctx context.Context, userID uuid.UUID) ([]ListUserWorkspacesRow, error)
 	ListUsers(ctx context.Context) ([]User, error)
@@ -735,6 +757,8 @@ type Querier interface {
 	// Live flows a trigger event enrolls into.
 	LiveAutomationsForTrigger(ctx context.Context, arg LiveAutomationsForTriggerParams) ([]LiveAutomationsForTriggerRow, error)
 	LockAutomation(ctx context.Context, arg LockAutomationParams) (Automation, error)
+	LockDeletedList(ctx context.Context, arg LockDeletedListParams) (List, error)
+	LockList(ctx context.Context, arg LockListParams) (List, error)
 	MarkAllNotificationsRead(ctx context.Context, arg MarkAllNotificationsReadParams) (int64, error)
 	MarkAutomationEventProcessed(ctx context.Context, arg MarkAutomationEventProcessedParams) error
 	// A sync finished: account, team, scopes and monitored assets as HostRepute
@@ -879,6 +903,9 @@ type Querier interface {
 	PurgeAuditEvents(ctx context.Context, arg PurgeAuditEventsParams) (int64, error)
 	PurgeAutomationEvents(ctx context.Context, before *time.Time) (int64, error)
 	PurgeAutomationWebhookCalls(ctx context.Context, before time.Time) (int64, error)
+	// Past the 30 days a deleted list can be restored: the list and its
+	// memberships go for good. Contacts and suppressions stay.
+	PurgeDeletedLists(ctx context.Context, before *time.Time) (int64, error)
 	// Retention of the instance-level entries (inside the purge transaction).
 	PurgeInstanceAuditEvents(ctx context.Context, before time.Time) (int64, error)
 	PutMXCache(ctx context.Context, arg PutMXCacheParams) error
@@ -900,7 +927,8 @@ type Querier interface {
 	ReadinessPruneRuns(ctx context.Context, campaignID uuid.UUID) error
 	// The audience before suppressions and exclusions by address: active
 	// contacts subscribed to the lists (or in the segments), minus excluded lists
-	// and segments, with what the counts need per contact.
+	// and segments, with what the counts need per contact. A deleted list
+	// (restorable for 30 days) adds nobody; as an exclusion it still excludes.
 	ReadinessRecipients(ctx context.Context, arg ReadinessRecipientsParams) ([]ReadinessRecipientsRow, error)
 	// The planned split of an unsent campaign, refreshed by each run.
 	ReadinessReplaceRoutes(ctx context.Context, campaignID uuid.UUID) error
@@ -987,6 +1015,7 @@ type Querier interface {
 	ReportWarmupAt(ctx context.Context, providerIds []uuid.UUID) ([]ReportWarmupAtRow, error)
 	ResetUserTwoFactor(ctx context.Context, id uuid.UUID) error
 	ResolveAutomationAlert(ctx context.Context, arg ResolveAutomationAlertParams) (int64, error)
+	RestoreList(ctx context.Context, id uuid.UUID) (List, error)
 	ResumeAutomation(ctx context.Context, arg ResumeAutomationParams) error
 	RetireAutomationVersion(ctx context.Context, arg RetireAutomationVersionParams) error
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error)
@@ -1100,7 +1129,9 @@ type Querier interface {
 	// not suppressed, in no excluded list or segment): the audience build
 	// leaves out a second contact that reaches the same mailbox (an alias), as
 	// Send Readiness counts them. The one kept is the one the sunset policy
-	// didn't stop, then the oldest, so the mailbox still gets the send.
+	// didn't stop, then the oldest, so the mailbox still gets the send. A
+	// deleted list (restorable for 30 days) adds nobody; as an exclusion it
+	// still excludes.
 	SendingAudienceAddresses(ctx context.Context, arg SendingAudienceAddressesParams) ([]SendingAudienceAddressesRow, error)
 	// One page of the audience after the cursor, in contact id order: members
 	// of the included lists and staged segment members, with everything that
@@ -1109,7 +1140,8 @@ type Querier interface {
 	// the whole page, so a page costs the same whatever the workspace's size
 	// and whatever the planner's statistics say right after a large import.
 	// gone marks a member whose contact was erased or isn't the workspace's:
-	// the caller skips it and the cursor moves on.
+	// the caller skips it and the cursor moves on. A deleted list (restorable
+	// for 30 days) adds nobody.
 	SendingAudiencePage(ctx context.Context, arg SendingAudiencePageParams) ([]SendingAudiencePageRow, error)
 	// A flow whose name matches, for "move them into the Re-permission automation".
 	SendingAutomationByName(ctx context.Context, arg SendingAutomationByNameParams) (SendingAutomationByNameRow, error)
@@ -1357,6 +1389,8 @@ type Querier interface {
 	SlugTaken(ctx context.Context, slug string) (bool, error)
 	SoftDeleteAutomation(ctx context.Context, arg SoftDeleteAutomationParams) error
 	SoftDeleteEmailTemplate(ctx context.Context, arg SoftDeleteEmailTemplateParams) (int64, error)
+	// The list goes from every screen and send; paused notes what deleting it
+	// paused, for a restore.
 	SoftDeleteList(ctx context.Context, arg SoftDeleteListParams) (int64, error)
 	SoftDeleteWorkspace(ctx context.Context, id uuid.UUID) error
 	StartImport(ctx context.Context, arg StartImportParams) error

@@ -202,6 +202,9 @@ func TestDiffAndFormat(t *testing.T) {
 	if got := auditlog.Describe("apikey.created", "api_key", "Website signup form"); got != "Created API key “Website signup form”" {
 		t.Fatalf("describe a key: %q", got)
 	}
+	if got := auditlog.Describe("list.delete", "list", "Product Updates"); got != "Deleted list “Product Updates”" {
+		t.Fatalf("describe a present-tense action: %q", got)
+	}
 	for in, want := range map[string]string{"routing_rule": "Routing rule", "api_key": "API key", "mcp_agent": "MCP agent", "sso_provider": "SSO provider"} {
 		if got := auditlog.TypeLabel(in, true); got != want {
 			t.Fatalf("type label %s: %q", in, got)

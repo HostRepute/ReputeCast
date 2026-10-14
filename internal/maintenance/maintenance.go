@@ -1,5 +1,6 @@
 // Package maintenance runs housekeeping jobs: expired sessions and sign-in
-// challenges, and audit-log retention.
+// challenges, audit-log retention, and lists deleted longer ago than they
+// can be restored.
 package maintenance
 
 import (
@@ -11,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 
+	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -27,7 +29,8 @@ func (CleanupArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: jobs.QueueMaintenance, UniqueOpts: river.UniqueOpts{ByPeriod: 10 * time.Minute}}
 }
 
-// CleanupWorker deletes expired auth state and audit entries past retention.
+// CleanupWorker deletes expired auth state, audit entries past retention
+// and lists past their restore window.
 type CleanupWorker struct {
 	river.WorkerDefaults[CleanupArgs]
 	Pool *pgxpool.Pool
@@ -49,8 +52,13 @@ func (w *CleanupWorker) Work(ctx context.Context, _ *river.Job[CleanupArgs]) err
 	if err != nil {
 		return err
 	}
-	if sessions+challenges+purged > 0 {
-		w.Log.InfoContext(ctx, "cleanup", "sessions", sessions, "challenges", challenges, "audit_events", purged)
+	restorable := time.Now().AddDate(0, 0, -audience.RestoreDays)
+	lists, err := q.PurgeDeletedLists(ctx, &restorable)
+	if err != nil {
+		return err
+	}
+	if sessions+challenges+purged+lists > 0 {
+		w.Log.InfoContext(ctx, "cleanup", "sessions", sessions, "challenges", challenges, "audit_events", purged, "deleted_lists", lists)
 	}
 	return nil
 }

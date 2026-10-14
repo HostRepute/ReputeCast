@@ -3285,6 +3285,9 @@
             },
             "type": "array"
           },
+          "restore": {
+            "$ref": "#/components/schemas/AuditRestore"
+          },
           "userAgent": {
             "type": "string"
           },
@@ -3423,6 +3426,34 @@
           "actors",
           "actionGroups",
           "categories"
+        ],
+        "type": "object"
+      },
+      "AuditRestore": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "list"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "until": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "until"
         ],
         "type": "object"
       },
@@ -14429,6 +14460,9 @@
             },
             "type": "array"
           },
+          "restore": {
+            "$ref": "#/components/schemas/AuditRestore"
+          },
           "userAgent": {
             "type": "string"
           },
@@ -16082,6 +16116,125 @@
           "complaintHigh",
           "health",
           "healthTone"
+        ],
+        "type": "object"
+      },
+      "ListImpact": {
+        "additionalProperties": false,
+        "properties": {
+          "automations": {
+            "items": {
+              "$ref": "#/components/schemas/ListImpactItem"
+            },
+            "type": "array"
+          },
+          "campaigns": {
+            "items": {
+              "$ref": "#/components/schemas/ListImpactItem"
+            },
+            "type": "array"
+          },
+          "elsewhere": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "forms": {
+            "items": {
+              "$ref": "#/components/schemas/ListImpactItem"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "members": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "otherListCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "otherLists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "members",
+          "elsewhere",
+          "otherLists",
+          "otherListCount",
+          "forms",
+          "automations",
+          "campaigns"
+        ],
+        "type": "object"
+      },
+      "ListImpactItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ListRestore": {
+        "additionalProperties": false,
+        "properties": {
+          "automations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "campaigns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "forms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "left": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "forms",
+          "automations",
+          "campaigns",
+          "left"
         ],
         "type": "object"
       },
@@ -50978,7 +51131,7 @@
             "bearer": []
           }
         ],
-        "summary": "Delete a list (contacts stay)",
+        "summary": "Delete a list (contacts stay; restorable for 30 days)",
         "tags": [
           "Audience"
         ],
@@ -51053,6 +51206,138 @@
           }
         ],
         "summary": "Rename a list or change its opt-in setting",
+        "tags": [
+          "Audience"
+        ],
+        "x-access": "workspace",
+        "x-permission": "lists:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lists/{id}/impact": {
+      "get": {
+        "operationId": "get-list-impact",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListImpact"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What deleting a list would affect",
+        "tags": [
+          "Audience"
+        ],
+        "x-access": "workspace",
+        "x-permission": "lists:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lists/{id}/restore": {
+      "post": {
+        "operationId": "restore-list",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListRestore"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore a list deleted in the last 30 days",
         "tags": [
           "Audience"
         ],

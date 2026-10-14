@@ -25,6 +25,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/netguard"
@@ -398,8 +399,19 @@ type AuditEventDetail struct {
 	// Link is the app path of the target, with its label ("Open routing").
 	Link      string `json:"link,omitempty"`
 	LinkLabel string `json:"linkLabel,omitempty"`
+	// Restore undoes the delete the entry records while that is still
+	// possible: a deleted list, for 30 days.
+	Restore *AuditRestore `json:"restore,omitempty"`
 	// JSON is the full entry for "Copy JSON".
 	JSON json.RawMessage `json:"json"`
+}
+
+// AuditRestore is a delete an entry can undo, until when.
+type AuditRestore struct {
+	Kind  string    `json:"kind" enum:"list"`
+	ID    string    `json:"id"`
+	Name  string    `json:"name"`
+	Until time.Time `json:"until"`
 }
 
 // Get returns one entry of the workspace log.
@@ -438,6 +450,9 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (A
 		}
 	}
 	out.Link, out.LinkLabel = link(ws.Slug, e.TargetType, e.TargetID, m.LinkPath)
+	if e.Action == "list.delete" {
+		out.Restore = s.listRestore(ctx, ws.ID, e.TargetID, e.TargetName)
+	}
 	full, _ := json.Marshal(map[string]any{
 		"id": e.ID, "occurred_at": e.OccurredAt, "workspace": ws.Slug, "actor": map[string]any{"type": e.ActorType, "id": e.ActorID, "name": e.ActorName},
 		"action": e.Action, "target": map[string]any{"type": e.TargetType, "id": e.TargetID, "name": e.TargetName},
@@ -446,6 +461,24 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (A
 	})
 	out.JSON = full
 	return out, nil
+}
+
+// listRestore offers Restore list on a list.delete entry while the list is
+// still deleted and inside its restore window.
+func (s *Service) listRestore(ctx context.Context, wsID uuid.UUID, targetID, name string) *AuditRestore {
+	id, err := uuid.Parse(targetID)
+	if err != nil {
+		return nil
+	}
+	at, err := s.Q.ListDeletedAt(ctx, store.ListDeletedAtParams{WorkspaceID: wsID, ID: id})
+	if err != nil || at == nil {
+		return nil
+	}
+	until := at.AddDate(0, 0, audience.RestoreDays)
+	if !s.now().Before(until) {
+		return nil
+	}
+	return &AuditRestore{Kind: "list", ID: id.String(), Name: name, Until: until}
 }
 
 func nonEmpty(raw json.RawMessage) json.RawMessage {
@@ -512,6 +545,11 @@ var verbs = map[string]string{
 	"reactivated": "Reactivated", "removed": "Removed", "signed_out": "Signed out", "invite_revoked": "Revoked the invitation of",
 	"invite_resent": "Resent the invitation of", "transferred": "Transferred ownership of", "sign_in": "Signed in to", "tested": "Tested",
 	"retried": "Retried deliveries of", "secret_rotated": "Rotated the signing secret of", "settings_updated": "Changed the settings of",
+	// Actions named in the present tense.
+	"create": "Created", "update": "Changed", "delete": "Deleted", "remove": "Removed", "rename": "Renamed", "pause": "Paused",
+	"resume": "Resumed", "restore": "Restored", "restored": "Restored", "unscheduled": "Unscheduled", "cancel": "Cancelled",
+	"cancelled": "Cancelled", "revoke": "Revoked", "publish": "Published", "upload": "Uploaded", "connect": "Connected",
+	"disconnect": "Disconnected", "duplicate": "Duplicated", "erase": "Erased", "add": "Added",
 }
 
 // Describe writes "Changed the Broadcasts routing rule" style sentences from an action.

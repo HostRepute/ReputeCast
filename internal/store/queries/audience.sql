@@ -45,7 +45,96 @@ WHERE workspace_id = @workspace_id AND id = @id AND deleted_at IS NULL
 RETURNING *;
 
 -- name: SoftDeleteList :execrows
-UPDATE lists SET deleted_at = now() WHERE workspace_id = @workspace_id AND id = @id AND deleted_at IS NULL;
+-- The list goes from every screen and send; paused notes what deleting it
+-- paused, for a restore.
+UPDATE lists SET deleted_at = @at, delete_paused = @paused
+WHERE workspace_id = @workspace_id AND id = @id AND deleted_at IS NULL;
+
+-- name: LockList :one
+SELECT * FROM lists WHERE workspace_id = @workspace_id AND id = @id AND deleted_at IS NULL FOR UPDATE;
+
+-- name: LockDeletedList :one
+SELECT * FROM lists WHERE workspace_id = @workspace_id AND id = @id AND deleted_at IS NOT NULL FOR UPDATE;
+
+-- name: RestoreList :one
+UPDATE lists SET deleted_at = NULL, delete_paused = '{}' WHERE id = @id RETURNING *;
+
+-- name: ListDeletedAt :one
+SELECT deleted_at FROM lists WHERE workspace_id = @workspace_id AND id = @id;
+
+-- name: PurgeDeletedLists :execrows
+-- Past the 30 days a deleted list can be restored: the list and its
+-- memberships go for good. Contacts and suppressions stay.
+DELETE FROM lists WHERE deleted_at < @before;
+
+-- name: ListImpactMembers :one
+-- The list's subscribers, and how many of them another list keeps
+-- subscribed.
+SELECT count(*)::bigint AS members,
+       count(*) FILTER (WHERE EXISTS (
+           SELECT 1 FROM list_memberships o JOIN lists ol ON ol.id = o.list_id AND ol.deleted_at IS NULL
+           WHERE o.contact_id = m.contact_id AND o.list_id <> m.list_id AND o.status = 'subscribed'))::bigint AS elsewhere
+FROM list_memberships m
+WHERE m.list_id = @id AND m.status = 'subscribed';
+
+-- name: ListImpactOtherLists :many
+-- The other lists the subscribers are on, most shared first.
+SELECT ol.id, ol.name, count(*)::bigint AS contacts
+FROM list_memberships m
+JOIN list_memberships o ON o.contact_id = m.contact_id AND o.list_id <> m.list_id AND o.status = 'subscribed'
+JOIN lists ol ON ol.id = o.list_id AND ol.deleted_at IS NULL
+WHERE m.list_id = @id AND m.status = 'subscribed'
+GROUP BY ol.id, ol.name
+ORDER BY contacts DESC, ol.name;
+
+-- name: ListImpactForms :many
+-- Live signup forms that subscribe people to the list.
+SELECT id, name FROM forms
+WHERE workspace_id = @workspace_id AND status = 'live' AND @id::uuid = ANY(list_ids)
+ORDER BY name, id;
+
+-- name: ListImpactAutomations :many
+-- Live automations that start when someone joins the list.
+SELECT id, name FROM automations
+WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND status = 'live'
+  AND trigger ->> 'kind' = 'joined_list' AND trigger ->> 'listId' = @id::text
+ORDER BY name, id;
+
+-- name: ListImpactCampaigns :many
+-- Scheduled campaigns that send to the list.
+SELECT id, name, scheduled_at FROM campaigns
+WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND status = 'scheduled'
+  AND audience -> 'lists' @> jsonb_build_array(@id::text)
+ORDER BY scheduled_at, name, id;
+
+-- name: ListPauseForm :execrows
+UPDATE forms SET status = 'paused', updated_by = sqlc.narg(by), updated_at = @at
+WHERE workspace_id = @workspace_id AND id = @id AND status = 'live';
+
+-- name: ListResumeForm :execrows
+-- Only a form still paused the way deleting the list left it.
+UPDATE forms SET status = 'live', updated_by = sqlc.narg(by), updated_at = @at
+WHERE workspace_id = @workspace_id AND id = @id AND status = 'paused' AND updated_at = @paused_at;
+
+-- name: ListPauseAutomation :execrows
+UPDATE automations SET status = 'paused', paused_at = @at, paused_by = sqlc.narg(by), pause_reason = @reason,
+    updated_by = sqlc.narg(by), updated_at = @at
+WHERE workspace_id = @workspace_id AND id = @id AND status = 'live' AND deleted_at IS NULL;
+
+-- name: ListResumeAutomation :execrows
+UPDATE automations SET status = 'live', paused_at = NULL, paused_by = NULL, pause_reason = '',
+    updated_by = sqlc.narg(by), updated_at = @at
+WHERE workspace_id = @workspace_id AND id = @id AND status = 'paused' AND paused_at = @paused_at AND deleted_at IS NULL;
+
+-- name: ListUnscheduleCampaign :execrows
+UPDATE campaigns SET status = @status, scheduled_at = NULL, updated_by = coalesce(sqlc.narg(by), updated_by), updated_at = @at
+WHERE workspace_id = @workspace_id AND id = @id AND status = 'scheduled';
+
+-- name: ListRescheduleCampaign :execrows
+-- Only a campaign nobody changed since deleting the list took it off the
+-- schedule.
+UPDATE campaigns SET status = 'scheduled', scheduled_at = @scheduled_at, updated_by = coalesce(sqlc.narg(by), updated_by), updated_at = @at
+WHERE workspace_id = @workspace_id AND id = @id AND status = @status AND scheduled_at IS NULL AND updated_at = @unscheduled_at AND deleted_at IS NULL;
 
 -- Custom fields ------------------------------------------------------------
 

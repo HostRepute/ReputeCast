@@ -397,7 +397,7 @@ func (q *Queries) CreateCustomField(ctx context.Context, arg CreateCustomFieldPa
 const createList = `-- name: CreateList :one
 INSERT INTO lists (id, workspace_id, name, description, double_opt_in)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at
+RETURNING id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused
 `
 
 type CreateListParams struct {
@@ -427,6 +427,7 @@ func (q *Queries) CreateList(ctx context.Context, arg CreateListParams) (List, e
 		&i.Public,
 		&i.CreatedAt,
 		&i.DeletedAt,
+		&i.DeletePaused,
 	)
 	return i, err
 }
@@ -682,7 +683,7 @@ func (q *Queries) GetCustomField(ctx context.Context, arg GetCustomFieldParams) 
 }
 
 const getList = `-- name: GetList :one
-SELECT id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at FROM lists WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+SELECT id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused FROM lists WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type GetListParams struct {
@@ -703,6 +704,7 @@ func (q *Queries) GetList(ctx context.Context, arg GetListParams) (List, error) 
 		&i.Public,
 		&i.CreatedAt,
 		&i.DeletedAt,
+		&i.DeletePaused,
 	)
 	return i, err
 }
@@ -978,6 +980,22 @@ func (q *Queries) ListCustomFields(ctx context.Context, workspaceID uuid.UUID) (
 	return items, nil
 }
 
+const listDeletedAt = `-- name: ListDeletedAt :one
+SELECT deleted_at FROM lists WHERE workspace_id = $1 AND id = $2
+`
+
+type ListDeletedAtParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) ListDeletedAt(ctx context.Context, arg ListDeletedAtParams) (*time.Time, error) {
+	row := q.db.QueryRow(ctx, listDeletedAt, arg.WorkspaceID, arg.ID)
+	var deleted_at *time.Time
+	err := row.Scan(&deleted_at)
+	return deleted_at, err
+}
+
 const listGrowthSince = `-- name: ListGrowthSince :many
 SELECT lm.list_id,
        count(*) FILTER (WHERE lm.subscribed_at >= $1 AND lm.status = 'subscribed')::bigint AS joined,
@@ -1008,6 +1026,180 @@ func (q *Queries) ListGrowthSince(ctx context.Context, arg ListGrowthSinceParams
 	for rows.Next() {
 		var i ListGrowthSinceRow
 		if err := rows.Scan(&i.ListID, &i.Joined, &i.Departed); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listImpactAutomations = `-- name: ListImpactAutomations :many
+SELECT id, name FROM automations
+WHERE workspace_id = $1 AND deleted_at IS NULL AND status = 'live'
+  AND trigger ->> 'kind' = 'joined_list' AND trigger ->> 'listId' = $2::text
+ORDER BY name, id
+`
+
+type ListImpactAutomationsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          string    `json:"id"`
+}
+
+type ListImpactAutomationsRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// Live automations that start when someone joins the list.
+func (q *Queries) ListImpactAutomations(ctx context.Context, arg ListImpactAutomationsParams) ([]ListImpactAutomationsRow, error) {
+	rows, err := q.db.Query(ctx, listImpactAutomations, arg.WorkspaceID, arg.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListImpactAutomationsRow{}
+	for rows.Next() {
+		var i ListImpactAutomationsRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listImpactCampaigns = `-- name: ListImpactCampaigns :many
+SELECT id, name, scheduled_at FROM campaigns
+WHERE workspace_id = $1 AND deleted_at IS NULL AND status = 'scheduled'
+  AND audience -> 'lists' @> jsonb_build_array($2::text)
+ORDER BY scheduled_at, name, id
+`
+
+type ListImpactCampaignsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          string    `json:"id"`
+}
+
+type ListImpactCampaignsRow struct {
+	ID          uuid.UUID  `json:"id"`
+	Name        string     `json:"name"`
+	ScheduledAt *time.Time `json:"scheduledAt"`
+}
+
+// Scheduled campaigns that send to the list.
+func (q *Queries) ListImpactCampaigns(ctx context.Context, arg ListImpactCampaignsParams) ([]ListImpactCampaignsRow, error) {
+	rows, err := q.db.Query(ctx, listImpactCampaigns, arg.WorkspaceID, arg.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListImpactCampaignsRow{}
+	for rows.Next() {
+		var i ListImpactCampaignsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.ScheduledAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listImpactForms = `-- name: ListImpactForms :many
+SELECT id, name FROM forms
+WHERE workspace_id = $1 AND status = 'live' AND $2::uuid = ANY(list_ids)
+ORDER BY name, id
+`
+
+type ListImpactFormsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type ListImpactFormsRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// Live signup forms that subscribe people to the list.
+func (q *Queries) ListImpactForms(ctx context.Context, arg ListImpactFormsParams) ([]ListImpactFormsRow, error) {
+	rows, err := q.db.Query(ctx, listImpactForms, arg.WorkspaceID, arg.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListImpactFormsRow{}
+	for rows.Next() {
+		var i ListImpactFormsRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listImpactMembers = `-- name: ListImpactMembers :one
+SELECT count(*)::bigint AS members,
+       count(*) FILTER (WHERE EXISTS (
+           SELECT 1 FROM list_memberships o JOIN lists ol ON ol.id = o.list_id AND ol.deleted_at IS NULL
+           WHERE o.contact_id = m.contact_id AND o.list_id <> m.list_id AND o.status = 'subscribed'))::bigint AS elsewhere
+FROM list_memberships m
+WHERE m.list_id = $1 AND m.status = 'subscribed'
+`
+
+type ListImpactMembersRow struct {
+	Members   int64 `json:"members"`
+	Elsewhere int64 `json:"elsewhere"`
+}
+
+// The list's subscribers, and how many of them another list keeps
+// subscribed.
+func (q *Queries) ListImpactMembers(ctx context.Context, id uuid.UUID) (ListImpactMembersRow, error) {
+	row := q.db.QueryRow(ctx, listImpactMembers, id)
+	var i ListImpactMembersRow
+	err := row.Scan(&i.Members, &i.Elsewhere)
+	return i, err
+}
+
+const listImpactOtherLists = `-- name: ListImpactOtherLists :many
+SELECT ol.id, ol.name, count(*)::bigint AS contacts
+FROM list_memberships m
+JOIN list_memberships o ON o.contact_id = m.contact_id AND o.list_id <> m.list_id AND o.status = 'subscribed'
+JOIN lists ol ON ol.id = o.list_id AND ol.deleted_at IS NULL
+WHERE m.list_id = $1 AND m.status = 'subscribed'
+GROUP BY ol.id, ol.name
+ORDER BY contacts DESC, ol.name
+`
+
+type ListImpactOtherListsRow struct {
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	Contacts int64     `json:"contacts"`
+}
+
+// The other lists the subscribers are on, most shared first.
+func (q *Queries) ListImpactOtherLists(ctx context.Context, id uuid.UUID) ([]ListImpactOtherListsRow, error) {
+	rows, err := q.db.Query(ctx, listImpactOtherLists, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListImpactOtherListsRow{}
+	for rows.Next() {
+		var i ListImpactOtherListsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Contacts); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1087,6 +1279,148 @@ func (q *Queries) ListNameTaken(ctx context.Context, arg ListNameTakenParams) (b
 	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const listPauseAutomation = `-- name: ListPauseAutomation :execrows
+UPDATE automations SET status = 'paused', paused_at = $1, paused_by = $2, pause_reason = $3,
+    updated_by = $2, updated_at = $1
+WHERE workspace_id = $4 AND id = $5 AND status = 'live' AND deleted_at IS NULL
+`
+
+type ListPauseAutomationParams struct {
+	At          *time.Time `json:"at"`
+	By          *uuid.UUID `json:"by"`
+	Reason      string     `json:"reason"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ID          uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) ListPauseAutomation(ctx context.Context, arg ListPauseAutomationParams) (int64, error) {
+	result, err := q.db.Exec(ctx, listPauseAutomation,
+		arg.At,
+		arg.By,
+		arg.Reason,
+		arg.WorkspaceID,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const listPauseForm = `-- name: ListPauseForm :execrows
+UPDATE forms SET status = 'paused', updated_by = $1, updated_at = $2
+WHERE workspace_id = $3 AND id = $4 AND status = 'live'
+`
+
+type ListPauseFormParams struct {
+	By          *uuid.UUID `json:"by"`
+	At          time.Time  `json:"at"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ID          uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) ListPauseForm(ctx context.Context, arg ListPauseFormParams) (int64, error) {
+	result, err := q.db.Exec(ctx, listPauseForm,
+		arg.By,
+		arg.At,
+		arg.WorkspaceID,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const listRescheduleCampaign = `-- name: ListRescheduleCampaign :execrows
+UPDATE campaigns SET status = 'scheduled', scheduled_at = $1, updated_by = coalesce($2, updated_by), updated_at = $3
+WHERE workspace_id = $4 AND id = $5 AND status = $6 AND scheduled_at IS NULL AND updated_at = $7 AND deleted_at IS NULL
+`
+
+type ListRescheduleCampaignParams struct {
+	ScheduledAt   *time.Time `json:"scheduledAt"`
+	By            *uuid.UUID `json:"by"`
+	At            time.Time  `json:"at"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	ID            uuid.UUID  `json:"id"`
+	Status        string     `json:"status"`
+	UnscheduledAt time.Time  `json:"unscheduledAt"`
+}
+
+// Only a campaign nobody changed since deleting the list took it off the
+// schedule.
+func (q *Queries) ListRescheduleCampaign(ctx context.Context, arg ListRescheduleCampaignParams) (int64, error) {
+	result, err := q.db.Exec(ctx, listRescheduleCampaign,
+		arg.ScheduledAt,
+		arg.By,
+		arg.At,
+		arg.WorkspaceID,
+		arg.ID,
+		arg.Status,
+		arg.UnscheduledAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const listResumeAutomation = `-- name: ListResumeAutomation :execrows
+UPDATE automations SET status = 'live', paused_at = NULL, paused_by = NULL, pause_reason = '',
+    updated_by = $1, updated_at = $2
+WHERE workspace_id = $3 AND id = $4 AND status = 'paused' AND paused_at = $5 AND deleted_at IS NULL
+`
+
+type ListResumeAutomationParams struct {
+	By          *uuid.UUID `json:"by"`
+	At          time.Time  `json:"at"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ID          uuid.UUID  `json:"id"`
+	PausedAt    *time.Time `json:"pausedAt"`
+}
+
+func (q *Queries) ListResumeAutomation(ctx context.Context, arg ListResumeAutomationParams) (int64, error) {
+	result, err := q.db.Exec(ctx, listResumeAutomation,
+		arg.By,
+		arg.At,
+		arg.WorkspaceID,
+		arg.ID,
+		arg.PausedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const listResumeForm = `-- name: ListResumeForm :execrows
+UPDATE forms SET status = 'live', updated_by = $1, updated_at = $2
+WHERE workspace_id = $3 AND id = $4 AND status = 'paused' AND updated_at = $5
+`
+
+type ListResumeFormParams struct {
+	By          *uuid.UUID `json:"by"`
+	At          time.Time  `json:"at"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ID          uuid.UUID  `json:"id"`
+	PausedAt    time.Time  `json:"pausedAt"`
+}
+
+// Only a form still paused the way deleting the list left it.
+func (q *Queries) ListResumeForm(ctx context.Context, arg ListResumeFormParams) (int64, error) {
+	result, err := q.db.Exec(ctx, listResumeForm,
+		arg.By,
+		arg.At,
+		arg.WorkspaceID,
+		arg.ID,
+		arg.PausedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const listSavedViews = `-- name: ListSavedViews :many
@@ -1183,6 +1517,123 @@ func (q *Queries) ListTierMix(ctx context.Context, workspaceID uuid.UUID) ([]Lis
 	return items, nil
 }
 
+const listUnscheduleCampaign = `-- name: ListUnscheduleCampaign :execrows
+UPDATE campaigns SET status = $1, scheduled_at = NULL, updated_by = coalesce($2, updated_by), updated_at = $3
+WHERE workspace_id = $4 AND id = $5 AND status = 'scheduled'
+`
+
+type ListUnscheduleCampaignParams struct {
+	Status      string     `json:"status"`
+	By          *uuid.UUID `json:"by"`
+	At          time.Time  `json:"at"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ID          uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) ListUnscheduleCampaign(ctx context.Context, arg ListUnscheduleCampaignParams) (int64, error) {
+	result, err := q.db.Exec(ctx, listUnscheduleCampaign,
+		arg.Status,
+		arg.By,
+		arg.At,
+		arg.WorkspaceID,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const lockDeletedList = `-- name: LockDeletedList :one
+SELECT id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused FROM lists WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NOT NULL FOR UPDATE
+`
+
+type LockDeletedListParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) LockDeletedList(ctx context.Context, arg LockDeletedListParams) (List, error) {
+	row := q.db.QueryRow(ctx, lockDeletedList, arg.WorkspaceID, arg.ID)
+	var i List
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.Description,
+		&i.DoubleOptIn,
+		&i.RequiresApproval,
+		&i.Public,
+		&i.CreatedAt,
+		&i.DeletedAt,
+		&i.DeletePaused,
+	)
+	return i, err
+}
+
+const lockList = `-- name: LockList :one
+SELECT id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused FROM lists WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR UPDATE
+`
+
+type LockListParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) LockList(ctx context.Context, arg LockListParams) (List, error) {
+	row := q.db.QueryRow(ctx, lockList, arg.WorkspaceID, arg.ID)
+	var i List
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.Description,
+		&i.DoubleOptIn,
+		&i.RequiresApproval,
+		&i.Public,
+		&i.CreatedAt,
+		&i.DeletedAt,
+		&i.DeletePaused,
+	)
+	return i, err
+}
+
+const purgeDeletedLists = `-- name: PurgeDeletedLists :execrows
+DELETE FROM lists WHERE deleted_at < $1
+`
+
+// Past the 30 days a deleted list can be restored: the list and its
+// memberships go for good. Contacts and suppressions stay.
+func (q *Queries) PurgeDeletedLists(ctx context.Context, before *time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeDeletedLists, before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const restoreList = `-- name: RestoreList :one
+UPDATE lists SET deleted_at = NULL, delete_paused = '{}' WHERE id = $1 RETURNING id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused
+`
+
+func (q *Queries) RestoreList(ctx context.Context, id uuid.UUID) (List, error) {
+	row := q.db.QueryRow(ctx, restoreList, id)
+	var i List
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.Description,
+		&i.DoubleOptIn,
+		&i.RequiresApproval,
+		&i.Public,
+		&i.CreatedAt,
+		&i.DeletedAt,
+		&i.DeletePaused,
+	)
+	return i, err
+}
+
 const scopeTotalsSince = `-- name: ScopeTotalsSince :many
 SELECT scope, scope_id,
        coalesce(sum(joined), 0)::bigint AS joined, coalesce(sum(departed), 0)::bigint AS departed,
@@ -1259,16 +1710,26 @@ func (q *Queries) SetSunsetPolicy(ctx context.Context, arg SetSunsetPolicyParams
 }
 
 const softDeleteList = `-- name: SoftDeleteList :execrows
-UPDATE lists SET deleted_at = now() WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+UPDATE lists SET deleted_at = $1, delete_paused = $2
+WHERE workspace_id = $3 AND id = $4 AND deleted_at IS NULL
 `
 
 type SoftDeleteListParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	ID          uuid.UUID `json:"id"`
+	At          *time.Time      `json:"at"`
+	Paused      json.RawMessage `json:"paused"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	ID          uuid.UUID       `json:"id"`
 }
 
+// The list goes from every screen and send; paused notes what deleting it
+// paused, for a restore.
 func (q *Queries) SoftDeleteList(ctx context.Context, arg SoftDeleteListParams) (int64, error) {
-	result, err := q.db.Exec(ctx, softDeleteList, arg.WorkspaceID, arg.ID)
+	result, err := q.db.Exec(ctx, softDeleteList,
+		arg.At,
+		arg.Paused,
+		arg.WorkspaceID,
+		arg.ID,
+	)
 	if err != nil {
 		return 0, err
 	}
@@ -1543,7 +2004,7 @@ func (q *Queries) UpdateCustomField(ctx context.Context, arg UpdateCustomFieldPa
 const updateList = `-- name: UpdateList :one
 UPDATE lists SET name = $1, description = $2, double_opt_in = $3
 WHERE workspace_id = $4 AND id = $5 AND deleted_at IS NULL
-RETURNING id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at
+RETURNING id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused
 `
 
 type UpdateListParams struct {
@@ -1573,6 +2034,7 @@ func (q *Queries) UpdateList(ctx context.Context, arg UpdateListParams) (List, e
 		&i.Public,
 		&i.CreatedAt,
 		&i.DeletedAt,
+		&i.DeletePaused,
 	)
 	return i, err
 }

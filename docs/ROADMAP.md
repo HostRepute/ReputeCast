@@ -151,6 +151,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 - Outgoing webhook dispatch finds a failing endpoint's probe once per endpoint (9.9 s → 5 ms per tick on the demo).
 - The Docker image runs as non-root with its data directory ready; the build context leaves out local worktrees and node_modules.
 - The demo's October Product Update is the Report board's email, and the click map places its bubbles as the board does.
+- Deleting a list (Dialogs board) from List health: the dialog shows who is on the list and who another list keeps, and pauses the live forms, live automations and scheduled campaigns that use it. Sends skip a deleted list; Undo on the toast, or Restore list on the audit entry for 30 days, brings it back with what it paused; after that the cleanup job removes it.
 
 ## Done so far (W13: signup forms and public pages, M10)
 

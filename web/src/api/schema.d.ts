@@ -4384,12 +4384,46 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Delete a list (contacts stay) */
+        /** Delete a list (contacts stay; restorable for 30 days) */
         delete: operations["delete-list"];
         options?: never;
         head?: never;
         /** Rename a list or change its opt-in setting */
         patch: operations["update-list"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lists/{id}/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What deleting a list would affect */
+        get: operations["get-list-impact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lists/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a list deleted in the last 30 days */
+        post: operations["restore-list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/workspaces/{workspace}/mcp": {
@@ -6894,6 +6928,7 @@ export interface components {
             linkLabel?: string;
             permission?: string;
             related: string[];
+            restore?: components["schemas"]["AuditRestore"];
             userAgent?: string;
             what: string;
             workspace: string;
@@ -6927,6 +6962,14 @@ export interface components {
             stream: components["schemas"]["AuditStreamStatus"];
             /** Format: int64 */
             total: number;
+        };
+        AuditRestore: {
+            id: string;
+            /** @enum {string} */
+            kind: "list";
+            name: string;
+            /** Format: date-time */
+            until: string;
         };
         AuditSettings: {
             /** @description Changing settings needs workspace:manage */
@@ -10052,6 +10095,7 @@ export interface components {
             linkLabel?: string;
             permission?: string;
             related: string[];
+            restore?: components["schemas"]["AuditRestore"];
             userAgent?: string;
             what: string;
             workspace: string;
@@ -10517,6 +10561,32 @@ export interface components {
             tiers: components["schemas"]["AudienceTierCounts"];
             /** Format: double */
             unsubRate?: number;
+        };
+        ListImpact: {
+            automations: components["schemas"]["ListImpactItem"][];
+            campaigns: components["schemas"]["ListImpactItem"][];
+            /** Format: int64 */
+            elsewhere: number;
+            forms: components["schemas"]["ListImpactItem"][];
+            id: string;
+            /** Format: int64 */
+            members: number;
+            name: string;
+            /** Format: int64 */
+            otherListCount: number;
+            otherLists: string[];
+        };
+        ListImpactItem: {
+            id: string;
+            name: string;
+        };
+        ListRestore: {
+            automations: string[];
+            campaigns: string[];
+            forms: string[];
+            id: string;
+            left: string[];
+            name: string;
         };
         LiveAB: {
             /** Format: date-time */
@@ -25223,6 +25293,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AudienceListSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-list-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListImpact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListRestore"];
                 };
             };
             /** @description Error */

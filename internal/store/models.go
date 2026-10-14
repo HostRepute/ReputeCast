@@ -909,15 +909,16 @@ type LinkDomainListing struct {
 }
 
 type List struct {
-	ID               uuid.UUID  `json:"id"`
-	WorkspaceID      uuid.UUID  `json:"workspaceId"`
-	Name             string     `json:"name"`
-	Description      string     `json:"description"`
-	DoubleOptIn      bool       `json:"doubleOptIn"`
-	RequiresApproval bool       `json:"requiresApproval"`
-	Public           bool       `json:"public"`
-	CreatedAt        time.Time  `json:"createdAt"`
-	DeletedAt        *time.Time `json:"deletedAt"`
+	ID               uuid.UUID       `json:"id"`
+	WorkspaceID      uuid.UUID       `json:"workspaceId"`
+	Name             string          `json:"name"`
+	Description      string          `json:"description"`
+	DoubleOptIn      bool            `json:"doubleOptIn"`
+	RequiresApproval bool            `json:"requiresApproval"`
+	Public           bool            `json:"public"`
+	CreatedAt        time.Time       `json:"createdAt"`
+	DeletedAt        *time.Time      `json:"deletedAt"`
+	DeletePaused     json.RawMessage `json:"deletePaused"`
 }
 
 type ListMembership struct {

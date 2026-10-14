@@ -228,9 +228,19 @@ func Register(h huma.API, s *Service, box Box) {
 			out, err := s.UpdateList(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID), in.Body)
 			return api.OK(out), err
 		})
-	api.Delete(h, api.Op{ID: "delete-list", Path: ws + "/lists/{id}", Summary: "Delete a list (contacts stay)", Tags: tags, Access: manage},
+	api.Get(h, api.Op{ID: "get-list-impact", Path: ws + "/lists/{id}/impact", Summary: "What deleting a list would affect", Tags: tags, Access: manage},
+		func(ctx context.Context, in *AudienceIDInput) (*api.Body[ListImpact], error) {
+			out, err := s.ListImpact(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID))
+			return api.OK(out), err
+		})
+	api.Delete(h, api.Op{ID: "delete-list", Path: ws + "/lists/{id}", Summary: "Delete a list (contacts stay; restorable for 30 days)", Tags: tags, Access: manage},
 		func(ctx context.Context, in *AudienceIDInput) (*api.Empty, error) {
 			return api.NoContent, s.DeleteList(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID))
+		})
+	api.Post(h, api.Op{ID: "restore-list", Path: ws + "/lists/{id}/restore", Summary: "Restore a list deleted in the last 30 days", Tags: tags, Access: manage},
+		func(ctx context.Context, in *AudienceIDInput) (*api.Body[ListRestore], error) {
+			out, err := s.RestoreList(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID))
+			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "list-fields", Path: ws + "/fields", Summary: "Custom fields", Tags: tags, Access: view},
 		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[CustomFieldList], error) {

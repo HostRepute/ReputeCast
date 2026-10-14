@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -204,7 +205,7 @@ func TestOverviewDemo(t *testing.T) {
 	}
 	items := o.Incidents.Items
 	if len(items) != 5 || items[0].Kind != "warmup_slowdown" || len(items[0].Links) != 2 || items[0].Links[1].Label != "October Product Update" ||
-		!strings.HasSuffix(items[1].Detail, "Delisting requested "+items[1].Detail[len(items[1].Detail)-len("8 Oct, pending."):]) ||
+		!delistingRequested.MatchString(items[1].Detail) ||
 		items[1].Links[0].Label != "Postal" || items[3].Links[0].Kind != "campaign_report" || items[4].Links[0].Kind != "import" {
 		t.Fatalf("incidents: %+v", items)
 	}
@@ -457,3 +458,7 @@ func TestBuiltinCheck(t *testing.T) {
 		t.Fatalf("incidents after a second run: %d", inc)
 	}
 }
+
+// delistingRequested is the blocklist incident's detail, whatever day the
+// demo's delisting request falls on.
+var delistingRequested = regexp.MustCompile(`Delisting requested \d{1,2} [A-Z][a-z]{2}, pending\.$`)
