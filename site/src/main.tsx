@@ -10,7 +10,7 @@ const app = (
   </StrictMode>
 )
 
-// The production page is prerendered (scripts/prerender.ts) and hydrated;
+// The production page is prerendered (scripts/build.ts) and hydrated;
 // the dev server serves the empty shell and renders on the client.
 if (root.firstElementChild) hydrateRoot(root, app)
 else createRoot(root).render(app)

@@ -40,5 +40,4 @@ export function consoleLogger(level: LogLevel = (process.env["REPUTECAST_ADAPTER
   };
 }
 
-/** A logger that writes nothing. */
 export const silentLogger: Logger = { debug() {}, info() {}, warn() {}, error() {} };

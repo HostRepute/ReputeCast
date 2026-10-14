@@ -12,7 +12,7 @@
  * defaults (content-box sizing, list markers), and matching it pixel for
  * pixel is the point.
  *
- * Motion has three switches:
+ * Motion has four switches:
  *   prefers-reduced-motion   everything renders its final state
  *   html[data-motion=paused] the visible "Pause motion" control: loops freeze
  *                            in place, scroll reveals and counters show their
@@ -62,7 +62,6 @@
   --color-chart-postmark: var(--chart-postmark);
 }
 
-/* ------------------------------------------------------------------ base */
 @layer base {
   :root {
     /* The tokens' stacks plus metric-matched stand-ins (fonts.css), so the
@@ -101,7 +100,6 @@
   }
 }
 
-/* ------------------------------------------------------------- components */
 @layer components {
   .mono {
     font-family: var(--font-site-mono);
@@ -464,7 +462,7 @@
   }
 }
 
-/* ------------------------------------------------------------------ motion */
+/* Motion */
 @keyframes rise {
   from {
     opacity: 0;
@@ -716,7 +714,7 @@
   }
 }
 
-/* -------------------------------------------------------- flow canvas */
+/* Flow canvas */
 @keyframes nodeIn {
   from {
     opacity: 0;
@@ -1052,7 +1050,6 @@
   }
 }
 
-/* ------------------------------------------------------------ phones ≤767px */
 @layer components {
   @media (max-width: 767px) {
     .wrap h1 {
@@ -1109,7 +1106,6 @@
   }
 }
 
-/* ------------------------------------------------- reduced motion: final state */
 @media (prefers-reduced-motion: reduce) {
   .rise,
   .chk,
@@ -1153,7 +1149,7 @@
   }
 }
 
-/* --------------------------------------------- the visible Pause motion control */
+/* Pause motion control */
 /* Loops (marquee, drifting blobs, flow pulses, the paused dot, cursors) freeze
    where they are; anything that reveals content shows its final state, so
    pausing can never leave a section invisible. */

@@ -16,7 +16,6 @@ const pillars = [
   },
 ]
 
-/** "Nothing else checks deliverability before and during a send." */
 export function Features() {
   return (
     <section className="wrap flex flex-col gap-7 pt-18 pb-6" id="features" aria-labelledby="features-h">

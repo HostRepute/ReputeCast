@@ -37,7 +37,6 @@ const features = [
   },
 ]
 
-/** "Everything a newsletter tool should have. All of it free." */
 export function AllFeatures() {
   return (
     <section className="wrap flex flex-col gap-6 pt-10 pb-10" aria-labelledby="all-features-h">

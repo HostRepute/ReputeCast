@@ -308,7 +308,6 @@ export interface HealthOutput {
   capabilities?: unknown;
 }
 
-/** Protocol limits. */
 export const LIMITS = {
   /** Most suppressions per suppressions/list page. */
   suppressionsPerPage: 1000,

@@ -107,7 +107,6 @@ function renderCell(cell: Cell, i: number) {
   return <td key={i}>{cell as ReactNode}</td>
 }
 
-/** "An honest comparison" with paid platforms; list prices change, so check each one. */
 export function Compare() {
   const scroller = useRef<HTMLDivElement>(null)
   const scrollable = useScrollable(scroller)

@@ -73,8 +73,7 @@ export function FlowCanvas() {
   const motion = useMotion()
   const hydrated = useHydrated()
   const scrollable = useScrollable(wrap)
-  // Reduced or paused motion shows the finished canvas right away; otherwise
-  // it draws in once 20% of it is visible, or after 3.5 s.
+  // Reduced or paused motion shows the finished canvas right away.
   const animate = motionAllowed(motion) && !motion.settled
   const [started, setStarted] = useState(false)
   const go = started || (hydrated && !animate)

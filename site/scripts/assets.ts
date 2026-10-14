@@ -53,8 +53,6 @@ async function load(page: Page, html: string) {
   await page.evaluate(() => document.fonts.ready)
 }
 
-// ---------------------------------------------------------------- banner SVG
-
 type Border = { w: number; color: string }
 type Box = { kind: 'box'; x: number; y: number; w: number; h: number; bg: string; radius: number; borders: [Border, Border, Border, Border]; opacity: number; shadow: string }
 type Svg = { kind: 'svg'; x: number; y: number; w: number; h: number; markup: string }
@@ -235,8 +233,6 @@ function bannerSvg(w: number, h: number, items: Item[], ascent: number, fonts: M
   ].join('\n')
 }
 
-// --------------------------------------------------------------------- icons
-
 /** A Windows .ico holding PNG images (supported since Vista and by every browser). */
 function ico(pngs: { size: number; data: Buffer }[]): Buffer {
   const header = Buffer.alloc(6 + 16 * pngs.length)
@@ -292,7 +288,6 @@ async function main() {
     writeFileSync(join(pub, 'icon-512.png'), await rasterize(browser, appIcon, 512))
     writeFileSync(join(pub, 'icon-maskable-512.png'), await rasterize(browser, fullBleed, 512))
 
-    // README banner, 1280 x 640.
     await page.setViewportSize({ width: 1280, height: 640 })
     await load(page, bannerHtml(1280, 640, 'Built by HostRepute · github.com/hostrepute/reputecast'))
     await page.locator('#banner').screenshot({ path: join(docsAssets, 'readme-banner.png') })
@@ -304,7 +299,6 @@ async function main() {
     }
     writeFileSync(join(docsAssets, 'readme-banner.svg'), bannerSvg(1280, 640, items, ascent, fonts))
 
-    // Open Graph / Twitter card, 1200 x 630: the same artwork for the site.
     await page.setViewportSize({ width: 1200, height: 630 })
     await load(page, bannerHtml(1200, 630, 'Built by HostRepute · reputecast.com', 48))
     await page.locator('#banner').screenshot({ path: join(pub, 'og.png') })

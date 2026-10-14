@@ -163,7 +163,6 @@ function show(v: unknown): string {
   return s === undefined ? String(v) : s.length > 600 ? s.slice(0, 600) + "…" : s;
 }
 
-/** Starts the fake provider API. */
 async function fakeApi(c: Contract): Promise<{ env: FakeEnv; close(): Promise<void> }> {
   const requests: FakeRequest[] = [];
   const env = { url: "", mode: "" as Mode, requests };
