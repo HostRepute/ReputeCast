@@ -669,7 +669,6 @@ func (q *Queries) CountCampaignsByStatus(ctx context.Context, workspaceID uuid.U
 }
 
 const getComposerCampaign = `-- name: GetComposerCampaign :one
-
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.sender_id, c.reply_to, c.audience, c.audience_count,
        c.editor_mode, c.mjml, c.html, c.plain_text, c.version, c.ab_test, c.schedule, c.content_hash, c.content_settings,
        c.created_by, c.updated_by, c.created_at, c.updated_at, c.autosaved_at, c.scheduled_at, c.started_at,
@@ -721,7 +720,6 @@ type GetComposerCampaignRow struct {
 	VersionCount    int64           `json:"versionCount"`
 }
 
-// ------------------------------------------------------------------ composer
 // One campaign with what the composer header shows.
 func (q *Queries) GetComposerCampaign(ctx context.Context, arg GetComposerCampaignParams) (GetComposerCampaignRow, error) {
 	row := q.db.QueryRow(ctx, getComposerCampaign, arg.WorkspaceID, arg.ID)

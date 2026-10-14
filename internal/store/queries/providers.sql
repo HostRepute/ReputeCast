@@ -1,4 +1,4 @@
--- W01 · Sending providers: connected providers, health inputs, actions.
+-- Sending providers: connected providers, health inputs, actions.
 -- Query names start with Prov so they never collide with other domains.
 
 -- name: ProvListActive :many

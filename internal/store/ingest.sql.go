@@ -321,7 +321,7 @@ type IngestInsertRawParams struct {
 	Source      string          `json:"source"`
 }
 
-// W01 · Webhook ingest, normalization and the provider event log.
+// Webhook ingest, normalization and the provider event log.
 func (q *Queries) IngestInsertRaw(ctx context.Context, arg IngestInsertRawParams) error {
 	_, err := q.db.Exec(ctx, ingestInsertRaw,
 		arg.ID,

@@ -1,4 +1,4 @@
--- W10 · Sending domains and sender identities (Settings › Senders, the
+-- Sending domains and sender identities (Settings › Senders, the
 -- domain step of Connect a sending provider, system mail). Query names start
 -- with Dom or Sender so they never collide with other domains.
 
@@ -34,8 +34,7 @@ WHERE id = @id;
 UPDATE sending_domains SET dns_records = @dns_records, updated_at = @updated_at WHERE id = @id;
 
 -- name: DomSaveCheck :exec
--- The result of a live DNS check: every record's status, the authentication
--- summary and detail, the tracking domain and where the zone is hosted.
+-- The result of a live DNS check.
 UPDATE sending_domains
 SET dns_records = @dns_records, auth_summary = @auth_summary, auth_detail = @auth_detail, status = @status,
     tracking_status = @tracking_status, dns_host = @dns_host, nameservers = @nameservers::text[], last_checked_at = @checked_at

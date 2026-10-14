@@ -161,7 +161,7 @@ WHERE workspace_id = $1
 ORDER BY CASE stream WHEN 'broadcast' THEN 0 WHEN 'automation' THEN 1 ELSE 2 END, priority, id
 `
 
-// W01 · Routing rules, failover policies and the route tester.
+// Routing rules, failover policies and the route tester.
 func (q *Queries) RoutingListRules(ctx context.Context, workspaceID uuid.UUID) ([]RoutingRule, error) {
 	rows, err := q.db.Query(ctx, routingListRules, workspaceID)
 	if err != nil {

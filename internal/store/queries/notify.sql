@@ -1,4 +1,4 @@
--- Notification center, preferences and email delivery. Owned by internal/notify.
+-- Notification center, preferences and email delivery (internal/notify).
 
 -- name: InsertNotification :execrows
 -- Stores a notification unless the person turned both in-app and email off

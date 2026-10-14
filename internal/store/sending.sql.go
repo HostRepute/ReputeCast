@@ -196,12 +196,10 @@ type SendingAudienceAddressesRow struct {
 }
 
 // The addresses of the audience members who can receive the send (active,
-// not suppressed, in no excluded list or segment): the audience build
-// leaves out a second contact that reaches the same mailbox (an alias), as
-// Send Readiness counts them. The one kept is the one the sunset policy
-// didn't stop, then the oldest, so the mailbox still gets the send. A
-// deleted list (restorable for 30 days) adds nobody; as an exclusion it
-// still excludes.
+// not suppressed, in no excluded list or segment), so the audience build can
+// leave out a second contact that reaches the same mailbox (an alias). The
+// order keeps the one the sunset policy didn't stop, then the oldest. A
+// deleted list adds nobody; as an exclusion it still excludes.
 func (q *Queries) SendingAudienceAddresses(ctx context.Context, arg SendingAudienceAddressesParams) ([]SendingAudienceAddressesRow, error) {
 	rows, err := q.db.Query(ctx, sendingAudienceAddresses,
 		arg.WorkspaceID,
@@ -319,15 +317,13 @@ type SendingAudiencePageRow struct {
 	Gone            bool            `json:"gone"`
 }
 
-// One page of the audience after the cursor, in contact id order: members
-// of the included lists and staged segment members, with everything that
-// decides whether each receives the campaign. It reads the audience, not
-// the workspace's contacts, and looks up the page's memberships once for
-// the whole page, so a page costs the same whatever the workspace's size
-// and whatever the planner's statistics say right after a large import.
-// gone marks a member whose contact was erased or isn't the workspace's:
-// the caller skips it and the cursor moves on. A deleted list (restorable
-// for 30 days) adds nobody.
+// One page of the audience after the cursor, in contact id order, with
+// everything that decides whether each member receives the campaign. It
+// reads the audience, not the workspace's contacts, and looks up the page's
+// memberships once, so a page costs the same whatever the workspace's size
+// or the planner's statistics right after a large import. gone marks a
+// member whose contact was erased or isn't the workspace's: the caller skips
+// it and the cursor moves on. A deleted list adds nobody.
 func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePageParams) ([]SendingAudiencePageRow, error) {
 	rows, err := q.db.Query(ctx, sendingAudiencePage,
 		arg.Now,
@@ -664,12 +660,10 @@ func (q *Queries) SendingCampaignContext(ctx context.Context, id uuid.UUID) (Sen
 
 const sendingCampaignForUpdate = `-- name: SendingCampaignForUpdate :one
 
-
 SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings FROM campaigns WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
 `
 
-// W12 · Sending engine and live monitor (spec 5.3, 7.6).
-// Campaigns -------------------------------------------------------------
+// Sending engine and live monitor (spec 5.3, 7.6).
 func (q *Queries) SendingCampaignForUpdate(ctx context.Context, id uuid.UUID) (Campaign, error) {
 	row := q.db.QueryRow(ctx, sendingCampaignForUpdate, id)
 	var i Campaign
@@ -803,7 +797,6 @@ func (q *Queries) SendingCancelRemaining(ctx context.Context, arg SendingCancelR
 }
 
 const sendingClaim = `-- name: SendingClaim :many
-
 WITH picked AS (
     SELECT m.id FROM messages m
     WHERE m.campaign_id = $1 AND m.provider_id = $2 AND m.mailbox_provider = $3
@@ -855,7 +848,6 @@ type SendingClaimRow struct {
 	Suppressed      bool            `json:"suppressed"`
 }
 
-// Send loop -------------------------------------------------------------
 // Claims up to lim queued messages of one sending provider and mailbox
 // provider in the send's shuffled order, skipping rows another worker
 // holds. A claim older than the stale time belonged to a worker that died.
@@ -1156,9 +1148,8 @@ LIMIT 50
 `
 
 // Scheduled campaigns whose time has come (the watchdog starts any whose
-// start job was lost). A held one (its send-time recheck turned Blocked)
-// is left to Review & send's minute job, which rechecks it every 15
-// minutes and starts it once a recheck passes.
+// start job was lost). One held by a Blocked send-time recheck is left to
+// Review & send, which rechecks it every 15 minutes.
 func (q *Queries) SendingDueScheduled(ctx context.Context, now *time.Time) ([]uuid.UUID, error) {
 	rows, err := q.db.Query(ctx, sendingDueScheduled, now)
 	if err != nil {
@@ -1180,7 +1171,6 @@ func (q *Queries) SendingDueScheduled(ctx context.Context, now *time.Time) ([]uu
 }
 
 const sendingDueSimEvents = `-- name: SendingDueSimEvents :many
-
 SELECT id, workspace_id, campaign_id, message_id, provider_id, due_at, kind, data FROM sending_sim_events WHERE due_at <= $1 ORDER BY due_at, id LIMIT $2 FOR UPDATE SKIP LOCKED
 `
 
@@ -1189,7 +1179,6 @@ type SendingDueSimEventsParams struct {
 	Lim int32     `json:"lim"`
 }
 
-// Demo transport --------------------------------------------------------
 func (q *Queries) SendingDueSimEvents(ctx context.Context, arg SendingDueSimEventsParams) ([]SendingSimEvent, error) {
 	rows, err := q.db.Query(ctx, sendingDueSimEvents, arg.Now, arg.Lim)
 	if err != nil {
@@ -1269,7 +1258,6 @@ func (q *Queries) SendingExcludeGroup(ctx context.Context, arg SendingExcludeGro
 }
 
 const sendingFeed = `-- name: SendingFeed :many
-
 SELECT e.id, e.type, e.occurred_at, e.received_at, e.recipient, e.provider_id, e.original_code, e.diagnostic,
        e.machine, e.url, e.user_agent, e.mailbox_provider,
        coalesce(m.variant, '')::text AS variant,
@@ -1304,7 +1292,6 @@ type SendingFeedRow struct {
 	Suppresses      bool       `json:"suppresses"`
 }
 
-// Live monitor ----------------------------------------------------------
 // The newest delivery and engagement events of a campaign.
 func (q *Queries) SendingFeed(ctx context.Context, arg SendingFeedParams) ([]SendingFeedRow, error) {
 	rows, err := q.db.Query(ctx, sendingFeed, arg.CampaignID, arg.Since, arg.Lim)
@@ -1580,7 +1567,6 @@ func (q *Queries) SendingInsertAutomationLink(ctx context.Context, arg SendingIn
 }
 
 const sendingInsertAutomationMessage = `-- name: SendingInsertAutomationMessage :exec
-
 INSERT INTO messages (id, workspace_id, stream, automation_id, automation_node, contact_id, email, provider_id, mailbox_provider, status, queued_at, content_ref)
 VALUES ($1, $2, 'automation', $3, $4, $5, $6, $7, $8, $9, $10, $11)
 `
@@ -1599,7 +1585,6 @@ type SendingInsertAutomationMessageParams struct {
 	ContentRef      json.RawMessage `json:"contentRef"`
 }
 
-// Automation outbox -----------------------------------------------------
 func (q *Queries) SendingInsertAutomationMessage(ctx context.Context, arg SendingInsertAutomationMessageParams) error {
 	_, err := q.db.Exec(ctx, sendingInsertAutomationMessage,
 		arg.ID,
@@ -1618,7 +1603,6 @@ func (q *Queries) SendingInsertAutomationMessage(ctx context.Context, arg Sendin
 }
 
 const sendingInsertIncident = `-- name: SendingInsertIncident :exec
-
 INSERT INTO campaign_incidents (id, campaign_id, kind, scope, provider_id, mailbox_provider, metric, value, threshold, held, detail, tripped_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 `
@@ -1638,7 +1622,6 @@ type SendingInsertIncidentParams struct {
 	TrippedAt       time.Time       `json:"trippedAt"`
 }
 
-// Incidents -------------------------------------------------------------
 func (q *Queries) SendingInsertIncident(ctx context.Context, arg SendingInsertIncidentParams) error {
 	_, err := q.db.Exec(ctx, sendingInsertIncident,
 		arg.ID,
@@ -1681,7 +1664,6 @@ func (q *Queries) SendingInsertLink(ctx context.Context, arg SendingInsertLinkPa
 }
 
 const sendingInsertSend = `-- name: SendingInsertSend :exec
-
 INSERT INTO campaign_sends (campaign_id, workspace_id, phase, started_by, started_by_name, approved_by, approved_at, scheduled_by, throttles, thresholds, scenario, created_at, updated_at)
 VALUES ($1, $2, 'preparing', $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
 ON CONFLICT (campaign_id) DO UPDATE
@@ -1705,7 +1687,6 @@ type SendingInsertSendParams struct {
 	At            time.Time       `json:"at"`
 }
 
-// Send state ------------------------------------------------------------
 func (q *Queries) SendingInsertSend(ctx context.Context, arg SendingInsertSendParams) error {
 	_, err := q.db.Exec(ctx, sendingInsertSend,
 		arg.CampaignID,
@@ -2256,7 +2237,6 @@ func (q *Queries) SendingRetryNow(ctx context.Context, arg SendingRetryNowParams
 }
 
 const sendingRoutes = `-- name: SendingRoutes :many
-
 SELECT cr.campaign_id, cr.provider_id, cr.planned, cr.status, cr.status_detail, cr.cost_micros
 FROM campaign_routes cr
 JOIN providers p ON p.id = cr.provider_id
@@ -2273,7 +2253,6 @@ type SendingRoutesRow struct {
 	CostMicros   int64     `json:"costMicros"`
 }
 
-// Routes ----------------------------------------------------------------
 func (q *Queries) SendingRoutes(ctx context.Context, campaignID uuid.UUID) ([]SendingRoutesRow, error) {
 	rows, err := q.db.Query(ctx, sendingRoutes, campaignID)
 	if err != nil {
@@ -2638,7 +2617,6 @@ func (q *Queries) SendingSimMessages(ctx context.Context, ids []uuid.UUID) ([]Se
 }
 
 const sendingStageAdd = `-- name: SendingStageAdd :exec
-
 INSERT INTO campaign_audience_stage (campaign_id, contact_id, exclude)
 SELECT $1::uuid, unnest($2::uuid[]), $3::boolean
 ON CONFLICT DO NOTHING
@@ -2650,7 +2628,6 @@ type SendingStageAddParams struct {
 	Exclude    bool        `json:"exclude"`
 }
 
-// Audience --------------------------------------------------------------
 func (q *Queries) SendingStageAdd(ctx context.Context, arg SendingStageAddParams) error {
 	_, err := q.db.Exec(ctx, sendingStageAdd, arg.CampaignID, arg.ContactIds, arg.Exclude)
 	return err

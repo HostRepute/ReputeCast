@@ -1,8 +1,7 @@
 -- +goose Up
--- Instance admin, SSO and social sign-in, version & updates (W14: add-on
--- spec 3.1–3.3, 3.13, 5.10, 5.11).
+-- Instance admin, SSO and social sign-in, version & updates (add-on spec
+-- 3.1–3.3, 3.13, 5.10, 5.11).
 
--- Instance settings ----------------------------------------------------------
 ALTER TABLE instance_settings
     -- Password policy: block re-use of the last N passwords (0 allows re-use).
     ADD COLUMN password_reuse        integer     NOT NULL DEFAULT 5 CHECK (password_reuse IN (0, 5, 10)),
@@ -41,7 +40,6 @@ $$;
 CREATE TRIGGER users_password_history AFTER UPDATE OF password_hash ON users
     FOR EACH ROW EXECUTE FUNCTION users_password_history();
 
--- SSO providers ----------------------------------------------------------------
 ALTER TABLE sso_providers
     -- The redirect URI is {public URL}/auth/oidc/{slug}/callback.
     ADD COLUMN slug                     text,

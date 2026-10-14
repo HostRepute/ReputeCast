@@ -1,5 +1,5 @@
 -- +goose Up
--- W12 · Sending engine, live monitor and tracking (spec 5.3, 7.6, add-on §6).
+-- Sending engine, live monitor and tracking (spec 5.3, 7.6, add-on §6).
 
 -- Messages: provider calls made for a message, the retry back-off and the
 -- in-flight claim. A send worker claims a batch (claimed_at) while it hands

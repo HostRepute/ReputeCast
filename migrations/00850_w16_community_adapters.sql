@@ -1,6 +1,6 @@
 -- +goose Up
 -- Community adapters that run in their own process and speak the adapter
--- protocol (W16, docs/adapters.md "Community adapters"). installed_adapters
+-- protocol (docs/adapters.md "Community adapters"). installed_adapters
 -- gains the "remote" kind; adapter_runtimes keeps, per installed remote
 -- adapter, its registry key, where its process listens, its signing secret
 -- (sealed with the instance key, write-only; the previous one stays valid

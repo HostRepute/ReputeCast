@@ -1,5 +1,5 @@
 -- +goose Up
--- W09 · Overview and campaign reports (spec 7.1, 7.7, 5.5): what the report
+-- Overview and campaign reports (spec 7.1, 7.7, 5.5): what the report
 -- needs beyond the base schema of 00005.
 
 -- Read-only report links. Only the SHA-256 of the token is used to look a

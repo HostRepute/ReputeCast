@@ -1,6 +1,4 @@
--- W13 · Signup forms and public page settings (spec 5.12, 7.12).
-
--- Forms -----------------------------------------------------------------------
+-- Signup forms and public page settings (spec 5.12, 7.12).
 
 -- name: FormsList :many
 SELECT * FROM forms WHERE workspace_id = @workspace_id ORDER BY created_at, id;
@@ -58,8 +56,6 @@ UPDATE forms SET allowed_origins = array_append(allowed_origins, @origin::text),
 WHERE workspace_id = @workspace_id AND id = @id AND NOT (@origin::text = ANY (allowed_origins))
 RETURNING *;
 
--- Numbers ---------------------------------------------------------------------
-
 -- name: FormStatsSince :many
 -- Per form: views, submissions, confirmations of those submissions and spam
 -- blocked since a day (inclusive).
@@ -102,8 +98,6 @@ LIMIT 5;
 -- name: FormDismissOrigin :execrows
 UPDATE form_rejections SET dismissed_at = @at
 WHERE form_id = @form_id AND reason = 'origin' AND origin = @origin AND dismissed_at IS NULL;
-
--- Submissions -----------------------------------------------------------------
 
 -- name: FormSubmissionInsert :exec
 INSERT INTO form_submissions (id, workspace_id, form_id, contact_id, list_ids, double_opt_in, created_at, confirmed_at)
@@ -172,8 +166,6 @@ WHERE fs.contact_id = @contact_id
 ORDER BY fs.created_at DESC
 LIMIT 1;
 
--- Turnstile challenges --------------------------------------------------------
-
 -- name: FormChallengeInsert :exec
 INSERT INTO form_challenges (id, workspace_id, form_id, payload_enc, origin, created_at, expires_at)
 VALUES (@id, @workspace_id, @form_id, @payload_enc, @origin, @at, @expires_at);
@@ -188,8 +180,6 @@ SELECT EXISTS (SELECT 1 FROM form_challenges WHERE id = @id AND workspace_id = @
 
 -- name: FormChallengesPurge :execrows
 DELETE FROM form_challenges WHERE expires_at <= @at;
-
--- Public page settings --------------------------------------------------------
 
 -- name: PublicSettingsEnsure :exec
 INSERT INTO public_page_settings (workspace_id) VALUES (@workspace_id) ON CONFLICT (workspace_id) DO NOTHING;
@@ -259,8 +249,6 @@ RETURNING branding;
 
 -- name: FormsRemoveBrandingKeys :exec
 UPDATE workspaces SET branding = branding - @keys::text[], updated_at = now() WHERE id = @id;
-
--- Lookups for the builder -----------------------------------------------------
 
 -- name: FormsDefaultSender :one
 SELECT s.email, s.name FROM workspaces w JOIN senders s ON s.id = w.default_sender_id WHERE w.id = @workspace_id;

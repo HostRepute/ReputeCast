@@ -427,7 +427,7 @@ type McpFindCampaignRow struct {
 	Mjml          string          `json:"mjml"`
 }
 
-// Read models behind the MCP server's tools (W03). Writes go through the
+// Read models behind the MCP server's tools. Writes go through the
 // owning domain's rules; these queries only read or make small, audited changes.
 // A campaign by id or by exact (case-insensitive) name, newest first.
 func (q *Queries) McpFindCampaign(ctx context.Context, arg McpFindCampaignParams) (McpFindCampaignRow, error) {

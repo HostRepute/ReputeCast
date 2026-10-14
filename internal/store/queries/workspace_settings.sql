@@ -1,4 +1,4 @@
--- Workspace settings: general, danger zone and summaries (W03).
+-- Workspace settings: general, danger zone and summaries.
 
 -- name: WsSenders :many
 SELECT s.id, s.name, s.email, s.verification, d.domain

@@ -1,4 +1,4 @@
--- Roles & permissions (W03).
+-- Roles & permissions.
 
 -- name: RolesList :many
 SELECT r.id, r.workspace_id, r.key, r.name, r.description, r.builtin, r.permissions, r.created_by, r.created_at, r.updated_at,

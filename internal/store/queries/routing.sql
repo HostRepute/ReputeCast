@@ -1,4 +1,4 @@
--- W01 · Routing rules, failover policies and the route tester.
+-- Routing rules, failover policies and the route tester.
 
 -- name: RoutingListRules :many
 SELECT * FROM routing_rules

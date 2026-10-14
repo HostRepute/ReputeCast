@@ -1,7 +1,5 @@
--- W13 · Public pages (spec 7.12): the archive, view online and what an
+-- Public pages (spec 7.12): the archive, view online and what an
 -- unsubscribe records about the email it came from.
-
--- Archive ---------------------------------------------------------------------
 
 -- name: ArchiveMissingIssues :many
 -- Sent campaigns of the archived lists without an archive row yet, oldest
@@ -100,8 +98,6 @@ JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status 
 WHERE ai.workspace_id = @workspace_id AND ai.list_id = ANY (@lists::uuid[]) AND NOT ai.hidden
 GROUP BY ai.list_id;
 
--- Emails ----------------------------------------------------------------------
-
 -- name: PublicMessage :one
 SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.contact_id, m.provider_id, m.mailbox_provider, m.variant, m.email
 FROM messages m
@@ -129,8 +125,6 @@ JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status 
 WHERE ai.workspace_id = @workspace_id AND ai.list_id = ANY (@lists::uuid[]) AND NOT ai.hidden
 ORDER BY coalesce(c.started_at, c.completed_at, c.created_at) DESC
 LIMIT 1;
-
--- Unsubscribes ----------------------------------------------------------------
 
 -- name: PublicBumpUnsubscribed :exec
 INSERT INTO campaign_counters (campaign_id, provider_id, mailbox_provider, variant, unsubscribed)

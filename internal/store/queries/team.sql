@@ -1,4 +1,4 @@
--- Team: members, invitations, sign-in methods and member detail (W03).
+-- Team: members, invitations, sign-in methods and member detail.
 
 -- name: TeamListMembers :many
 SELECT m.id, m.workspace_id, m.user_id, m.role_id, m.scope, m.source, m.status, m.joined_at, m.deactivated_at,

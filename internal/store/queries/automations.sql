@@ -1,4 +1,4 @@
--- Automations (W06): flows, versions, runs, step stats, emails, trigger
+-- Automations: flows, versions, runs, step stats, emails, trigger
 -- events, webhook calls, step secrets and alerts.
 
 -- name: ListAutomations :many

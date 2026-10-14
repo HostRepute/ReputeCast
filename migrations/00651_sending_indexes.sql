@@ -1,5 +1,5 @@
 -- +goose Up
--- W12 · Indexes for deleting a send's messages.
+-- Indexes for deleting a send's messages.
 --
 -- delivery_events.message_id references messages (ON DELETE SET NULL)
 -- without an index, so every message deleted (a deleted campaign, a demo

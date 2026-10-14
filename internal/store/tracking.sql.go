@@ -366,7 +366,7 @@ type TrackingMessageRow struct {
 	CampaignStartedAt *time.Time      `json:"campaignStartedAt"`
 }
 
-// W12 · Open and click tracking (spec 5.5, 7.6).
+// Open and click tracking (spec 5.5, 7.6).
 func (q *Queries) TrackingMessage(ctx context.Context, id uuid.UUID) (TrackingMessageRow, error) {
 	row := q.db.QueryRow(ctx, trackingMessage, id)
 	var i TrackingMessageRow

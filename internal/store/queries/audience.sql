@@ -13,8 +13,6 @@ WHERE workspace_id = @workspace_id AND erased_at IS NULL;
 -- name: CountWorkspaceSuppressions :one
 SELECT count(*)::bigint FROM suppressions WHERE workspace_id = @workspace_id;
 
--- Lists ------------------------------------------------------------------
-
 -- name: ListListsWithCounts :many
 SELECT l.id, l.name, l.description, l.double_opt_in, l.created_at,
        coalesce(m.subscribed, 0)::bigint AS subscribed,
@@ -136,8 +134,6 @@ WHERE workspace_id = @workspace_id AND id = @id AND status = 'scheduled';
 UPDATE campaigns SET status = 'scheduled', scheduled_at = @scheduled_at, updated_by = coalesce(sqlc.narg(by), updated_by), updated_at = @at
 WHERE workspace_id = @workspace_id AND id = @id AND status = @status AND scheduled_at IS NULL AND updated_at = @unscheduled_at AND deleted_at IS NULL;
 
--- Custom fields ------------------------------------------------------------
-
 -- name: ListCustomFields :many
 SELECT * FROM custom_fields WHERE workspace_id = @workspace_id ORDER BY position, created_at, key;
 
@@ -157,8 +153,6 @@ RETURNING *;
 
 -- name: DeleteCustomField :execrows
 DELETE FROM custom_fields WHERE workspace_id = @workspace_id AND id = @id;
-
--- Contacts -------------------------------------------------------------------
 
 -- name: GetContact :one
 SELECT * FROM contacts WHERE workspace_id = @workspace_id AND id = @id AND erased_at IS NULL;
@@ -234,8 +228,6 @@ SET status = excluded.status, source = excluded.source,
     subscribed_at = CASE WHEN excluded.status = 'subscribed' AND list_memberships.status <> 'subscribed' THEN now() ELSE list_memberships.subscribed_at END,
     unsubscribed_at = CASE WHEN excluded.status = 'subscribed' THEN NULL ELSE list_memberships.unsubscribed_at END;
 
--- Saved views ----------------------------------------------------------------
-
 -- name: ListSavedViews :many
 SELECT * FROM saved_views
 WHERE workspace_id = @workspace_id AND (user_id IS NULL OR user_id = @user_id)
@@ -255,8 +247,6 @@ DELETE FROM saved_views WHERE workspace_id = @workspace_id AND id = @id;
 
 -- name: HealthViews :many
 SELECT * FROM saved_views WHERE workspace_id = @workspace_id AND show_in_health ORDER BY position, created_at;
-
--- Suppressions -----------------------------------------------------------------
 
 -- name: SuppressionCounts :one
 SELECT count(*)::bigint AS total,
@@ -308,8 +298,6 @@ ORDER BY p.connected_at, p.name;
 SELECT id, name, adapter FROM providers
 WHERE workspace_id = @workspace_id AND disconnected_at IS NULL
 ORDER BY connected_at, name;
-
--- List health -----------------------------------------------------------------
 
 -- name: GetAudienceState :one
 SELECT * FROM audience_state WHERE workspace_id = @workspace_id;

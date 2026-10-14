@@ -1,5 +1,5 @@
 -- +goose Up
--- Team, API keys, MCP agents and the audit stream (W03).
+-- Team, API keys, MCP agents and the audit stream.
 
 -- Invitations keep their raw token sealed with the instance key so "Copy
 -- link" works after the email went out without invalidating that link.

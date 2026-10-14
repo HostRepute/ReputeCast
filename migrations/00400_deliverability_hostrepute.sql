@@ -1,5 +1,5 @@
 -- +goose Up
--- W07 · Deliverability and Connect HostRepute (spec 7.8, add-on 5.15).
+-- Deliverability and Connect HostRepute (spec 7.8, add-on 5.15).
 -- Extends the tables of 00007 with where each piece of data comes from
 -- (HostRepute, the built-in checks, a direct connection or an upload), adds
 -- the OAuth handshake state, check runs and the local DNS check results.

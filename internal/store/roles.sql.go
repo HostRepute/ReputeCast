@@ -195,7 +195,7 @@ type RolesListRow struct {
 	CreatedByName string     `json:"createdByName"`
 }
 
-// Roles & permissions (W03).
+// Roles & permissions.
 func (q *Queries) RolesList(ctx context.Context, workspaceID uuid.UUID) ([]RolesListRow, error) {
 	rows, err := q.db.Query(ctx, rolesList, workspaceID)
 	if err != nil {

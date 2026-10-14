@@ -1,5 +1,5 @@
 -- +goose Up
--- Instance admin › Audit log (W14): instance-level entries (sign-ins, SSO,
+-- Instance admin › Audit log: instance-level entries (sign-ins, SSO,
 -- policies, users) can be streamed to their own webhook, like a
 -- workspace's log; the retention is instance_settings.audit_retention_days.
 ALTER TABLE instance_settings

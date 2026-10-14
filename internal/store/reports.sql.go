@@ -210,7 +210,7 @@ type ReportCampaignRow struct {
 	Note          string          `json:"note"`
 }
 
-// W09 · Campaign reports (spec 7.7, 5.5) and read-only report links.
+// Campaign reports (spec 7.7, 5.5) and read-only report links.
 func (q *Queries) ReportCampaign(ctx context.Context, arg ReportCampaignParams) (ReportCampaignRow, error) {
 	row := q.db.QueryRow(ctx, reportCampaign, arg.WorkspaceID, arg.ID)
 	var i ReportCampaignRow
@@ -573,7 +573,6 @@ func (q *Queries) ReportShareByToken(ctx context.Context, tokenHash []byte) (Rep
 }
 
 const reportShareCreate = `-- name: ReportShareCreate :one
-
 INSERT INTO report_shares (id, campaign_id, token_hash, token_sealed, created_by, created_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING id, campaign_id, token_hash, created_by, created_at, expires_at, revoked_at, token_sealed, revoked_by, views, last_viewed_at
@@ -589,7 +588,6 @@ type ReportShareCreateParams struct {
 	ExpiresAt   *time.Time `json:"expiresAt"`
 }
 
-// Read-only links -------------------------------------------------------
 func (q *Queries) ReportShareCreate(ctx context.Context, arg ReportShareCreateParams) (ReportShare, error) {
 	row := q.db.QueryRow(ctx, reportShareCreate,
 		arg.ID,

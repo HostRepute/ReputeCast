@@ -498,7 +498,6 @@ func (q *Queries) InstanceAdminSavePolicy(ctx context.Context, arg InstanceAdmin
 }
 
 const instanceAdminSaveSettings = `-- name: InstanceAdminSaveSettings :one
-
 UPDATE instance_settings
 SET name = $1, public_url = $2, default_timezone = $3, updated_at = now(),
     public_url_check = CASE WHEN public_url = $2 THEN public_url_check END,
@@ -513,7 +512,6 @@ type InstanceAdminSaveSettingsParams struct {
 	DefaultTimezone string `json:"defaultTimezone"`
 }
 
-// Instance settings, logo, public URL check and updates -----------------------
 // A new public URL drops the last URL check, which describes the old one.
 func (q *Queries) InstanceAdminSaveSettings(ctx context.Context, arg InstanceAdminSaveSettingsParams) (InstanceSetting, error) {
 	row := q.db.QueryRow(ctx, instanceAdminSaveSettings, arg.Name, arg.PublicUrl, arg.DefaultTimezone)
@@ -880,7 +878,7 @@ type InstanceAdminUsersRow struct {
 	ApiKeys         int64      `json:"apiKeys"`
 }
 
-// Instance admin: users, workspaces, policies, instance settings and updates (W14).
+// Instance admin: users, workspaces, policies, instance settings and updates.
 func (q *Queries) InstanceAdminUsers(ctx context.Context) ([]InstanceAdminUsersRow, error) {
 	rows, err := q.db.Query(ctx, instanceAdminUsers)
 	if err != nil {
@@ -1000,7 +998,6 @@ func (q *Queries) InstanceAdminWorkspace(ctx context.Context, id uuid.UUID) (Wor
 }
 
 const instanceAdminWorkspaces = `-- name: InstanceAdminWorkspaces :many
-
 SELECT w.id, w.slug, w.name, w.timezone, w.created_at, w.deleted_at,
        (SELECT count(*) FROM workspace_members m WHERE m.workspace_id = w.id)::bigint AS members,
        (SELECT count(*) FROM invitations i WHERE i.workspace_id = w.id AND i.accepted_at IS NULL AND i.revoked_at IS NULL AND i.expires_at > now())::bigint AS invited,
@@ -1027,7 +1024,6 @@ type InstanceAdminWorkspacesRow struct {
 	OwnerName   string     `json:"ownerName"`
 }
 
-// Workspaces ---------------------------------------------------------------
 // Live workspaces and the ones deleted within the 7-day restore hold.
 func (q *Queries) InstanceAdminWorkspaces(ctx context.Context) ([]InstanceAdminWorkspacesRow, error) {
 	rows, err := q.db.Query(ctx, instanceAdminWorkspaces)

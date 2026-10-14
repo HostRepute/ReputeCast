@@ -1,4 +1,4 @@
--- W01 · Webhook ingest, normalization and the provider event log.
+-- Webhook ingest, normalization and the provider event log.
 
 -- name: IngestInsertRaw :exec
 INSERT INTO provider_raw_events (id, workspace_id, provider_id, received_at, content_type, body, headers, signature_ok, source)

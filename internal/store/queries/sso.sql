@@ -1,4 +1,4 @@
--- SSO providers, social sign-in and the identities they link (W14).
+-- SSO providers, social sign-in and the identities they link.
 
 -- name: SSOProviders :many
 SELECT * FROM sso_providers ORDER BY created_at, id;

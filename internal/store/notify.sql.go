@@ -138,7 +138,7 @@ type InsertNotificationParams struct {
 	UserID       uuid.UUID       `json:"userId"`
 }
 
-// Notification center, preferences and email delivery. Owned by internal/notify.
+// Notification center, preferences and email delivery (internal/notify).
 // Stores a notification unless the person turned both in-app and email off
 // for its event type. email_status is 'pending' when they asked for email.
 func (q *Queries) InsertNotification(ctx context.Context, arg InsertNotificationParams) (int64, error) {

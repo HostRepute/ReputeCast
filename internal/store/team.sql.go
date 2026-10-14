@@ -585,7 +585,7 @@ type TeamListMembersRow struct {
 	PasskeyCount       int64           `json:"passkeyCount"`
 }
 
-// Team: members, invitations, sign-in methods and member detail (W03).
+// Team: members, invitations, sign-in methods and member detail.
 func (q *Queries) TeamListMembers(ctx context.Context, workspaceID uuid.UUID) ([]TeamListMembersRow, error) {
 	rows, err := q.db.Query(ctx, teamListMembers, workspaceID)
 	if err != nil {

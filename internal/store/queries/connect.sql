@@ -1,4 +1,4 @@
--- W10 · Connect a sending provider (the setup wizard), Settings › Providers
+-- Connect a sending provider (the setup wizard), Settings › Providers
 -- and the system mailer. Query names start with Setup, Connect or Sysmail.
 
 -- name: SetupCreate :one

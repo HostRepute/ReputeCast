@@ -1,4 +1,4 @@
--- W01 · Warm-up plans for new providers and dedicated IPs.
+-- Warm-up plans for new providers and dedicated IPs.
 
 -- name: WarmupListPlans :many
 -- Plans of a workspace's providers, current first.

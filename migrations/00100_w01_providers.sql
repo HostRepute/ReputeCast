@@ -1,8 +1,6 @@
 -- +goose Up
--- W01 · Sending providers & routing: what the webhook ingest keeps for the
--- normalization job, event-log columns, per-minute API call windows (the
--- "API error rate · 3 min" and outage detection), failover state per stream,
--- warm-up settings and log.
+-- Sending providers & routing: raw and normalized event columns, per-minute
+-- API call windows, failover state per stream, warm-up settings and log.
 
 -- Raw provider events. headers keeps the request headers verification and
 -- parsing need (signature, authorization, content type) so the job can rebuild

@@ -574,7 +574,7 @@ type SetupCreateParams struct {
 	CreatedAt   time.Time       `json:"createdAt"`
 }
 
-// W10 · Connect a sending provider (the setup wizard), Settings › Providers
+// Connect a sending provider (the setup wizard), Settings › Providers
 // and the system mailer. Query names start with Setup, Connect or Sysmail.
 func (q *Queries) SetupCreate(ctx context.Context, arg SetupCreateParams) (ProviderSetup, error) {
 	row := q.db.QueryRow(ctx, setupCreate,

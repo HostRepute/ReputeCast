@@ -331,7 +331,7 @@ type WarmupListPlansRow struct {
 	CreatedByName     string          `json:"createdByName"`
 }
 
-// W01 · Warm-up plans for new providers and dedicated IPs.
+// Warm-up plans for new providers and dedicated IPs.
 // Plans of a workspace's providers, current first.
 func (q *Queries) WarmupListPlans(ctx context.Context, workspaceID uuid.UUID) ([]WarmupListPlansRow, error) {
 	rows, err := q.db.Query(ctx, warmupListPlans, workspaceID)

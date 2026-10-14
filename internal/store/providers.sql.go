@@ -777,7 +777,7 @@ WHERE workspace_id = $1 AND disconnected_at IS NULL
 ORDER BY connected_at, name
 `
 
-// W01 · Sending providers: connected providers, health inputs, actions.
+// Sending providers: connected providers, health inputs, actions.
 // Query names start with Prov so they never collide with other domains.
 func (q *Queries) ProvListActive(ctx context.Context, workspaceID uuid.UUID) ([]Provider, error) {
 	rows, err := q.db.Query(ctx, provListActive, workspaceID)

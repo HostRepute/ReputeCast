@@ -650,7 +650,7 @@ const sSOProviders = `-- name: SSOProviders :many
 SELECT id, preset, name, issuer_url, client_id, client_secret_enc, scopes, claim_map, allowed_domains, jit_enabled, jit_workspace_id, jit_role_key, group_mappings, enforce_domains, status, last_test, discovery, created_at, updated_at, slug, twofa_mode, client_secret_set_at, client_secret_set_by, client_secret_expires_on, enabled_at, created_by FROM sso_providers ORDER BY created_at, id
 `
 
-// SSO providers, social sign-in and the identities they link (W14).
+// SSO providers, social sign-in and the identities they link.
 func (q *Queries) SSOProviders(ctx context.Context) ([]SsoProvider, error) {
 	rows, err := q.db.Query(ctx, sSOProviders)
 	if err != nil {

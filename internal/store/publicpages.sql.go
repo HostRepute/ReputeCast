@@ -353,7 +353,6 @@ func (q *Queries) ArchiveLock(ctx context.Context, workspaceID uuid.UUID) error 
 
 const archiveMissingIssues = `-- name: ArchiveMissingIssues :many
 
-
 SELECT c.id, c.name, c.subject, c.audience,
        coalesce(c.started_at, c.completed_at, c.created_at)::timestamptz AS sent_at
 FROM campaigns c
@@ -377,9 +376,8 @@ type ArchiveMissingIssuesRow struct {
 	SentAt   time.Time       `json:"sentAt"`
 }
 
-// W13 · Public pages (spec 7.12): the archive, view online and what an
+// Public pages (spec 7.12): the archive, view online and what an
 // unsubscribe records about the email it came from.
-// Archive ---------------------------------------------------------------------
 // Sent campaigns of the archived lists without an archive row yet, oldest
 // first so slugs are handed out in publishing order.
 func (q *Queries) ArchiveMissingIssues(ctx context.Context, arg ArchiveMissingIssuesParams) ([]ArchiveMissingIssuesRow, error) {
@@ -501,7 +499,6 @@ func (q *Queries) ArchiveUpdateIssue(ctx context.Context, arg ArchiveUpdateIssue
 }
 
 const publicBumpUnsubscribed = `-- name: PublicBumpUnsubscribed :exec
-
 INSERT INTO campaign_counters (campaign_id, provider_id, mailbox_provider, variant, unsubscribed)
 VALUES ($1, $2, $3, $4, 1)
 ON CONFLICT (campaign_id, provider_id, mailbox_provider, variant) DO UPDATE
@@ -515,7 +512,6 @@ type PublicBumpUnsubscribedParams struct {
 	Variant         string    `json:"variant"`
 }
 
-// Unsubscribes ----------------------------------------------------------------
 func (q *Queries) PublicBumpUnsubscribed(ctx context.Context, arg PublicBumpUnsubscribedParams) error {
 	_, err := q.db.Exec(ctx, publicBumpUnsubscribed,
 		arg.CampaignID,
@@ -663,7 +659,6 @@ func (q *Queries) PublicLatestIssueSlug(ctx context.Context, arg PublicLatestIss
 }
 
 const publicMessage = `-- name: PublicMessage :one
-
 SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.contact_id, m.provider_id, m.mailbox_provider, m.variant, m.email
 FROM messages m
 WHERE m.id = $1
@@ -681,7 +676,6 @@ type PublicMessageRow struct {
 	Email           string     `json:"email"`
 }
 
-// Emails ----------------------------------------------------------------------
 func (q *Queries) PublicMessage(ctx context.Context, id uuid.UUID) (PublicMessageRow, error) {
 	row := q.db.QueryRow(ctx, publicMessage, id)
 	var i PublicMessageRow

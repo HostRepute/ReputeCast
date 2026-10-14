@@ -1,4 +1,4 @@
--- Workspace audit log views, export and stream (W03). The instance-level
+-- Workspace audit log views, export and stream. The instance-level
 -- view lives with the instance admin domain.
 
 -- name: AuditLogList :many

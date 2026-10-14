@@ -1,4 +1,4 @@
--- W01 · Sync of the shared suppression list with each provider. The list
+-- Sync of the shared suppression list with each provider. The list
 -- itself (screens, manual adds, imports) belongs to the audience domain.
 
 -- name: SuppSyncList :many

@@ -1,5 +1,5 @@
 -- +goose Up
--- W12 · A campaign's messages go out in a shuffled order: each gets a
+-- A campaign's messages go out in a shuffled order: each gets a
 -- random send_order when the recipient list is built. The first minutes of
 -- a send are then a fair sample of its audience, so the auto-pause
 -- thresholds trip on what is representative instead of after one import,

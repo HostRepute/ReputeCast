@@ -99,8 +99,6 @@ ORDER BY priority LIMIT 1;
 -- name: ProviderNames :many
 SELECT id, name, adapter FROM providers WHERE workspace_id = @workspace_id AND disconnected_at IS NULL;
 
--- ------------------------------------------------------------------ composer
-
 -- name: GetComposerCampaign :one
 -- One campaign with what the composer header shows.
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.sender_id, c.reply_to, c.audience, c.audience_count,

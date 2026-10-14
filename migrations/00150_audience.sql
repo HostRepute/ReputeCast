@@ -3,7 +3,6 @@
 -- suppression list, segments and imports need beyond the base schema, plus
 -- daily audience rollups for list health and the import staging area.
 
--- Contacts ---------------------------------------------------------------
 ALTER TABLE contacts
     ADD COLUMN company               text        NOT NULL DEFAULT '',
     ADD COLUMN language              text        NOT NULL DEFAULT '',
@@ -55,7 +54,6 @@ ALTER TABLE messages
     ADD COLUMN failover   boolean NOT NULL DEFAULT false,
     ADD COLUMN route_note text    NOT NULL DEFAULT '';
 
--- Suppressions -----------------------------------------------------------
 -- scope: 'all' blocks every stream (bounces, complaints, manual);
 -- 'marketing' blocks Broadcasts and Automations but allows System mail
 -- (unsubscribes). The campaign or flow that caused it, or a free-text
@@ -70,7 +68,6 @@ ALTER TABLE suppressions
 CREATE INDEX suppressions_import_idx ON suppressions (workspace_id, import_id);
 CREATE INDEX suppressions_reason_idx ON suppressions (workspace_id, reason);
 
--- Segments ---------------------------------------------------------------
 ALTER TABLE segments
     ADD COLUMN refresh     text    NOT NULL DEFAULT 'dynamic' CHECK (refresh IN ('dynamic','static')),
     ADD COLUMN count_ms    integer,
@@ -89,7 +86,6 @@ CREATE TABLE segment_members (
 -- consent-pending import that needs watching).
 ALTER TABLE saved_views ADD COLUMN show_in_health boolean NOT NULL DEFAULT false;
 
--- Daily audience rollups --------------------------------------------------
 -- Written by the nightly tier job: the tier mix per scope (the workspace,
 -- each list, each followed saved view) and the day's joins, departures and
 -- Broadcast engagement. List health reads 30-day sums; the tier trend reads
@@ -125,7 +121,6 @@ CREATE TABLE audience_state (
     updated_at        timestamptz NOT NULL DEFAULT now()
 );
 
--- Imports ----------------------------------------------------------------
 ALTER TABLE imports DROP CONSTRAINT imports_status_check;
 ALTER TABLE imports ADD CONSTRAINT imports_status_check
     CHECK (status IN ('draft','staging','mapping','previewing','running','paused','done','failed','cancelled'));

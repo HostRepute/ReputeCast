@@ -1,5 +1,5 @@
 -- +goose Up
--- Outgoing webhooks (W03): one delivery row per event and endpoint, updated
+-- Outgoing webhooks: one delivery row per event and endpoint, updated
 -- on every attempt. Failed deliveries retry with backoff up to max_attempts,
 -- then wait in the dead-letter queue ("dead") for 7 days.
 

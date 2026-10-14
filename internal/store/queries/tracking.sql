@@ -1,4 +1,4 @@
--- W12 · Open and click tracking (spec 5.5, 7.6).
+-- Open and click tracking (spec 5.5, 7.6).
 
 -- name: TrackingMessage :one
 SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.contact_id, m.email, m.variant, m.provider_id,

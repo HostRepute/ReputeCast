@@ -160,8 +160,7 @@ type OverviewNextScheduledRow struct {
 	AudienceCount *int64          `json:"audienceCount"`
 }
 
-// W09 · Overview (spec 7.1).
-// The next campaign due to go out.
+// Overview (spec 7.1).
 func (q *Queries) OverviewNextScheduled(ctx context.Context, arg OverviewNextScheduledParams) (OverviewNextScheduledRow, error) {
 	row := q.db.QueryRow(ctx, overviewNextScheduled, arg.WorkspaceID, arg.Since)
 	var i OverviewNextScheduledRow

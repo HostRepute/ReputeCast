@@ -1,4 +1,4 @@
--- API keys and MCP agents (W03). Both live in api_keys (kind api_key | mcp_agent).
+-- API keys and MCP agents. Both live in api_keys (kind api_key | mcp_agent).
 
 -- name: KeysList :many
 SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.permissions, k.scope, k.created_by, k.created_at,

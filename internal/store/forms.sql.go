@@ -255,7 +255,6 @@ func (q *Queries) FormBySlug(ctx context.Context, arg FormBySlugParams) (Form, e
 }
 
 const formChallengeInsert = `-- name: FormChallengeInsert :exec
-
 INSERT INTO form_challenges (id, workspace_id, form_id, payload_enc, origin, created_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
@@ -270,7 +269,6 @@ type FormChallengeInsertParams struct {
 	ExpiresAt   time.Time  `json:"expiresAt"`
 }
 
-// Turnstile challenges --------------------------------------------------------
 func (q *Queries) FormChallengeInsert(ctx context.Context, arg FormChallengeInsertParams) error {
 	_, err := q.db.Exec(ctx, formChallengeInsert,
 		arg.ID,
@@ -708,7 +706,6 @@ func (q *Queries) FormSlugTaken(ctx context.Context, arg FormSlugTakenParams) (b
 }
 
 const formStatsSince = `-- name: FormStatsSince :many
-
 SELECT form_id,
        coalesce(sum(views), 0)::bigint AS views,
        coalesce(sum(submissions), 0)::bigint AS submissions,
@@ -732,7 +729,6 @@ type FormStatsSinceRow struct {
 	Blocked     int64     `json:"blocked"`
 }
 
-// Numbers ---------------------------------------------------------------------
 // Per form: views, submissions, confirmations of those submissions and spam
 // blocked since a day (inclusive).
 func (q *Queries) FormStatsSince(ctx context.Context, arg FormStatsSinceParams) ([]FormStatsSinceRow, error) {
@@ -791,7 +787,6 @@ func (q *Queries) FormSubmissionByID(ctx context.Context, arg FormSubmissionByID
 }
 
 const formSubmissionInsert = `-- name: FormSubmissionInsert :exec
-
 INSERT INTO form_submissions (id, workspace_id, form_id, contact_id, list_ids, double_opt_in, created_at, confirmed_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 `
@@ -807,7 +802,6 @@ type FormSubmissionInsertParams struct {
 	ConfirmedAt *time.Time  `json:"confirmedAt"`
 }
 
-// Submissions -----------------------------------------------------------------
 func (q *Queries) FormSubmissionInsert(ctx context.Context, arg FormSubmissionInsertParams) error {
 	_, err := q.db.Exec(ctx, formSubmissionInsert,
 		arg.ID,
@@ -1171,7 +1165,6 @@ func (q *Queries) FormWaitingSubmissions(ctx context.Context, arg FormWaitingSub
 }
 
 const formsDefaultSender = `-- name: FormsDefaultSender :one
-
 SELECT s.email, s.name FROM workspaces w JOIN senders s ON s.id = w.default_sender_id WHERE w.id = $1
 `
 
@@ -1180,7 +1173,6 @@ type FormsDefaultSenderRow struct {
 	Name  string `json:"name"`
 }
 
-// Lookups for the builder -----------------------------------------------------
 func (q *Queries) FormsDefaultSender(ctx context.Context, workspaceID uuid.UUID) (FormsDefaultSenderRow, error) {
 	row := q.db.QueryRow(ctx, formsDefaultSender, workspaceID)
 	var i FormsDefaultSenderRow
@@ -1190,12 +1182,10 @@ func (q *Queries) FormsDefaultSender(ctx context.Context, workspaceID uuid.UUID)
 
 const formsList = `-- name: FormsList :many
 
-
 SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by FROM forms WHERE workspace_id = $1 ORDER BY created_at, id
 `
 
-// W13 · Signup forms and public page settings (spec 5.12, 7.12).
-// Forms -----------------------------------------------------------------------
+// Signup forms and public page settings (spec 5.12, 7.12).
 func (q *Queries) FormsList(ctx context.Context, workspaceID uuid.UUID) ([]Form, error) {
 	rows, err := q.db.Query(ctx, formsList, workspaceID)
 	if err != nil {
@@ -1360,11 +1350,9 @@ func (q *Queries) PublicSettingsDomainsToCheck(ctx context.Context, before *time
 }
 
 const publicSettingsEnsure = `-- name: PublicSettingsEnsure :exec
-
 INSERT INTO public_page_settings (workspace_id) VALUES ($1) ON CONFLICT (workspace_id) DO NOTHING
 `
 
-// Public page settings --------------------------------------------------------
 func (q *Queries) PublicSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, publicSettingsEnsure, workspaceID)
 	return err

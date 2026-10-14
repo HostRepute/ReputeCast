@@ -1,6 +1,4 @@
--- W12 · Sending engine and live monitor (spec 5.3, 7.6).
-
--- Campaigns -------------------------------------------------------------
+-- Sending engine and live monitor (spec 5.3, 7.6).
 
 -- name: SendingCampaignForUpdate :one
 SELECT * FROM campaigns WHERE id = @id AND deleted_at IS NULL FOR UPDATE;
@@ -56,16 +54,13 @@ UPDATE campaigns SET audience_count = @n WHERE id = @id;
 
 -- name: SendingDueScheduled :many
 -- Scheduled campaigns whose time has come (the watchdog starts any whose
--- start job was lost). A held one (its send-time recheck turned Blocked)
--- is left to Review & send's minute job, which rechecks it every 15
--- minutes and starts it once a recheck passes.
+-- start job was lost). One held by a Blocked send-time recheck is left to
+-- Review & send, which rechecks it every 15 minutes.
 SELECT c.id FROM campaigns c
 WHERE c.status = 'scheduled' AND c.scheduled_at <= @now AND c.deleted_at IS NULL
   AND NOT EXISTS (SELECT 1 FROM campaign_incidents i WHERE i.campaign_id = c.id AND i.kind = 'recheck_blocked' AND i.resolved_at IS NULL)
 ORDER BY c.scheduled_at
 LIMIT 50;
-
--- Send state ------------------------------------------------------------
 
 -- name: SendingInsertSend :exec
 INSERT INTO campaign_sends (campaign_id, workspace_id, phase, started_by, started_by_name, approved_by, approved_at, scheduled_by, throttles, thresholds, scenario, created_at, updated_at)
@@ -123,8 +118,6 @@ SELECT s.campaign_id, s.phase, c.status,
 FROM campaign_sends s JOIN campaigns c ON c.id = s.campaign_id
 WHERE s.phase IN ('preparing', 'sending') AND c.deleted_at IS NULL;
 
--- Audience --------------------------------------------------------------
-
 -- name: SendingStageAdd :exec
 INSERT INTO campaign_audience_stage (campaign_id, contact_id, exclude)
 SELECT @campaign_id::uuid, unnest(@contact_ids::uuid[]), @exclude::boolean
@@ -138,12 +131,10 @@ SELECT count(*)::bigint FROM campaign_audience_stage WHERE campaign_id = @campai
 
 -- name: SendingAudienceAddresses :many
 -- The addresses of the audience members who can receive the send (active,
--- not suppressed, in no excluded list or segment): the audience build
--- leaves out a second contact that reaches the same mailbox (an alias), as
--- Send Readiness counts them. The one kept is the one the sunset policy
--- didn't stop, then the oldest, so the mailbox still gets the send. A
--- deleted list (restorable for 30 days) adds nobody; as an exclusion it
--- still excludes.
+-- not suppressed, in no excluded list or segment), so the audience build can
+-- leave out a second contact that reaches the same mailbox (an alias). The
+-- order keeps the one the sunset policy didn't stop, then the oldest. A
+-- deleted list adds nobody; as an exclusion it still excludes.
 WITH members AS (
     SELECT m.contact_id AS id FROM list_memberships m
     WHERE m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL)) AND m.status = 'subscribed'
@@ -160,15 +151,13 @@ WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS 
 ORDER BY (c.broadcasts_stopped_at IS NOT NULL), c.created_at, c.id;
 
 -- name: SendingAudiencePage :many
--- One page of the audience after the cursor, in contact id order: members
--- of the included lists and staged segment members, with everything that
--- decides whether each receives the campaign. It reads the audience, not
--- the workspace's contacts, and looks up the page's memberships once for
--- the whole page, so a page costs the same whatever the workspace's size
--- and whatever the planner's statistics say right after a large import.
--- gone marks a member whose contact was erased or isn't the workspace's:
--- the caller skips it and the cursor moves on. A deleted list (restorable
--- for 30 days) adds nobody.
+-- One page of the audience after the cursor, in contact id order, with
+-- everything that decides whether each member receives the campaign. It
+-- reads the audience, not the workspace's contacts, and looks up the page's
+-- memberships once, so a page costs the same whatever the workspace's size
+-- or the planner's statistics right after a large import. gone marks a
+-- member whose contact was erased or isn't the workspace's: the caller skips
+-- it and the cursor moves on. A deleted list adds nobody.
 WITH page AS (
     -- Each source's next ids in order (an index range per list and for the
     -- staged segment members), so a page reads about a page per source
@@ -244,8 +233,6 @@ INSERT INTO campaign_links (id, campaign_id, url, label, position) VALUES (@id, 
 -- A send that is prepared again (after a failed preparation) starts clean.
 DELETE FROM messages WHERE campaign_id = @campaign_id AND status IN ('queued', 'held') AND sent_at IS NULL;
 
--- Routes ----------------------------------------------------------------
-
 -- name: SendingRoutes :many
 SELECT cr.campaign_id, cr.provider_id, cr.planned, cr.status, cr.status_detail, cr.cost_micros
 FROM campaign_routes cr
@@ -278,8 +265,6 @@ FROM (
     GROUP BY m.provider_id
 ) d
 WHERE cr.campaign_id = @campaign_id AND cr.provider_id = d.provider_id;
-
--- Send loop -------------------------------------------------------------
 
 -- name: SendingClaim :many
 -- Claims up to lim queued messages of one sending provider and mailbox
@@ -451,8 +436,6 @@ SELECT variant, coalesce(sum(sent), 0)::bigint AS sent, coalesce(sum(delivered),
 FROM campaign_counters WHERE campaign_id = @campaign_id AND variant <> ''
 GROUP BY variant ORDER BY variant;
 
--- Incidents -------------------------------------------------------------
-
 -- name: SendingInsertIncident :exec
 INSERT INTO campaign_incidents (id, campaign_id, kind, scope, provider_id, mailbox_provider, metric, value, threshold, held, detail, tripped_at)
 VALUES (@id, @campaign_id, @kind, @scope, sqlc.narg(provider_id), @mailbox_provider, @metric, sqlc.narg(value), sqlc.narg(threshold), @held, @detail, @tripped_at);
@@ -513,8 +496,6 @@ LIMIT 2000;
 SELECT count(*)::bigint FROM delivery_events
 WHERE campaign_id = @campaign_id AND type = 'deferred' AND (@mailbox_provider::text = '' OR mailbox_provider = @mailbox_provider::text);
 
--- Live monitor ----------------------------------------------------------
-
 -- name: SendingFeed :many
 -- The newest delivery and engagement events of a campaign.
 SELECT e.id, e.type, e.occurred_at, e.received_at, e.recipient, e.provider_id, e.original_code, e.diagnostic,
@@ -556,8 +537,6 @@ WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND name ILIKE @patter
 ORDER BY (status = 'live') DESC, updated_at DESC
 LIMIT 1;
 
--- Demo transport --------------------------------------------------------
-
 -- name: SendingDueSimEvents :many
 SELECT * FROM sending_sim_events WHERE due_at <= @now ORDER BY due_at, id LIMIT @lim FOR UPDATE SKIP LOCKED;
 
@@ -570,8 +549,6 @@ SELECT coalesce(min(due_at), 'epoch'::timestamptz)::timestamptz FROM sending_sim
 -- name: SendingSimMessages :many
 SELECT id, workspace_id, campaign_id, automation_id, contact_id, email, provider_id, provider_message_id, mailbox_provider, variant, sent_at, stream
 FROM messages WHERE id = ANY(@ids::uuid[]);
-
--- Automation outbox -----------------------------------------------------
 
 -- name: SendingInsertAutomationMessage :exec
 INSERT INTO messages (id, workspace_id, stream, automation_id, automation_node, contact_id, email, provider_id, mailbox_provider, status, queued_at, content_ref)

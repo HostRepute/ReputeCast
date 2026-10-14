@@ -347,7 +347,7 @@ type AuditLogListRow struct {
 	HasChanges  bool            `json:"hasChanges"`
 }
 
-// Workspace audit log views, export and stream (W03). The instance-level
+// Workspace audit log views, export and stream. The instance-level
 // view lives with the instance admin domain.
 func (q *Queries) AuditLogList(ctx context.Context, arg AuditLogListParams) ([]AuditLogListRow, error) {
 	rows, err := q.db.Query(ctx, auditLogList,

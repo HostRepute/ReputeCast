@@ -1,4 +1,4 @@
--- Instance admin: users, workspaces, policies, instance settings and updates (W14).
+-- Instance admin: users, workspaces, policies, instance settings and updates.
 
 -- name: InstanceAdminUsers :many
 SELECT u.id, u.email, u.name, u.avatar_color, u.avatar_updated_at, u.is_instance_admin, u.break_glass, u.status, u.deactivated_at,
@@ -130,8 +130,6 @@ WHERE e.workspace_id IS NULL AND e.action LIKE 'signin.%'
 ORDER BY e.occurred_at DESC, e.id DESC
 LIMIT @lim;
 
--- Workspaces ---------------------------------------------------------------
-
 -- name: InstanceAdminWorkspaces :many
 -- Live workspaces and the ones deleted within the 7-day restore hold.
 SELECT w.id, w.slug, w.name, w.timezone, w.created_at, w.deleted_at,
@@ -169,8 +167,6 @@ UPDATE workspaces SET deleted_at = NULL, slug = @slug, updated_at = now() WHERE 
 DELETE FROM workspaces
 WHERE id = @id AND deleted_at IS NOT NULL AND deleted_at <= now() - interval '7 days'
 RETURNING id, name;
-
--- Instance settings, logo, public URL check and updates -----------------------
 
 -- name: InstanceAdminSaveSettings :one
 -- A new public URL drops the last URL check, which describes the old one.

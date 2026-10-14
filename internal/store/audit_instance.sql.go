@@ -257,7 +257,7 @@ type InstanceAuditListRow struct {
 	HasChanges    bool            `json:"hasChanges"`
 }
 
-// Instance admin › Audit log (W14): every workspace's entries and the
+// Instance admin › Audit log: every workspace's entries and the
 // instance-level ones (workspace_id IS NULL), with the same filters as the
 // workspace view plus a workspace filter.
 func (q *Queries) InstanceAuditList(ctx context.Context, arg InstanceAuditListParams) ([]InstanceAuditListRow, error) {

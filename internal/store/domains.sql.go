@@ -220,7 +220,7 @@ WHERE workspace_id = $1
 ORDER BY created_at, domain
 `
 
-// W10 · Sending domains and sender identities (Settings › Senders, the
+// Sending domains and sender identities (Settings › Senders, the
 // domain step of Connect a sending provider, system mail). Query names start
 // with Dom or Sender so they never collide with other domains.
 func (q *Queries) DomList(ctx context.Context, workspaceID uuid.UUID) ([]SendingDomain, error) {
@@ -279,8 +279,7 @@ type DomSaveCheckParams struct {
 	ID             uuid.UUID       `json:"id"`
 }
 
-// The result of a live DNS check: every record's status, the authentication
-// summary and detail, the tracking domain and where the zone is hosted.
+// The result of a live DNS check.
 func (q *Queries) DomSaveCheck(ctx context.Context, arg DomSaveCheckParams) error {
 	_, err := q.db.Exec(ctx, domSaveCheck,
 		arg.DnsRecords,

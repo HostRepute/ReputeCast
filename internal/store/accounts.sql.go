@@ -846,7 +846,7 @@ type SetUserWebAuthnIDParams struct {
 }
 
 // Account & security, passkeys, password resets, email changes, invitations
-// (accept side) and the first sign-in. Owned by internal/accounts.
+// (accept side) and the first sign-in (internal/accounts).
 func (q *Queries) SetUserWebAuthnID(ctx context.Context, arg SetUserWebAuthnIDParams) error {
 	_, err := q.db.Exec(ctx, setUserWebAuthnID, arg.WebauthnID, arg.ID)
 	return err

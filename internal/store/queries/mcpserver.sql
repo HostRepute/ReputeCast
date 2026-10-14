@@ -1,4 +1,4 @@
--- Read models behind the MCP server's tools (W03). Writes go through the
+-- Read models behind the MCP server's tools. Writes go through the
 -- owning domain's rules; these queries only read or make small, audited changes.
 
 -- name: McpFindCampaign :one

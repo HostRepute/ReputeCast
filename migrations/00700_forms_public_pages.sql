@@ -1,14 +1,8 @@
 -- +goose Up
--- W13 · Signup forms and public pages (spec 5.12, 7.12): what the form
--- builder needs beyond the base forms table, the per-workspace settings of
--- the public pages (hosted subscribe page, preference center, unsubscribe
--- page, archive, custom domain, Cloudflare Turnstile, logo), daily form
--- numbers, rejected submissions, accepted submissions waiting for double
--- opt-in, submissions held for a Turnstile check, and the public archive.
--- Contacts, list memberships, consent, preferences and suppressions stay
--- in the audience tables and are written through internal/audience.
+-- Signup forms and public pages (spec 5.12, 7.12). Contacts, list
+-- memberships, consent, preferences and suppressions stay in the audience
+-- tables and are written through internal/audience.
 
--- Forms ------------------------------------------------------------------
 ALTER TABLE forms
     -- The form's id in embed code, script URLs and the plain HTML form ("frm_8c2e1a").
     ADD COLUMN public_id        text        NOT NULL DEFAULT ('frm_' || substr(md5(gen_random_uuid()::text), 1, 6)),
@@ -29,7 +23,6 @@ ALTER TABLE forms
 ALTER TABLE forms ADD CONSTRAINT forms_public_id_check CHECK (public_id ~ '^frm_[a-z0-9]{6,16}$');
 CREATE UNIQUE INDEX forms_public_id_key ON forms (workspace_id, public_id);
 
--- Public page settings ----------------------------------------------------
 -- Branding (publisher name, logo metadata, colours, font, footer) lives in
 -- workspaces.branding; everything else about the public pages is here.
 CREATE TABLE public_page_settings (
@@ -61,7 +54,6 @@ CREATE TABLE public_page_settings (
 );
 CREATE UNIQUE INDEX public_page_settings_domain_key ON public_page_settings (custom_domain) WHERE custom_domain IS NOT NULL;
 
--- Form numbers ------------------------------------------------------------
 -- Per form and day of submission: views, accepted submissions, how many of
 -- that day's submissions are confirmed (so pending = submissions - confirmed
 -- for any window) and spam blocked.
@@ -122,7 +114,6 @@ CREATE TABLE form_challenges (
 );
 CREATE INDEX form_challenges_expiry_idx ON form_challenges (expires_at);
 
--- Public archive ----------------------------------------------------------
 -- Sent campaigns of the archived lists, with the slug of their page, the
 -- list they are filed under and optional overrides (title, excerpt, label).
 CREATE TABLE archive_issues (

@@ -2478,7 +2478,7 @@ type ListAutomationsRow struct {
 	DraftGraph      json.RawMessage `json:"draftGraph"`
 }
 
-// Automations (W06): flows, versions, runs, step stats, emails, trigger
+// Automations: flows, versions, runs, step stats, emails, trigger
 // events, webhook calls, step secrets and alerts.
 // Every flow of a workspace with its live and draft graphs: live first, then
 // drafts, then paused, most recently changed first.

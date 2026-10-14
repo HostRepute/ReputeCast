@@ -1,5 +1,5 @@
 -- Account & security, passkeys, password resets, email changes, invitations
--- (accept side) and the first sign-in. Owned by internal/accounts.
+-- (accept side) and the first sign-in (internal/accounts).
 
 -- name: SetUserWebAuthnID :exec
 UPDATE users SET webauthn_id = @webauthn_id, updated_at = now() WHERE id = @id AND webauthn_id IS NULL;

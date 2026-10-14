@@ -522,11 +522,9 @@ func (q *Queries) DeleteSuppression(ctx context.Context, arg DeleteSuppressionPa
 }
 
 const getAudienceState = `-- name: GetAudienceState :one
-
 SELECT workspace_id, tiers_computed_at, reengaged, won_back, updated_at FROM audience_state WHERE workspace_id = $1
 `
 
-// List health -----------------------------------------------------------------
 func (q *Queries) GetAudienceState(ctx context.Context, workspaceID uuid.UUID) (AudienceState, error) {
 	row := q.db.QueryRow(ctx, getAudienceState, workspaceID)
 	var i AudienceState
@@ -541,7 +539,6 @@ func (q *Queries) GetAudienceState(ctx context.Context, workspaceID uuid.UUID) (
 }
 
 const getContact = `-- name: GetContact :one
-
 SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at FROM contacts WHERE workspace_id = $1 AND id = $2 AND erased_at IS NULL
 `
 
@@ -550,7 +547,6 @@ type GetContactParams struct {
 	ID          uuid.UUID `json:"id"`
 }
 
-// Contacts -------------------------------------------------------------------
 func (q *Queries) GetContact(ctx context.Context, arg GetContactParams) (Contact, error) {
 	row := q.db.QueryRow(ctx, getContact, arg.WorkspaceID, arg.ID)
 	var i Contact
@@ -945,11 +941,9 @@ func (q *Queries) InsertSuppression(ctx context.Context, arg InsertSuppressionPa
 }
 
 const listCustomFields = `-- name: ListCustomFields :many
-
 SELECT id, workspace_id, key, label, type, options, created_at, display, position FROM custom_fields WHERE workspace_id = $1 ORDER BY position, created_at, key
 `
 
-// Custom fields ------------------------------------------------------------
 func (q *Queries) ListCustomFields(ctx context.Context, workspaceID uuid.UUID) ([]CustomField, error) {
 	rows, err := q.db.Query(ctx, listCustomFields, workspaceID)
 	if err != nil {
@@ -1211,7 +1205,6 @@ func (q *Queries) ListImpactOtherLists(ctx context.Context, id uuid.UUID) ([]Lis
 }
 
 const listListsWithCounts = `-- name: ListListsWithCounts :many
-
 SELECT l.id, l.name, l.description, l.double_opt_in, l.created_at,
        coalesce(m.subscribed, 0)::bigint AS subscribed,
        coalesce(m.pending, 0)::bigint AS pending
@@ -1235,7 +1228,6 @@ type ListListsWithCountsRow struct {
 	Pending     int64     `json:"pending"`
 }
 
-// Lists ------------------------------------------------------------------
 func (q *Queries) ListListsWithCounts(ctx context.Context, workspaceID uuid.UUID) ([]ListListsWithCountsRow, error) {
 	rows, err := q.db.Query(ctx, listListsWithCounts, workspaceID)
 	if err != nil {
@@ -1424,7 +1416,6 @@ func (q *Queries) ListResumeForm(ctx context.Context, arg ListResumeFormParams) 
 }
 
 const listSavedViews = `-- name: ListSavedViews :many
-
 SELECT id, workspace_id, user_id, name, filters, columns, position, created_at, show_in_health FROM saved_views
 WHERE workspace_id = $1 AND (user_id IS NULL OR user_id = $2)
 ORDER BY position, created_at, id
@@ -1435,7 +1426,6 @@ type ListSavedViewsParams struct {
 	UserID      *uuid.UUID `json:"userId"`
 }
 
-// Saved views ----------------------------------------------------------------
 func (q *Queries) ListSavedViews(ctx context.Context, arg ListSavedViewsParams) ([]SavedView, error) {
 	rows, err := q.db.Query(ctx, listSavedViews, arg.WorkspaceID, arg.UserID)
 	if err != nil {
@@ -1737,7 +1727,6 @@ func (q *Queries) SoftDeleteList(ctx context.Context, arg SoftDeleteListParams) 
 }
 
 const suppressionCounts = `-- name: SuppressionCounts :one
-
 SELECT count(*)::bigint AS total,
        count(*) FILTER (WHERE reason = 'hard_bounce')::bigint AS hard_bounce,
        count(*) FILTER (WHERE reason = 'complaint')::bigint AS complaint,
@@ -1756,7 +1745,6 @@ type SuppressionCountsRow struct {
 	Other       int64 `json:"other"`
 }
 
-// Suppressions -----------------------------------------------------------------
 func (q *Queries) SuppressionCounts(ctx context.Context, workspaceID uuid.UUID) (SuppressionCountsRow, error) {
 	row := q.db.QueryRow(ctx, suppressionCounts, workspaceID)
 	var i SuppressionCountsRow

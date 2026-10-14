@@ -1,5 +1,5 @@
 -- +goose Up
--- Automations (W06): lifecycle details, draft revisions and version notes,
+-- Automations: lifecycle details, draft revisions and version notes,
 -- the emails used by "Send email" steps, the trigger event queue, per-day step
 -- stats, write-only webhook signing secrets, the webhook call log and alerts.
 

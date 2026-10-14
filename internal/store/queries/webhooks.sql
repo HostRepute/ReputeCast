@@ -1,4 +1,4 @@
--- Outgoing webhooks and their delivery log (W03).
+-- Outgoing webhooks and their delivery log.
 
 -- name: HooksList :many
 SELECT h.id, h.workspace_id, h.name, h.description, h.url, h.events, h.enabled, h.created_by, h.created_at,

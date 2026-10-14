@@ -315,7 +315,7 @@ type KeysListRow struct {
 	CreatedByColor string          `json:"createdByColor"`
 }
 
-// API keys and MCP agents (W03). Both live in api_keys (kind api_key | mcp_agent).
+// API keys and MCP agents. Both live in api_keys (kind api_key | mcp_agent).
 func (q *Queries) KeysList(ctx context.Context, arg KeysListParams) ([]KeysListRow, error) {
 	rows, err := q.db.Query(ctx, keysList, arg.WorkspaceID, arg.Kind)
 	if err != nil {

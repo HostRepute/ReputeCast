@@ -222,7 +222,7 @@ type WsSendersRow struct {
 	Domain       string          `json:"domain"`
 }
 
-// Workspace settings: general, danger zone and summaries (W03).
+// Workspace settings: general, danger zone and summaries.
 func (q *Queries) WsSenders(ctx context.Context, workspaceID uuid.UUID) ([]WsSendersRow, error) {
 	rows, err := q.db.Query(ctx, wsSenders, workspaceID)
 	if err != nil {

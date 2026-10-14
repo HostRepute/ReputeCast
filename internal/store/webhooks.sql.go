@@ -447,7 +447,7 @@ type HooksListRow struct {
 	Queued          int64      `json:"queued"`
 }
 
-// Outgoing webhooks and their delivery log (W03).
+// Outgoing webhooks and their delivery log.
 func (q *Queries) HooksList(ctx context.Context, workspaceID uuid.UUID) ([]HooksListRow, error) {
 	rows, err := q.db.Query(ctx, hooksList, workspaceID)
 	if err != nil {

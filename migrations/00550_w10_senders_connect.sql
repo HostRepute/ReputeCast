@@ -1,5 +1,5 @@
 -- +goose Up
--- W10 · Connect a sending provider, senders and domains, system mail.
+-- Connect a sending provider, senders and domains, system mail.
 
 -- Sending domains keep the DNS records every sending provider needs
 -- (dns_records, see internal/domains for the shape) with their live status.

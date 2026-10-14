@@ -177,7 +177,7 @@ const suppSyncList = `-- name: SuppSyncList :many
 SELECT provider_id, mode, last_push_at, last_pull_at, pushed, pulled, pending, status, status_detail FROM provider_suppression_sync WHERE provider_id = ANY($1::uuid[])
 `
 
-// W01 · Sync of the shared suppression list with each provider. The list
+// Sync of the shared suppression list with each provider. The list
 // itself (screens, manual adds, imports) belongs to the audience domain.
 func (q *Queries) SuppSyncList(ctx context.Context, providerIds []uuid.UUID) ([]ProviderSuppressionSync, error) {
 	rows, err := q.db.Query(ctx, suppSyncList, providerIds)

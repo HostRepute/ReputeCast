@@ -1,7 +1,6 @@
--- W09 · Overview (spec 7.1).
+-- Overview (spec 7.1).
 
 -- name: OverviewNextScheduled :one
--- The next campaign due to go out.
 SELECT c.id, c.name, c.scheduled_at, c.schedule, c.audience_count
 FROM campaigns c
 WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.status = 'scheduled'

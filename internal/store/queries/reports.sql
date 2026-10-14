@@ -1,4 +1,4 @@
--- W09 · Campaign reports (spec 7.7, 5.5) and read-only report links.
+-- Campaign reports (spec 7.7, 5.5) and read-only report links.
 
 -- name: ReportCampaign :one
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.audience, c.audience_count, c.ab_test, c.schedule,
@@ -127,8 +127,6 @@ LIMIT 1;
 
 -- name: ReportLatestReadiness :one
 SELECT verdict, ran_at FROM readiness_runs WHERE campaign_id = @campaign_id ORDER BY ran_at DESC LIMIT 1;
-
--- Read-only links -------------------------------------------------------
 
 -- name: ReportShareCreate :one
 INSERT INTO report_shares (id, campaign_id, token_hash, token_sealed, created_by, created_at, expires_at)
