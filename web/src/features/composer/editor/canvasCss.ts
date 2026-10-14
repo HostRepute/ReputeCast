@@ -18,6 +18,11 @@ body { -webkit-font-smoothing: antialiased; }
 .gjs-no-pointer { pointer-events: none; }
 .gjs-grabbing, .gjs-grabbing * { cursor: grabbing !important; }
 [data-rc-warning] { outline: 2px solid currentColor; }
+/* MJML's own rule for fluid-on-mobile images, which the compiled email carries in its head. */
+@media only screen and (max-width: 479px) {
+  table.mj-full-width-mobile { width: 100% !important; }
+  td.mj-full-width-mobile { width: auto !important; }
+}
 /* Hidden on this device: dimmed while editing (the preview shows the email as sent). */
 @media (max-width: 480px) { html body .rc-hide-mobile { display: revert !important; opacity: .35; } }
 @media (min-width: 481px) { html body .rc-hide-desktop { display: revert !important; opacity: .35; } }

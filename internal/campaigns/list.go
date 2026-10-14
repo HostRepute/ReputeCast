@@ -105,7 +105,9 @@ type CampaignListItem struct {
 // ReadinessSummary is the latest Send Readiness verdict.
 type ReadinessSummary struct {
 	Verdict string `json:"verdict" enum:"ready,warnings,blocked"`
-	Issues  int64  `json:"issues"`
+	// Issues are the blocking issues of a blocked campaign, otherwise its
+	// warnings.
+	Issues int64 `json:"issues"`
 }
 
 // CampaignStatusCounts feeds the All / Drafts / Scheduled / Sending / Sent tabs.

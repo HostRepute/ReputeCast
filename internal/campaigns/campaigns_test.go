@@ -52,7 +52,9 @@ func TestListCampaigns(t *testing.T) {
 	if list.Items[1].Name != "November Product Update" || list.Items[1].Status != "approval" {
 		t.Fatalf("waiting for approval: %+v", list.Items[1])
 	}
-	if !list.Items[2].Blocked || list.Items[2].Audience != "All subscribers" {
+	// "3 blocking issues", as on the board and on Review & send: its two
+	// warnings aren't counted.
+	if !list.Items[2].Blocked || list.Items[2].Audience != "All subscribers" || list.Items[2].Readiness == nil || list.Items[2].Readiness.Issues != 3 {
 		t.Fatalf("blocked draft: %+v", list.Items[2])
 	}
 	var oct = list.Items[6]

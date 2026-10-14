@@ -565,6 +565,14 @@ label.tg {
   min-height: 100%;
   box-sizing: border-box;
 }
+/* On phones the side padding gives way, so the 375 px email shows at its
+   real size (ComposerMobile) and the desktop one zooms less. */
+@media (max-width: 430px) {
+  .cmp-canvas .cmp-stage {
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+}
 .cmp-canvas .gjs-editor {
   position: relative;
   box-sizing: border-box;

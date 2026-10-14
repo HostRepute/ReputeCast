@@ -17,8 +17,11 @@ LEFT JOIN LATERAL (
     FROM campaign_counters cc WHERE cc.campaign_id = c.id
 ) t ON true
 LEFT JOIN LATERAL (
+    -- A blocked campaign counts its blocking issues ("3 blocking issues"),
+    -- any other its warnings ("Readiness · 2").
     SELECT rr.verdict,
-           (SELECT count(*) FROM jsonb_array_elements(coalesce(rr.checks -> 'checks', '[]'::jsonb)) e WHERE e ->> 'status' IN ('warn', 'block')) AS issues
+           (SELECT count(*) FROM jsonb_array_elements(coalesce(rr.checks -> 'checks', '[]'::jsonb)) e
+            WHERE e ->> 'status' = 'block' OR (rr.verdict <> 'blocked' AND e ->> 'status' = 'warn')) AS issues
     FROM readiness_runs rr WHERE rr.campaign_id = c.id ORDER BY rr.ran_at DESC LIMIT 1
 ) r ON c.status IN ('draft', 'approval', 'approved', 'scheduled')
 WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL
