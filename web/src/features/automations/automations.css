@@ -6,7 +6,7 @@
 @import '@xyflow/react/dist/base.css' layer(components);
 
 @layer components {
-/* ------------------------------------------------------- template cards */
+/* Template cards */
 .tpl {
   display: flex;
   flex-direction: column;
@@ -78,7 +78,7 @@
   font-size: 12.5px;
 }
 
-/* --------------------------------------------------------- flow editor */
+/* Flow editor */
 .fe {
   min-height: 100vh;
   min-height: 100dvh;
@@ -609,7 +609,7 @@
   background: var(--accent-tint);
 }
 
-/* -------------------------------------------- publish & history dialogs */
+/* Publish & history dialogs */
 .fe-ovl {
   position: fixed;
   inset: 0;

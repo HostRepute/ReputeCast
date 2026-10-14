@@ -57,11 +57,11 @@ async function resolvePath(ctx: BrowserContext, path: string) {
       const r = await ctx.request.get(`${app}/api/v1/admin/sso`)
       id = ((await r.json()) as { items?: { id: string; name: string }[] }).items?.find((p) => p.name === name)?.id
     } else if (kind === 'setup') {
-      // W10: the latest provider setup of an adapter ({setup:ses}).
+      // The latest provider setup of an adapter ({setup:ses}).
       const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/connect/setups`, { params: { adapter: name } })
       id = ((await r.json()) as { items?: { id: string }[] }).items?.[0]?.id
     } else if (kind in lists) {
-      // QA1: ids the demo generates at seed time (see scripts/qa.ts).
+      // Ids the demo generates at seed time (see scripts/qa.ts).
       const [list, key, match] = lists[kind]!(name)
       const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/${list}`)
       id = ((await r.json()) as Record<string, Record<string, unknown>[] | undefined>)[key]?.find(match)?.id as string | undefined

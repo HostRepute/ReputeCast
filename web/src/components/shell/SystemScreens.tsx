@@ -122,7 +122,6 @@ export function ErrorScreen({ error, reset }: ErrorComponentProps) {
   )
 }
 
-// ------------------------------------------------------------------------
 // In-shell states (SystemStates board): the page keeps the sidebar and the
 // top bar; the content column shows the state.
 

@@ -1,12 +1,10 @@
 import { useLayoutEffect, useRef, type SelectHTMLAttributes } from 'react'
 
 /**
- * Sizes a select to its chosen option, the way a native select sizes to its
- * widest option (text + padding, border and arrow): a select may offer every
- * field, but a row should be as compact as on the board. A hidden native
- * select holding only that option is measured, so the width follows the
- * browser's own select metrics (they change between Chrome versions). The
- * width goes to --fitw; `.in.fit` uses it (audience.css, imports.css).
+ * Sizes a select to its chosen option, as a native select sizes to its
+ * widest one, so a row stays as compact as on the board. It measures a hidden
+ * native select holding only that option, because select metrics change
+ * between Chrome versions. The width goes to --fitw, used by `.in.fit`.
  */
 export function FitSelect({ label, className, ...rest }: SelectHTMLAttributes<HTMLSelectElement> & { label: string }) {
   const ref = useRef<HTMLSelectElement>(null)

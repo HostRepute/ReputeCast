@@ -15,9 +15,8 @@ const help: Record<string, { where: string; console: string }> = {
 }
 
 /**
- * Google, Microsoft or GitHub sign-in settings: the redirect URI to register,
- * the client ID and the write-only secret, GitHub's organization and
- * Microsoft's tenant. Turning the provider on happens with "Save policies".
+ * Google, Microsoft or GitHub sign-in settings (the secret is write-only).
+ * Turning the provider on happens with "Save policies".
  */
 export function SocialSettingsDialog({ provider, onClose }: { provider: Schemas['SSOSocialProvider']; onClose: () => void }) {
   const id = useId()

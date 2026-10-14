@@ -87,7 +87,6 @@ export function useCountUp(): number {
   )
 }
 
-/** Starts the count-up when the editor mounts. */
 export function useCountUpOnMount(reduced: boolean) {
   useEffect(() => {
     startCountUp(reduced)

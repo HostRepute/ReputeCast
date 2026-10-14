@@ -106,15 +106,13 @@
   --ease-out-soft: var(--ease-out-soft);
 }
 
-/* ------------------------------------------------------------------ base */
 @layer base {
-  /* The boards were drawn with the browser's default box model (standards
-     mode): content-box, except buttons, selects, tables, meters, progress
-     bars and the button-like inputs. Text inputs and textareas are
-     content-box. Tailwind's preflight makes everything border-box; restoring
-     the default means a width, height or flex-basis copied from a board
-     renders at the same size. Components that are border-box on the boards
-     (.btn, .in, .ws, .menu, .side…) say so below. */
+  /* The boards were drawn with the browser's default box model: content-box,
+     except buttons, selects, tables, meters, progress bars and the button-like
+     inputs. Tailwind's preflight makes everything border-box; restoring the
+     default means a size copied from a board renders the same. Components
+     that are border-box on the boards (.btn, .in, .ws, .menu, .side…) say so
+     below. */
   *,
   ::before,
   ::after,
@@ -216,7 +214,6 @@
   }
 }
 
-/* ------------------------------------------------------------- components */
 @layer components {
   .mono {
     font-family: var(--font-family-mono);
@@ -1256,7 +1253,7 @@
   }
 }
 
-/* ------------------------------------------------------------------ shell */
+/* Shell */
 @layer components {
   .app {
     display: flex;
@@ -1696,7 +1693,7 @@
   }
 }
 
-/* ----------------------------------------------------------------- motion */
+/* Motion */
 @keyframes rc-spin {
   to {
     transform: rotate(360deg);
@@ -2100,10 +2097,8 @@
   }
 }
 
-/* ==========================================================================
-   Cross-cutting states (W08): SystemStates, Dialogs and Feedback boards.
-   Values copied from the boards; the boards' own content-box sizing applies.
-   ========================================================================== */
+/* Cross-cutting states: SystemStates, Dialogs and Feedback boards. Values
+   copied from the boards; the boards' own content-box sizing applies. */
 @layer components {
   /* Banners at the top of the content column: offline, reconnecting,
      read-only maintenance, quota reached. A banner always has an action. */
@@ -2477,7 +2472,6 @@
   }
 }
 
-/* ------------------------------------------------- W04: shared fixes */
 @layer components {
   /* A neutral note keeps the weight of the text around it, as on the
      boards: the boards that use .note.n don't have the global .n

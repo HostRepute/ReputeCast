@@ -25,10 +25,8 @@ export interface InboxSearch {
 type Item = Schemas['ApprovalListItem']
 
 /**
- * A5 §5.12 Approval inbox: requests by status, with filters, and the policy
- * in force. It opens on every request of the period, as the ApprovalInbox
- * board lists them (pending first: they're the newest); Pending narrows the
- * list to what waits for a decision.
+ * A5 §5.12 Approval inbox. It opens on every request of the period, as the
+ * ApprovalInbox board lists them (pending first: they're the newest).
  */
 export function InboxPage({ search }: { search: InboxSearch }) {
   const { slug } = useWorkspace()

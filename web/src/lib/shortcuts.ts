@@ -91,8 +91,6 @@ export function shortcutFor(e: KeyLike, pendingG: boolean): { action?: ShortcutA
   return { pendingG: false }
 }
 
-// ------------------------------------------------------------ handlers
-
 export type HandlerKind = 'search' | 'save' | 'readiness'
 type Handler = () => boolean | void
 const handlers: Record<HandlerKind, Handler[]> = { search: [], save: [], readiness: [] }

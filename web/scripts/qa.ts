@@ -91,7 +91,7 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
     if (!hit) throw new Error(`no SSO provider named ${name}`)
     return hit.id
   },
-  // W10: the latest provider setup of an adapter ({setup:ses}).
+  // The latest provider setup of an adapter ({setup:ses}).
   async setup(ctx, adapter) {
     const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/connect/setups`, { params: { adapter } })
     const body = (await r.json()) as { items?: { id: string }[] }
@@ -99,7 +99,7 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
     if (!hit) throw new Error(`no ${adapter} setup`)
     return hit.id
   },
-  // QA1: ids the demo generates at seed time ({member:daniel@acme.io}, {role:Content Writer},
+  // Ids the demo generates at seed time ({member:daniel@acme.io}, {role:Content Writer},
   // {automation:Welcome series}, {contact:sam.rivera@outlook.com}, {import:draft} or {import:brevo}).
   member: (ctx, email) => lookup(ctx, 'members', 'items', (m) => m.email === email, `no member ${email}`),
   role: (ctx, name) => lookup(ctx, 'roles', 'roles', (r) => r.name === name, `no role named ${name}`),

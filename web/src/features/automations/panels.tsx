@@ -31,8 +31,6 @@ import type { StepStats } from './view'
 
 type Options = Schemas['AutomationOptions']
 
-/* ------------------------------------------------------------ palette */
-
 export const DRAG_TYPE = 'application/x-reputecast-step'
 
 /** The step type being dragged, readable during dragover (data is not). */
@@ -96,8 +94,6 @@ export function Palette({ disabledReason, onAdd }: { disabledReason?: string; on
   )
 }
 
-/* -------------------------------------------------------- stats lists */
-
 function stepSummary(n: FlowNode, st: StepStats | undefined): string {
   if (!st) return 'no stats yet'
   switch (n.type) {
@@ -138,8 +134,6 @@ export function FlowStatsList({ graph, order, refs, stats, selected, onSelect }:
     </div>
   )
 }
-
-/* -------------------------------------------------------- step panel */
 
 export interface StepPanelProps {
   graph: FlowGraph

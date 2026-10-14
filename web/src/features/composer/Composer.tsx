@@ -47,10 +47,9 @@ function offlineError(e: unknown) {
 type PendingSource = { source: 'template' | 'import' | 'code' | 'restore'; label?: string }
 
 /**
- * The campaign composer: GrapesJS + MJML on a canvas, ReputeCast's own UI
- * around it (header, subject bar, blocks/layers/templates, style/settings/
- * deliverability, footer), autosave with conflict detection, inline
- * deliverability checks, the code view and client previews.
+ * The campaign composer: GrapesJS + MJML on a canvas with ReputeCast's own UI
+ * around it, autosave with conflict detection, inline deliverability checks,
+ * the code view and client previews.
  */
 export function Composer({ campaign, context, search, onSearch }: { campaign: Campaign; context: ComposerCtxData; search: ComposerSearch; onSearch: (s: ComposerSearch) => void }) {
   const { slug } = useWorkspace()
@@ -118,7 +117,6 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
     setStatus((s) => (s.kind === 'saving' || s.kind === 'conflict' || s.kind === 'offline' ? s : { kind: 'dirty', at: s.kind === 'saved' ? s.at : undefined, version: version.current }))
   }, [])
 
-  // ---------------------------------------------------------------- editor
   const editorWanted = !empty
   useEffect(() => {
     if (!editorWanted || !containerRef.current) return
@@ -192,7 +190,6 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
     for (const t of ['mj-section', 'mj-hero', 'mj-wrapper', 'mj-raw']) body?.findType(t).forEach((c: Component) => (c.view as unknown as { rerender?: () => void })?.rerender?.())
   }, [ge, head])
 
-  // ---------------------------------------------------------------- content
   const canvasBody = useCallback(() => (geRef.current ? geRef.current.getBody() : bodyRef.current), [])
 
   /** Body of variant A: the canvas, unless it shows another variant of a content test. */
@@ -253,7 +250,6 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
     [markDirty, setHead, onSearch, search],
   )
 
-  // ---------------------------------------------------------------- saving
   const save = useCallback(
     async (opts: { manual?: boolean; quiet?: boolean; force?: boolean; background?: boolean; source?: 'autosave' | 'manual' | 'import' | 'template'; label?: string } = {}): Promise<boolean> => {
       if (!canEdit) return false
@@ -347,7 +343,6 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
       return () => window.clearTimeout(h)
     }
   }, [rev, canEdit])
-  // Offline: retry every 10 s.
   useEffect(() => {
     if (status.kind !== 'offline') return
     const h = window.setInterval(() => void saveRef.current({ background: true }), 10_000)
@@ -375,7 +370,6 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
     }, 50)
   }, [slug, campaign.id, qc, loadContent])
 
-  // ---------------------------------------------------------------- fields
   const setSubject = useCallback(
     (v: string) => {
       setSubjectState(v)
@@ -420,7 +414,6 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
     )
   }, [name, canEdit, campaign.name, campaign.id, slug, updateMeta, qc])
 
-  // ---------------------------------------------------------------- checks
   const seq = useRef(0)
   useEffect(() => {
     if (empty) return
@@ -455,7 +448,6 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
     void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}'] })
   }, [qc])
 
-  // ---------------------------------------------------------------- keys
   // ⌘S and ⌘Enter go through the app's shortcut layer (see the handlers
   // below); the canvas is an iframe, so its keys are forwarded here. ⌘/ opens
   // the composer's own shortcut list.
@@ -485,7 +477,6 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
     }
   }, [ge])
 
-  // ---------------------------------------------------------------- view
   const registerLeaveCheck = useCallback((fn: () => boolean) => {
     leaveCheck.current = fn
     return () => {

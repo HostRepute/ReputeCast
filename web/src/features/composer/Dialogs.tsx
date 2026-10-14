@@ -23,8 +23,6 @@ function when(at: string) {
   return sameDay(d, new Date()) ? clock(d) : shortDate(d)
 }
 
-/* ------------------------------------------------------------ versions */
-
 function VersionsDialog({ open, onClose, onCompare }: { open: boolean; onClose: () => void; onCompare: (a: number, b: number) => void }) {
   const c = useComposer()
   const qc = useQueryClient()
@@ -104,8 +102,6 @@ function VersionsDialog({ open, onClose, onCompare }: { open: boolean; onClose: 
   )
 }
 
-/* ------------------------------------------------------------ compare */
-
 type CompareTexts = { a: string; b: string; la: string; lb: string; sections: string[] }
 
 /** Loads and diffs two versions, or the latest save against the unsaved edits after a conflict. */
@@ -177,8 +173,6 @@ function CompareDialog({ open, onClose, versions }: { open: boolean; onClose: ()
     </Dialog>
   )
 }
-
-/* ------------------------------------------------------------ assets */
 
 function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const c = useComposer()
@@ -296,8 +290,6 @@ function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void })
   )
 }
 
-/* ------------------------------------------------------------ import */
-
 function htmlToMjml(html: string): string {
   const body = /<body[^>]*>([\s\S]*)<\/body>/i.exec(html)?.[1] ?? html
   return `<mjml>\n  <mj-body width="600px">\n    <mj-raw>\n${body.trim()}\n    </mj-raw>\n  </mj-body>\n</mjml>\n`
@@ -356,8 +348,6 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
     </Dialog>
   )
 }
-
-/* ------------------------------------------------------------ save as template */
 
 function SaveTemplateDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: (name: string) => void }) {
   const c = useComposer()
@@ -436,8 +426,6 @@ function SaveTemplateDialog({ open, onClose, onSaved }: { open: boolean; onClose
   )
 }
 
-/* ------------------------------------------------------------ shortcuts */
-
 const SHORTCUTS: [string, string][] = [
   ['⌘S', 'Save a version now'],
   ['⌘Z', 'Undo'],
@@ -465,8 +453,6 @@ function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () => void
     </Dialog>
   )
 }
-
-/* ------------------------------------------------------------ host */
 
 export function Dialogs({ dialog, onClose, onSavedTemplate }: { dialog: ComposerDialog; onClose: () => void; onSavedTemplate: (name: string) => void }) {
   const c = useComposer()

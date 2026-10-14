@@ -106,11 +106,7 @@ export function notificationDotColor(severity: string) {
   }
 }
 
-/**
- * The bell in the top bar: unread count, and a popover with the latest
- * notifications, Mark all as read, All notifications and Preferences
- * (ShellNotifications board).
- */
+/** The bell in the top bar, with the latest notifications in a popover (ShellNotifications board). */
 export function NotificationsPopover() {
   const ws = useOptionalWorkspace()
   const [open, setOpen] = useState(false)

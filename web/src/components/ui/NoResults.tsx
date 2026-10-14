@@ -3,9 +3,8 @@ import { cn } from '@/lib/cn'
 
 /**
  * Nothing matches a search or filter (Feedback board): say what was searched
- * where, why nothing came back, and the ways out (widen the search, clear the
- * filters, add the thing). Announced politely so screen reader users know
- * the search ran.
+ * where, why nothing came back, and the ways out. Announced politely so
+ * screen reader users know the search ran.
  */
 export function NoResults({ title, children, actions, className }: { title: ReactNode; children?: ReactNode; actions?: ReactNode; className?: string }) {
   return (

@@ -44,7 +44,6 @@ export function lineCount(src: string): number {
   return src ? src.split('\n').length : 0
 }
 
-/** Read a file the person picked as text. */
 export function readText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader()
@@ -54,7 +53,6 @@ export function readText(file: File): Promise<string> {
   })
 }
 
-/** Download text as a file. */
 export function download(name: string, text: string, type = 'text/plain') {
   const url = URL.createObjectURL(new Blob([text], { type }))
   const a = document.createElement('a')

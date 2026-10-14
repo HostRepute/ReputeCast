@@ -33,7 +33,6 @@ export function diffLines(a: string, b: string, context = 3): DiffLine[] {
   while (i < n) middle.push({ kind: 'del', text: xs[i++]! })
   while (j < m) middle.push({ kind: 'add', text: ys[j++]! })
   const all: DiffLine[] = [...x.slice(0, head).map((t) => ({ kind: 'same' as const, text: t })), ...middle, ...y.slice(y.length - tail).map((t) => ({ kind: 'same' as const, text: t }))]
-  // Fold long unchanged runs.
   const out: DiffLine[] = []
   let run: DiffLine[] = []
   const flush = (last: boolean) => {

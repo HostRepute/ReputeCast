@@ -108,7 +108,6 @@ export function TemplateGrid({ templates }: { templates: Template[] }) {
   )
 }
 
-/** The empty state: no automations yet. */
 export function EmptyAutomations({ templates, routeLabel }: { templates: Template[]; routeLabel: string }) {
   return (
     <section className="card flex flex-col gap-4 border-dashed p-7" aria-labelledby="automations-empty">

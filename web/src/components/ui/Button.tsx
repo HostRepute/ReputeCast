@@ -54,10 +54,8 @@ function content(
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, ButtonStyleProps {
   /**
-   * Disables the button and explains why (principle 7: say why and who can
-   * help). The button stays focusable with aria-disabled, and the reason
-   * shows in a bubble on hover and focus (Feedback board) and is the
-   * button's description for screen readers.
+   * Disables the button and says why (principle 7), in a DisabledReason
+   * bubble. The button stays focusable with aria-disabled.
    */
   disabledReason?: string
   /**

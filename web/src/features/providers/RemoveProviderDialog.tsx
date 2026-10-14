@@ -14,9 +14,8 @@ import { providerUses, streams, toDraft, toInput, withoutProvider, type RoutingC
 const streamMail: Record<Stream, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System mail' }
 
 /**
- * Removing a provider (Dialogs board, "Remove provider"): what it carries,
- * a replacement for each route, and what stays. Confirming saves the
- * routing with the replacements, then disconnects the provider.
+ * Removing a provider (Dialogs board, "Remove provider"). Confirming saves
+ * the routing with the replacements, then disconnects the provider.
  */
 export function RemoveProviderDialog({ providerId, name, open, onOpenChange, onRemoved }: { providerId: string; name: string; open: boolean; onOpenChange: (open: boolean) => void; onRemoved: () => void }) {
   const { slug } = useWorkspace()

@@ -291,8 +291,6 @@ function ListLines({
   )
 }
 
-// --- Subscribe page -------------------------------------------------------------------
-
 /** The lists the subscribe page offers: its form's, or every public list. */
 function OfferedLists({ formId, lists, children }: { formId: string; lists: Schemas['PublicPageList'][]; children: (offered: Schemas['PublicPageList'][]) => ReactNode }) {
   const { slug } = useWorkspace()
@@ -399,8 +397,6 @@ export function SubscribePageTab() {
   )
 }
 
-// --- Preference center ------------------------------------------------------------------
-
 export function PreferencesTab() {
   return (
     <PageTab name="preference center">
@@ -469,8 +465,6 @@ export function PreferencesTab() {
     </PageTab>
   )
 }
-
-// --- Unsubscribe page --------------------------------------------------------------------
 
 export function UnsubscribeTab() {
   const { slug } = useWorkspace()
@@ -564,8 +558,6 @@ export function UnsubscribeTab() {
     </PageTab>
   )
 }
-
-// --- Archive ---------------------------------------------------------------------------------
 
 export function ArchiveTab() {
   return (

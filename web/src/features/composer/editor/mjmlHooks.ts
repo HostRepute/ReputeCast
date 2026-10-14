@@ -80,7 +80,6 @@ function collapsePadding(out: Attrs): Attrs {
   return next
 }
 
-/** The component's own MJML attributes. */
 function ownAttributes(c: Component): Attrs {
   const a = { ...((c.get('attributes') ?? {}) as Attrs) }
   delete a.style
@@ -90,15 +89,13 @@ function ownAttributes(c: Component): Attrs {
 
 /**
  * Hooks into grapesjs-mjml once its components are registered:
- *  - every canvas render (the plugin compiles each component on its own)
- *    gets the document's mj-attributes, mj-style and mj-font from `head`, so
- *    the canvas looks like the compiled email;
+ *  - canvas renders get the document's mj-attributes, mj-style and mj-font
+ *    from `head` (the plugin compiles each component on its own);
  *  - components keep only the attributes the source gives them: the plugin
- *    copies its defaults into every component (for its style manager, which
- *    isn't used), and rendering those would override the head's
- *    mj-attributes in the canvas, while export drops them anyway;
- *  - attribute values are escaped when MJML is written out (the plugin
- *    concatenates them as is, so a quote in alt text would break the file);
+ *    copies its defaults into each one, which would override the head's
+ *    mj-attributes in the canvas;
+ *  - attribute values are escaped on export (the plugin writes them as is,
+ *    so a quote in alt text would break the file);
  *  - padding shorthands become longhands (see expandPadding);
  *  - returns a compile function using the bundled mjml-browser, so the
  *    exported HTML and the canvas come from the same engine.

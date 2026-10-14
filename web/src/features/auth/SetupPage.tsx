@@ -33,12 +33,10 @@ function hostOf(u?: string) {
 }
 
 /**
- * A5 §5.5: the first sign-in of the install Owner (InstanceSetup board) —
- * replace the temporary password, add a passkey or authenticator (can't be
- * skipped), save recovery codes, instance basics with the public URL
- * check, the first workspace, then connect a sending provider. People who
- * must finish personal steps (temporary password, required two-factor)
- * get the same screen with only those steps.
+ * A5 §5.5: the install Owner's first sign-in (InstanceSetup board), from the
+ * temporary password and a second factor (can't be skipped) to the first
+ * sending provider. People who must finish personal steps (temporary
+ * password, required two-factor) get the same screen with only those steps.
  */
 export function SetupPage() {
   const navigate = useNavigate()

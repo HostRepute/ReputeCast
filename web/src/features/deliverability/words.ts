@@ -37,7 +37,6 @@ export function usedBy(names: string[]): string {
   return names.length ? `used by ${andList(names)}` : ''
 }
 
-/** Severity of an incident as a badge tone. */
 export function severityTone(s: string): Tone {
   switch (s) {
     case 'bad':
@@ -50,7 +49,6 @@ export function severityTone(s: string): Tone {
   return 'neutral'
 }
 
-/** A card tone as a badge tone. */
 export function toneOf(t: string): Tone {
   return t === 'ok' || t === 'warn' || t === 'bad' || t === 'info' ? t : 'neutral'
 }

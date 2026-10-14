@@ -166,7 +166,6 @@ export function Stepper({ current, setup }: { current: number; setup?: Setup }) 
   )
 }
 
-/** The step's heading and lead. */
 export function StepHeading({ title, children }: { title: ReactNode; children?: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">

@@ -4,13 +4,12 @@ import { cn } from '@/lib/cn'
 
 /**
  * A data table that scrolls inside its card instead of the page. `density`
- * matches the two table styles in the prototype: `regular` (12px cells) and
+ * matches the prototype's two table styles: `regular` (12px cells) and
  * `compact` (11px vertical, secondary cells kept on one line).
  *
  * At phone width, badges and buttons in cells stay on one line, as on the
- * team and access boards. The other boards (Campaigns, Audience, Providers,
- * Deliverability, Reports…) let them wrap like the rest of the page: pass
- * `phoneWrap` there.
+ * team and access boards; pass `phoneWrap` to let them wrap like the rest of
+ * the page, as on the other boards.
  */
 export function Table({
   className,

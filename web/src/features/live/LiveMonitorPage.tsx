@@ -34,9 +34,8 @@ export interface LiveSearch {
 }
 
 /**
- * 7.6 Live sending monitor (boards LiveMonitor, LiveMonitorPaused,
- * LiveMonitorOutage, LiveMonitorStates, LiveMonitorMobile): the snapshot
- * from the API, kept live by the event stream.
+ * 7.6 Live sending monitor (LiveMonitor boards): the snapshot from the API,
+ * kept live by the event stream.
  */
 export function LiveMonitorPage({ campaignId, search }: { campaignId: string; search: LiveSearch }) {
   const { slug } = useWorkspace()

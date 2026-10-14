@@ -39,9 +39,8 @@ export function currentStep(d: Pick<Detail, 'status' | 'step'>): keyof typeof st
 }
 
 /**
- * The full-screen import frame (Migration boards): brand, title, step badge
- * and exit in the header; the step rail beside the content, or the content
- * alone (summary, states).
+ * The full-screen import frame (Migration boards): the step rail beside the
+ * content, or the content alone (summary, states).
  */
 export function ImportFrame({
   title,
@@ -124,7 +123,6 @@ export function ImportFrame({
   )
 }
 
-/** The page heading inside the wizard. */
 export function WizardHeading({ title, lead }: { title: ReactNode; lead?: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">

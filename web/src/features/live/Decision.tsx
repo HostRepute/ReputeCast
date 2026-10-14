@@ -21,10 +21,8 @@ import {
 } from './model'
 
 /**
- * The decision view of an open incident (LiveMonitorPaused for an
- * auto-pause, LiveMonitorOutage for a provider outage): what happened, the
- * evidence, likely causes, what to do, and the choices; then progress,
- * counters and the breakdown that matters.
+ * The decision view of an open incident: LiveMonitorPaused for an
+ * auto-pause, LiveMonitorOutage for a provider outage.
  */
 export function DecisionView({
   s,

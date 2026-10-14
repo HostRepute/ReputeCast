@@ -146,7 +146,6 @@ function Actions({ o }: { o?: Overview }) {
   }
   const running = Boolean(o?.checks.running)
   const label = o && o.hostRepute.status === 'connected' ? 'Run all checks now' : 'Run checks now'
-  // Nothing to check or export before a sending domain or provider exists.
   const empty = o && noSetup(o) ? 'Connect a sending provider first: there is nothing to check yet.' : undefined
   return (
     <>

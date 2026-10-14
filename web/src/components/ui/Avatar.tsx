@@ -25,10 +25,9 @@ export function initials(name: string): string {
 }
 
 /**
- * Round initials avatar; square when `shape="square"` (workspace switcher).
- * With `src` (a profile photo) the photo replaces the initials. The initials
- * are drawn by CSS (`data-initials`): they decorate, so they are no part of
- * the visible label of a button that holds the avatar (WCAG 2.5.3).
+ * Round initials avatar, or a photo with `src`. The initials are drawn by CSS
+ * (`data-initials`) so they never become part of the visible label of a
+ * button that holds the avatar (WCAG 2.5.3).
  */
 export function Avatar({
   name,

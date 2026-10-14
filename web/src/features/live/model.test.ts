@@ -39,9 +39,8 @@ import {
 } from './model'
 
 /*
- * The live monitor's words and numbers, pinned against the boards
- * (LiveMonitor, LiveMonitorPaused, LiveMonitorOutage, LiveMonitorStates,
- * LiveMonitorMobile) with their sample data. Times are UTC here.
+ * The live monitor's words and numbers, pinned against the LiveMonitor boards
+ * with their sample data. Times are UTC here.
  */
 
 const T = (hms: string) => `2026-10-14T${hms}Z`

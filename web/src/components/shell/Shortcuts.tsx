@@ -37,9 +37,8 @@ function Row({ children }: { children: ReactNode }) {
 }
 
 /**
- * The "?" sheet (Feedback board): the board's card as a modal. Esc or a
- * click outside closes it; it opens from the keyboard only, so it needs no
- * button of its own.
+ * The "?" sheet (Feedback board): the board's card as a modal. It opens from
+ * the keyboard only, so it needs no button of its own.
  */
 export function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const mod = modKeyLabel()

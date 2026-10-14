@@ -32,10 +32,8 @@ export function useRestoreList() {
 }
 
 /**
- * Deleting a list (Dialogs board, "Delete list"): who is on it and who
- * another list keeps, what uses it and pauses, and the typed name. The
- * toast offers Undo for 10 seconds; after that the audit log restores it
- * for 30 days.
+ * Deleting a list (Dialogs board, "Delete list"). The toast offers Undo for
+ * 10 seconds; after that the audit log restores it for 30 days.
  */
 export function DeleteListDialog({ list, open, onOpenChange }: { list: { id: string; name: string }; open: boolean; onOpenChange: (open: boolean) => void }) {
   const { slug } = useWorkspace()

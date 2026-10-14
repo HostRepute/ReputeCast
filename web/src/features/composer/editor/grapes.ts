@@ -51,10 +51,8 @@ function fontFaces(): string {
 
 /**
  * Creates the GrapesJS editor with the MJML plugin and every built-in UI
- * turned off: ReputeCast renders its own panels (blocks, layers, style,
- * settings, assets, rich text toolbar, selection toolbar) around the canvas.
- * GrapesJS and grapesjs-mjml are loaded on demand so they stay out of the
- * main bundle.
+ * turned off: ReputeCast renders its own panels around the canvas. GrapesJS
+ * and grapesjs-mjml load on demand, to stay out of the main bundle.
  */
 export async function createComposerEditor(container: HTMLElement, opts: CreateOptions): Promise<ComposerEditor> {
   const [{ default: grapesjs }, mjmlModule] = await Promise.all([import('grapesjs'), import('grapesjs-mjml')])

@@ -1,7 +1,6 @@
-/* Forms & public pages (boards FormBuilder, FormsStates and the page tabs):
-   the classes these boards define beyond the shared ones in app.css, with
-   the boards' exact values. The columns run edge to edge under the top bar
-   like the board (no content padding), so the overrides of .content sit
+/* Forms & public pages: the classes their boards define beyond the shared
+   ones in app.css, with the boards' exact values. The columns run edge to
+   edge under the top bar like the board, so the overrides of .content sit
    outside the layers, next to the shell's own breakpoints. */
 
 @layer components {

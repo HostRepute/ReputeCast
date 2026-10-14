@@ -1,8 +1,7 @@
 /*
- * Send approvals: classes specific to the ApprovalInbox, ApprovalReview,
- * ApprovalStates, ApprovalPolicy and SendReadinessApproval boards, copied
- * value for value and prefixed `ap-`. The rest (.sec, .pad, .col, .row,
- * .note, .kv, .diff, .tbl) is the shared add-on vocabulary in app.css.
+ * Send approvals: classes specific to the Approval* and SendReadinessApproval
+ * boards, copied value for value and prefixed `ap-`. The rest is the shared
+ * add-on vocabulary in app.css.
  */
 @layer components {
   /* The verdict at the top of an approval card (SendReadinessApproval). */

@@ -4,8 +4,6 @@ import type { ReactNode, SVGProps } from 'react'
  * Stroke icons copied from the prototype (16-unit grid, round joins). Icons
  * are decorative by default (aria-hidden); pass `label` when an icon is the
  * only content of a control and no aria-label is set on the control itself.
- *
- * To add an icon, copy its <path>/<circle> markup from the design board.
  */
 type IconDef = { body: ReactNode; strokeWidth?: number; viewBox?: string; fill?: boolean }
 

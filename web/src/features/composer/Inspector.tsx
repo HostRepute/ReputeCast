@@ -26,8 +26,6 @@ import {
 import { mjChildren, sectionLabel, sectionOf, tagOf } from './editor/labels'
 import { withVisibilityStyles } from './editor/mjmlDoc'
 
-/* ------------------------------------------------------------ inputs */
-
 /** A text input that edits a draft and commits on Enter or blur (one undo step per edit). */
 function DraftInput({
   value,
@@ -179,8 +177,6 @@ function SelectField({ value, onChange, label, options }: { value: string; onCha
     </select>
   )
 }
-
-/* ------------------------------------------------------------ style groups */
 
 function useHead() {
   const { head } = useComposer()
@@ -346,8 +342,6 @@ function TypographyProp({ targets, title, sample, weight }: { targets: Component
   )
 }
 
-/* ------------------------------------------------------------ describe */
-
 const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
 
 function sectionPhrase(sec: Component | undefined): string {
@@ -381,8 +375,6 @@ export function describe(c: Component, tab: 'style' | 'settings'): string {
   }
   return `${tag.replace('mj-', '')} in the ${sectionPhrase(sec)}`
 }
-
-/* ------------------------------------------------------------ style tab */
 
 export function StyleFields({ c }: { c: Component }) {
   const tag = tagOf(c)
@@ -567,8 +559,6 @@ function RawNote() {
     </div>
   )
 }
-
-/* ------------------------------------------------------------ settings tab */
 
 function textLinks(c: Component): Component[] {
   const out: Component[] = []

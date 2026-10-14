@@ -74,7 +74,6 @@ export function insertFooter(c: ComposerState) {
   }
 }
 
-/** Applies one of the fixes a content check offers. */
 export async function applyFix(c: ComposerState, issue: Issue, fix: Fix, value?: string): Promise<void> {
   switch (fix.kind) {
     case 'replace_link': {

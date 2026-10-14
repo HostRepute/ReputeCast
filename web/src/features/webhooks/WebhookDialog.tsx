@@ -28,8 +28,7 @@ function byGroup(events: Events) {
 }
 
 /**
- * Add or edit an endpoint: URL, name, the events it gets (whole groups with
- * a wildcard), and for an existing one: test, rotate the secret, pause, delete.
+ * Add or edit an endpoint; events can be picked by whole group (a wildcard).
  * A failing endpoint opens with the failure explained (SettingsStates).
  */
 export function WebhookDialog({

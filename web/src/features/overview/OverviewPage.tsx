@@ -78,7 +78,6 @@ export function OverviewPage() {
   const recent = $api.useQuery('get', '/api/v1/workspaces/{workspace}/overview/recent-campaigns', { params: { path } }, opts(can.campaigns))
   const editReason = usePermissionReason('campaigns:edit')
 
-  // First run: no sending provider yet.
   const firstRun = providers.data?.connected === 0
   const providersLoading = providers.isPending && can.providers
   const subtitle = overviewSubtitle(now, health.data?.domain, health.data?.state === 'pending' || (firstRun && !health.data?.domain))

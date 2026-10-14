@@ -123,7 +123,6 @@ function VersionLink() {
   )
 }
 
-/** The composer's bottom bar. */
 export function Footer() {
   const c = useComposer()
   if (c.isEmpty) {

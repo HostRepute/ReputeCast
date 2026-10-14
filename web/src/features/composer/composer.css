@@ -5,7 +5,7 @@
  * GrapesJS canvas internals; its default editor UI is never loaded.
  */
 
-/* ------------------------------------------------------------ chrome */
+/* Chrome */
 .cmp {
   min-height: 100vh;
   min-height: 100dvh;
@@ -553,7 +553,7 @@ label.tg {
   pointer-events: none;
 }
 
-/* ------------------------------------------------------------ canvas */
+/* Canvas */
 .cmp-canvas {
   position: relative;
   flex: 1;

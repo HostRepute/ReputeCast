@@ -185,8 +185,6 @@ export function countdown(ms: number): string {
   return `in ${s} second${s === 1 ? '' : 's'}`
 }
 
-/* -- Notification center (W04) ------------------------------------------- */
-
 function dayKey(d: Date) {
   const p = parts('daykey', d, { year: 'numeric', month: '2-digit', day: '2-digit' })
   return `${p.year}-${p.month}-${p.day}`
@@ -231,8 +229,6 @@ export function trimPct(v: number | null | undefined): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '—'
   return `${Number(v.toFixed(2))}%`
 }
-
-// --- Team, keys and audit log (W03) ---------------------------------------
 
 /** "Oct 10" */
 export function monthDay(d: string | number | Date): string {
@@ -306,8 +302,6 @@ export function callTime(d: string | number | Date, what: string | undefined, no
   return what ? `${logTime(d, now)} · ${what}` : logTime(d, now)
 }
 
-/* ---- W01 · Sending providers (appended) ---- */
-
 /** "Oct" or "October". */
 export function monthName(d: string | number | Date, style: 'short' | 'long' = 'short'): string {
   return fmt(`month-${style}`, 'en-US', { month: style }).format(toDate(d))
@@ -317,8 +311,6 @@ export function monthName(d: string | number | Date, style: 'short' | 'long' = '
 export function weekdayName(d: string | number | Date): string {
   return fmt('weekday-long', 'en-US', { weekday: 'long' }).format(toDate(d))
 }
-
-/* ---- W02 · Audience (appended) ---- */
 
 /**
  * When an address was suppressed: "Today 09:41", "Sat 11 Oct" within the
@@ -332,8 +324,6 @@ export function suppressedWhen(d: string | number | Date, now: Date = new Date()
   const year = notificationDateParts(t).year
   return year === notificationDateParts(now).year ? dayMonthDate(t) : `${dayMonthDate(t)} ${year}`
 }
-
-/* ---- W14 · Instance admin (appended) ---- */
 
 /** Instance audit log time: "09:12:03" today, "Sat 11 Oct 14:02" this week, else "Sep 30 17:10". */
 export function instanceAuditTime(d: string | number | Date, now: Date = new Date()): string {
@@ -353,8 +343,6 @@ export function dayPartWords(d: string | number | Date, now: Date = new Date()):
   if (isYesterday(t, now)) return 'yesterday'
   return `on ${monthDay(t)}`
 }
-
-/* ---- W10 · Connect a provider, senders and domains (appended) ---- */
 
 /** "18 Sep 2026" */
 export function dayMonthYear(d: string | number | Date): string {

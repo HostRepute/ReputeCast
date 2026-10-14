@@ -86,7 +86,6 @@ function BlocksTab({ onShowSections }: { onShowSections: () => void }) {
   const [q, setQ] = useState('')
   const sections = $api.useQuery('get', '/api/v1/workspaces/{workspace}/templates', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
   const defs = useMemo(() => blockDefs(c.context.postalAddress), [c.context.postalAddress])
-  // Register blocks with GrapesJS once the editor exists.
   useEffect(() => {
     if (!c.editor) return
     const api = blocksApi(c.editor)
@@ -311,7 +310,6 @@ export function LeftPanel() {
   const c = useComposer()
   const sectionsRef = useRef<HTMLDivElement | null>(null)
   if (c.isEmpty) {
-    // The gallery is showing; the panel is a preview of what comes next.
     const defs = blockDefs(c.context.postalAddress)
     return (
       // A preview of what comes next, inactive until a start is picked.

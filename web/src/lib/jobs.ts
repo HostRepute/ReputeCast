@@ -6,10 +6,9 @@ import { useSyncExternalStore } from 'react'
  * Jobs keep running on the server when the tab closes; the tray shows them
  * while they run and a toast says when one finishes or fails.
  *
- * The server list comes from a JobsSource. Until the audience workstream
- * adds GET /api/v1/workspaces/{workspace}/jobs it is a stub that returns
- * nothing; plug the real one in with setJobsSource(). Screens can also
- * track a job they started with trackJob() so it shows right away.
+ * The server list comes from a JobsSource, set with setJobsSource() (the
+ * imports feature installs it). Screens can also track a job they started
+ * with trackJob() so it shows right away.
  */
 export type JobKind = 'import' | 'export'
 export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'canceled'
@@ -37,7 +36,7 @@ export interface JobsSource {
   cancel?(workspace: string, id: string): Promise<void>
 }
 
-/** No server list yet: only jobs tracked in this browser show. */
+/** Without a server list, only jobs tracked in this browser show. */
 export const stubJobsSource: JobsSource = { list: async () => [] }
 
 let source: JobsSource = stubJobsSource
@@ -47,8 +46,6 @@ export function setJobsSource(s: JobsSource) {
 export function getJobsSource(): JobsSource {
   return source
 }
-
-// ------------------------------------------------------------ local jobs
 
 let local: Record<string, BackgroundJob[]> = {}
 const listeners = new Set<() => void>()

@@ -216,7 +216,6 @@ export function formatBorder(b: { style: string; width: string; color: string })
   return [b.width && b.width !== '0px' ? b.width : '1px', b.style, b.color || '#E3E6EB'].join(' ')
 }
 
-/** Descendants of `c` with the given MJML tag. */
 export function descendants(c: Component, tag: string): Component[] {
   const out: Component[] = []
   const walk = (x: Component) => {

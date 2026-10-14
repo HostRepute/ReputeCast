@@ -5,7 +5,6 @@ import { cn } from '@/lib/cn'
 import { shortDate } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 
-/** Debounces a value. */
 function useDebounced<T>(value: T, ms: number): T {
   const [v, setV] = useState(value)
   useEffect(() => {

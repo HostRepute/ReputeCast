@@ -17,8 +17,6 @@ const CLIENTS: { id: Client; label: string; short: string; dark: string }[] = [
   { id: 'yahoo', label: 'Yahoo', short: 'Yahoo', dark: 'Yahoo inverts light backgrounds; buttons keep their color' },
 ]
 
-/* ------------------------------------------------------------ colour */
-
 type RGB = [number, number, number]
 
 function parseRgb(v: string): RGB | null {
@@ -96,8 +94,6 @@ function darkenDocument(doc: Document) {
   doc.body.style.setProperty('background-color', '#111827', 'important')
 }
 
-/* ------------------------------------------------------------ mail frame */
-
 function MailFrame({ html, width, dark, onDoc }: { html: string; width: number; dark?: boolean; onDoc?: (doc: Document) => void }) {
   const box = useRef<HTMLDivElement>(null)
   const frame = useRef<HTMLIFrameElement>(null)
@@ -138,8 +134,6 @@ function MailFrame({ html, width, dark, onDoc }: { html: string; width: number; 
     </div>
   )
 }
-
-/* ------------------------------------------------------------ checks */
 
 interface DarkCheck {
   tone: 'ok' | 'warn' | 'info'
@@ -205,8 +199,6 @@ function useDarkChecks(doc: Document | null, assets: Schemas['MediaAsset'][] | u
     return out
   }, [doc, assets])
 }
-
-/* ------------------------------------------------------------ A/B */
 
 const PERCENTS = [10, 20, 30, 40, 50]
 
@@ -344,8 +336,6 @@ function ABPanel() {
     </div>
   )
 }
-
-/* ------------------------------------------------------------ view */
 
 type Sample = { sample: 'contact' | 'no_first_name' | 'random'; contactId?: string }
 

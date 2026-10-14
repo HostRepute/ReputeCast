@@ -11,8 +11,6 @@ import { checkMjmlTags, formatMjml, headMeta, splitMjml } from './editor/mjmlDoc
 import { kb, lineCount } from './format'
 import { ViewSeg } from './CanvasArea'
 
-/* ------------------------------------------------------------ CodeMirror */
-
 const marks = {
   cm: Decoration.mark({ class: 'mj-cm' }),
   tg: Decoration.mark({ class: 'mj-tg' }),
@@ -114,8 +112,6 @@ function Code({ value, onChange, readOnly, dark, label, onCursor, jumpTo }: { va
   return <div ref={host} className="cmp-cm" />
 }
 
-/* ------------------------------------------------------------ view */
-
 interface CompileState {
   html: string
   ms: number
@@ -139,9 +135,8 @@ function Pane({ title, aside, dark, children }: { title: string; aside: string; 
 }
 
 /**
- * The code view (ComposerCode): MJML as the source of truth on the left,
- * the compiled HTML read-only on the right, compile results and the
- * personalization tokens in the side panel.
+ * The code view (ComposerCode): MJML is the source of truth; the compiled
+ * HTML beside it is read-only.
  */
 export function CodeView() {
   const c = useComposer()

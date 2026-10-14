@@ -1,7 +1,5 @@
 /*
- * Sending providers & routing: classes specific to the Providers boards
- * (Providers, ProvidersOutage, ProvidersWebhooksSilent, ProvidersRouting,
- * ProvidersBulkWarning, ProvidersWarmup, ProvidersEvents, ProvidersAdapters),
+ * Sending providers & routing: classes specific to the Providers* boards,
  * copied value for value and prefixed `pv-` so they never collide with the
  * shared vocabulary in app.css.
  */
@@ -119,11 +117,9 @@
     font-size: 13px;
     cursor: pointer;
   }
-  /* The boards keep the browser's radio margins (3px 3px 0 5px), with
-     margin-top 3px from the label rule, and let the radio shrink like any
-     flex item when the text beside it is long. */
-  /* Radios and checkboxes keep their 16px beside long text (DESIGN_INVENTORY
-     #83), where the boards let their flex rows squeeze them. */
+  /* The boards' radio margins (3px 3px 0 5px, margin-top from the label
+     rule). Unlike the boards, radios and checkboxes keep their 16px beside
+     long text (DESIGN_INVENTORY #83). */
   label.pv-tg input,
   label.opt.pv-opt input {
     margin: 3px 3px 0 5px;

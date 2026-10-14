@@ -232,7 +232,6 @@ export const mailboxColor: Record<string, string> = {
   other: 'var(--chart-other)',
 }
 
-/** Sending provider colours. */
 export const providerColor: Record<string, string> = {
   ses: 'var(--chart-ses)',
   postal: 'var(--chart-postal)',

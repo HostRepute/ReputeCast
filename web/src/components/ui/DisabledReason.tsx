@@ -4,19 +4,12 @@ import { createPortal } from 'react-dom'
 
 /**
  * A control the current member can't use, kept visible with the reason in a
- * bubble on hover and focus (Feedback board: "Editors can't change routing ·
- * ask Linh or Marcus"). Hidden controls would make the product look smaller
- * than it is. The reason is also the control's description for screen
- * readers, and clicking does nothing. Button's `disabledReason` uses it.
+ * bubble on hover and focus (Feedback board): hidden controls would make the
+ * product look smaller than it is. The reason is also the control's
+ * description for screen readers, and clicking does nothing.
  *
- *   <DisabledReason reason={usePermissionReason('providers:manage')}>
- *     <a className="btn" href="…">Save routing</a>
- *   </DisabledReason>
- *
- * Without a reason the child works as usual. The component tree is the same
- * either way, so the control keeps its DOM node (and focus) when the reason
- * comes and goes. It adds no element next to the control and brings its own
- * tooltip provider, so it works anywhere.
+ * Without a reason the child works as usual. The tree is the same either way,
+ * so the control keeps its DOM node (and focus) when the reason comes and goes.
  */
 export function DisabledReason({
   reason,

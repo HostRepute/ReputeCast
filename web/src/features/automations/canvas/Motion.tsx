@@ -10,10 +10,9 @@ const FIRST_DELAY_MS = 3200
 const RESTART_DELAY_MS = 400
 
 /**
- * The "pulse through steps" motion of the flow board: a token rests in each
- * step (the step glows, its handles flash), then runs along every edge to
- * the next steps; minor branch paths pulse fainter. It loops every period,
- * pauses with "Animate flow" and is off with reduced motion.
+ * The flow board's "pulse through steps" motion (see timeline in graph.ts):
+ * it loops every period, pauses with "Animate flow" and is off with reduced
+ * motion.
  */
 export function Motion({ playing, reduced }: { playing: boolean; reduced: boolean }) {
   const nodes = useNodes<StepNodeType>()

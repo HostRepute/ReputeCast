@@ -381,8 +381,6 @@ export function wouldLoop(g: FlowGraph, source: string, target: string): boolean
   return false
 }
 
-/* ----------------------------------------------------------- edge geometry */
-
 export interface EdgeGeometry {
   path: string
   length: number
@@ -416,8 +414,6 @@ export function edgeGeometry(sx: number, sy: number, tx: number, ty: number, kin
   if (kind === 'branch' || kind === 'split') out.label = { x: tx + (kind === 'branch' ? 14 : 8), y: busY - 12 }
   return out
 }
-
-/* ---------------------------------------------------------------- motion */
 
 /** Speed of a pulse along an edge (px/s) and its length (px), as on the board. */
 export const PULSE_SPEED = 220

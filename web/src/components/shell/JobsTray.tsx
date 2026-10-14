@@ -26,7 +26,6 @@ export function JobsTray() {
   const active = running.filter((j) => j.href !== path)
   const seen = useRef(new Map<string, JobStatus>())
 
-  // Toast when a job this page watched finishes or fails.
   useEffect(() => {
     for (const j of jobs) {
       const before = seen.current.get(j.id)

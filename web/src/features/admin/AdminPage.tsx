@@ -18,9 +18,8 @@ export function hostOf(url?: string) {
 }
 
 /**
- * The Instance admin frame (A5 §5.10): "Instance admin" with the instance,
- * host and version, the "admins only" badge, the way back to the workspace
- * and the six section tabs. Everyone but instance admins gets the 403 state.
+ * The Instance admin frame (A5 §5.10) with its six section tabs. Everyone but
+ * instance admins gets the 403 state.
  */
 export function AdminPage({
   subtitle,

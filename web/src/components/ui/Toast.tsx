@@ -116,7 +116,7 @@ function ToastView({ t }: { t: ToastItem }) {
   )
 }
 
-/** Mount once near the root. Focus never moves to a toast. */
+/** Mount once near the root. */
 export function Toaster() {
   const list = useSyncExternalStore(subscribe, () => items, () => items)
   return (

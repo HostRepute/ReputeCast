@@ -36,9 +36,8 @@ export function useInvalidateForms() {
 }
 
 /**
- * Signup forms · Subscribe page · Preference center · Unsubscribe page ·
- * Archive · Branding, inline after the screen title (they navigate). The
- * first tab counts the forms once they've loaded.
+ * The Forms & public pages tabs, inline after the screen title (they
+ * navigate). The first tab counts the forms once they've loaded.
  */
 export function FormsTabs() {
   const { slug } = useWorkspace()
@@ -97,7 +96,6 @@ export function PublisherMark({ branding, className, logoClassName }: { branding
   )
 }
 
-/** Field labels of the built-in fields. */
 export const builtinFieldLabels: Record<string, string> = {
   email: 'Email',
   first_name: 'First name',

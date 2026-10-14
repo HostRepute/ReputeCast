@@ -1,8 +1,7 @@
-/* Audience screens (Contacts, Contact profile, Segments, List health,
-   Suppression list): the classes these boards define beyond the shared
-   ones in app.css, with the boards' exact values. They live in the
-   components layer, so Tailwind utilities still override them and the
-   shell's phone rules (unlayered) still apply. */
+/* Audience screens: the classes their boards define beyond the shared ones
+   in app.css, with the boards' exact values. They live in the components
+   layer, so Tailwind utilities still override them and the shell's phone
+   rules (unlayered) still apply. */
 
 @layer components {
   /* Tier badges: darkest blue is Active (Contacts, Segments, List health). */
@@ -52,7 +51,6 @@
     border-style: dashed;
   }
 
-  /* Selected table rows. */
   .tbl tr.sel td {
     background: var(--accent-tint);
   }

@@ -66,8 +66,6 @@ function useCanvasTick(editor: Editor | null, host: HTMLElement | null): number 
   return tick
 }
 
-/* ------------------------------------------------------------ toolbar */
-
 function UndoRedo() {
   const c = useComposer()
   const um = c.editor?.UndoManager
@@ -209,8 +207,6 @@ function Toolbar({ zoom }: { zoom: number }) {
     </div>
   )
 }
-
-/* ------------------------------------------------------------ overlays */
 
 function SelectionOverlay({ host, tick }: { host: HTMLElement | null; tick: number }) {
   const c = useComposer()
@@ -367,8 +363,6 @@ function MissingFooter({ width }: { width: number }) {
   )
 }
 
-/* ------------------------------------------------------------ rich text */
-
 type Rte = { exec(cmd: string, value?: string): void; insertHTML(html: string): void; selection(): Selection | null; doc: Document; el: HTMLElement }
 
 /**
@@ -431,8 +425,7 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
       return false
     }
   }
-  // GrapesJS ends text editing on any mousedown outside the text (its own toolbar
-  // stops the event the same way); preventDefault keeps the focus in the text.
+  // As in MouseShield: stop GrapesJS ending the edit, and keep the focus in the text.
   const keep = (e: MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -569,8 +562,6 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
     </div>
   )
 }
-
-/* ------------------------------------------------------------ canvas */
 
 /** Fits the device width into the canvas column (tablet and phone screens). */
 function useZoom(editor: Editor | null, stage: HTMLElement | null, device: DeviceId): number {

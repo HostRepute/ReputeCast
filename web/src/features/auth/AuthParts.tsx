@@ -2,7 +2,6 @@ import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import { GitHubMark, GoogleMark, Icon, MicrosoftMark } from '@/components/icons/Icon'
 import './auth.css'
 
-/** Title and caption of an auth card. */
 export function AuthHeading({ id, title, sub }: { id: string; title: ReactNode; sub?: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">

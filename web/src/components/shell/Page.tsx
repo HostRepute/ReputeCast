@@ -103,7 +103,6 @@ export function Page({
   )
 }
 
-/** One step of a Page breadcrumb. */
 export type Crumb = { label: string; to?: LinkProps['to']; params?: LinkProps['params'] }
 
 /** Bell with the unread count; opens the notifications popover. */

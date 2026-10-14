@@ -1,6 +1,5 @@
 import { useEffect, useState, useSyncExternalStore, type RefObject } from 'react'
 
-/** Subscribes to a CSS media query. */
 export function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(
     (cb) => {

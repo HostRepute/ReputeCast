@@ -27,7 +27,6 @@ export const tierWindow: Record<Tier, string> = {
 export type Consent = 'double' | 'single' | 'pending'
 export const consentLabel: Record<Consent, string> = { double: 'Double opt-in', single: 'Single opt-in', pending: 'Imported · pending' }
 export const consentTone: Record<Consent, Tone> = { double: 'ok', single: 'ok', pending: 'warn' }
-/** Labels in the consent filter. */
 export const consentFilterLabel: Record<Consent, string> = { double: 'Double opt-in', single: 'Single opt-in', pending: 'Imported, pending' }
 
 export type Mailbox = 'gmail' | 'outlook' | 'yahoo' | 'icloud' | 'other'

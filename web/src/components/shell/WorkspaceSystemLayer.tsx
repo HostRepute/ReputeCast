@@ -39,10 +39,9 @@ function useCornerOffsets(tray: React.RefObject<HTMLDivElement | null>) {
 }
 
 /**
- * Everything cross-cutting for signed-in workspace screens, full-screen
- * editors included: the session guard, the rate-limit notice, the jobs tray
- * and the keyboard shortcuts. Notices come first in the DOM so a keyboard
- * user reaches "Extend" quickly; the tray comes after the page.
+ * Cross-cutting layers for signed-in workspace screens, full-screen editors
+ * included. Notices come first in the DOM so a keyboard user reaches
+ * "Extend" quickly; the tray comes after the page.
  */
 export function WorkspaceSystemLayer({ children }: { children: ReactNode }) {
   const status = useSystemStatus()

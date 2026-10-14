@@ -233,9 +233,8 @@ function CreateWorkspaceDialog({ onClose }: { onClose: () => void }) {
 }
 
 /**
- * Delete a workspace as an instance admin: the designed delete dialog
- * (WorkspaceDialogs: consequences, export first, typed name), whether or
- * not the admin belongs to the workspace.
+ * Delete a workspace as an instance admin, with the WorkspaceDialogs delete
+ * dialog, whether or not the admin belongs to the workspace.
  */
 function DeleteWorkspaceDialog({ w, onClose }: { w: Workspace; onClose: () => void }) {
   const qc = useQueryClient()

@@ -45,7 +45,7 @@ export const entries: Entry[] = [
   // Daniel Park signs in with SSO only: reproduce by hand (a dev session for daniel@acme.io).
   { board: 'ComposerRequestApproval', manual: true },
   // Weekly Digest #142 is scheduled in the demo (SendReadinessStates · scheduled); SendReadiness is
-  // the same campaign before scheduling: tmp/scripts/stage.py draft on in a dev database.
+  // the same campaign before scheduling, put back to draft in a dev database.
   { board: 'SendReadiness', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/review` },
   { board: 'SendReadinessBlocked', path: `${ws}/campaigns/{campaign:Flash sale: 48 hours only}/review` },
   // The confirmation opens from "Schedule send"; the approval states need Daniel (SSO only) or data changes.
@@ -81,7 +81,7 @@ export const entries: Entry[] = [
   { board: 'ProvidersBulkWarning', manual: true },
   { board: 'ProvidersStates', manual: true },
   { board: 'SetupCatalog', path: `${ws}/providers/connect` },
-  // W10: the demo's finished SES setup at each step, and the unfinished Mailgun one (SetupError).
+  // The demo's finished SES setup at each step, and the unfinished Mailgun one (SetupError).
   { board: 'SetupSES', path: `${ws}/providers/connect/ses?setup={setup:ses}&step=connection` },
   { board: 'SetupError', path: `${ws}/providers/connect/mailgun?setup={setup:mailgun}&step=connection` },
   { board: 'SetupDomain', path: `${ws}/providers/connect/ses?setup={setup:ses}&step=domain` },

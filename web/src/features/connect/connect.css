@@ -1,9 +1,7 @@
 /*
- * Connect a sending provider: the setup wizard's own classes (SetupCatalog,
- * SetupSES, SetupSMTP, SetupError, SetupDomain, SetupTestSend, SetupStreams,
- * SetupContacts, SetupDone), copied value for value and prefixed `cn-` so
- * they never collide with the shared vocabulary in app.css (`.row`, `.kv`
- * and `.step` mean something else there).
+ * Connect a sending provider: the Setup* boards' own classes, copied value
+ * for value and prefixed `cn-` so they never collide with the shared
+ * vocabulary in app.css (`.row`, `.kv` and `.step` mean something else there).
  */
 @layer components {
   /* The wizard's top bar: brand, title, step badge, Exit setup. */
@@ -199,7 +197,6 @@
   }
 }
 
-/* ≤1100px: tighter padding. */
 @media (max-width: 1100px) {
   .cn-wiz {
     padding: 16px;

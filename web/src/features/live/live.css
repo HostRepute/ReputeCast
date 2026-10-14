@@ -1,9 +1,7 @@
 /*
- * Live sending monitor (spec 7.6): classes specific to the LiveMonitor
- * boards (LiveMonitor, LiveMonitorPaused, LiveMonitorOutage,
- * LiveMonitorStates, LiveMonitorMobile), copied value for value and
- * prefixed `lv-` so they never collide with the shared vocabulary in
- * app.css. Everything else is Tailwind utilities with the boards' values.
+ * Live sending monitor (spec 7.6): classes specific to the LiveMonitor*
+ * boards, copied value for value and prefixed `lv-` so they never collide
+ * with the shared vocabulary in app.css.
  */
 @layer components {
   /* Tables: the boards' key column is 150px wide at least. */

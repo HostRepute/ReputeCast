@@ -61,8 +61,6 @@ export function usageWidth(value: number, limit: number): number {
   return Math.max(0, Math.min(100, (value / limit) * 100))
 }
 
-// --- Numbers in the boards' style ------------------------------------------
-
 /** One decimal: 99.3%. */
 export function pct1(v: number | null | undefined): string {
   return v === null || v === undefined || Number.isNaN(v) ? '—' : `${v.toFixed(1)}%`
@@ -124,8 +122,6 @@ export function shortStamp(d: string): string {
   return `${monthDay(d)} ${clock(d)}`
 }
 
-// --- Header ------------------------------------------------------------------
-
 /** "Started by Sofia Rossi · approved by Marcus Chen, Oct 10 16:20". */
 export function startedLine(s: Snapshot): string {
   const parts: string[] = []
@@ -141,8 +137,6 @@ export function needs(action: string, perm: string, helpers: string[] | undefine
   const ask = helpers?.length ? ` Ask ${helpers.length === 1 ? helpers[0] : `${helpers.slice(0, -1).join(', ')} or ${helpers[helpers.length - 1]}`}.` : ''
   return `${action} needs the ${perm} permission.${ask}`
 }
-
-// --- Progress card -----------------------------------------------------------
 
 export type Segment = { key: string; value: number; color: string; title: string }
 
@@ -197,8 +191,6 @@ export function abLine(ab: Snapshot['ab']): string {
   return `A/B ${kind} test: variant ${first.key} ${verb}, ${rates} ${metric} on the ${ab.sample}% sample`
 }
 
-// --- Totals tiles ------------------------------------------------------------
-
 export type TilesVariant = 'live' | 'threshold' | 'outage'
 export type Tile = { key: string; label: string; value: string; sub: string; alert?: boolean }
 
@@ -251,8 +243,6 @@ export function providerResultLines(s: Snapshot): string[] {
   return s.providers.filter((p) => p.sent > 0).map((p) => `${p.short} ${count(p.sent)} · ${pct1(p.deliveredRate)}`)
 }
 
-// --- Thresholds --------------------------------------------------------------
-
 export type ThresholdRow = { key: string; label: string; short: string; value: string; width: number; color: string }
 
 export function thresholdRows(s: Snapshot): ThresholdRow[] {
@@ -278,8 +268,6 @@ function row(t: Threshold, label: string, short: string, value: string): Thresho
 export function scopeLine(s: Snapshot): string {
   return s.thresholdScope === 'campaign' ? 'Scope: pause the whole campaign.' : 'Scope: pause only the affected route or mailbox provider.'
 }
-
-// --- Rows --------------------------------------------------------------------
 
 /** A mailbox provider's state word: the live view shows health, the decision view activity. */
 export function mailboxStatus(m: Mailbox, s: Snapshot, decision: boolean): { tone: Tone; text: string } {
@@ -332,8 +320,6 @@ export function orderedMailboxes(s: Snapshot, decision: boolean): Mailbox[] {
   if (!decision) return s.mailboxes
   return [...s.mailboxes].sort((a, b) => Number(b.held) - Number(a.held))
 }
-
-// --- Incidents ---------------------------------------------------------------
 
 const metricWords: Record<string, { one: string; many: string; base: string }> = {
   complaint: { one: 'complaint', many: 'complaints', base: 'delivered' },
@@ -540,7 +526,6 @@ export function optionAction(i: Incident, key: string): LiveAction | null {
   return null
 }
 
-/** The header badges of a send. */
 export function headerBadges(s: Snapshot, incident: Incident | undefined): { tone: Tone; text: string; pulse?: boolean; live?: boolean }[] {
   if (incident?.kind === 'threshold') {
     const who = scopeName(incident)
@@ -634,7 +619,6 @@ export function finishedText(s: Snapshot): { title: string; body: string } {
   }
 }
 
-/** The cancelled state's sentence. */
 export function cancelledText(s: Snapshot): { title: string; body: string } {
   const at = s.completedAt ? ` at ${clockSeconds(s.completedAt)}` : ''
   if (s.sent === 0) return { title: `${s.name} was cancelled${at}`, body: 'Nothing was sent. The campaign can be scheduled again from Review & send.' }
@@ -689,8 +673,6 @@ export function deliveredMix(s: Snapshot): { key: MailboxKey; name: string; perc
   return rows.map(({ key, name, percent }) => ({ key, name, percent }))
 }
 
-// --- Progress card legend and bar -------------------------------------------
-
 /** Segment widths as a share of the audience; the bar's track is the rest. */
 export function barSegments(s: Snapshot, incident?: Incident): (Segment & { width: number })[] {
   const base = Math.max(s.recipients, 1)
@@ -729,8 +711,6 @@ export function progressLegend(s: Snapshot, incident?: Incident, mobile = false)
   return items
 }
 
-// --- Phone layout (LiveMonitorMobile) ----------------------------------------
-
 /** The phone layout's tiles: shorter captions, human opens first. */
 export function mobileTiles(s: Snapshot): Tile[] {
   const t = s.totals
@@ -752,8 +732,6 @@ export function mobileTiles(s: Snapshot): Tile[] {
 export function providerLine(p: Provider): string {
   return `${perSec(p.rate)} · ${pct1(p.deliveredRate ?? 0)} delivered`
 }
-
-// --- Captions ------------------------------------------------------------------
 
 export type CaptionKind = 'live' | 'threshold' | 'outage'
 

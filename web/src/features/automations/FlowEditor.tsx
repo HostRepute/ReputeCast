@@ -152,8 +152,6 @@ export function NewAutomationPage({ template }: { template?: Schemas['Automation
   return <EditorSkeleton />
 }
 
-/* ------------------------------------------------------------------ editor */
-
 interface Meta {
   revision: number
   changes: number
@@ -188,13 +186,11 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   const options = $api.useQuery('get', '/api/v1/workspaces/{workspace}/automations/options', { params: { path: { workspace: slug } } }, { staleTime: 60_000 })
   const refs = useMemo(() => refsFrom(options.data), [options.data])
 
-  /* -- flow state (React Flow nodes and edges; the graph is derived) -- */
   const [flow, setFlow] = useState<FlowState>(() => fromGraph(detail.graph))
   const graph = useMemo(() => toGraph(flow.nodes, flow.edges), [flow])
   const json = useMemo(() => JSON.stringify(serialize(flow.nodes, flow.edges)), [flow])
   const [meta, setMeta] = useState<Meta>({ revision: detail.revision, changes: detail.changes, draftVersion: detail.draftVersion, issues: detail.issues })
 
-  /* -- autosave -- */
   const [savedJson, setSavedJson] = useState(json)
   const [saving, setSaving] = useState(false)
   const [failed, setFailed] = useState<{ json: string; error: unknown } | null>(null)
@@ -290,7 +286,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
       : undefined,
   )
 
-  /* -- selection and panels (kept in the URL: ?step=n3&panel=stats) -- */
+  // The selection and the right panel are kept in the URL (?step=n3&panel=stats).
   const [selectedId, setSelectedId] = useState<string | undefined>(() => firstSelection(detail.graph, search.step))
   const [rightTab, setRightTab] = useState<EditorPanel>(search.panel ?? 'step')
   const [seen, setSeen] = useState(search)
@@ -315,7 +311,6 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   }
   const [leftTab, setLeftTab] = useState<'steps' | 'stats'>('steps')
 
-  /* -- toolbar -- */
   const [showStats, setShowStats] = useState(true)
   const [snap, setSnap] = useState(true)
   const [animate, setAnimate] = useState(readAnimatePref)
@@ -323,7 +318,6 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   const editable = canEdit && !conflict && !restoring
   const canvasEditable = editable && !locked
 
-  /* -- what the nodes and edges read -- */
   const statsMap = useMemo(() => new Map<string, StepStats>((stats.data?.steps ?? []).map((s) => [s.nodeId, s])), [stats.data])
   const liveIds = useMemo(() => new Set(detail.liveNodeIds), [detail.liveNodeIds])
   const publishedIds = useMemo(() => new Set(detail.publishedNodeIds), [detail.publishedNodeIds])
@@ -357,7 +351,6 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
     startCountUp(reduced)
   }, [stats.data, reduced])
 
-  /* -- React Flow wiring -- */
   const [dropEdge, setDropEdge] = useState<string>()
   const titles = useMemo(() => new Map(graph.nodes.map((n) => [n.id, nodeTitle(graph, n, refs)])), [graph, refs])
   const rfNodes = useMemo(
@@ -472,7 +465,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
     if (selectedId) void rf.deleteElements({ nodes: [{ id: selectedId }] })
   }
 
-  /* -- canvas size and first view (the board centres a 900px frame) -- */
+  // Canvas size and first view: the board centres a 900px frame.
   const canvasRef = useRef<HTMLDivElement>(null)
   const userMoved = useRef(false)
   const [frameWidth] = useState(() => {
@@ -509,7 +502,6 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
     void rf.setCenter(n.position.x + nodeWidth(n) / 2, n.position.y + nodeHeight(n) / 2, { zoom, duration: 0 })
   }, [initialized, rf, search.step])
 
-  /* -- header actions -- */
   const [publishOpen, setPublishOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [pauseOpen, setPauseOpen] = useState(false)
@@ -941,8 +933,6 @@ function FlowStatsPanel({ stats, inFlow, published }: { stats?: Schemas['Automat
     </>
   )
 }
-
-/* ------------------------------------------------------- loading & errors */
 
 function EditorSkeleton() {
   return (

@@ -29,11 +29,7 @@ import {
   type Snapshot,
 } from './model'
 
-/**
- * LiveMonitorMobile: the live view on a phone. Its own header (back to the
- * campaigns, the name, how fresh the events are, the state), then progress,
- * counters, thresholds, both breakdowns, the feed and the two actions.
- */
+/** LiveMonitorMobile: the live view on a phone, with its own header. */
 export function MobileLive({
   s,
   now,

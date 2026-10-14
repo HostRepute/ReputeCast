@@ -60,8 +60,6 @@ export function resetSessionClock() {
   listeners.forEach((l) => l())
 }
 
-// ------------------------------------------------------------ derived
-
 export interface SessionClock {
   phase: SessionPhase
   /** Local epoch ms when the session ends. */
@@ -134,8 +132,6 @@ export function useSessionClock(): SessionClock {
   return clock
 }
 
-// ------------------------------------------------------------ actions
-
 function accept(t: SessionTiming) {
   set({ timing: t, skew: Date.parse(t.serverTime) - Date.now(), ended: undefined })
 }
@@ -201,8 +197,6 @@ export function registerSessionGuard(): () => void {
   return () => set({ guards: Math.max(0, state.guards - 1) })
 }
 
-// ------------------------------------------------------------ unsaved work
-
 export interface UnsavedWork {
   /** Finishes "otherwise … and you'll be asked to sign in again": "the draft autosaves". */
   whileEnding?: string
@@ -228,8 +222,6 @@ export function useUnsavedWork(work: UnsavedWork | undefined) {
 export function useSessionState(): Readonly<State> {
   return useSyncExternalStore(subscribe, getSessionState, getSessionState)
 }
-
-// ------------------------------------------------------------ other tabs
 
 let shareInstalled = false
 let lastShared = 0

@@ -6,10 +6,9 @@ export type Schemas = components['schemas']
 export type Problem = Schemas['Problem']
 
 /**
- * The problem's detail as a sentence. ReputeCast's own details already are;
- * the router's fallback for an unhandled error ("unexpected error occurred")
- * gets the product voice, and any other bare phrase a capital and a full
- * stop, so screens can add "Nothing was changed." after it.
+ * The problem's detail as a full sentence, so screens can add "Nothing was
+ * changed." after it. The router's fallback for an unhandled error gets the
+ * product voice.
  */
 export function problemSentence(status: number, problem: Pick<Problem, 'detail' | 'title'>): string {
   const raw = (problem.detail || problem.title || `The server answered ${status}`).trim()
@@ -67,7 +66,6 @@ http.use(throwOnError)
 /** TanStack Query bindings: $api.useQuery('get', '/api/v1/meta'). */
 export const $api = createClient(http)
 
-/** Human message for an unknown error. */
 export function errorMessage(e: unknown): string {
   if (e instanceof ApiError) return e.message
   if (e instanceof TypeError) return "Can't reach the server. Check your connection; nothing was lost."

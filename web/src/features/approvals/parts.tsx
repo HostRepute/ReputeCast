@@ -114,7 +114,6 @@ export function PersonLine({ person, line, size = 28 }: { person: Person; line?:
   )
 }
 
-/** "Linh Nguyen or Marcus Chen". */
 /** The approver who decided first, then the others (who was told, in the boards' order). */
 export function deciderFirst(people: Person[], decidedBy?: string | null): Person[] {
   const i = decidedBy ? people.findIndex((p) => p.name === decidedBy) : -1

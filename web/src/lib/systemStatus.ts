@@ -79,8 +79,6 @@ export function resetSystemStatus() {
   listeners.forEach((l) => l())
 }
 
-// ------------------------------------------------------------ connectivity
-
 const PROBE_URL = '/api/v1/meta'
 let probeTimer: number | undefined
 let probeDelay = 2000
@@ -131,8 +129,6 @@ export async function probe(): Promise<boolean> {
   }
 }
 
-// ------------------------------------------------------------ rate limit
-
 let rateTimer: number | undefined
 
 function retryAfterMs(header: string | null): number {
@@ -159,8 +155,6 @@ export function clearRateLimit() {
   rateTimer = undefined
   set({ rateLimit: undefined })
 }
-
-// ------------------------------------------------------------ middleware
 
 const isApi = (url: string) => {
   try {
