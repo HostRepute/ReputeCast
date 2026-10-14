@@ -204,9 +204,11 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
   const params = (id: string) => ({ workspace: slug, campaignId: id })
   return (
     <section className="card" aria-label="Campaigns">
+      {/* The board's key and provider cells wrap; a long audience ("Weekly Digest + Product
+          Updates") wraps too, so the actions stay in view at 1440 as on the board. */}
       <Table
         phoneWrap
-        className="[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(8)]:min-w-[120px] [&_td:nth-child(8)]:whitespace-normal [&_td]:whitespace-nowrap"
+        className="[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(3)]:min-w-[86px] [&_td:nth-child(3)]:whitespace-normal [&_td:nth-child(8)]:min-w-[120px] [&_td:nth-child(8)]:whitespace-normal [&_td:nth-child(8)_.badge]:my-px [&_td]:whitespace-nowrap"
       >
         <thead>
           <tr>

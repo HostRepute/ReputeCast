@@ -36,12 +36,18 @@ function RouteButton() {
   // A campaign without its own split follows the Broadcasts routing rule.
   const fromRule = campaign.route.source !== 'campaign'
   const route = campaign.route.shares.length ? campaign.route : context.broadcastRoute
+  // The words the button shows, so its accessible name starts with them (WCAG 2.5.3).
+  const visible = fromRule
+    ? route.shares.length
+      ? `Broadcasts route · ${route.shares.map((s) => `${s.short} ${Math.round(s.percent)}`).join(' / ')}`
+      : 'Broadcasts route · not set up'
+    : route.shares.map((s) => `${s.short} ${Math.round(s.percent)}%`).join(' ')
   const label = (
     <>
       {fromRule ? (
         <>
           <span className="dot" style={{ color: routeColors[route.shares[0]?.adapter ?? ''] ?? 'var(--accent)' }} aria-hidden="true" />
-          {route.shares.length ? `Broadcasts route · ${route.shares.map((s) => `${s.short} ${Math.round(s.percent)}`).join(' / ')}` : 'Broadcasts route · not set up'}
+          {visible}
         </>
       ) : (
         route.shares.map((s) => (
@@ -62,7 +68,7 @@ function RouteButton() {
     )
   }
   return (
-    <Link to="/w/$workspace/providers/routing" params={{ workspace: slug }} className="btn" aria-label={`Sending route: ${route.shares.map((s) => `${s.provider} ${Math.round(s.percent)}%`).join(', ') || 'not set up'}. Open routing`}>
+    <Link to="/w/$workspace/providers/routing" params={{ workspace: slug }} className="btn" aria-label={`${visible}: open routing`}>
       {label}
     </Link>
   )
@@ -102,7 +108,7 @@ export function Header({ onReview }: { onReview: () => void }) {
             </label>
             <input
               id="cname"
-              className="cmp-name"
+              className={empty ? 'cmp-name wide' : 'cmp-name'}
               value={c.name}
               placeholder="Untitled campaign"
               onChange={(e) => c.setName(e.target.value)}

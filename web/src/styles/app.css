@@ -533,8 +533,10 @@
     box-sizing: border-box;
     min-width: 0;
   }
+  /* The boards leave placeholders at the browser's default grey (#757575,
+     4.6:1 on white); ink-4 drew them lighter than every board does. */
   .in::placeholder {
-    color: var(--ink-4);
+    color: #757575;
   }
   textarea.in {
     height: auto;
@@ -1272,11 +1274,8 @@
     padding: 16px 12px;
     gap: 6px;
     box-sizing: border-box;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    height: 100dvh;
-    overflow-y: auto;
+    /* As on every board, the sidebar runs the full height of the page and
+       scrolls with it; its footer sits at the bottom of the page. */
   }
   .side .home {
     display: flex;
@@ -1395,6 +1394,12 @@
     gap: 10px;
     align-items: center;
     flex-wrap: wrap;
+  }
+  /* Without actions the boards give the tools only their auto margin
+     (style="margin-left:auto" replaces the 8px), so free space splits evenly
+     with another auto-margin item in the bar (List health's caption). */
+  .top .acts > .tools:first-child {
+    margin-left: 0;
   }
   .top .tabs.sections {
     flex-basis: 100%;
@@ -1790,6 +1795,11 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  /* Without the sweep the highlight would sit still at each block's left
+     edge; the boards' skeletons are flat. */
+  .sk.shimmer {
+    background-image: none;
   }
 }
 

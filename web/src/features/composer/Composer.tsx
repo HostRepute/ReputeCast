@@ -5,7 +5,7 @@ import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRe
 import { $api, ApiError, errorMessage, http } from '@/api/client'
 import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
-import { clock } from '@/lib/format'
+import { andList, clock } from '@/lib/format'
 import { useDocumentTitle } from '@/lib/hooks'
 import { useUnsavedWork } from '@/lib/sessionClock'
 import { runShortcutHandler, useShortcutHandler } from '@/lib/shortcuts'
@@ -618,10 +618,15 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
       : undefined,
   )
   const lastSave = status.kind === 'saved' || status.kind === 'dirty' ? status.at : undefined
+  // Dialogs board: "You changed the subject line and two blocks since the last autosave …
+  // Leaving now keeps draft v16; saving creates v17." (The tracker names what changed.)
+  // eslint-disable-next-line react-hooks/refs -- re-read on every edit: each change bumps `rev`
+  const changed = tracker.current?.peek() ?? []
+  const leaveText = `You changed ${changed.length ? `the ${andList(changed)}` : 'this email'} since ${lastSave ? `the last autosave at ${clock(lastSave)}` : 'it was last saved'}. Leaving now keeps ${campaign.status === 'draft' ? 'draft' : 'version'} v${savedVersion}; saving creates v${savedVersion + 1}.`
 
   return (
     <ComposerCtx.Provider value={state}>
-      <div className="cmp">
+      <div className="cmp rc-app">
         <a href="#main" className="skip">
           Skip to content
         </a>
@@ -650,7 +655,8 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
         <UnsavedChangesGuard
           dirty={canEdit && (unsaved || codeDirty)}
           title="Leave the composer?"
-          description={`Your latest edits to ${name || 'this campaign'} aren't saved yet${lastSave ? `; the last autosave was at ${clock(lastSave)}` : ''}.`}
+          description={leaveText}
+          saveLabel={`Save as v${savedVersion + 1} and leave`}
           onSave={async () => {
             if (!(await save({ manual: true, quiet: true }))) throw new Error("The draft couldn't be saved. Check your connection, or download the MJML as a backup.")
           }}

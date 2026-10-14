@@ -117,7 +117,7 @@ function VersionLink() {
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions', { params: { path: { workspace: c.slug, campaignId: c.campaign.id } } }, { staleTime: 30_000 })
   const n = q.data?.total ?? c.campaign.versionCount
   return (
-    <button type="button" className="k" style={{ border: 0, background: 'none', padding: 0, font: 'inherit', fontSize: 12, color: 'var(--ink-3)', cursor: 'pointer', minHeight: 24, display: 'inline-flex', alignItems: 'center' }} onClick={() => c.openDialog('versions')}>
+    <button type="button" className="k" style={{ border: 0, background: 'none', padding: 0, fontFamily: 'inherit', lineHeight: 'inherit', fontSize: 12, color: 'var(--ink-3)', cursor: 'pointer', minHeight: 24, display: 'inline-flex', alignItems: 'center' }} onClick={() => c.openDialog('versions')}>
       Version history · {plural(n, 'version')}
     </button>
   )

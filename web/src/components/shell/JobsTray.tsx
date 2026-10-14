@@ -1,4 +1,4 @@
-import { Link, useRouter } from '@tanstack/react-router'
+import { Link, useRouter, useRouterState } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { isActive, useBackgroundJobs, type BackgroundJob, type JobStatus } from '@/lib/jobs'
 import { useWorkspace } from '@/lib/session'
@@ -19,8 +19,11 @@ function meta(j: BackgroundJob): string {
 export function JobsTray() {
   const { slug } = useWorkspace()
   const router = useRouter()
-  const { jobs, active } = useBackgroundJobs(slug)
+  const { jobs, active: running } = useBackgroundJobs(slug)
   const [open, setOpen] = useState(true)
+  // A job's own page already shows its progress (MigrationProgress has no tray).
+  const path = useRouterState({ select: (s) => s.location.pathname })
+  const active = running.filter((j) => j.href !== path)
   const seen = useRef(new Map<string, JobStatus>())
 
   // Toast when a job this page watched finishes or fails.

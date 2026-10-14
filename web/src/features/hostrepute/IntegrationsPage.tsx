@@ -372,8 +372,11 @@ function DisconnectDialog({ open, onOpenChange, team }: { open: boolean; onOpenC
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
+      eyebrow={<span className="k">Dialog · disconnect</span>}
       title="Disconnect HostRepute?"
       description={<span className="text-[13.5px]">ReputeCast forgets the token. Your HostRepute team and its monitoring keep running on hostrepute.com; nothing is deleted there.</span>}
+      className="card border-bad-line"
+      hideClose
       dismissible={!busy}
       footer={
         <>

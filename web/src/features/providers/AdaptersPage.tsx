@@ -391,11 +391,12 @@ function HTTPAdapterCard({ data, reason }: { data: Overview; reason?: string }) 
         </Field>
         <Field label="Request body template" error={errors['body.bodyTemplate']}>
           <textarea
-            className="pv-pre min-h-[140px] resize-none border-0 outline-offset-2"
+            className="pv-pre resize-none border-0 outline-offset-2"
             value={template}
             spellCheck={false}
             disabled={Boolean(reason)}
-            rows={template.split('\n').length}
+            // As tall as its lines, like the board's <pre> (at least the sample's 7).
+            rows={Math.max(7, template.split('\n').length)}
             onChange={(e) => {
               setTemplate(e.target.value)
               edited()

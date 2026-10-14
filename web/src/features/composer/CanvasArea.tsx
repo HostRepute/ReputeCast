@@ -2,7 +2,7 @@ import type { Component, Editor } from 'grapesjs'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { Popover } from '@/components/ui/Menu'
-import { clock } from '@/lib/format'
+import { clock, count } from '@/lib/format'
 import { useComposer, type Issue } from './context'
 import { DEVICES, type DeviceId } from './editor/grapes'
 import { componentLabel, mjChildren, tagOf } from './editor/labels'
@@ -133,7 +133,7 @@ export function DeviceSeg({ dim }: { dim?: boolean }) {
   return (
     <div className="seg" role="group" aria-label="Device">
       {(Object.keys(DEVICES) as DeviceId[]).map((d) => (
-        <button key={d} type="button" aria-pressed={c.device === d} tabIndex={dim ? -1 : undefined} onClick={() => c.setDevice(d)}>
+        <button key={d} type="button" aria-pressed={c.device === d} disabled={dim} onClick={() => c.setDevice(d)}>
           {d === 'desktop' ? 'Desktop · 600' : 'Mobile · 375'}
         </button>
       ))}
@@ -151,7 +151,7 @@ export function ViewSeg({ dim }: { dim?: boolean }) {
   return (
     <div className="seg" role="group" aria-label="View">
       {items.map((it) => (
-        <button key={it.v} type="button" aria-pressed={c.view === it.v} tabIndex={dim ? -1 : undefined} onClick={() => c.setView(it.v)}>
+        <button key={it.v} type="button" aria-pressed={c.view === it.v} disabled={dim} onClick={() => c.setView(it.v)}>
           {it.label}
         </button>
       ))}
@@ -612,6 +612,19 @@ function useZoomHeight(editor: Editor | null, zoom: number, tick: number, device
   }, [editor, zoom, tick, device, host])
 }
 
+/** GrapesJS's frame has no title of its own; screen readers announce the canvas by it. */
+function useFrameTitle(editor: Editor | null) {
+  useEffect(() => {
+    if (!editor) return
+    const set = () => editor.Canvas.getFrameEl()?.setAttribute('title', 'Email canvas')
+    set()
+    editor.on('canvas:frame:load', set)
+    return () => {
+      editor.off('canvas:frame:load', set)
+    }
+  }, [editor])
+}
+
 /** CSS of the head's mj-style (responsive rules) and the dark-mode check, inside the canvas frame. */
 function useFrameStyles(editor: Editor | null, head: string, dark: boolean) {
   useEffect(() => {
@@ -646,6 +659,7 @@ export function CanvasArea({
   const zoom = useZoom(ed, stage, c.device)
   const tick = useCanvasTick(ed, host)
   useZoomHeight(ed, zoom, tick, c.device, host)
+  useFrameTitle(ed)
   useFrameStyles(ed, c.head, c.darkCanvas && c.device === 'mobile')
   const frameWidth = parseInt(DEVICES[c.device].width, 10) * zoom
   const setContainer = useCallback(
@@ -658,7 +672,7 @@ export function CanvasArea({
   if (c.isEmpty) {
     return (
       <>
-        <div className="cmp-tools" style={{ opacity: 0.55 }} aria-hidden="true">
+        <div className="cmp-tools" style={{ opacity: 0.55 }} aria-hidden="true" inert>
           <DeviceSeg dim />
           <ViewSeg dim />
         </div>
@@ -673,11 +687,17 @@ export function CanvasArea({
         <div className="cmp-stage" ref={setStage}>
           <StateCards saved={savedCard} onCloseSaved={onCloseSaved} onReview={onReview} />
           <div ref={setHost} className="relative">
-            <div ref={setContainer} aria-label={`Email canvas, ${c.device === 'mobile' ? 'mobile 375 px' : 'desktop 600 px'}`} />
+            <div ref={setContainer} role="region" aria-label={`Email canvas, ${c.device === 'mobile' ? 'mobile 375 px' : 'desktop 600 px'}`} />
             {ed ? null : (
-              <div className="mx-auto flex items-center justify-center gap-3 bg-surface" style={{ width: frameWidth, minHeight: 320, boxShadow: '0 1px 3px rgba(11,18,32,.12)' }} aria-busy="true">
-                <span className="spin" style={{ width: 24, height: 24 }} />
-                <span className="font-semibold">Opening the editor…</span>
+              // ComposerStates: "Compiling Weekly Digest #142 from MJML · Version 15 · 212 lines".
+              <div className="mx-auto flex items-center justify-center gap-3 bg-surface" style={{ width: frameWidth, minHeight: 320, boxShadow: '0 1px 3px rgba(11,18,32,.12)' }} aria-busy="true" role="status">
+                <span className="spin" style={{ width: 24, height: 24 }} aria-hidden="true" />
+                <div className="flex flex-col">
+                  <span className="font-semibold">Compiling {c.name || 'the campaign'} from MJML</span>
+                  <span className="k">
+                    Version {c.campaign.version} · {count(c.campaign.mjml.split('\n').length)} lines · usually under a second
+                  </span>
+                </div>
               </div>
             )}
             <WarningOverlays host={host} tick={tick} />

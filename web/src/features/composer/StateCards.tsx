@@ -8,7 +8,8 @@ function Card({ tone, badge, title, children, actions }: { tone: 'bad' | 'warn' 
   const border = tone === 'bad' ? '#FCA5A5' : tone === 'warn' ? '#FCD34D' : '#86EFAC'
   return (
     <div role={tone === 'ok' ? 'status' : 'alert'} className="card flex flex-col" style={{ padding: '16px 18px', gap: 10, borderColor: border }}>
-      <div className="flex flex-wrap items-center gap-2.5">
+      {/* As on ComposerStates: a long title breaks beside the badge; phones wrap the row. */}
+      <div className="flex items-center gap-2.5 max-md:flex-wrap">
         <Badge tone={tone} dot>
           {badge}
         </Badge>
@@ -122,7 +123,7 @@ export function StateCards({ saved, onCloseSaved, onReview }: { saved: { version
           </>
         }
       >
-        {saved.template ? `Saved as a reusable template too: “${saved.template}” is now in Templates.` : 'Every version stays in the history, so you can restore any of them.'}
+        {saved.template ? `Saved as a reusable template too: "${saved.template}" is now in Templates.` : 'Every version stays in the history, so you can restore any of them.'}
       </Card>,
     )
   }

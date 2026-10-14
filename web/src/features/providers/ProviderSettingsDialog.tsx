@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { $api, ApiError, errorMessage } from '@/api/client'
+import { $api, errorMessage } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
@@ -11,6 +11,7 @@ import { shortDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import type { ProviderCard } from './common'
 import { useRefreshProviders } from './ProviderIncidents'
+import { RemoveProviderDialog } from './RemoveProviderDialog'
 
 type Model = ProviderCard['cost']['basis']
 
@@ -69,18 +70,6 @@ export function ProviderSettingsDialog({
     },
     onError: (e) => setErrors({ credentials: errorMessage(e) }),
   })
-  const disconnect = $api.useMutation('delete', '/api/v1/workspaces/{workspace}/providers/{providerId}', {
-    onSuccess: () => {
-      void refresh()
-      setConfirmDisconnect(false)
-      onOpenChange(false)
-      toast({ kind: 'deleted', title: `${card.name} disconnected`, detail: 'Its credentials were deleted.' })
-    },
-    onError: (e) => {
-      setConfirmDisconnect(false)
-      setErrors({ form: e instanceof ApiError && e.status === 409 ? e.message : errorMessage(e) })
-    },
-  })
 
   const submit = () => {
     const next: Record<string, string> = {}
@@ -125,7 +114,7 @@ export function ProviderSettingsDialog({
         footer={
           <>
             <Button variant="danger" className="mr-auto max-md:mr-0" disabledReason={reason} onClick={() => setConfirmDisconnect(true)}>
-              Disconnect
+              Remove provider
             </Button>
             <Button onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button variant="primary" disabledReason={reason} loading={save.isPending} onClick={submit}>
@@ -226,22 +215,18 @@ export function ProviderSettingsDialog({
           </section>
         </div>
       </Dialog>
-      <Dialog
-        open={confirmDisconnect}
-        onOpenChange={setConfirmDisconnect}
-        dismissible={false}
-        size="sm"
-        title={`Disconnect ${card.name}?`}
-        description={`ReputeCast deletes its credentials and stops checking it. Routing must not use ${card.name} any more: move its streams to another provider first. Past events and reports stay.`}
-        footer={
-          <>
-            <Button onClick={() => setConfirmDisconnect(false)}>Keep connected</Button>
-            <Button variant="danger-primary" loading={disconnect.isPending} onClick={() => disconnect.mutate({ params: { path } })}>
-              Disconnect
-            </Button>
-          </>
-        }
-      />
+      {confirmDisconnect ? (
+        <RemoveProviderDialog
+          providerId={card.id}
+          name={card.name}
+          open
+          onOpenChange={setConfirmDisconnect}
+          onRemoved={() => {
+            setConfirmDisconnect(false)
+            onOpenChange(false)
+          }}
+        />
+      ) : null}
     </>
   )
 }

@@ -198,12 +198,12 @@ export function RightPanel() {
   const tab = c.rightTab === 'deliverability' && !issues.length && !(c.checks?.issues ?? []).some((i) => i.severity === 'warn' || i.severity === 'block') ? 'style' : c.rightTab
   if (c.isEmpty) {
     return (
-      <aside className="cpanel right dim" aria-hidden="true">
+      <aside className="cpanel right dim" aria-hidden="true" inert>
         <div className="ptab">
-          <button type="button" className="on" tabIndex={-1}>
+          <button type="button" className="on" disabled>
             Style
           </button>
-          <button type="button" tabIndex={-1}>
+          <button type="button" disabled>
             Settings
           </button>
         </div>

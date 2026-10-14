@@ -42,7 +42,8 @@ const darkTheme = EditorView.theme(
   {
     '&': { color: '#D1D5DB', backgroundColor: 'transparent', height: '100%' },
     '.cm-content': { caretColor: '#F9FAFB', padding: 0 },
-    '.cm-gutters': { backgroundColor: 'transparent', color: '#6B7280', border: 0 },
+    // The board's dark pane draws line numbers lighter than the light one (.code .ln), 6.9:1.
+    '.cm-gutters': { backgroundColor: 'transparent', color: '#9CA3AF', border: 0 },
     '.cm-lineNumbers .cm-gutterElement': { minWidth: '28px', padding: '0 16px 0 0', textAlign: 'right' },
     '.cm-activeLine': { backgroundColor: 'rgba(255,255,255,.04)' },
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': { backgroundColor: 'rgba(147,197,253,.28) !important' },
@@ -76,7 +77,9 @@ function Code({ value, onChange, readOnly, dark, label, onCursor, jumpTo }: { va
       minimalSetup,
       lineNumbers(),
       dark ? darkTheme : lightTheme,
-      EditorView.contentAttributes.of({ 'aria-label': label }),
+      // A tab stop on the content in every mode: read-only content isn't
+      // contenteditable, and the scroller itself is tabindex -1.
+      EditorView.contentAttributes.of({ 'aria-label': label, tabindex: '0' }),
       EditorView.updateListener.of((u) => {
         if (u.docChanged) cb.current.onChange?.(u.state.doc.toString())
         if (u.selectionSet || u.docChanged) {

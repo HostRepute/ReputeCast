@@ -1,7 +1,7 @@
 import type { Schemas } from '@/api/client'
 import { setDisplayTimeZone } from '@/lib/format'
 import { bouncePct, complaintPct, limitLabel, limitPct, perSec, rateColor, statusBadge } from './common'
-import { bulkIssues, costText, fallbackText, providerOption, sameDraft, setPrimary, setShare, stepText, toDraft, toInput, type RoutingConfig } from './routing-model'
+import { bulkIssues, costText, fallbackText, providerOption, providerUses, sameDraft, setPrimary, setShare, stepText, toDraft, toInput, withoutProvider, type RoutingConfig } from './routing-model'
 import { audienceText, rampHeight, tiersText, visibleDays, type WarmupDay } from './warmup-model'
 
 const ses = 'ses-0000-0000-0000-000000000001'
@@ -205,5 +205,29 @@ describe('warm-up model', () => {
     )
     expect(audienceText(day(12, 'planned', { tiers: ['active', 'cooling', 'at_risk'], share: 15, shareChange: true }))).toBe('All tiers except Sunset · share rises to 15%')
     expect(audienceText(day(21, 'planned', { tiers: ['active', 'cooling', 'at_risk', 'sunset'], share: 40, eligible: true }))).toBe('All · share 40%, eligible as failover')
+  })
+})
+
+describe('removing a provider', () => {
+  it('lists where a provider is used, primaries first', () => {
+    expect(providerUses(toDraft(cfg), postmark)).toEqual([
+      { kind: 'primary', stream: 'system' },
+      { kind: 'failover', stream: 'automation' },
+    ])
+    expect(providerUses(toDraft(cfg), postal)).toEqual([{ kind: 'share', stream: 'broadcast', weight: 10 }])
+  })
+
+  it('gives a primary role to the replacement and drops a fallback that became the primary', () => {
+    const d = toDraft(cfg)
+    expect(withoutProvider(d.system, postmark, ses, '')).toMatchObject({ splits: [{ providerId: ses, weight: 100 }], fallback: '' })
+    expect(withoutProvider(d.automation, postmark, '', postal)).toMatchObject({ splits: [{ providerId: ses, weight: 100 }], fallback: postal })
+  })
+
+  it('returns a share to the primary and removes conditions that pointed at the provider', () => {
+    const d = toDraft(cfg)
+    d.broadcast.conditions = [{ field: 'mailbox_provider', values: ['outlook'], providerId: postal, note: '' }]
+    expect(withoutProvider(d.broadcast, postal, '', '')).toMatchObject({ splits: [{ providerId: ses, weight: 100 }], conditions: [] })
+    // A replacement already in the split takes the removed primary's weight too.
+    expect(withoutProvider(d.broadcast, ses, postal, '').splits).toEqual([{ providerId: postal, weight: 100 }])
   })
 })

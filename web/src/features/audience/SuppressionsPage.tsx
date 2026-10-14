@@ -234,7 +234,7 @@ function Filters({ search, d, onChange }: { search: SuppressionsSearch; d: List;
       <input
         id="supp-q"
         type="search"
-        className={`in w-[260px] ${phone}`}
+        className="in w-[260px] max-md:min-w-full"
         placeholder="Search address or domain"
         value={q}
         onChange={(e) => setQ(e.target.value)}

@@ -314,15 +314,16 @@ export function LeftPanel() {
     // The gallery is showing; the panel is a preview of what comes next.
     const defs = blockDefs(c.context.postalAddress)
     return (
-      <aside className="cpanel left dim" aria-hidden="true">
+      // A preview of what comes next, inactive until a start is picked.
+      <aside className="cpanel left dim" aria-hidden="true" inert>
         <div className="ptab">
-          <button type="button" className="on" tabIndex={-1}>
+          <button type="button" className="on" disabled>
             Blocks
           </button>
-          <button type="button" tabIndex={-1}>
+          <button type="button" disabled>
             Layers
           </button>
-          <button type="button" tabIndex={-1}>
+          <button type="button" disabled>
             Templates
           </button>
         </div>

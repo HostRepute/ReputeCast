@@ -88,7 +88,8 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
     <>
       <section className="card flex flex-col">
         <TableScroll label="Consent per source status">
-          <table className="tbl">
+          {/* The board lets the status badges wrap on phones ("archived with "abuse" complaint"). */}
+          <table className="tbl phone-wrap">
             <thead>
               <tr>
                 <th scope="col">{d.sourceName} status</th>
