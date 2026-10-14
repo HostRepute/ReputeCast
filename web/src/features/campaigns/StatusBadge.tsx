@@ -25,9 +25,10 @@ export function CampaignStatusBadge({ status, blocked }: { status: Status; block
         </Badge>
       )
     case 'approval':
+      // ApprovalReview's word for a campaign that waits for an approver.
       return (
         <Badge tone="warn" dot>
-          Waiting for approval
+          Pending approval
         </Badge>
       )
     case 'approved':
