@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -327,8 +328,28 @@ func (e *Engine) autoPause(ctx context.Context, rs *runState, ts tallies, tr tri
 		}); err != nil {
 			return err
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.auto_pause", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Reason: headline, Actor: systemActor, Metadata: map[string]any{"scope": tr.scope, "mailbox_provider": tr.mailbox, "metric": tr.metric, "value": value, "limit": limit, "held": held}})
+		data := campaignData(c.ID, c.Name, "paused_by", "auto_pause", "reason", headline, "scope", tr.scope, "metric", tr.metric, "value", value, "limit", limit, "held", held)
+		switch tr.scope {
+		case "mailbox_provider":
+			data["mailbox_provider"] = tr.mailbox
+		case "route":
+			data["provider_id"], data["provider"] = tr.provider.String(), rs.routes[tr.provider].shortName()
+		}
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.paused", data); err != nil {
+			return err
+		}
+		// As the audit log shows it: "complaint rate 0.18% over limit 0.10%
+		// · 7 of 3,980 · 2,522 recipients held" on "October Product Update ·
+		// Outlook route".
+		target := c.Name
+		if tr.scope != "campaign" {
+			target += " · " + scopeName + " route"
+		}
+		summary := fmt.Sprintf("%s %s over limit %s · %s of %s · %s recipients held", metricName(tr.metric), fmtRate(tr.value), fmtRate(tr.limit),
+			countText(tr.events), countText(tr.base), countText(held))
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.auto_paused", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+			Reason: headline, Actor: systemActor, Metadata: map[string]any{"scope": tr.scope, "mailbox_provider": tr.mailbox, "metric": tr.metric, "value": value, "limit": limit, "held": held,
+				"summary": summary, "target": target, "source": "guard", "via": "threshold"}})
 	})
 	return err
 }
@@ -344,8 +365,13 @@ func liveLink(slug string, id uuid.UUID) string {
 	return "/w/" + slug + "/campaigns/" + id.String() + "/live"
 }
 
+// metricName names a threshold's metric ("complaint rate").
+func metricName(metric string) string {
+	return map[string]string{"bounce": "bounce rate", "complaint": "complaint rate", "deferral": "deferral rate", "api_errors": "API error rate"}[metric]
+}
+
 func thresholdHeadline(tr trip, scopeName string) string {
-	metric := map[string]string{"bounce": "bounce rate", "complaint": "complaint rate", "deferral": "deferral rate"}[tr.metric]
+	metric := metricName(tr.metric)
 	subject := scopeName + " " + metric
 	if tr.scope == "campaign" {
 		subject = strings.ToUpper(metric[:1]) + metric[1:]
@@ -537,8 +563,14 @@ func (e *Engine) holdRoute(ctx context.Context, rs *runState, r *runRoute, reaso
 		}); err != nil {
 			return err
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.route_hold", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Reason: headline, Actor: systemActor, Metadata: map[string]any{"provider": r.provider.Name, "reason": reason, "held": remaining, "policy": detail.Policy}})
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.paused", campaignData(c.ID, c.Name, "paused_by", "provider_outage", "reason", headline, "scope", "route",
+			"provider_id", pid.String(), "provider", r.provider.Name, "held", remaining)); err != nil {
+			return err
+		}
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.share_held", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+			Reason: headline, Actor: systemActor, Metadata: map[string]any{"provider": r.provider.Name, "reason": reason, "held": remaining, "policy": detail.Policy,
+				"summary": fmt.Sprintf("%s · %s recipients held, decision requested", headline, countText(remaining)), "target": c.Name + " · " + short + " share",
+				"source": "guard", "via": "provider outage"}})
 	})
 	return err
 }
@@ -577,8 +609,10 @@ func (e *Engine) autoMove(ctx context.Context, rs *runState, r *runRoute, target
 			Title: fmt.Sprintf("Broadcasts: %q %s share moved to %s, %s recipients.", c.Name, r.shortName(), state.Short(target.Name, target.Adapter), countText(moved)), CampaignID: &cid, ProviderID: &pid}); err != nil {
 			return err
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.share_move", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Actor: systemActor, Metadata: map[string]any{"from": r.provider.Name, "to": target.Name, "moved": moved, "automatic": true, "policy": string(policy)}})
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.share_moved", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+			Actor: systemActor, Metadata: map[string]any{"from": r.provider.Name, "to": target.Name, "moved": moved, "automatic": true, "policy": string(policy),
+				"source": "guard", "via": "failover",
+				"summary": fmt.Sprintf("%s recipients moved from %s to %s automatically (failover policy)", countText(moved), r.provider.Name, target.Name)}})
 	})
 }
 
@@ -746,7 +780,7 @@ func (e *Engine) decideAB(ctx context.Context, c store.SendingCampaignContextRow
 		if audit.PrincipalFrom(ctx) != nil {
 			actor = nil
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.ab_winner", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.ab_winner_picked", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
 			Actor: actor, After: map[string]any{"winner": winner, "rates": rates, "released": released}})
 	})
 	if err == nil {
@@ -811,8 +845,48 @@ func (e *Engine) finish(ctx context.Context, rs *runState, ts tallies, now time.
 				return err
 			}
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.send_finish", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Actor: systemActor, Before: map[string]any{"status": "sending"}, After: map[string]any{"status": status, "sent": t.sent, "delivered": t.delivered, "bounced": t.bounced(), "complained": t.complained}})
+		// As the audit log shows it: "47,980 sent · SES 43,182 · Postal 4,798
+		// · 99.1% delivered · $4.32".
+		parts := []string{countText(t.sent) + " sent"}
+		type share struct {
+			name string
+			sent int64
+		}
+		shares := []share{}
+		for pid, pt := range ts.provider {
+			if pt.sent > 0 {
+				shares = append(shares, share{rs.routes[pid].shortName(), pt.sent})
+			}
+		}
+		sort.Slice(shares, func(i, j int) bool {
+			if shares[i].sent != shares[j].sent {
+				return shares[i].sent > shares[j].sent
+			}
+			return shares[i].name < shares[j].name
+		})
+		for _, sh := range shares {
+			parts = append(parts, sh.name+" "+countText(sh.sent))
+		}
+		parts = append(parts, fmtPct(rate(t.delivered, t.sent))+" delivered")
+		var micros int64
+		routes, err := q.SendingRoutes(ctx, c.ID)
+		if err != nil {
+			return err
+		}
+		for _, r := range routes {
+			micros += r.CostMicros
+		}
+		cost := round2(float64(micros) / 1e6)
+		if micros > 0 {
+			parts = append(parts, fmt.Sprintf("$%.2f", cost))
+		}
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.completed", campaignData(c.ID, c.Name, "status", status, "sent", t.sent, "delivered", t.delivered,
+			"bounced", t.bounced(), "complained", t.complained, "cost", cost, "duration_seconds", int64(dur/time.Second))); err != nil {
+			return err
+		}
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.completed", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+			Actor: systemActor, Before: map[string]any{"status": "sending"}, After: map[string]any{"status": status, "sent": t.sent, "delivered": t.delivered, "bounced": t.bounced(), "complained": t.complained},
+			Metadata: map[string]any{"summary": strings.Join(parts, " · "), "source": "send worker"}})
 	})
 	if err != nil {
 		return err

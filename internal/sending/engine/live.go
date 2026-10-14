@@ -261,9 +261,11 @@ type LiveExcluded struct {
 	Complained   int64 `json:"complained"`
 	Paused       int64 `json:"paused"`
 	Role         int64 `json:"role"`
-	Sunset       int64 `json:"sunset"`
-	Excluded     int64 `json:"excluded"`
-	Tiers        int64 `json:"tiers"`
+	// Duplicates are aliases of another contact of the audience (the same mailbox).
+	Duplicates int64 `json:"duplicates"`
+	Sunset     int64 `json:"sunset"`
+	Excluded   int64 `json:"excluded"`
+	Tiers      int64 `json:"tiers"`
 }
 
 // LiveCostByRoute is the cost so far and planned.

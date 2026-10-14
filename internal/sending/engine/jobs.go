@@ -80,8 +80,9 @@ func (w *StartWorker) Work(ctx context.Context, job *river.Job[StartArgs]) error
 	if c.Status != "scheduled" || c.ScheduledAt == nil || c.ScheduledAt.Sub(job.Args.At).Abs() > time.Second {
 		return nil
 	}
-	by := job.Args.By
-	err = w.E.StartWith(ctx, c.ID, StartOptions{By: by, Now: true})
+	// Blocked at its time: the send is held, and Review & send's minute job
+	// rechecks it and starts it once a recheck passes.
+	err = w.E.StartWith(ctx, c.ID, StartOptions{By: job.Args.By, Now: true, Scheduled: true})
 	if errors.Is(err, sending.ErrNotReady) || errors.Is(err, ErrState) || errors.Is(err, ErrNotFound) {
 		return nil
 	}
@@ -368,7 +369,10 @@ func (e *Engine) resumeDecided(ctx context.Context, id uuid.UUID, now time.Time)
 			return err
 		}
 		resumed = true
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.send_resume", TargetType: "campaign", TargetID: id.String(), TargetName: c.Name,
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.resumed", campaignData(id, c.Name, "resumed_by", "System", "scope", "campaign")); err != nil {
+			return err
+		}
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.resumed", TargetType: "campaign", TargetID: id.String(), TargetName: c.Name,
 			Reason: "The decision on the held share was taken; nothing holds the send any more.", Actor: systemActor,
 			Before: map[string]any{"status": "paused"}, After: map[string]any{"status": "sending"}})
 	})

@@ -108,7 +108,7 @@ function snapshot(s: Partial<Snapshot>): Snapshot {
     lastEventAt: T('09:21:44'),
     failovers: [],
     sharedStreams: [],
-    excluded: { suppressed: 0, unsubscribed: 0, bounced: 0, complained: 0, paused: 0, role: 0, sunset: 0, excluded: 0, tiers: 0 },
+    excluded: { suppressed: 0, unsubscribed: 0, bounced: 0, complained: 0, paused: 0, role: 0, duplicates: 0, sunset: 0, excluded: 0, tiers: 0 },
     error: '',
     resumed: false,
     cost: { total: 1.76, planned: 2.84 },

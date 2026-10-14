@@ -139,15 +139,32 @@ func (e *Engine) ResumeScope(ctx context.Context, campaignID, by uuid.UUID, in R
 			}
 		}
 		scope := in.Mailbox
+		data := campaignData(c.ID, c.Name, "resumed_by", firstNonEmpty(name, "System"), "scope", "mailbox_provider", "mailbox_provider", in.Mailbox)
 		if in.ProviderID != nil {
 			scope = in.ProviderID.String()
+			data["scope"], data["provider_id"] = "route", scope
+			delete(data, "mailbox_provider")
 		}
-		action := "campaign.send_resume"
-		if resolution == "resumed_with_changes" {
-			action = "campaign.send_resume_with_changes"
+		withChanges := resolution == "resumed_with_changes"
+		if withChanges {
+			data["with_changes"], data["excluded"] = true, out.Excluded
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: action, TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Actor: e.actorFor(ctx, ref, name), After: map[string]any{"scope": scope, "excluded": out.Excluded, "rate": out.Rate, "automation": out.Automation}})
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.resumed", data); err != nil {
+			return err
+		}
+		if !records(ctx) {
+			return nil
+		}
+		meta := map[string]any{}
+		if withChanges {
+			meta["summary"] = fmt.Sprintf("%s resumed with changes · %s left out", mailboxName(in.Mailbox), countText(out.Excluded))
+			if in.ProviderID != nil {
+				meta["summary"] = fmt.Sprintf("Resumed with changes · %s left out", countText(out.Excluded))
+			}
+		}
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.resumed", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+			Actor: e.actorFor(ctx, ref, name), After: map[string]any{"scope": scope, "with_changes": withChanges, "excluded": out.Excluded, "rate": out.Rate, "automation": out.Automation},
+			Metadata: meta})
 	})
 	if err == nil {
 		e.kick(ctx, campaignID)
@@ -294,8 +311,11 @@ func (e *Engine) CancelShare(ctx context.Context, campaignID, by uuid.UUID, mail
 				return err
 			}
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.share_cancel", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Actor: e.actorFor(ctx, ref, name), After: map[string]any{"scope": scope, "not_sent": n}})
+		if !records(ctx) {
+			return nil
+		}
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.share_cancelled", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+			Actor: e.actorFor(ctx, ref, name), After: map[string]any{"scope": scope, "not_sent": n}, Metadata: map[string]any{"summary": p.Reason + " · " + countText(n) + " not sent"}})
 	})
 	if err == nil {
 		e.kick(ctx, campaignID)
@@ -350,8 +370,16 @@ func (e *Engine) MoveShare(ctx context.Context, campaignID, by, from, to uuid.UU
 				return err
 			}
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.share_move", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Actor: e.actorFor(ctx, ref, name), After: map[string]any{"from": fromP.Name, "to": target.Name, "moved": moved}})
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.resumed", campaignData(c.ID, c.Name, "resumed_by", firstNonEmpty(name, "System"), "scope", "route",
+			"provider_id", from.String(), "provider", fromP.Name, "moved_to", target.Name, "moved", moved)); err != nil {
+			return err
+		}
+		if !records(ctx) {
+			return nil
+		}
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.share_moved", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+			Actor: e.actorFor(ctx, ref, name), After: map[string]any{"from": fromP.Name, "to": target.Name, "moved": moved},
+			Metadata: map[string]any{"summary": fmt.Sprintf("%s recipients moved from %s to %s", countText(moved), fromP.Name, target.Name)}})
 	})
 	if err == nil {
 		e.resetCalls(routeKey{campaignID, from})
@@ -430,8 +458,20 @@ func (e *Engine) RetryRoute(ctx context.Context, campaignID, by, provider uuid.U
 				return err
 			}
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.route_retry", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Actor: e.actorFor(ctx, ref, name), After: map[string]any{"provider": provider.String(), "until": until}})
+		pname := ""
+		if p, err := q.ProvGetAny(ctx, provider); err == nil {
+			pname = p.Name
+		}
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.resumed", campaignData(c.ID, c.Name, "resumed_by", firstNonEmpty(name, "System"), "scope", "route",
+			"provider_id", provider.String(), "provider", pname, "decision", "retry")); err != nil {
+			return err
+		}
+		if !records(ctx) {
+			return nil
+		}
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.share_retried", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+			Actor: e.actorFor(ctx, ref, name), After: map[string]any{"provider": provider.String(), "until": until},
+			Metadata: map[string]any{"summary": "Retrying " + firstNonEmpty(pname, "the provider") + " every minute for 15 minutes"}})
 	})
 	if err == nil {
 		e.resetCalls(routeKey{campaignID, provider})

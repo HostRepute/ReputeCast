@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -121,12 +120,11 @@ func (e *Engine) DemoSend(ctx context.Context, o DemoSendOptions) (DemoSendResul
 		return DemoSendResult{}, errors.New("the demo team (Sofia Rossi, Marcus Chen) is missing: run `reputecast seed` first")
 	}
 	now := e.now()
+	// The send records Marcus Chen's approval as the boards show it. The
+	// approval requests are Review & send's: the demo seeds Weekly Digest
+	// #142's, and the send-time recheck checks it still covers the
+	// campaign.
 	approvedAt := designTime(now, 2, 16, 20)
-	if _, err := e.Q.SendingApproval(ctx, &c.ID); errors.Is(err, pgx.ErrNoRows) {
-		if err := e.recordDemoApproval(ctx, ws.ID, c.ID, sofia, marcus, approvedAt); err != nil {
-			return DemoSendResult{}, err
-		}
-	}
 	start := now.Add(-o.Elapsed)
 	// The command clears an earlier send, builds the audience and
 	// fast-forwards the send itself, on the virtual clock: it holds the
@@ -215,21 +213,6 @@ func designTime(now time.Time, daysAgo, hour, minute int) time.Time {
 	}
 	n := now.In(loc).Add(-11 * time.Hour)
 	return time.Date(n.Year(), n.Month(), n.Day(), hour, minute, 0, 0, loc).AddDate(0, 0, -daysAgo)
-}
-
-// recordDemoApproval records the approval the boards show (Marcus Chen
-// approving Sofia Rossi's request) when the approvals domain has none.
-func (e *Engine) recordDemoApproval(ctx context.Context, ws, campaign, sofia, marcus uuid.UUID, at time.Time) error {
-	return db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
-		id := newID()
-		snap, _ := json.Marshal(map[string]any{"source": "demo send"})
-		if _, err := tx.Exec(ctx, `INSERT INTO approval_requests (id, workspace_id, subject_type, campaign_id, requested_by, requested_at, status, matched_rules, approvals_required, snapshot, decided_at)
-			VALUES ($1, $2, 'campaign', $3, $4, $5, 'approved', ARRAY['audience_size','warming_provider'], 1, $6, $7)`, id, ws, campaign, sofia, at.Add(-40*time.Minute), snap, at); err != nil {
-			return err
-		}
-		_, err := tx.Exec(ctx, `INSERT INTO approval_decisions (id, request_id, approver_id, decision, comment, created_at) VALUES ($1, $2, $3, 'approve', '', $4)`, newID(), id, marcus, at)
-		return err
-	})
 }
 
 // resetDemo clears an earlier demo send of a campaign so it can start again.

@@ -16,6 +16,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -36,6 +37,16 @@ type audienceDef struct {
 	ExcludeLists    []uuid.UUID
 	ExcludeSegments []uuid.UUID
 	ExcludeTiers    []string
+	// IncludeSunset overrides the sunset policy for this campaign: contacts
+	// whose Broadcasts the policy stopped receive it anyway (Review & send),
+	// unless the sunset tier is excluded.
+	IncludeSunset bool
+}
+
+// sendsToStopped reports whether contacts the sunset policy stopped receive
+// the campaign.
+func (d audienceDef) sendsToStopped() bool {
+	return d.IncludeSunset && !slices.Contains(d.ExcludeTiers, "sunset")
 }
 
 func parseAudience(raw json.RawMessage) audienceDef {
@@ -48,6 +59,8 @@ func parseAudience(raw json.RawMessage) audienceDef {
 		ExcludeSegments2 []string `json:"exclude_segments"`
 		ExcludeTiers     []string `json:"excludeTiers"`
 		ExcludeTiers2    []string `json:"exclude_tiers"`
+		IncludeSunset    bool     `json:"include_sunset"`
+		IncludeSunset2   bool     `json:"includeSunset"`
 	}
 	_ = json.Unmarshal(raw, &in)
 	ids := func(parts ...[]string) []uuid.UUID {
@@ -63,7 +76,7 @@ func parseAudience(raw json.RawMessage) audienceDef {
 	}
 	tiers := append(append([]string{}, in.ExcludeTiers...), in.ExcludeTiers2...)
 	return audienceDef{Lists: ids(in.Lists), Segments: ids(in.Segments), ExcludeLists: ids(in.ExcludeLists, in.ExcludeLists2),
-		ExcludeSegments: ids(in.ExcludeSegments, in.ExcludeSegments2), ExcludeTiers: tiers}
+		ExcludeSegments: ids(in.ExcludeSegments, in.ExcludeSegments2), ExcludeTiers: tiers, IncludeSunset: in.IncludeSunset || in.IncludeSunset2}
 }
 
 // Excluded counts the contacts of the audience who don't receive the send.
@@ -74,6 +87,7 @@ type Excluded struct {
 	Complained   int64 `json:"complained"`
 	Paused       int64 `json:"paused"`
 	Role         int64 `json:"role"`
+	Duplicates   int64 `json:"duplicates"`
 	Sunset       int64 `json:"sunset"`
 	Excluded     int64 `json:"excluded"`
 	Tiers        int64 `json:"tiers"`
@@ -218,6 +232,13 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 	if snd.PrepareCursor != nil {
 		cursor = *snd.PrepareCursor
 	}
+	// Aliases reaching a mailbox that another contact of the audience reaches
+	// already (computed again when a stopped build continues: the pages
+	// already built counted theirs).
+	dups, err := e.duplicates(ctx, cc, def)
+	if err != nil {
+		return err
+	}
 	sendAt := sendTimes(ab, loc, now)
 	var sc schedule
 	_ = json.Unmarshal(cc.Schedule, &sc)
@@ -239,7 +260,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			hours = e.usualOpenHours(ctx, rows, now)
 		}
 		for _, c := range rows {
-			if why := eligibility(c, def); why != "" {
+			if why := eligibility(c, def, dups[c.ID]); why != "" {
 				excluded.add(why)
 				continue
 			}
@@ -447,16 +468,26 @@ func (e *Engine) fail(ctx context.Context, cc store.SendingCampaignContextRow, w
 		if err := q.SendingSetPhase(ctx, store.SendingSetPhaseParams{CampaignID: cc.ID, Phase: "failed", Error: why, FinishedAt: &now, At: now}); err != nil {
 			return err
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &cc.WorkspaceID, Action: "campaign.send_fail", TargetType: "campaign", TargetID: cc.ID.String(), TargetName: cc.Name,
+		if err := emit(ctx, tx, cc.WorkspaceID, "campaign.completed", campaignData(cc.ID, cc.Name, "status", "failed", "reason", why)); err != nil {
+			return err
+		}
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &cc.WorkspaceID, Action: "campaign.send_failed", TargetType: "campaign", TargetID: cc.ID.String(), TargetName: cc.Name,
 			Result: audit.Failed, Reason: why, Actor: systemActor})
 	})
 }
 
-// eligibility says why a contact doesn't receive the campaign ("" = it does).
-func eligibility(c store.SendingAudiencePageRow, def audienceDef) string {
+// eligibility says why a contact doesn't receive the campaign ("" = it
+// does). The exclusions are those of Send Readiness's audience count, in
+// its order (suppressed, role, duplicate, stopped by the sunset policy,
+// excluded tier), so the count confirmed on Review & send is what goes out;
+// contacts who paused their emails in the preference center are left out
+// as well. dup marks an alias of an earlier contact (duplicates).
+func eligibility(c store.SendingAudiencePageRow, def audienceDef, dup bool) string {
 	switch {
 	case c.Gone:
 		return "gone" // erased, or not this workspace's: not counted anywhere
+	case c.ExcludedList, c.ExcludedSegment:
+		return "excluded"
 	case c.Status == "unsubscribed":
 		return "unsubscribed"
 	case c.Status == "bounced":
@@ -465,14 +496,14 @@ func eligibility(c store.SendingAudiencePageRow, def audienceDef) string {
 		return "complained"
 	case c.Status != "active", c.Suppressed:
 		return "suppressed"
+	case c.RoleAddress || emailaddr.IsRole(c.Email):
+		return "role"
+	case dup:
+		return "duplicate"
 	case c.Paused:
 		return "paused"
-	case c.RoleAddress:
-		return "role"
-	case c.SunsetStopped:
+	case c.SunsetStopped && !def.sendsToStopped():
 		return "sunset"
-	case c.ExcludedList, c.ExcludedSegment:
-		return "excluded"
 	case slices.Contains(def.ExcludeTiers, c.Tier):
 		return "tiers"
 	}
@@ -493,6 +524,8 @@ func (x *Excluded) add(why string) {
 		x.Paused++
 	case "role":
 		x.Role++
+	case "duplicate":
+		x.Duplicates++
 	case "sunset":
 		x.Sunset++
 	case "excluded":
@@ -500,6 +533,55 @@ func (x *Excluded) add(why string) {
 	case "tiers":
 		x.Tiers++
 	}
+}
+
+// duplicates finds the audience's aliases: a contact whose address reaches
+// the same mailbox as an older contact of the audience (plus-tags, dots in
+// Gmail addresses) is left out, as Send Readiness counts duplicates.
+// Suppressed and role addresses don't count: they never receive the send.
+func (e *Engine) duplicates(ctx context.Context, cc store.SendingCampaignContextRow, def audienceDef) (map[uuid.UUID]bool, error) {
+	rows, err := e.Q.SendingAudienceAddresses(ctx, store.SendingAudienceAddressesParams{
+		Lists: def.Lists, CampaignID: cc.ID, WorkspaceID: cc.WorkspaceID, ExcludeLists: def.ExcludeLists,
+	})
+	if err != nil {
+		return nil, err
+	}
+	seen := make(map[string]bool, len(rows))
+	dups := map[uuid.UUID]bool{}
+	for _, r := range rows {
+		if r.RoleAddress || emailaddr.IsRole(r.Email) {
+			continue
+		}
+		k := mailboxKey(r.Email)
+		if seen[k] {
+			dups[r.ID] = true
+			continue
+		}
+		seen[k] = true
+	}
+	return dups, nil
+}
+
+// mailboxKey folds the addresses that reach the same mailbox: plus-tags
+// anywhere, dots in Gmail addresses (the folding Send Readiness counts
+// duplicates with).
+func mailboxKey(email string) string {
+	e := strings.ToLower(strings.TrimSpace(email))
+	at := strings.LastIndexByte(e, '@')
+	if at < 0 {
+		return e
+	}
+	local, domain := e[:at], e[at+1:]
+	if i := strings.IndexByte(local, '+'); i > 0 {
+		local = local[:i]
+	}
+	if domain == "googlemail.com" {
+		domain = "gmail.com"
+	}
+	if domain == "gmail.com" {
+		local = strings.ReplaceAll(local, ".", "")
+	}
+	return local + "@" + domain
 }
 
 func abTestOf(raw json.RawMessage) *abTest {

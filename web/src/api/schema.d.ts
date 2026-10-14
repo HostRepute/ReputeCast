@@ -10589,6 +10589,8 @@ export interface components {
             /** Format: int64 */
             complained: number;
             /** Format: int64 */
+            duplicates: number;
+            /** Format: int64 */
             excluded: number;
             /** Format: int64 */
             paused: number;

@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/notify"
+	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -52,6 +53,9 @@ type StartOptions struct {
 	ApprovedAt *time.Time
 	// ScheduledBy is who scheduled it (defaults to who last edited it).
 	ScheduledBy *uuid.UUID
+	// Scheduled is the scheduled start at its time (the start job): the
+	// system starts it, on behalf of who scheduled it.
+	Scheduled bool
 }
 
 // schedule is campaigns.schedule.
@@ -65,6 +69,8 @@ var systemActor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
 
 // Start implements Starter: it schedules the send when the campaign is set
 // for a later time, and otherwise reruns Send Readiness and starts it.
+// When the recheck turns Blocked nothing is sent and the error wraps
+// sending.ErrNotReady; a scheduled send is also held (see hold).
 func (e *Engine) Start(ctx context.Context, campaignID, startedBy uuid.UUID) error {
 	return e.StartWith(ctx, campaignID, StartOptions{By: startedBy})
 }
@@ -98,10 +104,12 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 		return fmt.Errorf("send readiness recheck: %w", err)
 	}
 	if rc.Verdict == "blocked" {
-		if err := e.blocked(ctx, c, rc, now); err != nil {
-			return err
+		if c.Status == "scheduled" {
+			if err := e.hold(ctx, c, rc, now); err != nil {
+				return err
+			}
 		}
-		return sending.ErrNotReady
+		return fmt.Errorf("%w: %s", sending.ErrNotReady, blockReason(rc))
 	}
 	return db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -133,7 +141,15 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 				scheduledBy = c.CreatedBy
 			}
 		}
-		by, byName := e.actorRef(ctx, q, o.By)
+		// A scheduled send starts at its time, or once a held one passes its
+		// recheck (Review & send's minute job starts it with no one behind
+		// it): the system starts it on behalf of who scheduled it.
+		scheduled := o.Scheduled || (o.By == uuid.Nil && c.Status == "scheduled")
+		startBy := o.By
+		if startBy == uuid.Nil && scheduled && scheduledBy != nil {
+			startBy = *scheduledBy
+		}
+		by, byName := e.actorRef(ctx, q, startBy)
 		if err := q.SendingMarkStarted(ctx, store.SendingMarkStartedParams{ID: c.ID, At: now, StartedBy: by}); err != nil {
 			return err
 		}
@@ -149,12 +165,61 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 				return err
 			}
 		}
-		if err := e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.send_start", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "sending", "verdict": rc.Verdict}, Actor: e.actorFor(ctx, by, byName)}); err != nil {
+		// The recheck passed: a hold from an earlier one ends.
+		resolution, resolvedBy := "resumed", by
+		if scheduled {
+			resolution, resolvedBy = "auto_recovered", nil
+		}
+		if err := resolveHolds(ctx, q, c.ID, resolution, resolvedBy, now); err != nil {
+			return err
+		}
+		if records(ctx) {
+			actor, meta := e.actorFor(ctx, by, byName), map[string]any{"verdict": rc.Verdict}
+			if scheduled {
+				actor = systemActor
+				meta["scheduled_by"] = byName
+				meta["summary"] = "Scheduled send started · scheduled by " + firstNonEmpty(byName, "a member")
+				meta["source"], meta["via"] = "send worker", "schedule"
+			}
+			if err := e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.send_started", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+				Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "sending"}, Actor: actor, Metadata: meta}); err != nil {
+				return err
+			}
+		}
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.started", campaignData(c.ID, c.Name, "started_by", firstNonEmpty(byName, "System"),
+			"scheduled", scheduled, "started_at", now.UTC())); err != nil {
 			return err
 		}
 		return e.insertTx(ctx, tx, PrepareArgs{CampaignID: c.ID}, nil)
 	})
+}
+
+// blockReason is the first thing that blocks a send.
+func blockReason(rc sending.Recheck) string {
+	for _, b := range rc.Blocking {
+		if strings.TrimSpace(b) != "" {
+			return b
+		}
+	}
+	return "a check failed"
+}
+
+// resolveHolds ends a campaign's open holds (the send-time recheck turned
+// Blocked earlier).
+func resolveHolds(ctx context.Context, q *store.Queries, campaignID uuid.UUID, resolution string, by *uuid.UUID, now time.Time) error {
+	open, err := q.SendingOpenIncidents(ctx, campaignID)
+	if err != nil {
+		return err
+	}
+	for _, in := range open {
+		if in.Kind != "recheck_blocked" {
+			continue
+		}
+		if err := q.SendingResolveIncident(ctx, store.SendingResolveIncidentParams{ID: in.ID, At: &now, Resolution: resolution, ResolvedBy: by}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // workspaceOf finds a campaign's workspace (Start is called with ids only).
@@ -165,6 +230,9 @@ func (e *Engine) workspaceOf(ctx context.Context, id uuid.UUID) uuid.UUID {
 }
 
 // schedule records a later start and enqueues the job that starts it.
+// Review & send schedules through Start and records it (campaign.scheduled
+// in the audit log and as a webhook event); the engine records it only
+// when no request is behind it.
 func (e *Engine) schedule(ctx context.Context, c store.Campaign, at time.Time, o StartOptions) error {
 	return db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -172,9 +240,11 @@ func (e *Engine) schedule(ctx context.Context, c store.Campaign, at time.Time, o
 			return err
 		}
 		by, byName := e.actorRef(ctx, q, o.By)
-		if err := e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.send_schedule", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "scheduled", "at": at}, Actor: e.actorFor(ctx, by, byName)}); err != nil {
-			return err
+		if records(ctx) {
+			if err := e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.scheduled", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+				Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "scheduled", "scheduled_at": at}, Actor: e.actorFor(ctx, by, byName)}); err != nil {
+				return err
+			}
 		}
 		args := StartArgs{CampaignID: c.ID, At: at}
 		if by != nil {
@@ -184,59 +254,81 @@ func (e *Engine) schedule(ctx context.Context, c store.Campaign, at time.Time, o
 	})
 }
 
-// blocked records a send-time recheck that turned Blocked: the send doesn't
-// start, a scheduled campaign goes back to draft, and the author and the
-// approvers are told.
-func (e *Engine) blocked(ctx context.Context, c store.Campaign, rc sending.Recheck, now time.Time) error {
+// hold records a scheduled send whose send-time recheck turned Blocked, in
+// the form Review & send shows it (approvals.HoldDetail: the reason and
+// the titles of what blocks; the blocking checks and the audience come
+// from the recheck's run). The campaign stays scheduled and nothing is
+// sent. The author and the approvers are told once: Review & send's
+// checks 15 minutes before may have held it already. Review & send's
+// minute job rechecks a held send every 15 minutes and starts it once a
+// recheck passes; unscheduling it ends the hold.
+func (e *Engine) hold(ctx context.Context, c store.Campaign, rc sending.Recheck, now time.Time) error {
+	reason := blockReason(rc)
 	return db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if c.Status == "scheduled" {
-			if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "draft", At: now}); err != nil {
-				return err
-			}
-		}
-		detail, _ := json.Marshal(map[string]any{"blocking": rc.Blocking})
-		if err := q.SendingInsertIncident(ctx, store.SendingInsertIncidentParams{ID: newID(), CampaignID: c.ID, Kind: "recheck_blocked", Scope: "campaign",
-			Metric: "readiness", Detail: detail, TrippedAt: now}); err != nil {
+		if _, err := q.SendingCampaignForUpdate(ctx, c.ID); err != nil {
 			return err
 		}
-		body := "Send Readiness turned Blocked when the send was due to start, so nothing was sent."
-		if len(rc.Blocking) > 0 {
-			body += " " + strings.Join(rc.Blocking, "; ") + "."
+		open, err := q.SendingOpenIncidents(ctx, c.ID)
+		if err != nil {
+			return err
+		}
+		for _, in := range open {
+			if in.Kind == "recheck_blocked" {
+				return nil // already held, and people were told
+			}
 		}
 		ws, err := q.GetWorkspace(ctx, c.WorkspaceID)
 		if err != nil {
 			return err
 		}
-		n := notify.Notification{Kind: notify.KindSendBlocked, Severity: "bad", Title: fmt.Sprintf("%q didn't start: Send Readiness is blocked", c.Name), Body: body,
-			Link: "/w/" + ws.Slug + "/campaigns/" + c.ID.String() + "/review", Data: map[string]any{"campaignId": c.ID.String()}}
-		notified := map[uuid.UUID]bool{}
-		for _, u := range []*uuid.UUID{c.CreatedBy, c.UpdatedBy} {
-			if u != nil && !notified[*u] {
-				notified[*u] = true
-				wsID := c.WorkspaceID
-				n.WorkspaceID = &wsID
-				if err := notify.ToUser(ctx, tx, *u, n); err != nil {
-					return err
-				}
-			}
+		blocking := rc.Blocking
+		if blocking == nil {
+			blocking = []string{}
+		}
+		detail, _ := json.Marshal(map[string]any{"reason": reason, "blocking": blocking})
+		if err := q.SendingInsertIncident(ctx, store.SendingInsertIncidentParams{ID: newID(), CampaignID: c.ID, Kind: "recheck_blocked", Scope: "campaign",
+			Metric: "readiness", Detail: detail, TrippedAt: now}); err != nil {
+			return err
+		}
+		if err := e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.send_held", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+			Actor: systemActor, Reason: reason, Metadata: map[string]any{"blocking": blocking, "source": "send worker", "via": "send-time recheck"}}); err != nil {
+			return err
+		}
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.paused", campaignData(c.ID, c.Name, "paused_by", "send_readiness", "reason", reason)); err != nil {
+			return err
+		}
+		// The author (who asked for approval, or who scheduled it) and the approvers.
+		targets := []uuid.UUID{}
+		if last, err := q.ApprovalLatestForCampaign(ctx, &c.ID); err == nil && last.RequestedBy != nil {
+			targets = append(targets, *last.RequestedBy)
+		} else if c.UpdatedBy != nil {
+			targets = append(targets, *c.UpdatedBy)
+		} else if c.CreatedBy != nil {
+			targets = append(targets, *c.CreatedBy)
 		}
 		approvers, err := notify.MembersWith(ctx, tx, c.WorkspaceID, authz.CampaignsApprove)
 		if err != nil {
 			return err
 		}
-		for _, u := range approvers {
-			if !notified[u] {
-				notified[u] = true
-				wsID := c.WorkspaceID
-				n.WorkspaceID = &wsID
-				if err := notify.ToUser(ctx, tx, u, n); err != nil {
-					return err
-				}
+		targets = append(targets, approvers...)
+		at := now.In(state.Location(ws.Timezone)).Format("15:04")
+		wsID := c.WorkspaceID
+		n := notify.Notification{WorkspaceID: &wsID, Kind: notify.KindSendBlocked, Severity: "bad", Title: "Send held",
+			Summary: fmt.Sprintf("“%s” didn't start at %s: %s", c.Name, at, reason),
+			Body:    fmt.Sprintf("“%s” didn't start at %s: %s. It stays held until a recheck passes.", c.Name, at, reason),
+			Link:    "/w/" + ws.Slug + "/campaigns/" + c.ID.String() + "/review", Data: map[string]any{"campaign_id": c.ID.String()}}
+		told := map[uuid.UUID]bool{}
+		for _, u := range targets {
+			if told[u] {
+				continue
+			}
+			told[u] = true
+			if err := notify.ToUser(ctx, tx, u, n); err != nil {
+				return err
 			}
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.send_blocked", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Result: audit.Denied, Reason: body, Actor: systemActor})
+		return nil
 	})
 }
 
@@ -298,7 +390,13 @@ func (e *Engine) Pause(ctx context.Context, campaignID, by uuid.UUID, reason str
 		if err := q.SendingSetPaused(ctx, store.SendingSetPausedParams{CampaignID: c.ID, PausedAt: &now, PausedByName: firstNonEmpty(name, "System"), PauseReason: clip(strings.TrimSpace(reason), 500)}); err != nil {
 			return err
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.send_pause", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.paused", campaignData(c.ID, c.Name, "paused_by", firstNonEmpty(name, "System"), "reason", strings.TrimSpace(reason), "scope", "campaign")); err != nil {
+			return err
+		}
+		if !records(ctx) {
+			return nil
+		}
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.paused", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
 			Reason: strings.TrimSpace(reason), Before: map[string]any{"status": "sending"}, After: map[string]any{"status": "paused"}, Actor: e.actorFor(ctx, ref, name)})
 	})
 }
@@ -330,7 +428,13 @@ func (e *Engine) Resume(ctx context.Context, campaignID, by uuid.UUID) error {
 		if err := q.SendingSetPaused(ctx, store.SendingSetPausedParams{CampaignID: c.ID}); err != nil {
 			return err
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.send_resume", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.resumed", campaignData(c.ID, c.Name, "resumed_by", firstNonEmpty(name, "System"), "scope", "campaign")); err != nil {
+			return err
+		}
+		if !records(ctx) {
+			return nil
+		}
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.resumed", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
 			Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "sending"}, Metadata: map[string]any{"released": released}, Actor: e.actorFor(ctx, ref, name)})
 	})
 	if err == nil {
@@ -381,9 +485,11 @@ func (e *Engine) releaseAll(ctx context.Context, q *store.Queries, id uuid.UUID,
 	return released, nil
 }
 
-// Cancel implements Starter: nothing more is sent. A scheduled campaign goes
-// back to draft; a running one is cancelled and what is left is marked not
-// sent.
+// Cancel implements Starter: nothing more is sent. A scheduled campaign is
+// taken back, as Review & send's Unschedule does: to approved when its
+// approval still stands (it can be scheduled again as approved), otherwise
+// to draft, and a hold ends. A running one is cancelled and what is left is
+// marked not sent.
 func (e *Engine) Cancel(ctx context.Context, campaignID, by uuid.UUID) error {
 	now := e.now()
 	return db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
@@ -398,11 +504,23 @@ func (e *Engine) Cancel(ctx context.Context, campaignID, by uuid.UUID) error {
 		ref, name := e.actorRef(ctx, q, by)
 		switch c.Status {
 		case "scheduled":
-			if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "draft", At: now}); err != nil {
+			status := "draft"
+			if r, err := q.ApprovalOpenForCampaign(ctx, &c.ID); err == nil && r.Status == "approved" {
+				status = "approved"
+			} else if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 				return err
 			}
-			return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.send_unschedule", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-				Before: map[string]any{"status": "scheduled"}, After: map[string]any{"status": "draft"}, Actor: e.actorFor(ctx, ref, name)})
+			if err := q.SendingUnschedule(ctx, store.SendingUnscheduleParams{ID: c.ID, Status: status, UpdatedBy: ref, At: now}); err != nil {
+				return err
+			}
+			if err := resolveHolds(ctx, q, c.ID, "cancelled", ref, now); err != nil {
+				return err
+			}
+			if !records(ctx) {
+				return nil
+			}
+			return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.unscheduled", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+				Before: map[string]any{"status": "scheduled", "scheduled_at": c.ScheduledAt}, After: map[string]any{"status": status}, Actor: e.actorFor(ctx, ref, name)})
 		case "sending", "paused":
 		default:
 			return stateErr("%q isn't sending (it is %s).", c.Name, c.Status)
@@ -437,8 +555,15 @@ func (e *Engine) Cancel(ctx context.Context, campaignID, by uuid.UUID) error {
 				return err
 			}
 		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.send_cancel", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "cancelled", "not_sent": n}, Actor: e.actorFor(ctx, ref, name)})
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.completed", campaignData(c.ID, c.Name, "status", "cancelled", "cancelled_by", who, "not_sent", n)); err != nil {
+			return err
+		}
+		if !records(ctx) {
+			return nil
+		}
+		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.cancelled", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+			Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "cancelled", "not_sent": n}, Actor: e.actorFor(ctx, ref, name),
+			Metadata: map[string]any{"summary": countText(n) + " not sent"}})
 	})
 }
 

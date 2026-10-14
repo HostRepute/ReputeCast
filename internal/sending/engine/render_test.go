@@ -1,12 +1,17 @@
 package engine
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/store"
 )
 
 const sampleHTML = `<html><body>
@@ -236,5 +241,75 @@ func TestOverNeedsEvidence(t *testing.T) {
 		if got := over(tc.events, tc.base, tc.limit, minEvents); got != tc.want {
 			t.Errorf("over(%d, %d, %.1f%%) = %v, want %v", tc.events, tc.base, tc.limit, got, tc.want)
 		}
+	}
+}
+
+func TestEligibilityFollowsSendReadiness(t *testing.T) {
+	person := store.SendingAudiencePageRow{Email: "maya@example.com", Status: "active", Tier: "active"}
+	cases := []struct {
+		name string
+		row  func(r *store.SendingAudiencePageRow)
+		def  audienceDef
+		dup  bool
+		want string
+	}{
+		{"receives", func(*store.SendingAudiencePageRow) {}, audienceDef{}, false, ""},
+		{"role flag", func(r *store.SendingAudiencePageRow) { r.RoleAddress = true }, audienceDef{}, false, "role"},
+		{"role address by its name", func(r *store.SendingAudiencePageRow) { r.Email = "Info+news@example.com" }, audienceDef{}, false, "role"},
+		{"alias of another contact", func(*store.SendingAudiencePageRow) {}, audienceDef{}, true, "duplicate"},
+		{"suppressed before duplicate", func(r *store.SendingAudiencePageRow) { r.Suppressed = true }, audienceDef{}, true, "suppressed"},
+		{"stopped by the sunset policy", func(r *store.SendingAudiencePageRow) { r.SunsetStopped = true }, audienceDef{}, false, "sunset"},
+		{"the campaign overrides the sunset policy", func(r *store.SendingAudiencePageRow) { r.SunsetStopped = true }, audienceDef{IncludeSunset: true}, false, ""},
+		{"unless it excludes the sunset tier", func(r *store.SendingAudiencePageRow) { r.SunsetStopped = true },
+			audienceDef{IncludeSunset: true, ExcludeTiers: []string{"sunset"}}, false, "sunset"},
+		{"excluded tier", func(r *store.SendingAudiencePageRow) { r.Tier = "sunset" }, audienceDef{ExcludeTiers: []string{"sunset"}}, false, "tiers"},
+		{"paused emails", func(r *store.SendingAudiencePageRow) { r.Paused = true }, audienceDef{}, false, "paused"},
+		{"excluded list", func(r *store.SendingAudiencePageRow) { r.ExcludedList = true; r.Status = "unsubscribed" }, audienceDef{}, false, "excluded"},
+	}
+	for _, c := range cases {
+		r := person
+		c.row(&r)
+		if got := eligibility(r, c.def, c.dup); got != c.want {
+			t.Errorf("%s: %q, want %q", c.name, got, c.want)
+		}
+	}
+	if d := parseAudience(json.RawMessage(`{"lists":[],"include_sunset":true}`)); !d.IncludeSunset {
+		t.Error("include_sunset not read")
+	}
+}
+
+func TestMailboxKeyFoldsAliases(t *testing.T) {
+	same := [][2]string{
+		{"Maya.Chen+news@gmail.com", "mayachen@gmail.com"},
+		{"maya.chen@googlemail.com", "mayachen@gmail.com"},
+		{"maya+promo@outlook.com", "maya@outlook.com"},
+	}
+	for _, p := range same {
+		if mailboxKey(p[0]) != mailboxKey(p[1]) {
+			t.Errorf("%s and %s should reach the same mailbox", p[0], p[1])
+		}
+	}
+	different := [][2]string{
+		{"maya.chen@outlook.com", "mayachen@outlook.com"}, // dots count outside Gmail
+		{"+maya@example.com", "@example.com"},
+	}
+	for _, p := range different {
+		if mailboxKey(p[0]) == mailboxKey(p[1]) {
+			t.Errorf("%s and %s are different mailboxes", p[0], p[1])
+		}
+	}
+}
+
+func TestRecordsWhenNoCallerDoes(t *testing.T) {
+	ctx := context.Background()
+	if !records(ctx) {
+		t.Fatal("with no request behind it, the engine records its actions")
+	}
+	req := audit.WithPrincipal(ctx, &authz.Principal{Type: authz.ActorUser, ID: uuid.New(), Name: "Linh Nguyen"})
+	if records(req) {
+		t.Fatal("Review & send, the MCP tools and the providers screen record their own actions")
+	}
+	if !records(ownAPI(req)) {
+		t.Fatal("the live monitor's actions are the engine's to record")
 	}
 }

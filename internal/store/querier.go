@@ -1096,6 +1096,11 @@ type Querier interface {
 	SendingAddRouteCost(ctx context.Context, arg SendingAddRouteCostParams) error
 	// The approval a campaign's send went out under, with the approver.
 	SendingApproval(ctx context.Context, campaignID *uuid.UUID) (SendingApprovalRow, error)
+	// The addresses of the audience members who can receive the send (active,
+	// not suppressed, in no excluded list or segment), oldest contact first:
+	// the audience build leaves out a second contact that reaches the same
+	// mailbox (an alias), as Send Readiness counts them.
+	SendingAudienceAddresses(ctx context.Context, arg SendingAudienceAddressesParams) ([]SendingAudienceAddressesRow, error)
 	// One page of the audience after the cursor, in contact id order: members
 	// of the included lists and staged segment members, with everything that
 	// decides whether each receives the campaign. It reads the audience, not
@@ -1147,7 +1152,9 @@ type Querier interface {
 	SendingDeferralsSince(ctx context.Context, arg SendingDeferralsSinceParams) (int64, error)
 	SendingDeleteSimEvents(ctx context.Context, ids []int64) error
 	// Scheduled campaigns whose time has come (the watchdog starts any whose
-	// start job was lost).
+	// start job was lost). A held one (its send-time recheck turned Blocked)
+	// is left to Review & send's minute job, which rechecks it every 15
+	// minutes and starts it once a recheck passes.
 	SendingDueScheduled(ctx context.Context, now *time.Time) ([]uuid.UUID, error)
 	// Demo transport --------------------------------------------------------
 	SendingDueSimEvents(ctx context.Context, arg SendingDueSimEventsParams) ([]SendingSimEvent, error)
@@ -1235,6 +1242,9 @@ type Querier interface {
 	SendingStageAdd(ctx context.Context, arg SendingStageAddParams) error
 	SendingStageClear(ctx context.Context, campaignID uuid.UUID) error
 	SendingStageCount(ctx context.Context, campaignID uuid.UUID) (int64, error)
+	// Takes a scheduled campaign back (to draft, or approved when its approval
+	// still stands).
+	SendingUnschedule(ctx context.Context, arg SendingUnscheduleParams) error
 	// Messages that will never be sent, per sending and mailbox provider.
 	SendingUnsentCounts(ctx context.Context, campaignID *uuid.UUID) ([]SendingUnsentCountsRow, error)
 	SendingUpdateIncidentDetail(ctx context.Context, arg SendingUpdateIncidentDetailParams) error

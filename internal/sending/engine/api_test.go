@@ -47,7 +47,7 @@ func testAPI(t *testing.T, f *fixture) {
 		t.Fatalf("after pause: %s by %q", res.Snapshot.State, res.Snapshot.PausedBy)
 	}
 	writer.Do("POST", base+"/resume", map[string]any{}).MustStatus(t, 403)
-	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.send_pause' AND actor_name = 'Linh Nguyen'`, f.campaign.String()); n != 1 {
+	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.paused' AND actor_name = 'Linh Nguyen'`, f.campaign.String()); n != 1 {
 		t.Fatalf("%d pause audit entries by Linh", n)
 	}
 
@@ -65,7 +65,7 @@ func testAPI(t *testing.T, f *fixture) {
 	agent.Do("POST", base+"/resume", map[string]any{}).MustStatus(t, 403)
 	owner.Do("POST", base+"/resume", map[string]any{}).MustStatus(t, 200)
 	agent.Do("POST", base+"/pause", map[string]any{"reason": "Spike in complaints"}).MustStatus(t, 200)
-	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.send_pause' AND actor_type = 'mcp_agent'`, f.campaign.String()); n != 1 {
+	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.paused' AND actor_type = 'mcp_agent'`, f.campaign.String()); n != 1 {
 		t.Fatalf("%d pause audit entries by the agent", n)
 	}
 

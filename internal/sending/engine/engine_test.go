@@ -3,7 +3,9 @@ package engine_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 )
 
@@ -30,6 +33,13 @@ type contactSpec struct {
 	suppress bool
 	paused   bool
 	role     bool
+	// alias makes the batch plus-tagged aliases of the fixture's first
+	// contacts (same domain): the same mailboxes.
+	alias bool
+	// rolePattern gives the batch role addresses (info+…@) without the flag.
+	rolePattern bool
+	// stopped: the sunset policy stopped their Broadcasts.
+	stopped bool
 }
 
 type suite struct {
@@ -102,8 +112,8 @@ func (f *fixture) count(sql string, args ...any) int64 {
 func (f *fixture) addContacts(specs ...contactSpec) {
 	f.t.Helper()
 	var contacts, members [][]any
-	var paused []uuid.UUID
-	i := 0
+	var paused, stopped []uuid.UUID
+	i, aliased := 0, 0
 	for _, s := range specs {
 		for range s.n {
 			i++
@@ -122,6 +132,13 @@ func (f *fixture) addContacts(specs ...contactSpec) {
 				lastOpen = &t
 			}
 			email := fmt.Sprintf("w12.%d.%05d@%s", f.n, i, s.domain)
+			switch {
+			case s.alias:
+				aliased++
+				email = fmt.Sprintf("w12.%d.%05d+alias@%s", f.n, aliased, s.domain)
+			case s.rolePattern:
+				email = fmt.Sprintf("info+w12.%d.%05d@%s", f.n, i, s.domain)
+			}
 			contacts = append(contacts, []any{id, f.ws, email, "Reader", fmt.Sprint(i), status, tier, s.source, s.mailbox, lastOpen, lastOpen, s.role})
 			members = append(members, []any{f.list, id, "subscribed", f.start.Add(-30 * 24 * time.Hour)})
 			if s.suppress {
@@ -129,6 +146,9 @@ func (f *fixture) addContacts(specs ...contactSpec) {
 			}
 			if s.paused {
 				paused = append(paused, id)
+			}
+			if s.stopped {
+				stopped = append(stopped, id)
 			}
 		}
 	}
@@ -141,6 +161,9 @@ func (f *fixture) addContacts(specs ...contactSpec) {
 	}
 	for _, id := range paused {
 		f.exec(`INSERT INTO contact_preferences (contact_id, paused_until) VALUES ($1, $2)`, id, f.start.Add(24*time.Hour))
+	}
+	if len(stopped) > 0 {
+		f.exec(`UPDATE contacts SET broadcasts_stopped_at = $2 WHERE id = ANY($1)`, stopped, f.start.Add(-24*time.Hour))
 	}
 }
 
@@ -227,6 +250,7 @@ func TestSending(t *testing.T) {
 	t.Run("PostalOutageHoldsShare", func(t *testing.T) { testOutage(t, s.fixture(t, "Outage")) })
 	t.Run("PauseResumeCancel", func(t *testing.T) { testPauseResumeCancel(t, s.fixture(t, "Pause")) })
 	t.Run("ScheduledStart", func(t *testing.T) { testScheduled(t, s.fixture(t, "Scheduled")) })
+	t.Run("HeldSend", func(t *testing.T) { testHeld(t, s.fixture(t, "Held")) })
 	t.Run("API", func(t *testing.T) { testAPI(t, s.fixture(t, "API")) })
 	t.Run("Tracking", func(t *testing.T) { testTracking(t, s.fixture(t, "Tracking")) })
 	t.Run("DemoSendReset", func(t *testing.T) { testDemoReset(t, s.fixture(t, "Demo reset")) })
@@ -343,6 +367,12 @@ func testEndToEnd(t *testing.T, f *fixture) {
 		contactSpec{n: 3, mailbox: "gmail", domain: "gmail.com", status: "unsubscribed"},
 		contactSpec{n: 2, mailbox: "gmail", domain: "gmail.com", paused: true},
 		contactSpec{n: 4, mailbox: "other", domain: "example.org", role: true},
+		// Left out as Send Readiness counts them: aliases of contacts already
+		// in the audience, role addresses known by their name, and contacts
+		// whose Broadcasts the sunset policy stopped.
+		contactSpec{n: 3, mailbox: "gmail", domain: "gmail.com", alias: true},
+		contactSpec{n: 2, mailbox: "other", domain: "example.net", rolePattern: true},
+		contactSpec{n: 2, mailbox: "gmail", domain: "gmail.com", stopped: true},
 	)
 	f.startSend(engine.StartOptions{ABWindow: 2 * time.Minute})
 
@@ -350,7 +380,7 @@ func testEndToEnd(t *testing.T, f *fixture) {
 		t.Fatalf("status %q after start, want sending", s)
 	}
 	if n := f.count(`SELECT count(*) FROM messages WHERE campaign_id = $1`, f.campaign); n != 700 {
-		t.Fatalf("%d messages queued, want 700 (suppressed, unsubscribed, paused and role addresses left out)", n)
+		t.Fatalf("%d messages queued, want 700 (suppressed, unsubscribed, paused, role, duplicate and stopped contacts left out)", n)
 	}
 	var excluded engine.Excluded
 	var raw []byte
@@ -358,8 +388,11 @@ func testEndToEnd(t *testing.T, f *fixture) {
 		t.Fatal(err)
 	}
 	_ = json.Unmarshal(raw, &excluded)
-	if excluded.Suppressed != 5 || excluded.Unsubscribed != 3 || excluded.Paused != 2 || excluded.Role != 4 {
-		t.Fatalf("excluded %+v, want 5 suppressed, 3 unsubscribed, 2 paused, 4 role addresses", excluded)
+	if excluded.Suppressed != 5 || excluded.Unsubscribed != 3 || excluded.Paused != 2 || excluded.Role != 6 || excluded.Duplicates != 3 || excluded.Sunset != 2 {
+		t.Fatalf("excluded %+v, want 5 suppressed, 3 unsubscribed, 2 paused, 6 role addresses, 3 duplicates, 2 stopped", excluded)
+	}
+	if n := f.count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND email LIKE '%+alias@%'`, f.campaign); n != 0 {
+		t.Fatalf("%d aliases queued; the older contact keeps the mailbox", n)
 	}
 	// Outlook and iCloud go to SES only (the demo's routing condition).
 	if n := f.count(`SELECT count(*) FROM messages m JOIN providers p ON p.id = m.provider_id WHERE m.campaign_id = $1 AND m.mailbox_provider IN ('outlook','icloud') AND p.adapter <> 'ses'`, f.campaign); n != 0 {
@@ -409,7 +442,7 @@ func testEndToEnd(t *testing.T, f *fixture) {
 	if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT ab->>'winner' FROM campaign_sends WHERE campaign_id = $1`, f.campaign).Scan(&winner); err != nil || winner == "" {
 		t.Fatalf("A/B winner %q: %v", winner, err)
 	}
-	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action IN ('campaign.send_start', 'campaign.send_finish', 'campaign.ab_winner')`, f.campaign.String()); n != 3 {
+	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action IN ('campaign.send_started', 'campaign.completed', 'campaign.ab_winner_picked')`, f.campaign.String()); n != 3 {
 		t.Fatalf("%d audit entries for start, A/B winner and finish, want 3", n)
 	}
 	if n := f.count(`SELECT count(*) FROM notifications WHERE user_id = $1 AND kind = 'send_finished' AND data->>'campaignId' = $2`, f.sofia, f.campaign.String()); n != 1 {
@@ -483,7 +516,7 @@ func testAutoPause(t *testing.T, f *fixture) {
 	if len(snap.Incident.Detail.Causes) == 0 || snap.Incident.Detail.Note == "" {
 		t.Fatal("incident has no likely causes or note")
 	}
-	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.auto_pause'`, f.campaign.String()); n != 1 {
+	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.auto_paused'`, f.campaign.String()); n != 1 {
 		t.Fatalf("%d auto-pause audit entries", n)
 	}
 	if n := f.count(`SELECT count(*) FROM notifications WHERE kind = 'send_paused' AND data->>'campaignId' = $1`, f.campaign.String()); n == 0 {
@@ -557,7 +590,7 @@ func testOutage(t *testing.T, f *fixture) {
 		f.dump()
 		t.Fatalf("send didn't finish after the move: done=%v %s", done, f.status())
 	}
-	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action IN ('campaign.route_hold', 'campaign.share_move')`, f.campaign.String()); n != 2 {
+	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action IN ('campaign.share_held', 'campaign.share_moved')`, f.campaign.String()); n != 2 {
 		t.Fatalf("%d audit entries for hold and move, want 2", n)
 	}
 }
@@ -601,7 +634,7 @@ func testPauseResumeCancel(t *testing.T, f *fixture) {
 	if n := f.count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND status IN ('queued', 'held')`, f.campaign); n != 0 {
 		t.Fatalf("%d messages still queued after cancel", n)
 	}
-	for _, action := range []string{"campaign.send_pause", "campaign.send_resume", "campaign.send_cancel"} {
+	for _, action := range []string{"campaign.paused", "campaign.resumed", "campaign.cancelled"} {
 		if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = $2`, f.campaign.String(), action); n != 1 {
 			t.Fatalf("%d %s audit entries", n, action)
 		}
@@ -624,7 +657,7 @@ func testScheduled(t *testing.T, f *fixture) {
 	if n := f.count(`SELECT count(*) FROM river_job WHERE kind = 'sending.start' AND args->>'campaign_id' = $1 AND scheduled_at = $2`, f.campaign.String(), at); n != 1 {
 		t.Fatalf("%d start jobs at the scheduled time", n)
 	}
-	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.send_schedule'`, f.campaign.String()); n != 1 {
+	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.scheduled'`, f.campaign.String()); n != 1 {
 		t.Fatal("scheduling wasn't audited")
 	}
 	if err := f.e.Cancel(f.ctx, f.campaign, f.sofia); err != nil {
@@ -632,5 +665,120 @@ func testScheduled(t *testing.T, f *fixture) {
 	}
 	if f.status() != "draft" {
 		t.Fatalf("unscheduling left %s, want draft", f.status())
+	}
+	if n := f.count(`SELECT count(*) FROM campaigns WHERE id = $1 AND scheduled_at IS NULL`, f.campaign); n != 1 {
+		t.Fatal("unscheduling kept the time")
+	}
+	// An approved campaign stays approved when it's taken back (it can be
+	// scheduled again as approved), as Review & send's Unschedule does.
+	f.exec(`INSERT INTO approval_requests (id, workspace_id, campaign_id, requested_by, status, snapshot) VALUES ($1, $2, $3, $4, 'approved', '{}')`,
+		uuid.Must(uuid.NewV7()), f.ws, f.campaign, f.sofia)
+	if err := f.e.Start(f.ctx, f.campaign, f.sofia); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.e.Cancel(f.ctx, f.campaign, f.sofia); err != nil {
+		t.Fatal(err)
+	}
+	if f.status() != "approved" {
+		t.Fatalf("unscheduling an approved campaign left %s, want approved", f.status())
+	}
+}
+
+// fixedRecheck is a send-time recheck with a set answer.
+type fixedRecheck struct{ rc sending.Recheck }
+
+func (r fixedRecheck) Recheck(context.Context, uuid.UUID) (sending.Recheck, error) { return r.rc, nil }
+
+// testHeld: a scheduled send whose send-time recheck turns Blocked is held
+// the way Review & send shows it. It stays scheduled, nothing is sent, the
+// author and the approvers are told once, the watchdog leaves it to Review
+// & send's minute job, and it starts (the hold ends) once a recheck passes.
+func testHeld(t *testing.T, f *fixture) {
+	saved := f.e.Readiness
+	defer func() { f.e.Readiness = saved }()
+	f.addContacts(contactSpec{n: 20, mailbox: "gmail", domain: "gmail.com", engaged: true})
+	hook := uuid.Must(uuid.NewV7())
+	f.exec(`INSERT INTO webhooks (id, workspace_id, url, events, secret_enc, demo) VALUES ($1, $2, 'https://hooks.example.test/w12', '{campaign.*}', '\x00', true)`, hook, f.ws)
+	at := f.start.Add(-time.Minute)
+	f.exec(`UPDATE campaigns SET status = 'scheduled', scheduled_at = $2, schedule = $3, updated_by = $4 WHERE id = $1`, f.campaign, at,
+		fmt.Sprintf(`{"mode":"at","at":%q,"timezone":"America/New_York"}`, at.Format(time.RFC3339)), f.sofia)
+
+	f.e.Readiness = fixedRecheck{sending.Recheck{Verdict: "blocked", Blocking: []string{"Sender domain fails DMARC", "Approval is still pending"}}}
+	held := func() {
+		t.Helper()
+		err := f.e.StartWith(f.ctx, f.campaign, engine.StartOptions{By: f.sofia, Now: true, Scheduled: true})
+		if !errors.Is(err, sending.ErrNotReady) || !strings.Contains(err.Error(), "Sender domain fails DMARC") {
+			t.Fatalf("start: %v, want ErrNotReady with the first block", err)
+		}
+		if f.status() != "scheduled" {
+			t.Fatalf("held send is %s, want scheduled", f.status())
+		}
+	}
+	held()
+	var raw []byte
+	if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT detail FROM campaign_incidents WHERE campaign_id = $1 AND kind = 'recheck_blocked' AND resolved_at IS NULL`, f.campaign).Scan(&raw); err != nil {
+		t.Fatalf("no open hold: %v", err)
+	}
+	var d struct {
+		Reason   string   `json:"reason"`
+		Blocking []string `json:"blocking"`
+	}
+	if err := json.Unmarshal(raw, &d); err != nil || d.Reason != "Sender domain fails DMARC" || len(d.Blocking) != 2 {
+		t.Fatalf("hold detail %s: %v", raw, err)
+	}
+	told := f.count(`SELECT count(*) FROM notifications WHERE kind = 'send_blocked' AND data->>'campaign_id' = $1`, f.campaign.String())
+	if told == 0 || f.count(`SELECT count(*) FROM notifications WHERE kind = 'send_blocked' AND user_id = $1 AND title = 'Send held' AND data->>'campaign_id' = $2`, f.sofia, f.campaign.String()) != 1 {
+		t.Fatalf("%d people told, and the author should be one of them", told)
+	}
+	// The next recheck is Blocked too: still one hold, nobody told twice.
+	held()
+	if n := f.count(`SELECT count(*) FROM campaign_incidents WHERE campaign_id = $1 AND kind = 'recheck_blocked'`, f.campaign); n != 1 {
+		t.Fatalf("%d holds, want 1", n)
+	}
+	if n := f.count(`SELECT count(*) FROM notifications WHERE kind = 'send_blocked' AND data->>'campaign_id' = $1`, f.campaign.String()); n != told {
+		t.Fatalf("people told again: %d, then %d", told, n)
+	}
+	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.send_held'`, f.campaign.String()); n != 1 {
+		t.Fatalf("%d send_held audit entries, want 1", n)
+	}
+	now := f.start
+	due, err := f.e.Q.SendingDueScheduled(f.ctx, &now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range due {
+		if id == f.campaign {
+			t.Fatal("the watchdog restarts a held send; Review & send's minute job rechecks it")
+		}
+	}
+	// A recheck passes: Review & send's minute job starts it, with no one behind it.
+	f.e.Readiness = fixedRecheck{sending.Recheck{Verdict: "warnings"}}
+	if err := f.e.Start(f.ctx, f.campaign, uuid.Nil); err != nil {
+		t.Fatal(err)
+	}
+	if f.status() != "sending" {
+		t.Fatalf("status %s after the recheck passed, want sending", f.status())
+	}
+	var resolution string
+	if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT resolution FROM campaign_incidents WHERE campaign_id = $1 AND kind = 'recheck_blocked'`, f.campaign).Scan(&resolution); err != nil || resolution != "auto_recovered" {
+		t.Fatalf("hold resolution %q: %v", resolution, err)
+	}
+	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.send_started' AND actor_type = 'system'`, f.campaign.String()); n != 1 {
+		t.Fatalf("%d system send_started entries, want 1", n)
+	}
+	if n := f.count(`SELECT count(*) FROM campaign_sends WHERE campaign_id = $1 AND started_by = $2 AND started_by_name = 'Sofia Rossi'`, f.campaign, f.sofia); n != 1 {
+		t.Fatal("the send isn't started on behalf of who scheduled it")
+	}
+	// The workspace's endpoints heard about both.
+	for event, n := range map[string]int64{"campaign.paused": 1, "campaign.started": 1} {
+		if got := f.count(`SELECT count(*) FROM webhook_deliveries WHERE webhook_id = $1 AND event = $2 AND payload->'data'->>'campaign_id' = $3`, hook, event, f.campaign.String()); got != n {
+			t.Fatalf("%d %s deliveries, want %d", got, event, n)
+		}
+	}
+	if err := f.e.Cancel(f.ctx, f.campaign, f.sofia); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.count(`SELECT count(*) FROM webhook_deliveries WHERE webhook_id = $1 AND event = 'campaign.completed' AND payload->'data'->>'status' = 'cancelled'`, hook); got != 1 {
+		t.Fatalf("%d campaign.completed deliveries for the cancelled send, want 1", got)
 	}
 }

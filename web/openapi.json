@@ -16318,6 +16318,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "duplicates": {
+            "format": "int64",
+            "type": "integer"
+          },
           "excluded": {
             "format": "int64",
             "type": "integer"
@@ -16354,6 +16358,7 @@
           "complained",
           "paused",
           "role",
+          "duplicates",
           "sunset",
           "excluded",
           "tiers"

@@ -39,6 +39,12 @@ UPDATE campaigns
 SET status = 'sending', started_at = @at::timestamptz, started_by = sqlc.narg(started_by), scheduled_at = coalesce(scheduled_at, @at::timestamptz), updated_at = @at::timestamptz
 WHERE id = @id;
 
+-- name: SendingUnschedule :exec
+-- Takes a scheduled campaign back (to draft, or approved when its approval
+-- still stands).
+UPDATE campaigns SET status = @status, scheduled_at = NULL, updated_by = coalesce(sqlc.narg(updated_by), updated_by), updated_at = @at::timestamptz
+WHERE id = @id AND status = 'scheduled';
+
 -- name: SendingSetCampaignStatus :exec
 UPDATE campaigns SET status = @status, updated_at = @at WHERE id = @id;
 
@@ -50,10 +56,13 @@ UPDATE campaigns SET audience_count = @n WHERE id = @id;
 
 -- name: SendingDueScheduled :many
 -- Scheduled campaigns whose time has come (the watchdog starts any whose
--- start job was lost).
-SELECT id FROM campaigns
-WHERE status = 'scheduled' AND scheduled_at <= @now AND deleted_at IS NULL
-ORDER BY scheduled_at
+-- start job was lost). A held one (its send-time recheck turned Blocked)
+-- is left to Review & send's minute job, which rechecks it every 15
+-- minutes and starts it once a recheck passes.
+SELECT c.id FROM campaigns c
+WHERE c.status = 'scheduled' AND c.scheduled_at <= @now AND c.deleted_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM campaign_incidents i WHERE i.campaign_id = c.id AND i.kind = 'recheck_blocked' AND i.resolved_at IS NULL)
+ORDER BY c.scheduled_at
 LIMIT 50;
 
 -- Send state ------------------------------------------------------------
@@ -126,6 +135,26 @@ DELETE FROM campaign_audience_stage WHERE campaign_id = @campaign_id;
 
 -- name: SendingStageCount :one
 SELECT count(*)::bigint FROM campaign_audience_stage WHERE campaign_id = @campaign_id;
+
+-- name: SendingAudienceAddresses :many
+-- The addresses of the audience members who can receive the send (active,
+-- not suppressed, in no excluded list or segment), oldest contact first:
+-- the audience build leaves out a second contact that reaches the same
+-- mailbox (an alias), as Send Readiness counts them.
+WITH members AS (
+    SELECT m.contact_id AS id FROM list_memberships m
+    WHERE m.list_id = ANY(@lists::uuid[]) AND m.status = 'subscribed'
+    UNION
+    SELECT st.contact_id FROM campaign_audience_stage st
+    WHERE st.campaign_id = @campaign_id AND NOT st.exclude
+)
+SELECT c.id, c.email, coalesce(c.role_address, false)::boolean AS role_address
+FROM members JOIN contacts c ON c.id = members.id
+WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.list_id = ANY(@exclude_lists::uuid[]) AND x.status = 'subscribed')
+  AND NOT EXISTS (SELECT 1 FROM campaign_audience_stage st WHERE st.campaign_id = @campaign_id AND st.exclude AND st.contact_id = c.id)
+  AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)
+ORDER BY c.created_at, c.id;
 
 -- name: SendingAudiencePage :many
 -- One page of the audience after the cursor, in contact id order: members

@@ -1,11 +1,14 @@
 package app
 
 import (
+	"context"
 	"sync"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/sending"
@@ -15,13 +18,35 @@ import (
 
 // W12 · Sending engine, live monitor and tracking.
 
-// sendingReadiness is the send-time recheck. The readiness domain replaces
-// it from its own wire file:
-//
-//	func init() {
-//		sendingReadiness = func(a *App) sending.Readiness { return &readiness.Recheck{…} }
-//	}
-var sendingReadiness = func(*App) sending.Readiness { return sending.ReadyAlways{} }
+// sendingReadiness is the send-time recheck: Send Readiness runs again and
+// the approval must still cover the campaign (W11's SendRecheck, which
+// records nothing; the engine holds a scheduled send that turns Blocked and
+// tells people).
+var sendingReadiness = func(a *App) sending.Readiness {
+	return &readinessRecheck{build: func() recheckFunc { return SendRecheck(a) }}
+}
+
+type recheckFunc = func(ctx context.Context, campaignID uuid.UUID) (approvals.SendRecheck, error)
+
+// readinessRecheck adapts W11's send-time recheck to sending.Readiness. The
+// approvals service is built at the first recheck, not with the engine: its
+// automations service sends through this engine, so building it while the
+// engine is being built would never end.
+type readinessRecheck struct {
+	build func() recheckFunc
+	once  sync.Once
+	run   recheckFunc
+}
+
+// Recheck implements sending.Readiness.
+func (r *readinessRecheck) Recheck(ctx context.Context, campaignID uuid.UUID) (sending.Recheck, error) {
+	r.once.Do(func() { r.run = r.build() })
+	rc, err := r.run(ctx, campaignID)
+	if err != nil {
+		return sending.Recheck{}, err
+	}
+	return sending.Recheck{Verdict: rc.Verdict, Blocking: rc.Blocking, Throttles: rc.Throttles}, nil
+}
 
 // sendingSegments resolves segment audiences: the audience domain's
 // segments service (dynamic segments are evaluated when the send starts,

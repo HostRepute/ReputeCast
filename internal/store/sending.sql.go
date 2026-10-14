@@ -165,6 +165,65 @@ func (q *Queries) SendingApproval(ctx context.Context, campaignID *uuid.UUID) (S
 	return i, err
 }
 
+const sendingAudienceAddresses = `-- name: SendingAudienceAddresses :many
+WITH members AS (
+    SELECT m.contact_id AS id FROM list_memberships m
+    WHERE m.list_id = ANY($4::uuid[]) AND m.status = 'subscribed'
+    UNION
+    SELECT st.contact_id FROM campaign_audience_stage st
+    WHERE st.campaign_id = $3 AND NOT st.exclude
+)
+SELECT c.id, c.email, coalesce(c.role_address, false)::boolean AS role_address
+FROM members JOIN contacts c ON c.id = members.id
+WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.list_id = ANY($2::uuid[]) AND x.status = 'subscribed')
+  AND NOT EXISTS (SELECT 1 FROM campaign_audience_stage st WHERE st.campaign_id = $3 AND st.exclude AND st.contact_id = c.id)
+  AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)
+ORDER BY c.created_at, c.id
+`
+
+type SendingAudienceAddressesParams struct {
+	WorkspaceID  uuid.UUID   `json:"workspaceId"`
+	ExcludeLists []uuid.UUID `json:"excludeLists"`
+	CampaignID   uuid.UUID   `json:"campaignId"`
+	Lists        []uuid.UUID `json:"lists"`
+}
+
+type SendingAudienceAddressesRow struct {
+	ID          uuid.UUID `json:"id"`
+	Email       string    `json:"email"`
+	RoleAddress bool      `json:"roleAddress"`
+}
+
+// The addresses of the audience members who can receive the send (active,
+// not suppressed, in no excluded list or segment), oldest contact first:
+// the audience build leaves out a second contact that reaches the same
+// mailbox (an alias), as Send Readiness counts them.
+func (q *Queries) SendingAudienceAddresses(ctx context.Context, arg SendingAudienceAddressesParams) ([]SendingAudienceAddressesRow, error) {
+	rows, err := q.db.Query(ctx, sendingAudienceAddresses,
+		arg.WorkspaceID,
+		arg.ExcludeLists,
+		arg.CampaignID,
+		arg.Lists,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SendingAudienceAddressesRow{}
+	for rows.Next() {
+		var i SendingAudienceAddressesRow
+		if err := rows.Scan(&i.ID, &i.Email, &i.RoleAddress); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sendingAudiencePage = `-- name: SendingAudiencePage :many
 WITH page AS (
     SELECT u.id FROM (
@@ -1075,14 +1134,17 @@ func (q *Queries) SendingDeleteSimEvents(ctx context.Context, ids []int64) error
 }
 
 const sendingDueScheduled = `-- name: SendingDueScheduled :many
-SELECT id FROM campaigns
-WHERE status = 'scheduled' AND scheduled_at <= $1 AND deleted_at IS NULL
-ORDER BY scheduled_at
+SELECT c.id FROM campaigns c
+WHERE c.status = 'scheduled' AND c.scheduled_at <= $1 AND c.deleted_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM campaign_incidents i WHERE i.campaign_id = c.id AND i.kind = 'recheck_blocked' AND i.resolved_at IS NULL)
+ORDER BY c.scheduled_at
 LIMIT 50
 `
 
 // Scheduled campaigns whose time has come (the watchdog starts any whose
-// start job was lost).
+// start job was lost). A held one (its send-time recheck turned Blocked)
+// is left to Review & send's minute job, which rechecks it every 15
+// minutes and starts it once a recheck passes.
 func (q *Queries) SendingDueScheduled(ctx context.Context, now *time.Time) ([]uuid.UUID, error) {
 	rows, err := q.db.Query(ctx, sendingDueScheduled, now)
 	if err != nil {
@@ -2598,6 +2660,30 @@ func (q *Queries) SendingStageCount(ctx context.Context, campaignID uuid.UUID) (
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const sendingUnschedule = `-- name: SendingUnschedule :exec
+UPDATE campaigns SET status = $1, scheduled_at = NULL, updated_by = coalesce($2, updated_by), updated_at = $3::timestamptz
+WHERE id = $4 AND status = 'scheduled'
+`
+
+type SendingUnscheduleParams struct {
+	Status    string     `json:"status"`
+	UpdatedBy *uuid.UUID `json:"updatedBy"`
+	At        time.Time  `json:"at"`
+	ID        uuid.UUID  `json:"id"`
+}
+
+// Takes a scheduled campaign back (to draft, or approved when its approval
+// still stands).
+func (q *Queries) SendingUnschedule(ctx context.Context, arg SendingUnscheduleParams) error {
+	_, err := q.db.Exec(ctx, sendingUnschedule,
+		arg.Status,
+		arg.UpdatedBy,
+		arg.At,
+		arg.ID,
+	)
+	return err
 }
 
 const sendingUnsentCounts = `-- name: SendingUnsentCounts :many
