@@ -128,7 +128,9 @@
   button.badge.afilter:hover {
     background: var(--line);
   }
-  button.badge.afilter[aria-pressed='true'] {
+  /* ContactProfile draws the unfiltered list with every pill muted; a chosen
+     filter is marked in ink. */
+  button.badge.afilter[aria-pressed='true']:not([data-all]) {
     background: var(--ink);
     color: #fff;
   }

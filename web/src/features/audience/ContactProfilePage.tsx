@@ -501,7 +501,7 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
               ['consent', 'Consent'],
             ] as [Filter, string][]
           ).map(([v, l]) => (
-            <button key={v} type="button" className="badge mut afilter" aria-pressed={filter === v} onClick={() => setFilter(v)}>
+            <button key={v} type="button" className="badge mut afilter" aria-pressed={filter === v} data-all={v === 'all' || undefined} onClick={() => setFilter(v)}>
               {l}
             </button>
           ))}
