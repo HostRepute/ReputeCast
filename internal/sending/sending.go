@@ -15,6 +15,31 @@ import (
 // ErrNotReady is returned when Send Readiness blocks the send at start.
 var ErrNotReady = errors.New("send readiness is blocked")
 
+// NotReadyError is ErrNotReady with what blocked the send.
+type NotReadyError struct {
+	Reason   string
+	Blocking []string
+}
+
+func (e *NotReadyError) Error() string { return ErrNotReady.Error() + ": " + e.Reason }
+
+// Is makes errors.Is(err, ErrNotReady) hold.
+func (e *NotReadyError) Is(target error) bool { return target == ErrNotReady }
+
+type recheckKey struct{ campaign uuid.UUID }
+
+// WithRecheck hands Start the send-time recheck its caller has just run for
+// the campaign, so Send Readiness doesn't run a second time.
+func WithRecheck(ctx context.Context, campaignID uuid.UUID, rc Recheck) context.Context {
+	return context.WithValue(ctx, recheckKey{campaignID}, rc)
+}
+
+// RecheckFrom returns the recheck WithRecheck attached for the campaign.
+func RecheckFrom(ctx context.Context, campaignID uuid.UUID) (Recheck, bool) {
+	rc, ok := ctx.Value(recheckKey{campaignID}).(Recheck)
+	return rc, ok
+}
+
 // Starter starts or schedules a campaign send. The review & send screen
 // calls it after confirmation (and after approval, when required).
 type Starter interface {
@@ -76,6 +101,10 @@ type Recheck struct {
 	// Throttles are messages per second per mailbox provider ("outlook": 5);
 	// nil keeps the engine's defaults.
 	Throttles map[string]float64
+	// Audience is the final recipient count the recheck counted, and RunID
+	// its Send Readiness run; a hold records both.
+	Audience int64
+	RunID    string
 }
 
 // ReadyAlways never blocks and keeps the default throttles.

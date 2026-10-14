@@ -261,6 +261,11 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		if err == nil && fresh.Verdict == readiness.VerdictBlocked {
 			return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_blocked", "Send Readiness turned Blocked when the send started, so nothing was sent: "+firstBlock(fresh)+".")
 		}
+		if err == nil {
+			// The engine starts on this run instead of running the checks again.
+			ctx = sending.WithRecheck(ctx, c.ID, sending.Recheck{Verdict: fresh.Verdict, Throttles: throttlesOf(fresh),
+				Audience: fresh.Estimates.Audience.Final, RunID: fresh.ID})
+		}
 	}
 	if err := s.Q.ApprovalScheduleCampaign(ctx, store.ApprovalScheduleCampaignParams{Schedule: c.Schedule, ScheduledAt: at, UpdatedBy: &p.UserID, Now: now, WorkspaceID: ws.ID, ID: c.ID}); err != nil {
 		return ReviewSendResult{}, err
@@ -274,7 +279,12 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			return ReviewSendResult{}, api.Err(http.StatusServiceUnavailable, "sending_unavailable",
 				"Sending isn't available yet: the sending engine isn't running in this installation. Nothing was scheduled; the checks, the schedule and the approval are kept.")
 		case errors.Is(err, sending.ErrNotReady):
-			return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_blocked", "Send Readiness blocked the send as it started, so nothing was sent.")
+			msg := "Send Readiness blocked the send as it started, so nothing was sent."
+			var nr *sending.NotReadyError
+			if errors.As(err, &nr) && nr.Reason != "" {
+				msg = "Send Readiness blocked the send as it started, so nothing was sent: " + strings.TrimSuffix(nr.Reason, ".") + "."
+			}
+			return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_blocked", msg)
 		}
 		return ReviewSendResult{}, err
 	}
@@ -524,6 +534,23 @@ type SendRecheck struct {
 	// Throttles are messages per second per mailbox provider ("outlook": 5);
 	// nil keeps the engine's defaults.
 	Throttles map[string]float64
+	// Audience is the run's final recipient count, RunID the run.
+	Audience int64
+	RunID    string
+}
+
+// throttlesOf is a run's per-mailbox-provider rates; nil when it sets none.
+func throttlesOf(run readiness.ReadinessRun) map[string]float64 {
+	var out map[string]float64
+	for _, t := range run.Estimates.Throttling {
+		if t.Rate > 0 {
+			if out == nil {
+				out = map[string]float64{}
+			}
+			out[t.Key] = t.Rate
+		}
+	}
+	return out
 }
 
 // SendRecheck runs Send Readiness for a send that is starting (the run is
@@ -560,18 +587,10 @@ func (s *Service) SendRecheck(ctx context.Context, campaignID uuid.UUID) (SendRe
 		}
 		run = *latest
 	}
-	out.Verdict = run.Verdict
+	out.Verdict, out.Throttles, out.Audience, out.RunID = run.Verdict, throttlesOf(run), run.Estimates.Audience.Final, run.ID
 	for _, ch := range run.Checks {
 		if ch.Status == readiness.Block {
 			out.Blocking = append(out.Blocking, firstNonEmptyStr(ch.FlatTitle, ch.Title))
-		}
-	}
-	for _, t := range run.Estimates.Throttling {
-		if t.Rate > 0 {
-			if out.Throttles == nil {
-				out.Throttles = map[string]float64{}
-			}
-			out.Throttles[t.Key] = t.Rate
 		}
 	}
 	reason, err := s.approvalGap(ctx, ws, campaignID)

@@ -697,6 +697,17 @@ type fixedRecheck struct{ rc sending.Recheck }
 
 func (r fixedRecheck) Recheck(context.Context, uuid.UUID) (sending.Recheck, error) { return r.rc, nil }
 
+// countedRecheck answers like fixedRecheck and counts the calls.
+type countedRecheck struct {
+	rc    sending.Recheck
+	calls *int
+}
+
+func (r countedRecheck) Recheck(context.Context, uuid.UUID) (sending.Recheck, error) {
+	*r.calls++
+	return r.rc, nil
+}
+
 // testHeld: a scheduled send whose send-time recheck turns Blocked is held
 // the way Review & send shows it. It stays scheduled, nothing is sent, the
 // author and the approvers are told once, the watchdog leaves it to Review
@@ -713,11 +724,13 @@ func testHeld(t *testing.T, f *fixture) {
 	f.exec(`UPDATE campaigns SET status = 'scheduled', scheduled_at = $2, schedule = $3, updated_by = $4 WHERE id = $1`, f.campaign, at,
 		fmt.Sprintf(`{"mode":"at","at":%q,"timezone":"America/New_York"}`, at.Format(time.RFC3339)), f.sofia)
 
-	f.e.Readiness = fixedRecheck{sending.Recheck{Verdict: "blocked", Blocking: []string{"Sender domain fails DMARC", "Approval is still pending"}}}
+	blocked := sending.Recheck{Verdict: "blocked", Blocking: []string{"Sender domain fails DMARC", "Approval is still pending"}, Audience: 21, RunID: "run-7"}
+	f.e.Readiness = fixedRecheck{blocked}
 	held := func() {
 		t.Helper()
 		err := f.e.StartWith(f.ctx, f.campaign, engine.StartOptions{By: f.sofia, Now: true, Scheduled: true})
-		if !errors.Is(err, sending.ErrNotReady) || !strings.Contains(err.Error(), "Sender domain fails DMARC") {
+		var nr *sending.NotReadyError
+		if !errors.Is(err, sending.ErrNotReady) || !errors.As(err, &nr) || nr.Reason != "Sender domain fails DMARC" {
 			t.Fatalf("start: %v, want ErrNotReady with the first block", err)
 		}
 		if f.status() != "scheduled" {
@@ -726,15 +739,21 @@ func testHeld(t *testing.T, f *fixture) {
 	}
 	held()
 	var raw []byte
-	if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT detail FROM campaign_incidents WHERE campaign_id = $1 AND kind = 'recheck_blocked' AND resolved_at IS NULL`, f.campaign).Scan(&raw); err != nil {
+	var heldCount int64
+	if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT detail, held FROM campaign_incidents WHERE campaign_id = $1 AND kind = 'recheck_blocked' AND resolved_at IS NULL`, f.campaign).Scan(&raw, &heldCount); err != nil {
 		t.Fatalf("no open hold: %v", err)
 	}
 	var d struct {
 		Reason   string   `json:"reason"`
 		Blocking []string `json:"blocking"`
+		RunID    string   `json:"run_id"`
 	}
-	if err := json.Unmarshal(raw, &d); err != nil || d.Reason != "Sender domain fails DMARC" || len(d.Blocking) != 2 {
+	if err := json.Unmarshal(raw, &d); err != nil || d.Reason != "Sender domain fails DMARC" || len(d.Blocking) != 2 || d.RunID != "run-7" {
 		t.Fatalf("hold detail %s: %v", raw, err)
+	}
+	// The hold counts the recipients the recheck counted, not zero.
+	if heldCount != 21 {
+		t.Fatalf("hold holds %d recipients, want the recheck's 21", heldCount)
 	}
 	told := f.count(`SELECT count(*) FROM notifications WHERE kind = 'send_blocked' AND data->>'campaign_id' = $1`, f.campaign.String())
 	if told == 0 || f.count(`SELECT count(*) FROM notifications WHERE kind = 'send_blocked' AND user_id = $1 AND title = 'Send held' AND data->>'campaign_id' = $2`, f.sofia, f.campaign.String()) != 1 {
@@ -761,10 +780,17 @@ func testHeld(t *testing.T, f *fixture) {
 			t.Fatal("the watchdog restarts a held send; Review & send's minute job rechecks it")
 		}
 	}
-	// A recheck passes: Review & send's minute job starts it, with no one behind it.
-	f.e.Readiness = fixedRecheck{sending.Recheck{Verdict: "warnings"}}
-	if err := f.e.Start(f.ctx, f.campaign, uuid.Nil); err != nil {
+	// A recheck passes: Review & send's minute job starts it, with no one
+	// behind it. It hands over the recheck it ran, and the engine doesn't
+	// run Send Readiness again (which would block here).
+	calls := 0
+	f.e.Readiness = countedRecheck{blocked, &calls}
+	ctx := sending.WithRecheck(f.ctx, f.campaign, sending.Recheck{Verdict: "warnings"})
+	if err := f.e.Start(ctx, f.campaign, uuid.Nil); err != nil {
 		t.Fatal(err)
+	}
+	if calls != 0 {
+		t.Fatalf("Send Readiness ran %d more times after the caller's recheck", calls)
 	}
 	if f.status() != "sending" {
 		t.Fatalf("status %s after the recheck passed, want sending", f.status())

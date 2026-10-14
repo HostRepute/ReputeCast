@@ -42,7 +42,7 @@ func (r *readinessRecheck) Recheck(ctx context.Context, campaignID uuid.UUID) (s
 	if err != nil {
 		return sending.Recheck{}, err
 	}
-	return sending.Recheck{Verdict: rc.Verdict, Blocking: rc.Blocking, Throttles: rc.Throttles}, nil
+	return sending.Recheck{Verdict: rc.Verdict, Blocking: rc.Blocking, Throttles: rc.Throttles, Audience: rc.Audience, RunID: rc.RunID}, nil
 }
 
 // sendingSegments resolves segment audiences: the audience domain's

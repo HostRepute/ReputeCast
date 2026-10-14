@@ -99,9 +99,11 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 	if !o.Now && (sc.Mode == "at" || sc.Mode == "best_time") && sc.At != nil && sc.At.After(now.Add(5*time.Second)) {
 		return e.schedule(ctx, c, *sc.At, o)
 	}
-	rc, err := e.readiness().Recheck(ctx, campaignID)
-	if err != nil {
-		return fmt.Errorf("send readiness recheck: %w", err)
+	rc, checked := sending.RecheckFrom(ctx, campaignID)
+	if !checked {
+		if rc, err = e.readiness().Recheck(ctx, campaignID); err != nil {
+			return fmt.Errorf("send readiness recheck: %w", err)
+		}
 	}
 	if rc.Verdict == "blocked" {
 		if c.Status == "scheduled" {
@@ -109,7 +111,7 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 				return err
 			}
 		}
-		return fmt.Errorf("%w: %s", sending.ErrNotReady, blockReason(rc))
+		return &sending.NotReadyError{Reason: blockReason(rc), Blocking: rc.Blocking}
 	}
 	return db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -284,9 +286,13 @@ func (e *Engine) hold(ctx context.Context, c store.Campaign, rc sending.Recheck,
 		if blocking == nil {
 			blocking = []string{}
 		}
-		detail, _ := json.Marshal(map[string]any{"reason": reason, "blocking": blocking})
+		d := map[string]any{"reason": reason, "blocking": blocking}
+		if rc.RunID != "" {
+			d["run_id"] = rc.RunID
+		}
+		detail, _ := json.Marshal(d)
 		if err := q.SendingInsertIncident(ctx, store.SendingInsertIncidentParams{ID: newID(), CampaignID: c.ID, Kind: "recheck_blocked", Scope: "campaign",
-			Metric: "readiness", Detail: detail, TrippedAt: now}); err != nil {
+			Metric: "readiness", Held: rc.Audience, Detail: detail, TrippedAt: now}); err != nil {
 			return err
 		}
 		if err := e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.send_held", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,

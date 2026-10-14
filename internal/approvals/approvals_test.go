@@ -21,12 +21,17 @@ type fakeStarter struct {
 	mu       sync.Mutex
 	started  []uuid.UUID
 	canceled []uuid.UUID
+	// rechecks are the send-time rechecks handed over with each start.
+	rechecks []sending.Recheck
 }
 
-func (f *fakeStarter) Start(_ context.Context, id, _ uuid.UUID) error {
+func (f *fakeStarter) Start(ctx context.Context, id, _ uuid.UUID) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.started = append(f.started, id)
+	if rc, ok := sending.RecheckFrom(ctx, id); ok {
+		f.rechecks = append(f.rechecks, rc)
+	}
 	return nil
 }
 func (f *fakeStarter) Pause(context.Context, uuid.UUID, uuid.UUID, string) error { return nil }
@@ -438,6 +443,10 @@ func TestSendRecheck(t *testing.T) {
 	if r.Verdict == "blocked" || r.Throttles["outlook"] != 5 || r.Throttles["yahoo"] != 4 || r.Throttles["icloud"] != 3 || r.Throttles["gmail"] != 0 {
 		t.Fatalf("weekly digest: %+v", r)
 	}
+	// A hold the engine records from it counts these recipients.
+	if r.Audience == 0 || r.RunID == "" {
+		t.Fatalf("the recheck should carry its run and recipients: %+v", r)
+	}
 
 	// November still waits for Marcus or Linh.
 	r, err = recheck(ctx, nov)
@@ -465,6 +474,51 @@ func TestSendRecheck(t *testing.T) {
 	linh.Do("GET", ws+"/campaigns/"+flash.String()+"/review", nil).MustStatus(t, 200).JSON(t, &rv)
 	if rv.Held == nil || rv.Held.Reason != "Links: go.acme-promo.link is listed on SURBL and Spamhaus DBL" || rv.Held.Held == 0 || len(rv.Held.Blocks) == 0 || rv.Held.Blocks[0].Status != "block" {
 		t.Fatalf("held by the engine: %+v", rv.Held)
+	}
+}
+
+// Sending now runs Send Readiness once: the run the send starts with is
+// handed to the sending engine, which doesn't run the checks again.
+func TestSendNowRunsReadinessOnce(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	starter := &fakeStarter{}
+	env.App.Sending = starter
+	linh := env.Client()
+	linh.SignInDemo("linh@acme.io")
+	digest := campaignID(t, linh, "Weekly Digest #142")
+	linh.Do("POST", ws+"/campaigns/"+digest+"/unschedule", nil).MustStatus(t, 204)
+	r := getReview(t, linh, digest)
+	if r.Run == nil || r.Run.Verdict == "blocked" || r.Stale {
+		t.Fatalf("weekly digest after unscheduling: %+v", r)
+	}
+	sendTimeRuns := func() (n int, latest string) {
+		t.Helper()
+		if err := env.App.Pool.QueryRow(context.Background(), `SELECT count(*), coalesce((SELECT id::text FROM readiness_runs WHERE campaign_id = $1 AND trigger = 'send_time' ORDER BY ran_at DESC LIMIT 1), '')
+			FROM readiness_runs WHERE campaign_id = $1 AND trigger = 'send_time'`, digest).Scan(&n, &latest); err != nil {
+			t.Fatal(err)
+		}
+		return n, latest
+	}
+	before, _ := sendTimeRuns()
+	var sent struct {
+		Status     string
+		Recipients int64
+	}
+	linh.Do("POST", ws+"/campaigns/"+digest+"/bypass", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r),
+		"confirm": fmt.Sprint(r.Run.Estimates.Audience.Final), "schedule": map[string]any{"mode": "now"},
+		"reason": "Customer-facing outage notice, approved verbally by Marcus.", "password": "reputecast-demo"}).MustStatus(t, 200).JSON(t, &sent)
+	if sent.Status != "sending" {
+		t.Fatalf("sent: %+v", sent)
+	}
+	after, latest := sendTimeRuns()
+	if after != before+1 {
+		t.Fatalf("send-time runs: %d, then %d; want one more", before, after)
+	}
+	// The fresh run counts the demo's contacts, so its audience can differ
+	// from the seeded run's (DESIGN_INVENTORY row 94).
+	if len(starter.rechecks) != 1 || starter.rechecks[0].RunID != latest || starter.rechecks[0].Verdict == "blocked" || starter.rechecks[0].Audience == 0 {
+		t.Fatalf("the engine should start on the send-time run %s: %+v", latest, starter.rechecks)
 	}
 }
 

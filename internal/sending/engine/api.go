@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -290,6 +291,10 @@ func mapErr(err error) error {
 	case errors.As(err, &se):
 		return api.Conflict(se.Msg)
 	case errors.Is(err, sending.ErrNotReady):
+		var nr *sending.NotReadyError
+		if errors.As(err, &nr) && nr.Reason != "" {
+			return api.Conflict("Send Readiness is blocked (" + strings.TrimSuffix(nr.Reason, ".") + "), so the send didn't start. Fix the blocking checks on Review & send.")
+		}
 		return api.Conflict("Send Readiness is blocked, so the send didn't start. Fix the blocking checks on Review & send.")
 	}
 	return err
