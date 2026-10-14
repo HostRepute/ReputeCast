@@ -262,6 +262,7 @@ func TestSending(t *testing.T) {
 	t.Run("Tracking", func(t *testing.T) { testTracking(t, s.fixture(t, "Tracking")) })
 	t.Run("DemoSendReset", func(t *testing.T) { testDemoReset(t, s.fixture(t, "Demo reset")) })
 	t.Run("BestTime", func(t *testing.T) { testBestTime(t, s.fixture(t, "Best time")) })
+	t.Run("AudienceFromSeveralLists", func(t *testing.T) { testSeveralLists(t, s.fixture(t, "Several lists")) })
 }
 
 // testBestTime sends at each recipient's best time: a contact who usually
@@ -798,5 +799,37 @@ func testHeld(t *testing.T, f *fixture) {
 	}
 	if got := f.count(`SELECT count(*) FROM webhook_deliveries WHERE webhook_id = $1 AND event = 'campaign.completed' AND payload->'data'->>'status' = 'cancelled'`, hook); got != 1 {
 		t.Fatalf("%d campaign.completed deliveries for the cancelled send, want 1", got)
+	}
+}
+
+// testSeveralLists builds an audience from two overlapping lists over more
+// than one page: every member gets the send once.
+func testSeveralLists(t *testing.T, f *fixture) {
+	f.exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.campaign)
+	f.addContacts(contactSpec{n: 3500, mailbox: "gmail", domain: "gmail.com", engaged: true})
+	second := uuid.Must(uuid.NewV7())
+	f.exec(`INSERT INTO lists (id, workspace_id, name) VALUES ($1, $2, 'Send test second list')`, second, f.ws)
+	// The second list: the last 1,000 members (who leave the first list)
+	// and 1,000 from the middle (who stay on both).
+	f.exec(`WITH moved AS (
+		    DELETE FROM list_memberships WHERE list_id = $1 AND contact_id IN (SELECT contact_id FROM list_memberships WHERE list_id = $1 ORDER BY contact_id DESC LIMIT 1000)
+		    RETURNING contact_id
+		)
+		INSERT INTO list_memberships (list_id, contact_id, status, subscribed_at) SELECT $2, contact_id, 'subscribed', now() FROM moved`, f.list, second)
+	f.exec(`INSERT INTO list_memberships (list_id, contact_id, status, subscribed_at)
+		SELECT $2, contact_id, 'subscribed', now() FROM list_memberships WHERE list_id = $1 ORDER BY contact_id OFFSET 1000 LIMIT 1000`, f.list, second)
+	if n := f.count(`SELECT count(*) FROM list_memberships WHERE list_id = $1`, f.list); n != 2500 {
+		t.Fatalf("first list has %d members", n)
+	}
+	f.exec(`UPDATE campaigns SET audience = $2 WHERE id = $1`, f.campaign, fmt.Sprintf(`{"lists":[%q,%q]}`, f.list, second))
+	f.startSend(engine.StartOptions{})
+	if n := f.count(`SELECT count(*) FROM messages WHERE campaign_id = $1`, f.campaign); n != 3500 {
+		t.Fatalf("%d recipients, want 3,500", n)
+	}
+	if n := f.count(`SELECT count(DISTINCT contact_id) FROM messages WHERE campaign_id = $1`, f.campaign); n != 3500 {
+		t.Fatalf("%d distinct recipients, want 3,500 (each member once)", n)
+	}
+	if err := f.e.Cancel(f.ctx, f.campaign, f.sofia); err != nil {
+		t.Fatal(err)
 	}
 }

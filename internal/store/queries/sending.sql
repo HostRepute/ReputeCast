@@ -167,12 +167,22 @@ ORDER BY (c.broadcasts_stopped_at IS NOT NULL), c.created_at, c.id;
 -- gone marks a member whose contact was erased or isn't the workspace's:
 -- the caller skips it and the cursor moves on.
 WITH page AS (
-    SELECT u.id FROM (
-        SELECT m.contact_id AS id FROM list_memberships m
-        WHERE m.list_id = ANY(@lists::uuid[]) AND m.status = 'subscribed' AND m.contact_id > @after::uuid
-        UNION
-        SELECT st.contact_id FROM campaign_audience_stage st
-        WHERE st.campaign_id = @campaign_id AND NOT st.exclude AND st.contact_id > @after::uuid
+    -- Each source's next ids in order (an index range per list and for the
+    -- staged segment members), so a page reads about a page per source
+    -- wherever the cursor is, not every member after it.
+    SELECT DISTINCT u.id FROM (
+        SELECT x.id FROM unnest(@lists::uuid[]) AS l(list_id)
+        CROSS JOIN LATERAL (
+            SELECT m.contact_id AS id FROM list_memberships m
+            WHERE m.list_id = l.list_id AND m.contact_id > @after::uuid AND m.status = 'subscribed'
+            ORDER BY m.contact_id
+            LIMIT @lim
+        ) x
+        UNION ALL
+        (SELECT st.contact_id FROM campaign_audience_stage st
+         WHERE st.campaign_id = @campaign_id AND NOT st.exclude AND st.contact_id > @after::uuid
+         ORDER BY st.contact_id
+         LIMIT @lim)
     ) u
     ORDER BY u.id
     LIMIT @lim

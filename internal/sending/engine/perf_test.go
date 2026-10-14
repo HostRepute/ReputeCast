@@ -36,8 +36,17 @@ func TestThroughput50k(t *testing.T) {
 			var before runtime.MemStats
 			runtime.GC()
 			runtime.ReadMemStats(&before)
+			// The start runs Send Readiness again (the send-time recheck);
+			// the audience build follows.
 			t0 := time.Now()
-			f.startSend(engine.StartOptions{})
+			if err := f.e.StartWith(f.ctx, f.campaign, engine.StartOptions{By: f.sofia, Now: true}); err != nil {
+				t.Fatalf("start: %v", err)
+			}
+			started := time.Since(t0)
+			t0 = time.Now()
+			if err := f.e.DrivePrepare(f.ctx, f.campaign, f.start); err != nil {
+				t.Fatalf("prepare: %v", err)
+			}
 			prepared := time.Since(t0)
 			if n := f.count(`SELECT count(*) FROM messages WHERE campaign_id = $1`, f.campaign); n != int64(perfN()) {
 				t.Fatalf("%d messages queued, want 50,000", n)
@@ -69,8 +78,8 @@ func TestThroughput50k(t *testing.T) {
 				t.Fatalf("sent %d of 50,000 (done %v)", sent, done)
 			}
 			events := f.count(`SELECT count(*) FROM delivery_events WHERE campaign_id = $1`, f.campaign)
-			t.Logf("%s: audience build %v (%.0f recipients/s); send %v, %.0f messages/s; %d events applied; heap in use %.0f MB before, %.0f MB peak",
-				name, prepared.Round(time.Millisecond), 50000/prepared.Seconds(), sending.Round(time.Millisecond), float64(sent)/sending.Seconds(), events,
+			t.Logf("%s: start with the Send Readiness recheck %v; audience build %v (%.0f recipients/s); send %v, %.0f messages/s; %d events applied; heap in use %.0f MB before, %.0f MB peak",
+				name, started.Round(time.Millisecond), prepared.Round(time.Millisecond), float64(perfN())/prepared.Seconds(), sending.Round(time.Millisecond), float64(sent)/sending.Seconds(), events,
 				float64(before.HeapInuse)/1e6, float64(peak)/1e6)
 		})
 	}

@@ -227,15 +227,25 @@ func (q *Queries) SendingAudienceAddresses(ctx context.Context, arg SendingAudie
 
 const sendingAudiencePage = `-- name: SendingAudiencePage :many
 WITH page AS (
-    SELECT u.id FROM (
-        SELECT m.contact_id AS id FROM list_memberships m
-        WHERE m.list_id = ANY($3::uuid[]) AND m.status = 'subscribed' AND m.contact_id > $4::uuid
-        UNION
-        SELECT st.contact_id FROM campaign_audience_stage st
-        WHERE st.campaign_id = $5 AND NOT st.exclude AND st.contact_id > $4::uuid
+    -- Each source's next ids in order (an index range per list and for the
+    -- staged segment members), so a page reads about a page per source
+    -- wherever the cursor is, not every member after it.
+    SELECT DISTINCT u.id FROM (
+        SELECT x.id FROM unnest($3::uuid[]) AS l(list_id)
+        CROSS JOIN LATERAL (
+            SELECT m.contact_id AS id FROM list_memberships m
+            WHERE m.list_id = l.list_id AND m.contact_id > $4::uuid AND m.status = 'subscribed'
+            ORDER BY m.contact_id
+            LIMIT $5
+        ) x
+        UNION ALL
+        (SELECT st.contact_id FROM campaign_audience_stage st
+         WHERE st.campaign_id = $6 AND NOT st.exclude AND st.contact_id > $4::uuid
+         ORDER BY st.contact_id
+         LIMIT $5)
     ) u
     ORDER BY u.id
-    LIMIT $6
+    LIMIT $5
 ), ids AS (
     -- One array of the page's ids: the lookups below see a list of known
     -- size (an index lookup or a hashed check) instead of a join the
@@ -252,7 +262,7 @@ WITH page AS (
     WHERE x.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND x.list_id = ANY($7::uuid[]) AND x.status = 'subscribed'
 ), excluded_staged AS (
     SELECT st.contact_id FROM campaign_audience_stage st
-    WHERE st.campaign_id = $5 AND st.exclude AND st.contact_id = ANY((SELECT a FROM ids)::uuid[])
+    WHERE st.campaign_id = $6 AND st.exclude AND st.contact_id = ANY((SELECT a FROM ids)::uuid[])
 )
 SELECT page.id::uuid AS id,
        coalesce(c.email, '')::text AS email, coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
@@ -279,8 +289,8 @@ type SendingAudiencePageParams struct {
 	WorkspaceID  uuid.UUID   `json:"workspaceId"`
 	Lists        []uuid.UUID `json:"lists"`
 	After        uuid.UUID   `json:"after"`
-	CampaignID   uuid.UUID   `json:"campaignId"`
 	Lim          int32       `json:"lim"`
+	CampaignID   uuid.UUID   `json:"campaignId"`
 	ExcludeLists []uuid.UUID `json:"excludeLists"`
 }
 
@@ -321,8 +331,8 @@ func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePa
 		arg.WorkspaceID,
 		arg.Lists,
 		arg.After,
-		arg.CampaignID,
 		arg.Lim,
+		arg.CampaignID,
 		arg.ExcludeLists,
 	)
 	if err != nil {
