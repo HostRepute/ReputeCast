@@ -168,3 +168,45 @@ export function costText(c: Schemas['RouteTestCost']): string {
   if (c.per1000 === undefined) return '—'
   return `$${(c.per1000 / 1000).toFixed(4)} · ${money(c.per1000)} per 1,000`
 }
+
+/** How the provider being removed is used in one stream. */
+export type ProviderUse =
+  | { kind: 'primary'; stream: Stream }
+  | { kind: 'share'; stream: Stream; weight: number }
+  | { kind: 'failover'; stream: Stream }
+  | { kind: 'condition'; stream: Stream; values: string }
+
+const order: ProviderUse['kind'][] = ['primary', 'share', 'failover', 'condition']
+
+/** Where a provider is used: primaries first, then shares, failovers and conditions. */
+export function providerUses(d: Draft, id: string): ProviderUse[] {
+  const out: ProviderUse[] = []
+  for (const s of streams) {
+    const sd = d[s]
+    const splits = sd.splits.filter((x) => x.weight > 0)
+    if (splits[0]?.providerId === id) out.push({ kind: 'primary', stream: s })
+    const share = splits.slice(1).find((x) => x.providerId === id)
+    if (share) out.push({ kind: 'share', stream: s, weight: share.weight })
+    if (sd.fallback === id) out.push({ kind: 'failover', stream: s })
+    for (const c of sd.conditions) if (c.providerId === id) out.push({ kind: 'condition', stream: s, values: (c.valueLabels ?? c.values).join(', ') })
+  }
+  return out.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind))
+}
+
+/** The stream without the provider: the replacement takes its place, a share goes back to the primary. */
+export function withoutProvider(sd: StreamDraft, id: string, primary: string, fallback: string): StreamDraft {
+  let splits = sd.splits.filter((x) => x.weight > 0)
+  const first = splits[0]
+  if (first?.providerId === id) {
+    const taken = splits.find((x) => x.providerId === primary)?.weight ?? 0
+    splits = [{ providerId: primary, weight: first.weight + taken }, ...splits.slice(1).filter((x) => x.providerId !== primary)]
+  } else {
+    const share = splits.find((x) => x.providerId === id)
+    splits = splits.filter((x) => x.providerId !== id)
+    if (share && splits[0]) splits[0] = { ...splits[0], weight: splits[0].weight + share.weight }
+  }
+  let fb = sd.fallback === id ? fallback : sd.fallback
+  // A stream never fails over to its own primary.
+  if (fb && fb === splits[0]?.providerId) fb = ''
+  return { ...sd, splits, fallback: fb, conditions: sd.conditions.filter((c) => c.providerId !== id) }
+}
