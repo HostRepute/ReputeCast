@@ -9,7 +9,7 @@ describe('problem sentences', () => {
   })
 
   it("words the router's unhandled-error fallback in the product voice", () => {
-    expect(new ApiError(500, { status: 500, title: 'Internal Server Error', detail: 'unexpected error occurred' }).message).toBe(
+    expect(new ApiError(500, { type: 'about:blank', status: 500, title: 'Internal Server Error', detail: 'unexpected error occurred' }).message).toBe(
       'ReputeCast hit an unexpected error; the details are in the server log.',
     )
   })
