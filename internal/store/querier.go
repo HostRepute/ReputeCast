@@ -1097,9 +1097,10 @@ type Querier interface {
 	// The approval a campaign's send went out under, with the approver.
 	SendingApproval(ctx context.Context, campaignID *uuid.UUID) (SendingApprovalRow, error)
 	// The addresses of the audience members who can receive the send (active,
-	// not suppressed, in no excluded list or segment), oldest contact first:
-	// the audience build leaves out a second contact that reaches the same
-	// mailbox (an alias), as Send Readiness counts them.
+	// not suppressed, in no excluded list or segment): the audience build
+	// leaves out a second contact that reaches the same mailbox (an alias), as
+	// Send Readiness counts them. The one kept is the one the sunset policy
+	// didn't stop, then the oldest, so the mailbox still gets the send.
 	SendingAudienceAddresses(ctx context.Context, arg SendingAudienceAddressesParams) ([]SendingAudienceAddressesRow, error)
 	// One page of the audience after the cursor, in contact id order: members
 	// of the included lists and staged segment members, with everything that

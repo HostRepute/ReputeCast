@@ -536,8 +536,9 @@ func (x *Excluded) add(why string) {
 }
 
 // duplicates finds the audience's aliases: a contact whose address reaches
-// the same mailbox as an older contact of the audience (plus-tags, dots in
-// Gmail addresses) is left out, as Send Readiness counts duplicates.
+// the same mailbox as another contact of the audience (plus-tags, dots in
+// Gmail addresses) is left out, as Send Readiness counts duplicates. The
+// contact kept is one the sunset policy didn't stop, then the oldest.
 // Suppressed and role addresses don't count: they never receive the send.
 func (e *Engine) duplicates(ctx context.Context, cc store.SendingCampaignContextRow, def audienceDef) (map[uuid.UUID]bool, error) {
 	rows, err := e.Q.SendingAudienceAddresses(ctx, store.SendingAudienceAddressesParams{

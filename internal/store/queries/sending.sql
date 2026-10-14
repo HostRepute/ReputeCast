@@ -138,9 +138,10 @@ SELECT count(*)::bigint FROM campaign_audience_stage WHERE campaign_id = @campai
 
 -- name: SendingAudienceAddresses :many
 -- The addresses of the audience members who can receive the send (active,
--- not suppressed, in no excluded list or segment), oldest contact first:
--- the audience build leaves out a second contact that reaches the same
--- mailbox (an alias), as Send Readiness counts them.
+-- not suppressed, in no excluded list or segment): the audience build
+-- leaves out a second contact that reaches the same mailbox (an alias), as
+-- Send Readiness counts them. The one kept is the one the sunset policy
+-- didn't stop, then the oldest, so the mailbox still gets the send.
 WITH members AS (
     SELECT m.contact_id AS id FROM list_memberships m
     WHERE m.list_id = ANY(@lists::uuid[]) AND m.status = 'subscribed'
@@ -154,7 +155,7 @@ WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS 
   AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.list_id = ANY(@exclude_lists::uuid[]) AND x.status = 'subscribed')
   AND NOT EXISTS (SELECT 1 FROM campaign_audience_stage st WHERE st.campaign_id = @campaign_id AND st.exclude AND st.contact_id = c.id)
   AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)
-ORDER BY c.created_at, c.id;
+ORDER BY (c.broadcasts_stopped_at IS NOT NULL), c.created_at, c.id;
 
 -- name: SendingAudiencePage :many
 -- One page of the audience after the cursor, in contact id order: members

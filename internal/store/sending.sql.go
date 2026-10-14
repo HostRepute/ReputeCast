@@ -179,7 +179,7 @@ WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
   AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.list_id = ANY($2::uuid[]) AND x.status = 'subscribed')
   AND NOT EXISTS (SELECT 1 FROM campaign_audience_stage st WHERE st.campaign_id = $3 AND st.exclude AND st.contact_id = c.id)
   AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)
-ORDER BY c.created_at, c.id
+ORDER BY (c.broadcasts_stopped_at IS NOT NULL), c.created_at, c.id
 `
 
 type SendingAudienceAddressesParams struct {
@@ -196,9 +196,10 @@ type SendingAudienceAddressesRow struct {
 }
 
 // The addresses of the audience members who can receive the send (active,
-// not suppressed, in no excluded list or segment), oldest contact first:
-// the audience build leaves out a second contact that reaches the same
-// mailbox (an alias), as Send Readiness counts them.
+// not suppressed, in no excluded list or segment): the audience build
+// leaves out a second contact that reaches the same mailbox (an alias), as
+// Send Readiness counts them. The one kept is the one the sunset policy
+// didn't stop, then the oldest, so the mailbox still gets the send.
 func (q *Queries) SendingAudienceAddresses(ctx context.Context, arg SendingAudienceAddressesParams) ([]SendingAudienceAddressesRow, error) {
 	rows, err := q.db.Query(ctx, sendingAudienceAddresses,
 		arg.WorkspaceID,

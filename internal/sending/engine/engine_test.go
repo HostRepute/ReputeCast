@@ -40,6 +40,8 @@ type contactSpec struct {
 	rolePattern bool
 	// stopped: the sunset policy stopped their Broadcasts.
 	stopped bool
+	// stoppedPair adds, for each contact (stopped), a newer active alias.
+	stoppedPair bool
 }
 
 type suite struct {
@@ -147,8 +149,13 @@ func (f *fixture) addContacts(specs ...contactSpec) {
 			if s.paused {
 				paused = append(paused, id)
 			}
-			if s.stopped {
+			if s.stopped || s.stoppedPair {
 				stopped = append(stopped, id)
+			}
+			if s.stoppedPair {
+				aid := uuid.Must(uuid.NewV7())
+				contacts = append(contacts, []any{aid, f.ws, strings.Replace(email, "@", "+pair@", 1), "Reader", fmt.Sprint(i), status, tier, s.source, s.mailbox, lastOpen, lastOpen, s.role})
+				members = append(members, []any{f.list, aid, "subscribed", f.start.Add(-30 * 24 * time.Hour)})
 			}
 		}
 	}
@@ -696,7 +703,9 @@ func (r fixedRecheck) Recheck(context.Context, uuid.UUID) (sending.Recheck, erro
 func testHeld(t *testing.T, f *fixture) {
 	saved := f.e.Readiness
 	defer func() { f.e.Readiness = saved }()
-	f.addContacts(contactSpec{n: 20, mailbox: "gmail", domain: "gmail.com", engaged: true})
+	f.addContacts(contactSpec{n: 20, mailbox: "gmail", domain: "gmail.com", engaged: true},
+		// A stopped contact and its newer alias: the mailbox still gets the send.
+		contactSpec{n: 1, mailbox: "gmail", domain: "gmail.com", engaged: true, stoppedPair: true})
 	hook := uuid.Must(uuid.NewV7())
 	f.exec(`INSERT INTO webhooks (id, workspace_id, url, events, secret_enc, demo) VALUES ($1, $2, 'https://hooks.example.test/w12', '{campaign.*}', '\x00', true)`, hook, f.ws)
 	at := f.start.Add(-time.Minute)
@@ -768,6 +777,15 @@ func testHeld(t *testing.T, f *fixture) {
 	}
 	if n := f.count(`SELECT count(*) FROM campaign_sends WHERE campaign_id = $1 AND started_by = $2 AND started_by_name = 'Sofia Rossi'`, f.campaign, f.sofia); n != 1 {
 		t.Fatal("the send isn't started on behalf of who scheduled it")
+	}
+	if err := f.e.DrivePrepare(f.ctx, f.campaign, f.start); err != nil {
+		t.Fatal(err)
+	}
+	if n := f.count(`SELECT count(*) FROM messages WHERE campaign_id = $1`, f.campaign); n != 21 {
+		t.Fatalf("%d recipients, want 21", n)
+	}
+	if n := f.count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND email LIKE '%+pair@%'`, f.campaign); n != 1 {
+		t.Fatal("the stopped contact's alias should get the send for their mailbox")
 	}
 	// The workspace's endpoints heard about both.
 	for event, n := range map[string]int64{"campaign.paused": 1, "campaign.started": 1} {
