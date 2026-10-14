@@ -440,10 +440,12 @@ screen maps to the spec.
 
 ## Contributing
 
-Issues and pull requests are welcome. Keep `make test`, `make lint` and
-`make build` green, add tests with your change, follow the design boards for
-UI and the specs for behaviour, and never add paywalls or license checks:
-every feature in this repository is free.
+Issues and pull requests are welcome.
+
+- Keep `make test`, `make lint` and `make build` green, and add tests with your change.
+- Follow the design boards for UI and the specs for behaviour.
+- Write commit messages as [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), for example `fix(sending): …` (see `docs/dev/CONVENTIONS.md`).
+- Never add paywalls or license checks: every feature in this repository is free.
 
 ## License
 

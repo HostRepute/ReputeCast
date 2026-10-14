@@ -308,8 +308,34 @@ from the board except for live data.
 
 ## 8. Git
 
-Work on your branch. Commit often with messages in the imperative
-("Add routing rules API"). Don't edit files owned by another workstream
-except the shared, append-only ones listed in WORKSTREAMS.md. Generated files
-(`internal/store/*.go`, `web/openapi.json`, `web/src/api/schema.d.ts`,
-`web/src/routeTree.gen.ts`) are regenerated, never hand-edited.
+Work on your branch and commit often. Commit messages follow
+[Conventional Commits 1.0](https://www.conventionalcommits.org/en/v1.0.0/):
+`type(scope): description`.
+
+- **Type:**
+  - `feat`: a new capability.
+  - `fix`: a bug, or a screen that doesn't match its board.
+  - `docs`: documentation, the roadmap and the design inventory.
+  - `test`: tests and the QA scripts.
+  - `refactor`: same behaviour, different code.
+  - `perf`: faster or lighter.
+  - `style`: formatting and lint only.
+  - `build`: Makefile, Dockerfile, release and dependencies.
+  - `ci`: workflows.
+  - `chore`: generated files, branch syncs and the rest.
+  - Mark a breaking change with `!` after the type or scope, plus a `BREAKING CHANGE:` footer.
+- **Scope:** optional. Use the feature or package the change is about, in lower case: `audience`, `sending`, `composer`, `providers`, `approvals`, `forms`, `site` and so on.
+- **Description:** imperative, lower case after the colon, no full stop. The whole first line is at most 100 characters. Explain why in the body.
+- **No attribution trailers:** no `Co-Authored-By` lines or other AI attribution.
+
+```
+fix(campaigns): count only blocking issues for a blocked draft
+
+The list said "5 blocking issues" where Review & send says 3: it counted
+the warnings too.
+```
+
+Don't edit files owned by another workstream except the shared, append-only
+ones listed in WORKSTREAMS.md. Generated files (`internal/store/*.go`,
+`web/openapi.json`, `web/src/api/schema.d.ts`, `web/src/routeTree.gen.ts`) are
+regenerated, never hand-edited.
