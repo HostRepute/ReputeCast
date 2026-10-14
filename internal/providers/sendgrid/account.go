@@ -19,6 +19,7 @@ var (
 	_ providers.QuotaReporter      = (*Provider)(nil)
 	_ providers.DomainManager      = (*Provider)(nil)
 	_ providers.WebhookRegistrar   = (*Provider)(nil)
+	_ providers.WebhookUnregistrar = (*Provider)(nil)
 	_ providers.WebhookInspector   = (*Provider)(nil)
 	_ providers.WebhookTester      = (*Provider)(nil)
 	_ providers.WebhookVerifier    = (*Provider)(nil)
@@ -150,6 +151,28 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 	}
 	if signed.PublicKey != "" {
 		verificationKeys.Set(p.keyID(pathOf(hookURL)), signed.PublicKey)
+	}
+	return nil
+}
+
+// UnregisterWebhook implements providers.WebhookUnregistrar with DELETE
+// /v3/user/webhooks/event/settings/{id}
+// (https://www.twilio.com/docs/sendgrid/api-reference/webhooks/delete-an-event-webhook):
+// every Event Webhook for the URL is deleted. A 404 is a webhook already gone.
+func (p *Provider) UnregisterWebhook(ctx context.Context, hookURL string) error {
+	hooks, err := p.listWebhooks(ctx)
+	if err != nil {
+		return err
+	}
+	for _, h := range hooks {
+		if !sameURL(h.URL, hookURL) {
+			continue
+		}
+		err := p.api.Do(ctx, "DELETE /v3/user/webhooks/event/settings/{id}", http.MethodDelete, "/v3/user/webhooks/event/settings/"+url.PathEscape(h.ID), nil, nil)
+		var ce *providers.CallError
+		if err != nil && (!errors.As(err, &ce) || ce.Status != http.StatusNotFound) {
+			return err
+		}
 	}
 	return nil
 }

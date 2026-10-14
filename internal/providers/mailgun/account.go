@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -20,6 +21,7 @@ var (
 	_ providers.QuotaReporter      = (*Provider)(nil)
 	_ providers.DomainManager      = (*Provider)(nil)
 	_ providers.WebhookRegistrar   = (*Provider)(nil)
+	_ providers.WebhookUnregistrar = (*Provider)(nil)
 	_ providers.WebhookInspector   = (*Provider)(nil)
 	_ providers.WebhookVerifier    = (*Provider)(nil)
 	_ providers.SuppressionSyncer  = (*Provider)(nil)
@@ -272,6 +274,43 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 		}
 		ct, body := form(fields)
 		if _, err := p.api.Exec(ctx, apiclient.Request{Op: op, Method: method, Path: path, ContentType: ct, Body: body}); err != nil {
+			return p.classify(err, p.s.Domain)
+		}
+	}
+	return nil
+}
+
+// UnregisterWebhook implements providers.WebhookUnregistrar: the URL is
+// taken off every event that lists it. The event keeps its other URLs
+// (PUT /v3/domains/{domain}/webhooks/{id}), or its webhook is deleted when
+// the URL was the only one (DELETE /v3/domains/{domain}/webhooks/{id},
+// https://documentation.mailgun.com/docs/mailgun/api-reference/send/mailgun/domain-webhooks).
+func (p *Provider) UnregisterWebhook(ctx context.Context, hookURL string) error {
+	hooks, err := p.webhooks(ctx)
+	if err != nil {
+		return err
+	}
+	for _, id := range slices.Sorted(maps.Keys(hooks)) {
+		if !hasURL(hooks[id], hookURL) {
+			continue
+		}
+		keep := slices.DeleteFunc(slices.Clone(hooks[id]), func(u string) bool { return sameURL(u, hookURL) })
+		path := apiclient.Path("/v3/domains/%s/webhooks/%s", p.s.Domain, id)
+		if len(keep) == 0 {
+			err = p.api.Do(ctx, "DELETE /v3/domains/{domain}/webhooks/{id}", http.MethodDelete, path, nil, nil)
+		} else {
+			fields := make([][2]string, len(keep))
+			for i, u := range keep {
+				fields[i] = [2]string{"url", u}
+			}
+			ct, body := form(fields)
+			_, err = p.api.Exec(ctx, apiclient.Request{Op: "PUT /v3/domains/{domain}/webhooks/{id}", Method: http.MethodPut, Path: path, ContentType: ct, Body: body})
+		}
+		var ce *providers.CallError
+		if errors.As(err, &ce) && ce.Status == http.StatusNotFound {
+			continue // removed in Mailgun since the listing
+		}
+		if err != nil {
 			return p.classify(err, p.s.Domain)
 		}
 	}

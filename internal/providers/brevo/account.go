@@ -22,6 +22,7 @@ var (
 	_ providers.DomainManager      = (*Provider)(nil)
 	_ providers.WebhookRegistrar   = (*Provider)(nil)
 	_ providers.WebhookInspector   = (*Provider)(nil)
+	_ providers.WebhookUnregistrar = (*Provider)(nil)
 	_ providers.WebhookVerifier    = (*Provider)(nil)
 	_ providers.SuppressionSyncer  = (*Provider)(nil)
 	_ providers.EventBackfiller    = (*Provider)(nil)
@@ -243,6 +244,27 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 	}
 	body := map[string]any{"url": hookURL, "description": "ReputeCast", "events": webhookEvents, "type": "transactional", "channel": "email", "auth": auth, "batched": false}
 	return classify(p.api.Do(ctx, "POST /v3/webhooks", http.MethodPost, "/v3/webhooks", body, nil))
+}
+
+// UnregisterWebhook implements providers.WebhookUnregistrar with
+// DELETE /v3/webhooks/{webhookId} for each transactional webhook pointing at
+// hookURL (https://developers.brevo.com/reference/delete-webhook).
+func (p *Provider) UnregisterWebhook(ctx context.Context, hookURL string) error {
+	hooks, err := p.webhooks(ctx)
+	if err != nil {
+		return err
+	}
+	for _, h := range hooks {
+		if !sameURL(h.URL, hookURL) {
+			continue
+		}
+		err = p.api.Do(ctx, "DELETE /v3/webhooks/{id}", http.MethodDelete, "/v3/webhooks/"+strconv.FormatInt(h.ID, 10), nil, nil)
+		var ce *providers.CallError
+		if err != nil && (!errors.As(err, &ce) || ce.Status != http.StatusNotFound) {
+			return classify(err)
+		}
+	}
+	return nil
 }
 
 // InspectWebhook implements providers.WebhookInspector.

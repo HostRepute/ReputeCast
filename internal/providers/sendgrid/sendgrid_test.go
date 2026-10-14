@@ -14,6 +14,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -71,6 +73,7 @@ type fake struct {
 	mu          sync.Mutex
 	pubKey      string
 	hooks       []map[string]any
+	lastHook    int
 	signedOn    []string
 	restricted  bool
 	sendStatus  int
@@ -151,7 +154,8 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		if id == "" {
-			id = "wh-" + strconv.Itoa(len(f.hooks)+1)
+			f.lastHook++
+			id = "wh-" + strconv.Itoa(f.lastHook)
 			in["id"] = id
 			f.hooks = append(f.hooks, in)
 		} else {
@@ -168,6 +172,18 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 	}
 	mux.HandleFunc("POST /v3/user/webhooks/event/settings", readOnly(func(w http.ResponseWriter, r *http.Request) { save(w, r, "") }))
 	mux.HandleFunc("PATCH /v3/user/webhooks/event/settings/{id}", readOnly(func(w http.ResponseWriter, r *http.Request) { save(w, r, r.PathValue("id")) }))
+	mux.HandleFunc("DELETE /v3/user/webhooks/event/settings/{id}", readOnly(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		for i, h := range f.hooks {
+			if h["id"] == r.PathValue("id") {
+				f.hooks = slices.Delete(f.hooks, i, i+1)
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+		writeErr(w, http.StatusNotFound, "Invalid id provided")
+	}))
 	mux.HandleFunc("PATCH /v3/user/webhooks/event/settings/signed/{id}", readOnly(func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
@@ -499,6 +515,47 @@ func TestWebhookRegistrationAndKeyLookup(t *testing.T) {
 	if err := fresh.VerifyWebhook(context.Background(), unsigned, body); !errors.Is(err, providers.ErrBadSignature) {
 		t.Fatalf("an unsigned request is refused: %v", err)
 	}
+}
+
+func TestUnregisterWebhook(t *testing.T) {
+	f := newFake(t)
+	env := contracttest.NewEnv(t, func(env *contracttest.Env) http.Handler {
+		api := f.handler(env)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Deleted meanwhile (in SendGrid's console, say) but still listed.
+			if r.Method == http.MethodDelete && r.URL.Path == "/v3/user/webhooks/event/settings/wh-gone" {
+				writeErr(w, http.StatusNotFound, "Invalid id provided")
+				return
+			}
+			api.ServeHTTP(w, r)
+		})
+	})
+	p := newProvider(t, env, true)
+	const hook = "https://reputecast.acme.io/hooks/sendgrid/tok-1"
+	if err := p.(providers.WebhookRegistrar).RegisterWebhook(context.Background(), hook); err != nil {
+		t.Fatal(err)
+	}
+	f.with(func() {
+		f.hooks = append(f.hooks, map[string]any{"id": "wh-gone", "url": hook + "/", "enabled": true},
+			map[string]any{"id": "wh-other", "url": "https://hooks.example.com/sendgrid", "enabled": true})
+	})
+	if err := p.(providers.WebhookUnregistrar).UnregisterWebhook(context.Background(), hook); err != nil {
+		t.Fatalf("a webhook already gone counts as removed: %v", err)
+	}
+	var deleted []string
+	for _, r := range env.Requests() {
+		if r.Method == http.MethodDelete {
+			deleted = append(deleted, path.Base(r.Path))
+		}
+	}
+	if !slices.Equal(deleted, []string{"wh-1", "wh-gone"}) {
+		t.Fatalf("every webhook for the URL is deleted, and only those: %v", deleted)
+	}
+	f.with(func() {
+		if !slices.ContainsFunc(f.hooks, func(h map[string]any) bool { return h["id"] == "wh-other" }) {
+			t.Fatalf("a webhook pointing elsewhere is kept: %v", f.hooks)
+		}
+	})
 }
 
 func TestDomains(t *testing.T) {

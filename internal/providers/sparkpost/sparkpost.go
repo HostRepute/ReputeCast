@@ -89,6 +89,7 @@ func Descriptor() providers.Descriptor {
 			Sandbox:         "mode",
 			QuotaDiscovery:  true,
 			Pricing:         "plan, set by your SparkPost contract",
+			RemovesWebhook:  true,
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",

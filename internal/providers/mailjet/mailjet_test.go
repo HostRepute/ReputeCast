@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -29,11 +31,12 @@ const (
 )
 
 type fake struct {
-	mu        sync.Mutex
-	callbacks []map[string]any
-	excluded  []int
-	dkimOK    bool
-	n         atomic.Int64
+	mu           sync.Mutex
+	callbacks    []map[string]any
+	lastCallback int
+	excluded     []int
+	dkimOK       bool
+	n            atomic.Int64
 	// answer, when set, replaces the send endpoint's answer.
 	answer *cannedAnswer
 }
@@ -161,7 +164,8 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		var in map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&in)
 		f.mu.Lock()
-		in["ID"] = len(f.callbacks) + 1
+		f.lastCallback++
+		in["ID"] = f.lastCallback
 		f.callbacks = append(f.callbacks, in)
 		f.mu.Unlock()
 		w.WriteHeader(http.StatusCreated)
@@ -181,6 +185,20 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		}
 		f.mu.Unlock()
 		envelope(w, []any{in})
+	}))
+	mux.HandleFunc("DELETE /v3/REST/eventcallbackurl/{id}", guard(func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(r.PathValue("id"))
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		for i, c := range f.callbacks {
+			if n, ok := c["ID"].(int); ok && n == id {
+				f.callbacks = slices.Delete(f.callbacks, i, i+1)
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = io.WriteString(w, `{"ErrorInfo":"","ErrorMessage":"Object not found","StatusCode":404}`)
 	}))
 	mux.HandleFunc("GET /v3/REST/contact", guard(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("IsExcludedFromCampaigns") != "true" {
@@ -452,6 +470,48 @@ func TestCallbacks(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "one callback URL per event") {
 		t.Fatalf("callbacks of another URL are left alone: %v", err)
 	}
+}
+
+func TestUnregisterCallbacks(t *testing.T) {
+	f := &fake{}
+	env := contracttest.NewEnv(t, func(env *contracttest.Env) http.Handler {
+		api := f.handler(env)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Deleted meanwhile (in Mailjet's console, say) but still listed.
+			if r.Method == http.MethodDelete && r.URL.Path == "/v3/REST/eventcallbackurl/5" {
+				w.WriteHeader(http.StatusNotFound)
+				_, _ = io.WriteString(w, `{"ErrorInfo":"","ErrorMessage":"Object not found","StatusCode":404}`)
+				return
+			}
+			api.ServeHTTP(w, r)
+		})
+	})
+	p := newProvider(t, env)
+	const hook = "https://reputecast.acme.io/hooks/mailjet/tok-1"
+	if err := p.(providers.WebhookRegistrar).RegisterWebhook(context.Background(), hook); err != nil {
+		t.Fatal(err)
+	}
+	f.with(func() {
+		f.callbacks = append(f.callbacks, map[string]any{"ID": 40, "EventType": "sent", "Url": hook, "IsBackup": true, "Status": "alive"},
+			map[string]any{"ID": 50, "EventType": "open", "Url": "https://crm.example.com/mailjet", "IsBackup": false, "Status": "alive"})
+	})
+	if err := p.(providers.WebhookUnregistrar).UnregisterWebhook(context.Background(), hook); err != nil {
+		t.Fatalf("a callback already gone counts as removed: %v", err)
+	}
+	var deleted []string
+	for _, r := range env.Requests() {
+		if r.Method == http.MethodDelete {
+			deleted = append(deleted, path.Base(r.Path))
+		}
+	}
+	if !slices.Equal(deleted, []string{"1", "2", "3", "4", "5", "40"}) {
+		t.Fatalf("every callback posting to the URL is deleted, backups included, and only those: %v", deleted)
+	}
+	f.with(func() {
+		if !slices.ContainsFunc(f.callbacks, func(c map[string]any) bool { return c["ID"] == 50 }) {
+			t.Fatalf("a callback posting elsewhere is kept: %v", f.callbacks)
+		}
+	})
 }
 
 func TestSuppressionsAndBackfill(t *testing.T) {

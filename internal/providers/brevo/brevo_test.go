@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,6 +33,10 @@ type fake struct {
 	plan      string
 	throttled bool
 	n         atomic.Int64
+	created   int
+	// gone are webhook ids still listed but deleted already, as in a race
+	// with another client.
+	gone map[int]bool
 }
 
 func (f *fake) with(fn func()) {
@@ -135,7 +140,8 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		var in map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&in)
 		f.mu.Lock()
-		in["id"] = len(f.hooks) + 9863
+		in["id"] = 9863 + f.created
+		f.created++
 		f.hooks = append(f.hooks, in)
 		f.mu.Unlock()
 		w.WriteHeader(http.StatusCreated)
@@ -155,6 +161,19 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		}
 		f.mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
+	}))
+	mux.HandleFunc("DELETE /v3/webhooks/{id}", guard(func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(r.PathValue("id"))
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		for i, h := range f.hooks {
+			if h["id"] == id && !f.gone[id] {
+				f.hooks = slices.Delete(f.hooks, i, i+1)
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+		writeErr(w, http.StatusNotFound, "document_not_found", "Webhook ID not found")
 	}))
 	mux.HandleFunc("GET /v3/smtp/blockedContacts", guard(func(w http.ResponseWriter, r *http.Request) {
 		if (r.URL.Query().Get("startDate") == "") != (r.URL.Query().Get("endDate") == "") {
@@ -406,4 +425,39 @@ func TestWebhooksSuppressionsBackfill(t *testing.T) {
 	if err != nil || len(evs) != 0 {
 		t.Fatalf("a throttled backfill stops quietly: %+v, %v", evs, err)
 	}
+}
+
+func TestUnregisterWebhook(t *testing.T) {
+	f := newFake()
+	env := contracttest.NewEnv(t, f.handler)
+	p := newProvider(t, env)
+	ctx := context.Background()
+	const hook, other = "https://reputecast.acme.io/hooks/brevo/tok-1", "https://hooks.acme.io/brevo"
+	for _, u := range []string{hook, other} {
+		if err := p.(providers.WebhookRegistrar).RegisterWebhook(ctx, u); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// One someone else deleted after the list: Brevo answers 404.
+	f.with(func() {
+		f.hooks = append(f.hooks, map[string]any{"id": 7, "url": hook + "/", "type": "transactional"})
+		f.gone = map[int]bool{7: true}
+	})
+	if err := p.(providers.WebhookUnregistrar).UnregisterWebhook(ctx, hook); err != nil {
+		t.Fatal(err)
+	}
+	var deleted []string
+	for _, r := range env.Requests() {
+		if r.Method == http.MethodDelete {
+			deleted = append(deleted, r.Path)
+		}
+	}
+	if !slices.Equal(deleted, []string{"/v3/webhooks/9863", "/v3/webhooks/7"}) {
+		t.Fatalf("deleted %v", deleted)
+	}
+	f.with(func() {
+		if len(f.hooks) != 2 || f.hooks[0]["url"] != other || f.hooks[1]["id"] != 7 {
+			t.Fatalf("webhooks left: %v", f.hooks)
+		}
+	})
 }

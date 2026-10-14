@@ -19796,6 +19796,31 @@
         ],
         "type": "object"
       },
+      "ProviderDisconnected": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "webhook": {
+            "enum": [
+              "removed",
+              "manual",
+              "failed",
+              "none"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook",
+          "url"
+        ],
+        "type": "object"
+      },
       "ProviderDownState": {
         "additionalProperties": false,
         "properties": {
@@ -25029,6 +25054,9 @@
           "name": {
             "type": "string"
           },
+          "removesWebhook": {
+            "type": "boolean"
+          },
           "shareSteps": {
             "items": {
               "$ref": "#/components/schemas/RoutingShareStep"
@@ -25070,6 +25098,7 @@
           "bulk",
           "bulkAllowed",
           "broadcastStreamCreatable",
+          "removesWebhook",
           "warmingUp",
           "shareSteps",
           "terms"
@@ -53615,6 +53644,13 @@
         ],
         "responses": {
           "204": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderDisconnected"
+                }
+              }
+            },
             "description": "No Content"
           },
           "default": {
@@ -53636,7 +53672,7 @@
             "bearer": []
           }
         ],
-        "summary": "Disconnect a provider no route uses",
+        "summary": "Disconnect a provider no route uses, and remove the webhook ReputeCast registered there",
         "tags": [
           "Sending providers"
         ],

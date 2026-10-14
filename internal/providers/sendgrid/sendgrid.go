@@ -77,6 +77,7 @@ func Descriptor() providers.Descriptor {
 		Capabilities: providers.Capabilities{
 			Bulk:            providers.BulkAllowed,
 			Webhooks:        "Registered",
+			RemovesWebhook:  true,
 			DomainAPI:       "full",
 			SuppressionSync: true,
 			BatchSize:       1,

@@ -174,6 +174,51 @@ func Run(t *testing.T, s Suite) {
 			t.Fatalf("Adapter() = %q, want %q", p.Adapter(), s.Adapter)
 		}
 		checkCapabilities(t, p.Capabilities())
+		if _, ok := p.(providers.WebhookUnregistrar); ok != p.Capabilities().RemovesWebhook {
+			t.Fatalf("RemovesWebhook is %v but the adapter implements WebhookUnregistrar: %v", p.Capabilities().RemovesWebhook, ok)
+		}
+		if _, ok := p.(providers.WebhookRegistrar); p.Capabilities().RemovesWebhook && !ok {
+			t.Fatal("an adapter that removes its webhook must register it too")
+		}
+	})
+
+	// The webhook ReputeCast registers goes when the provider is removed.
+	t.Run("WebhookLifecycle", func(t *testing.T) {
+		env.reset()
+		p := s.New(t, env)
+		wr, okR := p.(providers.WebhookRegistrar)
+		wu, okU := p.(providers.WebhookUnregistrar)
+		if !okR || !okU {
+			t.Skip("the adapter doesn't register and remove webhooks")
+		}
+		ctx := context.Background()
+		hook := "https://reputecast.contract.test/hooks/" + s.Adapter + "/contract-token"
+		inspect := func() (providers.WebhookStatus, bool) {
+			wi, ok := p.(providers.WebhookInspector)
+			if !ok {
+				return providers.WebhookStatus{}, false
+			}
+			st, err := wi.InspectWebhook(ctx, hook)
+			if err != nil {
+				t.Fatalf("inspect: %v", err)
+			}
+			return st, true
+		}
+		if err := wr.RegisterWebhook(ctx, hook); err != nil {
+			t.Fatalf("register: %v", err)
+		}
+		if st, ok := inspect(); ok && !st.Registered {
+			t.Fatalf("after RegisterWebhook the provider has no webhook for %s: %+v", hook, st)
+		}
+		if err := wu.UnregisterWebhook(ctx, hook); err != nil {
+			t.Fatalf("unregister: %v", err)
+		}
+		if st, ok := inspect(); ok && st.Registered {
+			t.Fatalf("after UnregisterWebhook the provider still has a webhook for %s: %+v", hook, st)
+		}
+		if err := wu.UnregisterWebhook(ctx, hook); err != nil {
+			t.Fatalf("removing a webhook that isn't there: %v", err)
+		}
 	})
 
 	t.Run("Send", func(t *testing.T) {

@@ -22,6 +22,7 @@ var (
 	_ providers.QuotaReporter      = (*Provider)(nil)
 	_ providers.DomainManager      = (*Provider)(nil)
 	_ providers.WebhookRegistrar   = (*Provider)(nil)
+	_ providers.WebhookUnregistrar = (*Provider)(nil)
 	_ providers.WebhookInspector   = (*Provider)(nil)
 	_ providers.WebhookVerifier    = (*Provider)(nil)
 	_ providers.SuppressionSyncer  = (*Provider)(nil)
@@ -216,8 +217,9 @@ type webhook struct {
 	Events   []string `json:"events"`
 }
 
-// findWebhook returns the first webhook whose endpoint matches, or nil.
-func (p *Provider) findWebhook(ctx context.Context, match func(endpoint string) bool) (*webhook, error) {
+// eachWebhook calls fn with the team's webhooks, page by page, until fn
+// returns false.
+func (p *Provider) eachWebhook(ctx context.Context, fn func(webhook) bool) error {
 	after := ""
 	for range 20 {
 		path := "/webhooks?limit=100"
@@ -229,19 +231,31 @@ func (p *Provider) findWebhook(ctx context.Context, match func(endpoint string) 
 			Data    []webhook `json:"data"`
 		}
 		if err := p.api.Do(ctx, "GET /webhooks", http.MethodGet, path, nil, &list); err != nil {
-			return nil, err
+			return err
 		}
-		for i := range list.Data {
-			if match(list.Data[i].Endpoint) {
-				return &list.Data[i], nil
+		for _, h := range list.Data {
+			if !fn(h) {
+				return nil
 			}
 		}
 		if !list.HasMore || len(list.Data) == 0 {
-			return nil, nil
+			return nil
 		}
 		after = list.Data[len(list.Data)-1].ID
 	}
-	return nil, nil
+	return nil
+}
+
+// findWebhook returns the first webhook whose endpoint matches, or nil.
+func (p *Provider) findWebhook(ctx context.Context, match func(endpoint string) bool) (*webhook, error) {
+	var found *webhook
+	err := p.eachWebhook(ctx, func(h webhook) bool {
+		if match(h.Endpoint) {
+			found = &h
+		}
+		return found == nil
+	})
+	return found, err
 }
 
 func sameURL(a, b string) bool { return strings.TrimRight(a, "/") == strings.TrimRight(b, "/") }
@@ -267,6 +281,35 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 		return err
 	}
 	secrets.Set(p.secretKey(pathOf(hookURL)), created.SigningSecret)
+	return nil
+}
+
+// UnregisterWebhook implements providers.WebhookUnregistrar: DELETE
+// /webhooks/{id} for every webhook pointing at the URL
+// (https://resend.com/docs/api-reference/webhooks/delete-webhook). A
+// webhook already gone (404) counts as removed.
+func (p *Provider) UnregisterWebhook(ctx context.Context, hookURL string) error {
+	// Listed in full before any delete, which would move the list's cursor.
+	var ids []string
+	err := p.eachWebhook(ctx, func(h webhook) bool {
+		if sameURL(h.Endpoint, hookURL) {
+			ids = append(ids, h.ID)
+		}
+		return true
+	})
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		err := p.api.Do(ctx, "DELETE /webhooks/{id}", http.MethodDelete, apiclient.Path("/webhooks/%s", id), nil, nil)
+		var ce *providers.CallError
+		if errors.As(err, &ce) && ce.Status == http.StatusNotFound {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

@@ -22,6 +22,7 @@ var (
 	_ providers.QuotaReporter      = (*Provider)(nil)
 	_ providers.DomainManager      = (*Provider)(nil)
 	_ providers.WebhookRegistrar   = (*Provider)(nil)
+	_ providers.WebhookUnregistrar = (*Provider)(nil)
 	_ providers.WebhookInspector   = (*Provider)(nil)
 	_ providers.WebhookVerifier    = (*Provider)(nil)
 	_ providers.SuppressionSyncer  = (*Provider)(nil)
@@ -312,6 +313,30 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 	if len(taken) > 0 {
 		return &providers.CallError{Op: "POST /v3/REST/eventcallbackurl", Code: "callback_taken",
 			Message: "Mailjet allows one callback URL per event and API key, and " + strings.Join(taken, ", ") + " already post to another URL. Use an API key only ReputeCast uses, or remove those callbacks in Mailjet, then register again."}
+	}
+	return nil
+}
+
+// UnregisterWebhook implements providers.WebhookUnregistrar with DELETE
+// /v3/REST/eventcallbackurl/{id}
+// (https://dev.mailjet.com/openapi/openapi-mailjet/webhook/delete_v3_eventcallbackurl_id):
+// every callback posting to the URL is deleted, backups included, since the
+// URL stops working with the provider. A 404 is a callback already gone.
+func (p *Provider) UnregisterWebhook(ctx context.Context, hookURL string) error {
+	cbs, err := p.callbacks(ctx)
+	if err != nil {
+		return err
+	}
+	want := withoutUser(hookURL)
+	for _, c := range cbs {
+		if withoutUser(c.URL) != want {
+			continue
+		}
+		err := p.api.Do(ctx, "DELETE /v3/REST/eventcallbackurl/{id}", http.MethodDelete, "/v3/REST/eventcallbackurl/"+strconv.FormatInt(c.ID, 10), nil, nil)
+		var ce *providers.CallError
+		if err != nil && (!errors.As(err, &ce) || ce.Status != http.StatusNotFound) {
+			return err
+		}
 	}
 	return nil
 }

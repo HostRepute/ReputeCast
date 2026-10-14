@@ -4922,7 +4922,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Disconnect a provider no route uses */
+        /** Disconnect a provider no route uses, and remove the webhook ReputeCast registered there */
         delete: operations["disconnect-provider"];
         options?: never;
         head?: never;
@@ -11637,6 +11637,12 @@ export interface components {
                 [key: string]: string;
             };
         };
+        ProviderDisconnected: {
+            detail?: string;
+            url: string;
+            /** @enum {string} */
+            webhook: "removed" | "manual" | "failed" | "none";
+        };
         ProviderDownState: {
             credentialLabel?: string;
             errors: components["schemas"]["ProviderCallError"][];
@@ -13128,6 +13134,7 @@ export interface components {
             id: string;
             label: string;
             name: string;
+            removesWebhook: boolean;
             shareSteps: components["schemas"]["RoutingShareStep"][];
             short: string;
             status: string;
@@ -26515,7 +26522,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProviderDisconnected"];
+                };
             };
             /** @description Error */
             default: {

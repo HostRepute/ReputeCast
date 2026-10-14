@@ -97,9 +97,10 @@ func Register(h huma.API, s *Service) {
 			out, err := s.UpdateSettings(ctx, api.WorkspaceFrom(ctx), in.ProviderID, in.Body)
 			return api.OK(out), err
 		})
-	api.Delete(h, api.Op{ID: "disconnect-provider", Path: "/workspaces/{workspace}/providers/{providerId}", Summary: "Disconnect a provider no route uses", Tags: tags, Access: manage},
-		func(ctx context.Context, in *providerInput) (*api.Empty, error) {
-			return api.NoContent, s.Disconnect(ctx, api.WorkspaceFrom(ctx), in.ProviderID)
+	api.Delete(h, api.Op{ID: "disconnect-provider", Path: "/workspaces/{workspace}/providers/{providerId}", Summary: "Disconnect a provider no route uses, and remove the webhook ReputeCast registered there", Tags: tags, Access: manage, Status: http.StatusOK},
+		func(ctx context.Context, in *providerInput) (*api.Body[ProviderDisconnected], error) {
+			out, err := s.Disconnect(ctx, api.WorkspaceFrom(ctx), in.ProviderID)
+			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "list-tracking-checks", Path: "/workspaces/{workspace}/tracking-checks", Summary: "Provider-side open and click tracking per provider", Tags: tags, Access: view},
 		func(ctx context.Context, _ *wsInput) (*api.Body[ProviderTrackingChecks], error) {

@@ -218,15 +218,28 @@ func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, id st
 	return s.Card(ctx, ws, p.ID)
 }
 
-// Disconnect removes a provider that no route uses any more.
-func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace, id string) error {
+// ProviderDisconnected says what happened to the provider's webhook.
+type ProviderDisconnected struct {
+	// Webhook is "removed" when ReputeCast removed the webhook it had
+	// registered, "manual" when it has to be removed in the provider's own
+	// settings, "failed" when the provider refused (Detail), and "none" when
+	// the provider reports through no webhook (an SMTP bounce mailbox).
+	Webhook string `json:"webhook" enum:"removed,manual,failed,none"`
+	URL     string `json:"url"`
+	Detail  string `json:"detail,omitempty"`
+}
+
+// Disconnect removes a provider that no route uses any more, and the
+// webhook ReputeCast registered there. The webhook goes first, while the
+// credentials still exist; a provider that refuses doesn't stop the removal.
+func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace, id string) (ProviderDisconnected, error) {
 	p, err := s.provider(ctx, ws, id)
 	if err != nil {
-		return err
+		return ProviderDisconnected{}, err
 	}
 	set, err := routing.Load(ctx, s.Q, ws.ID)
 	if err != nil {
-		return err
+		return ProviderDisconnected{}, err
 	}
 	var uses []string
 	for _, stream := range routing.Streams {
@@ -244,9 +257,10 @@ func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace, id string
 		}
 	}
 	if len(uses) > 0 {
-		return api.Conflict(fmt.Sprintf("%s still carries %s. Change the routing first, then disconnect it.", p.Name, strings.Join(uses, " and ")))
+		return ProviderDisconnected{}, api.Conflict(fmt.Sprintf("%s still carries %s. Change the routing first, then disconnect it.", p.Name, strings.Join(uses, " and ")))
 	}
-	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	out := s.removeWebhook(ctx, p)
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.ProvDisconnect(ctx, p.ID); err != nil {
 			return err
@@ -255,8 +269,52 @@ func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace, id string
 		if _, err := q.ProvEndFailovers(ctx, store.ProvEndFailoversParams{ProviderID: p.ID, EndedAt: &now, EndReason: "disconnected"}); err != nil {
 			return err
 		}
-		return s.audit(ctx, q, ws, p, "provider.disconnect", map[string]any{"status": p.Status}, nil, nil)
+		meta := map[string]any{"webhook": out.Webhook, "webhook_url": out.URL}
+		if out.Detail != "" {
+			meta["webhook_error"] = out.Detail
+		}
+		return s.audit(ctx, q, ws, p, "provider.disconnect", map[string]any{"status": p.Status}, nil, meta)
 	})
+	return out, err
+}
+
+// removeWebhook removes the webhook ReputeCast registered at the provider.
+// Demo providers are never called; their webhook counts as removed.
+func (s *Service) removeWebhook(ctx context.Context, p store.Provider) ProviderDisconnected {
+	out := ProviderDisconnected{Webhook: "manual", URL: WebhookURL(s.URLs, p)}
+	kind := func(c providers.Capabilities) string {
+		switch {
+		case c.RemovesWebhook:
+			return "removed"
+		case c.Webhooks == "" || c.Webhooks == "Bounce mailbox":
+			return "none"
+		}
+		return "manual"
+	}
+	if IsDemo(p) {
+		if d, ok := providers.Lookup(p.Adapter); ok {
+			out.Webhook = kind(d.Capabilities)
+		}
+		return out
+	}
+	adapter, err := s.Factory.Open(ctx, p)
+	if err != nil {
+		out.Webhook, out.Detail = "failed", err.Error()
+		return out
+	}
+	wu, ok := adapter.(providers.WebhookUnregistrar)
+	if !ok {
+		out.Webhook = kind(adapter.Capabilities())
+		return out
+	}
+	cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	if err := wu.UnregisterWebhook(cctx, out.URL); err != nil {
+		out.Webhook, out.Detail = "failed", err.Error()
+		return out
+	}
+	out.Webhook = "removed"
+	return out
 }
 
 // ProviderTrackingCheck is one row of "Provider-side tracking check".

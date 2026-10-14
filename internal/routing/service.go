@@ -159,12 +159,15 @@ type RoutingProvider struct {
 	BulkAllowed bool   `json:"bulkAllowed"`
 	// BroadcastStreamCreatable: ReputeCast can create the stream that makes
 	// bulk mail allowed ("Postmark · Broadcast stream (create)").
-	BroadcastStreamCreatable bool               `json:"broadcastStreamCreatable"`
-	WarmingUp                bool               `json:"warmingUp"`
-	WarmupDay                int                `json:"warmupDay,omitempty"`
-	WarmupDays               int                `json:"warmupDays,omitempty"`
-	ShareSteps               []RoutingShareStep `json:"shareSteps"`
-	Terms                    []RoutingTerms     `json:"terms"`
+	BroadcastStreamCreatable bool `json:"broadcastStreamCreatable"`
+	// RemovesWebhook: removing the provider also removes the webhook
+	// ReputeCast registered there.
+	RemovesWebhook bool               `json:"removesWebhook"`
+	WarmingUp      bool               `json:"warmingUp"`
+	WarmupDay      int                `json:"warmupDay,omitempty"`
+	WarmupDays     int                `json:"warmupDays,omitempty"`
+	ShareSteps     []RoutingShareStep `json:"shareSteps"`
+	Terms          []RoutingTerms     `json:"terms"`
 }
 
 // RoutingShareStep is a planned increase of a warming provider's Broadcast share.
@@ -308,6 +311,7 @@ func (s *Service) facts(ctx context.Context, ws *store.Workspace) (map[uuid.UUID
 		rp := RoutingProvider{ID: p.ID.String(), Name: p.Name, Short: f.Short, Label: p.Label, Adapter: p.Adapter, Color: state.Color(p.Adapter), Status: p.Status,
 			Bulk: string(caps.Bulk), BulkAllowed: f.BulkAllowed, ShareSteps: []RoutingShareStep{}, Terms: []RoutingTerms{}}
 		if d, ok := providers.Lookup(p.Adapter); ok {
+			rp.RemovesWebhook = d.Capabilities.RemovesWebhook
 			for _, t := range d.Terms {
 				rt := RoutingTerms{Variant: t.Variant, Bulk: string(t.Bulk), Note: t.Note, Streams: []string{}, Available: true}
 				for _, st := range t.Streams {

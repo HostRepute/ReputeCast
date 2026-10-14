@@ -20,6 +20,7 @@ function provider(id: string, name: string, extra: Partial<Schemas['RoutingProvi
     bulk: 'allowed',
     bulkAllowed: true,
     broadcastStreamCreatable: false,
+    removesWebhook: false,
     warmingUp: false,
     shareSteps: [],
     terms: [],

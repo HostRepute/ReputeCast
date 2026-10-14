@@ -68,6 +68,7 @@ func Descriptor() providers.Descriptor {
 		Capabilities: providers.Capabilities{
 			Bulk:            providers.BulkBroadcastStreams,
 			Webhooks:        "Registered",
+			RemovesWebhook:  true,
 			DomainAPI:       "full",
 			SuppressionSync: true,
 			BatchSize:       BatchSize,
@@ -110,6 +111,7 @@ type Provider struct {
 var (
 	_ providers.Provider           = (*Provider)(nil)
 	_ providers.ReputationReporter = (*Provider)(nil)
+	_ providers.WebhookUnregistrar = (*Provider)(nil)
 )
 
 // New builds the adapter from a connected provider's configuration.
@@ -557,18 +559,16 @@ type webhook struct {
 // RegisterWebhook implements providers.WebhookRegistrar: one webhook per
 // stream, with basic auth. An existing webhook for the same URL is updated.
 func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
-	u, err := url.Parse(hookURL)
+	target, err := hookTarget(hookURL)
 	if err != nil {
 		return err
 	}
-	clean := *u
-	clean.User = nil
 	for _, stream := range p.streams() {
 		existing, err := p.listWebhooks(ctx, stream)
 		if err != nil {
 			return err
 		}
-		w := webhook{URL: clean.String(), MessageStream: stream, Triggers: map[string]map[string]bool{
+		w := webhook{URL: target, MessageStream: stream, Triggers: map[string]map[string]bool{
 			"Open": {"Enabled": false}, "Click": {"Enabled": false}, "Delivery": {"Enabled": true},
 			"Bounce": {"Enabled": true, "IncludeContent": false}, "SpamComplaint": {"Enabled": true, "IncludeContent": false},
 			"SubscriptionChange": {"Enabled": true},
@@ -576,7 +576,7 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 		w.HTTPAuth = &httpAuth{Username: WebhookUser, Password: p.cfg.WebhookSecret}
 		var id int64
 		for _, e := range existing {
-			if sameURL(e.URL, clean.String()) {
+			if sameURL(e.URL, target) {
 				id = e.ID
 			}
 		}
@@ -592,9 +592,60 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 	return nil
 }
 
+// UnregisterWebhook implements providers.WebhookUnregistrar with
+// DELETE /webhooks/{ID} for each webhook pointing at hookURL, in every
+// stream (https://postmarkapp.com/developer/api/webhooks-api#delete-a-webhook).
+func (p *Provider) UnregisterWebhook(ctx context.Context, hookURL string) error {
+	target, err := hookTarget(hookURL)
+	if err != nil {
+		return err
+	}
+	// All streams, so a webhook on a stream no longer in the settings goes too.
+	hooks, err := p.listWebhooks(ctx, "")
+	if err != nil {
+		return err
+	}
+	for _, h := range hooks {
+		if !sameURL(h.URL, target) {
+			continue
+		}
+		// Postmark requires Content-Type on DELETE; Do only sends it with a body.
+		_, err = p.api.Exec(ctx, apiclient.Request{Op: "DELETE /webhooks/{id}", Method: http.MethodDelete,
+			Path: "/webhooks/" + strconv.FormatInt(h.ID, 10), ContentType: "application/json"})
+		if err != nil && !webhookGone(err) {
+			return err
+		}
+	}
+	return nil
+}
+
+// webhookGone reports a webhook deleted already: 404, or 422 with
+// ErrorCode 1352 (webhook not found).
+func webhookGone(err error) bool {
+	var ce *providers.CallError
+	return errors.As(err, &ce) && (ce.Status == http.StatusNotFound || ce.Code == "ErrorCode 1352")
+}
+
+// hookTarget is hookURL as RegisterWebhook stores it: credentials go in
+// HttpAuth, not the URL.
+func hookTarget(hookURL string) (string, error) {
+	u, err := url.Parse(hookURL)
+	if err != nil {
+		return "", err
+	}
+	u.User = nil
+	return u.String(), nil
+}
+
+// listWebhooks lists the stream's webhooks, or every stream's when stream
+// is "".
 func (p *Provider) listWebhooks(ctx context.Context, stream string) ([]webhook, error) {
+	path := "/webhooks"
+	if stream != "" {
+		path += "?MessageStream=" + url.QueryEscape(stream)
+	}
 	var res struct{ Webhooks []webhook }
-	err := p.api.Do(ctx, "GET /webhooks", http.MethodGet, "/webhooks?MessageStream="+url.QueryEscape(stream), nil, &res)
+	err := p.api.Do(ctx, "GET /webhooks", http.MethodGet, path, nil, &res)
 	return res.Webhooks, err
 }
 

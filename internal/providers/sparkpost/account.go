@@ -23,6 +23,7 @@ var (
 	_ providers.QuotaReporter      = (*Provider)(nil)
 	_ providers.DomainManager      = (*Provider)(nil)
 	_ providers.WebhookRegistrar   = (*Provider)(nil)
+	_ providers.WebhookUnregistrar = (*Provider)(nil)
 	_ providers.WebhookInspector   = (*Provider)(nil)
 	_ providers.WebhookTester      = (*Provider)(nil)
 	_ providers.WebhookVerifier    = (*Provider)(nil)
@@ -266,6 +267,31 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 		return classify(p.api.Do(ctx, "PUT /api/v1/webhooks/{id}", http.MethodPut, apiclient.Path("/api/v1/webhooks/%s", existing.ID), body, nil))
 	}
 	return classify(p.api.Do(ctx, "POST /api/v1/webhooks", http.MethodPost, "/api/v1/webhooks", body, nil))
+}
+
+// UnregisterWebhook implements providers.WebhookUnregistrar: DELETE
+// /api/v1/webhooks/{id} for every webhook pointing at the URL
+// (https://developers.sparkpost.com/api/webhooks/#webhooks-delete-delete-a-webhook).
+// A webhook already gone (404) counts as removed.
+func (p *Provider) UnregisterWebhook(ctx context.Context, hookURL string) error {
+	hooks, err := p.webhooks(ctx)
+	if err != nil {
+		return err
+	}
+	for _, h := range hooks {
+		if !sameURL(h.Target, hookURL) {
+			continue
+		}
+		err := p.api.Do(ctx, "DELETE /api/v1/webhooks/{id}", http.MethodDelete, apiclient.Path("/api/v1/webhooks/%s", h.ID), nil, nil)
+		var ce *providers.CallError
+		if errors.As(err, &ce) && ce.Status == http.StatusNotFound {
+			continue
+		}
+		if err != nil {
+			return classify(err)
+		}
+	}
+	return nil
 }
 
 // InspectWebhook implements providers.WebhookInspector. SparkPost's batch

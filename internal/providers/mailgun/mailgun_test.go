@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -38,6 +39,7 @@ type fake struct {
 	customLimit bool
 	domainState string
 	hooks       map[string][]string
+	stale       map[string][]string // still listed, already removed in Mailgun
 	unsubAdds   int
 	tracking    map[string]string
 	n           atomic.Int64
@@ -184,6 +186,9 @@ func (f *fake) handler(t *testing.T) func(env *contracttest.Env) http.Handler {
 				out[id] = map[string]any{"urls": urls}
 			}
 			out["opened"] = nil
+			for id, urls := range f.stale {
+				out[id] = map[string]any{"urls": urls}
+			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"webhooks": out})
 		}))
 		mux.HandleFunc("POST /v3/domains/"+domain+"/webhooks", guard(func(w http.ResponseWriter, r *http.Request) {
@@ -201,8 +206,23 @@ func (f *fake) handler(t *testing.T) func(env *contracttest.Env) http.Handler {
 			v := formValues(t, r)
 			f.mu.Lock()
 			defer f.mu.Unlock()
+			if len(f.hooks[r.PathValue("id")]) == 0 {
+				message(w, http.StatusNotFound, "Webhook not found")
+				return
+			}
 			f.hooks[r.PathValue("id")] = v["url"]
 			_ = json.NewEncoder(w).Encode(map[string]any{"message": "Webhook has been updated", "webhook": map[string]any{"urls": v["url"]}})
+		}))
+		mux.HandleFunc("DELETE /v3/domains/"+domain+"/webhooks/{id}", guard(func(w http.ResponseWriter, r *http.Request) {
+			f.mu.Lock()
+			defer f.mu.Unlock()
+			urls := f.hooks[r.PathValue("id")]
+			if len(urls) == 0 {
+				message(w, http.StatusNotFound, "Webhook not found")
+				return
+			}
+			delete(f.hooks, r.PathValue("id"))
+			_ = json.NewEncoder(w).Encode(map[string]any{"message": "Webhook has been deleted", "webhook": map[string]any{"urls": urls}})
 		}))
 		mux.HandleFunc("GET /v3/"+domain+"/{table}", guard(func(w http.ResponseWriter, r *http.Request) {
 			base := "http://" + r.Host + "/v3/" + domain + "/" + r.PathValue("table")
@@ -539,6 +559,52 @@ func TestWebhookRegistration(t *testing.T) {
 	})
 	if err := p.(providers.WebhookRegistrar).RegisterWebhook(context.Background(), "https://reputecast.acme.io/hooks/mailgun/tok-2"); err == nil || !strings.Contains(err.Error(), "three URLs") {
 		t.Fatalf("Mailgun's three URLs per event: %v", err)
+	}
+}
+
+func TestWebhookRemoval(t *testing.T) {
+	f := newFake()
+	env := contracttest.NewEnv(t, f.handler(t))
+	p := newProvider(t, env, true, domain)
+	ctx := context.Background()
+	const hook = "https://reputecast.acme.io/hooks/mailgun/tok-1"
+	if err := p.(providers.WebhookRegistrar).RegisterWebhook(ctx, hook); err != nil {
+		t.Fatal(err)
+	}
+	f.with(func() { f.hooks["clicked"] = []string{"https://other.example/clicks"} })
+	wu := p.(providers.WebhookUnregistrar)
+	calls := len(env.Requests())
+	if err := wu.UnregisterWebhook(ctx, hook+"/"); err != nil {
+		t.Fatal(err)
+	}
+	methods := map[string]string{}
+	for _, r := range env.Requests()[calls:] {
+		methods[strings.TrimPrefix(r.Path, "/v3/domains/"+domain+"/webhooks")] = r.Method
+	}
+	want := map[string]string{"": http.MethodGet, "/delivered": http.MethodPut, "/permanent_fail": http.MethodDelete,
+		"/temporary_fail": http.MethodDelete, "/complained": http.MethodDelete, "/unsubscribed": http.MethodDelete}
+	if !maps.Equal(methods, want) {
+		t.Fatalf("calls: %v, want %v", methods, want)
+	}
+	f.with(func() {
+		if got := f.hooks["delivered"]; len(got) != 1 || got[0] != "https://other.example/hook" {
+			t.Fatalf("other URLs are kept: %v", got)
+		}
+		if len(f.hooks) != 2 || len(f.hooks["clicked"]) != 1 {
+			t.Fatalf("events with only this URL are deleted, the others are left alone: %v", f.hooks)
+		}
+	})
+	calls = len(env.Requests())
+	if err := wu.UnregisterWebhook(ctx, hook); err != nil || len(env.Requests()) != calls+1 {
+		t.Fatalf("removing it again only lists the webhooks: %v", err)
+	}
+	// Removed in Mailgun after the listing: the PUT and the DELETE answer 404.
+	f.with(func() {
+		f.stale = map[string][]string{"accepted": {"https://other.example/accepted", hook}, "opened": {hook}}
+	})
+	calls = len(env.Requests())
+	if err := wu.UnregisterWebhook(ctx, hook); err != nil || len(env.Requests()) != calls+3 {
+		t.Fatalf("a webhook already gone is not an error: %v", err)
 	}
 }
 

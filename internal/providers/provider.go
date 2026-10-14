@@ -61,6 +61,9 @@ type Capabilities struct {
 	// on by default and should be turned off to avoid double tracking.
 	RewritesLinks bool `json:"rewritesLinks"`
 	AddsOpenPixel bool `json:"addsOpenPixel"`
+	// RemovesWebhook is true when the adapter removes the webhook it
+	// registered once the provider is removed (WebhookUnregistrar).
+	RemovesWebhook bool `json:"removesWebhook"`
 }
 
 // Message is one email to one recipient, already rendered and personalized.
@@ -175,6 +178,12 @@ type DomainManager interface {
 // registers automatically.
 type WebhookRegistrar interface {
 	RegisterWebhook(ctx context.Context, url string) error
+}
+
+// WebhookUnregistrar removes the webhook RegisterWebhook added, when the
+// provider is removed. A webhook that isn't there is not an error.
+type WebhookUnregistrar interface {
+	UnregisterWebhook(ctx context.Context, url string) error
 }
 
 // Quota is a provider's sending allowance.

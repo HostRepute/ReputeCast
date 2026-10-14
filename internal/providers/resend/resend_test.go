@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -36,6 +37,8 @@ type fake struct {
 	sendingOnly   bool
 	hookSecret    string
 	hooks         []map[string]any
+	stale         []map[string]any // listed but already deleted: deleting one answers 404
+	hookN         int
 	domainStatus  string
 	patchedDomain map[string]any
 	suppressed    [][]string
@@ -45,7 +48,7 @@ type fake struct {
 }
 
 func newFake() *fake {
-	return &fake{hookSecret: signingSecret, domainStatus: "verified", hooks: []map[string]any{
+	return &fake{hookSecret: signingSecret, domainStatus: "verified", hookN: 1, hooks: []map[string]any{
 		{"id": "wh_1", "endpoint": "https://reputecast.acme.io/hooks/resend/tok-fetch", "status": "enabled", "events": []string{"email.delivered"}},
 	}}
 }
@@ -163,7 +166,7 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 	mux.HandleFunc("GET /webhooks", guard(func(w http.ResponseWriter, _ *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
-		_ = json.NewEncoder(w).Encode(map[string]any{"object": "list", "has_more": false, "data": f.hooks})
+		_ = json.NewEncoder(w).Encode(map[string]any{"object": "list", "has_more": false, "data": slices.Concat(f.hooks, f.stale)})
 	}, false))
 	mux.HandleFunc("GET /webhooks/{id}", guard(func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
@@ -184,7 +187,9 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		var in map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&in)
 		f.mu.Lock()
-		id := "wh_" + strconv.Itoa(len(f.hooks)+1)
+		// A counter, not len(f.hooks): ids must not repeat after a delete.
+		f.hookN++
+		id := "wh_" + strconv.Itoa(f.hookN)
 		f.hooks = append(f.hooks, map[string]any{"id": id, "endpoint": in["endpoint"], "status": "enabled", "events": in["events"]})
 		f.mu.Unlock()
 		_ = json.NewEncoder(w).Encode(map[string]string{"object": "webhook", "id": id, "signing_secret": signingSecret})
@@ -200,6 +205,17 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		}
 		f.mu.Unlock()
 		_ = json.NewEncoder(w).Encode(map[string]string{"object": "webhook", "id": r.PathValue("id")})
+	}, false))
+	mux.HandleFunc("DELETE /webhooks/{id}", guard(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		n := len(f.hooks)
+		f.hooks = slices.DeleteFunc(f.hooks, func(h map[string]any) bool { return h["id"] == r.PathValue("id") })
+		if len(f.hooks) == n {
+			writeErr(w, http.StatusNotFound, "not_found", "Webhook not found")
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"object": "webhook", "id": r.PathValue("id"), "deleted": true})
 	}, false))
 	mux.HandleFunc("GET /webhooks/{id}/events", guard(func(w http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"object": "list", "data": []map[string]string{{"status": "success"}, {"status": "success"}, {"status": "attempting"}, {"status": "failed"}}})
@@ -516,6 +532,34 @@ func TestWebhookRegistration(t *testing.T) {
 	st, err := p.(providers.WebhookInspector).InspectWebhook(context.Background(), "https://reputecast.acme.io/hooks/resend/tok-fetch/")
 	if err != nil || !st.Registered || st.ID != "wh_1" || st.Sent != 2 || st.Queued != 1 {
 		t.Fatalf("inspect: %+v, %v", st, err)
+	}
+}
+
+func TestUnregisterWebhook(t *testing.T) {
+	const hook = "https://reputecast.acme.io/hooks/resend/tok-fetch" // wh_1
+	f := newFake()
+	f.hooks = append(f.hooks,
+		map[string]any{"id": "wh_theirs", "endpoint": "https://reputecast.acme.io/hooks/resend/tok-fetch-2"},
+		map[string]any{"id": "wh_again", "endpoint": hook + "/"},
+	)
+	f.stale = []map[string]any{{"id": "wh_gone", "endpoint": hook}}
+	env := contracttest.NewEnv(t, f.handler)
+	if err := newProvider(t, env, nil).(providers.WebhookUnregistrar).UnregisterWebhook(context.Background(), hook); err != nil {
+		t.Fatalf("a webhook already gone (404) is removed all the same: %v", err)
+	}
+	deleted := []string{}
+	for _, r := range env.Requests() {
+		if r.Method == http.MethodDelete {
+			deleted = append(deleted, r.Path)
+		}
+	}
+	if strings.Join(deleted, ",") != "/webhooks/wh_1,/webhooks/wh_again,/webhooks/wh_gone" {
+		t.Fatalf("every webhook pointing at the URL is deleted: %v", deleted)
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if len(f.hooks) != 1 || f.hooks[0]["id"] != "wh_theirs" {
+		t.Fatalf("a webhook pointing elsewhere is kept: %v", f.hooks)
 	}
 }
 

@@ -7,7 +7,10 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/google/uuid"
@@ -19,7 +22,24 @@ import (
 
 const secret = "whsec-test-postmark"
 
-func fakeAPI(env *contracttest.Env) http.Handler {
+type fakeHook struct {
+	ID            int64
+	URL           string `json:"Url"`
+	MessageStream string
+	// gone is still listed but deleted already, as in a race with another
+	// client.
+	gone bool
+}
+
+type fake struct {
+	mu    sync.Mutex
+	hooks []fakeHook
+	next  int64
+}
+
+func fakeAPI(env *contracttest.Env) http.Handler { return (&fake{next: 1234}).handler(env) }
+
+func (f *fake) handler(env *contracttest.Env) http.Handler {
 	mux := http.NewServeMux()
 	fail := func(w http.ResponseWriter) bool {
 		switch env.Mode() {
@@ -59,6 +79,78 @@ func fakeAPI(env *contracttest.Env) http.Handler {
 			return
 		}
 		_, _ = io.WriteString(w, `{"ID":23,"Name":"Acme Newsletter","TrackOpens":true,"TrackLinks":"HtmlAndText"}`)
+	})
+	notFound := func(w http.ResponseWriter) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_, _ = io.WriteString(w, `{"ErrorCode":1352,"Message":"The webhook for the provided ID was not found."}`)
+	}
+	mux.HandleFunc("GET /webhooks", func(w http.ResponseWriter, r *http.Request) {
+		if fail(w) {
+			return
+		}
+		stream := r.URL.Query().Get("MessageStream")
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		out := []fakeHook{}
+		for _, h := range f.hooks {
+			if stream == "" || h.MessageStream == stream {
+				out = append(out, h)
+			}
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"Webhooks": out})
+	})
+	mux.HandleFunc("POST /webhooks", func(w http.ResponseWriter, r *http.Request) {
+		if fail(w) {
+			return
+		}
+		var h fakeHook
+		if err := json.NewDecoder(r.Body).Decode(&h); err != nil || h.URL == "" || h.MessageStream == "" {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_, _ = io.WriteString(w, `{"ErrorCode":402,"Message":"Received invalid JSON input."}`)
+			return
+		}
+		f.mu.Lock()
+		f.next++
+		h.ID = f.next
+		f.hooks = append(f.hooks, h)
+		f.mu.Unlock()
+		_ = json.NewEncoder(w).Encode(h)
+	})
+	mux.HandleFunc("PUT /webhooks/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if fail(w) {
+			return
+		}
+		var in fakeHook
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		for i, h := range f.hooks {
+			if strconv.FormatInt(h.ID, 10) == r.PathValue("id") && !h.gone {
+				f.hooks[i].URL = in.URL
+				_ = json.NewEncoder(w).Encode(f.hooks[i])
+				return
+			}
+		}
+		notFound(w)
+	})
+	mux.HandleFunc("DELETE /webhooks/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if fail(w) {
+			return
+		}
+		if r.Header.Get("Content-Type") != "application/json" {
+			w.WriteHeader(http.StatusUnsupportedMediaType)
+			return
+		}
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		for i, h := range f.hooks {
+			if strconv.FormatInt(h.ID, 10) == r.PathValue("id") && !h.gone {
+				f.hooks = slices.Delete(f.hooks, i, i+1)
+				_, _ = io.WriteString(w, `{"ErrorCode":0,"Message":"Webhook `+r.PathValue("id")+` removed."}`)
+				return
+			}
+		}
+		notFound(w)
 	})
 	return mux
 }
@@ -159,5 +251,40 @@ func TestTracking(t *testing.T) {
 	}
 	if !tr.OpenPixel || !tr.LinkRewrite || tr.Detail != "Server setting TrackOpens is on, and TrackLinks is HtmlAndText." {
 		t.Fatalf("tracking: %+v", tr)
+	}
+}
+
+func TestUnregisterWebhook(t *testing.T) {
+	f := &fake{next: 1234}
+	env := contracttest.NewEnv(t, f.handler)
+	p := newProvider(t, env)
+	ctx := context.Background()
+	const hook, other = "https://reputecast.acme.io/hooks/postmark/tok-1", "https://hooks.acme.io/postmark"
+	for _, u := range []string{hook, other} {
+		if err := p.(providers.WebhookRegistrar).RegisterWebhook(ctx, u); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// One on a stream no longer in the settings, and one someone else
+	// deleted after the list.
+	f.mu.Lock()
+	f.hooks = append(f.hooks, fakeHook{ID: 9001, URL: hook, MessageStream: "old-broadcasts"}, fakeHook{ID: 9002, URL: hook + "/", MessageStream: "outbound", gone: true})
+	f.mu.Unlock()
+	if err := p.(providers.WebhookUnregistrar).UnregisterWebhook(ctx, hook); err != nil {
+		t.Fatal(err)
+	}
+	var deleted []string
+	for _, r := range env.Requests() {
+		if r.Method == http.MethodDelete {
+			deleted = append(deleted, r.Path)
+		}
+	}
+	if !slices.Equal(deleted, []string{"/webhooks/1235", "/webhooks/1236", "/webhooks/9001", "/webhooks/9002"}) {
+		t.Fatalf("deleted %v", deleted)
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if len(f.hooks) != 3 || f.hooks[0].URL != other || f.hooks[1].URL != other || !f.hooks[2].gone {
+		t.Fatalf("webhooks left: %+v", f.hooks)
 	}
 }

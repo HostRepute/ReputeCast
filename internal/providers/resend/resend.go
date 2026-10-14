@@ -78,6 +78,7 @@ func Descriptor() providers.Descriptor {
 			Sandbox:         "test addresses",
 			QuotaDiscovery:  true,
 			Pricing:         "plan, free up to 3,000 per month, then from $20 per month",
+			RemovesWebhook:  true,
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",

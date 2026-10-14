@@ -100,12 +100,27 @@ function RemoveBody({
       for (const s of streams) next[s] = withoutProvider(draft[s], id, picked[`primary:${s}`] ?? '', picked[`failover:${s}`] ?? '')
       await http.PUT('/api/v1/workspaces/{workspace}/routing', { params: { path: { workspace: slug } }, body: toInput(next) })
     }
-    await http.DELETE('/api/v1/workspaces/{workspace}/providers/{providerId}', { params: { path: { workspace: slug, providerId: id } } })
+    const { data } = await http.DELETE('/api/v1/workspaces/{workspace}/providers/{providerId}', { params: { path: { workspace: slug, providerId: id } } })
     await Promise.all([
       qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/providers'] }),
       qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/routing'] }),
     ])
-    toast({ kind: 'deleted', title: `${name} removed`, detail: uses.length ? 'Its routes now use the providers you picked; its credentials were deleted.' : 'Its credentials were deleted.' })
+    const routes = uses.length ? 'Its routes now use the providers you picked; its credentials were deleted.' : 'Its credentials were deleted.'
+    const hook = data?.webhook
+    // A webhook left at the provider stays on screen until dismissed: it has to be removed there by hand.
+    toast({
+      kind: hook === 'failed' || hook === 'manual' ? 'info' : 'deleted',
+      title: `${name} removed`,
+      detail:
+        hook === 'removed'
+          ? `${routes} Its webhook was removed from ${name}.`
+          : hook === 'manual'
+            ? `${routes} Remove the webhook pointing at ${data?.url} in ${name}.`
+            : hook === 'failed'
+              ? `${routes} ${name} didn't remove its webhook (${data?.detail}); remove the one pointing at ${data?.url} there.`
+              : routes,
+      duration: hook === 'failed' || hook === 'manual' ? 0 : undefined,
+    })
     onRemoved()
   }
 
@@ -165,6 +180,7 @@ function RemoveBody({
           ))}
           <DialogRow tone="neutral" label="Keeps" first={uses.length === 0}>
             The {count(cfg.shared.suppressions)} suppressions in the shared list stay, and so do its past events and reports.
+            {cfg.providers.find((p) => p.id === id)?.removesWebhook ? ' Webhooks are unregistered for you.' : ''}
           </DialogRow>
           {stuck.length ? <Note tone="warn">Connect another provider that can carry {andList(stuck.map((u) => streamName[u.stream]))} first.</Note> : null}
         </>
