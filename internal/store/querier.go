@@ -1088,6 +1088,176 @@ type Querier interface {
 	SenderSetVerification(ctx context.Context, arg SenderSetVerificationParams) error
 	SenderUpdate(ctx context.Context, arg SenderUpdateParams) error
 	SenderWorkspaceDefaults(ctx context.Context, id uuid.UUID) (SenderWorkspaceDefaultsRow, error)
+	SendingABTotals(ctx context.Context, campaignID uuid.UUID) ([]SendingABTotalsRow, error)
+	// Sends in progress, with what keeps a paused one paused: a person's pause
+	// or an incident still waiting for a decision.
+	SendingActiveSends(ctx context.Context) ([]SendingActiveSendsRow, error)
+	SendingAddPlanned(ctx context.Context, arg SendingAddPlannedParams) error
+	SendingAddRouteCost(ctx context.Context, arg SendingAddRouteCostParams) error
+	// The approval a campaign's send went out under, with the approver.
+	SendingApproval(ctx context.Context, campaignID *uuid.UUID) (SendingApprovalRow, error)
+	// The addresses of the audience members who can receive the send (active,
+	// not suppressed, in no excluded list or segment): the audience build
+	// leaves out a second contact that reaches the same mailbox (an alias), as
+	// Send Readiness counts them. The one kept is the one the sunset policy
+	// didn't stop, then the oldest, so the mailbox still gets the send.
+	SendingAudienceAddresses(ctx context.Context, arg SendingAudienceAddressesParams) ([]SendingAudienceAddressesRow, error)
+	// One page of the audience after the cursor, in contact id order: members
+	// of the included lists and staged segment members, with everything that
+	// decides whether each receives the campaign. It reads the audience, not
+	// the workspace's contacts, and looks up the page's memberships once for
+	// the whole page, so a page costs the same whatever the workspace's size
+	// and whatever the planner's statistics say right after a large import.
+	// gone marks a member whose contact was erased or isn't the workspace's:
+	// the caller skips it and the cursor moves on.
+	SendingAudiencePage(ctx context.Context, arg SendingAudiencePageParams) ([]SendingAudiencePageRow, error)
+	// A flow whose name matches, for "move them into the Re-permission automation".
+	SendingAutomationByName(ctx context.Context, arg SendingAutomationByNameParams) (SendingAutomationByNameRow, error)
+	SendingAutomationEmail(ctx context.Context, arg SendingAutomationEmailParams) (SendingAutomationEmailRow, error)
+	SendingAutomationEmailLatest(ctx context.Context, id uuid.UUID) (int32, error)
+	SendingAutomationLinkCount(ctx context.Context, arg SendingAutomationLinkCountParams) (int64, error)
+	// The workspace's default sender (automation emails come from it).
+	SendingAutomationSender(ctx context.Context, workspaceID uuid.UUID) (SendingAutomationSenderRow, error)
+	SendingBumpCounters(ctx context.Context, arg SendingBumpCountersParams) error
+	SendingCampaign(ctx context.Context, id uuid.UUID) (Campaign, error)
+	// A campaign with its sender and workspace, for building messages.
+	SendingCampaignContext(ctx context.Context, id uuid.UUID) (SendingCampaignContextRow, error)
+	// W12 · Sending engine and live monitor (spec 5.3, 7.6).
+	// Campaigns -------------------------------------------------------------
+	SendingCampaignForUpdate(ctx context.Context, id uuid.UUID) (Campaign, error)
+	SendingCampaignInWorkspace(ctx context.Context, arg SendingCampaignInWorkspaceParams) (Campaign, error)
+	SendingCampaignWorkspace(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
+	// Cancels what is left of a campaign, or of one sending or mailbox provider.
+	SendingCancelRemaining(ctx context.Context, arg SendingCancelRemainingParams) (int64, error)
+	// Send loop -------------------------------------------------------------
+	// Claims up to lim queued messages of one sending provider and mailbox
+	// provider in the send's shuffled order, skipping rows another worker
+	// holds. A claim older than the stale time belonged to a worker that died.
+	SendingClaim(ctx context.Context, arg SendingClaimParams) ([]SendingClaimRow, error)
+	SendingClearLinks(ctx context.Context, campaignID uuid.UUID) error
+	// A send that is prepared again (after a failed preparation) starts clean.
+	SendingClearMessages(ctx context.Context, campaignID *uuid.UUID) error
+	SendingClearRoutes(ctx context.Context, campaignID uuid.UUID) error
+	// Frees providers' windows over a past interval (the demo command's
+	// fast-forward replays seconds the real-time worker may have used).
+	SendingClearWindows(ctx context.Context, arg SendingClearWindowsParams) error
+	// Contacts of an import cohort in this send (never opened), to tell whether
+	// this is the first mail they get from the workspace.
+	SendingCohortContacts(ctx context.Context, arg SendingCohortContactsParams) ([]*uuid.UUID, error)
+	// Complaints of a campaign (optionally one mailbox provider) by how the
+	// complaining contacts joined, whether they ever engaged and their tier:
+	// the evidence behind "likely causes".
+	SendingComplaintCohorts(ctx context.Context, arg SendingComplaintCohortsParams) ([]SendingComplaintCohortsRow, error)
+	SendingContactForAutomation(ctx context.Context, id uuid.UUID) (SendingContactForAutomationRow, error)
+	SendingCounters(ctx context.Context, campaignID uuid.UUID) ([]SendingCountersRow, error)
+	SendingDeferralsSince(ctx context.Context, arg SendingDeferralsSinceParams) (int64, error)
+	SendingDeleteSimEvents(ctx context.Context, ids []int64) error
+	// Scheduled campaigns whose time has come (the watchdog starts any whose
+	// start job was lost). A held one (its send-time recheck turned Blocked)
+	// is left to Review & send's minute job, which rechecks it every 15
+	// minutes and starts it once a recheck passes.
+	SendingDueScheduled(ctx context.Context, now *time.Time) ([]uuid.UUID, error)
+	// Demo transport --------------------------------------------------------
+	SendingDueSimEvents(ctx context.Context, arg SendingDueSimEventsParams) ([]SendingSimEvent, error)
+	// Takes a group out of the rest of the send; returns their contact ids so
+	// they can be added to another flow.
+	SendingExcludeGroup(ctx context.Context, arg SendingExcludeGroupParams) ([]*uuid.UUID, error)
+	// Live monitor ----------------------------------------------------------
+	// The newest delivery and engagement events of a campaign.
+	SendingFeed(ctx context.Context, arg SendingFeedParams) ([]SendingFeedRow, error)
+	SendingFinishPrepare(ctx context.Context, arg SendingFinishPrepareParams) error
+	SendingFinishRoutes(ctx context.Context, arg SendingFinishRoutesParams) error
+	SendingGetSend(ctx context.Context, campaignID uuid.UUID) (CampaignSend, error)
+	SendingGetSendForUpdate(ctx context.Context, campaignID uuid.UUID) (CampaignSend, error)
+	// Groups an auto-pause can take out of the rest of a send (grp):
+	// 'imported' (joined from an import, from @source when given, and never
+	// opened), 'lapsed' (at risk or sunset: no open in more than 90 days) and
+	// 'never' (never opened).
+	// A group's recipients in this send (optionally of one mailbox provider),
+	// and how many of them are still to send.
+	SendingGroupSize(ctx context.Context, arg SendingGroupSizeParams) (SendingGroupSizeRow, error)
+	// The most recent import from a source ("the Mailchimp import on 18 Sep").
+	SendingImportOf(ctx context.Context, arg SendingImportOfParams) (SendingImportOfRow, error)
+	SendingIncidents(ctx context.Context, campaignID uuid.UUID) ([]CampaignIncident, error)
+	SendingInsertAutomationLink(ctx context.Context, arg SendingInsertAutomationLinkParams) error
+	// Automation outbox -----------------------------------------------------
+	SendingInsertAutomationMessage(ctx context.Context, arg SendingInsertAutomationMessageParams) error
+	// Incidents -------------------------------------------------------------
+	SendingInsertIncident(ctx context.Context, arg SendingInsertIncidentParams) error
+	SendingInsertLink(ctx context.Context, arg SendingInsertLinkParams) error
+	// Send state ------------------------------------------------------------
+	SendingInsertSend(ctx context.Context, arg SendingInsertSendParams) error
+	SendingListNames(ctx context.Context, workspaceID uuid.UUID) ([]SendingListNamesRow, error)
+	SendingMarkCompleted(ctx context.Context, arg SendingMarkCompletedParams) error
+	SendingMarkScheduled(ctx context.Context, arg SendingMarkScheduledParams) error
+	SendingMarkSent(ctx context.Context, arg SendingMarkSentParams) error
+	SendingMarkStarted(ctx context.Context, arg SendingMarkStartedParams) error
+	// Messages that will never be sent: rejected by the provider, failed after
+	// every retry, or dropped (suppressed during the send, contact erased).
+	SendingMarkUnsent(ctx context.Context, arg SendingMarkUnsentParams) error
+	// Moves what is left of one provider's share to another provider.
+	SendingMoveRemaining(ctx context.Context, arg SendingMoveRemainingParams) (int64, error)
+	SendingNextSimEvent(ctx context.Context) (time.Time, error)
+	SendingOpenIncidents(ctx context.Context, campaignID uuid.UUID) ([]CampaignIncident, error)
+	SendingOpenWindow(ctx context.Context, arg SendingOpenWindowParams) error
+	SendingOutboxClaim(ctx context.Context, arg SendingOutboxClaimParams) ([]SendingOutboxClaimRow, error)
+	SendingOutboxProviders(ctx context.Context) ([]uuid.UUID, error)
+	// How many of a cohort's contacts received anything from this workspace
+	// before this campaign.
+	SendingPriorSends(ctx context.Context, arg SendingPriorSendsParams) (int64, error)
+	SendingPurgeWindows(ctx context.Context, before int64) error
+	// What is left of a campaign per sending and mailbox provider: queued (and
+	// when the next retry is due) and held for the A/B winner.
+	SendingQueueState(ctx context.Context, arg SendingQueueStateParams) ([]SendingQueueStateRow, error)
+	SendingRelease(ctx context.Context, ids []uuid.UUID) error
+	// The A/B winner goes to everyone who waited for it.
+	SendingReleaseHeld(ctx context.Context, arg SendingReleaseHeldParams) (int64, error)
+	SendingRemainingOn(ctx context.Context, arg SendingRemainingOnParams) (int64, error)
+	// Reserves up to want sends in a provider's one-second window of cap (open
+	// it first). No row comes back when the window is full.
+	SendingReserve(ctx context.Context, arg SendingReserveParams) (int32, error)
+	SendingResolveIncident(ctx context.Context, arg SendingResolveIncidentParams) error
+	SendingRetryLater(ctx context.Context, arg SendingRetryLaterParams) error
+	SendingRetryNow(ctx context.Context, arg SendingRetryNowParams) error
+	// Routes ----------------------------------------------------------------
+	SendingRoutes(ctx context.Context, campaignID uuid.UUID) ([]SendingRoutesRow, error)
+	SendingSavePrepare(ctx context.Context, arg SendingSavePrepareParams) error
+	SendingSegmentNames(ctx context.Context, workspaceID uuid.UUID) ([]SendingSegmentNamesRow, error)
+	SendingSentSince(ctx context.Context, arg SendingSentSinceParams) ([]SendingSentSinceRow, error)
+	SendingSetAB(ctx context.Context, arg SendingSetABParams) error
+	SendingSetAudienceCount(ctx context.Context, arg SendingSetAudienceCountParams) error
+	SendingSetCampaignStatus(ctx context.Context, arg SendingSetCampaignStatusParams) error
+	SendingSetChanges(ctx context.Context, arg SendingSetChangesParams) error
+	SendingSetContent(ctx context.Context, arg SendingSetContentParams) error
+	// The median time from handing a message to the provider to its delivery
+	// event, per route, stored when a send ends ("Median time to delivery" in
+	// the report's per-provider comparison).
+	SendingSetDeliveryP50(ctx context.Context, campaignID uuid.UUID) error
+	SendingSetHolds(ctx context.Context, arg SendingSetHoldsParams) error
+	SendingSetPaused(ctx context.Context, arg SendingSetPausedParams) error
+	SendingSetPhase(ctx context.Context, arg SendingSetPhaseParams) error
+	SendingSetRouteStatus(ctx context.Context, arg SendingSetRouteStatusParams) error
+	SendingSetThrottles(ctx context.Context, arg SendingSetThrottlesParams) error
+	SendingSimMessages(ctx context.Context, ids []uuid.UUID) ([]SendingSimMessagesRow, error)
+	// Audience --------------------------------------------------------------
+	SendingStageAdd(ctx context.Context, arg SendingStageAddParams) error
+	SendingStageClear(ctx context.Context, campaignID uuid.UUID) error
+	SendingStageCount(ctx context.Context, campaignID uuid.UUID) (int64, error)
+	// Takes a scheduled campaign back (to draft, or approved when its approval
+	// still stands).
+	SendingUnschedule(ctx context.Context, arg SendingUnscheduleParams) error
+	// Messages that will never be sent, per sending and mailbox provider.
+	SendingUnsentCounts(ctx context.Context, campaignID *uuid.UUID) ([]SendingUnsentCountsRow, error)
+	SendingUpdateIncidentDetail(ctx context.Context, arg SendingUpdateIncidentDetailParams) error
+	SendingUserNames(ctx context.Context, ids []uuid.UUID) ([]SendingUserNamesRow, error)
+	// The hour of the day (UTC) each contact opens at most often, from their
+	// own opens since a date (privacy-proxy fetches left out): the best time of
+	// a send scheduled per recipient.
+	SendingUsualOpenHours(ctx context.Context, arg SendingUsualOpenHoursParams) ([]SendingUsualOpenHoursRow, error)
+	// The workspace's sending defaults (Settings › Providers): auto-pause
+	// thresholds and the throttles per mailbox provider.
+	SendingWorkspaceDefaults(ctx context.Context, id uuid.UUID) (SendingWorkspaceDefaultsRow, error)
+	SendingWorkspaceProviders(ctx context.Context, workspaceID uuid.UUID) ([]Provider, error)
 	// Restarts the idle clock now (the middleware only touches sessions every
 	// 30 seconds). The absolute lifetime (expires_at) never moves.
 	SessionExtRestartIdle(ctx context.Context, arg SessionExtRestartIdleParams) (SessionExtRestartIdleRow, error)
@@ -1268,6 +1438,28 @@ type Querier interface {
 	TouchPasskey(ctx context.Context, arg TouchPasskeyParams) error
 	TouchSession(ctx context.Context, id uuid.UUID) error
 	TouchUserActive(ctx context.Context, id uuid.UUID) error
+	TrackingAutomationLinks(ctx context.Context, arg TrackingAutomationLinksParams) ([]TrackingAutomationLinksRow, error)
+	TrackingBumpAutomationLink(ctx context.Context, arg TrackingBumpAutomationLinkParams) error
+	TrackingBumpCounters(ctx context.Context, arg TrackingBumpCountersParams) error
+	TrackingBumpHourly(ctx context.Context, arg TrackingBumpHourlyParams) error
+	TrackingBumpLink(ctx context.Context, arg TrackingBumpLinkParams) error
+	TrackingCampaignLinks(ctx context.Context, campaignID uuid.UUID) ([]TrackingCampaignLinksRow, error)
+	TrackingContactVars(ctx context.Context, id uuid.UUID) (TrackingContactVarsRow, error)
+	TrackingFirstLinkClick(ctx context.Context, arg TrackingFirstLinkClickParams) (int32, error)
+	TrackingInsertEvent(ctx context.Context, arg TrackingInsertEventParams) error
+	// A click counts as a human open too.
+	TrackingMarkClick(ctx context.Context, arg TrackingMarkClickParams) (TrackingMarkClickRow, error)
+	// Records an open on a message and says what changed, so counters move
+	// once per message: the first open, or the first human open after a
+	// machine prefetch (prev_opened_at is when that prefetch was).
+	TrackingMarkOpen(ctx context.Context, arg TrackingMarkOpenParams) (TrackingMarkOpenRow, error)
+	// W12 · Open and click tracking (spec 5.5, 7.6).
+	TrackingMessage(ctx context.Context, id uuid.UUID) (TrackingMessageRow, error)
+	TrackingSourceLabel(ctx context.Context, id uuid.UUID) (string, error)
+	TrackingTouchContactClick(ctx context.Context, arg TrackingTouchContactClickParams) error
+	// last_open_at counts every open, last_human_open_at only people's (tiers
+	// and the sunset policy use it); last_open_machine says what the latest was.
+	TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error
 	UpdateAuthPolicy(ctx context.Context, arg UpdateAuthPolicyParams) (InstanceSetting, error)
 	UpdateAutomationDraftGraph(ctx context.Context, arg UpdateAutomationDraftGraphParams) (int64, error)
 	UpdateAutomationMeta(ctx context.Context, arg UpdateAutomationMetaParams) (Automation, error)

@@ -52,9 +52,18 @@ export const entries: Entry[] = [
   { board: 'SendReadinessConfirm', manual: true },
   { board: 'SendReadinessApproval', manual: true },
   { board: 'SendReadinessStates', manual: true },
-  { board: 'LiveMonitor', manual: true },
-  { board: 'LiveMonitorPaused', manual: true },
-  { board: 'LiveMonitorOutage', manual: true },
+  // The live boards need a send in progress: start one first with
+  // `reputecast demo send "Weekly Digest #142" --elapsed 20m --reset` (normal
+  // scenario for LiveMonitor*, --scenario outlook-complaints for
+  // LiveMonitorPaused*, --scenario postal-outage --elapsed 17m for
+  // LiveMonitorOutage), then sweep those boards with --only.
+  { board: 'LiveMonitor', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [1440] },
+  { board: 'LiveMonitorTablet', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [834] },
+  { board: 'LiveMonitorMobile', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [390] },
+  { board: 'LiveMonitorPaused', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [1440, 834] },
+  { board: 'LiveMonitorPausedPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [390] },
+  { board: 'LiveMonitorOutage', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live` },
+  // Connecting, stream lost and complete: reproduce by hand (see the README).
   { board: 'LiveMonitorStates', manual: true },
   // Marcus Chen signs in with SSO only; Linh is an approver too and sees the same list.
   { board: 'ApprovalInbox', path: `${ws}/approvals` },

@@ -194,6 +194,7 @@ reputecast serve
 | `reputecast adapter install\|set-url\|secret\|check\|list\|remove` | Installs a community adapter from its manifest, tells ReputeCast where its process runs and issues its signing secret ([docs/adapters.md](docs/adapters.md#community-adapters)). |
 | `reputecast openapi [--yaml]` | Prints the OpenAPI 3.1 document. |
 | `reputecast seed` | Loads the Acme demo data (development only). |
+| `reputecast demo send "<campaign>" [--scenario …] [--elapsed …] [--reset]` | Sends a demo campaign through the simulated providers so the live monitor moves (development only; see [Live sending in the demo](#live-sending-in-the-demo)). |
 | `reputecast version` | Prints the version. |
 
 ## Configuration
@@ -296,6 +297,17 @@ Authentication**, not in configuration.
   with Vite and embedded in the binary; API types are generated from the
   OpenAPI document.
 - **Adding a provider:** [docs/adapters.md](docs/adapters.md) shows how an adapter is written and contract-tested, and how to map any HTTP API without code.
+- **Sends are guarded.** Send Readiness runs again as a send starts; a
+  scheduled send it blocks is held, and starts once a recheck passes. A send
+  builds its recipient list in pages, routes each recipient, then hands
+  batches to the providers from River jobs within each provider's rate and
+  each mailbox provider's throttle; every message is claimed before it goes
+  out, so nothing is sent twice. Bounce, complaint and deferral rates are
+  checked every two seconds against the campaign's thresholds, and a rate
+  that is over its limit with enough evidence pauses just the mailbox
+  provider or sending provider it concerns. Opens and clicks come back
+  through `/t/o` and `/t/c`, with privacy-proxy and scanner traffic counted
+  apart.
 
 ## Security
 
@@ -345,6 +357,29 @@ Open <http://localhost:5173>. Demo accounts (password `reputecast-demo`):
 | `aisha@acme.io` | Viewer | Password only (two-factor grace period) |
 
 Mailpit shows every email the demo sends at <http://localhost:8025>.
+
+### Live sending in the demo
+
+The demo's sending providers are simulated: nothing they send leaves the
+machine. `reputecast demo send` starts a campaign's send through them as
+Sofia Rossi, with Marcus Chen's approval recorded, and the running server's
+worker keeps sending in real time, with deliveries, bounces, complaints,
+opens and clicks at the rates of the live monitor's designs:
+
+```bash
+export REPUTECAST_ENV=development   # the command refuses to run otherwise
+go run ./cmd/reputecast demo send "Weekly Digest #142" --elapsed 20m
+go run ./cmd/reputecast demo send "Weekly Digest #142" --scenario outlook-complaints --elapsed 20m --reset
+go run ./cmd/reputecast demo send "Weekly Digest #142" --scenario postal-outage --elapsed 17m --reset
+```
+
+`--elapsed` starts the send that long ago and fast-forwards it, so the
+monitor opens mid-send. `outlook-complaints` makes lapsed Outlook readers
+complain until the Outlook share auto-pauses; `postal-outage` makes Postal
+refuse connections 14 minutes in, so its share is held. `--reset` clears an
+earlier send of the campaign, including what it changed elsewhere (provider
+statistics, suppressions from its bounces). It only runs in a workspace whose
+providers are all demo providers.
 
 | Task | Command |
 |---|---|

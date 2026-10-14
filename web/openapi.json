@@ -14157,6 +14157,227 @@
         },
         "type": "object"
       },
+      "IncidentCause": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "lead": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lead",
+          "body"
+        ],
+        "type": "object"
+      },
+      "IncidentDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "base": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "campaign": {
+            "$ref": "#/components/schemas/IncidentRate"
+          },
+          "causes": {
+            "items": {
+              "$ref": "#/components/schemas/IncidentCause"
+            },
+            "type": "array"
+          },
+          "changes": {
+            "$ref": "#/components/schemas/ResumeChanges"
+          },
+          "continuing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "errorKind": {
+            "type": "string"
+          },
+          "errorRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "events": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "log": {
+            "items": {
+              "$ref": "#/components/schemas/IncidentLogLine"
+            },
+            "type": "array"
+          },
+          "move": {
+            "$ref": "#/components/schemas/MoveEstimate"
+          },
+          "note": {
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/IncidentOption"
+            },
+            "type": "array"
+          },
+          "policy": {
+            "type": "string"
+          },
+          "probed": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "recommendations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "remaining": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "secondary": {
+            "$ref": "#/components/schemas/IncidentRate"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sentOnRoute": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "succeeded": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "throttle": {
+            "format": "double",
+            "type": "number"
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmupNote": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "succeeded"
+        ],
+        "type": "object"
+      },
+      "IncidentLogLine": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "bad": {
+            "type": "boolean"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "text",
+          "bad"
+        ],
+        "type": "object"
+      },
+      "IncidentOption": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "recommended": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "body",
+          "recommended",
+          "action"
+        ],
+        "type": "object"
+      },
+      "IncidentRate": {
+        "additionalProperties": false,
+        "properties": {
+          "base": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "events": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "limit": {
+            "format": "double",
+            "type": "number"
+          },
+          "metric": {
+            "type": "string"
+          },
+          "value": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "metric",
+          "events",
+          "base",
+          "value",
+          "limit"
+        ],
+        "type": "object"
+      },
       "InstanceAdminInput": {
         "additionalProperties": false,
         "properties": {
@@ -15864,6 +16085,1203 @@
         ],
         "type": "object"
       },
+      "LiveAB": {
+        "additionalProperties": false,
+        "properties": {
+          "decideAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "leader": {
+            "type": "string"
+          },
+          "metric": {
+            "type": "string"
+          },
+          "phase": {
+            "enum": [
+              "testing",
+              "decided"
+            ],
+            "type": "string"
+          },
+          "sample": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/LiveABVariant"
+            },
+            "type": "array"
+          },
+          "winner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "metric",
+          "phase",
+          "sample",
+          "variants",
+          "leader",
+          "winner"
+        ],
+        "type": "object"
+      },
+      "LiveABVariant": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "rate": {
+            "format": "double",
+            "type": "number"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "rate",
+          "sent"
+        ],
+        "type": "object"
+      },
+      "LiveActionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "cancelled": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "excluded": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "moved": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/LiveSnapshot"
+          }
+        },
+        "required": [
+          "moved",
+          "cancelled",
+          "excluded",
+          "snapshot"
+        ],
+        "type": "object"
+      },
+      "LiveCancelRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mailbox": {
+            "enum": [
+              "gmail",
+              "outlook",
+              "yahoo",
+              "icloud",
+              "other"
+            ],
+            "type": "string"
+          },
+          "providerId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LiveCostByRoute": {
+        "additionalProperties": false,
+        "properties": {
+          "planned": {
+            "format": "double",
+            "type": "number"
+          },
+          "total": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "total",
+          "planned"
+        ],
+        "type": "object"
+      },
+      "LiveDetails": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "audienceCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "costPlanned": {
+            "format": "double",
+            "type": "number"
+          },
+          "from": {
+            "type": "string"
+          },
+          "route": {
+            "type": "string"
+          },
+          "scheduledBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "audience",
+          "audienceCount",
+          "route",
+          "cost",
+          "costPlanned",
+          "scheduledBy"
+        ],
+        "type": "object"
+      },
+      "LiveEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          },
+          "tone": {
+            "enum": [
+              "ok",
+              "warn",
+              "bad",
+              "info",
+              "neutral"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "at",
+          "kind",
+          "label",
+          "short",
+          "tone",
+          "address",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "LiveExcluded": {
+        "additionalProperties": false,
+        "properties": {
+          "bounced": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "complained": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "duplicates": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "excluded": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "paused": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "role": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sunset": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "suppressed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tiers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unsubscribed": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "suppressed",
+          "unsubscribed",
+          "bounced",
+          "complained",
+          "paused",
+          "role",
+          "duplicates",
+          "sunset",
+          "excluded",
+          "tiers"
+        ],
+        "type": "object"
+      },
+      "LiveFailover": {
+        "additionalProperties": false,
+        "properties": {
+          "stream": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "stream",
+          "to"
+        ],
+        "type": "object"
+      },
+      "LiveHelpers": {
+        "additionalProperties": false,
+        "properties": {
+          "pause": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "send": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "pause",
+          "send"
+        ],
+        "type": "object"
+      },
+      "LiveIncident": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/IncidentDetail"
+          },
+          "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "threshold",
+              "provider_outage",
+              "throttled",
+              "recheck_blocked"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "format": "double",
+            "type": "number"
+          },
+          "mailbox": {
+            "type": "string"
+          },
+          "mailboxName": {
+            "type": "string"
+          },
+          "metric": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "providerShort": {
+            "type": "string"
+          },
+          "resolution": {
+            "type": "string"
+          },
+          "resolvedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "campaign",
+              "route",
+              "mailbox_provider"
+            ],
+            "type": "string"
+          },
+          "trippedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "value": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "scope",
+          "mailbox",
+          "mailboxName",
+          "providerId",
+          "provider",
+          "providerShort",
+          "metric",
+          "held",
+          "trippedAt",
+          "resolution",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "LiveMailbox": {
+        "additionalProperties": false,
+        "properties": {
+          "bounceRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "bounced": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "complained": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "complaintRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deliveredRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "held": {
+            "type": "boolean"
+          },
+          "heldSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "key": {
+            "enum": [
+              "gmail",
+              "outlook",
+              "yahoo",
+              "icloud",
+              "other"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "openRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "opened": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "remaining": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "sending",
+              "paused",
+              "done"
+            ],
+            "type": "string"
+          },
+          "throttle": {
+            "description": "Messages per second; absent = the provider's full rate",
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "sent",
+          "remaining",
+          "delivered",
+          "bounced",
+          "complained",
+          "opened",
+          "held",
+          "status"
+        ],
+        "type": "object"
+      },
+      "LiveMoveRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "fromProviderId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "toProviderId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fromProviderId",
+          "toProviderId"
+        ],
+        "type": "object"
+      },
+      "LiveOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "canCancel": {
+            "type": "boolean"
+          },
+          "canPause": {
+            "type": "boolean"
+          },
+          "canResume": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "canResume",
+          "canPause",
+          "canCancel"
+        ],
+        "type": "object"
+      },
+      "LivePauseRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LiveProvider": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "type": "string"
+          },
+          "apiErrorRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "bounceRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "color": {
+            "enum": [
+              "ses",
+              "postal",
+              "postmark",
+              "other"
+            ],
+            "type": "string"
+          },
+          "complaintRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "deliveredRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "downSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "planned": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "plannedCost": {
+            "format": "double",
+            "type": "number"
+          },
+          "quotaFree": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "quotaMax": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rate": {
+            "format": "double",
+            "type": "number"
+          },
+          "remaining": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "retryUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "retrying": {
+            "type": "boolean"
+          },
+          "routeStatus": {
+            "enum": [
+              "pending",
+              "sending",
+              "held",
+              "paused",
+              "done",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "share": {
+            "format": "double",
+            "type": "number"
+          },
+          "short": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "warmupCap": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmupDay": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmupDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmupSent": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "short",
+          "adapter",
+          "color",
+          "sent",
+          "planned",
+          "remaining",
+          "share",
+          "rate",
+          "status",
+          "routeStatus",
+          "host",
+          "ip",
+          "cost",
+          "plannedCost",
+          "retrying"
+        ],
+        "type": "object"
+      },
+      "LiveResumeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mailbox": {
+            "enum": [
+              "gmail",
+              "outlook",
+              "yahoo",
+              "icloud",
+              "other"
+            ],
+            "type": "string"
+          },
+          "providerId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "withChanges": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "LiveRetryRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "providerId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerId"
+        ],
+        "type": "object"
+      },
+      "LiveRouteShare": {
+        "additionalProperties": false,
+        "properties": {
+          "percent": {
+            "format": "double",
+            "type": "number"
+          },
+          "short": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "short",
+          "percent"
+        ],
+        "type": "object"
+      },
+      "LiveShare": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "percent": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "percent"
+        ],
+        "type": "object"
+      },
+      "LiveSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "ab": {
+            "$ref": "#/components/schemas/LiveAB"
+          },
+          "approvedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "approvedBy": {
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "continuing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/LiveCostByRoute"
+          },
+          "deliveredMix": {
+            "items": {
+              "$ref": "#/components/schemas/LiveShare"
+            },
+            "type": "array"
+          },
+          "details": {
+            "$ref": "#/components/schemas/LiveDetails"
+          },
+          "durationSeconds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "etaSeconds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/LiveEvent"
+            },
+            "type": "array"
+          },
+          "eventsVia": {
+            "type": "string"
+          },
+          "excluded": {
+            "$ref": "#/components/schemas/LiveExcluded"
+          },
+          "failovers": {
+            "items": {
+              "$ref": "#/components/schemas/LiveFailover"
+            },
+            "type": "array"
+          },
+          "finishesAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "helpers": {
+            "$ref": "#/components/schemas/LiveHelpers"
+          },
+          "incident": {
+            "$ref": "#/components/schemas/LiveIncident"
+          },
+          "incidents": {
+            "items": {
+              "$ref": "#/components/schemas/LiveIncident"
+            },
+            "type": "array"
+          },
+          "lastEventAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "mailboxes": {
+            "items": {
+              "$ref": "#/components/schemas/LiveMailbox"
+            },
+            "type": "array"
+          },
+          "mailboxesHeld": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "options": {
+            "$ref": "#/components/schemas/LiveOptions"
+          },
+          "pauseReason": {
+            "type": "string"
+          },
+          "pauseScopeHint": {
+            "type": "string"
+          },
+          "pausedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "pausedBy": {
+            "type": "string"
+          },
+          "percent": {
+            "format": "double",
+            "type": "number"
+          },
+          "preparedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/LiveProvider"
+            },
+            "type": "array"
+          },
+          "providersHeld": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "queued": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rate": {
+            "description": "Messages per second now",
+            "format": "double",
+            "type": "number"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "resumed": {
+            "type": "boolean"
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/LiveRouteShare"
+            },
+            "type": "array"
+          },
+          "scheduledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "scheduledBy": {
+            "type": "string"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sharedStreams": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startedBy": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "idle",
+              "scheduled",
+              "preparing",
+              "sending",
+              "partial",
+              "paused",
+              "finished",
+              "cancelled",
+              "failed"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "approval",
+              "approved",
+              "scheduled",
+              "sending",
+              "paused",
+              "sent",
+              "cancelled",
+              "failed"
+            ],
+            "type": "string"
+          },
+          "thresholdScope": {
+            "enum": [
+              "route",
+              "campaign"
+            ],
+            "type": "string"
+          },
+          "thresholds": {
+            "items": {
+              "$ref": "#/components/schemas/LiveThreshold"
+            },
+            "type": "array"
+          },
+          "throttles": {
+            "items": {
+              "$ref": "#/components/schemas/LiveThrottle"
+            },
+            "type": "array"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/LiveTotals"
+          },
+          "unsent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "version": {
+            "description": "Milliseconds since the epoch; the SSE event id",
+            "format": "int64",
+            "type": "integer"
+          },
+          "waiting": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "campaignId",
+          "name",
+          "status",
+          "state",
+          "at",
+          "version",
+          "startedBy",
+          "approvedBy",
+          "scheduledBy",
+          "pausedBy",
+          "pauseReason",
+          "recipients",
+          "sent",
+          "queued",
+          "held",
+          "waiting",
+          "unsent",
+          "percent",
+          "rate",
+          "totals",
+          "mailboxes",
+          "providers",
+          "thresholds",
+          "thresholdScope",
+          "details",
+          "deliveredMix",
+          "incidents",
+          "events",
+          "eventsVia",
+          "failovers",
+          "sharedStreams",
+          "excluded",
+          "error",
+          "resumed",
+          "cost",
+          "providersHeld",
+          "mailboxesHeld",
+          "continuing",
+          "pauseScopeHint",
+          "throttles",
+          "options",
+          "routes"
+        ],
+        "type": "object"
+      },
+      "LiveThreshold": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "enum": [
+              "bounce",
+              "complaint",
+              "mailbox_complaint",
+              "api_errors"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "format": "double",
+            "type": "number"
+          },
+          "mailbox": {
+            "type": "string"
+          },
+          "value": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "value",
+          "limit"
+        ],
+        "type": "object"
+      },
+      "LiveThrottle": {
+        "additionalProperties": false,
+        "properties": {
+          "mailbox": {
+            "type": "string"
+          },
+          "rate": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "mailbox",
+          "rate"
+        ],
+        "type": "object"
+      },
+      "LiveTotals": {
+        "additionalProperties": false,
+        "properties": {
+          "bounced": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "clicked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "complained": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deferred": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "hardBounced": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "opened": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "openedHuman": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "openedMachine": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rejected": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "softBounced": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unsubscribed": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "delivered",
+          "bounced",
+          "hardBounced",
+          "softBounced",
+          "complained",
+          "deferred",
+          "rejected",
+          "opened",
+          "openedHuman",
+          "openedMachine",
+          "clicked",
+          "unsubscribed"
+        ],
+        "type": "object"
+      },
+      "LiveWinnerRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "variant": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "variant"
+        ],
+        "type": "object"
+      },
       "MCPAgentAction": {
         "additionalProperties": false,
         "properties": {
@@ -16451,6 +17869,57 @@
         },
         "required": [
           "state"
+        ],
+        "type": "object"
+      },
+      "MoveEstimate": {
+        "additionalProperties": false,
+        "properties": {
+          "extraCost": {
+            "format": "double",
+            "type": "number"
+          },
+          "extraSeconds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "quotaFree": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "quotaMax": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rate": {
+            "format": "double",
+            "type": "number"
+          },
+          "risk": {
+            "type": "string"
+          },
+          "riskText": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "targetShort": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetId",
+          "target",
+          "targetShort",
+          "extraCost",
+          "extraSeconds",
+          "rate",
+          "risk",
+          "riskText"
         ],
         "type": "object"
       },
@@ -22082,6 +23551,46 @@
           "total",
           "reasons",
           "choseFewer"
+        ],
+        "type": "object"
+      },
+      "ResumeChanges": {
+        "additionalProperties": false,
+        "properties": {
+          "automation": {
+            "type": "string"
+          },
+          "automationId": {
+            "type": "string"
+          },
+          "exclude": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "expected": {
+            "format": "double",
+            "type": "number"
+          },
+          "group": {
+            "type": "string"
+          },
+          "importedOnly": {
+            "type": "boolean"
+          },
+          "mailbox": {
+            "type": "string"
+          },
+          "rate": {
+            "format": "double",
+            "type": "number"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "importedOnly",
+          "exclude"
         ],
         "type": "object"
       },
@@ -40038,6 +41547,662 @@
         ],
         "x-access": "workspace",
         "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live": {
+      "get": {
+        "operationId": "get-live-send",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveSnapshot"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The live monitor's snapshot of a send",
+        "tags": [
+          "Live sending"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/ab-winner": {
+      "post": {
+        "operationId": "pick-live-ab-winner",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveWinnerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "End the A/B test with a chosen winner",
+        "tags": [
+          "Live sending"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/cancel": {
+      "post": {
+        "operationId": "cancel-live-send",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveCancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel a send, or one mailbox provider's or sending provider's share",
+        "tags": [
+          "Live sending"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/move": {
+      "post": {
+        "operationId": "move-live-share",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveMoveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move what is left of a sending provider's share to another provider",
+        "tags": [
+          "Live sending"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/pause": {
+      "post": {
+        "operationId": "pause-live-send",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LivePauseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pause a running send",
+        "tags": [
+          "Live sending"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:pause"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/resume": {
+      "post": {
+        "operationId": "resume-live-send",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveResumeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resume a paused send, or a mailbox provider or sending provider on hold",
+        "tags": [
+          "Live sending"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/retry": {
+      "post": {
+        "operationId": "retry-live-share",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveRetryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Keep a held share on its provider and retry every minute",
+        "tags": [
+          "Live sending"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/stream": {
+      "get": {
+        "description": "Each `snapshot` event carries the whole live state; its id is the snapshot version, so a reconnecting EventSource resumes with Last-Event-ID.",
+        "operationId": "stream-live-send",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Resume after this event id (the snapshot version)",
+            "in": "header",
+            "name": "Last-Event-ID",
+            "schema": {
+              "description": "Resume after this event id (the snapshot version)",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Same as the Last-Event-ID header, for clients that reconnect by themselves",
+            "explode": false,
+            "in": "query",
+            "name": "lastEventId",
+            "schema": {
+              "description": "Same as the Last-Event-ID header, for clients that reconnect by themselves",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "description": "Each oneOf object in the array represents one possible Server Sent Events (SSE) message, serialized as UTF-8 text according to the SSE specification.",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/LiveSnapshot"
+                          },
+                          "event": {
+                            "const": "snapshot",
+                            "description": "The event name.",
+                            "type": "string"
+                          },
+                          "id": {
+                            "description": "The event ID.",
+                            "type": "integer"
+                          },
+                          "retry": {
+                            "description": "The retry time in milliseconds.",
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "data",
+                          "event"
+                        ],
+                        "title": "Event snapshot",
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "title": "Server Sent Events",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Server-sent events of a send: a snapshot event at once and on every change, heartbeats as comments",
+        "tags": [
+          "Live sending"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
       }
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview": {

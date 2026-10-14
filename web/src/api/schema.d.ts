@@ -2387,6 +2387,145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The live monitor's snapshot of a send */
+        get: operations["get-live-send"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/ab-winner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End the A/B test with a chosen winner */
+        post: operations["pick-live-ab-winner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a send, or one mailbox provider's or sending provider's share */
+        post: operations["cancel-live-send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move what is left of a sending provider's share to another provider */
+        post: operations["move-live-share"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause a running send */
+        post: operations["pause-live-send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a paused send, or a mailbox provider or sending provider on hold */
+        post: operations["resume-live-send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep a held share on its provider and retry every minute */
+        post: operations["retry-live-share"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Server-sent events of a send: a snapshot event at once and on every change, heartbeats as comments
+         * @description Each `snapshot` event carries the whole live state; its id is the snapshot version, so a reconnecting EventSource resumes with Last-Event-ID.
+         */
+        get: operations["stream-live-send"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview": {
         parameters: {
             query?: never;
@@ -9825,6 +9964,78 @@ export interface components {
             /** @enum {string} */
             step?: "source" | "fields" | "consent" | "preview" | "";
         };
+        IncidentCause: {
+            body: string;
+            lead: string;
+        };
+        IncidentDetail: {
+            /** Format: int64 */
+            attempts?: number;
+            /** Format: int64 */
+            base?: number;
+            campaign?: components["schemas"]["IncidentRate"];
+            causes?: components["schemas"]["IncidentCause"][];
+            changes?: components["schemas"]["ResumeChanges"];
+            continuing?: string[];
+            /** Format: int64 */
+            delivered?: number;
+            errorKind?: string;
+            /** Format: double */
+            errorRate?: number;
+            /** Format: int64 */
+            events?: number;
+            /** Format: date-time */
+            from?: string;
+            host?: string;
+            log?: components["schemas"]["IncidentLogLine"][];
+            move?: components["schemas"]["MoveEstimate"];
+            note?: string;
+            options?: components["schemas"]["IncidentOption"][];
+            policy?: string;
+            probed?: boolean;
+            reason?: string;
+            recommendations?: string[];
+            /** Format: int64 */
+            remaining?: number;
+            secondary?: components["schemas"]["IncidentRate"];
+            /** Format: int64 */
+            sent?: number;
+            /** Format: int64 */
+            sentOnRoute?: number;
+            /** Format: int64 */
+            succeeded: number;
+            /** Format: double */
+            throttle?: number;
+            /** Format: date-time */
+            to?: string;
+            /** Format: int64 */
+            total?: number;
+            warmupNote?: string;
+        };
+        IncidentLogLine: {
+            /** Format: date-time */
+            at: string;
+            bad: boolean;
+            text: string;
+        };
+        IncidentOption: {
+            action: string;
+            body: string;
+            key: string;
+            recommended: boolean;
+            title: string;
+        };
+        IncidentRate: {
+            /** Format: int64 */
+            base: number;
+            /** Format: int64 */
+            events: number;
+            /** Format: double */
+            limit: number;
+            metric: string;
+            /** Format: double */
+            value: number;
+        };
         InstanceAdminInput: {
             admin: boolean;
         };
@@ -10307,6 +10518,379 @@ export interface components {
             /** Format: double */
             unsubRate?: number;
         };
+        LiveAB: {
+            /** Format: date-time */
+            decideAt?: string;
+            kind: string;
+            leader: string;
+            metric: string;
+            /** @enum {string} */
+            phase: "testing" | "decided";
+            /** Format: int64 */
+            sample: number;
+            variants: components["schemas"]["LiveABVariant"][];
+            winner: string;
+        };
+        LiveABVariant: {
+            key: string;
+            /** Format: double */
+            rate: number;
+            /** Format: int64 */
+            sent: number;
+        };
+        LiveActionResult: {
+            /** Format: int64 */
+            cancelled: number;
+            /** Format: int64 */
+            excluded: number;
+            /** Format: int64 */
+            moved: number;
+            snapshot: components["schemas"]["LiveSnapshot"];
+        };
+        LiveCancelRequest: {
+            /** @enum {string} */
+            mailbox?: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
+            /** Format: uuid */
+            providerId?: string;
+        };
+        LiveCostByRoute: {
+            /** Format: double */
+            planned: number;
+            /** Format: double */
+            total: number;
+        };
+        LiveDetails: {
+            audience: string;
+            /** Format: int64 */
+            audienceCount: number;
+            /** Format: double */
+            cost: number;
+            /** Format: double */
+            costPlanned: number;
+            from: string;
+            route: string;
+            scheduledBy: string;
+        };
+        LiveEvent: {
+            address: string;
+            /** Format: date-time */
+            at: string;
+            detail: string;
+            id: string;
+            kind: string;
+            label: string;
+            short: string;
+            /** @enum {string} */
+            tone: "ok" | "warn" | "bad" | "info" | "neutral";
+        };
+        LiveExcluded: {
+            /** Format: int64 */
+            bounced: number;
+            /** Format: int64 */
+            complained: number;
+            /** Format: int64 */
+            duplicates: number;
+            /** Format: int64 */
+            excluded: number;
+            /** Format: int64 */
+            paused: number;
+            /** Format: int64 */
+            role: number;
+            /** Format: int64 */
+            sunset: number;
+            /** Format: int64 */
+            suppressed: number;
+            /** Format: int64 */
+            tiers: number;
+            /** Format: int64 */
+            unsubscribed: number;
+        };
+        LiveFailover: {
+            stream: string;
+            to: string;
+        };
+        LiveHelpers: {
+            pause: string[];
+            send: string[];
+        };
+        LiveIncident: {
+            detail: components["schemas"]["IncidentDetail"];
+            /** Format: int64 */
+            held: number;
+            id: string;
+            /** @enum {string} */
+            kind: "threshold" | "provider_outage" | "throttled" | "recheck_blocked";
+            /** Format: double */
+            limit?: number;
+            mailbox: string;
+            mailboxName: string;
+            metric: string;
+            provider: string;
+            providerId: string;
+            providerShort: string;
+            resolution: string;
+            /** Format: date-time */
+            resolvedAt?: string;
+            /** @enum {string} */
+            scope: "campaign" | "route" | "mailbox_provider";
+            /** Format: date-time */
+            trippedAt: string;
+            /** Format: double */
+            value?: number;
+        };
+        LiveMailbox: {
+            /** Format: double */
+            bounceRate?: number;
+            /** Format: int64 */
+            bounced: number;
+            /** Format: int64 */
+            complained: number;
+            /** Format: double */
+            complaintRate?: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveredRate?: number;
+            held: boolean;
+            /** Format: date-time */
+            heldSince?: string;
+            /** @enum {string} */
+            key: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
+            name: string;
+            /** Format: double */
+            openRate?: number;
+            /** Format: int64 */
+            opened: number;
+            /** Format: int64 */
+            remaining: number;
+            /** Format: int64 */
+            sent: number;
+            /** @enum {string} */
+            status: "ok" | "sending" | "paused" | "done";
+            /**
+             * Format: double
+             * @description Messages per second; absent = the provider's full rate
+             */
+            throttle?: number;
+        };
+        LiveMoveRequest: {
+            /** Format: uuid */
+            fromProviderId: string;
+            /** Format: uuid */
+            toProviderId: string;
+        };
+        LiveOptions: {
+            canCancel: boolean;
+            canPause: boolean;
+            canResume: boolean;
+        };
+        LivePauseRequest: {
+            reason?: string;
+        };
+        LiveProvider: {
+            adapter: string;
+            /** Format: double */
+            apiErrorRate?: number;
+            /** Format: double */
+            bounceRate?: number;
+            /** @enum {string} */
+            color: "ses" | "postal" | "postmark" | "other";
+            /** Format: double */
+            complaintRate?: number;
+            /** Format: double */
+            cost: number;
+            /** Format: double */
+            deliveredRate?: number;
+            /** Format: date-time */
+            downSince?: string;
+            host: string;
+            id: string;
+            ip: string;
+            name: string;
+            /** Format: int64 */
+            planned: number;
+            /** Format: double */
+            plannedCost: number;
+            /** Format: int64 */
+            quotaFree?: number;
+            /** Format: int64 */
+            quotaMax?: number;
+            /** Format: double */
+            rate: number;
+            /** Format: int64 */
+            remaining: number;
+            /** Format: date-time */
+            retryUntil?: string;
+            retrying: boolean;
+            /** @enum {string} */
+            routeStatus: "pending" | "sending" | "held" | "paused" | "done" | "cancelled";
+            /** Format: int64 */
+            sent: number;
+            /** Format: double */
+            share: number;
+            short: string;
+            status: string;
+            /** Format: int64 */
+            warmupCap?: number;
+            /** Format: int64 */
+            warmupDay?: number;
+            /** Format: int64 */
+            warmupDays?: number;
+            /** Format: int64 */
+            warmupSent?: number;
+        };
+        LiveResumeRequest: {
+            /** @enum {string} */
+            mailbox?: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
+            /** Format: uuid */
+            providerId?: string;
+            withChanges?: boolean;
+        };
+        LiveRetryRequest: {
+            /** Format: uuid */
+            providerId: string;
+        };
+        LiveRouteShare: {
+            /** Format: double */
+            percent: number;
+            short: string;
+        };
+        LiveShare: {
+            key: string;
+            name: string;
+            /** Format: double */
+            percent: number;
+        };
+        LiveSnapshot: {
+            ab?: components["schemas"]["LiveAB"];
+            /** Format: date-time */
+            approvedAt?: string;
+            approvedBy: string;
+            /** Format: date-time */
+            at: string;
+            campaignId: string;
+            /** Format: date-time */
+            completedAt?: string;
+            continuing: string[];
+            cost: components["schemas"]["LiveCostByRoute"];
+            deliveredMix: components["schemas"]["LiveShare"][];
+            details: components["schemas"]["LiveDetails"];
+            /** Format: int64 */
+            durationSeconds?: number;
+            error: string;
+            /** Format: int64 */
+            etaSeconds?: number;
+            events: components["schemas"]["LiveEvent"][];
+            eventsVia: string;
+            excluded: components["schemas"]["LiveExcluded"];
+            failovers: components["schemas"]["LiveFailover"][];
+            /** Format: date-time */
+            finishesAt?: string;
+            /** Format: int64 */
+            held: number;
+            helpers?: components["schemas"]["LiveHelpers"];
+            incident?: components["schemas"]["LiveIncident"];
+            incidents: components["schemas"]["LiveIncident"][];
+            /** Format: date-time */
+            lastEventAt?: string;
+            mailboxes: components["schemas"]["LiveMailbox"][];
+            mailboxesHeld: string[];
+            name: string;
+            options: components["schemas"]["LiveOptions"];
+            pauseReason: string;
+            pauseScopeHint: string;
+            /** Format: date-time */
+            pausedAt?: string;
+            pausedBy: string;
+            /** Format: double */
+            percent: number;
+            /** Format: date-time */
+            preparedAt?: string;
+            providers: components["schemas"]["LiveProvider"][];
+            providersHeld: string[];
+            /** Format: int64 */
+            queued: number;
+            /**
+             * Format: double
+             * @description Messages per second now
+             */
+            rate: number;
+            /** Format: int64 */
+            recipients: number;
+            resumed: boolean;
+            routes: components["schemas"]["LiveRouteShare"][];
+            /** Format: date-time */
+            scheduledAt?: string;
+            scheduledBy: string;
+            /** Format: int64 */
+            sent: number;
+            sharedStreams: string[];
+            /** Format: date-time */
+            startedAt?: string;
+            startedBy: string;
+            /** @enum {string} */
+            state: "idle" | "scheduled" | "preparing" | "sending" | "partial" | "paused" | "finished" | "cancelled" | "failed";
+            /** @enum {string} */
+            status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
+            /** @enum {string} */
+            thresholdScope: "route" | "campaign";
+            thresholds: components["schemas"]["LiveThreshold"][];
+            throttles: components["schemas"]["LiveThrottle"][];
+            totals: components["schemas"]["LiveTotals"];
+            /** Format: int64 */
+            unsent: number;
+            /**
+             * Format: int64
+             * @description Milliseconds since the epoch; the SSE event id
+             */
+            version: number;
+            /** Format: int64 */
+            waiting: number;
+        };
+        LiveThreshold: {
+            /** @enum {string} */
+            key: "bounce" | "complaint" | "mailbox_complaint" | "api_errors";
+            /** Format: double */
+            limit: number;
+            mailbox?: string;
+            /** Format: double */
+            value: number;
+        };
+        LiveThrottle: {
+            mailbox: string;
+            /** Format: double */
+            rate: number;
+        };
+        LiveTotals: {
+            /** Format: int64 */
+            bounced: number;
+            /** Format: int64 */
+            clicked: number;
+            /** Format: int64 */
+            complained: number;
+            /** Format: int64 */
+            deferred: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: int64 */
+            hardBounced: number;
+            /** Format: int64 */
+            opened: number;
+            /** Format: int64 */
+            openedHuman: number;
+            /** Format: int64 */
+            openedMachine: number;
+            /** Format: int64 */
+            rejected: number;
+            /** Format: int64 */
+            softBounced: number;
+            /** Format: int64 */
+            unsubscribed: number;
+        };
+        LiveWinnerRequest: {
+            /** @enum {string} */
+            variant: "A" | "B" | "C";
+        };
         MCPAgentAction: {
             agent: string;
             agentId?: string;
@@ -10465,6 +11049,23 @@ export interface components {
             method?: string;
             /** @enum {string} */
             state: "on" | "off" | "idp" | "required";
+        };
+        MoveEstimate: {
+            /** Format: double */
+            extraCost: number;
+            /** Format: int64 */
+            extraSeconds: number;
+            /** Format: int64 */
+            quotaFree?: number;
+            /** Format: int64 */
+            quotaMax?: number;
+            /** Format: double */
+            rate: number;
+            risk: string;
+            riskText: string;
+            target: string;
+            targetId: string;
+            targetShort: string;
         };
         NewContact: {
             /** @enum {string} */
@@ -12114,6 +12715,20 @@ export interface components {
             reasons: components["schemas"]["ReportUnsubscribeReason"][];
             /** Format: int64 */
             total: number;
+        };
+        ResumeChanges: {
+            automation?: string;
+            automationId?: string;
+            /** Format: int64 */
+            exclude: number;
+            /** Format: double */
+            expected?: number;
+            group?: string;
+            importedOnly: boolean;
+            mailbox?: string;
+            /** Format: double */
+            rate?: number;
+            source?: string;
         };
         ReviewAB: {
             /** Format: int64 */
@@ -19883,6 +20498,319 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComposerCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-live-send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveSnapshot"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pick-live-ab-winner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveWinnerRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-live-send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "move-live-share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveMoveRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-live-send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LivePauseRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-live-send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveResumeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "retry-live-share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveRetryRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "stream-live-send": {
+        parameters: {
+            query?: {
+                /** @description Same as the Last-Event-ID header, for clients that reconnect by themselves */
+                lastEventId?: string;
+            };
+            header?: {
+                /** @description Resume after this event id (the snapshot version) */
+                "Last-Event-ID"?: string;
+            };
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": {
+                        data: components["schemas"]["LiveSnapshot"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "snapshot";
+                        /** @description The event ID. */
+                        id?: number;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    }[];
                 };
             };
             /** @description Error */

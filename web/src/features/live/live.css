@@ -1,0 +1,94 @@
+/*
+ * Live sending monitor (spec 7.6): classes specific to the LiveMonitor
+ * boards (LiveMonitor, LiveMonitorPaused, LiveMonitorOutage,
+ * LiveMonitorStates, LiveMonitorMobile), copied value for value and
+ * prefixed `lv-` so they never collide with the shared vocabulary in
+ * app.css. Everything else is Tailwind utilities with the boards' values.
+ */
+@layer components {
+  /* Tables: the boards' key column is 150px wide at least. */
+  .tbl.compact.lv-tbl td:first-child {
+    min-width: 150px;
+  }
+
+  /* A line of the live event feed (.ev on the boards). */
+  .lv-ev {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 14px;
+    border-top: 1px solid var(--line-2);
+    font-size: 12.5px;
+  }
+  .lv-ev.first {
+    border-top: 0;
+  }
+
+  /* The connecting state's spinner (28px, 3px ring). */
+  .spin.lv-spin {
+    width: 28px;
+    height: 28px;
+    border-width: 3px;
+  }
+
+  /* Stale data while the event stream is down (LiveMonitorStates). */
+  .lv-stale {
+    opacity: 0.75;
+  }
+
+  /* LiveMonitorMobile: its own header, and the board's phone sizes for
+     cards, buttons, headings, rows and tiles. */
+  .lv-mhead {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+  .lv-m .card {
+    border-radius: 12px;
+  }
+  .lv-m .btn,
+  .lv-mhead .btn {
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+  .lv-mhead .btn.lv-back {
+    min-height: 40px;
+    width: 40px;
+    padding: 0;
+  }
+  .lv-m .h2 {
+    font-size: 14px;
+  }
+  .lv-m .lv-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .lv-m .tile {
+    gap: 2px;
+    padding: 12px 14px;
+  }
+}
+
+@media (max-width: 767px) {
+  .content.lv-m {
+    padding: 16px;
+    gap: 14px;
+  }
+  /* LiveMonitorMobile is a screen of its own: its header leads back to
+     the campaigns, and the shell's tab bar isn't drawn under it. */
+  .rc-app:has(.lv-mhead) .side {
+    display: none;
+  }
+  .rc-app:has(.lv-mhead) .mainc {
+    padding-bottom: 0;
+  }
+}

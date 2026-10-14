@@ -1,0 +1,296 @@
+package engine
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/danielgtaylor/huma/v2/sse"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+
+	"github.com/hostrepute/reputecast/internal/access"
+	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/sending"
+)
+
+type liveInput struct {
+	api.WorkspaceInput
+	CampaignID string `path:"campaignId" format:"uuid" doc:"Campaign id"`
+}
+
+type liveStreamInput struct {
+	api.WorkspaceInput
+	CampaignID  string `path:"campaignId" format:"uuid" doc:"Campaign id"`
+	LastEventID string `header:"Last-Event-ID" doc:"Resume after this event id (the snapshot version)"`
+	// The browser can't set Last-Event-ID on a new EventSource, so a client
+	// that reconnects by itself passes it in the query.
+	LastEventIDQuery string `query:"lastEventId" doc:"Same as the Last-Event-ID header, for clients that reconnect by themselves"`
+}
+
+// LivePauseRequest pauses a running send.
+type LivePauseRequest struct {
+	Reason string `json:"reason,omitempty" maxLength:"500"`
+}
+
+// LiveResumeRequest resumes a paused send, or one mailbox provider or
+// sending provider on hold.
+type LiveResumeRequest struct {
+	Mailbox    string `json:"mailbox,omitempty" enum:"gmail,outlook,yahoo,icloud,other"`
+	ProviderID string `json:"providerId,omitempty" format:"uuid"`
+	// WithChanges applies the incident's recommended changes (exclude the
+	// group, lower the rate, hand the excluded contacts to the flow).
+	WithChanges bool `json:"withChanges,omitempty"`
+}
+
+// LiveCancelRequest cancels the whole send, or one share of it.
+type LiveCancelRequest struct {
+	Mailbox    string `json:"mailbox,omitempty" enum:"gmail,outlook,yahoo,icloud,other"`
+	ProviderID string `json:"providerId,omitempty" format:"uuid"`
+}
+
+// LiveMoveRequest moves a held share to another sending provider.
+type LiveMoveRequest struct {
+	FromProviderID string `json:"fromProviderId" format:"uuid"`
+	ToProviderID   string `json:"toProviderId" format:"uuid"`
+}
+
+// LiveRetryRequest retries a held share on its provider.
+type LiveRetryRequest struct {
+	ProviderID string `json:"providerId" format:"uuid"`
+}
+
+// LiveWinnerRequest picks the A/B winner.
+type LiveWinnerRequest struct {
+	Variant string `json:"variant" enum:"A,B,C"`
+}
+
+// LiveActionResult is what an action changed, with the new snapshot.
+type LiveActionResult struct {
+	Moved     int64        `json:"moved"`
+	Cancelled int64        `json:"cancelled"`
+	Excluded  int64        `json:"excluded"`
+	Snapshot  LiveSnapshot `json:"snapshot"`
+}
+
+// body is an action's input: the campaign's path and a JSON body. Huma reads
+// parameters only from exported fields, so the path fields are spelled out
+// here rather than embedded from the unexported liveInput.
+type body[T any] struct {
+	api.WorkspaceInput
+	CampaignID string `path:"campaignId" format:"uuid" doc:"Campaign id"`
+	Body       T
+}
+
+// Register adds the live monitor's operations.
+func Register(h huma.API, e *Engine) {
+	tags := []string{"Live sending"}
+	base := "/workspaces/{workspace}/campaigns/{campaignId}/live"
+	api.Get(h, api.Op{ID: "get-live-send", Path: base, Summary: "The live monitor's snapshot of a send", Tags: tags, Access: api.Workspace(authz.CampaignsView)},
+		func(ctx context.Context, in *liveInput) (*api.Body[LiveSnapshot], error) {
+			id, err := uuid.Parse(in.CampaignID)
+			if err != nil {
+				return nil, api.NotFound("Campaign")
+			}
+			ws := api.WorkspaceFrom(ctx)
+			s, err := e.Snapshot(ctx, ws.ID, id)
+			if err != nil {
+				return nil, mapErr(err)
+			}
+			s.Helpers = &LiveHelpers{Pause: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsPause), Send: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsSend)}
+			return api.OK(s), nil
+		})
+	sse.Register(h, huma.Operation{
+		OperationID: "stream-live-send", Method: http.MethodGet, Path: api.Version + base + "/stream",
+		Summary:     "Server-sent events of a send: a snapshot event at once and on every change, heartbeats as comments",
+		Description: "Each `snapshot` event carries the whole live state; its id is the snapshot version, so a reconnecting EventSource resumes with Last-Event-ID.",
+		Tags:        tags, Security: []map[string][]string{{"session": {}}, {"bearer": {}}},
+		Metadata:   map[string]any{"reputecast.access": api.Workspace(authz.CampaignsView)},
+		Extensions: map[string]any{"x-access": string(api.AccessWorkspace), "x-permission": string(authz.CampaignsView)},
+	}, map[string]any{"snapshot": LiveSnapshot{}}, func(ctx context.Context, in *liveStreamInput, send sse.Sender) {
+		id, err := uuid.Parse(in.CampaignID)
+		if err != nil {
+			return
+		}
+		ws := api.WorkspaceFrom(ctx)
+		if ws == nil {
+			return
+		}
+		if _, err := e.Snapshot(ctx, ws.ID, id); err != nil {
+			return
+		}
+		updates, cancel := e.Subscribe(ctx, ws.ID, id)
+		defer cancel()
+		resumed := in.LastEventID != "" || in.LastEventIDQuery != ""
+		heartbeat := time.NewTicker(15 * time.Second)
+		defer heartbeat.Stop()
+		_ = send(sse.Message{Retry: 3000, Comment: "connected"})
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case s := <-updates:
+				s.Resumed = resumed
+				resumed = false
+				if err := send(sse.Message{ID: int(s.Version), Data: s}); err != nil {
+					return
+				}
+			case <-heartbeat.C:
+				if err := send.Comment("heartbeat " + strconv.FormatInt(time.Now().Unix(), 10)); err != nil {
+					return
+				}
+			}
+		}
+	})
+	api.Post(h, api.Op{ID: "pause-live-send", Path: base + "/pause", Summary: "Pause a running send", Tags: tags, Access: api.Workspace(authz.CampaignsPause)},
+		func(ctx context.Context, in *body[LivePauseRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx) // the engine records the live monitor\'s actions
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			if err := e.Pause(ctx, id, by, in.Body.Reason); err != nil {
+				return nil, mapErr(err)
+			}
+			return e.result(ctx, id, LiveActionResult{})
+		})
+	api.Post(h, api.Op{ID: "resume-live-send", Path: base + "/resume", Summary: "Resume a paused send, or a mailbox provider or sending provider on hold", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
+		func(ctx context.Context, in *body[LiveResumeRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx) // the engine records the live monitor\'s actions
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			req := ResumeRequest{Mailbox: in.Body.Mailbox, WithChanges: in.Body.WithChanges}
+			if in.Body.ProviderID != "" {
+				pid, err := uuid.Parse(in.Body.ProviderID)
+				if err != nil {
+					return nil, api.Invalid("body.providerId", "That isn't a provider id.")
+				}
+				req.ProviderID = &pid
+			}
+			res, err := e.ResumeScope(ctx, id, by, req)
+			if err != nil {
+				return nil, mapErr(err)
+			}
+			return e.result(ctx, id, LiveActionResult{Excluded: res.Excluded})
+		})
+	api.Post(h, api.Op{ID: "cancel-live-send", Path: base + "/cancel", Summary: "Cancel a send, or one mailbox provider's or sending provider's share", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
+		func(ctx context.Context, in *body[LiveCancelRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx) // the engine records the live monitor\'s actions
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			var pid *uuid.UUID
+			if in.Body.ProviderID != "" {
+				p, err := uuid.Parse(in.Body.ProviderID)
+				if err != nil {
+					return nil, api.Invalid("body.providerId", "That isn't a provider id.")
+				}
+				pid = &p
+			}
+			n, err := e.CancelShare(ctx, id, by, in.Body.Mailbox, pid)
+			if err != nil {
+				return nil, mapErr(err)
+			}
+			return e.result(ctx, id, LiveActionResult{Cancelled: n})
+		})
+	api.Post(h, api.Op{ID: "move-live-share", Path: base + "/move", Summary: "Move what is left of a sending provider's share to another provider", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
+		func(ctx context.Context, in *body[LiveMoveRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx) // the engine records the live monitor\'s actions
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			from, err1 := uuid.Parse(in.Body.FromProviderID)
+			to, err2 := uuid.Parse(in.Body.ToProviderID)
+			if err1 != nil || err2 != nil {
+				return nil, api.Invalid("body", "Pick the providers to move between.")
+			}
+			n, err := e.MoveShare(ctx, id, by, from, to)
+			if err != nil {
+				return nil, mapErr(err)
+			}
+			return e.result(ctx, id, LiveActionResult{Moved: n})
+		})
+	api.Post(h, api.Op{ID: "retry-live-share", Path: base + "/retry", Summary: "Keep a held share on its provider and retry every minute", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
+		func(ctx context.Context, in *body[LiveRetryRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx) // the engine records the live monitor\'s actions
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			pid, err := uuid.Parse(in.Body.ProviderID)
+			if err != nil {
+				return nil, api.Invalid("body.providerId", "That isn't a provider id.")
+			}
+			if err := e.RetryRoute(ctx, id, by, pid); err != nil {
+				return nil, mapErr(err)
+			}
+			return e.result(ctx, id, LiveActionResult{})
+		})
+	api.Post(h, api.Op{ID: "pick-live-ab-winner", Path: base + "/ab-winner", Summary: "End the A/B test with a chosen winner", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
+		func(ctx context.Context, in *body[LiveWinnerRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx) // the engine records the live monitor\'s actions
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			if err := e.PickWinner(ctx, id, by, in.Body.Variant); err != nil {
+				return nil, mapErr(err)
+			}
+			return e.result(ctx, id, LiveActionResult{})
+		})
+}
+
+func (e *Engine) result(ctx context.Context, id uuid.UUID, r LiveActionResult) (*api.Body[LiveActionResult], error) {
+	s, err := e.Snapshot(ctx, api.WorkspaceFrom(ctx).ID, id)
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	r.Snapshot = s
+	return api.OK(r), nil
+}
+
+// actionIDs checks the campaign belongs to the workspace and returns who
+// acts; another workspace's campaign is a 404, as if it didn't exist.
+func (e *Engine) actionIDs(ctx context.Context, raw string) (uuid.UUID, uuid.UUID, error) {
+	id, err := uuid.Parse(raw)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, api.NotFound("Campaign")
+	}
+	ws := api.WorkspaceFrom(ctx)
+	owner, err := e.Q.SendingCampaignWorkspace(ctx, id)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, uuid.Nil, err
+	}
+	if err != nil || ws == nil || owner != ws.ID {
+		return uuid.Nil, uuid.Nil, api.NotFound("Campaign")
+	}
+	p := api.PrincipalFrom(ctx)
+	by := uuid.Nil
+	if p != nil {
+		by = p.ID
+	}
+	return id, by, nil
+}
+
+func mapErr(err error) error {
+	var se *StateError
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, ErrNotFound):
+		return api.NotFound("Campaign")
+	case errors.As(err, &se):
+		return api.Conflict(se.Msg)
+	case errors.Is(err, sending.ErrNotReady):
+		return api.Conflict("Send Readiness is blocked, so the send didn't start. Fix the blocking checks on Review & send.")
+	}
+	return err
+}
