@@ -3206,8 +3206,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Show the webhook secret to set up in the provider by hand
-         * @description Only for providers whose webhook ReputeCast can't register itself (Azure Event Grid, the generic HTTP adapter). Showing it is audited.
+         * Issue a new webhook secret to set up in the provider by hand
+         * @description Only for providers whose webhook ReputeCast can't register itself (Azure Event Grid, the generic HTTP adapter). The secret is returned this once and replaces the previous one; stored secrets are never returned. Audited.
          */
         post: operations["show-provider-webhook-secret"];
         delete?: never;

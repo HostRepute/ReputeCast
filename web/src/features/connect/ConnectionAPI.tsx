@@ -323,7 +323,8 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
 
 /**
  * A webhook ReputeCast can't register: the person adds it in the provider,
- * with the secret ReputeCast generated when it connected the provider.
+ * with a secret ReputeCast issues for it. Like API keys, a secret is shown
+ * only when it's issued; a new one replaces the previous one.
  */
 function ManualSecret({ setup, webhook: w, reason }: { setup: Schemas['ConnectSetup']; webhook: Schemas['ConnectWebhook']; reason?: string }) {
   const { slug } = useWorkspace()
@@ -334,7 +335,7 @@ function ManualSecret({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
   const show = () =>
     reveal.mutate(
       { params: { path: { workspace: slug, setupId: setup.id } } },
-      { onSuccess: (data) => setShown(data), onError: failed("Couldn't show the webhook secret", show) },
+      { onSuccess: (data) => setShown(data), onError: failed("Couldn't create the webhook secret", show) },
     )
   return (
     <div className="flex flex-col gap-2.5 border-t border-line-2 px-5 py-3.5">
@@ -354,14 +355,14 @@ function ManualSecret({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
           <Button size="sm" onClick={() => void copy(shown.secret, 'the webhook secret')}>
             Copy secret
           </Button>
-          <span className="k">Keep it private. Anyone with it can post events for this provider.</span>
+          <span className="k">Copy it now: it isn&apos;t shown again. Keep it private; anyone with it can post events for this provider.</span>
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2.5">
-          <Button size="sm" onClick={show} loading={reveal.isPending} busyLabel="Showing…" disabledReason={reason}>
-            Show the secret
+          <Button size="sm" onClick={show} loading={reveal.isPending} busyLabel="Creating…" disabledReason={reason}>
+            Create a secret
           </Button>
-          <span className="k">Showing it is recorded in the audit log.</span>
+          <span className="k">A new secret replaces the one {name} has now, so paste it there right away. Recorded in the audit log.</span>
         </div>
       )}
     </div>
