@@ -51,13 +51,13 @@ func composerDigestCards(padding string) string {
 	return `    <!-- rc:article-cards -->
     <mj-section background-color="#ffffff" padding="` + padding + `">
       <mj-column width="50%" padding="0px 8px 0px 0px" css-class="article-card">
-        <mj-image src="@@article-card.png@@" alt="Feature flags dashboard" width="268px" height="120px" padding="0px 0px 10px"></mj-image>
+        <mj-image src="@@article-card.png@@" alt="Feature flags dashboard" width="268px" height="120px" fluid-on-mobile="true" padding="0px 0px 10px"></mj-image>
         <mj-text font-size="17px" line-height="1.3" font-weight="700" color="#0B1220" padding="0px 0px 6px">Feature flags are generally available</mj-text>
         <mj-text font-size="14px" line-height="1.5" color="#374151" padding="0px 0px 10px">Target rollouts by plan, region or percentage, with an audit trail for every change.</mj-text>
         ` + composerButton("https://docs.acme.io/flags", "Read the docs") + `
       </mj-column>
       <mj-column width="50%" padding="0px 0px 0px 8px" css-class="article-card">
-        <mj-image src="@@article-card.png@@" alt="Audit log export settings" width="268px" height="120px" padding="0px 0px 10px"></mj-image>
+        <mj-image src="@@article-card.png@@" alt="Audit log export settings" width="268px" height="120px" fluid-on-mobile="true" padding="0px 0px 10px"></mj-image>
         <mj-text font-size="17px" line-height="1.3" font-weight="700" color="#0B1220" padding="0px 0px 6px">Audit log exports</mj-text>
         <mj-text font-size="14px" line-height="1.5" color="#374151" padding="0px 0px 10px">Stream every workspace event to S3 or your SIEM, with 13 months of history.</mj-text>
         ` + composerButton("https://acme.io/changelog", "See the changelog") + `
