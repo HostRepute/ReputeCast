@@ -278,8 +278,12 @@ func DemoDMARC(now time.Time, domain string) []DMARCReport {
 		{"198.51.100.77", "", 612, "fail", "fail", "", "news.acme.io", "quarantine", "fail", "none", 0},
 	}
 	var out []DMARCReport
+	// Reports cover whole UTC days, and the summary counts those that end in
+	// the last 7 days: the days are counted in UTC too, so the week is whole
+	// at any hour (New York's evening is already tomorrow in UTC).
+	today := now.UTC().Truncate(24 * time.Hour)
 	for day := 7; day >= 1; day-- {
-		begin := demoDay(now, day, 0, 0).UTC().Truncate(24 * time.Hour)
+		begin := today.AddDate(0, 0, -day)
 		for oi, org := range orgs {
 			rep := DMARCReport{
 				Domain: domain, OrgName: org, ReportID: fmt.Sprintf("demo-%s-%d", strings.ToLower(strings.TrimSuffix(org, ".com")), day),
