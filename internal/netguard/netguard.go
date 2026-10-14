@@ -109,11 +109,11 @@ func (p Policy) ValidateURL(raw string) (*url.URL, error) {
 	return u, nil
 }
 
-// Client returns an HTTP client that refuses forbidden addresses at connect
-// time and never follows redirects.
-func (p Policy) Client(timeout time.Duration) *http.Client {
-	dialer := &net.Dialer{
-		Timeout:   5 * time.Second,
+// Dialer returns a dialer that refuses forbidden addresses at connect time,
+// for raw connections (SMTP, IMAP, POP3) and for Client.
+func (p Policy) Dialer(timeout time.Duration) *net.Dialer {
+	return &net.Dialer{
+		Timeout:   timeout,
 		KeepAlive: 30 * time.Second,
 		Control: func(network, address string, _ syscall.RawConn) error {
 			host, _, err := net.SplitHostPort(address)
@@ -127,6 +127,12 @@ func (p Policy) Client(timeout time.Duration) *http.Client {
 			return p.Check(ip)
 		},
 	}
+}
+
+// Client returns an HTTP client that refuses forbidden addresses at connect
+// time and never follows redirects.
+func (p Policy) Client(timeout time.Duration) *http.Client {
+	dialer := p.Dialer(5 * time.Second)
 	tr := &http.Transport{
 		Proxy:                 nil, // a proxy would bypass the address check
 		DialContext:           dialer.DialContext,

@@ -1,11 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Page } from '@/components/shell/Page'
-import { NotBuilt } from '@/components/shell/NotBuilt'
+import { ApprovalPage } from '@/features/approvals/ApprovalPage'
 
 export const Route = createFileRoute('/w/$workspace/_app/approvals/$approvalId')({
-  component: () => (
-    <Page title="Approvals">
-      <NotBuilt screen="Approvals" />
-    </Page>
-  ),
+  component: function ApprovalRoute() {
+    const { approvalId } = Route.useParams()
+    return <ApprovalPage key={approvalId} approvalId={approvalId} />
+  },
 })

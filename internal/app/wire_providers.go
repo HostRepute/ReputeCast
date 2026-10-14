@@ -32,7 +32,7 @@ func (a *App) providerFactory() *manage.Factory {
 	// the SSRF guard (metadata and link-local addresses are always refused).
 	// (The OpenAPI command registers operations on an App without config.)
 	guard := netguard.Policy{AllowPrivate: a.Cfg != nil && a.Cfg.Providers.AllowPrivateNetworks}
-	return &manage.Factory{Box: a.Secrets, HTTP: guard.Client(30 * time.Second)}
+	return &manage.Factory{Box: a.Secrets, HTTP: guard.Client(30 * time.Second), Dialer: guard.Dialer(15 * time.Second)}
 }
 
 func (a *App) providersService() *manage.Service {

@@ -99,6 +99,29 @@ type ContentCheckReport struct {
 	Sections          []ContentCheckSection `json:"sections"`
 	PlainText         string                `json:"plainText"`
 	CheckedAt         time.Time             `json:"checkedAt"`
+	// ImageShare is the estimated share of the email's area covered by
+	// images (0 to 1; 0 without images). Words counts the plain text.
+	ImageShare float64 `json:"imageShare"`
+	Words      int     `json:"words"`
+	// LinkList is every link with its text and, when links were probed, the
+	// response (Send Readiness shows the slowest and the link domains).
+	LinkList []ContentCheckLink `json:"linkList"`
+}
+
+// ContentCheckLink is one link of the email.
+type ContentCheckLink struct {
+	URL  string `json:"url"`
+	Host string `json:"host"`
+	Text string `json:"text"`
+	Kind string `json:"kind" enum:"button,link,image,nav,social"`
+	Path []int  `json:"path"`
+	// Probed is true when the link was requested; Status, Broken, Millis
+	// and Final (the address after redirects) describe the response.
+	Probed bool   `json:"probed"`
+	Status int    `json:"status,omitempty"`
+	Broken bool   `json:"broken,omitempty"`
+	Millis int    `json:"millis,omitempty"`
+	Final  string `json:"final,omitempty"`
 }
 
 // Input is the content to check.
@@ -130,6 +153,10 @@ type ProbeResult struct {
 	Status int    `json:"status"`
 	Broken bool   `json:"broken"`
 	Error  string `json:"error,omitempty"`
+	// Millis is how long the response took; Final is the address after
+	// redirects (empty when the link didn't redirect).
+	Millis int    `json:"millis,omitempty"`
+	Final  string `json:"final,omitempty"`
 }
 
 // Prober requests links to find broken ones.
@@ -179,7 +206,7 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 	if c.Now != nil {
 		now = c.Now
 	}
-	r := ContentCheckReport{ClipBytes: ClipBytes, Issues: []ContentCheckIssue{}, Sections: []ContentCheckSection{}, SubjectHeuristics: []string{}, CheckedAt: now()}
+	r := ContentCheckReport{ClipBytes: ClipBytes, Issues: []ContentCheckIssue{}, Sections: []ContentCheckSection{}, SubjectHeuristics: []string{}, LinkList: []ContentCheckLink{}, CheckedAt: now()}
 	htmlSrc := in.HTML
 	if htmlSrc == "" && strings.TrimSpace(in.MJML) != "" {
 		htmlSrc = mjml.Compile(in.MJML).HTML
@@ -189,6 +216,10 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 	r.Images = len(s.images)
 	r.Links = len(s.links)
 	r.PlainText = PlainText(htmlSrc)
+	r.Words = len(strings.Fields(r.PlainText))
+	if share, ok := imageShare(s.images, r.PlainText); ok {
+		r.ImageShare = share
+	}
 
 	sectionIssues := map[int]int{}
 	add := func(is ContentCheckIssue) {
@@ -735,6 +766,14 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 		if host == "" {
 			continue
 		}
+		entry := ContentCheckLink{URL: l.href, Host: host, Text: l.text, Kind: l.kind, Path: l.path}
+		if entry.Path == nil {
+			entry.Path = []int{}
+		}
+		if pr, ok := probe[u.String()]; ok {
+			entry.Probed, entry.Status, entry.Broken, entry.Millis, entry.Final = true, pr.Status, pr.Broken, pr.Millis, pr.Final
+		}
+		r.LinkList = append(r.LinkList, entry)
 		lists := listings[host]
 		if len(lists) == 0 {
 			lists = listings[RegistrableDomain(host)]

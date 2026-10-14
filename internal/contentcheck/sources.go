@@ -157,20 +157,27 @@ func (p *HTTPProber) one(ctx context.Context, u string) ProbeResult {
 		}
 		return p.Client.Do(req)
 	}
+	start := time.Now()
 	resp, err := do(http.MethodHead)
 	if err == nil && (resp.StatusCode == http.StatusMethodNotAllowed || resp.StatusCode == http.StatusNotImplemented || resp.StatusCode == http.StatusForbidden) {
 		_ = resp.Body.Close()
+		start = time.Now()
 		resp, err = do(http.MethodGet)
 	}
+	millis := int(time.Since(start) / time.Millisecond)
 	if err != nil {
 		if errors.Is(err, ErrBlockedAddress) {
 			return ProbeResult{Broken: true, Error: ErrBlockedAddress.Error()}
 		}
-		return ProbeResult{Broken: true, Error: fmt.Sprintf("no response: %v", err)}
+		return ProbeResult{Broken: true, Error: fmt.Sprintf("no response: %v", err), Millis: millis}
 	}
 	_ = resp.Body.Close()
 	broken := resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone || resp.StatusCode >= 500
-	return ProbeResult{Status: resp.StatusCode, Broken: broken}
+	out := ProbeResult{Status: resp.StatusCode, Broken: broken, Millis: millis}
+	if resp.Request != nil && resp.Request.URL != nil && resp.Request.URL.String() != u {
+		out.Final = resp.Request.URL.String()
+	}
+	return out
 }
 
 func (p *HTTPProber) cached(u string) (ProbeResult, bool) {

@@ -21,6 +21,52 @@ type Querier interface {
 	// The draft or running import the wizard resumes.
 	ActiveImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
 	AddSegmentMembers(ctx context.Context, arg AddSegmentMembersParams) error
+	ApprovalAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalAudienceListsRow, error)
+	ApprovalBypassCount(ctx context.Context, arg ApprovalBypassCountParams) (int64, error)
+	ApprovalCampaignVersion(ctx context.Context, arg ApprovalCampaignVersionParams) (ApprovalCampaignVersionRow, error)
+	// A request and the requests it follows, newest first.
+	ApprovalChain(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
+	// The discussion of a request and of the requests it follows.
+	ApprovalComments(ctx context.Context, requestIds []uuid.UUID) ([]ApprovalCommentsRow, error)
+	// How long requests waited for their first decision (the median wait).
+	ApprovalDecisionWaits(ctx context.Context, arg ApprovalDecisionWaitsParams) ([]int64, error)
+	ApprovalDecisions(ctx context.Context, requestIds []uuid.UUID) ([]ApprovalDecisionsRow, error)
+	ApprovalGet(ctx context.Context, arg ApprovalGetParams) (ApprovalGetRow, error)
+	// Scheduled campaigns held by a Blocked recheck (retried until a recheck passes).
+	ApprovalHeldCampaigns(ctx context.Context) ([]ApprovalHeldCampaignsRow, error)
+	ApprovalInsertComment(ctx context.Context, arg ApprovalInsertCommentParams) error
+	ApprovalInsertDecision(ctx context.Context, arg ApprovalInsertDecisionParams) error
+	ApprovalInsertHold(ctx context.Context, arg ApprovalInsertHoldParams) error
+	ApprovalInsertRequest(ctx context.Context, arg ApprovalInsertRequestParams) error
+	ApprovalInvalidate(ctx context.Context, arg ApprovalInvalidateParams) error
+	// The latest audit entry of an action on a target (who scheduled, who approved, from where).
+	ApprovalLastAudit(ctx context.Context, arg ApprovalLastAuditParams) (ApprovalLastAuditRow, error)
+	// The most recent request of a campaign (bypass records aside).
+	ApprovalLatestForCampaign(ctx context.Context, campaignID *uuid.UUID) (ApprovalLatestForCampaignRow, error)
+	// The approval inbox. Approvers see every request; others only their own.
+	ApprovalList(ctx context.Context, arg ApprovalListParams) ([]ApprovalListRow, error)
+	ApprovalLock(ctx context.Context, arg ApprovalLockParams) (ApprovalRequest, error)
+	ApprovalMarkScheduled(ctx context.Context, arg ApprovalMarkScheduledParams) error
+	ApprovalMarkSending(ctx context.Context, arg ApprovalMarkSendingParams) error
+	ApprovalMember(ctx context.Context, arg ApprovalMemberParams) (ApprovalMemberRow, error)
+	// Active members with their role and user details (approvers, presence).
+	ApprovalMembers(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalMembersRow, error)
+	// The pending or approved request of a campaign.
+	ApprovalOpenForCampaign(ctx context.Context, campaignID *uuid.UUID) (ApprovalRequest, error)
+	ApprovalOpenHold(ctx context.Context, campaignID uuid.UUID) (CampaignIncident, error)
+	// Open campaign requests of every workspace (the revalidation job).
+	ApprovalOpenRequests(ctx context.Context) ([]ApprovalOpenRequestsRow, error)
+	// Whether an enabled webhook posts campaign.paused to Slack (Review & send says who hears about a held send).
+	ApprovalPauseAlertsSlack(ctx context.Context, workspaceID uuid.UUID) (bool, error)
+	ApprovalPendingForWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalPendingForWorkspaceRow, error)
+	// "Restore … (keeps approval)": the campaign matches the snapshot again.
+	ApprovalReopen(ctx context.Context, arg ApprovalReopenParams) error
+	ApprovalResolveHold(ctx context.Context, arg ApprovalResolveHoldParams) error
+	ApprovalScheduleCampaign(ctx context.Context, arg ApprovalScheduleCampaignParams) error
+	ApprovalSetCampaignStatus(ctx context.Context, arg ApprovalSetCampaignStatusParams) error
+	ApprovalSetReminded(ctx context.Context, arg ApprovalSetRemindedParams) error
+	ApprovalSetStatus(ctx context.Context, arg ApprovalSetStatusParams) error
+	ApprovalUnschedule(ctx context.Context, arg ApprovalUnscheduleParams) error
 	ArchiveInsertIssue(ctx context.Context, arg ArchiveInsertIssueParams) error
 	ArchiveIssueBySlug(ctx context.Context, arg ArchiveIssueBySlugParams) (ArchiveIssueBySlugRow, error)
 	ArchiveIssueCount(ctx context.Context, arg ArchiveIssueCountParams) (int64, error)
@@ -836,6 +882,45 @@ type Querier interface {
 	// Retention of the instance-level entries (inside the purge transaction).
 	PurgeInstanceAuditEvents(ctx context.Context, before time.Time) (int64, error)
 	PutMXCache(ctx context.Context, arg PutMXCacheParams) error
+	ReadinessAcceptUnknown(ctx context.Context, arg ReadinessAcceptUnknownParams) error
+	// A campaign with its sender and sending domain.
+	ReadinessCampaign(ctx context.Context, arg ReadinessCampaignParams) (ReadinessCampaignRow, error)
+	// The workspace of a campaign (the sending engine asks by campaign id).
+	ReadinessCampaignWorkspace(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
+	ReadinessEndProgress(ctx context.Context, arg ReadinessEndProgressParams) error
+	ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID) (ReadinessGetProgressRow, error)
+	ReadinessGetRun(ctx context.Context, arg ReadinessGetRunParams) (ReadinessGetRunRow, error)
+	ReadinessInsertRoute(ctx context.Context, arg ReadinessInsertRouteParams) error
+	ReadinessInsertRun(ctx context.Context, arg ReadinessInsertRunParams) error
+	ReadinessLatestRun(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestRunRow, error)
+	// Lists of the workspace, to tell "All subscribers" from a few lists.
+	ReadinessListCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	ReadinessListNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessListNamesRow, error)
+	// Keeps the 20 latest runs of a campaign and any run an approval refers to.
+	ReadinessPruneRuns(ctx context.Context, campaignID uuid.UUID) error
+	// The audience before suppressions and exclusions by address: active
+	// contacts subscribed to the lists (or in the segments), minus excluded lists
+	// and segments, with what the counts need per contact.
+	ReadinessRecipients(ctx context.Context, arg ReadinessRecipientsParams) ([]ReadinessRecipientsRow, error)
+	// The planned split of an unsent campaign, refreshed by each run.
+	ReadinessReplaceRoutes(ctx context.Context, campaignID uuid.UUID) error
+	// Scheduled campaigns starting within the window whose latest run is
+	// older than the window (checks run again 15 minutes before the send).
+	ReadinessScheduledDue(ctx context.Context, arg ReadinessScheduledDueParams) ([]ReadinessScheduledDueRow, error)
+	ReadinessSegmentNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessSegmentNamesRow, error)
+	ReadinessSetAudience(ctx context.Context, arg ReadinessSetAudienceParams) error
+	ReadinessSetAudienceCount(ctx context.Context, arg ReadinessSetAudienceCountParams) error
+	ReadinessSetContentSettings(ctx context.Context, arg ReadinessSetContentSettingsParams) error
+	// A run confirmed for a new schedule at send time describes the campaign as scheduled.
+	ReadinessSetFingerprint(ctx context.Context, arg ReadinessSetFingerprintParams) error
+	ReadinessSetRouteOverride(ctx context.Context, arg ReadinessSetRouteOverrideParams) error
+	ReadinessSetSendSettings(ctx context.Context, arg ReadinessSetSendSettingsParams) error
+	// Starts a run unless one is already running (a run that stopped updating
+	// for two minutes is taken over).
+	ReadinessStartProgress(ctx context.Context, arg ReadinessStartProgressParams) (uuid.UUID, error)
+	// The latest test emails of a campaign, from the audit log.
+	ReadinessTestSends(ctx context.Context, arg ReadinessTestSendsParams) ([]ReadinessTestSendsRow, error)
+	ReadinessUpdateProgress(ctx context.Context, arg ReadinessUpdateProgressParams) error
 	// Campaigns a segment can refer to ("Opened campaign …").
 	RecentSentCampaigns(ctx context.Context, workspaceID uuid.UUID) ([]RecentSentCampaignsRow, error)
 	RecordHostReputeSyncError(ctx context.Context, arg RecordHostReputeSyncErrorParams) error
