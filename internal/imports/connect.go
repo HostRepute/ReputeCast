@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -83,10 +84,14 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	if isFile(imp.Source) {
 		return ImportDetail{}, api.Invalid("body.apiKey", "File imports don't need an API key: upload the file instead.")
 	}
-	if in.BaseURL != "" && !strings.HasPrefix(in.BaseURL, "https://") && !strings.HasPrefix(in.BaseURL, "http://") {
-		return ImportDetail{}, api.Invalid("body.baseUrl", "Use the full address, like https://lists.example.com.")
+	c := credentials{APIKey: strings.TrimSpace(in.APIKey), User: strings.TrimSpace(in.User)}
+	if strings.TrimSpace(in.BaseURL) != "" {
+		base, problem := s.serverAddress(in.BaseURL)
+		if problem != "" {
+			return ImportDetail{}, api.Invalid("body.baseUrl", problem)
+		}
+		c.BaseURL = base
 	}
-	c := credentials{APIKey: strings.TrimSpace(in.APIKey), User: strings.TrimSpace(in.User), BaseURL: strings.TrimSpace(in.BaseURL)}
 	src, err := s.newSource(imp.Source, c)
 	if err != nil {
 		return ImportDetail{}, sourceProblem(err)
@@ -128,6 +133,27 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		return ImportDetail{}, err
 	}
 	return s.Get(ctx, ws, id)
+}
+
+// serverAddress checks the address of a self-hosted server (listmonk,
+// Keila) and returns it as scheme://host/path, or the problem with it in
+// the person's words. Credentials, a query and a fragment are refused, so
+// the API path is appended where the person expects it, and the host may
+// not be a loopback, private, link-local or metadata address unless
+// providers.allow_private_networks is on; the client checks the resolved
+// address again at every connection.
+func (s *Service) serverAddress(raw string) (base, problem string) {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") {
+		return "", "Use the full address, like https://lists.example.com."
+	}
+	if u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery {
+		return "", "Use only the server's address, like https://lists.example.com: no credentials, query or fragment."
+	}
+	if _, err := s.Guard.ValidateURL(u.String()); err != nil {
+		return "", "That address is on a private or internal network. Turn on providers.allow_private_networks to import from a server there."
+	}
+	return u.Scheme + "://" + u.Host + strings.TrimRight(u.EscapedPath(), "/"), ""
 }
 
 // storeError remembers a source failure on the draft.

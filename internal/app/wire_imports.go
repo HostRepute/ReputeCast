@@ -2,13 +2,13 @@ package app
 
 import (
 	"net"
-	"net/http"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/hostrepute/reputecast/internal/imports"
 	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/netguard"
 )
 
 func init() {
@@ -23,11 +23,16 @@ func init() {
 // imports returns the importer service. The River client is created after
 // the job registrars run, so the service reads it lazily.
 func (a *App) imports() *imports.Service {
+	// listmonk and Keila addresses come from workspace editors: the importer
+	// dials through the SSRF guard (metadata and link-local addresses are
+	// always refused), like provider URLs.
+	guard := netguard.Policy{AllowPrivate: a.Cfg != nil && a.Cfg.Providers.AllowPrivateNetworks}
 	s := &imports.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Audience: a.audience(), Mail: a.Mail,
-		MX:   &imports.MXChecker{Q: a.Q, Resolver: net.DefaultResolver},
-		HTTP: &http.Client{Timeout: 60 * time.Second},
-		Jobs: func() *jobs.Client { return a.Jobs },
+		MX:    &imports.MXChecker{Q: a.Q, Resolver: net.DefaultResolver},
+		HTTP:  guard.Client(60 * time.Second),
+		Guard: guard,
+		Jobs:  func() *jobs.Client { return a.Jobs },
 	}
 	if a.Secrets != nil {
 		s.Box = a.Secrets

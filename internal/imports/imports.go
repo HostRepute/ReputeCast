@@ -24,6 +24,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -44,8 +45,11 @@ type Service struct {
 	Jobs func() *jobs.Client
 	MX   *MXChecker
 	// HTTP is used by the API importers; BaseURLs overrides their API base
-	// per source (tests).
+	// per source (tests). Guard decides which addresses a self-hosted
+	// server (listmonk, Keila) may have: the client refuses the same ones
+	// at connect time.
 	HTTP     *http.Client
+	Guard    netguard.Policy
 	BaseURLs map[string]string
 	Now      func() time.Time
 	// Inline runs staging and imports in the request instead of River (tests).

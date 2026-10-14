@@ -156,6 +156,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
   - Removing a provider removes the webhook ReputeCast registered there (Postmark, SparkPost, SendGrid, Mailjet, Mailgun, Resend, Brevo).
   - Test runs drop the databases finished runs left behind.
   - A `v*` tag publishes the release through GoReleaser.
+  - The listmonk and Keila importers reach their server through the SSRF guard: the address is limited to scheme, host and path, loopback, private, link-local and metadata addresses are refused unless `providers.allow_private_networks` is on, redirects are not followed, and a Mailchimp key's data center has to be a short code.
 - Deleting a list (Dialogs board) from List health: the dialog shows who is on the list and who another list keeps, and pauses the live forms, live automations and scheduled campaigns that use it. Sends skip a deleted list; Undo on the toast, or Restore list on the audit entry for 30 days, brings it back with what it paused; after that the cleanup job removes it.
 
 ## Done so far (W13: signup forms and public pages, M10)

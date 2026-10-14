@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hostrepute/reputecast/internal/netguard"
 )
 
 // Source is where contacts are imported from: an email tool's API or a file.
@@ -188,7 +190,10 @@ func (c *apiClient) get(ctx context.Context, path string, out any) error {
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
-			lastErr = &SourceError{Code: CodeUnavailable, Message: fmt.Sprintf("Couldn't reach %s: %v.", c.name, err)}
+			lastErr = &SourceError{Code: CodeUnavailable, Message: fmt.Sprintf("Couldn't reach %s: %s.", c.name, netguard.Describe(ctx, err))}
+			if netguard.IsBlocked(err) {
+				return lastErr
+			}
 			if err := c.backoff(ctx, attempt, 0, 0); err != nil {
 				return err
 			}
@@ -221,6 +226,10 @@ func (c *apiClient) get(ctx context.Context, path string, out any) error {
 			continue
 		case resp.StatusCode >= 400:
 			return &SourceError{Status: resp.StatusCode, Code: CodeBadResponse, Message: fmt.Sprintf("%s refused the request: %s.", c.name, describe(body, resp.Status))}
+		case resp.StatusCode >= 300:
+			// Redirects are not followed (the guard checks each address): the
+			// person enters the address the server answers at.
+			return &SourceError{Status: resp.StatusCode, Code: CodeBadResponse, Message: fmt.Sprintf("%s redirects to another address (%s). Enter the address it answers at.", c.name, resp.Status)}
 		}
 		if err := json.Unmarshal(body, out); err != nil {
 			return &SourceError{Code: CodeBadResponse, Message: fmt.Sprintf("%s sent a response ReputeCast can't read: %v.", c.name, err)}

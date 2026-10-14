@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,6 +20,10 @@ type Mailchimp struct {
 	DC string
 }
 
+// mailchimpDC is a Mailchimp data center ("us21"): the key's suffix becomes
+// part of the API host, so nothing else may pass as one.
+var mailchimpDC = regexp.MustCompile(`^[a-z]{2}[0-9]{1,2}$`)
+
 // NewMailchimp builds a client from an API key ("…-us21"); base overrides
 // the API URL (tests).
 func NewMailchimp(apiKey, base string, hc *http.Client) (*Mailchimp, error) {
@@ -27,7 +32,7 @@ func NewMailchimp(apiKey, base string, hc *http.Client) (*Mailchimp, error) {
 		return nil, ErrNoKey
 	}
 	_, dc, ok := strings.Cut(key, "-")
-	if !ok || dc == "" {
+	if !ok || !mailchimpDC.MatchString(dc) {
 		return nil, &SourceError{Code: CodeAuthFailed, Message: "Mailchimp keys end with the data center, like xxxxxxxx-us21. Copy the whole key from Account › Extras › API keys."}
 	}
 	if base == "" {
