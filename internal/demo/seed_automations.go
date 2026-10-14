@@ -473,8 +473,7 @@ type autoDayProvider struct {
 }
 
 // autoNodeStats spreads one step's autoCounters over days [from … to] before today
-// (to defaults to 0, today). goal_reached is kept to the last 7 days when
-// goalFrom is set.
+// (to defaults to 0, today).
 type autoNodeStats struct {
 	a              uuid.UUID
 	v              int32

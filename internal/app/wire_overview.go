@@ -7,7 +7,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/overview"
 )
 
-// W09 · Overview: each card reads the domain that owns its data.
+// Overview: each card reads the domain that owns its data.
 func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		_, dl := deliverabilityServices(a)

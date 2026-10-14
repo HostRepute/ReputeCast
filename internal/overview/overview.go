@@ -1,14 +1,10 @@
-// Package overview builds the workspace Overview (spec 7.1): overall sender
-// health and its reasons, the next scheduled campaign with its Send
-// Readiness, one card per sending provider against that provider's own
-// limits, subscriber growth and engagement tiers, and recent campaigns.
+// Package overview builds the workspace Overview (spec 7.1): sender health,
+// the next scheduled campaign, provider cards, subscriber growth and tiers,
+// and recent campaigns.
 //
 // Each card has its own operation so one failing source never blanks the
-// page (OverviewStates board). The numbers come from the domains that own
-// them: deliverability for blocklists and authentication, the providers
-// service for provider health, limits and usage, the campaigns list for
-// recent campaigns and the audience domain for contacts and tiers, so the
-// Overview always agrees with the screens behind it.
+// page (OverviewStates board), and the numbers come from the domains that
+// own them so the Overview always agrees with the screens behind it.
 package overview
 
 import (
@@ -29,7 +25,6 @@ type Audience interface {
 	Audience(ctx context.Context, ws *store.Workspace, days int) (OverviewAudience, error)
 }
 
-// Service holds the overview dependencies.
 type Service struct {
 	Pool           *pgxpool.Pool
 	Q              *store.Queries
@@ -122,7 +117,7 @@ type OverviewScheduledCampaign struct {
 // OverviewNextCampaign is "Next scheduled campaign".
 type OverviewNextCampaign struct {
 	Campaign *OverviewScheduledCampaign `json:"campaign,omitempty"`
-	// Drafts and the most recent one, for the card when nothing is scheduled.
+	// Drafts is the draft count, for the card when nothing is scheduled.
 	Drafts int64 `json:"drafts"`
 }
 
@@ -179,7 +174,6 @@ type OverviewListGrowth struct {
 	Net      int64  `json:"net"`
 }
 
-// OverviewTier is one engagement tier.
 type OverviewTier struct {
 	Tier  string  `json:"tier" enum:"active,cooling,at_risk,sunset"`
 	Count int64   `json:"count"`

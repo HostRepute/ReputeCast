@@ -62,7 +62,6 @@ func (s *Service) outage(ctx context.Context, sn *snapshot, p store.Provider, ca
 		}
 		o.Streams = append(o.Streams, st)
 	}
-	// Providers taking the load: when does their quota run out?
 	for _, st := range o.Streams {
 		if st.State != "failover_active" || st.Role == "fallback" || st.Fallback == "" {
 			continue
@@ -76,7 +75,6 @@ func (s *Service) outage(ctx context.Context, sn *snapshot, p store.Provider, ca
 			}
 		}
 	}
-	// Warming providers that won't take the held broadcast, and why.
 	for _, st := range o.Streams {
 		if st.Campaign == nil {
 			continue
@@ -146,7 +144,6 @@ func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provid
 				}
 			}
 		}
-		// Suggest a provider that isn't part of this stream yet.
 		for _, other := range sn.provs {
 			if other.ID == p.ID || !state.Available(other) || inRoute(def, other.ID) {
 				continue
@@ -231,7 +228,6 @@ func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provid
 				Percent: int(math.Round(float64(r.Planned) / float64(total) * 100))})
 		}
 		st.Campaign = hc
-		// Where could the held share go?
 		for _, other := range sn.provs {
 			if other.ID == p.ID || !state.Available(other) || !state.Caps(other).BulkAllowed() {
 				continue

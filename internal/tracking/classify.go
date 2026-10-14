@@ -30,8 +30,6 @@ type Verdict struct {
 	Client string
 }
 
-// The heuristics below are documented in the package comment; tests in
-// classify_test.go pin each rule.
 var (
 	// Apple's network (Mail Privacy Protection proxies fetch from it).
 	appleNet = netip.MustParsePrefix("17.0.0.0/8")

@@ -23,12 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
-// This file is the SES side of "Connect a sending provider" (spec 5.7):
-// the CloudFormation access template, the account id, a scan of every
-// region's standing, the production-access request, and provisioning of
-// the SNS topic, its HTTPS subscription and one configuration set per
-// stream, each publishing events to the topic with open and click tracking
-// off (ReputeCast tracks those itself).
+// This file is the SES side of "Connect a sending provider" (spec 5.7).
 
 var (
 	_ providers.Provisioner               = (*Provider)(nil)
@@ -133,7 +128,7 @@ func (p *Provider) provisionTopic(ctx context.Context, in providers.ProvisionInp
 	}, nil
 }
 
-// SubscriptionSettings are the provisioning results kept in the settings.
+// subscriptionSettings are the provisioning results kept in the settings.
 type subscriptionSettings struct {
 	TopicARN        string `json:"topic_arn"`
 	SubscriptionARN string `json:"subscription_arn"`
@@ -306,19 +301,14 @@ func (p *Provider) RequestProductionAccess(ctx context.Context, r providers.Prod
 	return nil
 }
 
-// Policy is the least-privilege IAM policy ReputeCast needs: send, read the
-// account, manage configuration sets, identities and the suppression list,
-// request production access, and create and subscribe topics named
-// reputecast-*.
+// Policy is the least-privilege IAM policy ReputeCast needs.
 const Policy = `{ "Version": "2012-10-17", "Statement": [
   { "Effect": "Allow", "Action": ["ses:SendEmail","ses:SendRawEmail","ses:GetAccount","ses:GetSendQuota",
     "ses:*ConfigurationSet*","ses:*EmailIdentity*","ses:*SuppressedDestination*","ses:PutAccountDetails"], "Resource": "*" },
   { "Effect": "Allow", "Action": ["sns:CreateTopic","sns:Subscribe","sns:SetTopicAttributes","sns:GetSubscriptionAttributes"],
     "Resource": "arn:aws:sns:*:*:reputecast-*" } ] }`
 
-// Template is the CloudFormation template that creates the role. It takes
-// the external id ReputeCast generated for the connection and the identity
-// this server runs as.
+// Template is the CloudFormation template that creates the role.
 const Template = `AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   ReputeCast access to Amazon SES: send mail, read the account, manage

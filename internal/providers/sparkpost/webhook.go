@@ -17,8 +17,7 @@ import (
 )
 
 // VerifyWebhook implements providers.WebhookVerifier: SparkPost doesn't sign
-// payloads, so webhooks are registered with HTTP basic auth (user
-// reputecast, the provider's webhook secret as password), over the
+// payloads, so webhooks are registered with HTTP basic auth, over the
 // webhook's unguessable URL.
 func (p *Provider) VerifyWebhook(_ context.Context, r *http.Request, _ []byte) error {
 	return webhookauth.Basic(r, WebhookUser, p.cfg.WebhookSecret)

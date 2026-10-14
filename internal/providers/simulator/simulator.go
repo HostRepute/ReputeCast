@@ -2,10 +2,8 @@
 // no network. It accepts messages like the provider it stands in for (SES,
 // Postal, Postmark, SMTP), answers with that provider's codes, and plans the
 // delivery and engagement events the real one would report over time, at
-// the per-mailbox-provider rates of the design boards: delivered, deferred
-// (Yahoo TSS04), hard and soft bounces, complaints, Apple Mail Privacy
-// Protection prefetches, human opens and clicks. Scenarios reproduce the
-// guarded-sending states: "outlook-complaints" raises complaints among
+// the per-mailbox-provider rates of the design boards. Scenarios reproduce
+// the guarded-sending states: "outlook-complaints" raises complaints among
 // never-engaged Outlook recipients until the auto-pause trips, and
 // "postal-outage" makes a Postal server refuse connections 14 minutes into
 // the send.
@@ -278,17 +276,12 @@ type Event struct {
 }
 
 // mailboxRates are the per-mailbox-provider outcomes, in percent of
-// accepted messages, tuned to the LiveMonitor board 21 minutes into a send:
-// bounces, complaints and deferrals as in its table, opens split into
-// people (human) and privacy proxies fetching images on delivery (machine),
-// and click, the share of people who open and then click.
-//
-// Machine opens arrive within a minute of delivery. People open over the
-// following hours (most within half an hour), so 21 minutes into a send
-// about 60% of the eventual human opens have come in: human is the board's
-// human open rate divided by 0.6. A person who opens after a proxy fetch
-// turns the open from machine into human, so machine is a little above the
-// board's machine share.
+// accepted messages, tuned to the LiveMonitor board 21 minutes into a send.
+// By then about 60% of the eventual human opens have come in, so human is
+// the board's human open rate divided by 0.6. machine (privacy proxies
+// fetching on delivery) is a little above the board's share, because a
+// person who opens after a proxy fetch turns the open human. click is the
+// share of people who open and then click.
 type mailboxRates struct {
 	bounce, complaint, deferral, human, machine, click float64
 }
@@ -327,10 +320,9 @@ func (p *Provider) Plan(m providers.Message) []Event {
 	complaint := rt.complaint
 	if p.s.Scenario == ScenarioOutlookComplaints && mbp == "outlook" {
 		// Never-engaged or long-unengaged Outlook recipients mark the
-		// email as spam far more often.
-		// About 0.4% of Outlook overall: the auto-pause is sure of it 7 to
-		// 14 minutes into a send in 9 runs out of 10 (simulated), so
-		// --elapsed 20m reliably opens on LiveMonitorPaused.
+		// email as spam far more often: about 0.4% of Outlook overall, so the
+		// auto-pause trips 7 to 14 minutes into a send in 9 runs out of 10
+		// and --elapsed 20m reliably opens on LiveMonitorPaused.
 		if !engaged || tier == "at_risk" || tier == "sunset" {
 			complaint = 3.0
 		} else {

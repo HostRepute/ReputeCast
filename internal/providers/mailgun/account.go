@@ -243,10 +243,9 @@ func hasURL(urls []string, u string) bool {
 	return slices.ContainsFunc(urls, func(x string) bool { return sameURL(x, u) })
 }
 
-// RegisterWebhook implements providers.WebhookRegistrar: the URL is added
-// to the domain's delivered, permanent_fail, temporary_fail, complained and
-// unsubscribed webhooks, next to any URLs already there (Mailgun allows
-// three per event).
+// RegisterWebhook implements providers.WebhookRegistrar: the URL is added to
+// each of webhookEvents next to any URLs already there (Mailgun allows three
+// per event).
 func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 	hooks, err := p.webhooks(ctx)
 	if err != nil {

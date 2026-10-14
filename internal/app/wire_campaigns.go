@@ -21,7 +21,7 @@ func init() {
 				Blocklist: contentcheck.StoreBlocklist{Q: a.Q},
 				Prober:    linkProber(a),
 			},
-			// Saves re-check the campaign's open approval (W11).
+			// Saves re-check the campaign's open approval.
 			AfterChange: CampaignChangeHook(a),
 		}
 		campaigns.Register(h, s)

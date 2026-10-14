@@ -22,7 +22,6 @@ type RateLimits struct {
 	APIPerMinute  int // per API key, or per IP without one
 }
 
-// Middleware returns the rate-limiting middleware.
 func (rl RateLimits) Middleware() func(http.Handler) http.Handler {
 	auth := httprate.LimitBy(rl.AuthPerMinute, time.Minute, keyByIP,
 		httprate.WithLimitHandler(limited("Too many sign-in attempts from your network. Wait a minute and try again.")),

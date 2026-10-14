@@ -87,11 +87,9 @@ func Diff(from, to AutomationGraph, dc DiffContext) []AutomationDiffItem {
 	var items []AutomationDiffItem
 	changedNodes := map[string]bool{}
 
-	// Added steps, grouped into connected clusters.
 	for _, cl := range clusters(to, added) {
 		items = append(items, describeCluster(to, cl, "added", dc, dc.ToRefs))
 	}
-	// Changed steps, in canvas order.
 	for _, id := range to.Order() {
 		a, okA := inFrom[id]
 		b, okB := inTo[id]
@@ -118,7 +116,6 @@ func Diff(from, to AutomationGraph, dc DiffContext) []AutomationDiffItem {
 		changedNodes[id] = true
 		items = append(items, describeRewire(to, n, after, dc))
 	}
-	// Removed steps.
 	for _, cl := range clusters(from, removed) {
 		items = append(items, describeCluster(from, cl, "removed", dc, dc.FromRefs))
 	}

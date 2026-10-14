@@ -1,15 +1,7 @@
 // Package automations implements visual flows (spec 7.10): the React Flow
-// graph and its validation, versions with a diff and publish (letting
-// contacts finish on the old version or moving them), the runs engine on
-// River (enrollment from trigger events, delays, step execution, goals) and
-// per-step stats.
-//
-// Two seams belong to other domains:
-//   - Mailer queues the email of a "Send email" step. The sending domain
-//     replaces QueueOnlyMailer (which records the message and picks a
-//     provider on the Automations route) with real delivery.
-//   - PublishGate lets the approvals domain require approval before a
-//     version goes live (add-on §3.8); NoApproval publishes right away.
+// graph and its validation, versions with a diff and publish, the runs engine
+// on River and per-step stats. The sending and approvals domains plug in
+// through Mailer and PublishGate.
 package automations
 
 import (

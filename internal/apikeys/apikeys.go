@@ -1,8 +1,7 @@
-// Package apikeys manages API keys and MCP agents (A5 §3.9, §5.13). Both use
-// the permission keys of roles with an optional list scope, never exceed
-// their creator's permissions, are shown exactly once, record their last
-// use (time, address, client) and can be rotated or revoked. Expired keys
-// stay listed for 90 days with the calls that still try to use them.
+// Package apikeys manages API keys and MCP agents (A5 §3.9, §5.13). Keys
+// never exceed their creator's permissions and are shown exactly once.
+// Expired keys stay listed for 90 days with the calls that still try to use
+// them.
 package apikeys
 
 import (
@@ -35,7 +34,6 @@ const (
 	KindAgent  = "mcp_agent"
 )
 
-// Service holds the API key domain dependencies.
 type Service struct {
 	Pool      *pgxpool.Pool
 	Q         *store.Queries

@@ -60,7 +60,6 @@ type ScanArgs struct{}
 // Kind implements river.JobArgs.
 func (ScanArgs) Kind() string { return "automations.scan" }
 
-// ScanWorker runs Scan.
 type ScanWorker struct {
 	river.WorkerDefaults[ScanArgs]
 	S *Service

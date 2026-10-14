@@ -16,20 +16,17 @@ import (
 	"github.com/hostrepute/reputecast/internal/tracking"
 )
 
-// W12 · Sending engine, live monitor and tracking.
+// Sending engine, live monitor and tracking.
 
-// sendingReadiness is the send-time recheck: Send Readiness runs again and
-// the approval must still cover the campaign (W11's SendRecheck, which
-// records nothing; the engine holds a scheduled send that turns Blocked and
-// tells people).
+// sendingReadiness is the send-time recheck (SendRecheck).
 var sendingReadiness = func(a *App) sending.Readiness {
 	return &readinessRecheck{build: func() recheckFunc { return SendRecheck(a) }}
 }
 
 type recheckFunc = func(ctx context.Context, campaignID uuid.UUID) (approvals.SendRecheck, error)
 
-// readinessRecheck adapts W11's send-time recheck to sending.Readiness. The
-// approvals service is built at the first recheck, not with the engine: its
+// readinessRecheck adapts SendRecheck to sending.Readiness. The approvals
+// service is built at the first recheck, not with the engine: its
 // automations service sends through this engine, so building it while the
 // engine is being built would never end.
 type readinessRecheck struct {

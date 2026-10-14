@@ -1,11 +1,9 @@
 package auditlog
 
-// Instance admin › Audit log (W14, add-on spec 3.10 and 5.14, the
-// AuditInstance board): every workspace's entries and the instance-level
-// ones (sign-ins, SSO, policies, users) in one list, filtered by workspace
-// ("Instance only" for the instance-level entries), with the same detail,
-// export and stream as a workspace log. The instance retention applies to
-// the instance-level entries; each workspace keeps its own.
+// Instance admin › Audit log (add-on spec 3.10 and 5.14, the AuditInstance
+// board): every workspace's entries and the instance-level ones in one list.
+// The instance retention applies to the instance-level entries; each
+// workspace keeps its own.
 
 import (
 	"bufio"

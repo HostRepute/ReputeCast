@@ -438,7 +438,7 @@ type AutomationWebhookCall struct {
 	CalledAt   time.Time `json:"calledAt"`
 }
 
-// AutomationWebhookCalls returns the latest calls of a webhook step.
+// WebhookCalls returns the latest calls of a webhook step.
 func (s *Service) WebhookCalls(ctx context.Context, ws *store.Workspace, id uuid.UUID, node string, limit int) ([]AutomationWebhookCall, error) {
 	a, err := s.Q.GetAutomation(ctx, store.GetAutomationParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {

@@ -61,9 +61,8 @@ type Recorder interface {
 }
 
 // Readiness reruns Send Readiness when a send starts (the send-time
-// recheck, add-on §3.8) and supplies what Send Readiness computed for the
-// send: per-mailbox-provider throttles. The readiness package satisfies it;
-// until it is wired the engine uses ReadyAlways.
+// recheck, add-on §3.8) and supplies its per-mailbox-provider throttles.
+// The engine falls back to ReadyAlways when none is wired.
 type Readiness interface {
 	Recheck(ctx context.Context, campaignID uuid.UUID) (Recheck, error)
 }

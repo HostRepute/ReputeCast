@@ -113,7 +113,6 @@ func (i *IdP) Set(claims map[string]any, idpError string) {
 	i.Claims, i.Error = claims, idpError
 }
 
-// Close stops the server.
 func (i *IdP) Close() { i.Server.Close() }
 
 // Issuer is the issuer URL to configure.
@@ -277,7 +276,6 @@ func NewGitHub() *GitHub {
 	return g
 }
 
-// Close stops the server.
 func (g *GitHub) Close() { g.Server.Close() }
 
 // AuthURL, TokenURL and API are the endpoints to configure.

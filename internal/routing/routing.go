@@ -2,13 +2,10 @@
 // per stream (Broadcasts, Automations, System) with conditions on the list,
 // the sender domain and the recipient's mailbox provider, a deterministic
 // weighted split for migrations and warm-up, a fallback per stream and the
-// failover policy (automatic for System and Automations, pause-and-ask by
-// default for Broadcasts, optionally automatic but only to a warmed-up
-// provider).
+// failover policy.
 //
-// The decision functions here are pure; service.go stores rules and
-// policies, validates them (including the bulk-marketing terms of each
-// provider) and serves the routing screen and the route tester.
+// The decision functions here are pure; service.go stores and validates
+// rules and policies and serves the routing screen and the route tester.
 package routing
 
 import (

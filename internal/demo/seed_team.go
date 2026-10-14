@@ -215,7 +215,7 @@ func seedDefaultSender(ctx context.Context, s *Seeder) error {
 // Rows that another seeder already created are left alone.
 func seedSignIns(ctx context.Context, s *Seeder) error {
 	// The Google Workspace provider comes from the account and instance
-	// seeders (internal/sso owns SSO); without one there's nothing to link.
+	// seeders; without one there's nothing to link.
 	var provider uuid.UUID
 	if err := s.Tx.QueryRow(ctx, `SELECT id FROM sso_providers WHERE preset = 'google' ORDER BY created_at LIMIT 1`).Scan(&provider); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return err

@@ -138,7 +138,6 @@ func (r *readinessSeed) baseFacts(checked time.Time) readiness.Facts {
 	}
 }
 
-// links builds a probed link list.
 func probed(entries ...[3]string) []contentcheck.ContentCheckLink {
 	out := []contentcheck.ContentCheckLink{}
 	for i, e := range entries {
@@ -173,8 +172,6 @@ func (r *readinessSeed) storeRun(ctx context.Context, id uuid.UUID, f readiness.
 		RanAt: ranAt, DurationMs: 9400, RanBy: by, CampaignVersion: c.Version, Fingerprint: readiness.Fingerprint(c, readiness.RoutingKey(ctx, s.Q, r.ws.ID))})
 	return res, runID, err
 }
-
-// ---------------------------------------------------------------- Weekly Digest #142
 
 func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 	s := r.s
@@ -245,8 +242,6 @@ func readinessAudit(ctx context.Context, s *Seeder, at time.Time, u store.User, 
 	return err
 }
 
-// ---------------------------------------------------------------- flash sale
-
 func (r *readinessSeed) flashSale(ctx context.Context) error {
 	s := r.s
 	id, ok := s.Campaigns["Flash sale: 48 hours only"]
@@ -300,20 +295,16 @@ func (r *readinessSeed) flashSale(ctx context.Context) error {
 	return err
 }
 
-// ---------------------------------------------------------------- November Product Update
-
 const novemberSubject = "November Product Update: faster exports, new API, and a Postal milestone"
 const novemberPreheader = "Plus: the new team permissions and what changed in approvals"
 
 // novemberMJML is Daniel's draft at each of its nine versions. The last one
-// is the short teaser the approval review previews (ApprovalReview board):
-// a header (its name and date stay side by side on phones), a teal banner,
-// the headline with an excerpt and a button, and the footer, sized so the
-// review's preview (the email at 70%) draws it as the board does. Its third
-// link, the button, goes through bit.ly (the URL-shortener warning of the
-// sample data; ApprovalStates replaces "Link 3"). The banner is a coloured
-// block, not an image, so the short email stays under the image-to-text
-// warning.
+// is the short teaser the approval review previews (ApprovalReview board),
+// sized so the review's preview (the email at 70%) draws it as the board
+// does; the header's name and date stay side by side on phones. Its button
+// goes through bit.ly (the URL-shortener warning of the sample data;
+// ApprovalStates replaces "Link 3"). The banner is a coloured block, not an
+// image, so the short email stays under the image-to-text warning.
 func novemberMJML(stage int) string {
 	date := ""
 	if stage >= 2 {
@@ -514,7 +505,6 @@ func (r *readinessSeed) november(ctx context.Context) error {
 	return err
 }
 
-// snapshotRun records the run in a snapshot.
 func (r *readinessSeed) snapshotRun(snap *approvals.Snapshot, res readiness.ReadinessResult, runID uuid.UUID, ranAt time.Time) {
 	e := res.Estimates
 	snap.Minutes, snap.Cost = e.Route.TotalMinutes, e.Route.TotalCost
@@ -573,8 +563,6 @@ func (r *readinessSeed) decide(ctx context.Context, request uuid.UUID, by store.
 		ID(), request, by.ID, decision, comment, at)
 	return err
 }
-
-// ---------------------------------------------------------------- inbox history
 
 func (r *readinessSeed) history(ctx context.Context) error {
 	s := r.s

@@ -1,8 +1,6 @@
 // Package notify creates in-app notifications (A5 §3.12) and fans them out to
 // the members who should see them. Delivery preferences (in-app and/or email
-// per event type) are applied here; email delivery goes through the System
-// stream when one is connected (see EmailWorker) and is skipped silently
-// when none is.
+// per event type) are applied here; see EmailWorker for email delivery.
 package notify
 
 import (

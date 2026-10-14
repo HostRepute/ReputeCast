@@ -15,17 +15,14 @@ func init() { seedAudience = seedAudienceImpl }
 
 // seedAudienceImpl creates the audience of the sample data: three lists
 // with 48,213 contacts whose tiers, mailbox providers, consent and growth
-// add up to the numbers on the boards, custom fields, saved views, the
-// sunset policy and its 12-week history, the Brevo and Mailchimp imports
-// and the Mailchimp draft waiting in the importer. Suppressions, segments
-// and events need campaign, automation and provider IDs, so they are added
-// after every seeder ran (seed_audience_late.go).
+// add up to the numbers on the boards. Suppressions, segments and events
+// need campaign, automation and provider IDs, so they are added after every
+// seeder ran (seed_audience_late.go).
 //
 // Contacts are generated in Go and written with COPY rather than with
-// generate_series: every cohort the boards count (Outlook users on paid
-// plans who opened in 30 days, the 1,204 contacts entering Sunset on
-// Wednesday…) is placed exactly, the result is the same on every run, and
-// COPY of 50,000 rows takes well under a second.
+// generate_series: every cohort the boards count is placed exactly, the
+// result is the same on every run, and COPY of 50,000 rows takes well under
+// a second.
 func seedAudienceImpl(ctx context.Context, s *Seeder) error {
 	ws := s.WS()
 	lists := []struct {

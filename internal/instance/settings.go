@@ -57,7 +57,6 @@ type PublicURLManualHook struct {
 	URL       string `json:"url" doc:"The provider's webhook address on the new public URL"`
 }
 
-// Settings returns the instance settings.
 func (s *Service) Settings(ctx context.Context) (InstanceSettings, error) {
 	st, err := s.Q.GetInstanceSettings(ctx)
 	if err != nil {

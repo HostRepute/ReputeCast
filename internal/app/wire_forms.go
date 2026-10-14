@@ -18,7 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/web"
 )
 
-// W13 · Signup forms and public pages.
+// Signup forms and public pages.
 //
 // The forms service keeps state per process (rate-limit buckets, the
 // custom-domain lookup cache), so the API, the public pages and the jobs of

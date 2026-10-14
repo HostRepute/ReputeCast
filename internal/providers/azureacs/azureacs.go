@@ -1,32 +1,23 @@
-// Package azureacs is the Azure Communication Services Email adapter, on
-// the data-plane REST API (api-version 2025-09-01) without the Azure SDK.
-// It sends one message per call, authenticated with the resource's access
-// key (HMAC-SHA256 request signing) or a Microsoft Entra ID application
-// (client credentials), and receives delivery reports from an Event Grid
-// subscription (Event Grid event schema): the validation handshake is
-// answered, and deliveries are authenticated with the Microsoft Entra ID
-// token of a protected webhook, or with a shared secret Event Grid sends
-// as a delivery header (or in the URL's query).
+// Package azureacs is the Azure Communication Services Email adapter, on the
+// data-plane REST API without the Azure SDK. It authenticates with the
+// resource's access key (HMAC-SHA256 request signing) or a Microsoft Entra ID
+// application, and receives delivery reports from an Event Grid subscription.
 //
-// What the data-plane API can't do stays manual and is not claimed:
-// domains, sender usernames, Event Grid subscriptions and suppression lists
-// are Azure Resource Manager resources, set up in the Azure portal. ACS
-// keeps its own suppression list of hard-bounced addresses (not exposed);
-// its Suppressed events reach the shared list here.
+// Domains, sender usernames, Event Grid subscriptions and suppression lists
+// are Azure Resource Manager resources, set up manually in the Azure portal.
+// ACS's own suppression list isn't exposed; its Suppressed events reach the
+// shared list.
 //
-// Terms (checked 2026-10-13): the Email overview says ACS "facilitates
-// high-volume transactional, bulk, and marketing emails"
-// (https://learn.microsoft.com/en-us/azure/communication-services/concepts/email/email-overview),
-// under the Messaging Policy, which requires written consent for
-// promotional messages and an unsubscribe link in every email
+// Terms (checked 2026-10-13): bulk and marketing mail is allowed
+// (https://learn.microsoft.com/en-us/azure/communication-services/concepts/email/email-overview)
+// with written consent and an unsubscribe link
 // (https://learn.microsoft.com/en-us/azure/communication-services/concepts/sms/messaging-policy),
-// and the Online Services Acceptable Use Policy, which forbids spam
+// and the Acceptable Use Policy forbids spam
 // (https://www.microsoft.com/licensing/terms/product/ForOnlineServices/all).
-// Bulk marketing is allowed, with two caveats in the terms note: ACS's DKIM
-// signature doesn't cover List-Unsubscribe, so Gmail and Yahoo one-click
-// unsubscribe can't be relied on (a gap Microsoft acknowledged in 2026),
-// and Microsoft is retiring ACS as a standalone offering on 30 September
-// 2028, limiting new onboarding from 23 October 2026
+// Caveats: ACS's DKIM signature doesn't cover List-Unsubscribe, so Gmail and
+// Yahoo one-click unsubscribe can't be relied on, and Microsoft retires ACS
+// as a standalone offering on 30 September 2028, limiting new onboarding
+// from 23 October 2026
 // (https://learn.microsoft.com/en-us/azure/communication-services/acs-retirement-and-breaking-changes-guide).
 package azureacs
 

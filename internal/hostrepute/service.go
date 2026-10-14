@@ -790,8 +790,7 @@ func (s *Service) SyncNow(ctx context.Context, ws *store.Workspace) (HostReputeS
 }
 
 // QueueRecheck asks HostRepute to re-check every monitored asset now and
-// syncs the result (Deliverability's "Run all checks now"). It returns the
-// check run that tracks progress.
+// syncs the result (Deliverability's "Run all checks now").
 func (s *Service) QueueRecheck(ctx context.Context, tx pgx.Tx, ws uuid.UUID, by *uuid.UUID) error {
 	return s.queueSync(ctx, tx, ws, by, "manual", true, false)
 }

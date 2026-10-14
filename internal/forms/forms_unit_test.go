@@ -1,7 +1,7 @@
 package forms
 
 // Unit tests of the forms package: no database. Integration tests that run
-// the HTTP API are in forms_api_test.go (package forms_test).
+// the HTTP API are in api_test.go (package forms_test).
 
 import (
 	"bytes"
@@ -22,8 +22,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 )
-
-// --- colours -----------------------------------------------------------------
 
 func mustColor(t *testing.T, s string) rgb {
 	t.Helper()
@@ -207,9 +205,8 @@ func sweep(t *testing.T, buttons bool) (fails []string, total int) {
 }
 
 // Every link, hover and tint text reaches 4.5:1, whatever the publisher
-// picks. darkenUntil checks the contrast of the unrounded colour and stops
-// at the first shade over 4.5:1; Hex() then rounds the channels, and the
-// colour the pages use can land just under (#007F61 on #FEF3C7 is 4.48:1).
+// picks, measured on the rounded hex the pages use: a shade can pass before
+// rounding and miss after it (#007F61 on #FEF3C7 is 4.48:1).
 func TestDerivePaletteTextAlwaysReachesAA(t *testing.T) {
 	fails, total := sweep(t, false)
 	if len(fails) > 0 {
@@ -218,12 +215,9 @@ func TestDerivePaletteTextAlwaysReachesAA(t *testing.T) {
 	}
 }
 
-// Button text reaches 4.5:1 on the accent. DerivePalette uses white, and
-// ink (#0B1220) when white misses 4.5:1, without checking ink: for accents
-// whose luminance is around 0.17 to 0.21 ink is worse than white or misses
-// too. #0077DD, a common brand blue, gets ink at 4.18:1 where white was
-// 4.48:1; the mid grey #797979 reaches neither (4.35:1 white, 4.30:1 ink).
-// Black (#000000) reaches 4.5:1 on every accent where white doesn't.
+// Button text reaches 4.5:1 on the accent. Around a luminance of 0.17 to
+// 0.21 neither white nor ink does (#0077DD: 4.48:1 white, 4.18:1 ink;
+// #797979: 4.35:1 and 4.30:1); black reaches it wherever white doesn't.
 func TestDerivePaletteButtonTextReachesAA(t *testing.T) {
 	for _, accent := range []string{"#0077DD", "#797979"} {
 		p, err := DerivePalette(accent, "#FFFFFF")
@@ -262,8 +256,6 @@ func TestDerivePaletteRejects(t *testing.T) {
 		t.Errorf("the design background is light enough: %v", err)
 	}
 }
-
-// --- origins -------------------------------------------------------------------
 
 func TestNormalizeOrigin(t *testing.T) {
 	cases := []struct {
@@ -353,8 +345,6 @@ func TestOriginAllowed(t *testing.T) {
 	}
 }
 
-// --- slugs, labels, excerpts ------------------------------------------------------
-
 func TestSlugify(t *testing.T) {
 	cases := []struct {
 		in   string
@@ -426,8 +416,6 @@ func TestExcerpt(t *testing.T) {
 		}
 	}
 }
-
-// --- timing tokens ------------------------------------------------------------------
 
 func testBox(t *testing.T) *secrets.Box {
 	t.Helper()
@@ -513,8 +501,6 @@ func TestFormKey(t *testing.T) {
 	}
 }
 
-// --- form configuration ---------------------------------------------------------------
-
 func TestConfigOfDefaults(t *testing.T) {
 	c := ConfigOf(store.Form{Name: "Bare", Slug: "bare", PublicID: "frm_abcdef", Status: StatusLive, ConsentText: "I agree.", ConsentVersion: 3,
 		Fields: []byte(`[{"key":"first_name"}]`), Content: []byte(`{}`), SpamProtection: []byte(`{"honeypot":true}`)})
@@ -558,8 +544,6 @@ func TestBuiltinFormOffersPublicLists(t *testing.T) {
 		t.Errorf("built-in form: %+v", c)
 	}
 }
-
-// --- plain HTML and the embed script -------------------------------------------------
 
 func embedFixture() (Config, PageLinks, []audience.PublicList, []store.CustomField, Branding) {
 	digest, updates := uuid.MustParse("0192f0a0-0000-7000-8000-000000000001"), uuid.MustParse("0192f0a0-0000-7000-8000-000000000002")
@@ -616,11 +600,9 @@ func TestPlainHTML(t *testing.T) {
 	}
 }
 
-// The consent sentence links "privacy policy" by searching a lowercased
-// copy of the text and slicing the original with that index. Letters whose
-// lowercase form has another UTF-8 length (Turkish "İ" is 2 bytes, "i" is 1)
-// shift the index: the link wraps the wrong bytes, and a letter that grows
-// when lowercased ("Ⱥ" → "ⱥ") slices past the end and panics.
+// "privacy policy" is linked at the right bytes even when the sentence has
+// letters whose lowercase form has another UTF-8 length (Turkish "İ" is 2
+// bytes, "i" is 1; "Ⱥ" grows when lowercased).
 func TestPlainHTMLPrivacyLinkWithNonASCIIConsent(t *testing.T) {
 	c, links, lists, customs, b := embedFixture()
 	for _, consent := range []string{
@@ -750,8 +732,6 @@ func TestPageLinks(t *testing.T) {
 	}
 }
 
-// --- logos ------------------------------------------------------------------------------
-
 func TestSniffLogo(t *testing.T) {
 	png := append([]byte("\x89PNG\r\n\x1a\n"), bytes.Repeat([]byte{0}, 64)...)
 	clean := []byte(`<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#4338CA"/><style>rect{opacity:.9}</style></svg>`)
@@ -797,12 +777,9 @@ func TestSniffLogo(t *testing.T) {
 	}
 }
 
-// sniffLogo looks for a fixed list of byte strings ("onload=", "onerror=",
-// "onclick="…). Event handler attributes written with spaces around "=",
-// or other handlers (onmouseover, onbegin of SVG animations, onfocus), slip
-// through. The logo is served with "sandbox" in its CSP, which keeps them
-// from running when the file is opened directly, so this is
-// defence-in-depth, but the check's promise ("no scripts") isn't kept.
+// Every event handler attribute is refused, with spaces around "=" and under
+// any name (onmouseover, onbegin of SVG animations). The logo's CSP sandbox
+// also keeps them from running, so this is defence in depth.
 func TestSniffLogoRejectsEveryEventHandler(t *testing.T) {
 	for name, svg := range map[string]string{
 		"onload with spaces": `<svg xmlns="http://www.w3.org/2000/svg" onload = "alert(1)"><rect/></svg>`,
@@ -829,8 +806,6 @@ func TestSafeFileName(t *testing.T) {
 		}
 	}
 }
-
-// --- page options ---------------------------------------------------------------------
 
 func TestApplyPages(t *testing.T) {
 	digest := uuid.Must(uuid.NewV7())
@@ -884,8 +859,6 @@ func TestPagesOfDefaults(t *testing.T) {
 		t.Errorf("stored options over defaults: %+v", p)
 	}
 }
-
-// --- emails ------------------------------------------------------------------------------
 
 func TestConfirmationEmail(t *testing.T) {
 	b := Branding{PublisherName: `Acme <b>&</b>`, Palette: Palette{Accent: "#4338CA", OnAccent: "#FFFFFF", Background: "#F5F3FF"}}

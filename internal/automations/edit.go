@@ -69,7 +69,6 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 			return err
 		}
 		if tpl.Key != "" {
-			// The template's emails, made for this flow.
 			emailIDs := map[string]uuid.UUID{}
 			for _, e := range tpl.emails {
 				eid := uuid.Must(uuid.NewV7())

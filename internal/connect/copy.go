@@ -10,10 +10,7 @@ import (
 // The connect flow's words for each adapter. Capabilities, terms and fields
 // always come from the adapter itself (its Descriptor); this table only
 // holds how the catalog and the connection step talk about the providers
-// the design names (spec 5.2): display name, pricing line, a few chip
-// wordings, where to find API keys, which webhook events get registered.
-// Adapters that aren't listed (community adapters, new built-ins) get
-// wording derived from their Descriptor.
+// the design names (spec 5.2).
 
 type adapterCopy struct {
 	// Display is the catalog name ("Any SMTP server").
@@ -46,7 +43,7 @@ type adapterCopy struct {
 	VerifyCall string
 	// WebhookEvents lists the events ReputeCast registers.
 	WebhookEvents string
-	// CanPoll is true when the provider has an events API ReputeCast can
+	// EventsAPI is true when the provider has an events API ReputeCast can
 	// poll instead of webhooks.
 	EventsAPI bool
 	// Section is the first card's title ("1. API key").

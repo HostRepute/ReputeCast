@@ -33,7 +33,6 @@ func (TickArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: jobs.QueueDefault, MaxAttempts: 1, UniqueOpts: river.UniqueOpts{ByPeriod: 50 * time.Second}}
 }
 
-// TickWorker runs TickArgs.
 type TickWorker struct {
 	river.WorkerDefaults[TickArgs]
 	S *Service

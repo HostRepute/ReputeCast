@@ -25,7 +25,7 @@ type Facts struct {
 	Content    ContentFacts
 	Compliance ComplianceFacts
 	// MailboxRates are the per-mailbox-provider throttles (messages per
-	// second, 0 = full rate); MailboxRatesNote explains them.
+	// second, 0 = full rate).
 	MailboxRates map[string]float64
 }
 

@@ -65,7 +65,6 @@ type AccountPassword struct {
 	ManagedBy string `json:"managedBy,omitempty"`
 }
 
-// AccountPasskey is one passkey.
 type AccountPasskey struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`

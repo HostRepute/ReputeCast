@@ -14,8 +14,8 @@ import (
 	"github.com/hostrepute/reputecast/internal/routing"
 )
 
-// W10 · Connect a sending provider (the catalog and the six-step setup)
-// and Settings › Providers.
+// Connect a sending provider (the catalog and the six-step setup) and
+// Settings › Providers.
 func (a *App) connectService() *connect.Service {
 	cfg := a.Cfg
 	if cfg == nil { // OpenAPI generation registers operations on an empty App

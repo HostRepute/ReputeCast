@@ -7,21 +7,17 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
-// This file is how installed HTTP adapters (installed_adapters rows of kind
-// "http": a mapping saved from the Adapters tab or a community manifest)
-// join the provider registry. The community adapter runtime
-// (internal/providers/remote) registers each one under its key,
-// providers.CommunityKey(name), with CommunityDescriptor; a provider
-// connected through it is opened with FromManifest and the stored manifest.
+// Installed HTTP adapters (installed_adapters rows of kind "http") join the
+// registry through internal/providers/remote, which registers each one as
+// providers.CommunityKey(name) with CommunityDescriptor.
 
 // FieldName is the mapping field an error is about ("body", "headers",
 // "webhook.auth"), for forms that show errors next to the field.
 func (e *FieldError) FieldName() string { return e.Field }
 
 // CommunityDescriptor describes an installed HTTP adapter for the catalog
-// and the connect flow: the adapter's own connection fields plus the
-// mapping's, the capabilities and terms its manifest gives, and a
-// constructor that opens connections from the stored manifest.
+// and the connect flow, with a constructor that opens connections from the
+// stored manifest.
 func CommunityDescriptor(key, name, version, maintainer string, raw []byte) (providers.Descriptor, error) {
 	m, err := ParseManifest(raw)
 	if err != nil {

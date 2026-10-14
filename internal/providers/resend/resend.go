@@ -1,20 +1,12 @@
-// Package resend is the Resend adapter (resend.com). It sends through the
-// batch email API (100 distinct messages per call, idempotent), receives
-// webhooks signed with Standard Webhooks / Svix, registers them over the
-// API, sets up domains, syncs the suppression list both ways, reads and
-// turns off per-domain open and click tracking, and backfills message
-// status.
+// Package resend is the Resend adapter (resend.com).
 //
-// Terms (checked 2026-10-13): Resend's Acceptable Use Policy
+// Terms (checked 2026-10-13): the Acceptable Use Policy
 // (https://resend.com/legal/acceptable-use) allows mail to recipients who
-// "explicitly opted in", requires bulk senders to include an address,
-// explain why they write and offer a frictionless unsubscribe, and lets
-// Resend close accounts above 0.08% complaints or 4% bounces. Its pricing
-// FAQ (https://resend.com/pricing) answers "Can I send my newsletter
-// through the /emails API instead of Broadcasts?" with "Yes", provided the
-// mail carries a visible unsubscribe link and List-Unsubscribe and
-// List-Unsubscribe-Post headers, which ReputeCast always sets. Bulk
-// marketing is therefore allowed on every stream.
+// explicitly opted in, asks bulk senders for an address and a frictionless
+// unsubscribe, and lets Resend close accounts above 0.08% complaints or 4%
+// bounces. The pricing FAQ (https://resend.com/pricing) allows newsletters
+// through the /emails API with a visible unsubscribe link and the
+// List-Unsubscribe headers, so bulk marketing is allowed on every stream.
 package resend
 
 import (

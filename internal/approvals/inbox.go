@@ -420,7 +420,6 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			return out, err
 		}
 	}
-	// What changed since the request this one follows.
 	chain, err := s.Q.ApprovalChain(ctx, id)
 	if err != nil {
 		return out, err

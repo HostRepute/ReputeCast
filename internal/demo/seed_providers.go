@@ -70,7 +70,7 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 			limits: state.Limits{Bounce: state.Limit{Limit: 10, Label: "Postmark"}, Complaint: state.Limit{Limit: 0.1, Label: "Postmark"}},
 			health: state.Health{Quota: &state.Quota{Kind: "monthly_plan", Max: 10000, Used: 3412}, Rate: &state.Rate{PeakToday: 3},
 				Account: "Approved · 10,000 per month plan", LastSuccessAt: &checked, LastSuccessOp: "GET /server",
-				// Postmark reports its own rates (outbound stats): 0.2% and 0.01%.
+				// Postmark reports its own rates (outbound stats).
 				Reputation: &state.Reputation{Bounce: 0.2, Complaint: 0.01, Window: "7 d", CheckedAt: checked}},
 			pricing: state.Pricing{Model: "plan", Monthly: 15, NextTier: &state.NextTier{Adds: 50000, Price: 115}},
 			tracking: state.Tracking{OpenPixel: true, LinkRewrite: true, Scope: "Transactional stream", Mode: "reputecast", CheckedAt: &checked,
@@ -137,8 +137,6 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 		return err
 	}
 
-	// Daily stats: this month's volume and cost, the last week's bounce,
-	// complaint and API error rates.
 	if err := seedDailyStats(ctx, s, loc, plan, start); err != nil {
 		return err
 	}
@@ -167,9 +165,8 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 	if err := seedCommunityAdapters(ctx, s); err != nil {
 		return err
 	}
-	// The route tester shows each provider's DKIM selector; the senders
-	// seeder owns sending domains, so only fill in what's missing once
-	// every seeder ran.
+	// The senders seeder owns sending domains, so only fill in what's
+	// missing once every seeder ran.
 	s.After(seedProviderDKIM)
 	return nil
 }

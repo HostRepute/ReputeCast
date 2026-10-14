@@ -17,7 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/sso"
 )
 
-// W14 · Instance admin, SSO and social sign-in, updates.
+// Instance admin, SSO and social sign-in, updates.
 
 // accountsForSSO builds the accounts service the SSO callbacks create
 // sessions with (the same one password sign-in uses; it holds no state).

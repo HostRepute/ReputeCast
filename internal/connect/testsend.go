@@ -612,7 +612,6 @@ func (s *Service) authResult(ctx context.Context, ws *store.Workspace, p store.P
 	return out
 }
 
-// openURL is the open-pixel URL of a test message.
 // linkClaims signs the test message's open pixel.
 func linkClaims(ws, msg uuid.UUID) linktoken.Claims {
 	return linktoken.Claims{Kind: linktoken.Open, WorkspaceID: ws, MessageID: msg}

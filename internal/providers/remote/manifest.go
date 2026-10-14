@@ -248,7 +248,6 @@ func ParseManifest(raw []byte) (Manifest, error) {
 	return m, m.Validate()
 }
 
-// Validate checks a manifest.
 func (m *Manifest) Validate() error {
 	m.ID, m.Name, m.Version, m.Maintainer = strings.TrimSpace(m.ID), strings.TrimSpace(m.Name), strings.TrimSpace(m.Version), strings.TrimSpace(m.Maintainer)
 	switch {

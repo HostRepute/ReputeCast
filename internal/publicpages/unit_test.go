@@ -217,10 +217,9 @@ func TestArchiveParams(t *testing.T) {
 	}
 }
 
-// The archive's ?q is cut to 100 bytes, which can split a multi-byte
-// character: a 34-character Japanese search (102 bytes) becomes invalid
-// UTF-8, which Postgres refuses in the ILIKE parameter, so the public
-// archive answers 500 (see TestArchive in pages_test.go).
+// The archive's ?q is cut to 100 characters, never inside one: invalid
+// UTF-8 makes Postgres refuse the ILIKE parameter and the archive answer
+// 500 (34 Japanese characters are 102 bytes).
 func TestArchiveParamsKeepUTF8(t *testing.T) {
 	for _, q := range []string{strings.Repeat("設計", 17), "a" + strings.Repeat("é", 60)} {
 		p := archiveParamsOf(url.Values{"q": {q}}, nil)
@@ -280,9 +279,8 @@ func TestSplitConsent(t *testing.T) {
 	}
 }
 
-// splitConsent has the index bug of forms.PlainHTML: the hosted page's
-// consent sentence is cut in the wrong place (or the page panics) when the
-// sentence has letters whose lowercase form has another UTF-8 length.
+// The consent sentence is split at "privacy policy" even when it has
+// letters whose lowercase form has another UTF-8 length.
 func TestSplitConsentNonASCII(t *testing.T) {
 	for _, text := range []string{"İstanbul'dan e-posta almayı kabul ediyorum. See the privacy policy.", "Ⱥ privacy policy"} {
 		func() {

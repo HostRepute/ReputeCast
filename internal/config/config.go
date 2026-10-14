@@ -36,27 +36,22 @@ const (
 
 // Config is the full runtime configuration.
 type Config struct {
-	Env      string         `koanf:"env"`
-	Roles    []string       `koanf:"roles"`
-	HTTP     HTTPConfig     `koanf:"http"`
-	Database DatabaseConfig `koanf:"database"`
-	Secrets  SecretsConfig  `koanf:"secrets"`
-	Log      LogConfig      `koanf:"log"`
-	Auth     AuthConfig     `koanf:"auth"`
-	Worker   WorkerConfig   `koanf:"worker"`
-	Updates  UpdatesConfig  `koanf:"updates"`
-	Metrics  MetricsConfig  `koanf:"metrics"`
-	Webhooks WebhooksConfig `koanf:"webhooks"`
-	// Providers configures outbound calls to sending-provider APIs and
-	// community adapters.
-	Providers ProvidersConfig `koanf:"providers"`
-	// HostRepute and DNS configure Deliverability (internal/hostrepute, internal/dnscheck).
+	Env        string           `koanf:"env"`
+	Roles      []string         `koanf:"roles"`
+	HTTP       HTTPConfig       `koanf:"http"`
+	Database   DatabaseConfig   `koanf:"database"`
+	Secrets    SecretsConfig    `koanf:"secrets"`
+	Log        LogConfig        `koanf:"log"`
+	Auth       AuthConfig       `koanf:"auth"`
+	Worker     WorkerConfig     `koanf:"worker"`
+	Updates    UpdatesConfig    `koanf:"updates"`
+	Metrics    MetricsConfig    `koanf:"metrics"`
+	Webhooks   WebhooksConfig   `koanf:"webhooks"`
+	Providers  ProvidersConfig  `koanf:"providers"`
 	HostRepute HostReputeConfig `koanf:"hostrepute"`
 	DNS        DNSConfig        `koanf:"dns"`
-	// Mail and Connect configure system mail and the connect-a-provider
-	// flow (internal/systemmail, internal/connect).
-	Mail    MailConfig    `koanf:"mail"`
-	Connect ConnectConfig `koanf:"connect"`
+	Mail       MailConfig       `koanf:"mail"`
+	Connect    ConnectConfig    `koanf:"connect"`
 }
 
 // MailConfig configures system mail (password resets, invitations,
@@ -171,13 +166,12 @@ type MetricsConfig struct {
 
 // ProvidersConfig configures calls to sending-provider APIs.
 type ProvidersConfig struct {
-	// AllowPrivateNetworks lets provider URLs a workspace enters (a Postal
-	// server, a generic HTTP adapter, an Azure endpoint) resolve to loopback
-	// and private (RFC 1918) addresses, for providers on the same network.
-	// Off by default so workspace admins can't reach internal services
-	// (SSRF); link-local and cloud metadata addresses are always blocked.
-	// It also decides whether a community adapter's process may listen on
-	// such an address (a sidecar); plain http:// only reaches those.
+	// AllowPrivateNetworks lets provider URLs a workspace enters resolve to
+	// loopback and private (RFC 1918) addresses. Off by default so workspace
+	// admins can't reach internal services (SSRF); link-local and cloud
+	// metadata addresses are always blocked. It also decides whether a
+	// community adapter's process may listen on such an address (a sidecar);
+	// plain http:// only reaches those.
 	AllowPrivateNetworks bool `koanf:"allow_private_networks"`
 }
 

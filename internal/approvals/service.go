@@ -27,12 +27,11 @@ import (
 
 // Service holds the approvals and Review & send dependencies.
 type Service struct {
-	Pool  *pgxpool.Pool
-	Q     *store.Queries
-	Audit *audit.Logger
-	Log   *slog.Logger
-	Now   func() time.Time
-	// Readiness runs Send Readiness.
+	Pool      *pgxpool.Pool
+	Q         *store.Queries
+	Audit     *audit.Logger
+	Log       *slog.Logger
+	Now       func() time.Time
 	Readiness *readiness.Service
 	// Campaigns restores versions ("Restore v9 subject").
 	Campaigns *campaigns.Service
@@ -269,7 +268,6 @@ func (s *Service) invalidate(ctx context.Context, ws *store.Workspace, r store.A
 			Metadata: map[string]any{"campaign_id": c.ID.String(), "edited_by": byName, "summary": reason}}); err != nil {
 			return err
 		}
-		// Author and approvers hear about it.
 		link := "/w/" + ws.Slug + "/approvals/" + r.ID.String()
 		whose := "the approval"
 		if decider != "" {

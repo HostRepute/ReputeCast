@@ -10,7 +10,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// W09 · Campaign reports and read-only report links.
+// Campaign reports and read-only report links.
 func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		reports.Register(h, &reports.Service{

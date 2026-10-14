@@ -20,9 +20,8 @@ type ContactActivityProvider struct {
 	Adapter string `json:"adapter"`
 }
 
-// ContactActivityItem is one event on a contact's timeline: a delivery event (with
-// the sending provider that handled it), an engagement event or a consent
-// change.
+// ContactActivityItem is one timeline event: a delivery (with the sending
+// provider that handled it), an engagement or a consent change.
 type ContactActivityItem struct {
 	ID       string    `json:"id"`
 	Category string    `json:"category" enum:"delivery,engagement,consent"`

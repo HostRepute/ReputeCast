@@ -2,9 +2,7 @@ package publicpages
 
 // Emails in the browser: "view online" (a signed link from one message) and
 // the archive's issue pages. Both serve the campaign's own HTML document,
-// rendered with Liquid, with metadata added to its <head>. Email HTML is
-// built from inline styles, so these documents allow inline styles; they
-// never run scripts.
+// rendered with Liquid, with metadata added to its <head>.
 
 import (
 	"bytes"
@@ -47,10 +45,10 @@ func absolutizeMedia(doc, base string) string {
 	return strings.ReplaceAll(doc, "url(/media/", "url("+base+"/media/")
 }
 
-// firstImage is the first absolute image of a document (an issue's
-// Open Graph image).
 var imgSrc = regexp.MustCompile(`(?i)<img[^>]+src\s*=\s*["'](https?://[^"']+)["']`)
 
+// firstImage is the first absolute image of a document (an issue's
+// Open Graph image).
 func firstImage(doc string) string {
 	if m := imgSrc.FindStringSubmatch(doc); m != nil {
 		return html.UnescapeString(m[1])

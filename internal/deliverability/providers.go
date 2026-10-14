@@ -12,11 +12,9 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// Provider rows are read through the providers contract: capabilities,
-// health and limits with internal/providers/state, the 7-day bounce and
-// complaint rates and the month's volume with manage.UsageOf (loaded into
-// state.usage), so Deliverability and Sending providers show the same
-// numbers for the same provider.
+// Provider figures come from internal/providers/state and manage.UsageOf
+// (state.usage), so Deliverability and Sending providers show the same
+// numbers.
 
 // providerConfig is the part of providers.config account health reads.
 type providerConfig struct {

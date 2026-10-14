@@ -1,12 +1,7 @@
 // Package webhooks delivers normalized ReputeCast events to the endpoints a
-// workspace registers (main spec 7.13 "webhooks with delivery logs"). Every
-// request is signed with HMAC-SHA256 using a write-only secret, delivered by
-// River jobs with retries and backoff (8 attempts over 6 hours, then the
-// dead-letter queue for 7 days), and protected against SSRF.
-//
-// Other domains publish events with Emit inside their own transaction:
-//
-//	webhooks.Emit(ctx, tx, ws.ID, "email.bounced", map[string]any{...})
+// workspace registers (main spec 7.13). Every request is signed with
+// HMAC-SHA256 using a write-only secret, retried with backoff (then kept in
+// the dead-letter queue for 7 days), and protected against SSRF.
 package webhooks
 
 import (
@@ -107,7 +102,6 @@ func ValidEvent(name string) bool {
 	return slices.ContainsFunc(Events, func(e WebhookEventInfo) bool { return e.Name == name })
 }
 
-// Service holds the webhooks domain dependencies.
 type Service struct {
 	Pool  *pgxpool.Pool
 	Q     *store.Queries
@@ -185,8 +179,7 @@ func Sign(secret string, timestamp int64, body []byte) string {
 	return hex.EncodeToString(m.Sum(nil))
 }
 
-// Verify checks a signature and rejects timestamps older than tolerance
-// (receivers can use the same logic; it is also used by the tests).
+// Verify checks a signature and rejects timestamps older than tolerance.
 func Verify(secret, signature string, timestamp int64, body []byte, now time.Time, tolerance time.Duration) bool {
 	if d := now.Sub(time.Unix(timestamp, 0)); d > tolerance || d < -tolerance {
 		return false

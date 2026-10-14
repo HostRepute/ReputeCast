@@ -51,17 +51,15 @@ type LiveSnapshot struct {
 	// Queued is still to send now; Held waits for a decision (a mailbox
 	// provider or route on hold); Waiting waits for the A/B winner; Unsent
 	// will never be sent (cancelled, rejected, failed).
-	Queued     int64      `json:"queued"`
-	Held       int64      `json:"held"`
-	Waiting    int64      `json:"waiting"`
-	Unsent     int64      `json:"unsent"`
-	Percent    float64    `json:"percent"`
-	Rate       float64    `json:"rate" doc:"Messages per second now"`
-	ETASeconds *int64     `json:"etaSeconds,omitempty"`
-	FinishesAt *time.Time `json:"finishesAt,omitempty"`
-	Totals     LiveTotals `json:"totals"`
-	// HeldMailboxes are the mailbox providers on hold, HeldProviders the
-	// sending providers.
+	Queued         int64           `json:"queued"`
+	Held           int64           `json:"held"`
+	Waiting        int64           `json:"waiting"`
+	Unsent         int64           `json:"unsent"`
+	Percent        float64         `json:"percent"`
+	Rate           float64         `json:"rate" doc:"Messages per second now"`
+	ETASeconds     *int64          `json:"etaSeconds,omitempty"`
+	FinishesAt     *time.Time      `json:"finishesAt,omitempty"`
+	Totals         LiveTotals      `json:"totals"`
 	Mailboxes      []LiveMailbox   `json:"mailboxes"`
 	Providers      []LiveProvider  `json:"providers"`
 	Thresholds     []LiveThreshold `json:"thresholds"`
@@ -369,7 +367,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	for _, k := range sortedKeys(throttles) {
 		s.Throttles = append(s.Throttles, LiveThrottle{Mailbox: k, Rate: throttles[k]})
 	}
-	// State.
 	switch {
 	case cc.Status == "scheduled":
 		s.State = "scheduled"
@@ -388,7 +385,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	default:
 		s.State = "idle"
 	}
-	// Counters.
 	rows, err := e.Q.SendingCounters(ctx, campaignID)
 	if err != nil {
 		return s, err
@@ -398,7 +394,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	s.Sent = t.sent
 	s.Totals = LiveTotals{Delivered: t.delivered, Bounced: t.bounced(), HardBounced: t.hard, SoftBounced: t.soft, Complained: t.complained, Deferred: t.deferred,
 		Rejected: t.rejected, Opened: t.human + t.machine, OpenedHuman: t.human, OpenedMachine: t.machine, Clicked: t.clicked, Unsubscribed: t.unsubscribed}
-	// Queue.
 	cid := cc.ID
 	queue := map[queueKey]queueCell{}
 	// The latest a recipient is due (a send at each recipient's best time,
@@ -434,7 +429,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			s.Unsent += r.N
 		}
 	}
-	// Routes and providers.
 	routes, err := e.Q.SendingRoutes(ctx, campaignID)
 	if err != nil {
 		return s, err
@@ -544,7 +538,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	s.Details.CostPlanned = math.Round(s.Details.CostPlanned*100) / 100
 	s.Cost = LiveCostByRoute{Total: s.Details.Cost, Planned: s.Details.CostPlanned}
 	s.EventsVia = joinAnd(uniqStrings(via))
-	// Mailbox providers.
 	var bestMailbox string
 	var bestRate float64 = -1
 	for _, k := range routing.MailboxProviders {
@@ -590,7 +583,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			}
 		}
 	}
-	// Thresholds.
 	s.Thresholds = append(s.Thresholds,
 		LiveThreshold{Key: "bounce", Value: round2(rate(t.bounced(), t.sent)), Limit: th.Bounce},
 		LiveThreshold{Key: "complaint", Value: round2(rate(t.complained, t.delivered)), Limit: th.Complaint})
@@ -602,7 +594,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		api = *maxAPI
 	}
 	s.Thresholds = append(s.Thresholds, LiveThreshold{Key: "api_errors", Value: round2(api), Limit: th.APIErrors})
-	// Queue totals and the held split.
 	for k, c := range queue {
 		_, onHold := holds[k.mailbox]
 		heldMailbox := onHold && !holds[k.mailbox].Resumed
@@ -648,7 +639,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		d := int64(cc.CompletedAt.Sub(*cc.StartedAt).Seconds())
 		s.Duration = &d
 	}
-	// Details.
 	s.Details.From = content.FromEmail
 	if s.Details.From == "" {
 		s.Details.From = cc.SenderEmail
@@ -657,7 +647,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	s.Details.AudienceCount = s.Recipients
 	s.Details.Route = strings.Join(routeLabel, " · ")
 	s.Details.ScheduledBy = s.ScheduledBy
-	// A/B.
 	if hasSend {
 		ab := parseAB(snd.Ab)
 		if ab.Phase != "" && len(ab.Variants) > 0 {
@@ -686,7 +675,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			s.AB = la
 		}
 	}
-	// Incidents.
 	incs, err := e.Q.SendingIncidents(ctx, campaignID)
 	if err != nil {
 		return s, err
@@ -772,7 +760,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			}
 		}
 	}
-	// Feed.
 	if hasSend || cc.StartedAt != nil {
 		feed, err := e.Q.SendingFeed(ctx, store.SendingFeedParams{CampaignID: &cid, Since: now.Add(-72 * time.Hour), Lim: 20})
 		if err != nil {

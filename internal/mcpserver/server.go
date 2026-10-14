@@ -55,7 +55,7 @@ func (s *Service) allow(agent uuid.UUID, perMin int) bool {
 }
 
 // verify checks an agent token: known, an MCP agent, not revoked or expired,
-// MCP on in its workspace. The agent never exceeds its creator's permissions.
+// MCP on in its workspace.
 func (s *Service) verify(ctx context.Context, token string, r *http.Request) (*auth.TokenInfo, error) {
 	req := audit.RequestFrom(ctx)
 	if !strings.HasPrefix(token, authn.AgentPrefix) {

@@ -19,8 +19,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// --- confirmation ---------------------------------------------------------------------
-
 type gotView struct {
 	Name, Text, AddHref, Offer string
 	On                         bool
@@ -180,8 +178,6 @@ func location(ws *store.Workspace) *time.Location {
 	return time.UTC
 }
 
-// --- preference center ------------------------------------------------------------------
-
 type choiceView struct {
 	Value, Label string
 	Checked      bool
@@ -340,8 +336,6 @@ func (h *Handler) preferencesPost(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.links.Preferences(token)+"?saved=1", http.StatusSeeOther) //nolint:gosec // our own origin; the token was verified and is path-escaped
 }
 
-// --- asking for a preference link -------------------------------------------------------
-
 type requestBody struct {
 	Action, Token, Email, EmailError, Alert string
 }
@@ -414,8 +408,6 @@ func (h *Handler) requestPost(w http.ResponseWriter, r *http.Request) {
 	}
 	sent()
 }
-
-// --- unsubscribe ----------------------------------------------------------------------
 
 type reasonView struct{ Value, Label string }
 
@@ -692,8 +684,6 @@ func truncate(s string, n int) string {
 	}
 	return s[:n]
 }
-
-// --- view online -----------------------------------------------------------------------
 
 func (h *Handler) viewOnline(w http.ResponseWriter, r *http.Request) {
 	s, ok := h.siteOr404(w, r)

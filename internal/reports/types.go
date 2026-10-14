@@ -244,7 +244,6 @@ type ReportUnsubscribes struct {
 	ChoseFewer int64 `json:"choseFewer"`
 }
 
-// ReportABVariant is one variant of an A/B test.
 type ReportABVariant struct {
 	Key   string `json:"key"`
 	Label string `json:"label" doc:"The subject line, or what differs"`

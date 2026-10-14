@@ -150,12 +150,10 @@ func parseAB(raw json.RawMessage) abState {
 }
 
 // Prepare builds a campaign's recipient list: the audience's members minus
-// the shared suppression list, unsubscribed, bounced, complained and paused
-// contacts and the exclusions, each routed to a sending provider, with A/B
-// variants assigned. It pages through contacts with a saved cursor, so it
-// can be stopped and run again at any point without sending anyone twice.
-// It holds the send's lock, so it never runs alongside another build or the
-// send loop (errBusy when another process holds it).
+// suppressed, unsubscribed, bounced, complained and paused contacts and the
+// exclusions, each routed to a provider with its A/B variant. A saved cursor
+// lets it stop and run again without sending anyone twice. It holds the
+// send's lock (errBusy when another process holds it).
 func (e *Engine) Prepare(ctx context.Context, campaignID uuid.UUID) error {
 	unlock, err := e.lockSend(ctx, campaignID)
 	if err != nil {

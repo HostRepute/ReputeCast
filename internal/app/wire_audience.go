@@ -15,7 +15,6 @@ func init() {
 	})
 }
 
-// audience returns the audience service.
 func (a *App) audience() *audience.Service {
 	return &audience.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Segments: a.segments(), Mail: a.Mail, Links: a.Links, URLs: a.URLs}
 }

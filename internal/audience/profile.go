@@ -456,7 +456,6 @@ type NewContact struct {
 	Tags    []string `json:"tags,omitempty" maxItems:"50"`
 }
 
-// NewContactResult says what happened.
 type NewContactResult struct {
 	ID string `json:"id"`
 	// ConfirmationSent is true when a double opt-in email went out.

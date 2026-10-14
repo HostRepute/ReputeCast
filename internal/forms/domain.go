@@ -127,7 +127,6 @@ func (s *Service) checkDomain(ctx context.Context, ws *store.Workspace, manual b
 		if set.row.DomainStatus == "pending" || (set.row.DomainStatus == "none") {
 			status = "pending"
 		}
-		// A verified domain survives one failed check.
 		if set.row.DomainStatus == "verified" && !strings.HasPrefix(set.row.DomainDetail, "Last check failed") {
 			status = "verified"
 			detail = "Last check failed: " + detail + " Checking again soon."
@@ -203,8 +202,6 @@ func (s *Service) addrs(ctx context.Context, host string) ([]netip.Addr, error) 
 	}
 	return out, nil
 }
-
-// --- host lookup -----------------------------------------------------------------
 
 type hostEntry struct {
 	slug    string

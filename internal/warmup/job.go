@@ -36,7 +36,6 @@ func (DailyArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: jobs.QueueDefault, UniqueOpts: river.UniqueOpts{ByPeriod: 30 * time.Minute}}
 }
 
-// DailyWorker runs DailyArgs.
 type DailyWorker struct {
 	river.WorkerDefaults[DailyArgs]
 	S   *Service

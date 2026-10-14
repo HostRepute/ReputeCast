@@ -5,9 +5,7 @@
 // heuristics in the subject, and the plain-text part.
 //
 // The composer runs the fast checks inline as people edit; Send Readiness
-// runs the full set (including link probing) before a send. Blocklist data
-// and link probing are interfaces so the deliverability domain can plug in
-// its own lookups.
+// runs the full set (including link probing) before a send.
 package contentcheck
 
 import (
@@ -164,7 +162,6 @@ type Prober interface {
 	Probe(ctx context.Context, urls []string) map[string]ProbeResult
 }
 
-// Checker runs the checks.
 type Checker struct {
 	Blocklist Blocklist
 	Prober    Prober
@@ -235,7 +232,6 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 		}
 	}
 
-	// Alt text.
 	for _, im := range s.images {
 		if im.hasAlt || (im.w > 0 && im.w <= 2 && im.h > 0 && im.h <= 2) {
 			continue
@@ -247,7 +243,6 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 			Path:   im.path, Section: im.section, Fixes: []ContentCheckFix{{Kind: "set_alt", Label: "Save", Path: im.path}}})
 	}
 
-	// Size against Gmail's clipping limit.
 	if r.SizeBytes >= NearClipBytes {
 		kb := int(math.Round(float64(r.SizeBytes) / 1024))
 		title := fmt.Sprintf("%d KB of Gmail's 102 KB clipping limit", kb)
@@ -268,7 +263,6 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 		add(ContentCheckIssue{ID: "content.size", Severity: Warn, Group: "Content", Title: title, Detail: detail, Section: -1, Fixes: fixes})
 	}
 
-	// Image-to-text ratio.
 	if share, ok := imageShare(s.images, r.PlainText); ok && share > 0.85 {
 		add(ContentCheckIssue{ID: "content.image_ratio", Severity: Warn, Group: "Content", Title: fmt.Sprintf("The email is %d%% image", int(math.Round(share*100))),
 			Detail: "Spam filters score image-heavy mail higher, and most of it disappears when images are off. Add text or use fewer images.", Section: -1})
@@ -277,7 +271,6 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 	// Links: blocklists, shorteners, empty links, broken links.
 	c.checkLinks(ctx, in, s, &r, add)
 
-	// Compliance: visible unsubscribe link and postal address.
 	hasUnsub := false
 	for _, l := range s.links {
 		if isUnsubscribe(l) {
@@ -300,7 +293,6 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 			Section: -1, Fixes: []ContentCheckFix{{Kind: "insert_footer", Label: "Insert footer block"}}})
 	}
 
-	// Personalization.
 	for _, src := range []struct{ where, text string }{{"Subject", in.Subject}, {"Preheader", in.Preheader}, {"Body", bodySource(in.MJML, htmlSrc)}} {
 		for _, p := range liquid.Validate(src.text) {
 			add(ContentCheckIssue{ID: "personalization.syntax", Severity: Block, Group: "Personalization", Title: src.where + ": " + p.Message,
@@ -323,7 +315,6 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 		}
 	}
 
-	// Subject.
 	if strings.TrimSpace(in.Subject) == "" {
 		add(ContentCheckIssue{ID: "subject.missing", Severity: Block, Group: "Subject", Title: "The subject is empty", Detail: "Inbox lists show the subject first; write one before sending.", Section: -1})
 	} else if h := SubjectHeuristics(in.Subject); len(h) > 0 {
@@ -337,12 +328,10 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 		add(is)
 	}
 
-	// Plain-text part.
 	if strings.TrimSpace(r.PlainText) == "" && r.Images > 0 {
 		add(ContentCheckIssue{ID: "content.plain_text", Severity: Warn, Group: "Content", Title: "The plain-text version is empty", Detail: "The email has no text, so the text/plain part is blank. Add a sentence that says what the images show.", Section: -1})
 	}
 
-	// Section summaries.
 	for _, sec := range s.sections {
 		sum := ContentCheckSection{Index: sec.Index, Label: sec.Label, Issues: sectionIssues[sec.Index]}
 		for _, im := range s.images {

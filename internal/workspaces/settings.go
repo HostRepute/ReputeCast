@@ -30,7 +30,6 @@ import (
 // instance admin before it is purged.
 const RestoreDays = 7
 
-// Service holds the workspace settings dependencies.
 type Service struct {
 	Pool  *pgxpool.Pool
 	Q     *store.Queries

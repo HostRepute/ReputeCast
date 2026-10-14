@@ -111,9 +111,8 @@ func (p *Provider) listWebhooks(ctx context.Context) ([]webhookSettings, error) 
 func sameURL(a, b string) bool { return strings.TrimRight(a, "/") == strings.TrimRight(b, "/") }
 
 // RegisterWebhook implements providers.WebhookRegistrar: an Event Webhook
-// for deliveries, deferrals, bounces, drops, spam reports and
-// unsubscribes (opens and clicks are ReputeCast's), with signature
-// verification turned on. An existing webhook for the URL is updated.
+// without opens and clicks (ReputeCast's own), with signature verification
+// turned on. An existing webhook for the URL is updated.
 func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 	hooks, err := p.listWebhooks(ctx)
 	if err != nil {
@@ -360,8 +359,7 @@ func (p *Provider) AddSuppressions(ctx context.Context, emails []string) error {
 
 // Tracking implements providers.TrackingManager. ReputeCast turns SendGrid's
 // open, click and subscription tracking off on every message it sends, so
-// account-level tracking never touches its mail; the detail says what the
-// account setting is.
+// account-level tracking never touches its mail.
 func (p *Provider) Tracking(ctx context.Context) (providers.Tracking, error) {
 	var click struct {
 		Enabled bool `json:"enabled"`

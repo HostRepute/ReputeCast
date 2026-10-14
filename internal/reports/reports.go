@@ -1,10 +1,6 @@
 // Package reports builds the campaign report (spec 7.7, honest analytics
-// 5.5): headline metrics from campaign_counters, engagement over the first
-// 72 hours, the click map, results per mailbox provider and per sending
-// provider side by side, bounces by type in one taxonomy with each
-// provider's original code, unsubscribe reasons and A/B results with their
-// confidence. It also exports reports and manages read-only report links,
-// whose public page shows the same aggregate numbers and nothing else.
+// 5.5) from campaign_counters, its exports and read-only report links, whose
+// public page shows the same aggregate numbers and nothing else.
 package reports
 
 import (
@@ -49,7 +45,6 @@ type Suppressor interface {
 	AddSuppressions(ctx context.Context, ws *store.Workspace, emails []string, note string) (added, already int, err error)
 }
 
-// Service holds the reports dependencies.
 type Service struct {
 	Pool     *pgxpool.Pool
 	Q        *store.Queries
@@ -72,7 +67,6 @@ func (s *Service) now() time.Time {
 // unsent statuses have no results yet.
 var unsent = map[string]bool{"draft": true, "approval": true, "approved": true, "scheduled": true}
 
-// Report builds a campaign's report.
 func (s *Service) Report(ctx context.Context, ws *store.Workspace, id uuid.UUID) (CampaignReport, error) {
 	c, err := s.Q.ReportCampaign(ctx, store.ReportCampaignParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {

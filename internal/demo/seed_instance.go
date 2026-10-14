@@ -23,11 +23,10 @@ const (
 // InstanceSettings, SSOSetup, SSOStates, AuditInstance) with instance-level
 // data only: sign-in methods and the security policies, Google and GitHub
 // sign-in (GitHub restricted to acme-eng), the Google Workspace provider
-// the account seeder created (enabled, JIT into Acme Newsletter as Viewer,
-// domain enforcement off: see docs/DESIGN_INVENTORY.md #16), Microsoft
-// Entra ID mid-setup with its two group mappings and a test sign-in, the
-// public URL check, the demo's latest release, and the instance-level
-// audit history. People and memberships belong to the team seeder.
+// the account seeder created, Microsoft Entra ID mid-setup with its two
+// group mappings and a test sign-in, the public URL check, the demo's
+// latest release, and the instance-level audit history. People and
+// memberships belong to the team seeder.
 func seedInstanceImpl(ctx context.Context, s *Seeder) error {
 	linh := s.Users["linh@acme.io"]
 

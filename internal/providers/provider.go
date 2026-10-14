@@ -1,11 +1,10 @@
 // Package providers defines the pluggable sending-provider contract. Every
 // adapter lives in internal/providers/<name> and implements Provider plus any
 // optional interfaces it supports; core code only talks to these interfaces
-// (never imports an adapter) and finds adapters through the Registry.
+// (never imports an adapter) and finds adapters through the registry.
 //
 // Every adapter must pass the shared contract-test suite in
-// internal/providers/contracttest (Send, ParseWebhook with signature
-// verification and event normalization, Capabilities).
+// internal/providers/contracttest.
 package providers
 
 import (
@@ -49,10 +48,8 @@ type Capabilities struct {
 	DomainAPI       string     `json:"domainApi"` // "full", "dkim_only", ""
 	SuppressionSync bool       `json:"suppressionSync"`
 	BatchSize       int        `json:"batchSize"` // messages per API call; 1 = no batching
-	// DedicatedIPs is the dedicated-IP option as capability badges and
-	// Deliverability show it ("optional, $24.95 per IP per month", "from
-	// 300k per month"); "" when the provider offers none. A connection on a
-	// dedicated IP (providers.ip_mode) shows as "Dedicated IP" instead.
+	// DedicatedIPs is the dedicated-IP option as badges show it ("optional,
+	// $24.95 per IP per month"); "" when the provider offers none.
 	DedicatedIPs   string `json:"dedicatedIps"`
 	Sandbox        string `json:"sandbox"` // "detection", "test token", "mode", ""
 	QuotaDiscovery bool   `json:"quotaDiscovery"`
@@ -248,7 +245,7 @@ type Descriptor struct {
 	// (Postmark: Transactional and Broadcast streams). Shown on the routing
 	// screen and used by Send Readiness.
 	Terms []Terms `json:"terms,omitempty"`
-	// Events, DomainSetup and SuppressionSync describe the adapter on the
+	// Events, DomainSetup and SuppressionMode describe the adapter on the
 	// Adapters tab ("SNS webhooks", "API", "Two-way").
 	Events          string `json:"events,omitempty"`
 	DomainSetup     string `json:"domainSetup,omitempty"`

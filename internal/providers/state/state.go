@@ -4,10 +4,10 @@
 // screen shares (short names, chart colours). It has no database access, so
 // routing, warm-up, ingest and the providers service can all use it.
 //
-// These types are a contract other workstreams read (Deliverability,
-// Overview, send readiness, the sending engine): fields keep their JSON
-// names and meanings and are only ever added. Percentages are plain
-// percent values (0.1 means 0.1%), money is US dollars, times are UTC.
+// These types are a contract that Deliverability, Overview, send readiness
+// and the sending engine read: fields keep their JSON names and meanings and
+// are only ever added. Percentages are plain percent values (0.1 means
+// 0.1%), money is US dollars, times are UTC.
 //
 // A provider whose providers.config holds "demo": true is sample data:
 // background jobs never call its API and the sending engine simulates it.

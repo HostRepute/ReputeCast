@@ -1,17 +1,13 @@
 // Package hostrepute connects a workspace to HostRepute (hostrepute.com),
-// the sibling email-reputation service: the OAuth 2 (PKCE) and API-key
-// connection, the encrypted tokens, a River job that syncs blocklist,
-// Google Postmaster, Microsoft SNDS and DMARC data plus alerts into
-// ReputeCast, "Add to monitoring" and disconnect.
+// the sibling email-reputation service: OAuth 2 (PKCE) or API-key
+// connection, encrypted tokens, a River job that syncs blocklist,
+// Postmaster, SNDS, DMARC and alert data, "Add to monitoring" and
+// disconnect.
 //
-// The HostRepute API is reached only through the Client interface. HTTPClient
-// implements it against the endpoints documented in
-// docs/integrations/hostrepute.md; when the official hostrepute-go client is
-// public, an adapter to it replaces HTTPClient without touching the rest.
-//
-// What crosses the boundary: ReputeCast sends sending domains, organization
-// domains, dedicated IPs and server hostnames to monitor. It never sends
-// contacts, email content or reports.
+// The API is reached only through the Client interface; HTTPClient
+// implements it against docs/integrations/hostrepute.md. Only sending
+// domains, organization domains, dedicated IPs and server hostnames cross
+// the boundary: never contacts, email content or reports.
 package hostrepute
 
 import (

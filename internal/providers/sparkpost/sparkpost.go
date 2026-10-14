@@ -1,23 +1,18 @@
 // Package sparkpost is the SparkPost adapter (US and EU). SparkPost is now
-// part of Bird and new projects are steered to Bird Email, a different API;
-// this adapter connects existing SparkPost accounts, whose API
-// (api.sparkpost.com, api.eu.sparkpost.com) is still operated and
-// documented (checked 2026-10-13, https://bird.com/products/email/sparkpost).
+// part of Bird, which steers new projects to Bird Email, a different API;
+// this adapter connects existing SparkPost accounts, whose API is still
+// operated and documented (checked 2026-10-13,
+// https://bird.com/products/email/sparkpost).
 //
-// It sends one transmission per personalized message with an Idempotency-Key
-// (a retry after a timeout or a 504 never sends twice), receives event
-// webhooks authenticated with HTTP basic auth (SparkPost doesn't sign
-// payloads), registers them, sets up sending and bounce domains, syncs the
-// suppression list both ways, reads monthly usage and deliverability
-// metrics, and backfills message status from the events API.
+// Each message is its own transmission with an Idempotency-Key, so a retry
+// after a timeout or a 504 never sends twice.
 //
-// Terms (checked 2026-10-13): SparkPost accounts are governed by Bird's
-// terms since 22 December 2024 (https://bird.com/legal/legal-terms-updates);
-// Bird's Acceptable Use Policy (https://bird.com/en-us/legal/acceptable-use-policy)
-// requires "permission-based marketing lists", opt-in or another valid
-// consent from each recipient and a working unsubscribe mechanism, and
-// forbids unsolicited bulk messages and purchased or rented lists, as the
-// archived SparkPost Messaging Policy did
+// Terms (checked 2026-10-13): SparkPost accounts are under Bird's terms
+// since 22 December 2024 (https://bird.com/legal/legal-terms-updates). Bird's
+// Acceptable Use Policy (https://bird.com/en-us/legal/acceptable-use-policy)
+// requires permission-based lists with valid consent and a working
+// unsubscribe, and forbids unsolicited bulk mail and bought or rented lists,
+// as the archived SparkPost Messaging Policy did
 // (https://bird.com/legal/sparkpost-messaging-policy). Bulk marketing to
 // opted-in lists is therefore allowed on every stream.
 package sparkpost

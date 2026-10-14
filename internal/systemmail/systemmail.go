@@ -1,26 +1,14 @@
 // Package systemmail sends ReputeCast's own mail (password resets, email
 // changes, team invitations, notifications, double opt-in confirmations,
-// test messages) through the workspace's System-stream route: the routing
-// rules of the System stream pick the provider, and its fallback takes over
-// when that provider is down or refuses the message. It implements
+// test messages) through the workspace's System-stream route, whose fallback
+// takes over when the provider is down or refuses the message. It implements
 // mailer.Sender (App.Mail).
 //
-// Which workspace's route? Messages name their workspace when they have one
-// (invitations, notifications). Messages without one (a password reset, an
-// email change) go through the first workspace of the recipient, by
-// membership date, that has a usable System route, and otherwise through the
-// instance's oldest workspace with one.
-//
-// The From address is the workspace's System sender (Settings › Senders,
-// "Default for: System"), else its default sender, else its first sender. A
-// workspace without any sender can't send system mail: it counts as having
-// no System provider (ErrNoSender matches mailer.ErrNoSystemProvider).
-//
-// Every message is recorded like any other send (messages, stream "system",
-// with its kind) so it shows in the provider's event log. The demo's sample
-// providers never reach a provider API: in development their mail goes to
-// Mailpit and is recorded as delivered by that provider; elsewhere they
-// count as unavailable.
+// Messages without a workspace (a password reset, an email change) go
+// through the recipient's first workspace, by membership date, that has a
+// usable System route, and otherwise through the instance's oldest workspace
+// with one. The From address is the workspace's System sender, else its
+// default sender, else its first sender.
 package systemmail
 
 import (

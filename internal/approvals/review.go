@@ -193,19 +193,16 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if slack, err := s.Q.ApprovalPauseAlertsSlack(ctx, ws.ID); err == nil {
 		out.PauseSlack = slack
 	}
-	// Who scheduled it.
 	if c.Status == "scheduled" {
 		if a, err := s.Q.ApprovalLastAudit(ctx, store.ApprovalLastAuditParams{WorkspaceID: &ws.ID, Action: "campaign.scheduled", TargetID: c.ID.String()}); err == nil {
 			out.Scheduled = &ReviewScheduled{By: a.ActorName, At: a.OccurredAt}
 		}
 	}
-	// A held send.
 	if h, err := s.Q.ApprovalOpenHold(ctx, c.ID); err == nil {
 		out.Held = s.heldView(ctx, h)
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return out, err
 	}
-	// Access.
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
 		return out, err
@@ -236,7 +233,6 @@ func (s *Service) reviewApproval(ctx context.Context, ws *store.Workspace, p *au
 		out.Rules = policy.Evaluate(facts)
 		out.Required = len(out.Rules) > 0
 	}
-	// The open request, or the latest one.
 	var req *store.ApprovalRequest
 	if open, err := s.open(ctx, c.ID); err != nil {
 		return out, err
@@ -268,7 +264,6 @@ func (s *Service) reviewApproval(ctx context.Context, ws *store.Workspace, p *au
 			out.Needed = int(req.ApprovalsRequired)
 		}
 	}
-	// Can the viewer ask for approval?
 	switch {
 	case !p.Can(authz.CampaignsEdit):
 		out.RequestReason = "Asking for approval needs the campaigns:edit permission."

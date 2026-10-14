@@ -103,8 +103,7 @@ type Webhook struct {
 // Suite describes one adapter.
 type Suite struct {
 	Adapter string
-	// API is the fake provider API; nil when the adapter doesn't use HTTP
-	// (SMTP), in which case Send is exercised through SendEnv.
+	// API is the fake provider API; nil when the adapter doesn't use HTTP (SMTP).
 	API func(env *Env) http.Handler
 	// New builds the adapter pointed at env (env.URL is the fake API).
 	New func(t *testing.T, env *Env) providers.Provider
@@ -143,7 +142,6 @@ func NewEnv(t *testing.T, api func(env *Env) http.Handler) *Env {
 	return env
 }
 
-// Run runs the contract tests.
 func Run(t *testing.T, s Suite) {
 	t.Helper()
 	env := NewEnv(t, s.API)

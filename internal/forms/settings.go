@@ -28,8 +28,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// --- branding (workspaces.branding) ------------------------------------------
-
 // brandingDoc is the public-page part of workspaces.branding. Other keys
 // (the postal address of the email footer) belong to other screens and are
 // never touched here.
@@ -209,8 +207,6 @@ func (s *Service) brandingOut(ws *store.Workspace, set *Settings) PublicBranding
 	return out
 }
 
-// --- page options (public_page_settings.pages) -------------------------------
-
 // SubscribePage are the hosted subscribe page's options.
 type SubscribePage struct {
 	Heading     string `json:"heading" maxLength:"120"`
@@ -313,8 +309,6 @@ func pagesOf(raw json.RawMessage) Pages {
 	return p
 }
 
-// --- loaded settings -----------------------------------------------------------
-
 // Settings are a workspace's public page settings.
 type Settings struct {
 	Workspace *store.Workspace
@@ -377,8 +371,6 @@ func (s *Service) settings(ctx context.Context, ws *store.Workspace) (*Settings,
 	}
 	return &Settings{Workspace: ws, row: row, Branding: brandingOf(ws, raw), Pages: pagesOf(row.Pages)}, nil
 }
-
-// --- links ---------------------------------------------------------------------
 
 // PageLinks builds the links of a workspace's public pages, either on its
 // verified custom domain (news.acme.io/subscribe) or on the instance
@@ -500,8 +492,6 @@ func (s *Service) OwnOrigins(set *Settings) []string {
 	}
 	return out
 }
-
-// --- API: settings ---------------------------------------------------------------
 
 // PublicTurnstile is the Turnstile set-up (the secret is never returned).
 type PublicTurnstile struct {
@@ -941,8 +931,6 @@ func (s *Service) UnsubscribeNumbers(ctx context.Context, ws *store.Workspace) (
 	return UnsubscribeStats{Days: 30, Unsubscribed: row.Unsubscribed, OneClick: row.OneClick, ChoseFewer: row.ChoseFewer, Answered: row.Answered}, nil
 }
 
-// --- logo ------------------------------------------------------------------------
-
 // svgEventHandler finds event attributes (onload, onmouseover, onbegin…)
 // in any spacing.
 var svgEventHandler = regexp.MustCompile(`(?i)[\s"'/]on[a-z]+\s*=`)
@@ -1053,8 +1041,6 @@ func safeFileName(name, ctype string) string {
 	}
 	return base + ext
 }
-
-// --- system provider -------------------------------------------------------------
 
 // systemProvider names the provider of the System stream's default route,
 // or "" when System mail has nowhere to go.

@@ -56,7 +56,6 @@ type filter struct {
 	args []operand
 }
 
-// template is a parsed template.
 type template struct {
 	mode mode
 	segs []segment

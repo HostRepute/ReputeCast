@@ -162,7 +162,6 @@ func lowerFirst(s string) string {
 	return string(r)
 }
 
-// emailNodeName is the email's name for a send step.
 func emailNodeName(n AutomationNode, refs *Refs) string {
 	if n.Data.Email == nil {
 		return ""

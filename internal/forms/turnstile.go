@@ -181,10 +181,9 @@ func (s *Service) RemoveTurnstile(ctx context.Context, ws *store.Workspace) (Pub
 }
 
 // ReportTurnstileError records an error the widget showed on a challenge
-// page (a site key Cloudflare doesn't accept for this domain): spam
-// protection falls back to the honeypot and timing check until it's fixed.
-// Reports count only from the page of a submission still held for its
-// check, so nobody can switch Turnstile off from outside.
+// page (a site key Cloudflare doesn't accept for this domain). Reports count
+// only from the page of a submission still held for its check, so nobody can
+// switch Turnstile off from outside.
 func (s *Service) ReportTurnstileError(ctx context.Context, ws *store.Workspace, challengeID, code string) error {
 	code = strings.TrimSpace(code)
 	if len(code) < 3 || len(code) > 12 || strings.Trim(code, "0123456789") != "" {

@@ -31,8 +31,7 @@ func PlainText(src string) string {
 		return ""
 	}
 	var b strings.Builder
-	// The footer (the last section, when it holds the unsubscribe link) goes
-	// after a "--" separator, as in hand-written plain-text emails.
+	// The footer is the last section, when it holds the unsubscribe link.
 	var footer *html.Node
 	if c := SectionContainer(doc); c != nil {
 		var last *html.Node

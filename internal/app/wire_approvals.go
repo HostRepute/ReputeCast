@@ -19,13 +19,12 @@ import (
 	"github.com/hostrepute/reputecast/internal/templates"
 )
 
-// W11 · Review & send (Send Readiness) and send approvals.
+// Review & send (Send Readiness) and send approvals.
 
 // readinessService builds Send Readiness: the composer's content and link
-// checks (links are requested; the demo's answer offline in development),
-// deliverability's blocklists and authentication, routing and the audience.
+// checks, deliverability's blocklists and authentication, routing and the
+// audience.
 func readinessService(a *App) *readiness.Service {
-	// The sample emails' links answer offline (and tests never hit the network).
 	prober := linkProber(a)
 	cs := &campaigns.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit,
@@ -72,16 +71,9 @@ func CampaignChangeHook(a *App) campaigns.ChangeHook {
 }
 
 // SendRecheck is the recheck the sending engine runs as a send starts
-// (its sending.Readiness): Send Readiness again, and the approval must
-// still cover the campaign. It records nothing: the engine holds the send
-// and tells the author and approvers when the verdict is Blocked, and
-// Review & send shows that hold with the run's blocking checks. The
-// engine's wiring adapts it in one step:
-//
-//	sendingReadiness = func(a *App) sending.Readiness { return readinessRecheck{SendRecheck(a)} }
-//
-// where readinessRecheck.Recheck copies Verdict, Blocking and Throttles
-// into a sending.Recheck.
+// (its sending.Readiness, via readinessRecheck): Send Readiness again, and
+// the approval must still cover the campaign. It records nothing; the
+// engine holds the send when the verdict is Blocked.
 func SendRecheck(a *App) func(ctx context.Context, campaignID uuid.UUID) (approvals.SendRecheck, error) {
 	return newApprovals(a).SendRecheck
 }

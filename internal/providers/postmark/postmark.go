@@ -1,8 +1,5 @@
-// Package postmark is the Postmark adapter: sends through the batch email
-// API on a message stream, receives webhooks authenticated with HTTP basic
-// auth, syncs suppressions per stream, reads and turns off provider-side
-// tracking, and can create the Broadcast stream Postmark's terms require for
-// bulk mail.
+// Package postmark is the Postmark adapter. Postmark's terms allow bulk mail
+// only on a Broadcast message stream, which the adapter can create.
 package postmark
 
 import (
@@ -558,8 +555,7 @@ type webhook struct {
 }
 
 // RegisterWebhook implements providers.WebhookRegistrar: one webhook per
-// stream, delivery, bounce, complaint and subscription changes, with basic
-// auth. An existing webhook for the same URL is updated.
+// stream, with basic auth. An existing webhook for the same URL is updated.
 func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 	u, err := url.Parse(hookURL)
 	if err != nil {

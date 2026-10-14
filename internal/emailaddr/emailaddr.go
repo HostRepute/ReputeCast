@@ -1,8 +1,6 @@
 // Package emailaddr checks and classifies email addresses for the audience
-// and the importer: syntax problems, role addresses, disposable domains,
-// likely typos of the big mailbox providers, spam-trap-like patterns, the
-// mailbox provider behind a domain, and masking for lists that shouldn't
-// show full addresses.
+// and the importer: syntax, role addresses, disposable domains, likely
+// typos, spam-trap-like patterns, mailbox providers and masking.
 package emailaddr
 
 import (

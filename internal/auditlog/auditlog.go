@@ -1,9 +1,6 @@
-// Package auditlog serves the workspace audit log (A5 §3.10, §5.14): the
-// event list with filters (actor type, actor, action, target, result, date
-// range), event detail with before/after values, IP, user agent and request
-// id, streamed CSV/JSON exports, streaming to a webhook and the retention
-// setting. Entries are immutable; the instance-level view belongs to the
-// instance admin domain.
+// Package auditlog serves the audit log (A5 §3.10, §5.14): filtered event
+// list, event detail with before/after values, streamed CSV/JSON exports,
+// streaming to a webhook and retention. Entries are immutable.
 package auditlog
 
 import (
@@ -33,7 +30,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// Service holds the audit log domain dependencies.
 type Service struct {
 	Pool  *pgxpool.Pool
 	Q     *store.Queries
@@ -116,9 +112,8 @@ type AuditActorRef struct {
 	Name string `json:"name"`
 }
 
-// AuditCategory is one choice of the action filter (SettingsAudit: Sending,
-// Routing & providers, Audience & consent, Team & access, Settings): the
-// action groups (the part before the dot) it covers.
+// AuditCategory is one choice of the action filter: the action groups (the
+// part before the dot) it covers.
 type AuditCategory struct {
 	Key    string   `json:"key"`
 	Label  string   `json:"label"`

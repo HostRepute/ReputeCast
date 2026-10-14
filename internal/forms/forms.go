@@ -1,15 +1,11 @@
 // Package forms implements signup forms and the settings of the public
-// pages (spec 5.12, 7.12): embedded, popup and hosted forms with their
-// fields, lists, consent text, double opt-in, spam protection (honeypot,
-// timing token, Cloudflare Turnstile, disposable and role addresses, rate
-// limits), allowed origins and after-submit behaviour; the embed script;
-// the submission pipeline the public pages call; double opt-in emails on
-// the System stream with a reminder after 24 hours; and the public page
-// branding, custom domain, page options and Turnstile keys.
+// pages (spec 5.12, 7.12): embedded, popup and hosted forms, the embed
+// script, spam protection, the submission pipeline the public pages call,
+// double opt-in emails on the System stream, and the pages' branding,
+// custom domain and Turnstile keys.
 //
 // Contacts, lists, consent and suppressions are written through the
-// audience package (internal/audience/signup.go); the pages themselves are
-// rendered by internal/publicpages.
+// audience package; the pages themselves are rendered by internal/publicpages.
 package forms
 
 import (
@@ -175,7 +171,6 @@ func (c Config) HasField(key string) bool {
 	return slices.ContainsFunc(c.Fields, func(f fieldDoc) bool { return f.Key == key })
 }
 
-// Field returns a field of the form.
 func (c Config) Field(key string) (fieldDoc, bool) {
 	for _, f := range c.Fields {
 		if f.Key == key {
@@ -293,9 +288,6 @@ func nonNilStrings(xs []string) []string {
 	return xs
 }
 
-// --- API types ---------------------------------------------------------------
-
-// SignupFormField is one field of a form.
 type SignupFormField struct {
 	Key      string `json:"key" pattern:"^[a-z][a-z0-9_]{0,62}$" doc:"email, first_name, last_name, company or a custom field key"`
 	Label    string `json:"label" maxLength:"80" doc:"Shown above the input; empty uses the field's name"`
@@ -419,7 +411,6 @@ type SignupFormInput struct {
 	Publish bool `json:"publish"`
 }
 
-// SignupFormCreateInput creates a form.
 type SignupFormCreateInput struct {
 	Name string `json:"name" minLength:"1" maxLength:"80"`
 	Kind string `json:"kind" enum:"embedded,popup,hosted"`
@@ -462,8 +453,6 @@ type SignupFormsOverview struct {
 	// Origins that may always submit: the instance and the custom domain.
 	OwnOrigins []string `json:"ownOrigins"`
 }
-
-// --- reading -----------------------------------------------------------------
 
 var errFormNotFound = api.NotFound("Form")
 
@@ -633,8 +622,6 @@ func dayOf(t time.Time, loc *time.Location) time.Time {
 	t = t.In(loc)
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
-
-// --- writing -----------------------------------------------------------------
 
 var (
 	slugUnsafe = regexp.MustCompile(`[^a-z0-9]+`)
@@ -852,7 +839,6 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 	if version < 1 {
 		version = 1
 	}
-	// After submit.
 	redirect := strings.TrimSpace(in.RedirectURL)
 	if in.AfterSubmit == "redirect" {
 		u, err := url.Parse(redirect)

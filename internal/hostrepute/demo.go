@@ -9,14 +9,11 @@ import (
 	"time"
 )
 
-// The demo HostRepute serves the sample data of the design (spec §6, add-on
-// §4) without a network: team "Acme Inc" monitoring news.acme.io, acme.io
-// and the Postal IP 203.0.113.25 (listed on UCEPROTECT L3), 84 blocklist
-// sources, 30 days of Postmaster and SNDS data, DMARC reports and alerts.
-// `reputecast seed` stores a demo connection, and development instances
-// with hostrepute.demo=true connect to it through an instant OAuth consent.
-// Dates are relative to the current day so "listed since Tue 7 Oct" stays
-// five days ago, like every other demo date.
+// The demo HostRepute serves the design's sample data (spec §6, add-on §4)
+// without a network. `reputecast seed` stores a demo connection, and
+// development instances with hostrepute.demo=true connect to it through an
+// instant OAuth consent. Dates are relative to today, like every other demo
+// date.
 
 // DemoTeam is the sample HostRepute team.
 const DemoTeam = "Acme Inc"
@@ -79,8 +76,7 @@ func DemoAssets(now time.Time, names []string) []Asset {
 // DemoMonitored is what the sample team monitors.
 var DemoMonitored = []string{"news.acme.io", "acme.io", "203.0.113.25"}
 
-// DemoLastCheck is HostRepute's last full check: the top of the hour,
-// twenty minutes past (hourly checks at :40).
+// DemoLastCheck is HostRepute's last full check (hourly, at :40).
 func DemoLastCheck(now time.Time) time.Time {
 	t := now.Truncate(time.Hour).Add(40 * time.Minute)
 	if t.After(now) {

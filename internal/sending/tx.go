@@ -13,12 +13,10 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 )
 
-// Tx runs fn in a transaction and runs it again when Postgres aborted it
-// for a deadlock or a serialization failure. Sending writes in batches that
-// touch several counter rows at once (a batch handed to a provider, delivery
-// events, opens and clicks arriving together), so two batches can lock the
-// same rows in a different order; nothing of an aborted attempt is
-// committed, so trying again is safe. fn must not keep state between
+// Tx runs fn in a transaction and retries it when Postgres aborts it for a
+// deadlock or a serialization failure. Concurrent batches update the same
+// counter rows and can lock them in different orders; an aborted attempt
+// commits nothing, so retrying is safe. fn must not keep state between
 // attempts.
 func Tx(ctx context.Context, pool *pgxpool.Pool, fn func(pgx.Tx) error) error {
 	var err error

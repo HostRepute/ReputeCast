@@ -1,15 +1,11 @@
 package audience
 
-// Public self-service: signups from forms and the hosted subscribe page,
-// double opt-in confirmations, the preference center and unsubscribes
-// (spec 5.12, 7.12; used by internal/forms and internal/publicpages).
-//
-// These run for the contact, not for a team member. Instead of an audit
-// entry, every change writes consent events that carry the contact's IP,
-// browser, the page it came from and, for opt-ins, the exact consent text
-// and its version: the evidence a regulator or a mailbox provider asks for.
-// The functions work inside the caller's transaction so the form's own
-// bookkeeping (submissions, numbers, automation triggers) commits with them.
+// Public self-service: signups, double opt-in confirmations, the preference
+// center and unsubscribes (spec 5.12, 7.12). These act for the contact, so
+// instead of audit entries every change writes consent events carrying the
+// evidence a regulator or mailbox provider asks for: IP, browser, page and,
+// for opt-ins, the exact consent text and its version. They run inside the
+// caller's transaction so the form's own bookkeeping commits with them.
 
 import (
 	"context"
@@ -667,7 +663,6 @@ func frequencyWords(f string) string {
 	return "every issue"
 }
 
-// UnsubscribeResult is the outcome of an unsubscribe.
 type UnsubscribeResult struct {
 	ContactID uuid.UUID
 	Email     string

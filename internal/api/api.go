@@ -23,7 +23,6 @@ const Version = "/api/v1"
 // AccessKind says who may call an operation.
 type AccessKind string
 
-// Access kinds.
 const (
 	// AccessPublic needs no authentication (sign-in, public pages, webhooks).
 	AccessPublic AccessKind = "public"
@@ -127,25 +126,21 @@ func Get[I, O any](a huma.API, o Op, h func(context.Context, *I) (*O, error)) {
 	Register(a, o, h)
 }
 
-// Post registers a POST operation.
 func Post[I, O any](a huma.API, o Op, h func(context.Context, *I) (*O, error)) {
 	o.Method = http.MethodPost
 	Register(a, o, h)
 }
 
-// Put registers a PUT operation.
 func Put[I, O any](a huma.API, o Op, h func(context.Context, *I) (*O, error)) {
 	o.Method = http.MethodPut
 	Register(a, o, h)
 }
 
-// Patch registers a PATCH operation.
 func Patch[I, O any](a huma.API, o Op, h func(context.Context, *I) (*O, error)) {
 	o.Method = http.MethodPatch
 	Register(a, o, h)
 }
 
-// Delete registers a DELETE operation.
 func Delete[I, O any](a huma.API, o Op, h func(context.Context, *I) (*O, error)) {
 	o.Method = http.MethodDelete
 	if o.Status == 0 {

@@ -1,12 +1,10 @@
 // Package deliverability builds the Deliverability screen (spec 7.8): health
-// per sending domain and dedicated IP (shared IP pools labelled shared and
-// checked at domain level), account health per sending provider against
-// that provider's own thresholds, blocklists (84 sources via HostRepute when
-// connected, a built-in set of 8 public DNSBLs checked directly otherwise),
-// Google Postmaster Tools, Microsoft SNDS, the DMARC report summary and the
-// incident timeline. It also runs the local checks (internal/dnscheck),
-// exposes the reputation verdict Send Readiness uses and records incidents
-// for other domains.
+// per sending domain and dedicated IP (shared pools are checked at domain
+// level), provider account health against each provider's own thresholds,
+// blocklists (via HostRepute when connected, else a built-in DNSBL set),
+// Postmaster Tools, SNDS, DMARC reports and the incident timeline. It also
+// runs the local checks, gives Send Readiness its reputation verdict and
+// records incidents for other domains.
 package deliverability
 
 import (
@@ -32,7 +30,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// Service holds the deliverability dependencies.
 type Service struct {
 	Pool       *pgxpool.Pool
 	Q          *store.Queries

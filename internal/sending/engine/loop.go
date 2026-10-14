@@ -726,8 +726,7 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 		}
 	}
 	// The provider has the batch now: the outcome must be recorded, or the
-	// messages would be claimed again later. A deadlock with delivery events
-	// or opens bumping the same counters is retried.
+	// messages would be claimed again later.
 	err := sending.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		return e.record(ctx, q, tx, rs.campaign.ID, r.provider.ID, &out, now)

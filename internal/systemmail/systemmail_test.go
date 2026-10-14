@@ -141,7 +141,7 @@ func TestSystemMailThroughTheSystemRoute(t *testing.T) {
 		t.Fatalf("recorded %s/%s/%s", status, kind, stream)
 	}
 
-	// Team invitations (W03) say which provider sends, then send through it.
+	// Team invitations say which provider sends, then send through it.
 	var opts struct {
 		CanEmail       bool
 		SystemProvider string

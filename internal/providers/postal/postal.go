@@ -1,12 +1,11 @@
 // Package postal is the adapter for a self-hosted Postal server
-// (postalserver.io). Postal's HTTP API sends raw messages and reports message
-// deliveries; webhooks are configured in Postal's web interface and signed
-// with the server's RSA key (X-Postal-Signature-256, RS256 over the body),
-// whose public half Postal publishes at /.well-known/jwks.json.
+// (postalserver.io). Webhooks are configured in Postal's web interface and
+// signed with the server's RSA key (X-Postal-Signature-256, RS256 over the
+// body), whose public half Postal publishes at /.well-known/jwks.json.
 //
-// Postal has no API for domains, suppression lists or webhook management, so
-// those capabilities are off: ReputeCast enforces the shared suppression list
-// before handing mail to Postal, and DNS records are set up by hand.
+// Postal has no API for domains, suppression lists or webhook management:
+// ReputeCast enforces the shared suppression list before handing mail to
+// Postal, and DNS records are set up by hand.
 package postal
 
 import (

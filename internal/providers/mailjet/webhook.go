@@ -18,8 +18,7 @@ import (
 
 // VerifyWebhook implements providers.WebhookVerifier: Mailjet doesn't sign
 // event callbacks, so the callback URL ReputeCast registers carries basic
-// auth credentials (user reputecast, the provider's webhook secret), which
-// Mailjet sends with every callback over HTTPS.
+// auth credentials.
 func (p *Provider) VerifyWebhook(_ context.Context, r *http.Request, _ []byte) error {
 	return webhookauth.Basic(r, WebhookUser, p.cfg.WebhookSecret)
 }

@@ -120,17 +120,12 @@ func (e *Engine) DemoSend(ctx context.Context, o DemoSendOptions) (DemoSendResul
 		return DemoSendResult{}, errors.New("the demo team (Sofia Rossi, Marcus Chen) is missing: run `reputecast seed` first")
 	}
 	now := e.now()
-	// The send records Marcus Chen's approval as the boards show it. The
-	// approval requests are Review & send's: the demo seeds Weekly Digest
-	// #142's, and the send-time recheck checks it still covers the
-	// campaign.
 	approvedAt := designTime(now, 2, 16, 20)
 	start := now.Add(-o.Elapsed)
-	// The command clears an earlier send, builds the audience and
-	// fast-forwards the send itself, on the virtual clock: it holds the
-	// send's lock throughout, so the server's worker (woken by the start)
-	// waits until it's done. A worker still running an earlier send of it
-	// lets go within seconds of seeing it stopped.
+	// The command builds the audience and fast-forwards the send itself on the
+	// virtual clock, holding the send's lock throughout, so the server's worker
+	// (woken by the start) waits until it's done. A worker still running an
+	// earlier send lets go within seconds of seeing it stopped.
 	var unlock func()
 	for wait := time.Now().Add(90 * time.Second); ; {
 		if unlock, err = e.lockSend(ctx, c.ID); err == nil {
@@ -227,12 +222,11 @@ func (e *Engine) resetDemo(ctx context.Context, id uuid.UUID) error {
 	e.mu.Unlock()
 	return db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		for _, q := range []string{
-			// Take back what the earlier send added outside the campaign, so
-			// running a scenario again starts from the same demo: the
-			// providers' daily sent and outcome counts (Postal's warm-up cap
-			// counts them) and the suppressions, with the contacts' bounced or
-			// complained status, that its own bounces and complaints created.
-			// Opens it recorded on contacts stay; call counts and costs too.
+			// Take back what the earlier send added outside the campaign, so a
+			// scenario runs again from the same demo: the providers' daily
+			// counts (Postal's warm-up cap counts them) and the suppressions,
+			// with the contacts' bounced or complained status, that its bounces
+			// and complaints created. Opens on contacts, call counts and costs stay.
 			`UPDATE provider_daily_stats d SET sent = greatest(d.sent - x.n, 0)
 			 FROM (SELECT provider_id, sent_at::date AS day, count(*) AS n FROM messages
 			       WHERE campaign_id = $1 AND sent_at IS NOT NULL AND provider_id IS NOT NULL GROUP BY 1, 2) x

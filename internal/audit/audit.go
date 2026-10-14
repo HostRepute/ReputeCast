@@ -1,7 +1,5 @@
-// Package audit writes the immutable audit log. Every state-changing action
-// records who did it (user, API key, MCP agent or system), what changed
-// (before/after), where from (IP, user agent, request id) and whether it was
-// allowed or denied.
+// Package audit writes the immutable audit log: who did what to which
+// target, before and after, from where, and whether it was allowed.
 package audit
 
 import (

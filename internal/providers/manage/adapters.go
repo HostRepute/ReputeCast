@@ -26,8 +26,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/version"
 )
 
-// Links on the Adapters tab: the SDK guide and the template live in the
-// repository (docs/adapters.md, sdk/adapter-template).
+// Links on the Adapters tab.
 const (
 	SDKURL      = "https://github.com/hostrepute/reputecast/blob/main/docs/adapters.md#community-adapters"
 	TemplateURL = "https://github.com/hostrepute/reputecast/tree/main/sdk/adapter-template"
@@ -491,10 +490,8 @@ func (s *Service) checkMapping(in AdapterHTTPMapping, manifest []byte) error {
 	return nil
 }
 
-// SaveHTTPAdapter stores a generic HTTP adapter mapping as an installed
-// adapter (kind "http", registered as community:<name>). The mapping is
-// checked first: the request URL and headers, the body template as JSON,
-// the JSONPaths and the webhook authentication.
+// SaveHTTPAdapter checks a generic HTTP adapter mapping and stores it as an
+// installed adapter (kind "http", registered as community:<name>).
 func (s *Service) SaveHTTPAdapter(ctx context.Context, ws *store.Workspace, in AdapterHTTPInput) (AdapterCommunity, error) {
 	if err := instanceAdmin(ctx); err != nil {
 		return AdapterCommunity{}, err

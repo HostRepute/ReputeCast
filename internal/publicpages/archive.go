@@ -84,7 +84,7 @@ func archiveDate(t time.Time, loc *time.Location) string {
 	return t.In(loc).Format("Monday 2 January 2006")
 }
 
-// archiveQuery reads ?q, ?list (a list's slug) and ?page.
+// archiveParams reads ?q, ?list (a list's slug) and ?page.
 type archiveParams struct {
 	q, list string
 	page    int
@@ -256,8 +256,6 @@ func (h *Handler) archiveView(ctx context.Context, s *site, query url.Values, pr
 	v.JSONLD = ld
 	return v, status, nil
 }
-
-// --- issue pages -------------------------------------------------------------------
 
 func (h *Handler) issue(w http.ResponseWriter, r *http.Request) {
 	s, ok := h.siteOr404(w, r)
@@ -437,8 +435,6 @@ func (h *Handler) issueBar(s *site, meta string) string {
 		`<span>` + esc(b.PublisherName) + ` · Newsletter archive</span></a><a class="rcia-sub" href="` + esc(s.links.Subscribe("")) + `">Subscribe</a></div>` +
 		`<div class="rcia-meta">` + esc(meta) + `</div></header>` + "\n"
 }
-
-// --- feed and sitemap ------------------------------------------------------------------
 
 type rssFeed struct {
 	XMLName xml.Name   `xml:"rss"`

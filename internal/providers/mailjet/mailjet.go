@@ -1,23 +1,16 @@
-// Package mailjet is the Mailjet adapter (Send API v3.1). It sends up to 50
-// distinct messages per call with Mailjet's tracking off, receives event
-// callbacks authenticated with HTTP basic auth (Mailjet doesn't sign
-// payloads), registers them per event type, sets up the sender domain and
-// its DNS checks, syncs the campaign exclusion list both ways, reads usage
-// from the statistics counters and backfills message status.
+// Package mailjet is the Mailjet adapter (Send API v3.1).
 //
-// Terms (checked 2026-10-13): Mailjet's Acceptable Use Policy
+// Terms (checked 2026-10-13): the Acceptable Use Policy
 // (https://www.mailjet.com/legal/sending-policy/) allows marketing email
-// only to recipients who granted "clear, explicit and provable consent",
-// ideally through confirmed opt-in; it forbids third-party lists, requires
-// an unsubscribe link in every marketing email and a privacy-policy link,
-// and sets thresholds of 5% bounces, 0.08% spam complaints and 1.4%
-// unsubscribes. Bulk marketing is therefore allowed on every stream.
+// only with clear, explicit and provable consent; it forbids third-party
+// lists, requires unsubscribe and privacy-policy links, and sets thresholds
+// of 5% bounces, 0.08% spam complaints and 1.4% unsubscribes. Bulk marketing
+// is therefore allowed on every stream.
 //
-// Mailjet's exclusion list only applies to its campaigns: "Contacts in the
-// exclusion list will still be able to receive messages sent via the Send
-// API" (https://dev.mailjet.com/docs/email-api/contact-management/manage-exclusion-list).
-// ReputeCast enforces the shared suppression list before sending, so that
-// is no gap; the sync keeps Mailjet's own campaigns in line.
+// Mailjet's exclusion list only applies to its campaigns, not the Send API
+// (https://dev.mailjet.com/docs/email-api/contact-management/manage-exclusion-list).
+// ReputeCast enforces the shared suppression list before sending; the sync
+// keeps Mailjet's own campaigns in line.
 package mailjet
 
 import (
@@ -229,8 +222,7 @@ type sendResponse struct {
 }
 
 // Send implements providers.Provider with POST /v3.1/send: up to 50
-// messages, each with its own result. Mailjet answers a batch where some
-// messages failed with 400 and still reports every message.
+// messages, each with its own result.
 func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]providers.SendResult, error) {
 	if len(msgs) == 0 {
 		return []providers.SendResult{}, nil

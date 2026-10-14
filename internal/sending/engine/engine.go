@@ -48,8 +48,7 @@ type Engine struct {
 	Now     func() time.Time
 	// Readiness reruns Send Readiness at send time.
 	Readiness sending.Readiness
-	// Segments resolves segment audiences.
-	Segments sending.Segments
+	Segments  sending.Segments
 	// Normalizer applies the demo transport's delivery events exactly as
 	// webhook events are applied.
 	Normalizer *ingest.Normalizer
@@ -232,12 +231,10 @@ const zTrip = 1.28
 
 // over reports whether events out of base put a rate over its limit (a
 // percentage) with enough evidence: at least minEv events, the observed
-// rate above the limit, and the count high enough that chance alone is
-// unlikely, (events − expected) / √expected ≥ zTrip where expected is what
-// the limit allows. Three complaints among 1,900 delivered (0.16%) don't
-// pause a send whose true rate is 0.05%, nor do 3 among the first 1,284;
-// 7 among 3,980 (0.18%, the LiveMonitorPaused board) do. On large samples
-// it comes down to "over the limit".
+// rate above the limit, and (events − expected) / √expected ≥ zTrip where
+// expected is what the limit allows. Three complaints among 1,900 delivered
+// (0.16%) don't pause a send, nor do 3 among the first 1,284; 7 among 3,980
+// (0.18%, the LiveMonitorPaused board) do.
 func over(events, base int64, limit float64, minEv int64) bool {
 	if events < minEv || base <= 0 || limit <= 0 {
 		return false
@@ -267,8 +264,8 @@ func backoff(attempts int) time.Duration {
 }
 
 // Outage rule: a route is held after its provider failed every call for
-// three minutes (at least outageMinCalls calls), or W01's health job marked
-// the provider down.
+// three minutes (at least outageMinCalls calls), or the provider health job
+// marked the provider down.
 const (
 	outageAfter    = 3 * time.Minute
 	outageMinCalls = 5
@@ -294,8 +291,7 @@ func defaultRate(adapter string) float64 {
 // providerRate is how fast a provider may send right now and what limits
 // it: the warm-up plan's ramp, the account's maximum rate, or a default.
 type providerRate struct {
-	PerSecond float64
-	// Label names a warm-up limit ("warm-up day 9").
+	PerSecond             float64
 	WarmupDay, WarmupDays int
 	Cap, SentToday        int64
 	Tiers                 []string

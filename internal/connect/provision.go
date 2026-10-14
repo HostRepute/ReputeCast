@@ -68,7 +68,7 @@ const maxConfirmAttempts = 60
 
 // startProvisioning lists the provisioning rows after a successful
 // connection: the credential check and the account read (done), then the
-// adapter's steps, and queues the job. It also scans regions.
+// adapter's steps.
 func (s *Service) startProvisioning(ctx context.Context, p store.Provider, st *State, quota providers.Quota, now time.Time) {
 	rows := []ProvisionState{
 		{Key: "verify", Label: "Verify credentials and permissions", Text: "Verified credentials and permissions", Status: "done", At: &now},

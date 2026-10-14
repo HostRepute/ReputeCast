@@ -236,7 +236,6 @@ func (w *limitWriter) Write(p []byte) (int, error) {
 	return w.b.Write(p)
 }
 
-// Render renders a template with vars.
 func Render(src string, vars map[string]any) (string, error) {
 	if !strings.Contains(src, "{{") && !strings.Contains(src, "{%") {
 		return src, nil

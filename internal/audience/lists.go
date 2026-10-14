@@ -24,7 +24,6 @@ type AudienceListInput struct {
 	DoubleOptIn *bool  `json:"doubleOptIn,omitempty" doc:"New signups confirm by email first (default true)"`
 }
 
-// CreateList adds a list.
 func (s *Service) CreateList(ctx context.Context, ws *store.Workspace, in AudienceListInput) (AudienceListSummary, error) {
 	return s.createList(ctx, s.Pool, ws, in)
 }
@@ -108,7 +107,6 @@ func (s *Service) UpdateList(ctx context.Context, ws *store.Workspace, id uuid.U
 	return out, err
 }
 
-// CustomFieldDef is a custom field definition.
 type CustomFieldDef struct {
 	ID        string    `json:"id"`
 	Key       string    `json:"key"`
@@ -133,7 +131,6 @@ func fieldDef(f store.CustomField) CustomFieldDef {
 	return d
 }
 
-// Fields lists the custom fields.
 func (s *Service) Fields(ctx context.Context, ws *store.Workspace) (CustomFieldList, error) {
 	rows, err := s.Q.ListCustomFields(ctx, ws.ID)
 	if err != nil {
@@ -161,7 +158,6 @@ var fieldKeyRe = regexp.MustCompile(`^[a-z][a-z0-9_]{0,62}$`)
 var reservedKeys = map[string]bool{"email": true, "first_name": true, "last_name": true, "company": true, "country": true,
 	"timezone": true, "language": true, "tags": true, "tier": true, "consent": true, "source": true, "id": true}
 
-// CreateField adds a custom field.
 func (s *Service) CreateField(ctx context.Context, ws *store.Workspace, in CustomFieldInput) (CustomFieldDef, error) {
 	key := strings.TrimSpace(in.Key)
 	if !fieldKeyRe.MatchString(key) {

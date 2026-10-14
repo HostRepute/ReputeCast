@@ -3,16 +3,11 @@
 // setup (provider, connection, domain verification, test send, streams,
 // contacts) whose progress is kept in provider_setups so a reload resumes
 // the same step. The connection step works for every adapter through the
-// Provider contract and its optional interfaces: credential checks
-// (Verifier), webhook registration (WebhookRegistrar) behind a reachability
-// test of the public URL, domain records (DomainManager), provisioning with
-// per-step progress and retry (Provisioner, SES), region scans and
-// production-access requests (SES), connection and bounce-mailbox tests
-// (SMTP). Core code never imports an adapter.
+// Provider contract and its optional interfaces (Verifier, WebhookRegistrar,
+// DomainManager, Provisioner…); core code never imports an adapter.
 //
 // It also serves Settings › Providers: a summary per provider and the
-// workspace-wide sending defaults (auto-pause thresholds, throttles per
-// mailbox provider, suppression sync interval, webhook secret rotation).
+// workspace-wide sending defaults.
 package connect
 
 import (
@@ -280,7 +275,6 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, adapter, status
 	return out, nil
 }
 
-// Get returns a setup.
 func (s *Service) Get(ctx context.Context, ws *store.Workspace, rawID string) (ConnectSetup, error) {
 	st, err := s.setup(ctx, ws, rawID)
 	if err != nil {
@@ -357,7 +351,6 @@ func (s *Service) Abandon(ctx context.Context, ws *store.Workspace, rawID string
 	})
 }
 
-// provider loads the setup's provider.
 func (s *Service) provider(ctx context.Context, ws *store.Workspace, st store.ProviderSetup) (store.Provider, error) {
 	if st.ProviderID == nil {
 		return store.Provider{}, api.Conflict("Connect the provider first.")

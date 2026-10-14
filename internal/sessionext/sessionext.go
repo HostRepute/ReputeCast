@@ -1,12 +1,11 @@
 // Package sessionext tells the web app when the current browser session will
-// end and lets the person extend it, so the app can warn two minutes before
-// an idle timeout ("Session ending in 2 minutes · Extend 12 hours") instead
-// of losing unsaved work.
+// end and lets the person extend it, so the app can warn before an idle
+// timeout instead of losing unsaved work.
 //
-// A session ends at the earlier of two times: its idle deadline (last
-// activity plus the instance's idle timeout, 12 hours by default) and its
-// absolute lifetime (14 days by default). Extending restarts the idle clock;
-// the lifetime never moves, so an instance's policy can't be bypassed.
+// A session ends at the earlier of its idle deadline (last activity plus the
+// instance's idle timeout) and its absolute lifetime. Extending restarts the
+// idle clock; the lifetime never moves, so an instance's policy can't be
+// bypassed.
 package sessionext
 
 import (

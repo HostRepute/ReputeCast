@@ -47,18 +47,15 @@ type QueuedEmail struct {
 // Mailer queues automation emails. QueueAutomationEmail runs inside the
 // engine's transaction and must not do network I/O: implementations record
 // the message (a messages row with stream "automation", automation_id and
-// automation_node set) and schedule their own delivery.
-//
-// The sending workstream implements this with routing, throttles, suppression
-// and real delivery, and wires it in internal/app (automationMailer).
+// automation_node set) and schedule their own delivery. internal/app wires in
+// the sending engine's implementation (automationMailer).
 type Mailer interface {
 	QueueAutomationEmail(ctx context.Context, tx pgx.Tx, m OutgoingEmail) (QueuedEmail, error)
 }
 
 // QueueOnlyMailer records the message as queued on a provider picked from
-// the Automations route (weighted split, then the fallback when the primary
-// is down), or as held when no provider can send. Nothing is delivered until
-// the sending domain replaces it.
+// the Automations route, or as held when no provider can send. Nothing is
+// delivered until the sending domain replaces it.
 type QueueOnlyMailer struct{}
 
 // QueueAutomationEmail implements Mailer.
@@ -167,8 +164,7 @@ func pickProvider(ctx context.Context, q *store.Queries, wsID uuid.UUID, overrid
 
 // ContentChecker runs the content checks of Send Readiness on an email. It
 // returns "" when the email passes, otherwise the first problem in a few
-// words ("no unsubscribe link"). The composer workstream can plug in its
-// full checks.
+// words ("no unsubscribe link").
 type ContentChecker interface {
 	Check(c EmailContent) string
 }

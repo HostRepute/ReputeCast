@@ -16,8 +16,8 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 )
 
-// W10 · Senders and domains (Settings › Senders, the domain step of the
-// connect flow) and their periodic DNS re-verification.
+// Senders and domains (Settings › Senders, the domain step of the connect
+// flow) and their periodic DNS re-verification.
 
 // domainsService builds the senders and domains service. In development the
 // Acme sample domains answer from the demo DNS zone, so the demo matches the

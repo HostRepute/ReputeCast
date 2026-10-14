@@ -29,13 +29,10 @@ const EventGridRole = "AzureEventGridSecureWebhookSubscriber"
 // skew is the clock difference tolerated on token times.
 const skew = 5 * time.Minute
 
-// verifyEntraToken checks the bearer token Event Grid sends to a webhook
-// protected with Microsoft Entra ID: an RS256 JWT signed with one of the
-// tenant's keys, issued by the tenant (v1 or v2 issuer), for the webhook
-// application (audience), with the Event Grid subscriber role, not
-// expired. The tenant's key set is read from its discovery endpoint and
-// cached (read again for a key not seen yet, and every webhookauth.MaxAge,
-// so keys Microsoft retired stop being trusted).
+// verifyEntraToken checks the RS256 JWT Event Grid sends to a webhook
+// protected with Microsoft Entra ID. The tenant's key set is cached, and read
+// again for an unseen key and every webhookauth.MaxAge so keys Microsoft
+// retired stop being trusted.
 func (p *Provider) verifyEntraToken(ctx context.Context, token string) error {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {

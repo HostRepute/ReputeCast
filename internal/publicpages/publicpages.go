@@ -53,7 +53,6 @@ var templateFS embed.FS
 //go:embed static
 var staticFS embed.FS
 
-// Handler serves the public pages.
 type Handler struct {
 	Pool     *pgxpool.Pool
 	Q        *store.Queries
@@ -62,7 +61,7 @@ type Handler struct {
 	Tokens   *linktoken.Signer
 	URLs     publicurl.Builder
 	Log      *slog.Logger
-	// SPA answers root paths on hosts that aren't a custom domain, as before.
+	// SPA answers root paths on hosts that aren't a custom domain.
 	SPA http.Handler
 	// LandingURL is where "Sent with ReputeCast" points.
 	LandingURL string
@@ -177,8 +176,6 @@ func (h *Handler) pageRoutes(r chi.Router) {
 
 type hostKey struct{}
 
-// --- the request's workspace ------------------------------------------------------
-
 // site is the workspace a request is for and how to link inside it.
 type site struct {
 	ws    *store.Workspace
@@ -255,8 +252,6 @@ func (h *Handler) sign(s *site, kind linktoken.Kind, contact, message uuid.UUID)
 	}
 	return h.Tokens.Sign(linktoken.Claims{Kind: kind, WorkspaceID: s.ws.ID, ContactID: contact, MessageID: message})
 }
-
-// --- rendering ----------------------------------------------------------------------
 
 // og is the Open Graph and Twitter card of a page.
 type og struct {
@@ -490,8 +485,6 @@ func (h *Handler) headOnly(w http.ResponseWriter, _ *http.Request) {
 
 // clientIP is the request's (proxy-resolved) address.
 func clientIP(r *http.Request) *netip.Addr { return server.ClientIP(r) }
-
-// --- assets ---------------------------------------------------------------------------
 
 func (h *Handler) static(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "file")

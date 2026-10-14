@@ -43,7 +43,6 @@ func bounceTypeOf(class string) bounceType {
 	return bounceTypes[len(bounceTypes)-1]
 }
 
-// BounceTypeByKey returns a bounce type by its key.
 func bounceTypeByKey(key string) (bounceType, bool) {
 	for _, t := range bounceTypes {
 		if t.Key == key {

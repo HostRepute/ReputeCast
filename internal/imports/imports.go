@@ -1,11 +1,8 @@
-// Package imports is the migration importer (spec 5.8, 7.11): CSV and
-// XLSX uploads and API importers for Brevo, Mailchimp, MailerLite, listmonk
-// and Keila. A draft import is connected (credentials encrypted), its rows
-// are staged by a River job, fields and consent statuses are mapped,
-// a dry run previews duplicates and invalid or risky addresses, and a
-// second River job imports in batches with a live log. Unsubscribed,
-// bounced and complained contacts become suppressions and are never
-// re-subscribed. The summary has a downloadable report of skipped rows.
+// Package imports is the migration importer (spec 5.8, 7.11): CSV and XLSX
+// uploads and API importers for Brevo, Mailchimp, MailerLite, listmonk and
+// Keila. A River job stages the rows; after field and consent mapping and a
+// dry run, a second job imports them in batches. Unsubscribed, bounced and
+// complained contacts become suppressions and are never re-subscribed.
 package imports
 
 import (
@@ -36,7 +33,6 @@ type Sealer interface {
 	Open(ciphertext []byte, ad string) ([]byte, error)
 }
 
-// Service holds the importer's dependencies.
 type Service struct {
 	Pool     *pgxpool.Pool
 	Q        *store.Queries
@@ -574,7 +570,7 @@ func (s *Service) log(ctx context.Context, q *store.Queries, id uuid.UUID, kind,
 	return q.InsertImportLog(ctx, store.InsertImportLogParams{ID: uuid.Must(uuid.NewV7()), ImportID: id, OccurredAt: s.now(), Kind: kind, Message: msg})
 }
 
-// errAs is errors.As for SourceError.
+// sourceError is errors.As for SourceError.
 func sourceError(err error) (*SourceError, bool) {
 	var se *SourceError
 	ok := errors.As(err, &se)

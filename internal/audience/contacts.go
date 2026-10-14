@@ -177,7 +177,6 @@ type ContactViewInput struct {
 	Personal bool `json:"personal,omitempty"`
 }
 
-// CreateView saves a view.
 func (s *Service) CreateView(ctx context.Context, ws *store.Workspace, in ContactViewInput) (ContactSavedView, error) {
 	in.Name = strings.TrimSpace(in.Name)
 	if in.Name == "" {
@@ -207,7 +206,6 @@ func (s *Service) CreateView(ctx context.Context, ws *store.Workspace, in Contac
 	return ContactSavedView{ID: v.ID.String(), Name: v.Name, Filters: in.Filters, Shared: user == nil}, nil
 }
 
-// DeleteView removes a view.
 func (s *Service) DeleteView(ctx context.Context, ws *store.Workspace, id uuid.UUID) error {
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)

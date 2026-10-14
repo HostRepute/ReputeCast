@@ -37,8 +37,7 @@ type APIEvent struct {
 type AutomationEventResult struct {
 	Accepted  bool   `json:"accepted"`
 	ContactID string `json:"contactId"`
-	// Flows lists the live automations listening to this event.
-	Flows int `json:"flows" doc:"Live automations triggered by this event"`
+	Flows     int    `json:"flows" doc:"Live automations triggered by this event"`
 }
 
 // SendEvent records an API event ("workspace.created") for a contact. Flows

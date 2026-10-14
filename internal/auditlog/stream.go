@@ -34,7 +34,6 @@ func newSecret() string {
 	return "whsec_" + base64.RawURLEncoding.EncodeToString(b)
 }
 
-// exportRow is one entry in an export.
 type exportRow struct {
 	ID         string          `json:"id"`
 	OccurredAt time.Time       `json:"occurred_at"`

@@ -1,11 +1,9 @@
 // Package sso implements single sign-on over OpenID Connect (add-on spec
 // 3.2, 5.11) and social sign-in with Google, Microsoft and GitHub (3.1):
-// instance-level provider setup with presets, discovery tests, write-only
-// client secrets, claim mapping, just-in-time accounts, group → workspace →
-// role mappings, domain enforcement with break-glass Owners, a dry-run test
-// sign-in, and the browser flows (start and callback with state, nonce and
-// PKCE). Sessions are created by the accounts package exactly like a
-// password sign-in.
+// provider setup, claim and group mappings, just-in-time accounts, domain
+// enforcement with break-glass Owners, a dry-run test sign-in and the
+// browser flows (state, nonce and PKCE). Sessions are created by the
+// accounts package exactly like a password sign-in.
 package sso
 
 import (

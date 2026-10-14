@@ -80,8 +80,6 @@ func count(t *testing.T, env *apptest.Env, sql string, args ...any) int {
 	return int(one[int64](t, env, sql, args...))
 }
 
-// --- raw HTTP -------------------------------------------------------------------
-
 // rawClient sends no cookies and doesn't follow redirects.
 var rawClient = &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 
@@ -226,8 +224,6 @@ func contactID(t *testing.T, env *apptest.Env, ws uuid.UUID, email string) (uuid
 	err := env.App.Pool.QueryRow(context.Background(), `SELECT id FROM contacts WHERE workspace_id = $1 AND email = $2`, ws, email).Scan(&id)
 	return id, err == nil
 }
-
-// --- the hosted subscribe page ------------------------------------------------------
 
 func TestHostedSubscribePage(t *testing.T) {
 	env, ids := demo(t)
@@ -513,8 +509,6 @@ func TestSubscribeValidation(t *testing.T) {
 	})
 }
 
-// --- embedded forms ---------------------------------------------------------------------
-
 func TestEmbeddedForm(t *testing.T) {
 	env, ids := demo(t)
 	submit := "/p/acme-newsletter/forms/frm_8c2e1a/submit"
@@ -619,8 +613,6 @@ func TestEmbeddedForm(t *testing.T) {
 	})
 }
 
-// --- preference center -----------------------------------------------------------------
-
 func TestPreferenceCenter(t *testing.T) {
 	env, ids := demo(t)
 	start := time.Now().Add(-time.Second)
@@ -715,11 +707,6 @@ func TestPreferenceCenter(t *testing.T) {
 	})
 }
 
-// "Email me a link" must answer the same whether or not the address gets
-// the newsletter. Without a System provider (as in tests), a known address
-// gets a 503 page ("Acme can't send emails right now") and an unknown one
-// the usual "Check your inbox" page, so the form tells anyone whether an
-// address is a subscriber (tokens.go requestPost).
 // fakeMail is a System-stream sender that keeps what it sends.
 type fakeMail struct {
 	mu   sync.Mutex
@@ -846,8 +833,6 @@ func firstLine(text, near string) string {
 	}
 	return strings.TrimSpace(text[max(0, i-60):min(len(text), i+60)])
 }
-
-// --- unsubscribe ------------------------------------------------------------------------
 
 func TestUnsubscribe(t *testing.T) {
 	env, ids := demo(t)
@@ -1000,8 +985,6 @@ func TestUnsubscribe(t *testing.T) {
 		}
 	})
 }
-
-// --- archive --------------------------------------------------------------------------------
 
 func TestArchive(t *testing.T) {
 	env, _ := demo(t)
@@ -1165,8 +1148,6 @@ func TestArchive(t *testing.T) {
 	})
 }
 
-// --- custom domain, assets ----------------------------------------------------------------
-
 func TestCustomDomain(t *testing.T) {
 	env, ids := demo(t)
 	news := func(method, path string, form url.Values, h hdr) resp {
@@ -1282,13 +1263,10 @@ func TestAssets(t *testing.T) {
 	})
 }
 
-// Anyone can POST an error code to /p/{workspace}/turnstile-error; the code
-// alone switches the workspace's Turnstile status to "error", which turns
-// the challenge fallback off (suspicious signups are then refused instead
-// of checked) and shows a false configuration error in the app, until
-// someone saves the keys again. The report isn't tied to a challenge the
-// visitor was actually shown, nor rate limited (publicpages.go
-// turnstileError, forms/turnstile.go ReportTurnstileError).
+// A Turnstile error report counts only from the page of a live challenge.
+// Otherwise anyone could set the workspace's Turnstile status to "error",
+// which turns the challenge fallback off (suspicious signups are refused
+// instead of checked) and shows a false configuration error in the app.
 func TestTurnstileErrorReportNeedsAChallenge(t *testing.T) {
 	env, ids := demo(t)
 	r := do(t, env, http.MethodPost, "/p/acme-newsletter/turnstile-error", url.Values{"code": {"110200"}}, nil)

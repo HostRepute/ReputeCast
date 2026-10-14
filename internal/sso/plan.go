@@ -353,14 +353,13 @@ func (s *Service) plan(ctx context.Context, q *store.Queries, p store.SsoProvide
 }
 
 // groupExits re-applies the mappings to the memberships they granted
-// earlier: when the IdP's groups claim no longer contains a group that
-// maps into a workspace, the role that mapping gave ends. In the JIT
-// workspace the person falls back to the default role; elsewhere the
-// membership is removed. Only memberships a mapping of this provider
-// granted (source sso_group, a role the provider maps to there) change: a
-// role someone set by hand afterwards, an Owner, or a workspace this
-// provider doesn't map into stays as it is. Without a groups claim nothing
-// changes, since the person's groups aren't known.
+// earlier: when the groups claim no longer contains a group that maps into
+// a workspace, that role ends (the JIT workspace falls back to the default
+// role; elsewhere the membership is removed). Only memberships a mapping of
+// this provider granted (source sso_group, a role the provider maps to
+// there) change; hand-set roles, Owners and workspaces the provider doesn't
+// map into stay. Without a groups claim the person's groups aren't known,
+// so nothing changes.
 func (s *Service) groupExits(ctx context.Context, q *store.Queries, p store.SsoProvider, maps []mapping, id identity, u *store.User,
 	targets map[uuid.UUID]grant, role func(uuid.UUID, string) (store.SSOWorkspaceRolesRow, bool)) ([]memberChange, error) {
 	if !id.GroupsClaim || u == nil || len(maps) == 0 {

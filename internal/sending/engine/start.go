@@ -255,13 +255,11 @@ func (e *Engine) schedule(ctx context.Context, c store.Campaign, at time.Time, o
 }
 
 // hold records a scheduled send whose send-time recheck turned Blocked, in
-// the form Review & send shows it (approvals.HoldDetail: the reason and
-// the titles of what blocks; the blocking checks and the audience come
-// from the recheck's run). The campaign stays scheduled and nothing is
-// sent. The author and the approvers are told once: Review & send's
-// checks 15 minutes before may have held it already. Review & send's
+// the form Review & send shows it (approvals.HoldDetail). The campaign stays
+// scheduled and nothing is sent. The author and the approvers are told once:
+// Review & send's checks 15 minutes before may have held it already. Its
 // minute job rechecks a held send every 15 minutes and starts it once a
-// recheck passes; unscheduling it ends the hold.
+// recheck passes.
 func (e *Engine) hold(ctx context.Context, c store.Campaign, rc sending.Recheck, now time.Time) error {
 	reason := blockReason(rc)
 	return db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {

@@ -72,9 +72,8 @@ func Register(h huma.API, s *Service) {
 			u, err := s.StartOAuth(ctx, api.WorkspaceFrom(ctx), api.UserFrom(ctx))
 			return api.OK(HostReputeOAuthStart{AuthorizeURL: u}), err
 		})
-	// The redirect URI is the same for every workspace (one registration per
-	// instance); the single-use state names the workspace and the person,
-	// and the handler checks integrations:hostrepute there.
+	// One callback per instance: the single-use state names the workspace
+	// and the person, and the handler checks integrations:hostrepute there.
 	api.Get(h, api.Op{ID: "hostrepute-oauth-callback", Path: "/integrations/hostrepute/callback",
 		Summary:     "OAuth return from HostRepute (browser redirect)",
 		Description: "Exchanges the code, stores the encrypted tokens and redirects to the connect screen. Requires the signed-in person who started the handoff, holding integrations:hostrepute in its workspace.",

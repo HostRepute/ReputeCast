@@ -18,8 +18,6 @@ var MailboxShare = []struct {
 	Share float64
 }{{"gmail", 0.46}, {"outlook", 0.21}, {"yahoo", 0.09}, {"icloud", 0.08}, {"other", 0.16}}
 
-// sentCampaign describes a sent campaign's headline numbers. Rates are
-// percentages of sent (delivered) or of delivered (opens, clicks).
 // The October Product Update's subject test, as on the Report board: A is
 // the campaign's subject (and the email's headline), B won.
 const (

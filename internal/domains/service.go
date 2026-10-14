@@ -365,7 +365,6 @@ func defaultsView(defs workspaceDefaults, senders []store.SenderListRow, doms []
 	return out
 }
 
-// senderView builds a sender row.
 func (s *Service) senderView(id uuid.UUID, name, email, replyTo, note string, domainID uuid.UUID, domain string, verification json.RawMessage,
 	defs workspaceDefaults, provs []store.Provider, d store.SendingDomain) SenderIdentity {
 	v := SenderIdentity{ID: id.String(), Name: name, Email: email, ReplyTo: replyTo, Note: note, DomainID: domainID.String(), Domain: domain,
@@ -546,7 +545,6 @@ func (s *Service) setDefaults(ctx context.Context, q *store.Queries, wsID, sende
 		DefaultAutomationSenderID: defs.ids["automation"], DefaultSystemSenderID: defs.ids["system"], UpdatedAt: s.now()})
 }
 
-// Sender returns one sender row.
 func (s *Service) Sender(ctx context.Context, ws *store.Workspace, id uuid.UUID) (SenderIdentity, error) {
 	sn, err := s.Q.SenderGet(ctx, store.SenderGetParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {

@@ -1,23 +1,15 @@
-// Package mailgun is the Mailgun adapter (US and EU regions). It sends one
-// personalized message per call with Mailgun's open and click tracking off,
-// receives webhooks signed with the account's HTTP webhook signing key
-// (HMAC-SHA256 over timestamp and token), registers them per domain, sets
-// up and verifies the sending domain, syncs suppressions both ways, reads
-// the account's custom sending limit, usage and reputation, and backfills
-// message status from the events API.
+// Package mailgun is the Mailgun adapter (US and EU regions).
 //
-// Terms (checked 2026-10-13): Mailgun's Acceptable Use Policy
+// Terms (checked 2026-10-13): the Acceptable Use Policy
 // (https://www.mailgun.com/legal/aup/) allows marketing email to recipients
-// who gave "clear, explicit and provable consent", ideally through a
-// confirmed opt-in; it forbids bought, rented or scraped lists, requires an
-// unsubscribe link in every marketing email and a privacy-policy link, and
-// sets thresholds of 5% bounces, 0.08% spam complaints and 1.4%
-// unsubscribes. Bulk marketing is therefore allowed on every stream.
+// with clear, explicit and provable consent; it forbids bought, rented or
+// scraped lists, requires unsubscribe and privacy-policy links, and sets
+// thresholds of 5% bounces, 0.08% spam complaints and 1.4% unsubscribes.
+// Bulk marketing is therefore allowed on every stream.
 //
-// Batching: Mailgun's batch sending (up to 1,000 recipients per call) shares
-// one body between recipients through recipient variables. ReputeCast
-// renders every message for its recipient, so each message is its own call
-// and the adapter declares a batch size of 1.
+// Batching: Mailgun's batch sending shares one body between recipients
+// through recipient variables, but ReputeCast renders every message for its
+// recipient, so each message is its own call.
 package mailgun
 
 import (

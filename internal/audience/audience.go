@@ -1,10 +1,8 @@
-// Package audience implements the Audience screens (spec 5.6, 7.9): the
-// contacts table with saved views, filters and bulk actions, the contact
-// profile with custom fields, per-list consent history and an activity
-// timeline that shows which sending provider delivered each email, lists
-// and custom fields, engagement tiers recomputed nightly with the sunset
-// policy, list health, CSV export (subscribers:export, always audited) and
-// the shared suppression list.
+// Package audience implements the Audience screens (spec 5.6, 7.9):
+// contacts with saved views and bulk actions, contact profiles with consent
+// history and an activity timeline, lists and custom fields, engagement
+// tiers and the sunset policy, list health, audited CSV export and the
+// shared suppression list.
 package audience
 
 import (
@@ -23,7 +21,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// Service holds the audience domain dependencies.
 type Service struct {
 	Pool     *pgxpool.Pool
 	Q        *store.Queries
@@ -63,8 +60,7 @@ type AudienceListSummary struct {
 	CreatedAt  time.Time `json:"createdAt"`
 }
 
-// AudienceSummary feeds the Audience tabs (Contacts · 48,213, Segments · 7,
-// Suppression list · 1,874) and the filter selects.
+// AudienceSummary feeds the Audience tab counts and the filter selects.
 type AudienceSummary struct {
 	Contacts        int64                 `json:"contacts"`
 	Segments        int64                 `json:"segments"`

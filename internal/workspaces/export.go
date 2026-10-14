@@ -33,9 +33,8 @@ audit-log.json     the workspace audit log%s
 Provider credentials, API keys and signing secrets are never exported.
 `
 
-// Export writes everything in the workspace as a ZIP archive: contacts with
-// consent, campaigns as MJML, reports as CSV and the audit log as JSON. It
-// streams table by table so large workspaces don't need memory.
+// Export writes everything in the workspace as a ZIP archive. It streams
+// table by table so large workspaces don't need memory.
 func (s *Service) Export(ctx context.Context, ws *store.Workspace, p *authz.Principal, w io.Writer) error {
 	zw := zip.NewWriter(w)
 	auditNote := ""

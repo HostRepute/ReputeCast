@@ -1,8 +1,6 @@
 // Package roles implements Roles & permissions (A5 §3.6, §5.9): the four
-// read-only built-in roles, custom roles with permissions grouped by area,
-// automatic dependencies (edit includes view), the comparison view and the
-// impact preview shown before saving ("4 members and 1 API key will lose
-// campaigns:send"). Nobody can add a permission they don't hold.
+// read-only built-in roles, custom roles and the impact preview shown before
+// saving. Nobody can add a permission they don't hold.
 package roles
 
 import (
@@ -27,7 +25,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/workspaces"
 )
 
-// Service holds the roles domain dependencies.
 type Service struct {
 	Pool  *pgxpool.Pool
 	Q     *store.Queries

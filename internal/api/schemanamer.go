@@ -13,8 +13,7 @@ import (
 // namer, and keeps names unique across domains: when a second, different
 // type asks for a name already taken (FieldOption in two packages), it gets
 // its package name as a prefix (AutomationsFieldOption) instead of Huma
-// panicking at startup. Domains should still pick distinct type names; this
-// is the safety net that keeps a merge from taking the server down.
+// panicking at startup. Domains should still pick distinct type names.
 func SchemaNamer() func(t reflect.Type, hint string) string {
 	var mu sync.Mutex
 	byType := map[reflect.Type]string{}

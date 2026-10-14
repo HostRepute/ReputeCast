@@ -1,9 +1,8 @@
-// Package httpgeneric is the generic HTTP adapter. It sends through any
-// HTTP API described by a mapping instead of Go code: a request template
-// (method, URL, headers and a JSON body with Liquid-style fields), where the
-// response carries the provider's message id, and how the provider's
-// webhooks are authenticated and read. People use it to connect a provider
-// that has no built-in adapter without writing Go (spec 5.2).
+// Package httpgeneric is the generic HTTP adapter (spec 5.2). It sends
+// through any HTTP API described by a mapping instead of Go code: a request
+// template (method, URL, headers and a JSON body with Liquid-style fields),
+// where the response carries the provider's message id, and how the
+// provider's webhooks are authenticated and read.
 //
 // A mapping is the "http" object of an HTTP adapter's manifest — the format
 // the Adapters tab saves into installed_adapters and that community

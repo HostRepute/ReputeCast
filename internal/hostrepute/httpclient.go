@@ -40,7 +40,7 @@ type HTTPClient struct {
 const DefaultTimeout = 30 * time.Second
 
 // NewHTTPClient returns a client with ReputeCast's defaults: 30 s per
-// request, 3 attempts, 1 s then 3 s between attempts.
+// request, 3 attempts.
 func NewHTTPClient(baseURL string, tokens oauth2.TokenSource, httpClient *http.Client) *HTTPClient {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: DefaultTimeout}

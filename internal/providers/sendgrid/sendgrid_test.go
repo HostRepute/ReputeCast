@@ -67,7 +67,6 @@ func writeErr(w http.ResponseWriter, status int, msg string) {
 	_ = json.NewEncoder(w).Encode(map[string]any{"errors": []map[string]any{{"message": msg, "field": nil}}})
 }
 
-// fake is a fake SendGrid API.
 type fake struct {
 	mu          sync.Mutex
 	pubKey      string

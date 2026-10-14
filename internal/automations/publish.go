@@ -47,11 +47,10 @@ type GateDecision struct {
 	Message string
 }
 
-// PublishGate is the approvals seam (add-on §3.8: "Optionally, publishing
-// an automation can also require approval"). Check runs inside the publish
-// transaction. When the workspace policy requires approval, the approvals
-// domain creates an approval_requests row (subject_type 'automation') in tx
-// and returns Required; once approved it calls Service.CompletePublish.
+// PublishGate is the approvals seam (add-on §3.8). Check runs inside the
+// publish transaction. When approval is required, the approvals domain
+// creates an approval_requests row in tx and returns Required; once approved
+// it calls Service.CompletePublish.
 type PublishGate interface {
 	Check(ctx context.Context, tx pgx.Tx, req PublishRequest) (GateDecision, error)
 }
@@ -158,7 +157,7 @@ func (s *Service) checkEmail(ctx context.Context, q *store.Queries, wsID uuid.UU
 	return s.checks().Check(EmailContent{Subject: e.Subject, Preheader: e.Preheader, MJML: e.Mjml, HTML: e.Html, Text: e.PlainText})
 }
 
-// AutomationPublishPreview prepares the publish dialog.
+// PublishPreview prepares the publish dialog.
 func (s *Service) PublishPreview(ctx context.Context, ws *store.Workspace, id uuid.UUID) (AutomationPublishPreview, error) {
 	a, err := s.Q.GetAutomation(ctx, store.GetAutomationParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
@@ -214,7 +213,6 @@ func automationOf(a store.GetAutomationRow) store.Automation {
 // publishChecks are the badges at the bottom of the publish dialog.
 func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *publishState, route AutomationRoute) []AutomationPublishCheck {
 	var out []AutomationPublishCheck
-	// Route health.
 	primaryOK := false
 	var primary []string
 	for _, p := range route.Primary {
@@ -231,7 +229,6 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 	default:
 		out = append(out, AutomationPublishCheck{Status: "warn", Label: "No healthy provider on the Automations route: emails wait until one is"})
 	}
-	// Email content.
 	emails, failing := 0, 0
 	for _, n := range st.draft.Nodes {
 		if n.Type != NodeEmail {

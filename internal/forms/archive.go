@@ -260,8 +260,6 @@ func (s *Service) Archive(ctx context.Context, ws *store.Workspace, set *Setting
 	return out, total, nil
 }
 
-// --- API: the Archive tab -------------------------------------------------------
-
 // ArchiveIssueItem is an issue on the Archive tab.
 type ArchiveIssueItem struct {
 	CampaignID string    `json:"campaignId"`

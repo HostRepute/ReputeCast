@@ -608,7 +608,6 @@ func TestBrokenManifestRowsAreSkipped(t *testing.T) {
 	if err != nil || row.CheckOk == nil || *row.CheckOk || !strings.Contains(row.CheckDetail, "no longer validates") {
 		t.Fatalf("check of a broken row: %+v %v", row, err)
 	}
-	// Installing another adapter under a taken id is refused.
 	dup := remotetest.Manifest()
 	dup.Name = "Fake ESP again"
 	if r2, err := cli.Install(ctx, remotetest.ManifestJSON(dup), "", "", remote.CLIActor); err != nil || !r2.Updated {

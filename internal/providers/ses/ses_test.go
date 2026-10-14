@@ -259,7 +259,6 @@ func TestSubscriptionHandshake(t *testing.T) {
 	if err != nil || !handled || !confirmed {
 		t.Fatalf("handshake: handled %v confirmed %v err %v", handled, confirmed, err)
 	}
-	// Notifications are not handshakes.
 	n := envelope(t, "Notification", `{"eventType":"Send"}`, "2")
 	if handled, _, _ := p.Handshake(context.Background(), r, n); handled {
 		t.Fatal("a notification is not a handshake")

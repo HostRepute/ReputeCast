@@ -22,7 +22,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// Service holds the segments domain dependencies.
 type Service struct {
 	Pool  *pgxpool.Pool
 	Q     *store.Queries
@@ -105,7 +104,6 @@ type SegmentDetail struct {
 	UpdatedBy    string         `json:"updatedBy"`
 }
 
-// Get returns one segment.
 func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (SegmentDetail, error) {
 	seg, err := s.Q.GetSegment(ctx, store.GetSegmentParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
@@ -402,7 +400,6 @@ func (s *Service) Recount(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	return res, s.storeCount(ctx, s.Q, seg.ID, res, true, nil)
 }
 
-// Delete removes a segment.
 func (s *Service) Delete(ctx context.Context, ws *store.Workspace, id uuid.UUID) error {
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)

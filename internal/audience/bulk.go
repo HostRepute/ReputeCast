@@ -30,7 +30,6 @@ type Selection struct {
 	Filter      ContactFilter `json:"filter,omitempty"`
 }
 
-// ContactBulkInput is a bulk action on contacts.
 type ContactBulkInput struct {
 	Selection
 	Action string `json:"action" enum:"add_to_list,add_tag,resend_optin,suppress"`
@@ -55,8 +54,7 @@ type ContactBulkResult struct {
 	Failures []ContactBulkFailure `json:"failures" doc:"Up to 20 examples"`
 	// Target names the list or tag ("Re-permission").
 	Target string `json:"target,omitempty"`
-	// ConfirmURL is set when one opt-in email couldn't be sent and the link can be shared instead.
-	Note string `json:"note,omitempty"`
+	Note   string `json:"note,omitempty"`
 }
 
 // selectIDs resolves a selection to contact ids visible to the caller.
@@ -210,7 +208,6 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkI
 // ContactEraseInput erases contacts' personal data.
 type ContactEraseInput struct {
 	Selection
-	// Confirm must be the number of contacts selected, typed by the person.
 	Confirm int64 `json:"confirm" doc:"The number of contacts, typed to confirm"`
 }
 

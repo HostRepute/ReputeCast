@@ -161,8 +161,8 @@ func TestOverviewDemo(t *testing.T) {
 		o.Pools[1].AccountStatus != "Approved" || o.Pools[1].OnlyStream != "system" || *o.Pools[1].VolumeThisMonth != 3412 {
 		t.Fatalf("pools: %+v", o.Pools)
 	}
-	// Rates are the providers workstream's 7-day figures (manage.UsageOf),
-	// so they match Sending providers; SES's are exactly the board's.
+	// Rates are the 7-day figures from manage.UsageOf, so they match Sending
+	// providers; SES's are exactly the board's.
 	ses, pm, postal := o.Providers[0], o.Providers[1], o.Providers[2]
 	if ses.Badge != "Healthy · no enforcement" || ses.Bounce.Thresholds != "review 5%, pause 10%" || *ses.Bounce.Value != 0.6 ||
 		*ses.Complaint.Value != 0.04 || ses.Complaint.Usage != 40 || ses.Note.Value != "Bounce and complaint metrics only; no VDM" ||

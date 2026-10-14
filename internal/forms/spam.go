@@ -12,8 +12,6 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// --- timestamp tokens ----------------------------------------------------------
-
 // FormToken signs when a form was rendered, for one form. It is the CSRF
 // token of the hosted page and the timing check of every form: a
 // submission needs a token at least MinSeconds old and at most a day old.
@@ -62,8 +60,6 @@ func formKey(c Config) string {
 	return c.PublicID
 }
 
-// --- origins ---------------------------------------------------------------------
-
 // OriginHost reads the host a browser request came from: the Origin header,
 // else the Referer. Empty when neither is sent (not a browser form post).
 func OriginHost(origin, referer string) string {
@@ -103,8 +99,6 @@ func OriginAllowed(host string, allowed, own []string) bool {
 	}
 	return match(own) || match(allowed)
 }
-
-// --- rate limits -----------------------------------------------------------------
 
 // limiter keeps a token bucket per key (client address, form) in this
 // process. Idle buckets are dropped after ten minutes.

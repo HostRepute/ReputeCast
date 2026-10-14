@@ -2,18 +2,13 @@ package providers
 
 import "context"
 
-// This file adds the optional interfaces the connect flow (internal/connect,
-// "Connect a sending provider") uses to guide a person through connecting an
-// adapter: connection tests that say more than "it works", provider-side
-// provisioning with per-step progress and retry, region discovery,
-// production-access requests and access templates. Everything here is
-// optional and additive: adapters that implement none of it get the generic
-// flow (fields from the Descriptor, Verifier, WebhookRegistrar,
-// DomainManager).
+// Optional interfaces of the connect flow (internal/connect): detailed
+// connection tests, provider-side provisioning with per-step progress and
+// retry, region discovery, production-access requests and access templates.
+// Adapters that implement none of them get the generic flow.
 //
 // Texts returned to the flow may mark names and values with backticks
-// ("Created SNS topic `reputecast-events`"): the UI shows them in the
-// monospace face.
+// ("Created SNS topic `reputecast-events`"): the UI shows them in monospace.
 
 // ConnectionReport is the detailed result of a connection test.
 type ConnectionReport struct {

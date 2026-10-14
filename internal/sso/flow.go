@@ -36,7 +36,6 @@ const (
 	flowCookiePfx = "rc_sso_"
 )
 
-// Flow modes.
 const (
 	modeSignIn = "signin"
 	modeTest   = "test"

@@ -11,12 +11,10 @@ import (
 )
 
 // TestThroughput50k measures a 50,000-recipient send through the demo
-// transport (REPUTECAST_PERF=1): the audience build, then the send loop
-// with the provider's rate raised out of the way, first without delivery
-// and engagement events (the send path: claim, render, hand over, record),
-// then with them (the whole demo pipeline). It reports throughput and the
-// Go heap; the audience build commits a page of 2,000 contacts at a time
-// and a send step claims at most one second's worth of messages.
+// transport (REPUTECAST_PERF=1): the audience build, then the send loop with
+// the provider's rate out of the way, first without delivery and engagement
+// events (the send path alone), then with them. It reports throughput and
+// the Go heap.
 func TestThroughput50k(t *testing.T) {
 	if os.Getenv("REPUTECAST_PERF") == "" {
 		t.Skip("set REPUTECAST_PERF=1 to measure a 50,000-recipient send")

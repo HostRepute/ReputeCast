@@ -177,8 +177,6 @@ func (s *Service) Confirm(ctx context.Context, ws *store.Workspace, contactID uu
 	return res, err
 }
 
-// --- jobs ------------------------------------------------------------------------
-
 // ConfirmationsArgs sends double opt-in emails that couldn't go out at
 // submission time, reminds contacts who didn't click within 24 hours, and
 // drops expired Turnstile holds.
@@ -192,7 +190,6 @@ func (ConfirmationsArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: jobs.QueueSystem, UniqueOpts: river.UniqueOpts{ByPeriod: 4 * time.Minute}}
 }
 
-// ConfirmationsWorker runs ConfirmationsArgs.
 type ConfirmationsWorker struct {
 	river.WorkerDefaults[ConfirmationsArgs]
 	S *Service
@@ -296,7 +293,6 @@ func (DomainsArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: jobs.QueueMaintenance, UniqueOpts: river.UniqueOpts{ByPeriod: 9 * time.Minute}}
 }
 
-// DomainsWorker runs DomainsArgs.
 type DomainsWorker struct {
 	river.WorkerDefaults[DomainsArgs]
 	S *Service

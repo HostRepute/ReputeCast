@@ -412,10 +412,10 @@ func SendersDomainService(tx store.DBTX, publicURL string) *domains.Service {
 }
 
 // SendersDNSOverlay answers what Settings › Senders shows differently from
-// the deliverability demo zone (acme.io's own DMARC policy, p=none on
-// SettingsSenders) and the tracking domain's CNAME, which points at the
-// host of publicURL as it is now, on top of r, which is normally the
-// deliverability demo zone (sendersDemoZone adds the senders' records there).
+// the deliverability demo zone (acme.io's own DMARC policy) and the
+// tracking domain's CNAME, which points at the host of publicURL as it is
+// now, on top of r, which is normally the deliverability demo zone
+// (sendersDemoZone adds the senders' records there).
 func SendersDNSOverlay(r dnscheck.Resolver, publicURL func() string) dnscheck.Resolver {
 	z := dnscheck.NewZone()
 	// The corporate domain monitors (p=none) while its subdomains, the

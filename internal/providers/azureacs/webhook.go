@@ -70,7 +70,6 @@ func (p *Provider) Handshake(_ context.Context, r *http.Request, body []byte) (b
 	}
 	items, err := decodeEvents(body)
 	if err != nil {
-		// Not a handshake; ParseWebhook reports the malformed body.
 		return false, nil, nil //nolint:nilerr // the body is judged by ParseWebhook
 	}
 	for _, raw := range items {
@@ -95,13 +94,10 @@ func (p *Provider) Handshake(_ context.Context, r *http.Request, body []byte) (b
 func (p *Provider) WebhookSecretHeaders() []string { return []string{SecretHeader} }
 
 // VerifyWebhook implements providers.WebhookVerifier. Event Grid doesn't
-// sign deliveries. A subscription protected with Microsoft Entra ID sends a
-// bearer token, checked against the webhook application (when
-// event_grid_audience is set); otherwise the subscription sends the
-// provider's webhook secret as a delivery header (Authorization: Bearer,
-// preferred, or X-ReputeCast-Secret) or in the endpoint URL's query
-// (secret=). Neither header is stored with the raw event, and the query
-// isn't either.
+// sign deliveries: they carry an Entra ID bearer token (checked when
+// event_grid_audience is set) or the webhook secret, in Authorization:
+// Bearer, X-ReputeCast-Secret or the URL's secret= query. None of these is
+// stored with the raw event.
 func (p *Provider) VerifyWebhook(ctx context.Context, r *http.Request, _ []byte) error {
 	if p.s.EventGridAudience != "" {
 		if token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer "); ok && strings.Count(token, ".") == 2 {

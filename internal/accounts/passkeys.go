@@ -445,7 +445,6 @@ func (s *Service) TwoFactorPasskey(ctx context.Context, challenge, passkeyChalle
 	return SignInResult{Status: "signed_in", Email: u.Email, Next: s.nextPath(ctx, u)}, &cookie, nil
 }
 
-// RenamePasskey changes a passkey's name.
 func (s *Service) RenamePasskey(ctx context.Context, id uuid.UUID, name string) error {
 	u, err := currentUser(ctx)
 	if err != nil {

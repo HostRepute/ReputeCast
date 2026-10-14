@@ -1,16 +1,12 @@
 // Package readiness is Send Readiness (spec 5.1, 7.5): every check a
-// campaign must pass before it goes out — sender reputation, authentication,
-// content, links, compliance, audience quality and routing — each Pass, Warn,
-// Block or Unknown with its evidence and a fix, plus the estimates around
-// the send (final audience, route breakdown, cost and duration per sending
-// provider, throttling per mailbox provider).
+// campaign must pass before it goes out, each Pass, Warn, Block or Unknown
+// with its evidence and a fix, plus the estimates around the send (final
+// audience, route, cost and duration, throttling per mailbox provider).
 //
-// A run gathers facts from the other domains (deliverability and HostRepute,
-// the composer's content and link checks, providers, routing and warm-up,
-// the audience) and Assemble turns them into checks. Assemble is pure, so
-// the demo seeds runs through it and tests feed it fixtures. Runs are stored
-// in readiness_runs; the run in progress is in readiness_progress so the
-// review screen can tick the groups in.
+// A run gathers facts from the other domains and Assemble turns them into
+// checks. Assemble is pure, so the demo seeds runs through it and tests feed
+// it fixtures. Runs are stored in readiness_runs; the run in progress is in
+// readiness_progress so the review screen can tick the groups in.
 package readiness
 
 import "time"

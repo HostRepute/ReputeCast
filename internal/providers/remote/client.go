@@ -160,13 +160,9 @@ var maxTimeout = func() time.Duration {
 	return longest
 }()
 
-// endpointClient is the SSRF-guarded client provider adapters get
-// (netguard, with providers.allow_private_networks): every address is
-// checked when connecting, metadata and link-local addresses are always
-// refused, no proxy is used and redirects are never followed. On top of it,
-// an adapter may run up to MaxInFlight calls at once, and a plain http://
-// address must turn out to be loopback or private (credentials travel with
-// every call).
+// endpointClient is the SSRF-guarded netguard client, allowing MaxInFlight
+// connections per host. With plainHTTP the connected address must also be
+// loopback or private, since credentials travel with every call.
 func endpointClient(allowPrivate, plainHTTP bool) (*http.Client, error) {
 	c := netguard.Policy{AllowPrivate: allowPrivate}.Client(maxTimeout)
 	tr, ok := c.Transport.(*http.Transport)

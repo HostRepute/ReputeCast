@@ -52,15 +52,12 @@ type formsDemoForm struct {
 }
 
 // seedFormsImpl seeds the Forms & public pages boards: the publisher
-// branding of FormsStates (Acme, #4338CA on #F5F3FF, acme-mark.svg, the
-// news.acme.io custom domain), the three forms of FormBuilder with their
-// settings and 30-day numbers (Newsletter signup: 14,208 views, 812
-// submissions, 731 confirmed, 1,106 blocked), the copy of the public pages
+// branding of FormsStates, the three forms of FormBuilder with their
+// settings and 30-day numbers, the copy of the public pages
 // (PublicSubscribe, PublicConfirm, PublicPreferences, PublicUnsubscribe)
-// and the archive of PublicArchive, built from the sent campaigns: the
-// October Product Update, the Weekly Digests and the imported Brevo
-// history. Sam Rivera, the example subscriber of the public pages, is the
-// audience seeder's contact; nothing about them changes here.
+// and the archive of PublicArchive, built from the sent campaigns. Sam
+// Rivera, the example subscriber of the public pages, is the audience
+// seeder's contact; nothing about them changes here.
 func seedFormsImpl(ctx context.Context, s *Seeder) error {
 	ws := s.WS()
 	linh := s.Users["linh@acme.io"]
@@ -74,8 +71,7 @@ func seedFormsImpl(ctx context.Context, s *Seeder) error {
 		return out
 	}
 
-	// Branding: the publisher's colours are stored with the derived ones the
-	// boards use (hover #3730A3, tint #DDD6FE).
+	// The publisher's colours are stored with the derived ones the boards use.
 	sum := sha256.Sum256(formsLogo)
 	logoHash := hex.EncodeToString(sum[:8])
 	branding, _ := json.Marshal(map[string]any{
@@ -312,7 +308,6 @@ func formsArchive(ctx context.Context, s *Seeder, digest, updates uuid.UUID) err
 			id, ws.ID, it.slug, it.list, it.title, it.excerpt, it.label, at.Add(2*time.Hour)); err != nil {
 			return fmt.Errorf("archive %s: %w", it.campaign, err)
 		}
-		// History without content gets a body, so its page reads like an issue.
 		res := mjml.Compile(formsIssueMJML(it, logo))
 		if len(res.Errors) > 0 {
 			return fmt.Errorf("archive %s: %s", it.campaign, res.Errors[0].Message)

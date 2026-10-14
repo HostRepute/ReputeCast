@@ -9,13 +9,9 @@
 // Tokens are signed (internal/linktoken) and name the message, the contact
 // and, for clicks, the link's position in the campaign's links: the
 // redirect only ever goes to a link of that message (no open redirect).
-// Writes are group-committed in the background (one transaction per batch
-// of requests a few milliseconds apart), so the pixel and the redirect stay
-// fast under load. The unsubscribe page and RFC 8058 one-click POST live
-// with the public pages.
-//
-// Classification heuristics are in classify.go (ClassifyOpen,
-// ClassifyClick) and pinned by classify_test.go.
+// Writes are group-committed in the background, so the pixel and the
+// redirect stay fast under load. The unsubscribe page and RFC 8058
+// one-click POST live with the public pages.
 package tracking
 
 import (
@@ -339,8 +335,6 @@ func (s *Service) RecordEngagement(ctx context.Context, evs []sending.Engagement
 	if len(evs) == 0 {
 		return nil
 	}
-	// A batch bumps several counter rows: a deadlock with the send loop or
-	// delivery events is retried.
 	return sending.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		for _, ev := range evs {

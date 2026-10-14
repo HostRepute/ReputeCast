@@ -17,9 +17,8 @@ import (
 )
 
 // VerifyWebhook implements providers.WebhookVerifier: Brevo doesn't sign
-// webhooks, so ReputeCast registers them with bearer authentication — the
-// provider's webhook secret, which Brevo sends as "Authorization: Bearer"
-// on every call.
+// webhooks, so ReputeCast registers them with the webhook secret as a bearer
+// token.
 func (p *Provider) VerifyWebhook(_ context.Context, r *http.Request, _ []byte) error {
 	token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 	if !ok || !webhookauth.Equal(strings.TrimSpace(token), p.cfg.WebhookSecret) {

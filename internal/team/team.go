@@ -1,10 +1,7 @@
-// Package team manages the people of a workspace (A5 §3.5, §5.8): the
-// members list with role, scope, sign-in methods and two-factor status,
-// invitations by email or copyable link, member detail with effective
-// permissions and where each comes from, role and scope changes, bulk
-// actions, deactivation (keeps history, signs out everywhere, keep or revoke
-// API keys) and removal. The last Owner can't be removed or demoted, and
-// nobody can grant a permission they don't hold.
+// Package team manages the people of a workspace (A5 §3.5, §5.8): members,
+// invitations, role and scope changes, deactivation and removal. The last
+// Owner can't be removed or demoted, and nobody can grant a permission they
+// don't hold.
 package team
 
 import (
@@ -25,7 +22,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// Service holds the team domain dependencies.
 type Service struct {
 	Pool  *pgxpool.Pool
 	Q     *store.Queries

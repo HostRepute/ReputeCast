@@ -45,11 +45,9 @@ func SecretAD(adapterID uuid.UUID) string { return "adapter:" + adapterID.String
 type KindDescriptor func(key, name, version, maintainer string, manifest []byte) (providers.Descriptor, error)
 
 // Runtime keeps the provider registry in step with the installed community
-// adapters: each one of kind "remote" is registered as "community:<id>"
-// with a descriptor whose constructor proxies to the adapter process, and
-// each one of a kind in Kinds as "community:<name>" with the descriptor that
-// kind builds. It also implements manage.CommunityRuntime, the hook the
-// Adapters tab calls when an adapter is installed, updated or removed.
+// adapters: kind "remote" as "community:<id>", proxied to the adapter
+// process, and the kinds in Kinds as "community:<name>". It implements
+// manage.CommunityRuntime.
 type Runtime struct {
 	Pool *pgxpool.Pool
 	Box  *secrets.Box

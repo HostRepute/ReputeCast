@@ -419,7 +419,6 @@ func (e *executor) step(ctx context.Context, n AutomationNode) (next, path strin
 func (e *executor) moveOn(ctx context.Context, from AutomationNode, next, path string) error {
 	e.stat(from.ID).Completed++
 	if next == "" || e.g.Node(next) == nil {
-		// The path ends without an exit step: the contact finished the flow.
 		e.stat(from.ID).Exited++
 		return e.finish(ctx, "completed", "")
 	}
@@ -646,7 +645,6 @@ func (e *executor) eval(ctx context.Context, c *AutomationCondition) (bool, erro
 	return false, nil
 }
 
-// fieldMatches compares a contact field.
 func fieldMatches(c *store.AutomationContactRow, cond *AutomationCondition) bool {
 	var v string
 	switch cond.Field {

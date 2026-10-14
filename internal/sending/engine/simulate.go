@@ -8,14 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Drive runs a send on a virtual clock from start for d: one step a
-// second while there is something to send, applying the demo transport's
-// events as they come due, exactly as the worker would in real time. When
-// nothing can send for a while (retry back-off, the A/B window) it jumps
-// ahead, stopping at every event that comes due. Tests use it, and the demo
-// command uses it to fast-forward a send so the monitor opens mid-send with
-// consistent, back-dated history. It returns the virtual time it stopped at
-// and whether the send ended (finished, paused or cancelled).
+// Drive runs a send on a virtual clock from start for d, a step a second,
+// applying the demo transport's events as they come due; idle stretches
+// (retry back-off, the A/B window) are skipped up to the next due event.
+// Tests and the demo command's fast-forward use it. It returns the virtual
+// time it stopped at and whether the send ended (finished, paused or
+// cancelled).
 func (e *Engine) Drive(ctx context.Context, campaignID uuid.UUID, start time.Time, d time.Duration) (time.Time, bool, error) {
 	unlock, err := e.lockSend(ctx, campaignID)
 	if err != nil {

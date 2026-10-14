@@ -624,7 +624,6 @@ func keyError(d providers.Descriptor, c adapterCopy, b built, err error) *StepEr
 		Message: d.Name + " didn't answer the check. Nothing was saved; try again in a moment."}
 }
 
-// smtpError explains a failed SMTP connection test.
 // checkHost refuses a mail server host that is, or resolves to, a loopback,
 // private, link-local or cloud metadata address, unless an instance admin
 // allowed private networks: the connection tests show what a server

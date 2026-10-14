@@ -1,9 +1,5 @@
-// Package ses is the Amazon SES adapter (SES API v2 through aws-sdk-go-v2).
-// It sends raw MIME with message tags and a configuration set, receives
-// events from SNS (signature version 1 and 2, verified against the signing
-// certificate), discovers quota, rate and account status, syncs the account
-// suppression list, sets up domains and checks provider-side tracking on
-// the configuration set.
+// Package ses is the Amazon SES adapter (SES API v2 through aws-sdk-go-v2),
+// with events delivered through SNS.
 package ses
 
 import (

@@ -15,9 +15,8 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// ProviderCards are the sending providers as the providers screen sees them
-// (status, rates against each provider's limits, quota, rate, last webhook,
-// cost this month), named the Overview's way, with any failing health refresh.
+// ProviderCards are the sending providers as the providers screen sees them,
+// named the Overview's way, with any failing health refresh.
 func (s *Service) ProviderCards(ctx context.Context, ws *store.Workspace) (OverviewProviders, error) {
 	po, err := s.Providers.Overview(ctx, ws)
 	if err != nil {

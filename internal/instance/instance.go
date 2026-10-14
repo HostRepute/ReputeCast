@@ -1,10 +1,7 @@
 // Package instance is the Instance admin area (add-on spec 3.3, 3.13,
-// 5.10): every account across workspaces with deactivate, force sign-out,
-// two-factor reset, instance admin and password resets; workspaces with
-// create, delete (a 7-day restore hold, then a River job) and restore; the
-// authentication policy; instance settings with the public URL check; and
-// version & updates with the opt-out release check. Everything here needs
-// an instance admin and every change is audited.
+// 5.10): accounts across workspaces, workspaces (with a 7-day restore hold),
+// the authentication policy, instance settings and version & updates.
+// Everything here needs an instance admin and every change is audited.
 package instance
 
 import (

@@ -1,27 +1,17 @@
-// Package sendgrid is the Twilio SendGrid adapter (v3 API). It sends one
-// personalized message per Mail Send call with SendGrid's own tracking
-// turned off on every message, receives the signed Event Webhook (ECDSA
-// P-256 over timestamp and body), registers that webhook and turns signing
-// on, authenticates domains, syncs suppressions both ways, reads credits
-// and account reputation, and checks account-level tracking.
+// Package sendgrid is the Twilio SendGrid adapter (v3 API).
 //
 // Terms (checked 2026-10-13): Twilio's Acceptable Use Policy
-// (https://www.twilio.com/en-us/legal/aup) and the Twilio Email Policy that
-// forms part of it
+// (https://www.twilio.com/en-us/legal/aup) and Email Policy
 // (https://www.twilio.com/en-us/legal/service-country-specific-terms/email)
-// allow marketing email with the recipient's affirmative, provable consent;
-// every marketing email needs a physical address, a working unsubscribe link
-// and a privacy-policy link, consent must be renewed after long inactivity,
-// and purchased or rented lists are forbidden. SendGrid's v3 Mail Send FAQ
-// (https://www.twilio.com/docs/sendgrid/for-developers/sending-email/v3-mail-send-faq)
-// says "You can send any type of email (transactional or marketing) over the
-// v3 Mail Send endpoint." Bulk marketing is therefore allowed on every
-// stream.
+// allow marketing email with affirmative, provable consent, renewed after
+// long inactivity; every marketing email needs a physical address, an
+// unsubscribe link and a privacy-policy link, and bought or rented lists are
+// forbidden. Mail Send takes marketing as well as transactional email
+// (https://www.twilio.com/docs/sendgrid/for-developers/sending-email/v3-mail-send-faq),
+// so bulk marketing is allowed on every stream.
 //
-// Batching: Mail Send takes up to 1,000 personalizations, but they share one
-// body. ReputeCast renders every message for its recipient (tracking links,
-// unsubscribe URL, Liquid fields), so each message is its own call and the
-// adapter declares a batch size of 1.
+// Batching: Mail Send's personalizations share one body, but ReputeCast
+// renders every message for its recipient, so each message is its own call.
 package sendgrid
 
 import (

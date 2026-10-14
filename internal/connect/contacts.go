@@ -447,13 +447,11 @@ func (s *Service) doneView(ctx context.Context, ws *store.Workspace, st store.Pr
 		}
 		out.Rows = append(out.Rows, ev)
 	}
-	// Domain
 	dom := ConnectDoneRow{Status: "skipped", Lead: "Domain", Text: ": skipped; verify it later in Settings › Senders"}
 	if stt.Domain != nil && !stt.Domain.Skipped && stt.Domain.DomainID != "" && prov != nil {
 		dom = s.domainRow(ctx, stt.Domain, *prov)
 	}
 	out.Rows = append(out.Rows, dom)
-	// Streams
 	str := ConnectDoneRow{Status: "skipped", Lead: "Streams", Text: ": not routed yet; " + c.Short + " carries nothing until a route uses it"}
 	if stt.Streams != nil && stt.Streams.Saved {
 		groups := map[string][]string{}
@@ -482,7 +480,6 @@ func (s *Service) doneView(ctx context.Context, ws *store.Workspace, st store.Pr
 		}
 	}
 	out.Rows = append(out.Rows, str)
-	// Suppressions
 	if cs := stt.Contacts; cs != nil && cs.Suppressions != nil && cs.Suppressions.Available {
 		if cs.Pull {
 			n := cs.Suppressions.Total
@@ -495,7 +492,6 @@ func (s *Service) doneView(ctx context.Context, ws *store.Workspace, st store.Pr
 			out.Rows = append(out.Rows, ConnectDoneRow{Status: "skipped", Lead: "Suppressions", Text: ": not imported; the shared list is pushed to " + c.Short})
 		}
 	}
-	// Contacts
 	if cs := stt.Contacts; cs != nil {
 		switch {
 		case cs.Choice == "import":

@@ -11,7 +11,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/systemmail"
 )
 
-// W10 · System mail: App.Mail sends through the System stream's route (see
+// System mail: App.Mail sends through the System stream's route (see
 // internal/systemmail). In development the demo's sample providers deliver
 // to Mailpit (mail.dev_smtp).
 

@@ -11,11 +11,10 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/remote"
 )
 
-// W16 · Community adapter runtime. One runtime per App registers the
-// installed community adapters in the provider registry and keeps them in
-// step with the database (every process re-reads them every 15 seconds):
-// remote adapters (their own process, the adapter protocol) and installed
-// HTTP mappings, opened through the generic HTTP adapter.
+// One community adapter runtime per App registers the installed community
+// adapters (remote processes, and HTTP mappings opened through the generic
+// HTTP adapter) in the provider registry and keeps them in step with the
+// database (every process re-reads them every 15 seconds).
 var remoteRuntimes sync.Map // *App → *remote.Runtime
 
 func (a *App) remoteRuntime() *remote.Runtime {

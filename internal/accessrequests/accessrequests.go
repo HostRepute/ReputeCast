@@ -1,7 +1,7 @@
-// Package accessrequests backs the "Request Editor access" action on the app's
-// 403 screen: it names the smallest built-in role that grants a missing
-// permission and who can grant it, and sends the request, with a note, to
-// the members who manage the team. Nothing changes until one of them does.
+// Package accessrequests backs the "Request Editor access" action on the 403
+// screen: it names the smallest built-in role that grants a missing
+// permission and sends the request to the members who manage the team.
+// Nothing changes until one of them does.
 package accessrequests
 
 import (

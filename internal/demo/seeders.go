@@ -2,9 +2,8 @@ package demo
 
 import "context"
 
-// Seeders owned by each workstream. Each file seed_<name>.go assigns its
-// implementation in init(), so the order in Seed never changes and no two
-// workstreams edit the same file.
+// Each file seed_<name>.go assigns its seeder in init(), so the order in
+// Seed never changes.
 var (
 	seedTeam           = noop // team, roles, invitations (seed_team.go)
 	seedAccount        = noop // passkeys, sessions, identities, preferences

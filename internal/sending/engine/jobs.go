@@ -27,11 +27,10 @@ func uniqueOpts() river.InsertOpts {
 }
 
 // Every sending job is safe to run again (sends are claimed per message,
-// the audience build continues from its cursor), and each kind is unique
-// while it waits: a job left to River's growing back-off would hold its
-// campaign, or every demo event, for minutes to hours. So a job cut short
-// by shutdown snoozes to run as soon as a worker starts, and a failed one
-// runs again within seconds.
+// the audience build continues from its cursor). Each kind is unique while
+// it waits, so River's growing back-off would hold its campaign, or every
+// demo event, for minutes to hours: a job cut short by shutdown snoozes to
+// run as soon as a worker starts, and a failed one runs again within seconds.
 
 // interrupted turns a job cancelled by shutdown into an immediate snooze.
 func interrupted(ctx context.Context, err error) error {
@@ -61,7 +60,6 @@ func (StartArgs) Kind() string { return "sending.start" }
 // InsertOpts implements river.JobArgsWithInsertOpts.
 func (StartArgs) InsertOpts() river.InsertOpts { return uniqueOpts() }
 
-// StartWorker runs StartArgs.
 type StartWorker struct {
 	river.WorkerDefaults[StartArgs]
 	E *Engine
@@ -103,7 +101,6 @@ func (PrepareArgs) Kind() string { return "sending.prepare" }
 // InsertOpts implements river.JobArgsWithInsertOpts.
 func (PrepareArgs) InsertOpts() river.InsertOpts { return uniqueOpts() }
 
-// PrepareWorker runs PrepareArgs.
 type PrepareWorker struct {
 	river.WorkerDefaults[PrepareArgs]
 	E *Engine
@@ -138,7 +135,6 @@ func (RunArgs) Kind() string { return "sending.run" }
 // InsertOpts implements river.JobArgsWithInsertOpts.
 func (RunArgs) InsertOpts() river.InsertOpts { return uniqueOpts() }
 
-// RunWorker runs RunArgs.
 type RunWorker struct {
 	river.WorkerDefaults[RunArgs]
 	E *Engine
@@ -147,7 +143,6 @@ type RunWorker struct {
 // runBudget is how long one run of the loop sends before yielding.
 const runBudget = 50 * time.Second
 
-// Timeout bounds one run.
 func (w *RunWorker) Timeout(*river.Job[RunArgs]) time.Duration { return 2 * time.Minute }
 
 // Work implements river.Worker.
@@ -173,13 +168,11 @@ func (SimArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: jobs.QueueEvents, UniqueOpts: river.UniqueOpts{ByState: activeStates}}
 }
 
-// SimWorker runs SimArgs.
 type SimWorker struct {
 	river.WorkerDefaults[SimArgs]
 	E *Engine
 }
 
-// Timeout bounds one run.
 func (w *SimWorker) Timeout(*river.Job[SimArgs]) time.Duration { return 2 * time.Minute }
 
 // Work implements river.Worker.
@@ -225,13 +218,11 @@ func (OutboxArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: jobs.QueueSending, UniqueOpts: river.UniqueOpts{ByState: activeStates}}
 }
 
-// OutboxWorker runs OutboxArgs.
 type OutboxWorker struct {
 	river.WorkerDefaults[OutboxArgs]
 	E *Engine
 }
 
-// Timeout bounds one run.
 func (w *OutboxWorker) Timeout(*river.Job[OutboxArgs]) time.Duration { return 2 * time.Minute }
 
 // Work implements river.Worker.
@@ -261,7 +252,6 @@ func (WatchArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: jobs.QueueMaintenance, UniqueOpts: river.UniqueOpts{ByPeriod: 25 * time.Second}}
 }
 
-// WatchWorker runs WatchArgs.
 type WatchWorker struct {
 	river.WorkerDefaults[WatchArgs]
 	E *Engine

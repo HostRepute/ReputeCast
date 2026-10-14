@@ -11,9 +11,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/webhooks"
 )
 
-// Who records an action in the audit log, and the outgoing webhook events
-// of a send.
-
 // ownAPIKey marks a request served by the engine's own API.
 type ownAPIKey struct{}
 
@@ -22,13 +19,12 @@ type ownAPIKey struct{}
 func ownAPI(ctx context.Context) context.Context { return context.WithValue(ctx, ownAPIKey{}, true) }
 
 // records reports whether the engine writes the audit entry of an action it
-// was asked to take. It does for what happens with no request behind it (a
-// scheduled start, a held send started again, the demo command) and for
-// its own API's actions. The other callers of the Starter contract (Review
-// & send, the MCP tools, the providers screen) record the person's or the
-// agent's action themselves, so the same action isn't logged twice. What
-// the engine does on its own (auto-pause, holds, failover, the A/B winner,
-// the end of a send) is always recorded.
+// was asked to take: one with no request behind it (a scheduled start, a
+// held send started again, the demo command) or from its own API. Other
+// Starter callers (Review & send, the MCP tools, the providers screen) log
+// the action themselves, so it isn't logged twice. What the engine does on
+// its own (auto-pause, holds, failover, the A/B winner, the end of a send)
+// is always recorded.
 func records(ctx context.Context) bool {
 	return audit.PrincipalFrom(ctx) == nil || ctx.Value(ownAPIKey{}) != nil
 }

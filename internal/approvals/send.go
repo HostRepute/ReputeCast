@@ -155,7 +155,6 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	}
 	// The campaign as the person reviewed it, before a new schedule.
 	reviewed := c
-	// The schedule: a new one replaces the saved one.
 	sched := readiness.ParseSchedule(c.Schedule)
 	if in.Schedule != nil {
 		next, _, err := in.Schedule.Resolve("body.schedule")
@@ -218,7 +217,6 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if recipients >= LargeSend && mode.bypass == "" && digits(in.Confirm) != fmt.Sprint(recipients) {
 		return ReviewSendResult{}, api.Invalid("body.confirm", fmt.Sprintf("Type %d to confirm the send.", recipients))
 	}
-	// Approval.
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
 		return ReviewSendResult{}, err

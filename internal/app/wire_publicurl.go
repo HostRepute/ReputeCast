@@ -9,13 +9,10 @@ import (
 	"github.com/hostrepute/reputecast/internal/publicurl"
 )
 
-// The instance's public URL. An instance admin can save one (Instance admin ›
-// Instance & updates); it then replaces http.public_url for every link
-// ReputeCast builds: tracking, unsubscribe and preference links, public
-// pages, shared reports, provider webhooks, sign-in links and system email.
-// Every process loads it at start and re-reads it every publicURLRefresh;
-// the process that saves it switches at once (instanceService's
-// OnPublicURL) and moves provider webhooks to it.
+// An instance admin can save a public URL (Instance admin › Instance &
+// updates); it then replaces http.public_url for every link ReputeCast
+// builds. Every process re-reads it every publicURLRefresh; the process that
+// saves it switches at once and moves provider webhooks to it.
 
 // publicURLRefresh is how often a process re-reads the saved public URL.
 const publicURLRefresh = 30 * time.Second

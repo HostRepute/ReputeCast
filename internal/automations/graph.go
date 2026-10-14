@@ -417,7 +417,6 @@ func (n AutomationNode) Paths() []string {
 // Terminal reports whether a step ends the flow.
 func (n AutomationNode) Terminal() bool { return n.Type == NodeGoal || n.Type == NodeExit }
 
-// Duration converts a flow duration.
 func (d AutomationDuration) Duration() time.Duration {
 	n := time.Duration(d.Amount)
 	switch d.Unit {
@@ -506,7 +505,6 @@ func Validate(g AutomationGraph, refs *Refs) []AutomationGraphIssue {
 	if g.HasCycle() {
 		add("", "", "cycle", "error", "The flow loops back to an earlier step. Flows run top to bottom; remove the connection that goes back up.")
 	}
-	// Reachability from the trigger.
 	if t := g.Trigger(); t != nil {
 		if len(g.In(t.ID)) > 0 {
 			add(t.ID, "", "trigger_input", "error", "Nothing can lead into the trigger. Remove the connection into it.")

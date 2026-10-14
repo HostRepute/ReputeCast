@@ -8,9 +8,8 @@ import (
 	"time"
 )
 
-// This file extends the contract in provider.go with optional interfaces and
-// helpers. Everything here is additive: adapters that don't implement an
-// interface keep working, and core code type-asserts before using one.
+// Optional interfaces: core code type-asserts before using one, so adapters
+// that don't implement them keep working.
 
 // ErrUnauthorized means the provider rejected the credentials (HTTP 401/403,
 // SMTP 535). Health checks report it as "Down · auth failed" and ask for new

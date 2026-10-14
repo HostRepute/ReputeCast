@@ -135,7 +135,6 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	}
 	done(stagePrepare, f)
 
-	// Authentication.
 	if f.Auth, err = s.auth(ctx, g, f); err != nil {
 		return f, fmt.Errorf("authentication: %w", err)
 	}
@@ -154,11 +153,9 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	}
 	done(stageContent, f)
 
-	// Compliance.
 	f.Compliance = s.compliance(ws, f)
 	done(stageComply, f)
 
-	// Sender reputation.
 	if f.Reputation, err = s.reputation(ctx, g, f); err != nil {
 		return f, fmt.Errorf("reputation: %w", err)
 	}
@@ -396,7 +393,6 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 			}
 		}
 		out.SPF = append(out.SPF, spf)
-		// DKIM.
 		if len(dkimRecs) > 0 {
 			dk := ProviderAuthFacts{Short: sh.Short, OK: allVerified(dkimRecs)}
 			for _, k := range auth.DKIM {
@@ -422,7 +418,6 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 			}
 			out.DKIM = append(out.DKIM, dk)
 		}
-		// MAIL FROM.
 		if len(rpRecs) > 0 {
 			mf := ProviderAuthFacts{Short: sh.Short, Domain: strings.ToLower(rpRecs[0].Name), OK: allVerified(rpRecs)}
 			for _, m := range auth.MailFrom {

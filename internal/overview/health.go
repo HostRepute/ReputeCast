@@ -217,8 +217,7 @@ func scoreHealth(d deliverability.DeliverabilityOverview, cards []manage.Provide
 		}
 	}
 
-	// Bounce and complaint rates, weighed by each provider's volume, against
-	// every provider's own limits.
+	// Bounce and complaint rates.
 	if r, cost := rateReason(cards, sent); r != nil {
 		add(*r, cost)
 	}

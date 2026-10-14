@@ -11,9 +11,8 @@ import (
 )
 
 // The outgoing webhook events of Review & send and approvals (the catalog in
-// internal/webhooks). Each is queued in the transaction that makes the
-// change; the dispatcher delivers it to the workspace's endpoints that
-// subscribe and never calls the demo's sample endpoints.
+// internal/webhooks), each queued in the transaction that makes the change.
+// The dispatcher never calls the demo's sample endpoints.
 
 // emitRequested queues approval.requested.
 func emitRequested(ctx context.Context, q store.DBTX, ws *store.Workspace, requestID uuid.UUID, subject string, subjectID uuid.UUID, name, by string, rules []string, recipients int64) error {

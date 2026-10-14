@@ -18,13 +18,11 @@ const RuntimePrefix = "community:"
 // (guarded by registryMu).
 var runtimeOwners = map[string]any{}
 
-// SetRuntime makes ds the runtime adapters registered by owner. Community
-// adapters are installed, updated and removed while ReputeCast runs
-// (internal/providers/remote registers them), so each owner swaps its set as
-// a whole instead of registering from init: keys of owner missing from ds
-// are removed, keys in ds are added or replaced. Keys must start with
-// RuntimePrefix, so a runtime adapter can never take the place of a built-in
-// one. owner must be comparable (a pointer).
+// SetRuntime makes ds the runtime adapters registered by owner, replacing
+// its previous set: community adapters come and go while ReputeCast runs, so
+// they can't register from init. Keys must start with RuntimePrefix, so a
+// runtime adapter can never take the place of a built-in one. owner must be
+// comparable (a pointer).
 func SetRuntime(owner any, ds []Descriptor) error {
 	registryMu.Lock()
 	defer registryMu.Unlock()
@@ -88,14 +86,9 @@ func CommunityKey(name string) string {
 }
 
 // InstalledKey is the registry key of an installed community adapter, from
-// its installed_adapters row: RuntimePrefix and the manifest's id for an
-// adapter of kind "remote" (one that runs in its own process), and
-// CommunityKey(name) for the other kinds ("http" mappings). It is "" for a
-// remote adapter whose manifest has no id; such an adapter is never
-// registered. Code that lists installed adapters (the Adapters tab, the
-// provider catalog) finds each one's registry entry with
-// Lookup(InstalledKey(kind, name, manifest)); an adapter that isn't
-// registered can't be connected from this build.
+// its installed_adapters row: RuntimePrefix and the manifest's id for kind
+// "remote", CommunityKey(name) for the other kinds. It is "" for a remote
+// adapter whose manifest has no id; such an adapter is never registered.
 func InstalledKey(kind, name string, manifest []byte) string {
 	if kind != "remote" {
 		return CommunityKey(name)

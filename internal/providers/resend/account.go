@@ -247,9 +247,9 @@ func (p *Provider) findWebhook(ctx context.Context, match func(endpoint string) 
 func sameURL(a, b string) bool { return strings.TrimRight(a, "/") == strings.TrimRight(b, "/") }
 
 // RegisterWebhook implements providers.WebhookRegistrar: one webhook for
-// deliveries, delays, bounces, complaints, failures and suppressions. An
-// existing webhook for the URL is updated and enabled. Its signing secret
-// arrives with the answer, or is read back from the API when events arrive.
+// webhookEvents. An existing webhook for the URL is updated and enabled. Its
+// signing secret arrives with the answer, or is read back from the API when
+// events arrive.
 func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 	existing, err := p.findWebhook(ctx, func(e string) bool { return sameURL(e, hookURL) })
 	if err != nil {

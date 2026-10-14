@@ -17,14 +17,9 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// Deleting a list (Dialogs board) states the blast radius first: the
-// subscribers, how many of them another list keeps, and the live signup
-// forms, live automations and scheduled campaigns that use the list, which
-// pause. A deleted list goes from every screen, and sends skip it. It can be
-// restored for RestoreDays days (Undo on the toast, or Restore list on its
-// audit entry), which turns back on what deleting it paused. After that the
-// maintenance job removes it and its memberships for good; contacts and
-// suppressions always stay.
+// Deleting a list (Dialogs board) shows its impact first. A deleted list
+// disappears from every screen and sends skip it; after RestoreDays days the
+// maintenance job removes it and its memberships for good.
 
 // RestoreDays is how long a deleted list can be restored.
 const RestoreDays = 30
@@ -48,10 +43,7 @@ type ListImpact struct {
 	// first (up to three); OtherListCount counts them all.
 	OtherLists     []string `json:"otherLists"`
 	OtherListCount int      `json:"otherListCount"`
-	// Forms, Automations and Campaigns pause: live signup forms that
-	// subscribe people to the list, live automations that start when someone
-	// joins it, and scheduled campaigns sending to it, which come off the
-	// schedule.
+	// Forms, Automations and Campaigns are what deleting the list pauses.
 	Forms       []ListImpactItem `json:"forms"`
 	Automations []ListImpactItem `json:"automations"`
 	Campaigns   []ListImpactItem `json:"campaigns"`

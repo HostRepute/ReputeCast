@@ -27,9 +27,8 @@ type Submission struct {
 	Company   string            `json:"company"`
 	Fields    map[string]string `json:"fields"`
 	// Lists are the checked lists (ids) when visitors pick lists.
-	Lists []string `json:"lists"`
-	// Consent is the consent checkbox.
-	Consent bool `json:"consent"`
+	Lists   []string `json:"lists"`
+	Consent bool     `json:"consent"`
 	// Honeypot is the invisible field only bots fill in.
 	Honeypot string `json:"-"`
 	// Token is the timestamp token rendered with the form.
@@ -121,15 +120,9 @@ func (s *Service) RecordView(ctx context.Context, ws *store.Workspace, c Config,
 }
 
 // Submit runs a public submission through the form's checks and, when it
-// passes, subscribes the contact through the audience package.
-//
-// The checks, in order: the form is live; the address and the form are
-// under their rate limits; the browser's origin is allowed; the honeypot is
-// empty (a filled one is dropped silently, so bots see a success); the
-// signed timestamp token is valid (it is the CSRF token of the hosted page
-// and of embeds; copied plain HTML forms can't carry one and rely on the
-// origin allowlist) and, with the timing check on, old enough; the fields
-// are valid; disposable domains and role addresses are refused. A
+// passes, subscribes the contact through the audience package. A filled
+// honeypot is dropped silently, so bots see a success. Copied plain HTML
+// forms can't carry a timestamp token and rely on the origin allowlist. A
 // submission that fails only the token checks goes to a Turnstile challenge
 // when Turnstile is set up.
 func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings, c Config, sub Submission) Outcome {
@@ -152,7 +145,6 @@ func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings
 	}
 	if c.Spam.Honeypot && strings.TrimSpace(sub.Honeypot) != "" {
 		s.recordReject(ctx, ws, c, "honeypot", sub.Origin)
-		// Bots see the same success a person would.
 		if c.DoubleOptIn {
 			return Outcome{Status: OutcomeConfirm}
 		}
@@ -367,8 +359,6 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 	}
 	return out
 }
-
-// --- Turnstile challenges ---------------------------------------------------------
 
 type heldSubmission struct {
 	FormID    string     `json:"form"`

@@ -13,7 +13,6 @@ import (
 // audit log's actor_type column.
 type ActorType string
 
-// Actor types.
 const (
 	ActorUser     ActorType = "user"
 	ActorAPIKey   ActorType = "api_key"

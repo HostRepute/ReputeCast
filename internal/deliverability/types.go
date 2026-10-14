@@ -2,9 +2,7 @@ package deliverability
 
 import "time"
 
-// DeliverabilityOverview is the Deliverability screen (spec 7.8): health per
-// sending domain and dedicated IP, shared pools, account health per sending
-// provider, blocklists, Postmaster, SNDS, DMARC and the incident timeline.
+// DeliverabilityOverview is the Deliverability screen (spec 7.8).
 type DeliverabilityOverview struct {
 	HostRepute DeliverabilityHostRepute       `json:"hostRepute"`
 	Checks     DeliverabilityChecks           `json:"checks"`
@@ -186,7 +184,6 @@ type DeliverabilityRateLimit struct {
 	Tone  string  `json:"tone" enum:"ok,warn,bad"`
 }
 
-// DeliverabilityProviderNote is a label and a value.
 type DeliverabilityProviderNote struct {
 	Label string `json:"label"`
 	Value string `json:"value"`
@@ -303,7 +300,6 @@ type DeliverabilityDMARCSource struct {
 	Result     string `json:"result" enum:"pass,quarantined,rejected,fail"`
 }
 
-// DeliverabilityIncidentTimeline is the incident timeline.
 type DeliverabilityIncidentTimeline struct {
 	Items []DeliverabilityIncident `json:"items"`
 	Total int64                    `json:"total"`

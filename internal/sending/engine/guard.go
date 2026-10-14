@@ -391,10 +391,10 @@ func (r *runRoute) shortName() string {
 	return state.Short(r.provider.Name, r.provider.Adapter)
 }
 
-// checkOutage holds a route whose provider has been failing, or that W01's
-// health job marked down. Broadcast failover asks a person by default and
-// moves the share automatically only to a warmed-up provider when the
-// stream's policy allows it.
+// checkOutage holds a route whose provider has been failing, or that the
+// provider health job marked down. Broadcast failover asks a person by
+// default and moves the share automatically only to a warmed-up provider
+// when the stream's policy allows it.
 func (e *Engine) checkOutage(ctx context.Context, rs *runState, r *runRoute, now time.Time) error {
 	if r == nil {
 		return nil
@@ -528,7 +528,7 @@ func (e *Engine) holdRoute(ctx context.Context, rs *runState, r *runRoute, reaso
 	headline := outageHeadline(detail, r.provider.Name)
 	err = db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		// W01's health job may have held it already: one open incident per route.
+		// The provider health job may have held it already: one open incident per route.
 		open, err := q.SendingOpenIncidents(ctx, c.ID)
 		if err != nil {
 			return err

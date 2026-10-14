@@ -144,8 +144,6 @@ func (a *Authenticator) write(hapi huma.API, hctx huma.Context, p *Problem) {
 	if p.Status == http.StatusUnauthorized {
 		hctx.SetHeader("WWW-Authenticate", `Bearer realm="reputecast"`)
 	}
-	// huma.WriteErr builds the body with huma.NewError; the marker makes our
-	// override return p itself so the code and helpers survive.
 	_ = huma.WriteErr(hapi, hctx, p.Status, p.Detail, problemMarker{p})
 }
 

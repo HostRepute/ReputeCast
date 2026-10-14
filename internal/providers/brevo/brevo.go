@@ -1,30 +1,20 @@
 // Package brevo is the Brevo (formerly Sendinblue) adapter, through the
-// transactional email API v3. It sends one personalized message per call
-// with an idempotency key, receives webhooks authenticated with a bearer
-// token (Brevo doesn't sign payloads), registers them, sets up and
-// authenticates domains, pulls Brevo's blocked contacts into the shared
-// suppression list, reads remaining credits and statistics, and backfills
-// message status.
+// transactional email API v3.
 //
-// Terms (checked 2026-10-13): Brevo's Terms of Use
-// (https://www.brevo.com/legal/termsofuse/) and its Acceptable Use Policy
+// Terms (checked 2026-10-13): the Terms of Use
+// (https://www.brevo.com/legal/termsofuse/) and Acceptable Use Policy
 // (https://www.brevo.com/legal/antispampolicy/) allow marketing email to
-// contacts who gave active, explicit, provable consent (no pre-checked
-// boxes), require an easily available unsubscribe link in every
-// marketing/bulk email, and forbid bought or scraped lists. Nothing
-// restricts marketing to Brevo's campaign tool: "Sending a promotional
-// email through the SMTP API or a transactional template does not make it
-// transactional" (https://help.brevo.com/hc/en-us/articles/37113920427922),
-// so marketing mail through the API must carry an unsubscribe link, which
-// ReputeCast's always do. Bulk marketing is therefore allowed on every
-// stream.
+// contacts with active, explicit, provable consent, with an unsubscribe link
+// and no bought or scraped lists. Marketing isn't limited to Brevo's
+// campaign tool: promotional mail through the API needs the unsubscribe link
+// too (https://help.brevo.com/hc/en-us/articles/37113920427922), so bulk is
+// allowed on every stream.
 //
-// Headers: the API only takes non-standard headers ("Standard email
-// headers are not supported"), and Brevo adds its own List-Unsubscribe
-// header to transactional mail with no API to change it
+// Headers: the API only takes non-standard headers, and Brevo adds its own
+// List-Unsubscribe to transactional mail with no API to change it
 // (https://help.brevo.com/hc/en-us/articles/19100260472850). One-click
 // unsubscribes therefore go to Brevo, which reports them through the
-// unsubscribed webhook into the shared suppression list.
+// unsubscribed webhook.
 package brevo
 
 import (
@@ -161,9 +151,8 @@ func decodeError(_ int, body []byte) (string, string) {
 }
 
 // classify adjusts apiclient's status mapping to Brevo: running out of
-// credits or an account under validation stops the whole account (shown as
-// an outage until it is solved), and an idempotency key already used means
-// the message was accepted before.
+// credits or an account under validation stops the whole account, shown as
+// an outage until it is solved.
 func classify(err error) error {
 	var ce *providers.CallError
 	if !errors.As(err, &ce) {

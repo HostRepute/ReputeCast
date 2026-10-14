@@ -21,10 +21,9 @@ import (
 // own process and speak the adapter protocol (docs/adapters.md).
 const CommunityKindRemote = "remote"
 
-// CommunityRuntime runs installed community adapters
-// (internal/providers/remote implements it): it registers them in the
-// provider registry. The Adapters tab calls it so an install, update or
-// removal takes effect at once; nil means this build runs none, and
+// CommunityRuntime registers installed community adapters in the provider
+// registry (internal/providers/remote implements it), so an install, update
+// or removal takes effect at once. nil means this build runs none, and
 // manifests of kind "remote" are refused.
 type CommunityRuntime interface {
 	// ParseManifest validates a manifest of kind "remote" and returns its
@@ -62,11 +61,9 @@ type AdapterHTTPPreviewHeader struct {
 	Value string `json:"value"`
 }
 
-// communityKey is the registry key of an installed community adapter
-// (providers.InstalledKey: "community:<id>" for remote adapters,
-// "community:<name>" lowercased with dashes for the others) and, for a
-// remote adapter whose manifest the runtime accepts, the capabilities it
-// declares.
+// communityKey is the registry key of an installed community adapter (see
+// providers.InstalledKey) and, for a remote adapter whose manifest the
+// runtime accepts, the capabilities it declares.
 func (s *Service) communityKey(kind, name string, manifest []byte) (string, []string, bool) {
 	if kind == CommunityKindRemote && s.Community != nil {
 		if key, caps, err := s.Community.ParseManifest(manifest); err == nil {

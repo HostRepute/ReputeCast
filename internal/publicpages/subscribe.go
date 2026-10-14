@@ -443,8 +443,6 @@ func slugOf(c forms.Config, page bool) string {
 	return c.Slug
 }
 
-// --- Turnstile challenge ------------------------------------------------------------
-
 type challengeBody struct {
 	ID, SiteKey, Action, ErrorURL, Alert string
 }
@@ -512,8 +510,6 @@ func (h *Handler) challengePost(w http.ResponseWriter, r *http.Request) {
 	sub := forms.Submission{Email: out.Email, FirstName: out.FirstName}
 	h.subscribeResult(w, r, s, held, heldPage, sub, out)
 }
-
-// --- embedded forms -------------------------------------------------------------------
 
 func (h *Handler) embedForm(ctx context.Context, s *site, publicID string) (forms.Config, error) {
 	f, err := h.Q.FormByPublicID(ctx, store.FormByPublicIDParams{WorkspaceID: s.ws.ID, PublicID: publicID})

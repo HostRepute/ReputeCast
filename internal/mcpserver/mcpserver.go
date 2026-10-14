@@ -25,7 +25,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// Service holds the MCP server's dependencies.
 type Service struct {
 	Pool      *pgxpool.Pool
 	Q         *store.Queries

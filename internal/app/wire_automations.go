@@ -8,12 +8,7 @@ import (
 
 // automationMailer builds the mailer the automations engine uses for "Send
 // email" steps. The default records each message as queued on a provider of
-// the Automations route. The sending domain replaces it from its own wire
-// file:
-//
-//	func init() {
-//		automationMailer = func(a *App) automations.Mailer { return sending.NewAutomationMailer(…) }
-//	}
+// the Automations route; the sending domain replaces it from its wire file.
 var automationMailer = func(*App) automations.Mailer { return automations.QueueOnlyMailer{} }
 
 // automationGate decides whether publishing an automation needs approval

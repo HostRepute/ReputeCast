@@ -1,11 +1,7 @@
 // Package ingest receives provider events: the webhook endpoint
 // (POST /hooks/{adapter}/{token}) verifies the signature, stores the raw
-// payload and answers immediately; a River job normalizes it into
-// delivery_events, moves messages and campaign counters forward, updates
-// the provider's webhook freshness and adds hard bounces and complaints to
-// the shared suppression list. SMTP bounces arrive through the bounce
-// mailbox poller and take the same path. The provider event log is served
-// from here too.
+// payload and answers immediately; a River job normalizes it later. SMTP
+// bounces arrive through the bounce mailbox poller and take the same path.
 package ingest
 
 import (

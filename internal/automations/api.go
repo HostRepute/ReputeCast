@@ -162,7 +162,6 @@ type AutomationTemplates struct {
 	Templates []AutomationStarterTemplate `json:"templates"`
 }
 
-// AutomationDiff is a version diff.
 type AutomationDiff struct {
 	From    int                  `json:"from"`
 	To      int                  `json:"to"`

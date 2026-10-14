@@ -229,8 +229,6 @@ func (b *builder) otherAvailable(id string) *ShareFacts {
 	return best
 }
 
-// ---------------------------------------------------------------- reputation
-
 func (b *builder) reputation() {
 	r := b.f.Reputation
 	domain := firstNonEmpty(b.f.Auth.Domain, b.f.Campaign.SenderDomain)
@@ -502,8 +500,6 @@ func (b *builder) providerRates(s ShareFacts) ReadinessCheck {
 	return c
 }
 
-// ------------------------------------------------------------ authentication
-
 func (b *builder) authentication() {
 	a := b.f.Auth
 	domain := firstNonEmpty(a.Domain, b.f.Campaign.SenderDomain)
@@ -522,7 +518,6 @@ func (b *builder) authentication() {
 		return
 	}
 	senders := b.href("/settings/senders")
-	// SPF.
 	if bad := failing(a.SPF); len(bad) == 0 && len(a.SPF) > 0 {
 		b.add(ReadinessCheck{Key: "auth.spf", Group: GroupAuthentication, Status: Pass,
 			Title: "SPF authorizes " + providersPhrase(shorts(a.SPF), "sending providers"), Detail: a.SPFRecord, Mono: a.SPFRecord != "", Label: "SPF", Short: "SPF"})
@@ -535,7 +530,6 @@ func (b *builder) authentication() {
 			Detail: strings.TrimSpace(a.SPFRecord + "  " + firstFailDetail(a.SPF)), Label: "SPF",
 			Fixes: []ReadinessFix{link("Open senders & domains", senders)}})
 	}
-	// DKIM.
 	if bad := failing(a.DKIM); len(bad) == 0 && len(a.DKIM) > 0 {
 		bits := 0
 		parts := []string{}
@@ -565,7 +559,6 @@ func (b *builder) authentication() {
 			Detail: firstNonEmpty(firstFailDetail(a.DKIM), "Without DKIM, Gmail and Yahoo reject bulk mail."), Label: "DKIM",
 			Fixes: []ReadinessFix{link("Open senders & domains", senders)}})
 	}
-	// DMARC.
 	switch a.DMARCStatus {
 	case "pass":
 		title := "DMARC p=" + firstNonEmpty(a.DMARCPolicy, "none")
@@ -592,7 +585,6 @@ func (b *builder) authentication() {
 		b.add(ReadinessCheck{Key: "auth.dmarc", Group: GroupAuthentication, Status: Block, Title: "The DMARC record of " + domain + " is invalid",
 			Detail: a.DMARCRecord, Mono: a.DMARCRecord != "", Label: "DMARC", Fixes: []ReadinessFix{link("Open senders & domains", senders)}})
 	}
-	// MAIL FROM.
 	if bad := failing(a.MailFrom); len(bad) == 0 && len(a.MailFrom) > 0 {
 		parts := []string{}
 		for _, m := range a.MailFrom {
@@ -613,7 +605,6 @@ func (b *builder) authentication() {
 			Detail: "DMARC still passes through DKIM. A custom MAIL FROM (return path) on your domain aligns SPF too.", Label: "MAIL FROM",
 			Ack: "I understand SPF doesn't align for " + JoinAnd(bad) + ".", Fixes: []ReadinessFix{link("Open senders & domains", senders)}})
 	}
-	// BIMI.
 	if a.BIMIStatus == "pass" {
 		b.add(ReadinessCheck{Key: "auth.bimi", Group: GroupAuthentication, Status: Pass, Title: "BIMI record found", Detail: firstNonEmpty(a.BIMILogo, "Your logo shows in Gmail, Yahoo and Apple Mail."), Label: "BIMI", Short: "BIMI"})
 	} else {
@@ -660,8 +651,6 @@ func firstFailDetail(list []ProviderAuthFacts) string {
 	return ""
 }
 
-// ------------------------------------------------------------------ content
-
 func (b *builder) content() {
 	ct := b.f.Content
 	if !ct.Checked {
@@ -672,7 +661,6 @@ func (b *builder) content() {
 	}
 	r := ct.Report
 	subject := b.f.Campaign.Subject
-	// Spam triggers.
 	shortened := issuesOf(r, "links.shortener")
 	if strings.TrimSpace(subject) == "" {
 		b.add(ReadinessCheck{Key: "content.spam", Group: GroupContent, Status: Block, Title: "The subject is empty",
@@ -702,7 +690,6 @@ func (b *builder) content() {
 		b.add(ReadinessCheck{Key: "content.spam", Group: GroupContent, Status: Pass, Title: "No spam triggers in subject, preheader or body",
 			Detail: fmt.Sprintf("Subject: \"%s\" · no all-caps, no urgency phrases, %s", subject, links), Label: "Spam triggers"})
 	}
-	// Image-to-text ratio.
 	share := int(math.Round(r.ImageShare * 100))
 	ratio := ReadinessCheck{Key: "content.image_ratio", Group: GroupContent, Status: Pass, Label: "Image-to-text ratio",
 		Title:  fmt.Sprintf("Image-to-text ratio %d%%", share),
@@ -716,7 +703,6 @@ func (b *builder) content() {
 		ratio.Fixes = []ReadinessFix{link("Open in editor", b.editor(nil, "deliverability"))}
 	}
 	b.add(ratio)
-	// Size against Gmail's clipping limit.
 	kb := int(math.Round(float64(r.SizeBytes) / 1024))
 	cssKB := int(math.Round(float64(ct.InlineCSSBytes) / 1024))
 	trackKB := 0
@@ -745,7 +731,6 @@ func (b *builder) content() {
 		size.Fixes = append(size.Fixes, link("Open in editor", b.editor(nil, "deliverability")))
 	}
 	b.add(size)
-	// Alt text.
 	alt := ReadinessCheck{Key: "content.alt_text", Group: GroupContent, Status: Pass, Label: "Alt text"}
 	switch {
 	case r.Images == 0:
@@ -773,7 +758,6 @@ func (b *builder) content() {
 		alt.Fixes = []ReadinessFix{link("Open in editor", b.editor(path, "deliverability"))}
 	}
 	b.add(alt)
-	// Plain-text part.
 	if strings.TrimSpace(r.PlainText) != "" {
 		ptKB := int(math.Max(1, math.Round(float64(len(r.PlainText))/1024)))
 		b.add(ReadinessCheck{Key: "content.plain_text", Group: GroupContent, Status: Pass, Title: "Plain-text version generated",
@@ -804,8 +788,6 @@ func heuristicWord(h string) string {
 	return h
 }
 
-// -------------------------------------------------------------------- links
-
 func (b *builder) links() {
 	ct := b.f.Content
 	if !ct.Checked {
@@ -819,7 +801,6 @@ func (b *builder) links() {
 			blocked[h] = true
 		}
 	}
-	// Do they respond?
 	total := len(r.LinkList)
 	var considered, probed, broken []contentcheck.ContentCheckLink
 	for _, l := range r.LinkList {
@@ -894,7 +875,6 @@ func (b *builder) links() {
 		respond.Fixes = []ReadinessFix{link("Open in editor", b.editor(broken[0].Path, "deliverability"))}
 	}
 	b.add(respond)
-	// URI blocklists.
 	if len(blockIssues) == 0 {
 		domains := []string{}
 		seen := map[string]bool{}
@@ -952,7 +932,6 @@ func (b *builder) links() {
 			b.add(c)
 		}
 	}
-	// URL shorteners.
 	if short := issuesOf(r, "links.shortener"); len(short) > 0 {
 		first := short[0]
 		title := fmt.Sprintf("1 link redirects through %s", displayURL(first.URL))
@@ -974,7 +953,6 @@ func (b *builder) links() {
 		c.Fixes = append(c.Fixes, link("Edit link", b.editor(first.Path, "deliverability")))
 		b.add(c)
 	}
-	// Buttons without a link.
 	if empty := issuesOf(r, "links.empty"); len(empty) > 0 {
 		b.add(ReadinessCheck{Key: "links.empty", Group: GroupLinks, Status: Warn, Title: empty[0].Title, Detail: empty[0].Detail, Label: "Empty link",
 			Ack: "I understand a button has no link.", Fixes: []ReadinessFix{link("Edit link", b.editor(empty[0].Path, "deliverability"))}})
@@ -1022,8 +1000,6 @@ func linkTextFor(r contentcheck.ContentCheckReport, href string) (string, string
 	return "", "link"
 }
 
-// --------------------------------------------------------------- compliance
-
 func (b *builder) compliance() {
 	cf := b.f.Compliance
 	if cf.HTTPS {
@@ -1058,7 +1034,6 @@ func (b *builder) compliance() {
 				Detail: firstNonEmpty(ct.Address, "Found in the footer"), Label: "Footer", Short: "footer address"})
 		}
 	}
-	// Gmail and Yahoo bulk-sender rules.
 	c := ReadinessCheck{Key: "compliance.bulk_sender", Group: GroupCompliance, Status: Pass, Title: "Bulk-sender requirements met", Label: "Bulk-sender rules", Short: "bulk-sender rules"}
 	parts := []string{}
 	if b.f.Auth.DMARCStatus == "pass" {
@@ -1099,8 +1074,6 @@ func (b *builder) compliance() {
 	}
 	b.add(c)
 }
-
-// ----------------------------------------------------------------- audience
 
 func (b *builder) audience() {
 	a := b.f.Audience
@@ -1187,8 +1160,6 @@ func (b *builder) audience() {
 	}
 }
 
-// ------------------------------------------------------------------ routing
-
 func streamLabel(s string) string {
 	switch s {
 	case "automation":
@@ -1229,7 +1200,6 @@ func (b *builder) routing() {
 		return
 	}
 	shares := b.shares()
-	// Health.
 	var down []ShareFacts
 	for _, s := range shares {
 		if !s.Available && s.Recipients > 0 {
@@ -1301,9 +1271,8 @@ func (b *builder) routing() {
 		}
 		b.add(c)
 	}
-	// Terms, of the providers that can send (a provider that is down sends
-	// nothing; the health check above already blocks on it), as the
-	// authentication checks do.
+	// Terms of the providers that can send: one that is down sends nothing,
+	// and the health check above already blocks on it.
 	sending := b.availableShares()
 	if len(sending) == 0 {
 		sending = shares
@@ -1343,7 +1312,6 @@ func (b *builder) routing() {
 		}
 		b.add(c)
 	}
-	// Provider-side tracking.
 	var double []ShareFacts
 	for _, s := range shares {
 		if s.Tracking.Mode != "provider" && (s.Tracking.OpenPixel || s.Tracking.LinkRewrite) {
@@ -1385,8 +1353,6 @@ func trackingNote(s ShareFacts) string {
 	}
 	return s.Short + ": no tracking"
 }
-
-// ----------------------------------------------------------------- estimates
 
 func (b *builder) estimates() ReadinessEstimates {
 	a := b.f.Audience
@@ -1483,8 +1449,6 @@ func (b *builder) estimates() ReadinessEstimates {
 	out.Route = route
 	return out
 }
-
-// -------------------------------------------------------------------- groups
 
 func rank(status string) int {
 	switch status {

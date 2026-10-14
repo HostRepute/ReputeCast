@@ -35,7 +35,6 @@ type DeliverabilityReputation struct {
 	Reason string `json:"reason,omitempty"`
 }
 
-// DeliverabilityReputationListing is one listing.
 type DeliverabilityReputationListing struct {
 	Asset     string     `json:"asset"`
 	Source    string     `json:"source"`

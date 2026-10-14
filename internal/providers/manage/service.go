@@ -28,8 +28,8 @@ type Service struct {
 	Now     func() time.Time
 	// SelfTest posts the endpoint self-test; nil uses an HTTP client.
 	SelfTest func(ctx context.Context, url string, header http.Header) (int, error)
-	// Community runs installed community adapters (W16); nil when the build
-	// has no runtime for them.
+	// Community runs installed community adapters; nil when the build has no
+	// runtime for them.
 	Community CommunityRuntime
 	// HTTPMappings checks and previews generic HTTP adapter mappings; nil
 	// when the build has no generic HTTP adapter.

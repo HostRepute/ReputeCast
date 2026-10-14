@@ -1,12 +1,10 @@
 // Package remote runs community adapters: sending adapters that live in
 // their own process and speak the adapter protocol (docs/adapters.md,
 // "Community adapters"), signed JSON over HTTP(S). A Provider proxies every
-// providers.Provider call to the adapter process, and implements exactly the
-// optional interfaces the installed manifest declares, so core code (health
-// checks, suppression sync, the connect wizard) sees a community adapter
-// like a built-in one. The Runtime registers installed adapters in the
-// provider registry as "community:<id>" and keeps them in step with the
-// database.
+// providers.Provider call to the adapter process and implements exactly the
+// optional interfaces the installed manifest declares, so core code sees a
+// community adapter like a built-in one. The Runtime registers installed
+// adapters as "community:<id>" and keeps them in step with the database.
 package remote
 
 import (

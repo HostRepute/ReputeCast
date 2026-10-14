@@ -18,10 +18,8 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/smtp/dsn"
 )
 
-// This file is the SMTP side of "Connect a sending provider": a connection
-// test that reports the greeting, the extensions the server offers, the TLS
-// version and whether it accepted the credentials, and a bounce-mailbox test
-// that counts waiting reports without marking or deleting anything.
+// This file is the SMTP side of "Connect a sending provider": the connection
+// and bounce-mailbox tests.
 
 var (
 	_ providers.ConnectionTester    = (*Provider)(nil)

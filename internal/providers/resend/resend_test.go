@@ -31,7 +31,6 @@ var (
 	rotatedSecret = "whsec_" + base64.StdEncoding.EncodeToString([]byte("resend-rotated-secret"))
 )
 
-// fake is a fake Resend API. Webhook and domain state can be adjusted per test.
 type fake struct {
 	mu            sync.Mutex
 	sendingOnly   bool
