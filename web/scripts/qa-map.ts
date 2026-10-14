@@ -106,6 +106,8 @@ export const entries: Entry[] = [
   { board: 'MigrationDone', path: `${ws}/import/{import:brevo}/report` },
   { board: 'MigrationStates', manual: true },
   { board: 'AutomationsList', path: `${ws}/automations` },
+  // ?step= selects the email step as on the board; below 1100 px the deep link also scrolls
+  // the step into view, which a click on it (as the board shows) doesn't.
   { board: 'AutomationFlow', path: `${ws}/automations/{automation:Welcome series}?step=n3` },
   { board: 'AutomationsStates', manual: true },
   { board: 'FormBuilder', path: `${ws}/forms` },
