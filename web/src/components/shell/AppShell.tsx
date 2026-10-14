@@ -9,12 +9,12 @@ import { Tooltip } from '../ui/Menu'
 import { SystemBanners } from './SystemBanners'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 
-/** `also` lists other sections the item stands for (Instance admin lives under Settings). */
+/** `also` lists other sections the item stands for (approvals live under Campaigns, Instance admin under Settings). */
 type NavItem = { to: string; label: string; icon: IconName; exact?: boolean; also?: string[] }
 
 const NAV: NavItem[] = [
   { to: '/w/$workspace', label: 'Overview', icon: 'overview', exact: true },
-  { to: '/w/$workspace/campaigns', label: 'Campaigns', icon: 'campaigns' },
+  { to: '/w/$workspace/campaigns', label: 'Campaigns', icon: 'campaigns', also: ['/w/$workspace/approvals'] },
   { to: '/w/$workspace/automations', label: 'Automations', icon: 'automations' },
   { to: '/w/$workspace/audience', label: 'Audience', icon: 'audience' },
   { to: '/w/$workspace/forms', label: 'Forms & pages', icon: 'forms' },

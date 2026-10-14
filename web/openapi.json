@@ -1479,6 +1479,1361 @@
         ],
         "type": "object"
       },
+      "ApprovalAudienceRule": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "n": {
+            "format": "int64",
+            "maximum": 100000000,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "n"
+        ],
+        "type": "object"
+      },
+      "ApprovalAudienceView": {
+        "additionalProperties": false,
+        "properties": {
+          "changePct": {
+            "format": "double",
+            "type": "number"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "current": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "excluded": {
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "lists",
+          "excluded",
+          "current",
+          "changePct"
+        ],
+        "type": "object"
+      },
+      "ApprovalAuditLine": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "actor",
+          "at"
+        ],
+        "type": "object"
+      },
+      "ApprovalAutomationSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "changes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "migration": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "migration",
+          "changes"
+        ],
+        "type": "object"
+      },
+      "ApprovalBypassInput": {
+        "additionalProperties": false,
+        "properties": {
+          "acknowledged": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 60,
+            "type": "array"
+          },
+          "confirm": {
+            "maxLength": 20,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "runId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ReadinessSchedule"
+          }
+        },
+        "required": [
+          "reason",
+          "runId"
+        ],
+        "type": "object"
+      },
+      "ApprovalCampaignView": {
+        "additionalProperties": false,
+        "properties": {
+          "currentVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "editedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "editedBy": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "scheduledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "subject",
+          "preheader",
+          "from",
+          "version",
+          "currentVersion"
+        ],
+        "type": "object"
+      },
+      "ApprovalCan": {
+        "additionalProperties": false,
+        "properties": {
+          "cancel": {
+            "type": "boolean"
+          },
+          "comment": {
+            "type": "boolean"
+          },
+          "decide": {
+            "type": "boolean"
+          },
+          "decideReason": {
+            "type": "string"
+          },
+          "isAuthor": {
+            "type": "boolean"
+          },
+          "remind": {
+            "type": "boolean"
+          },
+          "restore": {
+            "type": "boolean"
+          },
+          "schedule": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "decide",
+          "comment",
+          "cancel",
+          "remind",
+          "restore",
+          "schedule",
+          "isAuthor"
+        ],
+        "type": "object"
+      },
+      "ApprovalChange": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "field": {
+            "enum": [
+              "subject",
+              "preheader",
+              "link",
+              "content",
+              "sender",
+              "audience",
+              "audience_count",
+              "route",
+              "schedule"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "label",
+          "before",
+          "after"
+        ],
+        "type": "object"
+      },
+      "ApprovalCommentInput": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "type": "object"
+      },
+      "ApprovalCommentView": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/ApprovalPerson"
+          },
+          "body": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "author",
+          "body",
+          "at"
+        ],
+        "type": "object"
+      },
+      "ApprovalCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "all": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "approved": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "changesRequested": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invalidated": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pending": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rejected": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pending",
+          "approved",
+          "changesRequested",
+          "rejected",
+          "invalidated",
+          "all"
+        ],
+        "type": "object"
+      },
+      "ApprovalDecisionInput": {
+        "additionalProperties": false,
+        "properties": {
+          "comment": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "approve",
+              "request_changes",
+              "reject"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "type": "object"
+      },
+      "ApprovalDecisionView": {
+        "additionalProperties": false,
+        "properties": {
+          "approver": {
+            "$ref": "#/components/schemas/ApprovalPerson"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "approve",
+              "request_changes",
+              "reject"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "approver",
+          "decision",
+          "comment",
+          "at"
+        ],
+        "type": "object"
+      },
+      "ApprovalDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "approvers": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalPerson"
+            },
+            "type": "array"
+          },
+          "audience": {
+            "$ref": "#/components/schemas/ApprovalAudienceView"
+          },
+          "audit": {
+            "$ref": "#/components/schemas/ApprovalAuditLine"
+          },
+          "author": {
+            "$ref": "#/components/schemas/ApprovalPerson"
+          },
+          "automation": {
+            "$ref": "#/components/schemas/ApprovalAutomationSnapshot"
+          },
+          "bypassReason": {
+            "type": "string"
+          },
+          "campaign": {
+            "$ref": "#/components/schemas/ApprovalCampaignView"
+          },
+          "can": {
+            "$ref": "#/components/schemas/ApprovalCan"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalChange"
+            },
+            "type": "array"
+          },
+          "changesSince": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalChange"
+            },
+            "type": "array"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "comments": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalCommentView"
+            },
+            "type": "array"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "decidedBy": {
+            "type": "string"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalDecisionView"
+            },
+            "type": "array"
+          },
+          "followsId": {
+            "type": "string"
+          },
+          "given": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "held": {
+            "$ref": "#/components/schemas/ReviewHeld"
+          },
+          "id": {
+            "type": "string"
+          },
+          "invalidatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "invalidatedBy": {
+            "type": "string"
+          },
+          "invalidatedReason": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "needed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nextId": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/ApprovalReadinessView"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "requestedBy": {
+            "$ref": "#/components/schemas/ApprovalPerson"
+          },
+          "route": {
+            "$ref": "#/components/schemas/ApprovalRouteView"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalRuleMatch"
+            },
+            "type": "array"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ApprovalScheduleView"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/ApprovalSnapshotSummary"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "approved",
+              "changes_requested",
+              "rejected",
+              "invalidated",
+              "bypassed",
+              "sent",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "subjectType": {
+            "enum": [
+              "campaign",
+              "automation"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "author",
+          "approvers",
+          "changesSince",
+          "comments",
+          "can",
+          "id",
+          "status",
+          "subjectType",
+          "requestedAt",
+          "requestedBy",
+          "note",
+          "version",
+          "given",
+          "needed",
+          "decisions",
+          "changes",
+          "snapshot",
+          "rules"
+        ],
+        "type": "object"
+      },
+      "ApprovalFilterOption": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ApprovalList": {
+        "additionalProperties": false,
+        "properties": {
+          "allRequests": {
+            "type": "boolean"
+          },
+          "approvers": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalFilterOption"
+            },
+            "type": "array"
+          },
+          "authors": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalFilterOption"
+            },
+            "type": "array"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/ApprovalCounts"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalListItem"
+            },
+            "type": "array"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/ApprovalPolicySummary"
+          }
+        },
+        "required": [
+          "items",
+          "counts",
+          "authors",
+          "approvers",
+          "policy",
+          "allRequests",
+          "canManage"
+        ],
+        "type": "object"
+      },
+      "ApprovalListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "audienceNow": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "author": {
+            "$ref": "#/components/schemas/ApprovalPerson"
+          },
+          "automationId": {
+            "type": "string"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "decidedBy": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "route": {
+            "type": "string"
+          },
+          "rules": {
+            "type": "string"
+          },
+          "scheduleAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "scheduleMode": {
+            "enum": [
+              "now",
+              "at",
+              "best_time"
+            ],
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "approved",
+              "changes_requested",
+              "rejected",
+              "invalidated",
+              "bypassed",
+              "sent",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "subjectType": {
+            "enum": [
+              "campaign",
+              "automation"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subjectType",
+          "name",
+          "rules",
+          "author",
+          "audience",
+          "route",
+          "scheduleMode",
+          "requestedAt",
+          "status"
+        ],
+        "type": "object"
+      },
+      "ApprovalPendingItem": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "author": {
+            "$ref": "#/components/schemas/ApprovalPerson"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "author",
+          "audience",
+          "requestedAt"
+        ],
+        "type": "object"
+      },
+      "ApprovalPerson": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "presence": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "initials",
+          "color",
+          "role"
+        ],
+        "type": "object"
+      },
+      "ApprovalPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "approvalLists": {
+            "type": "boolean"
+          },
+          "approvalsRequired": {
+            "format": "int64",
+            "maximum": 2,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "audienceMin": {
+            "$ref": "#/components/schemas/ApprovalAudienceRule"
+          },
+          "authorLacksSend": {
+            "type": "boolean"
+          },
+          "automationPublish": {
+            "type": "boolean"
+          },
+          "emergencyBypass": {
+            "type": "boolean"
+          },
+          "newProviderDays": {
+            "format": "int64",
+            "maximum": 90,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "readyWithWarnings": {
+            "type": "boolean"
+          },
+          "warmingProvider": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "audienceMin",
+          "warmingProvider",
+          "newProviderDays",
+          "readyWithWarnings",
+          "authorLacksSend",
+          "approvalLists",
+          "approvalsRequired",
+          "automationPublish",
+          "emergencyBypass"
+        ],
+        "type": "object"
+      },
+      "ApprovalPolicyMatches": {
+        "additionalProperties": false,
+        "properties": {
+          "approvalLists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lacksSend": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lacksSendRoles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "warming": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "warming",
+          "lacksSend",
+          "lacksSendRoles",
+          "approvalLists"
+        ],
+        "type": "object"
+      },
+      "ApprovalPolicySummary": {
+        "additionalProperties": false,
+        "properties": {
+          "approvalsRequired": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "approvers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "medianWaitMinutes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rules": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "rules",
+          "approvalsRequired",
+          "approvers"
+        ],
+        "type": "object"
+      },
+      "ApprovalPolicyView": {
+        "additionalProperties": false,
+        "properties": {
+          "approvers": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalPerson"
+            },
+            "type": "array"
+          },
+          "bypassCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "matches": {
+            "$ref": "#/components/schemas/ApprovalPolicyMatches"
+          },
+          "pending": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalPendingItem"
+            },
+            "type": "array"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/ApprovalPolicy"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "policy",
+          "approvers",
+          "matches",
+          "bypassCount",
+          "pending",
+          "canManage"
+        ],
+        "type": "object"
+      },
+      "ApprovalPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "type": "string"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subject",
+          "preheader",
+          "html",
+          "version"
+        ],
+        "type": "object"
+      },
+      "ApprovalReadinessView": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessCheck"
+            },
+            "type": "array"
+          },
+          "passed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "verdict": {
+            "enum": [
+              "ready",
+              "warnings",
+              "blocked"
+            ],
+            "type": "string"
+          },
+          "warnings": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "verdict",
+          "passed",
+          "warnings",
+          "blocks",
+          "total",
+          "checkedAt",
+          "issues"
+        ],
+        "type": "object"
+      },
+      "ApprovalRequestInput": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "description": "A note for approvers",
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApprovalRequestView": {
+        "additionalProperties": false,
+        "properties": {
+          "audit": {
+            "$ref": "#/components/schemas/ApprovalAuditLine"
+          },
+          "bypassReason": {
+            "type": "string"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalChange"
+            },
+            "type": "array"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "decidedBy": {
+            "type": "string"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalDecisionView"
+            },
+            "type": "array"
+          },
+          "followsId": {
+            "type": "string"
+          },
+          "given": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "invalidatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "invalidatedBy": {
+            "type": "string"
+          },
+          "invalidatedReason": {
+            "type": "string"
+          },
+          "needed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "note": {
+            "type": "string"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "requestedBy": {
+            "$ref": "#/components/schemas/ApprovalPerson"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalRuleMatch"
+            },
+            "type": "array"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/ApprovalSnapshotSummary"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "approved",
+              "changes_requested",
+              "rejected",
+              "invalidated",
+              "bypassed",
+              "sent",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "subjectType": {
+            "enum": [
+              "campaign",
+              "automation"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "subjectType",
+          "requestedAt",
+          "requestedBy",
+          "note",
+          "version",
+          "given",
+          "needed",
+          "decisions",
+          "changes",
+          "snapshot",
+          "rules"
+        ],
+        "type": "object"
+      },
+      "ApprovalRequested": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "ApprovalRouteView": {
+        "additionalProperties": false,
+        "properties": {
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalShare"
+            },
+            "type": "array"
+          },
+          "splitLabel": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "splitLabel",
+          "shares"
+        ],
+        "type": "object"
+      },
+      "ApprovalRuleMatch": {
+        "additionalProperties": false,
+        "properties": {
+          "author": {
+            "type": "string"
+          },
+          "badge": {
+            "type": "string"
+          },
+          "key": {
+            "enum": [
+              "audience_min",
+              "warming_provider",
+              "new_provider",
+              "ready_with_warnings",
+              "author_lacks_send",
+              "approval_lists",
+              "automation_publish"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "short",
+          "badge"
+        ],
+        "type": "object"
+      },
+      "ApprovalScheduleView": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "autoPause": {
+            "type": "string"
+          },
+          "minutes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "now",
+              "at",
+              "best_time"
+            ],
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "timezone",
+          "minutes",
+          "autoPause"
+        ],
+        "type": "object"
+      },
+      "ApprovalShare": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "enum": [
+              "ses",
+              "postal",
+              "postmark",
+              "other"
+            ],
+            "type": "string"
+          },
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "priceLabel": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "short": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "statusLabel": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerId",
+          "name",
+          "short",
+          "color",
+          "recipients",
+          "cost",
+          "priceLabel",
+          "status",
+          "statusLabel"
+        ],
+        "type": "object"
+      },
+      "ApprovalSnapshotSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "audienceCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "routeLabel": {
+            "type": "string"
+          },
+          "routeText": {
+            "type": "string"
+          },
+          "scheduleAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "scheduleMode": {
+            "enum": [
+              "now",
+              "at",
+              "best_time"
+            ],
+            "type": "string"
+          },
+          "scheduleText": {
+            "type": "string"
+          },
+          "splitLabel": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "subject",
+          "audienceCount",
+          "routeLabel",
+          "routeText",
+          "splitLabel",
+          "scheduleText",
+          "scheduleMode"
+        ],
+        "type": "object"
+      },
       "ArchiveIssueInput": {
         "additionalProperties": false,
         "properties": {
@@ -4546,6 +5901,70 @@
         ],
         "type": "object"
       },
+      "CampaignReview": {
+        "additionalProperties": false,
+        "properties": {
+          "access": {
+            "$ref": "#/components/schemas/ReviewAccess"
+          },
+          "approval": {
+            "$ref": "#/components/schemas/ReviewApproval"
+          },
+          "campaign": {
+            "$ref": "#/components/schemas/ReviewCampaign"
+          },
+          "held": {
+            "$ref": "#/components/schemas/ReviewHeld"
+          },
+          "largeSend": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pauseSlack": {
+            "type": "boolean"
+          },
+          "run": {
+            "$ref": "#/components/schemas/ReadinessRun"
+          },
+          "running": {
+            "$ref": "#/components/schemas/ReadinessProgress"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ReadinessSchedule"
+          },
+          "scheduled": {
+            "$ref": "#/components/schemas/ReviewScheduled"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "testSends": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewTestSend"
+            },
+            "type": "array"
+          },
+          "thresholds": {
+            "$ref": "#/components/schemas/ReadinessThresholds"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaign",
+          "stale",
+          "thresholds",
+          "schedule",
+          "testSends",
+          "approval",
+          "access",
+          "largeSend",
+          "pauseSlack",
+          "timezone"
+        ],
+        "type": "object"
+      },
       "CampaignStatusCounts": {
         "additionalProperties": false,
         "properties": {
@@ -5134,6 +6553,10 @@
             "format": "date-time",
             "type": "string"
           },
+          "imageShare": {
+            "format": "double",
+            "type": "number"
+          },
           "images": {
             "format": "int64",
             "type": "integer"
@@ -5145,6 +6568,12 @@
           "issues": {
             "items": {
               "$ref": "#/components/schemas/ContentCheckIssue"
+            },
+            "type": "array"
+          },
+          "linkList": {
+            "items": {
+              "$ref": "#/components/schemas/ContentCheckLink"
             },
             "type": "array"
           },
@@ -5196,6 +6625,10 @@
           "warnings": {
             "format": "int64",
             "type": "integer"
+          },
+          "words": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -5214,7 +6647,10 @@
           "issues",
           "sections",
           "plainText",
-          "checkedAt"
+          "checkedAt",
+          "imageShare",
+          "words",
+          "linkList"
         ],
         "type": "object"
       },
@@ -8971,6 +10407,63 @@
           "path",
           "section",
           "fixes"
+        ],
+        "type": "object"
+      },
+      "ContentCheckLink": {
+        "additionalProperties": false,
+        "properties": {
+          "broken": {
+            "type": "boolean"
+          },
+          "final": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "button",
+              "link",
+              "image",
+              "nav",
+              "social"
+            ],
+            "type": "string"
+          },
+          "millis": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "path": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "probed": {
+            "type": "boolean"
+          },
+          "status": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "text": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "host",
+          "text",
+          "kind",
+          "path",
+          "probed"
         ],
         "type": "object"
       },
@@ -19984,6 +21477,805 @@
         ],
         "type": "object"
       },
+      "ReadinessAudience": {
+        "additionalProperties": false,
+        "properties": {
+          "duplicates": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "final": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "role": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessAudienceRow"
+            },
+            "type": "array"
+          },
+          "suppressed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unengaged": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unengagedExcluded": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "rows",
+          "final",
+          "lists",
+          "suppressed",
+          "role",
+          "duplicates",
+          "unengaged",
+          "unengagedExcluded"
+        ],
+        "type": "object"
+      },
+      "ReadinessAudienceRow": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "base",
+              "minus",
+              "plus"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "count",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "ReadinessCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "ack": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "fixes": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessFix"
+            },
+            "type": "array"
+          },
+          "flatTitle": {
+            "type": "string"
+          },
+          "group": {
+            "enum": [
+              "reputation",
+              "authentication",
+              "content",
+              "links",
+              "compliance",
+              "audience",
+              "routing"
+            ],
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "mono": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "warn",
+              "block",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "group",
+          "status",
+          "title",
+          "flatTitle",
+          "fixes"
+        ],
+        "type": "object"
+      },
+      "ReadinessCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "passed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unknown": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warnings": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "passed",
+          "warnings",
+          "blocks",
+          "unknown",
+          "total"
+        ],
+        "type": "object"
+      },
+      "ReadinessEstimates": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "$ref": "#/components/schemas/ReadinessAudience"
+          },
+          "route": {
+            "$ref": "#/components/schemas/ReadinessRoute"
+          },
+          "throttling": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessThrottle"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "audience",
+          "route",
+          "throttling"
+        ],
+        "type": "object"
+      },
+      "ReadinessFix": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "exclude_sunset",
+              "route_only",
+              "insert_footer",
+              "replace_link",
+              "use_subject",
+              "minify"
+            ],
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "apply",
+              "link"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "tone": {
+            "enum": [
+              "primary",
+              "danger"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "label"
+        ],
+        "type": "object"
+      },
+      "ReadinessFixOutcome": {
+        "additionalProperties": false,
+        "properties": {
+          "applied": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "run": {
+            "$ref": "#/components/schemas/ReadinessRun"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "applied",
+          "version"
+        ],
+        "type": "object"
+      },
+      "ReadinessFixRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "exclude_sunset",
+              "route_only",
+              "insert_footer",
+              "replace_link",
+              "use_subject",
+              "minify"
+            ],
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      },
+      "ReadinessFixesInput": {
+        "additionalProperties": false,
+        "properties": {
+          "fixes": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessFixRequest"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "fixes"
+        ],
+        "type": "object"
+      },
+      "ReadinessGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "caption": {
+            "type": "string"
+          },
+          "key": {
+            "enum": [
+              "reputation",
+              "authentication",
+              "content",
+              "links",
+              "compliance",
+              "audience",
+              "routing"
+            ],
+            "type": "string"
+          },
+          "passed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "running": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "warn",
+              "block",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "caption",
+          "status",
+          "passed",
+          "total",
+          "summary",
+          "running"
+        ],
+        "type": "object"
+      },
+      "ReadinessHeldMove": {
+        "additionalProperties": false,
+        "properties": {
+          "addCost": {
+            "format": "double",
+            "type": "number"
+          },
+          "addMinutes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "toId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "toId",
+          "addCost",
+          "addMinutes"
+        ],
+        "type": "object"
+      },
+      "ReadinessProgress": {
+        "additionalProperties": false,
+        "properties": {
+          "done": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessProgressGroup"
+            },
+            "type": "array"
+          },
+          "runId": {
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startedBy": {
+            "type": "string"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "trigger": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "runId",
+          "trigger",
+          "startedAt",
+          "done",
+          "total",
+          "groups"
+        ],
+        "type": "object"
+      },
+      "ReadinessProgressGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "checked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "done": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "key": {
+            "enum": [
+              "reputation",
+              "authentication",
+              "content",
+              "links",
+              "compliance",
+              "audience",
+              "routing"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "pass",
+              "warn",
+              "block",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "status",
+          "text",
+          "done",
+          "total",
+          "checked"
+        ],
+        "type": "object"
+      },
+      "ReadinessProgressView": {
+        "additionalProperties": false,
+        "properties": {
+          "running": {
+            "$ref": "#/components/schemas/ReadinessProgress"
+          }
+        },
+        "type": "object"
+      },
+      "ReadinessRoute": {
+        "additionalProperties": false,
+        "properties": {
+          "down": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "move": {
+            "$ref": "#/components/schemas/ReadinessHeldMove"
+          },
+          "override": {
+            "type": "boolean"
+          },
+          "policy": {
+            "enum": [
+              "automatic",
+              "pause_and_ask",
+              "warm_only"
+            ],
+            "type": "string"
+          },
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessRouteShare"
+            },
+            "type": "array"
+          },
+          "splitLabel": {
+            "type": "string"
+          },
+          "stream": {
+            "enum": [
+              "broadcast",
+              "automation",
+              "system"
+            ],
+            "type": "string"
+          },
+          "streamLabel": {
+            "type": "string"
+          },
+          "totalCost": {
+            "format": "double",
+            "type": "number"
+          },
+          "totalMinutes": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "stream",
+          "streamLabel",
+          "splitLabel",
+          "policy",
+          "override",
+          "shares",
+          "totalCost",
+          "totalMinutes",
+          "down"
+        ],
+        "type": "object"
+      },
+      "ReadinessRouteShare": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "color": {
+            "enum": [
+              "ses",
+              "postal",
+              "postmark",
+              "other"
+            ],
+            "type": "string"
+          },
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "label": {
+            "type": "string"
+          },
+          "minutes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "percent": {
+            "format": "double",
+            "type": "number"
+          },
+          "priceLabel": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "rate": {
+            "format": "double",
+            "type": "number"
+          },
+          "rateLabel": {
+            "type": "string"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "short": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "statusLabel": {
+            "type": "string"
+          },
+          "warmupDay": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmupDays": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "providerId",
+          "name",
+          "short",
+          "adapter",
+          "color",
+          "percent",
+          "recipients",
+          "status",
+          "statusLabel",
+          "available",
+          "cost",
+          "priceLabel",
+          "rate",
+          "rateLabel",
+          "minutes"
+        ],
+        "type": "object"
+      },
+      "ReadinessRun": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignId": {
+            "type": "string"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessCheck"
+            },
+            "type": "array"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/ReadinessCounts"
+          },
+          "durationMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "estimates": {
+            "$ref": "#/components/schemas/ReadinessEstimates"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessGroup"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "incomplete": {
+            "type": "boolean"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "ranAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "ranBy": {
+            "type": "string"
+          },
+          "trigger": {
+            "enum": [
+              "manual",
+              "composer",
+              "schedule",
+              "send_time",
+              "approval"
+            ],
+            "type": "string"
+          },
+          "unknownAcceptedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "unknownAcceptedBy": {
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "ready",
+              "warnings",
+              "blocked"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "campaignId",
+          "trigger",
+          "ranAt",
+          "durationMs",
+          "version",
+          "verdict",
+          "counts",
+          "groups",
+          "checks",
+          "incomplete",
+          "estimates"
+        ],
+        "type": "object"
+      },
+      "ReadinessSchedule": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "date": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "now",
+              "at",
+              "best_time"
+            ],
+            "type": "string"
+          },
+          "time": {
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "type": "object"
+      },
+      "ReadinessSendSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "schedule": {
+            "$ref": "#/components/schemas/ReadinessSchedule"
+          },
+          "thresholds": {
+            "$ref": "#/components/schemas/ReadinessThresholds"
+          }
+        },
+        "type": "object"
+      },
       "ReadinessSummary": {
         "additionalProperties": false,
         "properties": {
@@ -20003,6 +22295,83 @@
         "required": [
           "verdict",
           "issues"
+        ],
+        "type": "object"
+      },
+      "ReadinessThresholds": {
+        "additionalProperties": false,
+        "properties": {
+          "bounce": {
+            "format": "double",
+            "maximum": 20,
+            "minimum": 0.1,
+            "type": "number"
+          },
+          "complaint": {
+            "format": "double",
+            "maximum": 5,
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "mailboxComplaint": {
+            "format": "double",
+            "maximum": 5,
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "providerErrors": {
+            "format": "double",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "number"
+          },
+          "scope": {
+            "enum": [
+              "route",
+              "campaign"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "bounce",
+          "complaint",
+          "mailboxComplaint",
+          "providerErrors",
+          "scope"
+        ],
+        "type": "object"
+      },
+      "ReadinessThrottle": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "enum": [
+              "gmail",
+              "outlook",
+              "yahoo",
+              "icloud",
+              "other"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "rate": {
+            "format": "double",
+            "type": "number"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "recipients",
+          "rate"
         ],
         "type": "object"
       },
@@ -21217,6 +23586,359 @@
         "required": [
           "importedOnly",
           "exclude"
+        ],
+        "type": "object"
+      },
+      "ReviewAB": {
+        "additionalProperties": false,
+        "properties": {
+          "durationHours": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "subject",
+              "content",
+              "send_time"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "testPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "variants": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "variants",
+          "testPercent",
+          "durationHours",
+          "label"
+        ],
+        "type": "object"
+      },
+      "ReviewAccess": {
+        "additionalProperties": false,
+        "properties": {
+          "canApprove": {
+            "type": "boolean"
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canManageRouting": {
+            "type": "boolean"
+          },
+          "canSend": {
+            "type": "boolean"
+          },
+          "canSendTestToOthers": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": "string"
+          },
+          "hasPassword": {
+            "type": "boolean"
+          },
+          "isOwner": {
+            "type": "boolean"
+          },
+          "sendHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "canEdit",
+          "canSend",
+          "canApprove",
+          "canManageRouting",
+          "canSendTestToOthers",
+          "isOwner",
+          "hasPassword",
+          "email",
+          "sendHelpers"
+        ],
+        "type": "object"
+      },
+      "ReviewApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "approvers": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalPerson"
+            },
+            "type": "array"
+          },
+          "canBypass": {
+            "type": "boolean"
+          },
+          "canRequest": {
+            "type": "boolean"
+          },
+          "medianWaitMinutes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "needed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "policyRules": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ApprovalRequestView"
+          },
+          "requestReason": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalRuleMatch"
+            },
+            "type": "array"
+          },
+          "valid": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "required",
+          "rules",
+          "needed",
+          "approvers",
+          "valid",
+          "canRequest",
+          "canBypass",
+          "policyRules"
+        ],
+        "type": "object"
+      },
+      "ReviewCampaign": {
+        "additionalProperties": false,
+        "properties": {
+          "ab": {
+            "$ref": "#/components/schemas/ReviewAB"
+          },
+          "audienceLabel": {
+            "type": "string"
+          },
+          "autosavedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "editable": {
+            "type": "boolean"
+          },
+          "from": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "replyTo": {
+            "type": "string"
+          },
+          "scheduledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "approval",
+              "approved",
+              "scheduled",
+              "sending",
+              "paused",
+              "sent",
+              "cancelled",
+              "failed"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "subject",
+          "preheader",
+          "from",
+          "replyTo",
+          "version",
+          "updatedAt",
+          "updatedBy",
+          "audienceLabel",
+          "editable"
+        ],
+        "type": "object"
+      },
+      "ReviewHeld": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessCheck"
+            },
+            "type": "array"
+          },
+          "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "since",
+          "reason",
+          "held",
+          "blocks"
+        ],
+        "type": "object"
+      },
+      "ReviewScheduled": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "by",
+          "at"
+        ],
+        "type": "object"
+      },
+      "ReviewSendInput": {
+        "additionalProperties": false,
+        "properties": {
+          "acknowledged": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 60,
+            "type": "array"
+          },
+          "confirm": {
+            "maxLength": 20,
+            "type": "string"
+          },
+          "runId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ReadinessSchedule"
+          }
+        },
+        "required": [
+          "runId"
+        ],
+        "type": "object"
+      },
+      "ReviewSendResult": {
+        "additionalProperties": false,
+        "properties": {
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "scheduledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "scheduled",
+              "sending"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "recipients"
+        ],
+        "type": "object"
+      },
+      "ReviewTestSend": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "delivered": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "to",
+          "at",
+          "by",
+          "provider"
         ],
         "type": "object"
       },
@@ -34664,6 +37386,747 @@
         "x-permission": "apikeys:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/approval-policy": {
+      "get": {
+        "operationId": "get-approval-policy",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalPolicyView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The approval policy and what it matches today",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      },
+      "put": {
+        "operationId": "update-approval-policy",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalPolicy"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalPolicyView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change the approval policy",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/approvals": {
+      "get": {
+        "operationId": "list-approvals",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "default": "pending",
+              "enum": [
+                "pending",
+                "approved",
+                "changes_requested",
+                "rejected",
+                "invalidated",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Requester user id",
+            "explode": false,
+            "in": "query",
+            "name": "author",
+            "schema": {
+              "description": "Requester user id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Approver user id",
+            "explode": false,
+            "in": "query",
+            "name": "approver",
+            "schema": {
+              "description": "Approver user id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Requested in the last N days (0: all)",
+            "explode": false,
+            "in": "query",
+            "name": "days",
+            "schema": {
+              "default": 30,
+              "description": "Requested in the last N days (0: all)",
+              "format": "int64",
+              "maximum": 3650,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The approval inbox: approvers see every request, authors their own",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}": {
+      "get": {
+        "operationId": "get-approval",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "approvalId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An approval request with its snapshot, readiness, diff and discussion",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/cancel": {
+      "post": {
+        "operationId": "cancel-approval",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "approvalId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Withdraw a request (its author or an Owner)",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/comments": {
+      "post": {
+        "operationId": "comment-approval",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "approvalId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalCommentInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add to the discussion (author and approvers)",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/decision": {
+      "post": {
+        "description": "Authors can't decide on their own request. Deciding on an invalidated request decides on the campaign as it stands (a new request with the diff).",
+        "operationId": "decide-approval",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "approvalId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalDecisionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Approve, request changes or reject",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:approve"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/preview": {
+      "get": {
+        "operationId": "preview-approval",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "approvalId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The email an approval covers",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/remind": {
+      "post": {
+        "operationId": "remind-approvers",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "approvalId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remind the approvers (once an hour)",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/restore": {
+      "post": {
+        "operationId": "restore-approval",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "approvalId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Put the campaign back as approved (keeps the approval)",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/approvals/{approvalId}/schedule": {
+      "post": {
+        "description": "The author can schedule an approved campaign without campaigns:send: the approval is the permission for this exact snapshot.",
+        "operationId": "schedule-approved",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "approvalId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewSendInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewSendResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Schedule an approved campaign as approved",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
     "/api/v1/workspaces/{workspace}/audience": {
       "get": {
         "operationId": "audience-summary",
@@ -37714,6 +41177,153 @@
         "x-permission": "campaigns:edit"
       }
     },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/approval": {
+      "post": {
+        "operationId": "request-approval",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalRequestInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequested"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Ask the approvers to approve this send",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/bypass": {
+      "post": {
+        "description": "Logged as campaign.approval_bypassed with the reason and the snapshot; every approver is notified. Send Readiness still runs and a Blocked result still stops the send.",
+        "operationId": "bypass-approval",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalBypassInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewSendResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Send without approval (Owners, with a reason)",
+        "tags": [
+          "Review \u0026 send"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:send"
+      }
+    },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/checks": {
       "post": {
         "description": "Size against Gmail's 102 KB clipping limit, alt text, image-to-text ratio, blocklisted and shortened links, unsubscribe link and postal address, personalization, subject heuristics and the plain-text part. Nothing is saved.",
@@ -38741,6 +42351,286 @@
         "x-permission": "subscribers:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness": {
+      "post": {
+        "description": "Runs every check and stores the result. Fails with 409 readiness_running while a run is in progress; poll …/readiness/progress.",
+        "operationId": "run-send-readiness",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessRun"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Run Send Readiness on a campaign now",
+        "tags": [
+          "Review \u0026 send"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/fixes": {
+      "post": {
+        "description": "Content fixes save a new version; audience and route fixes change the campaign. Changing route needs campaigns:send. Changes invalidate an approval.",
+        "operationId": "apply-readiness-fixes",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadinessFixesInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessFixOutcome"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Apply one-click fixes, then run the checks again",
+        "tags": [
+          "Review \u0026 send"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/progress": {
+      "get": {
+        "operationId": "get-send-readiness-progress",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessProgressView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The Send Readiness run in progress",
+        "tags": [
+          "Review \u0026 send"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/{runId}/accept-unknown": {
+      "post": {
+        "description": "Accepts the checks that couldn't run (HostRepute unreachable). The skipped checks are recorded in the audit log and re-tried during the send.",
+        "operationId": "accept-unknown-readiness",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessRun"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Continue with provider data only",
+        "tags": [
+          "Review \u0026 send"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report": {
       "get": {
         "description": "Aggregate numbers only. Rates are percentages: delivered and bounces of sent; opens, clicks, unsubscribes and complaints of delivered.",
@@ -39347,6 +43237,216 @@
         "x-permission": "reports:share"
       }
     },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review": {
+      "get": {
+        "operationId": "get-campaign-review",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignReview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Review \u0026 send: the latest Send Readiness run, estimates, schedule, thresholds, test sends and approval state",
+        "tags": [
+          "Review \u0026 send"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/send": {
+      "post": {
+        "description": "Needs a fresh, unblocked Send Readiness run, every warning confirmed, the recipient count typed for large sends, and an approval when the policy asks for one.",
+        "operationId": "send-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewSendInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewSendResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Schedule or start a campaign after Send Readiness",
+        "tags": [
+          "Review \u0026 send"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/send-settings": {
+      "patch": {
+        "description": "The schedule is part of what an approval covers: changing it invalidates the approval.",
+        "operationId": "update-send-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadinessSendSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change the auto-pause thresholds or the schedule",
+        "tags": [
+          "Review \u0026 send"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/test": {
       "post": {
         "description": "Goes through the System route. Without campaigns:send, test emails can only go to your own address.",
@@ -39419,6 +43519,62 @@
         "summary": "Send a test email of the saved content",
         "tags": [
           "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/unschedule": {
+      "post": {
+        "operationId": "unschedule-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Take a scheduled campaign back",
+        "tags": [
+          "Review \u0026 send"
         ],
         "x-access": "workspace",
         "x-permission": "campaigns:edit"

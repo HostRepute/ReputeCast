@@ -33,7 +33,10 @@ func TestListCampaigns(t *testing.T) {
 		Counts struct{ All, Drafts, Scheduled, Sending, Sent int64 }
 	}
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?pageSize=9", nil).MustStatus(t, 200).JSON(t, &list)
-	if list.Total != 48 || list.Counts.All != 48 || list.Counts.Drafts != 2 || list.Counts.Scheduled != 1 || list.Counts.Sent != 45 {
+	// 48 campaigns of the Campaigns board plus the approval sample data:
+	// November Product Update (waiting for approval), two of Daniel's drafts
+	// and the Beta Program launch invite (sent).
+	if list.Total != 52 || list.Counts.All != 52 || list.Counts.Drafts != 5 || list.Counts.Scheduled != 1 || list.Counts.Sent != 46 {
 		t.Fatalf("counts: total %d %+v", list.Total, list.Counts)
 	}
 	if len(list.Items) != 9 {
@@ -46,16 +49,19 @@ func TestListCampaigns(t *testing.T) {
 	if len(first.Routes) != 2 || first.Routes[0].Short != "SES" || first.Routes[0].Percent != 90 {
 		t.Fatalf("route split: %+v", first.Routes)
 	}
-	if !list.Items[1].Blocked || list.Items[1].Audience != "All subscribers" {
-		t.Fatalf("blocked draft: %+v", list.Items[1])
+	if list.Items[1].Name != "November Product Update" || list.Items[1].Status != "approval" {
+		t.Fatalf("waiting for approval: %+v", list.Items[1])
 	}
-	var oct = list.Items[3]
+	if !list.Items[2].Blocked || list.Items[2].Audience != "All subscribers" {
+		t.Fatalf("blocked draft: %+v", list.Items[2])
+	}
+	var oct = list.Items[6]
 	if oct.Name != "October Product Update" || len(oct.Notes) == 0 || oct.Notes[0] != "A/B subject, winner B" {
 		t.Fatalf("A/B note: %+v", oct)
 	}
 
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?status=drafts", nil).MustStatus(t, 200).JSON(t, &list)
-	if list.Total != 2 {
+	if list.Total != 5 {
 		t.Fatalf("drafts: %d", list.Total)
 	}
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?q=flash", nil).MustStatus(t, 200).JSON(t, &list)
@@ -70,7 +76,7 @@ func TestListCampaigns(t *testing.T) {
 		CostBy    []struct{ Short string }
 	}
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns/summary", nil).MustStatus(t, 200).JSON(t, &sum)
-	if sum.Campaigns != 6 || sum.Sent < 180000 {
+	if sum.Campaigns != 7 || sum.Sent < 180000 { // six on the board plus the Beta Program launch invite of the approval history
 		t.Fatalf("summary: %+v", sum)
 	}
 

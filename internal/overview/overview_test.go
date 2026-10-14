@@ -56,7 +56,10 @@ func TestOverviewCards(t *testing.T) {
 		len(nc.Routes) != 2 || nc.Routes[0].Short != "SES" || nc.Routes[0].Percent != 90 || nc.Readiness == nil || nc.Readiness.Verdict != "warnings" || len(nc.Readiness.Issues) != 2 {
 		t.Fatalf("next campaign: %+v", nc)
 	}
-	if n.Drafts != 2 {
+	// The Campaigns board's two drafts plus the approval sample data:
+	// November Product Update (waiting for approval) and two of Daniel's
+	// drafts from the approval inbox's history.
+	if n.Drafts != 5 {
 		t.Fatalf("drafts: %d", n.Drafts)
 	}
 
@@ -132,7 +135,9 @@ func TestOverviewCards(t *testing.T) {
 		Items []struct{ Name, Status string }
 	}
 	c.Do("GET", base+"/recent-campaigns", nil).MustStatus(t, 200).JSON(t, &r)
-	if len(r.Items) != 4 || r.Items[0].Name != "October Product Update" || r.Items[3].Name != "Weekly Digest #140" {
+	// The approval inbox's history adds the Beta Program launch invite (sent
+	// Oct 6), which the Main board doesn't list.
+	if len(r.Items) != 4 || r.Items[0].Name != "October Product Update" || r.Items[2].Name != "Beta Program · launch invite" || r.Items[3].Name != "Feature flags preview" {
 		t.Fatalf("recent: %+v", r.Items)
 	}
 

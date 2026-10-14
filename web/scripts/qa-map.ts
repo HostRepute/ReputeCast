@@ -44,8 +44,13 @@ export const entries: Entry[] = [
   { board: 'ComposerPreview', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/edit?view=preview` },
   // Daniel Park signs in with SSO only: reproduce by hand (a dev session for daniel@acme.io).
   { board: 'ComposerRequestApproval', manual: true },
+  // Weekly Digest #142 is scheduled in the demo (SendReadinessStates · scheduled); SendReadiness is
+  // the same campaign before scheduling: tmp/scripts/stage.py draft on in a dev database.
   { board: 'SendReadiness', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/review` },
   { board: 'SendReadinessBlocked', path: `${ws}/campaigns/{campaign:Flash sale: 48 hours only}/review` },
+  // The confirmation opens from "Schedule send"; the approval states need Daniel (SSO only) or data changes.
+  { board: 'SendReadinessConfirm', manual: true },
+  { board: 'SendReadinessApproval', manual: true },
   { board: 'SendReadinessStates', manual: true },
   // The live boards need a send in progress: start one first with
   // `reputecast demo send "Weekly Digest #142" --elapsed 20m --reset` (normal
@@ -60,7 +65,10 @@ export const entries: Entry[] = [
   { board: 'LiveMonitorOutage', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live` },
   // Connecting, stream lost and complete: reproduce by hand (see the README).
   { board: 'LiveMonitorStates', manual: true },
-  { board: 'ApprovalInbox', path: `${ws}/approvals`, user: 'marcus@acme.io' },
+  // Marcus Chen signs in with SSO only; Linh is an approver too and sees the same list.
+  { board: 'ApprovalInbox', path: `${ws}/approvals` },
+  // The approval request's id is generated at seed time.
+  { board: 'ApprovalReview', manual: true },
   { board: 'ApprovalStates', manual: true },
   { board: 'ApprovalPolicy', path: `${ws}/settings/approvals` },
   { board: 'Providers', path: `${ws}/providers` },
