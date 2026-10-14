@@ -43069,7 +43069,7 @@
     },
     "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/webhook-secret": {
       "post": {
-        "description": "Only for providers whose webhook ReputeCast can't register itself (Azure Event Grid, the generic HTTP adapter). Showing it is audited.",
+        "description": "Only for providers whose webhook ReputeCast can't register itself (Azure Event Grid, the generic HTTP adapter). The secret is returned this once and replaces the previous one; stored secrets are never returned. Audited.",
         "operationId": "show-provider-webhook-secret",
         "parameters": [
           {
@@ -43123,7 +43123,7 @@
             "session": []
           }
         ],
-        "summary": "Show the webhook secret to set up in the provider by hand",
+        "summary": "Issue a new webhook secret to set up in the provider by hand",
         "tags": [
           "Connect a provider"
         ],

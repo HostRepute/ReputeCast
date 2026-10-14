@@ -906,8 +906,9 @@ type ConnectWebhookSecret struct {
 	Header string `json:"header,omitempty"`
 }
 
-// WebhookSecret shows the generated webhook secret of a provider whose
-// webhook is set up by hand. Showing it is audited.
+// WebhookSecret issues a new webhook secret for a provider whose webhook is
+// set up by hand, and returns it this once: like API keys, a stored secret is
+// never read back. The new secret replaces the previous one, in the audit log.
 func (s *Service) WebhookSecret(ctx context.Context, ws *store.Workspace, rawID string) (ConnectWebhookSecret, error) {
 	st, err := s.setup(ctx, ws, rawID)
 	if err != nil {
@@ -921,15 +922,21 @@ func (s *Service) WebhookSecret(ctx context.Context, ws *store.Workspace, rawID 
 	if w == nil || !w.NeedsSecret {
 		return ConnectWebhookSecret{}, api.Conflict("This provider's webhooks don't use a secret from ReputeCast.")
 	}
-	secret := ""
-	if s.Factory != nil {
-		secret = s.Factory.WebhookSecret(p)
-	}
-	if secret == "" {
-		return ConnectWebhookSecret{}, api.Conflict("This provider has no webhook secret yet. Test the endpoint again to create one.")
+	secret := randomToken(24)
+	sealed, err := s.Box.SealString(secret, manage.WebhookSecretAD(p))
+	if err != nil {
+		return ConnectWebhookSecret{}, err
 	}
 	wsID := ws.ID
-	if err := s.Audit.Log(ctx, audit.Event{WorkspaceID: &wsID, Action: "provider.webhook_secret_show", TargetType: "provider", TargetID: p.ID.String(), TargetName: p.Name}); err != nil {
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := q.ConnectSetWebhookSecret(ctx, store.ConnectSetWebhookSecretParams{ID: p.ID, WebhookSecretEnc: sealed}); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "provider.webhook_secret_rotate", TargetType: "provider", TargetID: p.ID.String(), TargetName: p.Name,
+			Metadata: map[string]any{"reason": "issued for the webhook set up in the provider"}})
+	})
+	if err != nil {
 		return ConnectWebhookSecret{}, err
 	}
 	return ConnectWebhookSecret{URL: w.URL, Secret: secret, Header: w.SecretHeader}, nil

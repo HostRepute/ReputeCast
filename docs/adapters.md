@@ -462,7 +462,9 @@ Filters and recursive descent aren't supported.
 
 The secret is the `secret` template when set. Otherwise it is the
 `webhook_signing_key` credential, and otherwise the webhook secret ReputeCast
-generated for the provider. Point the provider's webhook at the URL shown on
+generated for the provider (the connection step issues a new one on request
+and shows it once; stored secrets are never shown). Point the provider's
+webhook at the URL shown on
 the provider's card (`/hooks/httpgeneric/<token>`, or
 `/hooks/community:<name>/<token>` for a provider connected through an
 installed HTTP adapter).
