@@ -22,7 +22,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 | **M11 SSO, social sign-in, API keys, MCP, webhooks** | OIDC SSO with JIT and group mapping, social sign-in, instance admin, API keys & MCP server, outgoing webhooks | W14, W03 | ✅ |
 | **M12 Remaining adapters** | Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, generic HTTP, adapter guide; community adapters (protocol, runtime, SDK) | W15, W16 | ✅ |
 | **M13 Deliverability and HostRepute** | Domain/IP health, provider account health, blocklists, Postmaster, SNDS, DMARC, incidents, Connect HostRepute | W07 | ✅ |
-| **M14 Migration, landing, docs, v1.0** | Importers from Brevo, Mailchimp, MailerLite, listmonk, Keila; landing page and README banner; documentation; release | W02, W08 | 🚧 (importers ✅, landing page ✅, README banner ✅) |
+| **M14 Migration, landing, docs, v1.0** | Importers from Brevo, Mailchimp, MailerLite, listmonk, Keila; landing page and README banner; documentation; release | W02, W08 | 🚧 (importers ✅, landing page ✅, README banner ✅, documentation ✅; the v1.0 tag and release wait for the repository to be pushed) |
 
 ## Done so far (M0)
 
