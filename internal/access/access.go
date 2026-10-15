@@ -28,6 +28,10 @@ type PermissionInfo struct {
 	Sensitive   bool     `json:"sensitive"`
 	Implies     []string `json:"implies"`
 	OwnerOnly   bool     `json:"ownerOnly"`
+	// PeopleOnly: API keys and MCP agents can't hold it.
+	PeopleOnly bool `json:"peopleOnly"`
+	// NoAgents: MCP agents can't hold it.
+	NoAgents bool `json:"noAgents"`
 }
 
 // Catalog returns every permission in display order.
@@ -38,7 +42,7 @@ func Catalog() []PermissionInfo {
 		for _, p := range d.Implies {
 			imp = append(imp, string(p))
 		}
-		out = append(out, PermissionInfo{Key: string(d.Key), Group: d.Group, Label: d.Label, Description: d.Description, Sensitive: d.Sensitive, Implies: imp, OwnerOnly: d.OwnerOnly})
+		out = append(out, PermissionInfo{Key: string(d.Key), Group: d.Group, Label: d.Label, Description: d.Description, Sensitive: d.Sensitive, Implies: imp, OwnerOnly: d.OwnerOnly, PeopleOnly: d.PeopleOnly, NoAgents: d.NoAgents})
 	}
 	return out
 }
@@ -368,6 +372,17 @@ func CantGrant(p authz.Permission, helpers []string) string {
 		msg += " Ask " + OrList(helpers) + "."
 	}
 	return msg
+}
+
+// NotHoldable explains why a key or agent can't hold p (authz.HoldableBy).
+func NotHoldable(p authz.Permission, t authz.ActorType) string {
+	if p == authz.AIUse {
+		return "AI features are for people. Agents bring their own model."
+	}
+	if d, _ := authz.Lookup(p); d.PeopleOnly {
+		return fmt.Sprintf("Only people can hold %s: API keys and agents can't.", p)
+	}
+	return fmt.Sprintf("MCP agents can't hold %s. Give it to an API key or a person.", p)
 }
 
 // Plural returns "member" or "members".

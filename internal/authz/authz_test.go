@@ -32,6 +32,41 @@ func TestBuiltinMatrix(t *testing.T) {
 		{WorkspaceManage, true, true, false, false},
 		{WorkspaceTransfer, true, false, false, false},
 		{WorkspaceDelete, true, false, false, false},
+
+		// The expansion's groups (design expansion briefs, Permissions).
+		{TransactionalView, true, true, true, true},
+		{TransactionalEdit, true, true, true, false},
+		{TransactionalPublish, true, true, true, false},
+		{TransactionalSend, true, true, false, false},
+		{TransactionalContent, true, true, false, false},
+		{SubscribersVerify, true, true, false, false},
+		{IntegrationsView, true, true, true, true},
+		{IntegrationsManage, true, true, false, false},
+		{AIUse, true, true, true, false},
+		{ScoringEdit, true, true, true, false},
+		{PlacementRun, true, true, true, false},
+		{PlacementManage, true, true, false, false},
+		{GrowView, true, true, true, true},
+		{GrowEdit, true, true, true, false},
+		{GrowReview, true, true, true, false},
+		{GrowConnect, true, true, false, false},
+		{EarnView, true, true, true, true},
+		{EarnEdit, true, true, false, false},
+		{EarnManage, true, true, false, false},
+		{PaymentsManage, true, true, false, false},
+		{SponsorsManage, true, true, true, false},
+		{ConversionsCreate, true, true, false, false},
+		{WebsiteView, true, true, true, true},
+		{WebsiteEdit, true, true, true, false},
+		{WebsitePublish, true, true, true, false},
+		{WebsiteManage, true, true, true, false},
+		{ProductsView, true, true, true, true},
+		{ProductsEdit, true, true, true, false},
+		{ProductsPublish, true, true, true, false},
+		{OrdersManage, true, true, true, false},
+		{SMSSend, true, true, true, false},
+		{PushSend, true, true, true, false},
+		{WhatsAppSend, true, true, true, false},
 	}
 	roles := map[string]BuiltinRole{}
 	for _, r := range BuiltinRoles {
@@ -43,6 +78,59 @@ func TestBuiltinMatrix(t *testing.T) {
 				t.Errorf("%s has %s = %v, want %v", key, c.perm, got, want)
 			}
 		}
+	}
+}
+
+func TestCatalogGroups(t *testing.T) {
+	groups := map[string]bool{}
+	for _, g := range Groups {
+		groups[g] = true
+	}
+	seen := map[Permission]bool{}
+	for _, d := range Defs {
+		if !groups[d.Group] {
+			t.Errorf("%s is in group %q, which isn't in Groups", d.Key, d.Group)
+		}
+		if seen[d.Key] {
+			t.Errorf("%s is defined twice", d.Key)
+		}
+		seen[d.Key] = true
+		for _, imp := range d.Implies {
+			if !Valid(imp) {
+				t.Errorf("%s implies unknown %s", d.Key, imp)
+			}
+		}
+	}
+}
+
+func TestHoldableBy(t *testing.T) {
+	cases := []struct {
+		perm       Permission
+		key, agent bool
+	}{
+		{CampaignsSend, true, true},
+		{IntegrationsManage, false, false},
+		{AIUse, false, false},
+		{SubscribersVerify, true, false},
+		{PlacementRun, true, false},
+		{PlacementManage, true, false},
+		{TransactionalSend, true, true},
+		{ConversionsCreate, true, true},
+	}
+	for _, c := range cases {
+		if got := HoldableBy(c.perm, ActorAPIKey); got != c.key {
+			t.Errorf("API key holds %s = %v, want %v", c.perm, got, c.key)
+		}
+		if got := HoldableBy(c.perm, ActorMCPAgent); got != c.agent {
+			t.Errorf("MCP agent holds %s = %v, want %v", c.perm, got, c.agent)
+		}
+		if !HoldableBy(c.perm, ActorUser) {
+			t.Errorf("a member must be able to hold %s", c.perm)
+		}
+	}
+	s := NewSet(IntegrationsManage, SubscribersVerify, CampaignsEdit).HoldableBy(ActorMCPAgent)
+	if s.Has(IntegrationsManage) || s.Has(SubscribersVerify) || !s.Has(CampaignsEdit) || !s.Has(CampaignsView) {
+		t.Errorf("agent set = %v", s.Strings())
 	}
 }
 

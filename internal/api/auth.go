@@ -261,6 +261,7 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, token string) (*authz.
 	if k.Kind == "mcp_agent" {
 		typ = authz.ActorMCPAgent
 	}
+	perms = perms.HoldableBy(typ)
 	ip := audit.RequestFrom(ctx).IP
 	_ = a.Q.TouchAPIKey(ctx, store.TouchAPIKeyParams{ID: k.ID, Ip: ip})
 	creator := uuid.Nil

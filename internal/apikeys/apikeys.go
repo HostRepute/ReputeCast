@@ -208,7 +208,14 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		out.Items = append(out.Items, v)
 	}
 	for _, d := range authz.Defs {
-		if d.OwnerOnly || p.Permissions.Has(d.Key) {
+		if d.OwnerOnly {
+			continue
+		}
+		if !authz.HoldableBy(d.Key, actorOf(kind)) {
+			out.Locked = append(out.Locked, APIKeyLockedPermission{Key: string(d.Key), Reason: access.NotHoldable(d.Key, actorOf(kind))})
+			continue
+		}
+		if p.Permissions.Has(d.Key) {
 			continue
 		}
 		out.Locked = append(out.Locked, APIKeyLockedPermission{Key: string(d.Key), Reason: access.CantGrant(d.Key, access.Helpers(ctx, s.Q, ws.ID, d.Key))})
@@ -310,7 +317,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	for _, k := range in.Permissions {
 		wanted = append(wanted, authz.Permission(k))
 	}
-	set, err := s.checkGrant(ctx, ws, p, wanted)
+	set, err := s.checkGrant(ctx, ws, p, kind, wanted)
 	if err != nil {
 		return APIKeyCreated{}, err
 	}
@@ -368,11 +375,24 @@ func keySummary(v APIKeyView) string {
 	return strings.Join(parts, " · ")
 }
 
-// checkGrant applies "nobody can grant what they don't hold".
-func (s *Service) checkGrant(ctx context.Context, ws *store.Workspace, p *authz.Principal, wanted []authz.Permission) (authz.Set, error) {
+func actorOf(kind string) authz.ActorType {
+	if kind == KindAgent {
+		return authz.ActorMCPAgent
+	}
+	return authz.ActorAPIKey
+}
+
+// checkGrant applies "nobody can grant what they don't hold", and keeps
+// people-only permissions off keys and agents.
+func (s *Service) checkGrant(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind string, wanted []authz.Permission) (authz.Set, error) {
 	for _, w := range wanted {
 		if !authz.Valid(w) {
 			return nil, api.Invalid("body.permissions", fmt.Sprintf("Unknown permission %q.", w))
+		}
+		if !authz.HoldableBy(w, actorOf(kind)) {
+			pr := api.Err(http.StatusForbidden, api.CodeEscalation, access.NotHoldable(w, actorOf(kind)))
+			pr.Permission = string(w)
+			return nil, pr
 		}
 	}
 	set, err := authz.CheckGrant(p.Permissions, wanted)
@@ -434,7 +454,7 @@ func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			wanted = append(wanted, pk)
 		}
 	}
-	if _, err := s.checkGrant(ctx, ws, p, wanted); err != nil {
+	if _, err := s.checkGrant(ctx, ws, p, kind, wanted); err != nil {
 		return APIKeyCreated{}, err
 	}
 	scope := access.ParseScope(old.Scope)

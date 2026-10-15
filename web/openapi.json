@@ -19228,7 +19228,13 @@
             ],
             "type": "string"
           },
+          "noAgents": {
+            "type": "boolean"
+          },
           "ownerOnly": {
+            "type": "boolean"
+          },
+          "peopleOnly": {
             "type": "boolean"
           },
           "sensitive": {
@@ -19242,7 +19248,9 @@
           "description",
           "sensitive",
           "implies",
-          "ownerOnly"
+          "ownerOnly",
+          "peopleOnly",
+          "noAgents"
         ],
         "type": "object"
       },
@@ -53643,7 +53651,7 @@
           }
         ],
         "responses": {
-          "204": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
@@ -53651,7 +53659,7 @@
                 }
               }
             },
-            "description": "No Content"
+            "description": "OK"
           },
           "default": {
             "content": {

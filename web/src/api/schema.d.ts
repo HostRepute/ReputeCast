@@ -11458,7 +11458,9 @@ export interface components {
             key: string;
             /** @example Send or schedule campaigns */
             label: string;
+            noAgents: boolean;
             ownerOnly: boolean;
+            peopleOnly: boolean;
             sensitive: boolean;
         };
         PersonalizationToken: {
@@ -26517,8 +26519,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No Content */
-            204: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

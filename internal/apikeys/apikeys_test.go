@@ -207,3 +207,29 @@ func TestRejectedKeyCallsAreCounted(t *testing.T) {
 		t.Fatalf("rejections recorded: %d, want 1", n)
 	}
 }
+
+func TestPeopleOnlyPermissions(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	r := c.Do("POST", ws+"/api-keys", map[string]any{"name": "Zapier", "permissions": []string{"subscribers:view", "integrations:manage"}}).MustStatus(t, 403)
+	if p := r.Problem(t); p["code"] != "escalation_denied" || p["permission"] != "integrations:manage" ||
+		!strings.Contains(p["detail"].(string), "Only people can hold integrations:manage") {
+		t.Fatalf("people-only on a key: %v", p)
+	}
+	r = c.Do("POST", ws+"/mcp-agents", map[string]any{"name": "Claude Desktop", "permissions": []string{"subscribers:verify"}}).MustStatus(t, 403)
+	if p := r.Problem(t); p["permission"] != "subscribers:verify" {
+		t.Fatalf("no-agents on an agent: %v", p)
+	}
+	c.Do("POST", ws+"/api-keys", map[string]any{"name": "Verifier", "permissions": []string{"subscribers:verify"}}).MustStatus(t, 201)
+	var agents keyList
+	c.Do("GET", ws+"/mcp-agents", nil).MustStatus(t, 200).JSON(t, &agents)
+	reasons := map[string]string{}
+	for _, l := range agents.Locked {
+		reasons[l.Key] = l.Reason
+	}
+	if reasons["ai:use"] != "AI features are for people. Agents bring their own model." || reasons["placement:manage"] == "" {
+		t.Fatalf("agent locks: %v", reasons)
+	}
+}

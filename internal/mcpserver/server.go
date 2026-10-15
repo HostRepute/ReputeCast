@@ -99,7 +99,7 @@ func (s *Service) verify(ctx context.Context, token string, r *http.Request) (*a
 	}
 	masked := k.Prefix
 	p := &authz.Principal{Type: authz.ActorMCPAgent, ID: k.ID, Name: k.Name, UserID: creator, WorkspaceID: k.WorkspaceID,
-		Permissions: perms, Scope: access.ParseScope(k.Scope), MFAVerified: true}
+		Permissions: perms.HoldableBy(authz.ActorMCPAgent), Scope: access.ParseScope(k.Scope), MFAVerified: true}
 	return &auth.TokenInfo{
 		UserID: k.ID.String(),
 		Extra:  map[string]any{callKey: &agentCall{Principal: p, Workspace: ws, Masked: masked, Request: req, Settings: st}},
