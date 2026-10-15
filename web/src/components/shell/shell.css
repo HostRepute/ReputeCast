@@ -1,0 +1,227 @@
+/*
+ * App shell additions of the design expansion: the phone tab bar's More and
+ * its sheet (ShellMore), copied value for value from the board. The sidebar,
+ * rail and tab bar themselves are in app.css (Shell).
+ */
+@layer components {
+  /* More: the tab bar's fifth item, a button that looks like the tabs. */
+  .side .nav .more {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink-2);
+    cursor: pointer;
+  }
+  .side .nav .more:hover {
+    background: var(--line-2);
+    color: var(--ink);
+  }
+  .side .nav .more.on {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  /* The sheet, above the tab bar. */
+  .sheet-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(11, 18, 32, 0.32);
+    animation: rc-sheet-fade var(--duration-base) var(--ease-out-soft) both;
+  }
+  .sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--tabbar-h);
+    z-index: 60;
+    max-height: calc(100dvh - var(--tabbar-h) - 16px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 16px 14px;
+    background: #fff;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -12px 40px rgba(11, 18, 32, 0.22);
+    animation: rc-rise var(--duration-base) var(--ease-out-soft) both;
+  }
+  .sheet:focus {
+    outline: none;
+  }
+  .sheet-scrim[data-state='closed'] {
+    animation: rc-sheet-fade-out var(--duration-fast) ease-in both;
+  }
+  .sheet[data-state='closed'] {
+    animation: rc-sheet-sink var(--duration-fast) ease-in both;
+  }
+  .sheet-grab {
+    flex: none;
+    align-self: center;
+    width: 40px;
+    height: 4px;
+    margin: 2px 0 4px;
+    border-radius: 2px;
+    background: var(--line-strong);
+  }
+  .sheet-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sheet-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .ws.sheet-ws {
+    margin: 0;
+    min-height: 52px;
+    flex: none;
+  }
+  .ws.sheet-ws .wsn b {
+    font-size: 14px;
+  }
+  .sheet-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 48px;
+    padding: 0 6px;
+    border-radius: 10px;
+    color: var(--ink);
+  }
+  .sheet-item:hover {
+    background: var(--ground);
+    color: var(--ink);
+  }
+  .sheet-ic {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: var(--ground);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  .sheet-lbl {
+    flex: 1;
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .sheet-chev {
+    color: #9aa3b2;
+    flex: none;
+  }
+  /* The current section, as in the sidebar. */
+  .sheet-item.on,
+  .sheet-item.on:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .sheet-item.on .sheet-ic {
+    background: #fff;
+  }
+  .sheet-item.on .sheet-chev {
+    color: var(--accent);
+  }
+  .sheet-sep {
+    flex: none;
+    border-top: 1px solid var(--line-2);
+    margin: 4px 0;
+  }
+  .sheet-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 6px;
+    border-radius: 10px;
+    color: var(--ink);
+  }
+  .sheet-row:hover {
+    background: var(--ground);
+    color: var(--ink);
+  }
+  .sheet-row-t {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+  }
+  .sheet-row-l {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .sheet-row-ic {
+    width: 36px;
+    display: inline-flex;
+    justify-content: center;
+    flex: none;
+  }
+
+  /* A switch the member can't change keeps its focus and says why (DisabledReason). */
+  input[type='checkbox'].tg[aria-disabled='true'] {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+:root {
+  /* The phone tab bar: 44px tabs, 6px above and below, a 1px top border. */
+  --tabbar-h: calc(57px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Unlayered, like the shell breakpoints in app.css, so they win over the
+   tab bar's own rules. */
+@media (max-width: 767px) {
+  /* Four sections stay in the tab bar; the others move to the More sheet. */
+  .side .nav a.xm {
+    display: none;
+  }
+  .side .nav .more {
+    display: flex;
+    height: 44px;
+    width: 44px;
+    flex: none;
+    border-radius: 10px;
+  }
+  /* While the sheet is open the tab bar stays above its scrim and usable,
+     and More is the tab that shows as current. */
+  .side.sheet-open {
+    z-index: 61;
+    pointer-events: auto;
+  }
+  .side.sheet-open .nav a.on,
+  .side.sheet-open .nav a[aria-current] {
+    background: none;
+    color: var(--ink-2);
+  }
+}
+
+@keyframes rc-sheet-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes rc-sheet-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes rc-sheet-sink {
+  to {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}

@@ -1,38 +1,33 @@
-import { Link, Outlet, useMatchRoute } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
+import { Link, Outlet, useMatchRoute, useRouterState } from '@tanstack/react-router'
+import { useState, type ReactNode } from 'react'
+import { formatList, useT } from '@/i18n'
+import { cn } from '@/lib/cn'
 import { useMediaQuery } from '@/lib/hooks'
-import { ago } from '@/lib/format'
 import { useMe, useWorkspace } from '@/lib/session'
-import { Icon, LogoMark, type IconName } from '../icons/Icon'
+import { Icon, LogoMark } from '../icons/Icon'
 import { Avatar } from '../ui/Avatar'
 import { Tooltip } from '../ui/Menu'
+import { HostReputeStatus } from './HostReputeStatus'
+import { m } from './messages'
+import { MoreSheet } from './MoreSheet'
+import { moreIsCurrent, phoneNav, sectionOf, visibleNav, type NavItem, type SectionKey } from './nav'
 import { SystemBanners } from './SystemBanners'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
-
-/** `also` lists other sections the item stands for (approvals live under Campaigns, Instance admin under Settings). */
-type NavItem = { to: string; label: string; icon: IconName; exact?: boolean; also?: string[] }
-
-const NAV: NavItem[] = [
-  { to: '/w/$workspace', label: 'Overview', icon: 'overview', exact: true },
-  { to: '/w/$workspace/campaigns', label: 'Campaigns', icon: 'campaigns', also: ['/w/$workspace/approvals'] },
-  { to: '/w/$workspace/automations', label: 'Automations', icon: 'automations' },
-  { to: '/w/$workspace/audience', label: 'Audience', icon: 'audience' },
-  { to: '/w/$workspace/forms', label: 'Forms & pages', icon: 'forms' },
-  { to: '/w/$workspace/deliverability', label: 'Deliverability', icon: 'deliverability' },
-  { to: '/w/$workspace/providers', label: 'Sending providers', icon: 'providers' },
-  { to: '/w/$workspace/settings', label: 'Settings', icon: 'settings', also: ['/w/$workspace/admin'] },
-]
+import './shell.css'
 
 /**
  * The workspace app shell: a 232px sidebar that becomes a 72px icon rail at
- * 1100px and a bottom tab bar at 767px. `children` replaces the routed screen,
- * for the in-shell 404 and 500 states.
+ * 1100px and, at 767px, a bottom tab bar with four sections and More, which
+ * opens a sheet with the rest. Sections the workspace hides (Settings ›
+ * General) are left out everywhere; their screens still open by link.
+ * `children` replaces the routed screen, for the in-shell 404 and 500 states.
  */
 export function AppShell({ children }: { children?: ReactNode } = {}) {
+  const t = useT()
   return (
     <div className="app rc-app">
       <a href="#main" className="skip">
-        Skip to content
+        {t(m.skipToContent)}
       </a>
       <Sidebar />
       <div className="mainc">
@@ -46,48 +41,45 @@ export function AppShell({ children }: { children?: ReactNode } = {}) {
 function Sidebar() {
   const { slug, me: ws } = useWorkspace()
   const { data: me } = useMe()
+  const t = useT()
   const rail = useMediaQuery('(min-width: 768px) and (max-width: 1100px)')
-  const matchRoute = useMatchRoute()
+  const phone = useMediaQuery('(max-width: 767px)')
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const current = sectionOf(pathname)
+  const hidden = ws.hiddenSections ?? []
+  const { more } = phoneNav(hidden)
+  // The sheet belongs to the screen it was opened on: navigating, or leaving
+  // phone width, closes it.
+  const [openOn, setOpenOn] = useState<string>()
+  const sheetOpen = phone && openOn === pathname
   const user = me?.user
   return (
-    <aside className="side" aria-label="Workspace navigation">
-      <Link to="/w/$workspace" params={{ workspace: slug }} className="home" aria-label="ReputeCast home">
+    <aside className={cn('side', sheetOpen && 'sheet-open')} aria-label={t(m.sidebarLabel)}>
+      <Link to="/w/$workspace" params={{ workspace: slug }} className="home" aria-label={t(m.homeLabel)}>
         <LogoMark size={26} />
-        <span className="brand-t">ReputeCast</span>
+        <span className="brand-t">{t(m.brandName)}</span>
       </Link>
       <WorkspaceSwitcher />
-      <nav className="nav" aria-label="Main">
-        {NAV.map((item) => {
-          // The router marks the current item with aria-current="page"; the
-          // overview is the workspace root, so it only matches exactly. An
-          // item is also current in the sections it stands for.
-          const section = item.also?.some((to) => matchRoute({ to, params: { workspace: slug }, fuzzy: true }))
-          const link = (
-            <Link
-              key={item.to}
-              to={item.to}
-              params={{ workspace: slug }}
-              activeOptions={{ exact: Boolean(item.exact), includeSearch: false }}
-              className={section ? 'on' : undefined}
-              aria-current={section ? 'true' : undefined}
-            >
-              <Icon name={item.icon} />
-              <span className="nl">{item.label}</span>
-            </Link>
-          )
-          return rail ? (
-            <Tooltip key={item.to} content={item.label}>
-              {link}
-            </Tooltip>
-          ) : (
-            link
-          )
-        })}
+      <nav className="nav" aria-label={t(m.mainNavLabel)}>
+        {visibleNav(hidden).map((item) => (
+          <NavLink key={item.key} item={item} current={current} rail={rail} />
+        ))}
+        <MoreSheet open={sheetOpen} onOpenChange={(o) => setOpenOn(o ? pathname : undefined)} items={more} current={current}>
+          <button
+            type="button"
+            className={cn('more', moreIsCurrent(current, hidden, sheetOpen) && 'on')}
+            aria-label={t(m.moreTabLabel, { sections: formatList(more.map((i) => t(i.label))) })}
+            aria-current={moreIsCurrent(current, hidden) ? 'true' : undefined}
+          >
+            <Icon name="moreSections" />
+            <span className="nl">{t(m.moreTab)}</span>
+          </button>
+        </MoreSheet>
       </nav>
       <div className="sidefoot">
-        <Link to="/w/$workspace/import" params={{ workspace: slug }} className="btn" style={{ justifyContent: 'flex-start' }} aria-label="Import contacts">
+        <Link to="/w/$workspace/import" params={{ workspace: slug }} className="btn" style={{ justifyContent: 'flex-start' }} aria-label={t(m.importContacts)}>
           <Icon name="import" />
-          Import contacts
+          {t(m.importContacts)}
         </Link>
         <HostReputeStatus />
         {user ? (
@@ -104,25 +96,31 @@ function Sidebar() {
   )
 }
 
-function HostReputeStatus() {
-  const { slug, me } = useWorkspace()
-  const hr = me.hostRepute
-  const connected = hr?.status === 'connected'
-  return (
+/**
+ * One section. The router marks it current (aria-current="page") on its own
+ * screens; it is also current, as a section, on the screens it stands for
+ * (approvals under Campaigns, Instance admin under Settings). On phones the
+ * sections that live in the More sheet (`xm`) leave the tab bar.
+ */
+function NavLink({ item, current, rail }: { item: NavItem; current: SectionKey | undefined; rail: boolean }) {
+  const { slug } = useWorkspace()
+  const t = useT()
+  const matchRoute = useMatchRoute()
+  const label = t(item.label)
+  const section = current === item.key && item.also?.some((to) => matchRoute({ to, params: { workspace: slug }, fuzzy: true }))
+  const link = (
     <Link
-      to="/w/$workspace/settings/integrations"
+      to={item.to}
       params={{ workspace: slug }}
-      className="flex items-center gap-2 rounded-lg border border-line bg-white px-2.5 py-2 text-ink hover:text-ink"
+      activeOptions={{ exact: Boolean(item.exact), includeSearch: false }}
+      className={cn(!item.tab && 'xm', section && 'on')}
+      aria-current={section ? 'true' : undefined}
     >
-      <span className="dot" style={{ color: connected ? '#15803D' : hr ? '#B45309' : '#6B7280' }} aria-hidden="true" />
-      <div className="flex flex-col leading-[1.25]">
-        <span className="text-[12px] font-semibold">{connected ? 'HostRepute connected' : hr ? 'HostRepute needs attention' : 'Connect HostRepute'}</span>
-        <span className="k text-[11px]">
-          {connected ? `${hr.teamName} · synced ${ago(hr.lastSyncAt)}` : hr ? 'Reconnect to resume monitoring' : 'Optional · free'}
-        </span>
-      </div>
+      <Icon name={item.icon} />
+      <span className="nl">{label}</span>
     </Link>
   )
+  return rail ? <Tooltip content={label}>{link}</Tooltip> : link
 }
 
 export type { ReactNode }
