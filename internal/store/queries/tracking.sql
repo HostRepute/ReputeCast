@@ -13,7 +13,7 @@ WHERE m.id = @id;
 SELECT position, url FROM campaign_links WHERE campaign_id = @campaign_id ORDER BY position;
 
 -- name: TrackingAutomationLinks :many
-SELECT position, url FROM automation_email_links WHERE email_id = @email_id AND version = @version ORDER BY position;
+SELECT position, url FROM automation_email_links WHERE email_id = @email_id AND version = @version AND language = @language ORDER BY position;
 
 -- name: TrackingContactVars :one
 SELECT email, first_name, last_name, attributes FROM contacts WHERE id = @id;
@@ -56,7 +56,7 @@ UPDATE campaign_links SET clicks = clicks + 1, unique_clicks = unique_clicks + @
 WHERE campaign_id = @campaign_id AND position = @position;
 
 -- name: TrackingBumpAutomationLink :exec
-UPDATE automation_email_links SET clicks = clicks + 1 WHERE email_id = @email_id AND version = @version AND position = @position;
+UPDATE automation_email_links SET clicks = clicks + 1 WHERE email_id = @email_id AND version = @version AND language = @language AND position = @position;
 
 -- name: TrackingBumpCounters :exec
 INSERT INTO campaign_counters (campaign_id, provider_id, mailbox_provider, variant, opened_human, opened_machine, clicked)

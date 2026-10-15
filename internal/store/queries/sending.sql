@@ -552,8 +552,10 @@ SELECT id, workspace_id, campaign_id, automation_id, contact_id, email, provider
 FROM messages WHERE id = ANY(@ids::uuid[]);
 
 -- name: SendingInsertAutomationMessage :exec
-INSERT INTO messages (id, workspace_id, stream, automation_id, automation_node, contact_id, email, provider_id, mailbox_provider, status, queued_at, content_ref)
-VALUES (@id, @workspace_id, 'automation', @automation_id, @automation_node, @contact_id, @email, sqlc.narg(provider_id), @mailbox_provider, @status, @queued_at, @content_ref);
+INSERT INTO messages (id, workspace_id, stream, automation_id, automation_node, contact_id, email, provider_id, mailbox_provider, status, queued_at, content_ref,
+    language, contact_language, language_reason)
+VALUES (@id, @workspace_id, 'automation', @automation_id, @automation_node, @contact_id, @email, sqlc.narg(provider_id), @mailbox_provider, @status, @queued_at, @content_ref,
+    @language, @contact_language, @language_reason);
 
 -- name: SendingOutboxProviders :many
 SELECT DISTINCT provider_id::uuid AS provider_id FROM messages
@@ -594,10 +596,10 @@ WHERE v.email_id = @email_id AND v.version = @version;
 SELECT latest_version FROM automation_emails WHERE id = @id;
 
 -- name: SendingAutomationLinkCount :one
-SELECT count(*)::bigint FROM automation_email_links WHERE email_id = @email_id AND version = @version;
+SELECT count(*)::bigint FROM automation_email_links WHERE email_id = @email_id AND version = @version AND language = @language;
 
 -- name: SendingInsertAutomationLink :exec
-INSERT INTO automation_email_links (email_id, version, position, url, label) VALUES (@email_id, @version, @position, @url, @label)
+INSERT INTO automation_email_links (email_id, version, language, position, url, label) VALUES (@email_id, @version, @language, @position, @url, @label)
 ON CONFLICT DO NOTHING;
 
 -- name: SendingAutomationSender :one
@@ -607,7 +609,7 @@ FROM workspaces w LEFT JOIN senders s ON s.id = w.default_sender_id
 WHERE w.id = @workspace_id;
 
 -- name: SendingContactForAutomation :one
-SELECT id, email, mailbox_provider, status, erased_at FROM contacts WHERE id = @id;
+SELECT id, email, mailbox_provider, status, erased_at, language FROM contacts WHERE id = @id;
 
 -- name: SendingCampaignWorkspace :one
 SELECT workspace_id FROM campaigns WHERE id = $1;
@@ -620,3 +622,9 @@ SELECT e.contact_id, (mode() WITHIN GROUP (ORDER BY extract(hour FROM e.occurred
 FROM delivery_events e
 WHERE e.contact_id = ANY(@contact_ids::uuid[]) AND e.type = 'open' AND NOT e.machine AND e.occurred_at > @since
 GROUP BY e.contact_id;
+
+-- name: SendingMessageToSource :exec
+-- A queued automation email whose language version stopped being sent (its
+-- language was removed) goes out in the source instead.
+UPDATE messages SET content_ref = content_ref - 'language', language = @language, language_reason = 'not_offered'
+WHERE id = @id;

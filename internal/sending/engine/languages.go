@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"github.com/google/uuid"
@@ -14,6 +15,46 @@ import (
 // starts (internal/languages).
 type LanguageVersions interface {
 	CampaignSendSet(ctx context.Context, workspaceID, campaignID uuid.UUID) (languages.SendSet, error)
+	AutomationSendSet(ctx context.Context, workspaceID, emailID uuid.UUID, version int) (languages.SendSet, error)
+}
+
+// automationChoice is the version of an automation email a contact gets.
+type automationChoice struct {
+	messageLanguage
+	source string
+}
+
+// automationLanguage picks the language version of an automation email
+// version for a contact.
+func (e *Engine) automationLanguage(ctx context.Context, wsID, emailID uuid.UUID, version int, contactLanguage string) (automationChoice, error) {
+	if e.Languages == nil {
+		return automationChoice{}, nil
+	}
+	set, err := e.Languages.AutomationSendSet(ctx, wsID, emailID, version)
+	if err != nil {
+		return automationChoice{}, err
+	}
+	p := set.Chooser().Pick(contactLanguage)
+	return automationChoice{messageLanguage: messageLanguage{Language: p.Language, Contact: p.Contact, Reason: p.Reason}, source: set.Source}, nil
+}
+
+// automationTranslation is the content of an automation email's language
+// version. It is nil, with the source language, when the version is no
+// longer sent.
+func (e *Engine) automationTranslation(ctx context.Context, wsID, emailID uuid.UUID, version int, lang string) (*Content, string, error) {
+	if e.Languages == nil {
+		return nil, "", errors.New("language versions aren't available in this process")
+	}
+	set, err := e.Languages.AutomationSendSet(ctx, wsID, emailID, version)
+	if err != nil {
+		return nil, "", err
+	}
+	for _, v := range set.Versions {
+		if v.Language == lang && v.HTML != "" {
+			return &Content{Subject: v.Subject, Preheader: v.Preheader, HTML: media.Absolutize(v.HTML, e.URLs.Base()), Text: v.Text}, set.Source, nil
+		}
+	}
+	return nil, set.Source, nil
 }
 
 // langContent is one language version captured at send start.
