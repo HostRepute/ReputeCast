@@ -4464,6 +4464,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/integration/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Published transactional templates and their variables, for "Send a transactional email"
+         * @description Only keys with "Send a transactional email" turned on can call it. Send with send-transactional-message.
+         */
+        get: operations["list-integration-templates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/integrations": {
         parameters: {
             query?: never;
@@ -12626,6 +12646,33 @@ export interface components {
             newOwner: components["schemas"]["IntegrationPerson"];
             roleName: string;
             stops: string[];
+        };
+        IntegrationTemplateItem: {
+            /**
+             * @description The template's ID, for the send call
+             * @example payment-failed
+             */
+            key: string;
+            name: string;
+            variables: components["schemas"]["IntegrationTemplateVariable"][];
+            /**
+             * Format: int32
+             * @description The live version
+             */
+            version: number;
+        };
+        IntegrationTemplateItems: {
+            items: components["schemas"]["IntegrationTemplateItem"][];
+        };
+        IntegrationTemplateVariable: {
+            description?: string;
+            /** @example amount_due */
+            name: string;
+            required: boolean;
+            /** @description Masked in the call log, never stored */
+            sensitive: boolean;
+            /** @example text */
+            type: string;
         };
         IntegrationTriggerSample: {
             event: string;
@@ -28695,6 +28742,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IntegrationTriggerSample"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-integration-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationTemplateItems"];
                 };
             };
             /** @description Error */

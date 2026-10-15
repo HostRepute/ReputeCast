@@ -446,6 +446,23 @@ JOIN automation_versions v ON v.automation_id = a.id AND v.version = a.live_vers
 WHERE a.workspace_id = @workspace_id AND a.status = 'live' AND a.deleted_at IS NULL
 ORDER BY a.name;
 
+-- name: IntegrationTransactionalTemplates :many
+-- Published transactional templates with their live version's variables,
+-- for "Send a transactional email" in the apps.
+SELECT t.key, t.name, t.live_version, v.variables
+FROM transactional_templates t
+JOIN transactional_template_versions v ON v.template_id = t.id AND v.version = t.live_version
+WHERE t.workspace_id = @workspace_id AND t.deleted_at IS NULL AND t.archived_at IS NULL AND t.live_version IS NOT NULL
+ORDER BY t.name;
+
+-- name: IntegrationTemplateVariables :one
+-- A transactional template's live variables, to mask its sensitive ones in
+-- the call log.
+SELECT v.variables
+FROM transactional_templates t
+JOIN transactional_template_versions v ON v.template_id = t.id AND v.version = t.live_version
+WHERE t.workspace_id = @workspace_id AND t.key = @key AND t.deleted_at IS NULL;
+
 -- name: IntegrationTemplates :many
 -- Saved templates for the post-draft rule (kind template, not deleted).
 SELECT id, name, mjml FROM templates WHERE workspace_id = @workspace_id AND kind = 'template' AND deleted_at IS NULL

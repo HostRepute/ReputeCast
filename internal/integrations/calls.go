@@ -309,12 +309,12 @@ func (s *Service) maskBody(ctx context.Context, wsID uuid.UUID, op string, body 
 		return nil
 	}
 	var sensitive map[string]bool
-	if op == OpSendMessage && SensitiveVariables != nil {
+	if op == OpSendMessage {
 		var m struct {
 			Template string `json:"template"`
 		}
 		if json.Unmarshal(raw, &m) == nil && m.Template != "" {
-			sensitive = SensitiveVariables(ctx, s.Q, wsID, m.Template)
+			sensitive = s.sensitiveVariables(ctx, wsID, m.Template)
 		}
 	}
 	out, err := maskJSON(raw, sensitive)
@@ -324,10 +324,23 @@ func (s *Service) maskBody(ctx context.Context, wsID uuid.UUID, op string, body 
 	return out
 }
 
-// SensitiveVariables returns the variables a transactional template marks
-// sensitive. Transactional email (M15) sets it; without it only secret-like
-// fields are masked.
-var SensitiveVariables func(ctx context.Context, q *store.Queries, workspaceID uuid.UUID, template string) map[string]bool
+// sensitiveVariables returns the variables a transactional template's live
+// version marks sensitive: never stored, as in the message log.
+func (s *Service) sensitiveVariables(ctx context.Context, wsID uuid.UUID, template string) map[string]bool {
+	raw, err := s.Q.IntegrationTemplateVariables(ctx, store.IntegrationTemplateVariablesParams{WorkspaceID: wsID, Key: template})
+	if err != nil {
+		return nil
+	}
+	var vars []IntegrationTemplateVariable
+	_ = json.Unmarshal(raw, &vars)
+	out := map[string]bool{}
+	for _, v := range vars {
+		if v.Sensitive {
+			out[v.Name] = true
+		}
+	}
+	return out
+}
 
 var secretKey = regexp.MustCompile(`(?i)(password|passwd|secret|token|api[_-]?key|authorization)`)
 

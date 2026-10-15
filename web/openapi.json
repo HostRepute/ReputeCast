@@ -18858,6 +18858,88 @@
         ],
         "type": "object"
       },
+      "IntegrationTemplateItem": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "description": "The template's ID, for the send call",
+            "examples": [
+              "payment-failed"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationTemplateVariable"
+            },
+            "type": "array"
+          },
+          "version": {
+            "description": "The live version",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "version",
+          "variables"
+        ],
+        "type": "object"
+      },
+      "IntegrationTemplateItems": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationTemplateItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "IntegrationTemplateVariable": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "amount_due"
+            ],
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "sensitive": {
+            "description": "Masked in the call log, never stored",
+            "type": "boolean"
+          },
+          "type": {
+            "examples": [
+              "text"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "required",
+          "sensitive"
+        ],
+        "type": "object"
+      },
       "IntegrationTriggerSample": {
         "additionalProperties": false,
         "properties": {
@@ -58487,6 +58569,62 @@
         "x-access": "workspace",
         "x-integration": "*",
         "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integration/templates": {
+      "get": {
+        "description": "Only keys with \"Send a transactional email\" turned on can call it. Send with send-transactional-message.",
+        "operationId": "list-integration-templates",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationTemplateItems"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Published transactional templates and their variables, for \"Send a transactional email\"",
+        "tags": [
+          "Integration API"
+        ],
+        "x-access": "workspace",
+        "x-integration": "*",
+        "x-permission": "transactional:send"
       }
     },
     "/api/v1/workspaces/{workspace}/integrations": {

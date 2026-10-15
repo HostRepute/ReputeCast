@@ -1171,3 +1171,69 @@ func TestDemoPages(t *testing.T) {
 		t.Errorf("the Beta Zap's use: %+v", u)
 	}
 }
+
+func TestSendTransactionalEmail(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	// A published template with a sensitive variable (the starter's reset_url).
+	var tpl struct{ DraftRevision int }
+	c.Do("POST", ws+"/transactional/templates", map[string]any{"name": "Password reset", "key": "password-reset", "starter": "password-reset"}).MustStatus(t, 201).JSON(t, &tpl)
+	c.Do("POST", ws+"/transactional/templates/password-reset/publish", map[string]any{"baseRevision": tpl.DraftRevision}).MustStatus(t, 200)
+
+	// n8n, reconnected with "Send a transactional email" only.
+	c.Do("POST", ws+"/integrations/connections/"+connectionID(t, c, "n8n")+"/disconnect", map[string]any{}).MustStatus(t, 204)
+	key := connect(t, c, "n8n", map[string]any{"items": []string{"send_transactional"}})
+
+	// The app's dropdown: published templates and their variables.
+	var list struct {
+		Items []struct {
+			Key       string
+			Version   int
+			Variables []struct {
+				Name      string
+				Sensitive bool
+			}
+		}
+	}
+	call(t, env, key.Secret, "GET", ws+"/integration/templates", nil, nil).MustStatus(t, 200).JSON(t, &list)
+	if len(list.Items) != 1 || list.Items[0].Key != "password-reset" || list.Items[0].Version != 1 {
+		t.Fatalf("templates: %+v", list.Items)
+	}
+	sensitive := false
+	for _, v := range list.Items[0].Variables {
+		if v.Name == "reset_url" && v.Sensitive {
+			sensitive = true
+		}
+	}
+	if !sensitive {
+		t.Errorf("reset_url is sensitive: %+v", list.Items[0].Variables)
+	}
+
+	// Sending goes through X02's send API; whatever it answers, the call
+	// log keeps the request with the sensitive variable masked.
+	r := call(t, env, key.Secret, "POST", ws+"/transactional/messages",
+		map[string]any{"template": "password-reset", "to": map[string]any{"email": "sam.rivera@outlook.com"},
+			"data": map[string]any{"first_name": "Sam", "reset_url": "https://app.example.com/reset/secret-token", "expires_in": "30 minutes"}},
+		map[string]string{"X-ReputeCast-Workflow": "Acme Cloud: password reset; id=wf_r1", "Idempotency-Key": "reset-1"})
+	if r.Status == http.StatusForbidden && code(t, r) == "integration_operation_denied" {
+		t.Fatalf("send refused for an integration key with the action on: %s", r.Body)
+	}
+	var stored, item string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT request::text, item FROM integration_calls WHERE operation = 'send-transactional-message'`).Scan(&stored, &item); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(stored, "secret-token") || !strings.Contains(stored, integrations.Masked) || item != "send_transactional" ||
+		strings.Index(stored, `"template"`) > strings.Index(stored, `"data"`) {
+		t.Errorf("logged request: %s (%s)", stored, item)
+	}
+
+	// With the action turned off, the same key can't list templates.
+	c.Do("POST", ws+"/integrations/connections/"+key.IntegrationID+"/change", map[string]any{"items": []string{"add_tag"}}).MustStatus(t, 200)
+	r = call(t, env, key.Secret, "GET", ws+"/integration/templates", nil, nil)
+	if r.Status != http.StatusForbidden || code(t, r) != "integration_operation_denied" {
+		t.Errorf("templates without the action: %d %s", r.Status, r.Body)
+	}
+}

@@ -391,6 +391,13 @@ func Register(h huma.API, s *Service) {
 			out, err := s.Fields(ctx, api.WorkspaceFrom(ctx))
 			return api.OK(out), err
 		})
+	api.Get(h, api.Op{ID: OpTemplates, Path: "/workspaces/{workspace}/integration/templates", Summary: "Published transactional templates and their variables, for \"Send a transactional email\"",
+		Description: "Only keys with \"Send a transactional email\" turned on can call it. Send with send-transactional-message.",
+		Tags:        app, Access: api.IntegrationOnly("*", authz.TransactionalSend)},
+		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Body[IntegrationTemplateItems], error) {
+			out, err := s.Templates(ctx, api.WorkspaceFrom(ctx))
+			return api.OK(out), err
+		})
 
 	contacts := []string{"Contacts"}
 	api.Post(h, api.Op{ID: OpUpsert, Path: "/workspaces/{workspace}/contacts/upsert", Summary: "Create or update a contact, matched by email",

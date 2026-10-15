@@ -1950,6 +1950,27 @@ func (q *Queries) IntegrationTemplate(ctx context.Context, arg IntegrationTempla
 	return i, err
 }
 
+const integrationTemplateVariables = `-- name: IntegrationTemplateVariables :one
+SELECT v.variables
+FROM transactional_templates t
+JOIN transactional_template_versions v ON v.template_id = t.id AND v.version = t.live_version
+WHERE t.workspace_id = $1 AND t.key = $2 AND t.deleted_at IS NULL
+`
+
+type IntegrationTemplateVariablesParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Key         string    `json:"key"`
+}
+
+// A transactional template's live variables, to mask its sensitive ones in
+// the call log.
+func (q *Queries) IntegrationTemplateVariables(ctx context.Context, arg IntegrationTemplateVariablesParams) (json.RawMessage, error) {
+	row := q.db.QueryRow(ctx, integrationTemplateVariables, arg.WorkspaceID, arg.Key)
+	var variables json.RawMessage
+	err := row.Scan(&variables)
+	return variables, err
+}
+
 const integrationTemplates = `-- name: IntegrationTemplates :many
 SELECT id, name, mjml FROM templates WHERE workspace_id = $1 AND kind = 'template' AND deleted_at IS NULL
 ORDER BY name
@@ -1996,6 +2017,48 @@ type IntegrationTouchCallParams struct {
 func (q *Queries) IntegrationTouchCall(ctx context.Context, arg IntegrationTouchCallParams) error {
 	_, err := q.db.Exec(ctx, integrationTouchCall, arg.At, arg.ID)
 	return err
+}
+
+const integrationTransactionalTemplates = `-- name: IntegrationTransactionalTemplates :many
+SELECT t.key, t.name, t.live_version, v.variables
+FROM transactional_templates t
+JOIN transactional_template_versions v ON v.template_id = t.id AND v.version = t.live_version
+WHERE t.workspace_id = $1 AND t.deleted_at IS NULL AND t.archived_at IS NULL AND t.live_version IS NOT NULL
+ORDER BY t.name
+`
+
+type IntegrationTransactionalTemplatesRow struct {
+	Key         string          `json:"key"`
+	Name        string          `json:"name"`
+	LiveVersion *int32          `json:"liveVersion"`
+	Variables   json.RawMessage `json:"variables"`
+}
+
+// Published transactional templates with their live version's variables,
+// for "Send a transactional email" in the apps.
+func (q *Queries) IntegrationTransactionalTemplates(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationTransactionalTemplatesRow, error) {
+	rows, err := q.db.Query(ctx, integrationTransactionalTemplates, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []IntegrationTransactionalTemplatesRow{}
+	for rows.Next() {
+		var i IntegrationTransactionalTemplatesRow
+		if err := rows.Scan(
+			&i.Key,
+			&i.Name,
+			&i.LiveVersion,
+			&i.Variables,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const integrationWebhookCounts = `-- name: IntegrationWebhookCounts :one

@@ -733,9 +733,15 @@ type Querier interface {
 	IntegrationSetLabel(ctx context.Context, arg IntegrationSetLabelParams) error
 	IntegrationSetSettings(ctx context.Context, arg IntegrationSetSettingsParams) error
 	IntegrationTemplate(ctx context.Context, arg IntegrationTemplateParams) (IntegrationTemplateRow, error)
+	// A transactional template's live variables, to mask its sensitive ones in
+	// the call log.
+	IntegrationTemplateVariables(ctx context.Context, arg IntegrationTemplateVariablesParams) (json.RawMessage, error)
 	// Saved templates for the post-draft rule (kind template, not deleted).
 	IntegrationTemplates(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationTemplatesRow, error)
 	IntegrationTouchCall(ctx context.Context, arg IntegrationTouchCallParams) error
+	// Published transactional templates with their live version's variables,
+	// for "Send a transactional email" in the apps.
+	IntegrationTransactionalTemplates(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationTransactionalTemplatesRow, error)
 	IntegrationWebhookCounts(ctx context.Context, workspaceID uuid.UUID) (IntegrationWebhookCountsRow, error)
 	// Deleting the endpoint deletes its queued and dead-letter deliveries too.
 	IntegrationWebhookDelete(ctx context.Context, id uuid.UUID) (int64, error)

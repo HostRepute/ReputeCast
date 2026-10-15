@@ -615,6 +615,52 @@ func (s *Service) Fields(ctx context.Context, ws *store.Workspace) (IntegrationF
 	return out, nil
 }
 
+// IntegrationTemplateVariable is one variable of a transactional template,
+// as the apps map it.
+type IntegrationTemplateVariable struct {
+	Name        string `json:"name" example:"amount_due"`
+	Type        string `json:"type" example:"text"`
+	Required    bool   `json:"required"`
+	Sensitive   bool   `json:"sensitive" doc:"Masked in the call log, never stored"`
+	Description string `json:"description,omitempty"`
+}
+
+// IntegrationTemplateItem is a published transactional template.
+type IntegrationTemplateItem struct {
+	Key       string                        `json:"key" example:"payment-failed" doc:"The template's ID, for the send call"`
+	Name      string                        `json:"name"`
+	Version   int32                         `json:"version" doc:"The live version"`
+	Variables []IntegrationTemplateVariable `json:"variables"`
+}
+
+// IntegrationTemplateItems lists the templates "Send a transactional email" can send.
+type IntegrationTemplateItems struct {
+	Items []IntegrationTemplateItem `json:"items"`
+}
+
+// Templates lists the published transactional templates and their
+// variables, for "Send a transactional email" in the apps.
+func (s *Service) Templates(ctx context.Context, ws *store.Workspace) (IntegrationTemplateItems, error) {
+	rows, err := s.Q.IntegrationTransactionalTemplates(ctx, ws.ID)
+	if err != nil {
+		return IntegrationTemplateItems{}, err
+	}
+	noteTargetJSON(ctx, CallTarget{Kind: "templates"})
+	out := IntegrationTemplateItems{Items: []IntegrationTemplateItem{}}
+	for _, r := range rows {
+		it := IntegrationTemplateItem{Key: r.Key, Name: r.Name, Variables: []IntegrationTemplateVariable{}}
+		if r.LiveVersion != nil {
+			it.Version = *r.LiveVersion
+		}
+		_ = json.Unmarshal(r.Variables, &it.Variables)
+		if it.Variables == nil {
+			it.Variables = []IntegrationTemplateVariable{}
+		}
+		out.Items = append(out.Items, it)
+	}
+	return out, nil
+}
+
 // normalizeLanguage turns "es_MX", "ES" or "Spanish" into a BCP 47 code. An
 // unknown value answers 422 with the closest match when there is one.
 func normalizeLanguage(p *string) (string, error) {
