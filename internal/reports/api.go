@@ -27,6 +27,11 @@ func (p ReportPath) id() (uuid.UUID, error) {
 	return id, nil
 }
 
+type reportInput struct {
+	ReportPath
+	Language string `query:"language" maxLength:"16" doc:"Show the click map of one language version (campaigns sent in several languages)"`
+}
+
 type sharePath struct {
 	ReportPath
 	ShareID string `path:"shareId" format:"uuid" doc:"Link id"`
@@ -70,12 +75,12 @@ func Register(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "get-campaign-report", Path: base, Summary: "Campaign report: headline metrics, 72-hour engagement, click map, providers, bounces, unsubscribes, A/B",
 		Description: "Aggregate numbers only. Rates are percentages: delivered and bounces of sent; opens, clicks, unsubscribes and complaints of delivered.",
 		Tags:        tags, Access: view},
-		func(ctx context.Context, in *ReportPath) (*api.Body[CampaignReport], error) {
+		func(ctx context.Context, in *reportInput) (*api.Body[CampaignReport], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.Report(ctx, api.WorkspaceFrom(ctx), id)
+			out, err := s.ReportIn(ctx, api.WorkspaceFrom(ctx), id, in.Language)
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "export-campaign-report", Path: base + "/export.csv", Summary: "Download the report as CSV, one section per table (logged)",

@@ -42,6 +42,11 @@ func (in ApprovalPath) id() (uuid.UUID, error) {
 	return id, nil
 }
 
+type approvalPreviewInput struct {
+	ApprovalPath
+	Language string `query:"language" maxLength:"16" doc:"Preview a language version the approval covers; empty shows the source"`
+}
+
 type listInput struct {
 	api.WorkspaceInput
 	Status   string `query:"status" enum:"pending,approved,changes_requested,rejected,invalidated,all" default:"pending"`
@@ -148,12 +153,12 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "preview-approval", Path: "/workspaces/{workspace}/approvals/{approvalId}/preview", Summary: "The email an approval covers",
 		Tags: tags, Access: api.Workspace(authz.CampaignsView)},
-		func(ctx context.Context, in *ApprovalPath) (*api.Body[ApprovalPreview], error) {
+		func(ctx context.Context, in *approvalPreviewInput) (*api.Body[ApprovalPreview], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.Preview(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
+			out, err := s.PreviewIn(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Language)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "decide-approval", Path: "/workspaces/{workspace}/approvals/{approvalId}/decision", Summary: "Approve, request changes or reject",
