@@ -9,6 +9,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/version"
+	"github.com/hostrepute/reputecast/internal/workspaces"
 )
 
 // MeUser is the signed-in person.
@@ -145,6 +146,9 @@ type WorkspaceMe struct {
 	Unread int64 `json:"unread"`
 	// HostRepute is the sidebar status line ("HostRepute connected · Acme Inc · synced 4 min ago").
 	HostRepute *ShellHostRepute `json:"hostRepute,omitempty"`
+	// HiddenSections are the sections the workspace hides from the sidebar,
+	// the rail, the tab bar and the More sheet (Settings › General).
+	HiddenSections []string `json:"hiddenSections" enum:"transactional,grow,earn"`
 }
 
 // ShellHostRepute summarizes the HostRepute connection for the sidebar.
@@ -165,6 +169,7 @@ func (s *Service) WorkspaceMe(ctx context.Context) (WorkspaceMe, error) {
 		Permissions: p.Permissions.Strings(),
 		Scope:       p.Scope,
 	}
+	out.HiddenSections = workspaces.HiddenSections(ws)
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM workspace_members WHERE workspace_id = $1 AND status = 'active'`, ws.ID).Scan(&out.Workspace.MemberCount)
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM contacts WHERE workspace_id = $1 AND erased_at IS NULL`, ws.ID).Scan(&out.Workspace.Subscribers)
 	if p.Type == "user" {
