@@ -18,8 +18,11 @@ import (
 
 // RouteTestInput asks which provider would send an email.
 type RouteTestInput struct {
-	Stream       string `json:"stream" enum:"broadcast,automation,system"`
-	ListID       string `json:"listId,omitempty"`
+	Stream string `json:"stream" enum:"broadcast,automation,system,transactional"`
+	ListID string `json:"listId,omitempty"`
+	// Template is a transactional template's ID ("password-reset"): its
+	// category decides category conditions.
+	Template     string `json:"template,omitempty" maxLength:"64"`
 	SenderDomain string `json:"senderDomain,omitempty" maxLength:"253"`
 	Email        string `json:"email" minLength:"3" maxLength:"254"`
 	// Draft tests unsaved routing instead of the saved one.
@@ -102,6 +105,11 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 	if in.ListID != "" {
 		rcpt.Lists = []string{in.ListID}
 	}
+	if stream == StreamTransactional && in.Template != "" {
+		if cat, err := s.Q.TxnRouteTemplateCategory(ctx, store.TxnRouteTemplateCategoryParams{WorkspaceID: ws.ID, Key: in.Template}); err == nil && cat != nil {
+			rcpt.Category = cat.String()
+		}
+	}
 	// A known contact carries its mailbox provider (from MX) and lists.
 	if c, err := s.Q.RoutingContact(ctx, store.RoutingContactParams{WorkspaceID: ws.ID, Email: email}); err == nil {
 		if c.MailboxProvider != "" && c.MailboxProvider != Other {
@@ -160,6 +168,14 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 		switch d.Matched {
 		case "mailbox_provider":
 			step.Value = MailboxName(d.MatchedValue)
+		case "category":
+			if cats, err := s.Q.TxnRouteCategories(ctx, ws.ID); err == nil {
+				for _, c := range cats {
+					if c.ID.String() == d.MatchedValue {
+						step.Value = c.Name
+					}
+				}
+			}
 		case "list":
 			if lists, err := s.Q.RoutingLists(ctx, ws.ID); err == nil {
 				for _, l := range lists {
@@ -187,6 +203,13 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 	suppressed, err := s.Q.RoutingIsSuppressed(ctx, store.RoutingIsSuppressedParams{WorkspaceID: ws.ID, Email: email})
 	if err != nil {
 		return RouteTestResult{}, err
+	}
+	if stream == StreamTransactional && suppressed {
+		// Unsubscribes and role addresses are marketing-only: transactional
+		// mail still reaches them.
+		if suppressed, err = s.Q.TxnRouteSuppressedAllMail(ctx, store.TxnRouteSuppressedAllMailParams{WorkspaceID: ws.ID, Email: email}); err != nil {
+			return RouteTestResult{}, err
+		}
 	}
 	out.Suppressed = suppressed
 	out.Steps = append(out.Steps, RouteTestStep{Kind: "suppression", Suppressed: suppressed, Email: email})

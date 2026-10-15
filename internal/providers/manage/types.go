@@ -36,7 +36,7 @@ type ProvidersSummary struct {
 
 // ProviderStreamRole is what a provider does in a stream's routing.
 type ProviderStreamRole struct {
-	Stream string `json:"stream" enum:"broadcast,automation,system"`
+	Stream string `json:"stream" enum:"broadcast,automation,system,transactional"`
 	// Role: primary (100% of the default route), split (a share), fallback,
 	// condition (only some recipients).
 	Role    string `json:"role" enum:"primary,split,fallback,condition"`
@@ -183,7 +183,7 @@ type ProviderCredentialField struct {
 
 // ProviderStreamRoute is one stream in the "Routing per stream" card.
 type ProviderStreamRoute struct {
-	Stream     string               `json:"stream" enum:"broadcast,automation,system"`
+	Stream     string               `json:"stream" enum:"broadcast,automation,system,transactional"`
 	Splits     []ProviderRouteShare `json:"splits"`
 	Fallback   *ProviderRouteShare  `json:"fallback,omitempty"`
 	Conditions int                  `json:"conditions"`
@@ -228,7 +228,7 @@ type ProviderFailoverAlternative struct {
 
 // ProviderOutageStream is how one stream is handling an outage.
 type ProviderOutageStream struct {
-	Stream string `json:"stream" enum:"broadcast,automation,system"`
+	Stream string `json:"stream" enum:"broadcast,automation,system,transactional"`
 	// Role of the down provider in this stream.
 	Role string `json:"role" enum:"primary,split,fallback,condition"`
 	// State: failover_active, waiting (a decision is needed), held (no

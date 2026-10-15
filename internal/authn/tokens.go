@@ -27,11 +27,17 @@ func HashToken(token string) []byte {
 	return sum[:]
 }
 
-// Prefixes of API keys and MCP agent tokens.
+// Prefixes of API keys and MCP agent tokens. Test-mode transactional keys
+// start with rc_test_ and SMTP credentials with rc_smtp_, so a key says
+// what it is wherever it is pasted.
 const (
 	APIKeyPrefix = "rc_live_"
 	AgentPrefix  = "rc_agent_"
+	TestPrefix   = "rc_test_"
+	SMTPPrefix   = "rc_smtp_"
 )
+
+var keyPrefixes = []string{APIKeyPrefix, AgentPrefix, TestPrefix, SMTPPrefix}
 
 // NewAPIKey returns a new key such as rc_live_8f2c…a91d (64 hex chars after
 // the prefix), its hash, and the masked form shown in lists.
@@ -47,7 +53,7 @@ func NewAPIKey(prefix string) (key string, hash []byte, masked string) {
 
 // MaskAPIKey shows the prefix, the first 4 and the last 4 characters.
 func MaskAPIKey(key string) string {
-	for _, p := range []string{APIKeyPrefix, AgentPrefix} {
+	for _, p := range keyPrefixes {
 		if strings.HasPrefix(key, p) {
 			body := key[len(p):]
 			if len(body) <= 8 {
@@ -61,7 +67,12 @@ func MaskAPIKey(key string) string {
 
 // LooksLikeAPIKey reports whether a bearer token has an API key or agent prefix.
 func LooksLikeAPIKey(s string) bool {
-	return strings.HasPrefix(s, APIKeyPrefix) || strings.HasPrefix(s, AgentPrefix)
+	for _, p := range keyPrefixes {
+		if strings.HasPrefix(s, p) {
+			return true
+		}
+	}
+	return false
 }
 
 // EqualHash compares two hashes in constant time.

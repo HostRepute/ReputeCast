@@ -56,6 +56,11 @@ func Validate(set Set, facts map[uuid.UUID]Facts) []RoutingIssue {
 		st := string(stream)
 		rules := set.StreamRules(stream)
 		def, hasDefault := set.Default(stream)
+		if !hasDefault && stream == StreamTransactional && len(rules) == 0 {
+			// Transactional is optional: a workspace that sends no product
+			// mail has no route for it.
+			continue
+		}
 		if !hasDefault {
 			issues = append(issues, RoutingIssue{Code: IssueNoRoute, Stream: st, Field: "splits", Message: streamName(stream) + " has no primary provider.", Blocking: true})
 			continue
@@ -152,6 +157,8 @@ func streamName(s providers.Stream) string {
 		return "Broadcasts"
 	case providers.StreamAutomation:
 		return "Automations"
+	case StreamTransactional:
+		return "Transactional"
 	}
 	return "System"
 }
