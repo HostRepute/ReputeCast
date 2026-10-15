@@ -23,11 +23,13 @@ import (
 // ApprovalListItem is one row of the approval inbox.
 type ApprovalListItem struct {
 	ID          string `json:"id"`
-	SubjectType string `json:"subjectType" enum:"campaign,automation"`
+	SubjectType string `json:"subjectType" enum:"campaign,automation,transactional_template"`
 	CampaignID  string `json:"campaignId,omitempty"`
 	// AutomationID is set for automation publish requests.
 	AutomationID string `json:"automationId,omitempty"`
-	Name         string `json:"name"`
+	// TransactionalTemplateID is set for transactional template publish requests.
+	TransactionalTemplateID string `json:"transactionalTemplateId,omitempty"`
+	Name                    string `json:"name"`
 	// Rules is "rules: audience ≥ 10,000 · warming-up provider".
 	Rules    string         `json:"rules"`
 	Author   ApprovalPerson `json:"author"`
@@ -164,6 +166,9 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		}
 		if r.AutomationID != nil {
 			it.AutomationID = r.AutomationID.String()
+		}
+		if r.TransactionalTemplateID != nil {
+			it.TransactionalTemplateID = r.TransactionalTemplateID.String()
 		}
 		if t, err := time.Parse(time.RFC3339, sched.At); err == nil && sched.Mode != "now" {
 			it.ScheduleAt = &t
@@ -327,6 +332,8 @@ type ApprovalDetail struct {
 	Route      *ApprovalRouteView          `json:"route,omitempty"`
 	Schedule   *ApprovalScheduleView       `json:"schedule,omitempty"`
 	Automation *ApprovalAutomationSnapshot `json:"automation,omitempty"`
+	// Transactional is what a transactional template publish request covers.
+	Transactional *ApprovalTransactionalSnapshot `json:"transactional,omitempty"`
 	// ChangesSince lists what changed since the previous request this one
 	// follows (empty for a first request).
 	ChangesSince []ApprovalChange `json:"changesSince"`
@@ -370,7 +377,7 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	snap := ParseSnapshot(r.Snapshot)
 	out := ApprovalDetail{ApprovalRequestView: view, Name: r.SubjectName, Author: view.RequestedBy, Approvers: []ApprovalPerson{}, ChangesSince: []ApprovalChange{},
-		Comments: []ApprovalCommentView{}, Automation: snap.Automation}
+		Comments: []ApprovalCommentView{}, Automation: snap.Automation, Transactional: snap.Transactional}
 	out.Author.Role = firstNonEmptyStr(snap.AuthorRole, out.Author.Role)
 	for _, a := range approversOf(ms) {
 		out.Approvers = append(out.Approvers, s.person(a))

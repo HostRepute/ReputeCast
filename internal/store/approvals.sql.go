@@ -262,13 +262,13 @@ func (q *Queries) ApprovalDecisions(ctx context.Context, requestIds []uuid.UUID)
 }
 
 const approvalGet = `-- name: ApprovalGet :one
-SELECT r.id, r.workspace_id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.requested_at, r.note, r.status, r.matched_rules, r.approvals_required, r.snapshot, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason, r.decided_at, r.campaign_version, r.readiness_run_id, r.decided_by, r.invalidated_by, r.reminded_at, r.previous_id, r.invalidated_from,
+SELECT r.id, r.workspace_id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.requested_at, r.note, r.status, r.matched_rules, r.approvals_required, r.snapshot, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason, r.decided_at, r.campaign_version, r.readiness_run_id, r.decided_by, r.invalidated_by, r.reminded_at, r.previous_id, r.invalidated_from, r.transactional_template_id,
        coalesce(u.name, '')::text AS requested_by_name,
        coalesce(u.email, '')::text AS requested_by_email,
        coalesce(u.avatar_color, '')::text AS requested_by_color,
        coalesce(d.name, '')::text AS decided_by_name,
        coalesce(i.name, '')::text AS invalidated_by_name,
-       coalesce(c.name, a.name, '')::text AS subject_name,
+       coalesce(c.name, a.name, t.name, '')::text AS subject_name,
        coalesce(c.status, '')::text AS campaign_status,
        c.scheduled_at AS campaign_scheduled_at,
        c.started_at AS campaign_started_at,
@@ -279,6 +279,7 @@ LEFT JOIN users d ON d.id = r.decided_by
 LEFT JOIN users i ON i.id = r.invalidated_by
 LEFT JOIN campaigns c ON c.id = r.campaign_id
 LEFT JOIN automations a ON a.id = r.automation_id
+LEFT JOIN transactional_templates t ON t.id = r.transactional_template_id
 WHERE r.workspace_id = $1 AND r.id = $2
 `
 
@@ -288,40 +289,41 @@ type ApprovalGetParams struct {
 }
 
 type ApprovalGetRow struct {
-	ID                     uuid.UUID       `json:"id"`
-	WorkspaceID            uuid.UUID       `json:"workspaceId"`
-	SubjectType            string          `json:"subjectType"`
-	CampaignID             *uuid.UUID      `json:"campaignId"`
-	AutomationID           *uuid.UUID      `json:"automationId"`
-	RequestedBy            *uuid.UUID      `json:"requestedBy"`
-	RequestedAt            time.Time       `json:"requestedAt"`
-	Note                   string          `json:"note"`
-	Status                 string          `json:"status"`
-	MatchedRules           []string        `json:"matchedRules"`
-	ApprovalsRequired      int32           `json:"approvalsRequired"`
-	Snapshot               json.RawMessage `json:"snapshot"`
-	InvalidatedAt          *time.Time      `json:"invalidatedAt"`
-	InvalidatedReason      string          `json:"invalidatedReason"`
-	Changes                json.RawMessage `json:"changes"`
-	BypassReason           string          `json:"bypassReason"`
-	DecidedAt              *time.Time      `json:"decidedAt"`
-	CampaignVersion        *int32          `json:"campaignVersion"`
-	ReadinessRunID         *uuid.UUID      `json:"readinessRunId"`
-	DecidedBy              *uuid.UUID      `json:"decidedBy"`
-	InvalidatedBy          *uuid.UUID      `json:"invalidatedBy"`
-	RemindedAt             *time.Time      `json:"remindedAt"`
-	PreviousID             *uuid.UUID      `json:"previousId"`
-	InvalidatedFrom        string          `json:"invalidatedFrom"`
-	RequestedByName        string          `json:"requestedByName"`
-	RequestedByEmail       string          `json:"requestedByEmail"`
-	RequestedByColor       string          `json:"requestedByColor"`
-	DecidedByName          string          `json:"decidedByName"`
-	InvalidatedByName      string          `json:"invalidatedByName"`
-	SubjectName            string          `json:"subjectName"`
-	CampaignStatus         string          `json:"campaignStatus"`
-	CampaignScheduledAt    *time.Time      `json:"campaignScheduledAt"`
-	CampaignStartedAt      *time.Time      `json:"campaignStartedAt"`
-	CampaignCurrentVersion int32           `json:"campaignCurrentVersion"`
+	ID                      uuid.UUID       `json:"id"`
+	WorkspaceID             uuid.UUID       `json:"workspaceId"`
+	SubjectType             string          `json:"subjectType"`
+	CampaignID              *uuid.UUID      `json:"campaignId"`
+	AutomationID            *uuid.UUID      `json:"automationId"`
+	RequestedBy             *uuid.UUID      `json:"requestedBy"`
+	RequestedAt             time.Time       `json:"requestedAt"`
+	Note                    string          `json:"note"`
+	Status                  string          `json:"status"`
+	MatchedRules            []string        `json:"matchedRules"`
+	ApprovalsRequired       int32           `json:"approvalsRequired"`
+	Snapshot                json.RawMessage `json:"snapshot"`
+	InvalidatedAt           *time.Time      `json:"invalidatedAt"`
+	InvalidatedReason       string          `json:"invalidatedReason"`
+	Changes                 json.RawMessage `json:"changes"`
+	BypassReason            string          `json:"bypassReason"`
+	DecidedAt               *time.Time      `json:"decidedAt"`
+	CampaignVersion         *int32          `json:"campaignVersion"`
+	ReadinessRunID          *uuid.UUID      `json:"readinessRunId"`
+	DecidedBy               *uuid.UUID      `json:"decidedBy"`
+	InvalidatedBy           *uuid.UUID      `json:"invalidatedBy"`
+	RemindedAt              *time.Time      `json:"remindedAt"`
+	PreviousID              *uuid.UUID      `json:"previousId"`
+	InvalidatedFrom         string          `json:"invalidatedFrom"`
+	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
+	RequestedByName         string          `json:"requestedByName"`
+	RequestedByEmail        string          `json:"requestedByEmail"`
+	RequestedByColor        string          `json:"requestedByColor"`
+	DecidedByName           string          `json:"decidedByName"`
+	InvalidatedByName       string          `json:"invalidatedByName"`
+	SubjectName             string          `json:"subjectName"`
+	CampaignStatus          string          `json:"campaignStatus"`
+	CampaignScheduledAt     *time.Time      `json:"campaignScheduledAt"`
+	CampaignStartedAt       *time.Time      `json:"campaignStartedAt"`
+	CampaignCurrentVersion  int32           `json:"campaignCurrentVersion"`
 }
 
 func (q *Queries) ApprovalGet(ctx context.Context, arg ApprovalGetParams) (ApprovalGetRow, error) {
@@ -352,6 +354,7 @@ func (q *Queries) ApprovalGet(ctx context.Context, arg ApprovalGetParams) (Appro
 		&i.RemindedAt,
 		&i.PreviousID,
 		&i.InvalidatedFrom,
+		&i.TransactionalTemplateID,
 		&i.RequestedByName,
 		&i.RequestedByEmail,
 		&i.RequestedByColor,
@@ -482,28 +485,31 @@ func (q *Queries) ApprovalInsertHold(ctx context.Context, arg ApprovalInsertHold
 
 const approvalInsertRequest = `-- name: ApprovalInsertRequest :exec
 INSERT INTO approval_requests (id, workspace_id, subject_type, campaign_id, automation_id, requested_by, requested_at, note, status,
-                               matched_rules, approvals_required, snapshot, campaign_version, readiness_run_id, previous_id, bypass_reason)
+                               matched_rules, approvals_required, snapshot, campaign_version, readiness_run_id, previous_id, bypass_reason,
+                               transactional_template_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-        $10, $11, $12, $13, $14, $15, $16)
+        $10, $11, $12, $13, $14, $15, $16,
+        $17)
 `
 
 type ApprovalInsertRequestParams struct {
-	ID                uuid.UUID       `json:"id"`
-	WorkspaceID       uuid.UUID       `json:"workspaceId"`
-	SubjectType       string          `json:"subjectType"`
-	CampaignID        *uuid.UUID      `json:"campaignId"`
-	AutomationID      *uuid.UUID      `json:"automationId"`
-	RequestedBy       *uuid.UUID      `json:"requestedBy"`
-	RequestedAt       time.Time       `json:"requestedAt"`
-	Note              string          `json:"note"`
-	Status            string          `json:"status"`
-	MatchedRules      []string        `json:"matchedRules"`
-	ApprovalsRequired int32           `json:"approvalsRequired"`
-	Snapshot          json.RawMessage `json:"snapshot"`
-	CampaignVersion   *int32          `json:"campaignVersion"`
-	ReadinessRunID    *uuid.UUID      `json:"readinessRunId"`
-	PreviousID        *uuid.UUID      `json:"previousId"`
-	BypassReason      string          `json:"bypassReason"`
+	ID                      uuid.UUID       `json:"id"`
+	WorkspaceID             uuid.UUID       `json:"workspaceId"`
+	SubjectType             string          `json:"subjectType"`
+	CampaignID              *uuid.UUID      `json:"campaignId"`
+	AutomationID            *uuid.UUID      `json:"automationId"`
+	RequestedBy             *uuid.UUID      `json:"requestedBy"`
+	RequestedAt             time.Time       `json:"requestedAt"`
+	Note                    string          `json:"note"`
+	Status                  string          `json:"status"`
+	MatchedRules            []string        `json:"matchedRules"`
+	ApprovalsRequired       int32           `json:"approvalsRequired"`
+	Snapshot                json.RawMessage `json:"snapshot"`
+	CampaignVersion         *int32          `json:"campaignVersion"`
+	ReadinessRunID          *uuid.UUID      `json:"readinessRunId"`
+	PreviousID              *uuid.UUID      `json:"previousId"`
+	BypassReason            string          `json:"bypassReason"`
+	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
 }
 
 func (q *Queries) ApprovalInsertRequest(ctx context.Context, arg ApprovalInsertRequestParams) error {
@@ -524,6 +530,7 @@ func (q *Queries) ApprovalInsertRequest(ctx context.Context, arg ApprovalInsertR
 		arg.ReadinessRunID,
 		arg.PreviousID,
 		arg.BypassReason,
+		arg.TransactionalTemplateID,
 	)
 	return err
 }
@@ -589,7 +596,7 @@ func (q *Queries) ApprovalLastAudit(ctx context.Context, arg ApprovalLastAuditPa
 }
 
 const approvalLatestForCampaign = `-- name: ApprovalLatestForCampaign :one
-SELECT r.id, r.workspace_id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.requested_at, r.note, r.status, r.matched_rules, r.approvals_required, r.snapshot, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason, r.decided_at, r.campaign_version, r.readiness_run_id, r.decided_by, r.invalidated_by, r.reminded_at, r.previous_id, r.invalidated_from,
+SELECT r.id, r.workspace_id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.requested_at, r.note, r.status, r.matched_rules, r.approvals_required, r.snapshot, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason, r.decided_at, r.campaign_version, r.readiness_run_id, r.decided_by, r.invalidated_by, r.reminded_at, r.previous_id, r.invalidated_from, r.transactional_template_id,
        coalesce(u.name, '')::text AS requested_by_name,
        coalesce(d.name, '')::text AS decided_by_name,
        coalesce(i.name, '')::text AS invalidated_by_name
@@ -602,33 +609,34 @@ ORDER BY r.requested_at DESC LIMIT 1
 `
 
 type ApprovalLatestForCampaignRow struct {
-	ID                uuid.UUID       `json:"id"`
-	WorkspaceID       uuid.UUID       `json:"workspaceId"`
-	SubjectType       string          `json:"subjectType"`
-	CampaignID        *uuid.UUID      `json:"campaignId"`
-	AutomationID      *uuid.UUID      `json:"automationId"`
-	RequestedBy       *uuid.UUID      `json:"requestedBy"`
-	RequestedAt       time.Time       `json:"requestedAt"`
-	Note              string          `json:"note"`
-	Status            string          `json:"status"`
-	MatchedRules      []string        `json:"matchedRules"`
-	ApprovalsRequired int32           `json:"approvalsRequired"`
-	Snapshot          json.RawMessage `json:"snapshot"`
-	InvalidatedAt     *time.Time      `json:"invalidatedAt"`
-	InvalidatedReason string          `json:"invalidatedReason"`
-	Changes           json.RawMessage `json:"changes"`
-	BypassReason      string          `json:"bypassReason"`
-	DecidedAt         *time.Time      `json:"decidedAt"`
-	CampaignVersion   *int32          `json:"campaignVersion"`
-	ReadinessRunID    *uuid.UUID      `json:"readinessRunId"`
-	DecidedBy         *uuid.UUID      `json:"decidedBy"`
-	InvalidatedBy     *uuid.UUID      `json:"invalidatedBy"`
-	RemindedAt        *time.Time      `json:"remindedAt"`
-	PreviousID        *uuid.UUID      `json:"previousId"`
-	InvalidatedFrom   string          `json:"invalidatedFrom"`
-	RequestedByName   string          `json:"requestedByName"`
-	DecidedByName     string          `json:"decidedByName"`
-	InvalidatedByName string          `json:"invalidatedByName"`
+	ID                      uuid.UUID       `json:"id"`
+	WorkspaceID             uuid.UUID       `json:"workspaceId"`
+	SubjectType             string          `json:"subjectType"`
+	CampaignID              *uuid.UUID      `json:"campaignId"`
+	AutomationID            *uuid.UUID      `json:"automationId"`
+	RequestedBy             *uuid.UUID      `json:"requestedBy"`
+	RequestedAt             time.Time       `json:"requestedAt"`
+	Note                    string          `json:"note"`
+	Status                  string          `json:"status"`
+	MatchedRules            []string        `json:"matchedRules"`
+	ApprovalsRequired       int32           `json:"approvalsRequired"`
+	Snapshot                json.RawMessage `json:"snapshot"`
+	InvalidatedAt           *time.Time      `json:"invalidatedAt"`
+	InvalidatedReason       string          `json:"invalidatedReason"`
+	Changes                 json.RawMessage `json:"changes"`
+	BypassReason            string          `json:"bypassReason"`
+	DecidedAt               *time.Time      `json:"decidedAt"`
+	CampaignVersion         *int32          `json:"campaignVersion"`
+	ReadinessRunID          *uuid.UUID      `json:"readinessRunId"`
+	DecidedBy               *uuid.UUID      `json:"decidedBy"`
+	InvalidatedBy           *uuid.UUID      `json:"invalidatedBy"`
+	RemindedAt              *time.Time      `json:"remindedAt"`
+	PreviousID              *uuid.UUID      `json:"previousId"`
+	InvalidatedFrom         string          `json:"invalidatedFrom"`
+	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
+	RequestedByName         string          `json:"requestedByName"`
+	DecidedByName           string          `json:"decidedByName"`
+	InvalidatedByName       string          `json:"invalidatedByName"`
 }
 
 // The most recent request of a campaign (bypass records aside).
@@ -660,6 +668,7 @@ func (q *Queries) ApprovalLatestForCampaign(ctx context.Context, campaignID *uui
 		&i.RemindedAt,
 		&i.PreviousID,
 		&i.InvalidatedFrom,
+		&i.TransactionalTemplateID,
 		&i.RequestedByName,
 		&i.DecidedByName,
 		&i.InvalidatedByName,
@@ -668,7 +677,7 @@ func (q *Queries) ApprovalLatestForCampaign(ctx context.Context, campaignID *uui
 }
 
 const approvalList = `-- name: ApprovalList :many
-SELECT r.id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.requested_at, r.status, r.matched_rules, r.approvals_required,
+SELECT r.id, r.subject_type, r.campaign_id, r.automation_id, r.transactional_template_id, r.requested_by, r.requested_at, r.status, r.matched_rules, r.approvals_required,
        r.decided_at, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason,
        coalesce((r.snapshot ->> 'audience_count')::bigint, 0)::bigint AS audience_count,
        coalesce(r.snapshot -> 'route', '[]'::jsonb)::jsonb AS route,
@@ -679,7 +688,7 @@ SELECT r.id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.r
        coalesce(u.email, '')::text AS requested_by_email,
        coalesce(u.avatar_color, '')::text AS requested_by_color,
        coalesce(d.name, '')::text AS decided_by_name,
-       coalesce(c.name, a.name, '')::text AS subject_name,
+       coalesce(c.name, a.name, t.name, '')::text AS subject_name,
        coalesce(c.status, '')::text AS campaign_status,
        c.scheduled_at AS campaign_scheduled_at,
        c.started_at AS campaign_started_at,
@@ -689,6 +698,7 @@ LEFT JOIN users u ON u.id = r.requested_by
 LEFT JOIN users d ON d.id = r.decided_by
 LEFT JOIN campaigns c ON c.id = r.campaign_id
 LEFT JOIN automations a ON a.id = r.automation_id
+LEFT JOIN transactional_templates t ON t.id = r.transactional_template_id
 WHERE r.workspace_id = $1 AND r.status <> 'bypassed'
   AND ($2::boolean OR r.requested_by = $3::uuid)
   AND r.requested_at >= $4::timestamptz
@@ -712,34 +722,35 @@ type ApprovalListParams struct {
 }
 
 type ApprovalListRow struct {
-	ID                  uuid.UUID       `json:"id"`
-	SubjectType         string          `json:"subjectType"`
-	CampaignID          *uuid.UUID      `json:"campaignId"`
-	AutomationID        *uuid.UUID      `json:"automationId"`
-	RequestedBy         *uuid.UUID      `json:"requestedBy"`
-	RequestedAt         time.Time       `json:"requestedAt"`
-	Status              string          `json:"status"`
-	MatchedRules        []string        `json:"matchedRules"`
-	ApprovalsRequired   int32           `json:"approvalsRequired"`
-	DecidedAt           *time.Time      `json:"decidedAt"`
-	InvalidatedAt       *time.Time      `json:"invalidatedAt"`
-	InvalidatedReason   string          `json:"invalidatedReason"`
-	Changes             json.RawMessage `json:"changes"`
-	BypassReason        string          `json:"bypassReason"`
-	AudienceCount       int64           `json:"audienceCount"`
-	Route               json.RawMessage `json:"route"`
-	Schedule            json.RawMessage `json:"schedule"`
-	Rules               json.RawMessage `json:"rules"`
-	Subject             string          `json:"subject"`
-	RequestedByName     string          `json:"requestedByName"`
-	RequestedByEmail    string          `json:"requestedByEmail"`
-	RequestedByColor    string          `json:"requestedByColor"`
-	DecidedByName       string          `json:"decidedByName"`
-	SubjectName         string          `json:"subjectName"`
-	CampaignStatus      string          `json:"campaignStatus"`
-	CampaignScheduledAt *time.Time      `json:"campaignScheduledAt"`
-	CampaignStartedAt   *time.Time      `json:"campaignStartedAt"`
-	LastComment         string          `json:"lastComment"`
+	ID                      uuid.UUID       `json:"id"`
+	SubjectType             string          `json:"subjectType"`
+	CampaignID              *uuid.UUID      `json:"campaignId"`
+	AutomationID            *uuid.UUID      `json:"automationId"`
+	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
+	RequestedBy             *uuid.UUID      `json:"requestedBy"`
+	RequestedAt             time.Time       `json:"requestedAt"`
+	Status                  string          `json:"status"`
+	MatchedRules            []string        `json:"matchedRules"`
+	ApprovalsRequired       int32           `json:"approvalsRequired"`
+	DecidedAt               *time.Time      `json:"decidedAt"`
+	InvalidatedAt           *time.Time      `json:"invalidatedAt"`
+	InvalidatedReason       string          `json:"invalidatedReason"`
+	Changes                 json.RawMessage `json:"changes"`
+	BypassReason            string          `json:"bypassReason"`
+	AudienceCount           int64           `json:"audienceCount"`
+	Route                   json.RawMessage `json:"route"`
+	Schedule                json.RawMessage `json:"schedule"`
+	Rules                   json.RawMessage `json:"rules"`
+	Subject                 string          `json:"subject"`
+	RequestedByName         string          `json:"requestedByName"`
+	RequestedByEmail        string          `json:"requestedByEmail"`
+	RequestedByColor        string          `json:"requestedByColor"`
+	DecidedByName           string          `json:"decidedByName"`
+	SubjectName             string          `json:"subjectName"`
+	CampaignStatus          string          `json:"campaignStatus"`
+	CampaignScheduledAt     *time.Time      `json:"campaignScheduledAt"`
+	CampaignStartedAt       *time.Time      `json:"campaignStartedAt"`
+	LastComment             string          `json:"lastComment"`
 }
 
 // The approval inbox. Approvers see every request; others only their own.
@@ -765,6 +776,7 @@ func (q *Queries) ApprovalList(ctx context.Context, arg ApprovalListParams) ([]A
 			&i.SubjectType,
 			&i.CampaignID,
 			&i.AutomationID,
+			&i.TransactionalTemplateID,
 			&i.RequestedBy,
 			&i.RequestedAt,
 			&i.Status,
@@ -801,7 +813,7 @@ func (q *Queries) ApprovalList(ctx context.Context, arg ApprovalListParams) ([]A
 }
 
 const approvalLock = `-- name: ApprovalLock :one
-SELECT id, workspace_id, subject_type, campaign_id, automation_id, requested_by, requested_at, note, status, matched_rules, approvals_required, snapshot, invalidated_at, invalidated_reason, changes, bypass_reason, decided_at, campaign_version, readiness_run_id, decided_by, invalidated_by, reminded_at, previous_id, invalidated_from FROM approval_requests WHERE workspace_id = $1 AND id = $2 FOR UPDATE
+SELECT id, workspace_id, subject_type, campaign_id, automation_id, requested_by, requested_at, note, status, matched_rules, approvals_required, snapshot, invalidated_at, invalidated_reason, changes, bypass_reason, decided_at, campaign_version, readiness_run_id, decided_by, invalidated_by, reminded_at, previous_id, invalidated_from, transactional_template_id FROM approval_requests WHERE workspace_id = $1 AND id = $2 FOR UPDATE
 `
 
 type ApprovalLockParams struct {
@@ -837,6 +849,7 @@ func (q *Queries) ApprovalLock(ctx context.Context, arg ApprovalLockParams) (App
 		&i.RemindedAt,
 		&i.PreviousID,
 		&i.InvalidatedFrom,
+		&i.TransactionalTemplateID,
 	)
 	return i, err
 }
@@ -969,7 +982,7 @@ func (q *Queries) ApprovalMembers(ctx context.Context, workspaceID uuid.UUID) ([
 }
 
 const approvalOpenForCampaign = `-- name: ApprovalOpenForCampaign :one
-SELECT id, workspace_id, subject_type, campaign_id, automation_id, requested_by, requested_at, note, status, matched_rules, approvals_required, snapshot, invalidated_at, invalidated_reason, changes, bypass_reason, decided_at, campaign_version, readiness_run_id, decided_by, invalidated_by, reminded_at, previous_id, invalidated_from FROM approval_requests WHERE campaign_id = $1 AND status IN ('pending', 'approved')
+SELECT id, workspace_id, subject_type, campaign_id, automation_id, requested_by, requested_at, note, status, matched_rules, approvals_required, snapshot, invalidated_at, invalidated_reason, changes, bypass_reason, decided_at, campaign_version, readiness_run_id, decided_by, invalidated_by, reminded_at, previous_id, invalidated_from, transactional_template_id FROM approval_requests WHERE campaign_id = $1 AND status IN ('pending', 'approved')
 ORDER BY requested_at DESC LIMIT 1
 `
 
@@ -1002,6 +1015,7 @@ func (q *Queries) ApprovalOpenForCampaign(ctx context.Context, campaignID *uuid.
 		&i.RemindedAt,
 		&i.PreviousID,
 		&i.InvalidatedFrom,
+		&i.TransactionalTemplateID,
 	)
 	return i, err
 }
@@ -1086,7 +1100,7 @@ func (q *Queries) ApprovalPauseAlertsSlack(ctx context.Context, workspaceID uuid
 
 const approvalPendingForWorkspace = `-- name: ApprovalPendingForWorkspace :many
 SELECT r.id, r.requested_at, coalesce((r.snapshot ->> 'audience_count')::bigint, 0)::bigint AS audience_count,
-       coalesce(c.name, a.name, '')::text AS subject_name,
+       coalesce(c.name, a.name, t.name, '')::text AS subject_name,
        coalesce(u.name, '')::text AS requested_by_name,
        coalesce(u.email, '')::text AS requested_by_email,
        coalesce(u.avatar_color, '')::text AS requested_by_color
@@ -1094,6 +1108,7 @@ FROM approval_requests r
 LEFT JOIN users u ON u.id = r.requested_by
 LEFT JOIN campaigns c ON c.id = r.campaign_id
 LEFT JOIN automations a ON a.id = r.automation_id
+LEFT JOIN transactional_templates t ON t.id = r.transactional_template_id
 WHERE r.workspace_id = $1 AND r.status = 'pending'
 ORDER BY r.requested_at DESC
 `

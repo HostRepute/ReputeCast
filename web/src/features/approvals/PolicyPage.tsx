@@ -14,6 +14,8 @@ import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { AccessTable, PersonCell } from '@/features/access/parts'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
+import { m as txApproval } from '@/features/transactional-templates/approval.messages'
+import { useT } from '@/i18n'
 import './approvals.css'
 
 type Policy = Schemas['ApprovalPolicy']
@@ -41,6 +43,7 @@ export function PolicyPage() {
 
 function PolicyForm({ view }: { view: View }) {
   const { slug } = useWorkspace()
+  const t = useT()
   const qc = useQueryClient()
   const [p, setP] = useState<Policy>(view.policy)
   const [nText, setNText] = useState(count(view.policy.audienceMin.n))
@@ -189,6 +192,15 @@ function PolicyForm({ view }: { view: View }) {
                   onChange={(v) => set({ automationPublish: v })}
                   title="Publishing an automation also requires approval"
                   detail="Applies to automations:publish. Off: publishing is logged only."
+                />
+              </div>
+              <div className="border-t border-line-2 pt-2.5">
+                <Rule
+                  on={p.transactionalPublish}
+                  disabled={read}
+                  onChange={(v) => set({ transactionalPublish: v })}
+                  title={t(txApproval.ruleTitle)}
+                  detail={t(txApproval.ruleDetail)}
                 />
               </div>
             </div>

@@ -39,6 +39,9 @@ type Service struct {
 	Sending func() sending.Starter
 	// Automations publishes an automation once its approval is granted.
 	Automations *automations.Service
+	// TransactionalTemplates describes what publishing a transactional
+	// template would change, for its approval request.
+	TransactionalTemplates TransactionalTemplates
 }
 
 func (s *Service) now() time.Time {

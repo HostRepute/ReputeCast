@@ -53,6 +53,10 @@ type Snapshot struct {
 	AuthorRole string `json:"author_role"`
 
 	Automation *ApprovalAutomationSnapshot `json:"automation,omitempty"`
+	// DraftHash and Transactional: what a transactional template publish
+	// request covers (one draft of the template).
+	DraftHash     string                         `json:"draft_hash,omitempty"`
+	Transactional *ApprovalTransactionalSnapshot `json:"transactional,omitempty"`
 }
 
 // SnapshotShare is one provider of the route at request time.

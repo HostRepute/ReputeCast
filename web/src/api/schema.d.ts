@@ -5879,6 +5879,27 @@ export interface paths {
         patch: operations["update-transactional-template"];
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether publishing the draft needs approval, and its latest request */
+        get: operations["get-transactional-template-approval"];
+        put?: never;
+        /**
+         * Ask for approval to publish the draft
+         * @description When the workspace's rule is on. The request covers the draft as it is; a changed draft needs a new request. Approvers are notified.
+         */
+        post: operations["request-transactional-template-approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/templates/{template}/archive": {
         parameters: {
             query?: never;
@@ -6954,7 +6975,8 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation";
+            subjectType: "campaign" | "automation" | "transactional_template";
+            transactional?: components["schemas"]["ApprovalTransactionalSnapshot"];
             /** Format: int64 */
             version: number;
         };
@@ -6998,7 +7020,8 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation";
+            subjectType: "campaign" | "automation" | "transactional_template";
+            transactionalTemplateId?: string;
         };
         ApprovalPendingItem: {
             /** Format: int64 */
@@ -7029,6 +7052,7 @@ export interface components {
             /** Format: int64 */
             newProviderDays: number;
             readyWithWarnings: boolean;
+            transactionalPublish: boolean;
             warmingProvider: boolean;
         };
         ApprovalPolicyMatches: {
@@ -7109,7 +7133,7 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation";
+            subjectType: "campaign" | "automation" | "transactional_template";
             /** Format: int64 */
             version: number;
         };
@@ -7124,7 +7148,7 @@ export interface components {
             author?: string;
             badge: string;
             /** @enum {string} */
-            key: "audience_min" | "warming_provider" | "new_provider" | "ready_with_warnings" | "author_lacks_send" | "approval_lists" | "automation_publish";
+            key: "audience_min" | "warming_provider" | "new_provider" | "ready_with_warnings" | "author_lacks_send" | "approval_lists" | "automation_publish" | "transactional_publish";
             label: string;
             role?: string;
             short: string;
@@ -7169,6 +7193,34 @@ export interface components {
             timezone?: string;
             /** Format: int64 */
             version: number;
+        };
+        ApprovalTransactionalSnapshot: {
+            breaking?: string;
+            category: string;
+            contentSummary: string;
+            /** Format: int64 */
+            draftRevision: number;
+            key: string;
+            /** Format: int64 */
+            liveVersion?: number;
+            name: string;
+            /** Format: int64 */
+            passed: number;
+            /** Format: int64 */
+            published_version?: number;
+            subjectAfter?: string;
+            subjectBefore?: string;
+            templateId: string;
+            testRenders: components["schemas"]["ApprovalTransactionalTestRender"][];
+            variables: string[];
+            /** Format: int64 */
+            version: number;
+            /** Format: int64 */
+            warnings: number;
+        };
+        ApprovalTransactionalTestRender: {
+            name: string;
+            ok: boolean;
         };
         ArchiveIssueInput: {
             /** @description Empty uses the preheader */
@@ -15108,6 +15160,28 @@ export interface components {
             email: string;
             /** @example Sam Rivera */
             name?: string;
+        };
+        TransactionalApprovalInput: {
+            /** @description Shown to the approvers */
+            note?: string;
+        };
+        TransactionalApprovalState: {
+            approvers: string[];
+            canRequest: boolean;
+            comment?: string;
+            coversDraft: boolean;
+            /** Format: date-time */
+            decidedAt?: string;
+            decidedBy?: string;
+            note?: string;
+            requestId?: string;
+            requestReason?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            requestedBy?: string;
+            required: boolean;
+            /** @enum {string} */
+            status: "none" | "pending" | "approved" | "changes_requested" | "rejected";
         };
         TransactionalBreakingChange: {
             breaking: components["schemas"]["TransactionalBreakingVariable"][];
@@ -30198,6 +30272,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransactionalTemplate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-transactional-template-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID or UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalApprovalState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "request-transactional-template-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID or UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalApprovalInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalApprovalState"];
                 };
             };
             /** @description Error */

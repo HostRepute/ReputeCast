@@ -1462,6 +1462,16 @@ type Querier interface {
 	// last_open_at counts every open, last_human_open_at only people's (tiers
 	// and the sunset policy use it); last_open_machine says what the latest was.
 	TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error
+	// A newer draft replaces the request for an older one.
+	TxnApprovalCancelPending(ctx context.Context, arg TxnApprovalCancelPendingParams) error
+	// The approved request that covers a draft, if any.
+	TxnApprovalForHash(ctx context.Context, arg TxnApprovalForHashParams) (uuid.UUID, error)
+	// Approvals for publishing transactional templates (add-on transactional §3.6).
+	// The latest request about a template, pending first.
+	TxnApprovalLatest(ctx context.Context, templateID *uuid.UUID) (TxnApprovalLatestRow, error)
+	// The approved request a publish relied on remembers the version it made live.
+	TxnApprovalMarkPublished(ctx context.Context, arg TxnApprovalMarkPublishedParams) error
+	TxnApprovalPending(ctx context.Context, templateID *uuid.UUID) (TxnApprovalPendingRow, error)
 	// Categories with their template counts and opt-outs.
 	TxnCategories(ctx context.Context, workspaceID uuid.UUID) ([]TxnCategoriesRow, error)
 	TxnCategory(ctx context.Context, arg TxnCategoryParams) (TransactionalCategory, error)

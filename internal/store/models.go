@@ -84,30 +84,31 @@ type ApprovalDecision struct {
 }
 
 type ApprovalRequest struct {
-	ID                uuid.UUID       `json:"id"`
-	WorkspaceID       uuid.UUID       `json:"workspaceId"`
-	SubjectType       string          `json:"subjectType"`
-	CampaignID        *uuid.UUID      `json:"campaignId"`
-	AutomationID      *uuid.UUID      `json:"automationId"`
-	RequestedBy       *uuid.UUID      `json:"requestedBy"`
-	RequestedAt       time.Time       `json:"requestedAt"`
-	Note              string          `json:"note"`
-	Status            string          `json:"status"`
-	MatchedRules      []string        `json:"matchedRules"`
-	ApprovalsRequired int32           `json:"approvalsRequired"`
-	Snapshot          json.RawMessage `json:"snapshot"`
-	InvalidatedAt     *time.Time      `json:"invalidatedAt"`
-	InvalidatedReason string          `json:"invalidatedReason"`
-	Changes           json.RawMessage `json:"changes"`
-	BypassReason      string          `json:"bypassReason"`
-	DecidedAt         *time.Time      `json:"decidedAt"`
-	CampaignVersion   *int32          `json:"campaignVersion"`
-	ReadinessRunID    *uuid.UUID      `json:"readinessRunId"`
-	DecidedBy         *uuid.UUID      `json:"decidedBy"`
-	InvalidatedBy     *uuid.UUID      `json:"invalidatedBy"`
-	RemindedAt        *time.Time      `json:"remindedAt"`
-	PreviousID        *uuid.UUID      `json:"previousId"`
-	InvalidatedFrom   string          `json:"invalidatedFrom"`
+	ID                      uuid.UUID       `json:"id"`
+	WorkspaceID             uuid.UUID       `json:"workspaceId"`
+	SubjectType             string          `json:"subjectType"`
+	CampaignID              *uuid.UUID      `json:"campaignId"`
+	AutomationID            *uuid.UUID      `json:"automationId"`
+	RequestedBy             *uuid.UUID      `json:"requestedBy"`
+	RequestedAt             time.Time       `json:"requestedAt"`
+	Note                    string          `json:"note"`
+	Status                  string          `json:"status"`
+	MatchedRules            []string        `json:"matchedRules"`
+	ApprovalsRequired       int32           `json:"approvalsRequired"`
+	Snapshot                json.RawMessage `json:"snapshot"`
+	InvalidatedAt           *time.Time      `json:"invalidatedAt"`
+	InvalidatedReason       string          `json:"invalidatedReason"`
+	Changes                 json.RawMessage `json:"changes"`
+	BypassReason            string          `json:"bypassReason"`
+	DecidedAt               *time.Time      `json:"decidedAt"`
+	CampaignVersion         *int32          `json:"campaignVersion"`
+	ReadinessRunID          *uuid.UUID      `json:"readinessRunId"`
+	DecidedBy               *uuid.UUID      `json:"decidedBy"`
+	InvalidatedBy           *uuid.UUID      `json:"invalidatedBy"`
+	RemindedAt              *time.Time      `json:"remindedAt"`
+	PreviousID              *uuid.UUID      `json:"previousId"`
+	InvalidatedFrom         string          `json:"invalidatedFrom"`
+	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
 }
 
 type ArchiveIssue struct {
