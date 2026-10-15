@@ -9,18 +9,18 @@ type LanguageCompare struct {
 	Language string `json:"language"`
 	// SourceVersion is the source's current version; TranslatedFrom the
 	// source version the language version was translated from.
-	SourceVersion  int        `json:"sourceVersion"`
-	TranslatedFrom int        `json:"translatedFrom"`
-	TranslatedBy   string     `json:"translatedBy"`
-	TranslatedAt   *time.Time `json:"translatedAt,omitempty"`
-	Status         string     `json:"status" enum:"up_to_date,outdated,draft"`
-	Blocks         int        `json:"blocks"`
-	UpToDate       int        `json:"upToDate"`
-	Attention      int        `json:"attention"`
-	Translated     int        `json:"translated"`
-	Version        int        `json:"version"`
-	Subject        CompareText `json:"subject"`
-	Preheader      CompareText `json:"preheader"`
+	SourceVersion  int          `json:"sourceVersion"`
+	TranslatedFrom int          `json:"translatedFrom"`
+	TranslatedBy   string       `json:"translatedBy"`
+	TranslatedAt   *time.Time   `json:"translatedAt,omitempty"`
+	Status         string       `json:"status" enum:"up_to_date,outdated,draft"`
+	Blocks         int          `json:"blocks"`
+	UpToDate       int          `json:"upToDate"`
+	Attention      int          `json:"attention"`
+	Translated     int          `json:"translated"`
+	Version        int          `json:"version"`
+	Subject        CompareText  `json:"subject"`
+	Preheader      CompareText  `json:"preheader"`
 	Rows           []CompareRow `json:"rows"`
 }
 

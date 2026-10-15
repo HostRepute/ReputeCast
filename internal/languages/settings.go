@@ -237,7 +237,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		l, _ := Lookup(r.Code)
 		wl := WorkspaceLanguage{Code: r.Code, Name: l.Name, Native: l.Native, Own: counts.byBase[r.Code], IsDefault: r.IsDefault, IsFallback: r.IsFallback,
 			PageCopy: LanguagePageCopy{Status: r.PageCopyStatus, Missing: int(r.PageCopyMissing), By: r.PageCopyByName, At: r.PageCopyAt, BuiltinLabels: BuiltinLabels[r.Code]},
-			AddedBy: r.AddedByName}
+			AddedBy:  r.AddedByName}
 		if r.AddedByName != "" {
 			at := r.AddedAt
 			wl.AddedAt = &at
