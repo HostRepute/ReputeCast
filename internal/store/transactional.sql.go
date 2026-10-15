@@ -225,6 +225,105 @@ func (q *Queries) TxnContactByEmail(ctx context.Context, arg TxnContactByEmailPa
 	return i, err
 }
 
+const txnContactMessages = `-- name: TxnContactMessages :many
+SELECT t.message_id, t.accepted_at, t.template_key, t.template_name, t.source, t.subject, t.test, t.reject_reason, t.category_name,
+       coalesce(p.name, '')::text AS provider_name, m.delivered_at,
+       (CASE WHEN t.test THEN 'test'
+             WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'held' THEN 'queued'
+             ELSE m.status END)::text AS status
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN providers p ON p.id = m.provider_id
+WHERE t.workspace_id = $1 AND (m.contact_id = $2 OR m.email = $3)
+ORDER BY t.accepted_at DESC
+LIMIT $4
+`
+
+type TxnContactMessagesParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ContactID   *uuid.UUID `json:"contactId"`
+	Email       string     `json:"email"`
+	Lim         int32      `json:"lim"`
+}
+
+type TxnContactMessagesRow struct {
+	MessageID    uuid.UUID  `json:"messageId"`
+	AcceptedAt   time.Time  `json:"acceptedAt"`
+	TemplateKey  string     `json:"templateKey"`
+	TemplateName string     `json:"templateName"`
+	Source       string     `json:"source"`
+	Subject      string     `json:"subject"`
+	Test         bool       `json:"test"`
+	RejectReason string     `json:"rejectReason"`
+	CategoryName string     `json:"categoryName"`
+	ProviderName string     `json:"providerName"`
+	DeliveredAt  *time.Time `json:"deliveredAt"`
+	Status       string     `json:"status"`
+}
+
+// A contact's transactional messages for its activity timeline.
+func (q *Queries) TxnContactMessages(ctx context.Context, arg TxnContactMessagesParams) ([]TxnContactMessagesRow, error) {
+	rows, err := q.db.Query(ctx, txnContactMessages,
+		arg.WorkspaceID,
+		arg.ContactID,
+		arg.Email,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnContactMessagesRow{}
+	for rows.Next() {
+		var i TxnContactMessagesRow
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.AcceptedAt,
+			&i.TemplateKey,
+			&i.TemplateName,
+			&i.Source,
+			&i.Subject,
+			&i.Test,
+			&i.RejectReason,
+			&i.CategoryName,
+			&i.ProviderName,
+			&i.DeliveredAt,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnContent = `-- name: TxnContent :one
+SELECT html, text, headers, expires_at FROM transactional_message_content WHERE message_id = $1
+`
+
+type TxnContentRow struct {
+	Html      string          `json:"html"`
+	Text      string          `json:"text"`
+	Headers   json.RawMessage `json:"headers"`
+	ExpiresAt time.Time       `json:"expiresAt"`
+}
+
+func (q *Queries) TxnContent(ctx context.Context, messageID uuid.UUID) (TxnContentRow, error) {
+	row := q.db.QueryRow(ctx, txnContent, messageID)
+	var i TxnContentRow
+	err := row.Scan(
+		&i.Html,
+		&i.Text,
+		&i.Headers,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const txnIdemGet = `-- name: TxnIdemGet :one
 SELECT workspace_id, key, request_hash, status, response, created_at FROM transactional_idempotency WHERE workspace_id = $1 AND key = $2
 `
@@ -573,6 +672,302 @@ func (q *Queries) TxnKey(ctx context.Context, arg TxnKeyParams) (TxnKeyRow, erro
 	return i, err
 }
 
+const txnLog = `-- name: TxnLog :many
+WITH log AS (
+    SELECT t.message_id, t.accepted_at, m.email, m.contact_id, t.to_name, t.source, t.template_key, t.template_name, t.template_version, t.subject,
+           m.provider_id, coalesce(p.name, '')::text AS provider_name, m.error, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at,
+           t.test, t.test_delivered, t.reject_reason, t.reject_detail, t.track_opens, t.track_clicks,
+           t.failed_over_from, coalesce(fp.name, '')::text AS failed_over_from_name, t.failed_over_at,
+           t.key_id, t.key_name, t.idempotency_key, t.tags, t.metadata, t.category_name, t.category_kind, t.workspace_id,
+           (CASE WHEN t.test THEN 'test'
+                 WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+                 WHEN m.status = 'held' THEN 'queued'
+                 ELSE m.status END)::text AS status
+    FROM transactional_messages t
+    JOIN messages m ON m.id = t.message_id
+    LEFT JOIN providers p ON p.id = m.provider_id
+    LEFT JOIN providers fp ON fp.id = t.failed_over_from
+    WHERE t.workspace_id = $3 AND t.accepted_at >= $4::timestamptz AND t.accepted_at < $5::timestamptz
+      AND ($6::text IS NULL OR ($6::text = 'raw' AND t.source = 'smtp' AND t.template_key = '') OR t.template_key = $6::text)
+      AND ($7::uuid IS NULL OR m.provider_id = $7::uuid)
+      AND ($8::uuid IS NULL OR t.key_id = $8::uuid)
+      AND ($9::text IS NULL OR m.email ILIKE '%' || $9::text || '%' OR t.message_id::text = $9::text
+           OR t.idempotency_key = $9::text OR $9::text = ANY(t.tags)
+           OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE kv.value = $9::text))
+      AND ($10::timestamptz IS NULL OR (t.accepted_at, t.message_id) < ($10::timestamptz, $11::uuid))
+      AND ($12::timestamptz IS NULL OR (t.accepted_at, t.message_id) > ($12::timestamptz, $13::uuid))
+)
+SELECT log.message_id, log.accepted_at, log.email, log.contact_id, log.to_name, log.source, log.template_key, log.template_name, log.template_version, log.subject,
+       log.provider_id, log.provider_name, log.error, log.sent_at, log.delivered_at, log.opened_at, log.clicked_at,
+       log.test, log.test_delivered, log.reject_reason, log.reject_detail, log.track_opens, log.track_clicks,
+       log.failed_over_from, log.failed_over_from_name, log.failed_over_at,
+       log.key_id, log.key_name, log.idempotency_key, log.tags, log.metadata, log.category_name, log.category_kind, log.status,
+       (SELECT count(*) FROM delivery_events e WHERE e.message_id = log.message_id AND e.type = 'deferred')::int AS deferrals,
+       coalesce((SELECT e.type || ':' || e.bounce_class || ':' || e.original_code || ' ' || e.diagnostic FROM delivery_events e
+                 WHERE e.message_id = log.message_id AND e.type IN ('hard_bounce', 'soft_bounce') ORDER BY e.occurred_at DESC LIMIT 1), '')::text AS bounce,
+       EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = log.workspace_id AND s.email = log.email AND s.reason = 'role')::boolean AS role_address
+FROM log
+WHERE $1::text IS NULL OR log.status = $1::text
+ORDER BY log.accepted_at DESC, log.message_id DESC
+LIMIT $2
+`
+
+type TxnLogParams struct {
+	Status      *string    `json:"status"`
+	Lim         int32      `json:"lim"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Since       time.Time  `json:"since"`
+	Until       time.Time  `json:"until"`
+	Template    *string    `json:"template"`
+	ProviderID  *uuid.UUID `json:"providerId"`
+	KeyID       *uuid.UUID `json:"keyId"`
+	Q           *string    `json:"q"`
+	BeforeAt    *time.Time `json:"beforeAt"`
+	BeforeID    *uuid.UUID `json:"beforeId"`
+	AfterAt     *time.Time `json:"afterAt"`
+	AfterID     *uuid.UUID `json:"afterId"`
+}
+
+type TxnLogRow struct {
+	MessageID          uuid.UUID       `json:"messageId"`
+	AcceptedAt         time.Time       `json:"acceptedAt"`
+	Email              string          `json:"email"`
+	ContactID          *uuid.UUID      `json:"contactId"`
+	ToName             string          `json:"toName"`
+	Source             string          `json:"source"`
+	TemplateKey        string          `json:"templateKey"`
+	TemplateName       string          `json:"templateName"`
+	TemplateVersion    *int32          `json:"templateVersion"`
+	Subject            string          `json:"subject"`
+	ProviderID         *uuid.UUID      `json:"providerId"`
+	ProviderName       string          `json:"providerName"`
+	Error              string          `json:"error"`
+	SentAt             *time.Time      `json:"sentAt"`
+	DeliveredAt        *time.Time      `json:"deliveredAt"`
+	OpenedAt           *time.Time      `json:"openedAt"`
+	ClickedAt          *time.Time      `json:"clickedAt"`
+	Test               bool            `json:"test"`
+	TestDelivered      bool            `json:"testDelivered"`
+	RejectReason       string          `json:"rejectReason"`
+	RejectDetail       json.RawMessage `json:"rejectDetail"`
+	TrackOpens         bool            `json:"trackOpens"`
+	TrackClicks        bool            `json:"trackClicks"`
+	FailedOverFrom     *uuid.UUID      `json:"failedOverFrom"`
+	FailedOverFromName string          `json:"failedOverFromName"`
+	FailedOverAt       *time.Time      `json:"failedOverAt"`
+	KeyID              *uuid.UUID      `json:"keyId"`
+	KeyName            string          `json:"keyName"`
+	IdempotencyKey     string          `json:"idempotencyKey"`
+	Tags               []string        `json:"tags"`
+	Metadata           json.RawMessage `json:"metadata"`
+	CategoryName       string          `json:"categoryName"`
+	CategoryKind       string          `json:"categoryKind"`
+	Status             string          `json:"status"`
+	Deferrals          int32           `json:"deferrals"`
+	Bounce             string          `json:"bounce"`
+	RoleAddress        bool            `json:"roleAddress"`
+}
+
+// The message log, newest first. status is what the log shows: test,
+// rejected, queued, sent, delivered, deferred, bounced, complained or
+// failed. before_* pages back; after_* returns only newer messages (live).
+func (q *Queries) TxnLog(ctx context.Context, arg TxnLogParams) ([]TxnLogRow, error) {
+	rows, err := q.db.Query(ctx, txnLog,
+		arg.Status,
+		arg.Lim,
+		arg.WorkspaceID,
+		arg.Since,
+		arg.Until,
+		arg.Template,
+		arg.ProviderID,
+		arg.KeyID,
+		arg.Q,
+		arg.BeforeAt,
+		arg.BeforeID,
+		arg.AfterAt,
+		arg.AfterID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnLogRow{}
+	for rows.Next() {
+		var i TxnLogRow
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.AcceptedAt,
+			&i.Email,
+			&i.ContactID,
+			&i.ToName,
+			&i.Source,
+			&i.TemplateKey,
+			&i.TemplateName,
+			&i.TemplateVersion,
+			&i.Subject,
+			&i.ProviderID,
+			&i.ProviderName,
+			&i.Error,
+			&i.SentAt,
+			&i.DeliveredAt,
+			&i.OpenedAt,
+			&i.ClickedAt,
+			&i.Test,
+			&i.TestDelivered,
+			&i.RejectReason,
+			&i.RejectDetail,
+			&i.TrackOpens,
+			&i.TrackClicks,
+			&i.FailedOverFrom,
+			&i.FailedOverFromName,
+			&i.FailedOverAt,
+			&i.KeyID,
+			&i.KeyName,
+			&i.IdempotencyKey,
+			&i.Tags,
+			&i.Metadata,
+			&i.CategoryName,
+			&i.CategoryKind,
+			&i.Status,
+			&i.Deferrals,
+			&i.Bounce,
+			&i.RoleAddress,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnLogCounts = `-- name: TxnLogCounts :many
+SELECT (CASE WHEN t.test THEN 'test'
+             WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'held' THEN 'queued'
+             ELSE m.status END)::text AS status,
+       count(*)::bigint AS n
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = $1 AND t.accepted_at >= $2::timestamptz AND t.accepted_at < $3::timestamptz
+  AND ($4::text IS NULL OR ($4::text = 'raw' AND t.source = 'smtp' AND t.template_key = '') OR t.template_key = $4::text)
+  AND ($5::uuid IS NULL OR m.provider_id = $5::uuid)
+  AND ($6::uuid IS NULL OR t.key_id = $6::uuid)
+  AND ($7::text IS NULL OR m.email ILIKE '%' || $7::text || '%' OR t.message_id::text = $7::text
+       OR t.idempotency_key = $7::text OR $7::text = ANY(t.tags)
+       OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE kv.value = $7::text))
+GROUP BY 1
+`
+
+type TxnLogCountsParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Since       time.Time  `json:"since"`
+	Until       time.Time  `json:"until"`
+	Template    *string    `json:"template"`
+	ProviderID  *uuid.UUID `json:"providerId"`
+	KeyID       *uuid.UUID `json:"keyId"`
+	Q           *string    `json:"q"`
+}
+
+type TxnLogCountsRow struct {
+	Status string `json:"status"`
+	N      int64  `json:"n"`
+}
+
+// The log's numbers per status for the same filters.
+func (q *Queries) TxnLogCounts(ctx context.Context, arg TxnLogCountsParams) ([]TxnLogCountsRow, error) {
+	rows, err := q.db.Query(ctx, txnLogCounts,
+		arg.WorkspaceID,
+		arg.Since,
+		arg.Until,
+		arg.Template,
+		arg.ProviderID,
+		arg.KeyID,
+		arg.Q,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnLogCountsRow{}
+	for rows.Next() {
+		var i TxnLogCountsRow
+		if err := rows.Scan(&i.Status, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnLogKeys = `-- name: TxnLogKeys :many
+SELECT id, name, revoked_at FROM api_keys
+WHERE workspace_id = $1 AND kind = 'api_key' AND 'transactional:send' = ANY(permissions)
+ORDER BY created_at
+`
+
+type TxnLogKeysRow struct {
+	ID        uuid.UUID  `json:"id"`
+	Name      string     `json:"name"`
+	RevokedAt *time.Time `json:"revokedAt"`
+}
+
+// Keys that can send, for the log's key filter.
+func (q *Queries) TxnLogKeys(ctx context.Context, workspaceID uuid.UUID) ([]TxnLogKeysRow, error) {
+	rows, err := q.db.Query(ctx, txnLogKeys, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnLogKeysRow{}
+	for rows.Next() {
+		var i TxnLogKeysRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.RevokedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnLogTemplates = `-- name: TxnLogTemplates :many
+SELECT key, name FROM transactional_templates WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
+`
+
+type TxnLogTemplatesRow struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
+}
+
+// Templates for the log's template filter, archived ones included.
+func (q *Queries) TxnLogTemplates(ctx context.Context, workspaceID uuid.UUID) ([]TxnLogTemplatesRow, error) {
+	rows, err := q.db.Query(ctx, txnLogTemplates, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnLogTemplatesRow{}
+	for rows.Next() {
+		var i TxnLogTemplatesRow
+		if err := rows.Scan(&i.Key, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const txnMarkEmitted = `-- name: TxnMarkEmitted :exec
 UPDATE transactional_messages SET events_emitted = array_append(events_emitted, $1::text) WHERE message_id = $2
 `
@@ -674,6 +1069,180 @@ func (q *Queries) TxnMessageCategory(ctx context.Context, arg TxnMessageCategory
 	return i, err
 }
 
+const txnMessageDetail = `-- name: TxnMessageDetail :one
+SELECT t.message_id, t.workspace_id, t.source, t.template_id, t.template_key, t.template_name, t.template_version, t.category_id, t.category_name,
+       t.category_kind, t.key_id, t.key_name, t.user_id, t.ip, t.idempotency_key, t.subject, t.from_email, t.from_name, t.reply_to, t.to_name,
+       t.cc, t.bcc, t.tags, t.metadata, t.data, t.data_keys, t.sensitive, t.attachments, t.size_bytes, t.test, t.test_delivered, t.send_at,
+       t.reject_reason, t.reject_detail, t.track_opens, t.track_clicks, t.route, t.attempts, t.failed_over_from, t.failed_over_at, t.provider_since,
+       t.accepted_at, t.rendered_at, t.content_expires_at, t.content_removed_at, t.resent_from,
+       m.email, m.contact_id, m.provider_id, coalesce(m.provider_message_id, '')::text AS provider_message_id, m.mailbox_provider,
+       m.status AS raw_status, m.error, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at,
+       coalesce(p.name, '')::text AS provider_name,
+       coalesce(fp.name, '')::text AS failed_over_from_name,
+       coalesce(u.name, '')::text AS user_name,
+       coalesce(nullif(trim(c.first_name || ' ' || c.last_name), ''), '')::text AS contact_name,
+       (c.id IS NOT NULL)::boolean AS contact_exists,
+       EXISTS (SELECT 1 FROM transactional_message_content x WHERE x.message_id = t.message_id)::boolean AS has_content,
+       EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = t.workspace_id AND s.email = m.email AND s.reason = 'role')::boolean AS role_address,
+       (CASE WHEN t.test THEN 'test'
+             WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'held' THEN 'queued'
+             ELSE m.status END)::text AS status
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN providers p ON p.id = m.provider_id
+LEFT JOIN providers fp ON fp.id = t.failed_over_from
+LEFT JOIN users u ON u.id = t.user_id
+LEFT JOIN contacts c ON c.id = m.contact_id AND c.erased_at IS NULL
+WHERE t.message_id = $1 AND t.workspace_id = $2
+`
+
+type TxnMessageDetailParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type TxnMessageDetailRow struct {
+	MessageID          uuid.UUID       `json:"messageId"`
+	WorkspaceID        uuid.UUID       `json:"workspaceId"`
+	Source             string          `json:"source"`
+	TemplateID         *uuid.UUID      `json:"templateId"`
+	TemplateKey        string          `json:"templateKey"`
+	TemplateName       string          `json:"templateName"`
+	TemplateVersion    *int32          `json:"templateVersion"`
+	CategoryID         *uuid.UUID      `json:"categoryId"`
+	CategoryName       string          `json:"categoryName"`
+	CategoryKind       string          `json:"categoryKind"`
+	KeyID              *uuid.UUID      `json:"keyId"`
+	KeyName            string          `json:"keyName"`
+	UserID             *uuid.UUID      `json:"userId"`
+	Ip                 *netip.Addr     `json:"ip"`
+	IdempotencyKey     string          `json:"idempotencyKey"`
+	Subject            string          `json:"subject"`
+	FromEmail          string          `json:"fromEmail"`
+	FromName           string          `json:"fromName"`
+	ReplyTo            string          `json:"replyTo"`
+	ToName             string          `json:"toName"`
+	Cc                 []string        `json:"cc"`
+	Bcc                []string        `json:"bcc"`
+	Tags               []string        `json:"tags"`
+	Metadata           json.RawMessage `json:"metadata"`
+	Data               json.RawMessage `json:"data"`
+	DataKeys           []string        `json:"dataKeys"`
+	Sensitive          []string        `json:"sensitive"`
+	Attachments        json.RawMessage `json:"attachments"`
+	SizeBytes          int32           `json:"sizeBytes"`
+	Test               bool            `json:"test"`
+	TestDelivered      bool            `json:"testDelivered"`
+	SendAt             *time.Time      `json:"sendAt"`
+	RejectReason       string          `json:"rejectReason"`
+	RejectDetail       json.RawMessage `json:"rejectDetail"`
+	TrackOpens         bool            `json:"trackOpens"`
+	TrackClicks        bool            `json:"trackClicks"`
+	Route              json.RawMessage `json:"route"`
+	Attempts           json.RawMessage `json:"attempts"`
+	FailedOverFrom     *uuid.UUID      `json:"failedOverFrom"`
+	FailedOverAt       *time.Time      `json:"failedOverAt"`
+	ProviderSince      *time.Time      `json:"providerSince"`
+	AcceptedAt         time.Time       `json:"acceptedAt"`
+	RenderedAt         *time.Time      `json:"renderedAt"`
+	ContentExpiresAt   *time.Time      `json:"contentExpiresAt"`
+	ContentRemovedAt   *time.Time      `json:"contentRemovedAt"`
+	ResentFrom         *uuid.UUID      `json:"resentFrom"`
+	Email              string          `json:"email"`
+	ContactID          *uuid.UUID      `json:"contactId"`
+	ProviderID         *uuid.UUID      `json:"providerId"`
+	ProviderMessageID  string          `json:"providerMessageId"`
+	MailboxProvider    string          `json:"mailboxProvider"`
+	RawStatus          string          `json:"rawStatus"`
+	Error              string          `json:"error"`
+	SentAt             *time.Time      `json:"sentAt"`
+	DeliveredAt        *time.Time      `json:"deliveredAt"`
+	OpenedAt           *time.Time      `json:"openedAt"`
+	ClickedAt          *time.Time      `json:"clickedAt"`
+	ProviderName       string          `json:"providerName"`
+	FailedOverFromName string          `json:"failedOverFromName"`
+	UserName           string          `json:"userName"`
+	ContactName        string          `json:"contactName"`
+	ContactExists      bool            `json:"contactExists"`
+	HasContent         bool            `json:"hasContent"`
+	RoleAddress        bool            `json:"roleAddress"`
+	Status             string          `json:"status"`
+}
+
+func (q *Queries) TxnMessageDetail(ctx context.Context, arg TxnMessageDetailParams) (TxnMessageDetailRow, error) {
+	row := q.db.QueryRow(ctx, txnMessageDetail, arg.ID, arg.WorkspaceID)
+	var i TxnMessageDetailRow
+	err := row.Scan(
+		&i.MessageID,
+		&i.WorkspaceID,
+		&i.Source,
+		&i.TemplateID,
+		&i.TemplateKey,
+		&i.TemplateName,
+		&i.TemplateVersion,
+		&i.CategoryID,
+		&i.CategoryName,
+		&i.CategoryKind,
+		&i.KeyID,
+		&i.KeyName,
+		&i.UserID,
+		&i.Ip,
+		&i.IdempotencyKey,
+		&i.Subject,
+		&i.FromEmail,
+		&i.FromName,
+		&i.ReplyTo,
+		&i.ToName,
+		&i.Cc,
+		&i.Bcc,
+		&i.Tags,
+		&i.Metadata,
+		&i.Data,
+		&i.DataKeys,
+		&i.Sensitive,
+		&i.Attachments,
+		&i.SizeBytes,
+		&i.Test,
+		&i.TestDelivered,
+		&i.SendAt,
+		&i.RejectReason,
+		&i.RejectDetail,
+		&i.TrackOpens,
+		&i.TrackClicks,
+		&i.Route,
+		&i.Attempts,
+		&i.FailedOverFrom,
+		&i.FailedOverAt,
+		&i.ProviderSince,
+		&i.AcceptedAt,
+		&i.RenderedAt,
+		&i.ContentExpiresAt,
+		&i.ContentRemovedAt,
+		&i.ResentFrom,
+		&i.Email,
+		&i.ContactID,
+		&i.ProviderID,
+		&i.ProviderMessageID,
+		&i.MailboxProvider,
+		&i.RawStatus,
+		&i.Error,
+		&i.SentAt,
+		&i.DeliveredAt,
+		&i.OpenedAt,
+		&i.ClickedAt,
+		&i.ProviderName,
+		&i.FailedOverFromName,
+		&i.UserName,
+		&i.ContactName,
+		&i.ContactExists,
+		&i.HasContent,
+		&i.RoleAddress,
+		&i.Status,
+	)
+	return i, err
+}
+
 const txnMessageEvent = `-- name: TxnMessageEvent :one
 SELECT t.message_id, t.template_key, t.template_version, t.category_name, t.tags, t.metadata, t.test, t.reject_reason, t.source,
        m.email, m.status, m.error, coalesce(m.provider_message_id, '')::text AS provider_message_id,
@@ -726,6 +1295,63 @@ func (q *Queries) TxnMessageEvent(ctx context.Context, messageID uuid.UUID) (Txn
 	return i, err
 }
 
+const txnMessageEvents = `-- name: TxnMessageEvents :many
+SELECT e.type, e.occurred_at, e.original_type, e.original_code, e.diagnostic, e.bounce_class, e.machine, e.url, e.user_agent,
+       e.provider_id, coalesce(p.name, '')::text AS provider_name, e.provider_message_id
+FROM delivery_events e LEFT JOIN providers p ON p.id = e.provider_id
+WHERE e.message_id = $1
+ORDER BY e.occurred_at, e.received_at
+`
+
+type TxnMessageEventsRow struct {
+	Type              string     `json:"type"`
+	OccurredAt        time.Time  `json:"occurredAt"`
+	OriginalType      string     `json:"originalType"`
+	OriginalCode      string     `json:"originalCode"`
+	Diagnostic        string     `json:"diagnostic"`
+	BounceClass       string     `json:"bounceClass"`
+	Machine           bool       `json:"machine"`
+	Url               string     `json:"url"`
+	UserAgent         string     `json:"userAgent"`
+	ProviderID        *uuid.UUID `json:"providerId"`
+	ProviderName      string     `json:"providerName"`
+	ProviderMessageID string     `json:"providerMessageId"`
+}
+
+// A message's provider events, oldest first.
+func (q *Queries) TxnMessageEvents(ctx context.Context, messageID *uuid.UUID) ([]TxnMessageEventsRow, error) {
+	rows, err := q.db.Query(ctx, txnMessageEvents, messageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnMessageEventsRow{}
+	for rows.Next() {
+		var i TxnMessageEventsRow
+		if err := rows.Scan(
+			&i.Type,
+			&i.OccurredAt,
+			&i.OriginalType,
+			&i.OriginalCode,
+			&i.Diagnostic,
+			&i.BounceClass,
+			&i.Machine,
+			&i.Url,
+			&i.UserAgent,
+			&i.ProviderID,
+			&i.ProviderName,
+			&i.ProviderMessageID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const txnMessageLinks = `-- name: TxnMessageLinks :one
 SELECT links FROM transactional_messages WHERE message_id = $1
 `
@@ -735,6 +1361,57 @@ func (q *Queries) TxnMessageLinks(ctx context.Context, messageID uuid.UUID) ([]s
 	var links []string
 	err := row.Scan(&links)
 	return links, err
+}
+
+const txnMessageWebhooks = `-- name: TxnMessageWebhooks :many
+SELECT d.event, d.state, d.created_at, d.delivered_at, d.status_code, d.attempt, w.url
+FROM webhook_deliveries d JOIN webhooks w ON w.id = d.webhook_id
+WHERE (d.payload->'data'->>'message_id') = $1::text AND d.event LIKE 'message.%' AND w.workspace_id = $2
+ORDER BY d.created_at
+`
+
+type TxnMessageWebhooksParams struct {
+	MessageID   string    `json:"messageId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type TxnMessageWebhooksRow struct {
+	Event       string     `json:"event"`
+	State       string     `json:"state"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	DeliveredAt *time.Time `json:"deliveredAt"`
+	StatusCode  *int32     `json:"statusCode"`
+	Attempt     int32      `json:"attempt"`
+	Url         string     `json:"url"`
+}
+
+// The webhook deliveries of a message's message.* events.
+func (q *Queries) TxnMessageWebhooks(ctx context.Context, arg TxnMessageWebhooksParams) ([]TxnMessageWebhooksRow, error) {
+	rows, err := q.db.Query(ctx, txnMessageWebhooks, arg.MessageID, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnMessageWebhooksRow{}
+	for rows.Next() {
+		var i TxnMessageWebhooksRow
+		if err := rows.Scan(
+			&i.Event,
+			&i.State,
+			&i.CreatedAt,
+			&i.DeliveredAt,
+			&i.StatusCode,
+			&i.Attempt,
+			&i.Url,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const txnMoveToProvider = `-- name: TxnMoveToProvider :exec
@@ -1239,6 +1916,132 @@ func (q *Queries) TxnRejectedCallsForTemplate(ctx context.Context, arg TxnReject
 	for rows.Next() {
 		var i TxnRejectedCallsForTemplateRow
 		if err := rows.Scan(&i.At, &i.Code, &i.Detail); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnRetentionContentDue = `-- name: TxnRetentionContentDue :many
+SELECT x.message_id FROM transactional_message_content x
+JOIN transactional_messages t ON t.message_id = x.message_id
+WHERE t.workspace_id = $1 AND (x.expires_at <= $2::timestamptz OR t.accepted_at <= $3::timestamptz)
+LIMIT $4
+`
+
+type TxnRetentionContentDueParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Now         time.Time `json:"now"`
+	Cutoff      time.Time `json:"cutoff"`
+	Lim         int32     `json:"lim"`
+}
+
+// A workspace's messages whose rendered content is past its retention
+// (expired, or sent before cutoff), up to lim.
+func (q *Queries) TxnRetentionContentDue(ctx context.Context, arg TxnRetentionContentDueParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, txnRetentionContentDue,
+		arg.WorkspaceID,
+		arg.Now,
+		arg.Cutoff,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var message_id uuid.UUID
+		if err := rows.Scan(&message_id); err != nil {
+			return nil, err
+		}
+		items = append(items, message_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnRetentionContentRemove = `-- name: TxnRetentionContentRemove :exec
+DELETE FROM transactional_message_content WHERE message_id = ANY($1::uuid[])
+`
+
+func (q *Queries) TxnRetentionContentRemove(ctx context.Context, ids []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, txnRetentionContentRemove, ids)
+	return err
+}
+
+const txnRetentionContentRemoved = `-- name: TxnRetentionContentRemoved :exec
+UPDATE transactional_messages SET content_removed_at = $1::timestamptz WHERE message_id = ANY($2::uuid[])
+`
+
+type TxnRetentionContentRemovedParams struct {
+	Now time.Time   `json:"now"`
+	Ids []uuid.UUID `json:"ids"`
+}
+
+func (q *Queries) TxnRetentionContentRemoved(ctx context.Context, arg TxnRetentionContentRemovedParams) error {
+	_, err := q.db.Exec(ctx, txnRetentionContentRemoved, arg.Now, arg.Ids)
+	return err
+}
+
+const txnRetentionMessages = `-- name: TxnRetentionMessages :execrows
+DELETE FROM messages m
+WHERE m.id IN (SELECT t.message_id FROM transactional_messages t WHERE t.accepted_at < $1::timestamptz ORDER BY t.accepted_at LIMIT $2)
+  AND m.stream = 'transactional'
+`
+
+type TxnRetentionMessagesParams struct {
+	Before time.Time `json:"before"`
+	Lim    int32     `json:"lim"`
+}
+
+// Removes up to lim transactional messages older than before (90 days):
+// their log entry and content go with them.
+func (q *Queries) TxnRetentionMessages(ctx context.Context, arg TxnRetentionMessagesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, txnRetentionMessages, arg.Before, arg.Lim)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnRetentionRejectedCalls = `-- name: TxnRetentionRejectedCalls :execrows
+DELETE FROM transactional_rejected_calls WHERE at < $1::timestamptz
+`
+
+func (q *Queries) TxnRetentionRejectedCalls(ctx context.Context, before time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, txnRetentionRejectedCalls, before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnRetentionWorkspaces = `-- name: TxnRetentionWorkspaces :many
+SELECT workspace_id, content_retention_days FROM transactional_settings
+`
+
+type TxnRetentionWorkspacesRow struct {
+	WorkspaceID          uuid.UUID `json:"workspaceId"`
+	ContentRetentionDays int32     `json:"contentRetentionDays"`
+}
+
+func (q *Queries) TxnRetentionWorkspaces(ctx context.Context) ([]TxnRetentionWorkspacesRow, error) {
+	rows, err := q.db.Query(ctx, txnRetentionWorkspaces)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnRetentionWorkspacesRow{}
+	for rows.Next() {
+		var i TxnRetentionWorkspacesRow
+		if err := rows.Scan(&i.WorkspaceID, &i.ContentRetentionDays); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1773,6 +2576,45 @@ func (q *Queries) TxnSuppression(ctx context.Context, arg TxnSuppressionParams) 
 		&i.OriginalCode,
 		&i.Detail,
 		&i.CreatedAt,
+		&i.ProviderName,
+	)
+	return i, err
+}
+
+const txnSuppressionFor = `-- name: TxnSuppressionFor :one
+SELECT s.id, s.reason, s.source, s.original_code, s.detail, s.created_at, s.scope, coalesce(p.name, '')::text AS provider_name
+FROM suppressions s LEFT JOIN providers p ON p.id = s.source_provider_id
+WHERE s.workspace_id = $1 AND s.email = $2
+`
+
+type TxnSuppressionForParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+}
+
+type TxnSuppressionForRow struct {
+	ID           uuid.UUID `json:"id"`
+	Reason       string    `json:"reason"`
+	Source       string    `json:"source"`
+	OriginalCode string    `json:"originalCode"`
+	Detail       string    `json:"detail"`
+	CreatedAt    time.Time `json:"createdAt"`
+	Scope        string    `json:"scope"`
+	ProviderName string    `json:"providerName"`
+}
+
+// An address's suppression as it is now, whatever its scope.
+func (q *Queries) TxnSuppressionFor(ctx context.Context, arg TxnSuppressionForParams) (TxnSuppressionForRow, error) {
+	row := q.db.QueryRow(ctx, txnSuppressionFor, arg.WorkspaceID, arg.Email)
+	var i TxnSuppressionForRow
+	err := row.Scan(
+		&i.ID,
+		&i.Reason,
+		&i.Source,
+		&i.OriginalCode,
+		&i.Detail,
+		&i.CreatedAt,
+		&i.Scope,
 		&i.ProviderName,
 	)
 	return i, err

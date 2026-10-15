@@ -132,9 +132,11 @@ func init() {
 		s := transactionalService(a)
 		transactional.RegisterTemplates(h, s)
 		transactional.RegisterSending(h, s)
+		transactional.RegisterMessages(h, s)
 	})
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		engine.RegisterTransactional(a.JobReg, transactionalOutbox(a))
+		transactional.RegisterJobs(a.JobReg, transactionalService(a))
 	})
 	// Provider events of transactional messages fire their message.* webhooks.
 	normalizerHooks = append(normalizerHooks, func(a *App) ingest.MessageHook {

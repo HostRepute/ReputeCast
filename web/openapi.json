@@ -32225,6 +32225,63 @@
         ],
         "type": "object"
       },
+      "TransactionalAttachmentMeta": {
+        "additionalProperties": false,
+        "properties": {
+          "contentId": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "filename",
+          "contentType",
+          "size"
+        ],
+        "type": "object"
+      },
+      "TransactionalAttempt": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "down": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "gaveUp": {
+            "type": "boolean"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "temporary": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "provider",
+          "at",
+          "ok"
+        ],
+        "type": "object"
+      },
       "TransactionalBatch": {
         "additionalProperties": false,
         "properties": {
@@ -32300,6 +32357,32 @@
           "results",
           "accepted",
           "failed"
+        ],
+        "type": "object"
+      },
+      "TransactionalBounce": {
+        "additionalProperties": false,
+        "properties": {
+          "class": {
+            "description": "mailbox_unknown, mailbox_full, domain_invalid, policy_block, spam_block, reputation, temporary, other",
+            "type": "string"
+          },
+          "diagnostic": {
+            "examples": [
+              "452 4.2.2 mailbox full"
+            ],
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "hard",
+              "soft"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
         ],
         "type": "object"
       },
@@ -32723,6 +32806,219 @@
         },
         "type": "object"
       },
+      "TransactionalContactActivity": {
+        "additionalProperties": false,
+        "properties": {
+          "canViewContent": {
+            "type": "boolean"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalContactCategory"
+            },
+            "type": "array"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalContactMessage"
+            },
+            "type": "array"
+          },
+          "optOuts": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalContactOptOut"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "messages",
+          "optOuts",
+          "categories",
+          "canViewContent"
+        ],
+        "type": "object"
+      },
+      "TransactionalContactCategory": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "on": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "on"
+        ],
+        "type": "object"
+      },
+      "TransactionalContactMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "raw": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "sent",
+              "delivered",
+              "deferred",
+              "bounced",
+              "complained",
+              "rejected",
+              "failed",
+              "test"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "template": {
+            "$ref": "#/components/schemas/TransactionalLogTemplate"
+          }
+        },
+        "required": [
+          "id",
+          "at",
+          "raw",
+          "subject",
+          "status"
+        ],
+        "type": "object"
+      },
+      "TransactionalContactOptOut": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "categoryId",
+          "category",
+          "since",
+          "source"
+        ],
+        "type": "object"
+      },
+      "TransactionalContent": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "headers": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalHeaderPair"
+            },
+            "type": "array"
+          },
+          "html": {
+            "type": "string"
+          },
+          "masked": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "html",
+          "text",
+          "headers",
+          "expiresAt",
+          "masked"
+        ],
+        "type": "object"
+      },
+      "TransactionalContentState": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "canView": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "masked": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "metadataUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "removedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "retentionDays": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "available",
+          "canView",
+          "helpers",
+          "retentionDays",
+          "metadataUntil",
+          "masked"
+        ],
+        "type": "object"
+      },
       "TransactionalDiff": {
         "additionalProperties": false,
         "properties": {
@@ -32914,6 +33210,307 @@
         ],
         "type": "object"
       },
+      "TransactionalFailover": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "type": "object"
+      },
+      "TransactionalHeaderPair": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ],
+        "type": "object"
+      },
+      "TransactionalLog": {
+        "additionalProperties": false,
+        "properties": {
+          "canExport": {
+            "type": "boolean"
+          },
+          "contentDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/TransactionalLogCounts"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/TransactionalLogFilters"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalLogItem"
+            },
+            "type": "array"
+          },
+          "metadataDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "newest": {
+            "type": "string"
+          },
+          "next": {
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "until": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "counts",
+          "since",
+          "until",
+          "filters",
+          "metadataDays",
+          "contentDays",
+          "canExport"
+        ],
+        "type": "object"
+      },
+      "TransactionalLogCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "all": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "bounced": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "complained": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deferred": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "failed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "queued": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rejected": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "test": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "all",
+          "queued",
+          "sent",
+          "delivered",
+          "deferred",
+          "bounced",
+          "complained",
+          "rejected",
+          "failed",
+          "test"
+        ],
+        "type": "object"
+      },
+      "TransactionalLogFilters": {
+        "additionalProperties": false,
+        "properties": {
+          "keys": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalRef"
+            },
+            "type": "array"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalRef"
+            },
+            "type": "array"
+          },
+          "templates": {
+            "description": "id is the template's ID; raw is mail that arrived by SMTP",
+            "items": {
+              "$ref": "#/components/schemas/TransactionalRef"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "templates",
+          "providers",
+          "keys"
+        ],
+        "type": "object"
+      },
+      "TransactionalLogItem": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "description": "When the call was accepted",
+            "format": "date-time",
+            "type": "string"
+          },
+          "bounce": {
+            "$ref": "#/components/schemas/TransactionalBounce"
+          },
+          "category": {
+            "type": "string"
+          },
+          "clickedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "deferrals": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deliveryMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "failedOver": {
+            "$ref": "#/components/schemas/TransactionalFailover"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "openedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/TransactionalRef"
+          },
+          "raw": {
+            "type": "boolean"
+          },
+          "rejection": {
+            "$ref": "#/components/schemas/TransactionalRejection"
+          },
+          "roleAddress": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "sent",
+              "delivered",
+              "deferred",
+              "bounced",
+              "complained",
+              "rejected",
+              "failed",
+              "test"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "template": {
+            "$ref": "#/components/schemas/TransactionalLogTemplate"
+          },
+          "testDelivered": {
+            "type": "boolean"
+          },
+          "tracked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "at",
+          "email",
+          "raw",
+          "subject",
+          "status",
+          "deferrals",
+          "testDelivered",
+          "roleAddress",
+          "tracked"
+        ],
+        "type": "object"
+      },
+      "TransactionalLogTemplate": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "name"
+        ],
+        "type": "object"
+      },
       "TransactionalMakeOptional": {
         "additionalProperties": false,
         "properties": {
@@ -32930,6 +33527,295 @@
         "required": [
           "name",
           "default"
+        ],
+        "type": "object"
+      },
+      "TransactionalMessageDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "description": "When the call was accepted",
+            "format": "date-time",
+            "type": "string"
+          },
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalAttachmentMeta"
+            },
+            "type": "array"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalAttempt"
+            },
+            "type": "array"
+          },
+          "bcc": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "bounce": {
+            "$ref": "#/components/schemas/TransactionalBounce"
+          },
+          "canRemoveSuppression": {
+            "type": "boolean"
+          },
+          "category": {
+            "type": "string"
+          },
+          "categoryKind": {
+            "type": "string"
+          },
+          "cc": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "clickedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/TransactionalRef"
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "content": {
+            "$ref": "#/components/schemas/TransactionalContentState"
+          },
+          "contentBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deferrals": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deliveryMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "dropped": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "email": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "failedOver": {
+            "$ref": "#/components/schemas/TransactionalFailover"
+          },
+          "from": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "keyRef": {
+            "$ref": "#/components/schemas/TransactionalRef"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "openedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/TransactionalRef"
+          },
+          "providerMessageId": {
+            "type": "string"
+          },
+          "raw": {
+            "type": "boolean"
+          },
+          "rejection": {
+            "$ref": "#/components/schemas/TransactionalRejection"
+          },
+          "replyTo": {
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/TransactionalRequest"
+          },
+          "resend": {
+            "$ref": "#/components/schemas/TransactionalResendState"
+          },
+          "resentFrom": {
+            "type": "string"
+          },
+          "roleAddress": {
+            "type": "boolean"
+          },
+          "route": {
+            "$ref": "#/components/schemas/TransactionalRouteInfo"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sensitiveSent": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sentBy": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "softBounceLimit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "softBounces": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "sent",
+              "delivered",
+              "deferred",
+              "bounced",
+              "complained",
+              "rejected",
+              "failed",
+              "test"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "suppression": {
+            "$ref": "#/components/schemas/TransactionalSuppressionInfo"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "template": {
+            "$ref": "#/components/schemas/TransactionalLogTemplate"
+          },
+          "testDelivered": {
+            "type": "boolean"
+          },
+          "timeline": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalTimelineEntry"
+            },
+            "type": "array"
+          },
+          "tracked": {
+            "type": "boolean"
+          },
+          "variables": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "webhooks": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalWebhookDelivery"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "tags",
+          "metadata",
+          "from",
+          "cc",
+          "bcc",
+          "dropped",
+          "attachments",
+          "contentBytes",
+          "sizeBytes",
+          "variables",
+          "sensitiveSent",
+          "source",
+          "route",
+          "timeline",
+          "attempts",
+          "request",
+          "webhooks",
+          "softBounceLimit",
+          "content",
+          "resend",
+          "canRemoveSuppression",
+          "id",
+          "at",
+          "email",
+          "raw",
+          "subject",
+          "status",
+          "deferrals",
+          "testDelivered",
+          "roleAddress",
+          "tracked"
+        ],
+        "type": "object"
+      },
+      "TransactionalOptOutInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "preference_center",
+              "unsubscribe_link",
+              "one_click",
+              "api",
+              "member",
+              ""
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "since",
+          "source"
         ],
         "type": "object"
       },
@@ -33303,6 +34189,55 @@
         ],
         "type": "object"
       },
+      "TransactionalRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "TransactionalRejection": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "error": {
+            "type": "string"
+          },
+          "optOut": {
+            "$ref": "#/components/schemas/TransactionalOptOutInfo"
+          },
+          "reason": {
+            "enum": [
+              "suppressed",
+              "opted_out",
+              "test_not_allowed",
+              "provider"
+            ],
+            "type": "string"
+          },
+          "suppression": {
+            "$ref": "#/components/schemas/TransactionalSuppressionInfo"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
       "TransactionalRenderInput": {
         "additionalProperties": false,
         "properties": {
@@ -33353,6 +34288,61 @@
         ],
         "type": "object"
       },
+      "TransactionalRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {},
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "smtp": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "method",
+          "path",
+          "body",
+          "smtp"
+        ],
+        "type": "object"
+      },
+      "TransactionalResendState": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "reason": {
+            "enum": [
+              "sensitive",
+              "attachments",
+              "raw",
+              "template",
+              "permission",
+              "not_sent",
+              ""
+            ],
+            "type": "string"
+          },
+          "sensitive": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "type": "object"
+      },
       "TransactionalRollbackInput": {
         "additionalProperties": false,
         "properties": {
@@ -33367,6 +34357,38 @@
         },
         "required": [
           "version"
+        ],
+        "type": "object"
+      },
+      "TransactionalRouteInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "failedOver": {
+            "type": "boolean"
+          },
+          "fallback": {
+            "type": "string"
+          },
+          "matched": {
+            "description": "The condition's field: category or mailbox_provider",
+            "type": "string"
+          },
+          "policy": {
+            "type": "string"
+          },
+          "primary": {
+            "type": "string"
+          },
+          "rule": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule",
+          "failedOver"
         ],
         "type": "object"
       },
@@ -33828,6 +34850,53 @@
           "failed",
           "opened",
           "clicked"
+        ],
+        "type": "object"
+      },
+      "TransactionalSuppressionInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "examples": [
+              "550 5.1.1"
+            ],
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "id": {
+            "description": "The suppression as it is now; empty once it was removed",
+            "type": "string"
+          },
+          "reason": {
+            "examples": [
+              "hard_bounce"
+            ],
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "all",
+              "marketing"
+            ],
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "examples": [
+              "Postmark"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "since",
+          "source"
         ],
         "type": "object"
       },
@@ -34320,6 +35389,77 @@
         ],
         "type": "object"
       },
+      "TransactionalTimelineEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "down": {
+            "type": "boolean"
+          },
+          "event": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "accepted",
+              "rendered",
+              "scheduled",
+              "routed",
+              "handed",
+              "retry",
+              "failed_over",
+              "failed",
+              "rejected",
+              "not_delivered",
+              "delivered",
+              "deferred",
+              "bounced",
+              "complained",
+              "opened",
+              "clicked",
+              "provider_rejected",
+              "webhook"
+            ],
+            "type": "string"
+          },
+          "machine": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerMessageId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "to": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "kind"
+        ],
+        "type": "object"
+      },
       "TransactionalVariable": {
         "additionalProperties": false,
         "properties": {
@@ -34590,6 +35730,39 @@
         "required": [
           "items",
           "canPublish"
+        ],
+        "type": "object"
+      },
+      "TransactionalWebhookDelivery": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deliveredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "statusCode": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "state",
+          "at",
+          "url"
         ],
         "type": "object"
       },
@@ -63519,7 +64692,267 @@
         "x-permission": "transactional:publish"
       }
     },
+    "/api/v1/workspaces/{workspace}/transactional/contacts/{contactId}": {
+      "get": {
+        "description": "For the contact profile's activity timeline. Content stays behind transactional:content.",
+        "operationId": "get-contact-transactional-activity",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "contactId",
+            "required": true,
+            "schema": {
+              "maxLength": 36,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalContactActivity"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A contact's transactional messages and category opt-outs",
+        "tags": [
+          "Transactional messages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/transactional/messages": {
+      "get": {
+        "description": "Messages are kept 90 days; their rendered content as long as the content retention says. Test messages show with status test.",
+        "operationId": "list-transactional-messages",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "default": "all",
+              "enum": [
+                "all",
+                "queued",
+                "sent",
+                "delivered",
+                "deferred",
+                "bounced",
+                "complained",
+                "rejected",
+                "failed",
+                "test"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "A template's ID, or raw for mail that arrived by SMTP",
+            "explode": false,
+            "in": "query",
+            "name": "template",
+            "schema": {
+              "description": "A template's ID, or raw for mail that arrived by SMTP",
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "description": "A sending provider's ID",
+            "explode": false,
+            "in": "query",
+            "name": "provider",
+            "schema": {
+              "description": "A sending provider's ID",
+              "maxLength": 36,
+              "type": "string"
+            }
+          },
+          {
+            "description": "An API key's ID",
+            "explode": false,
+            "in": "query",
+            "name": "key",
+            "schema": {
+              "description": "An API key's ID",
+              "maxLength": 36,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "24h",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "custom"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "First day of a custom range (YYYY-MM-DD, the workspace's time zone), within the last 90 days",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "First day of a custom range (YYYY-MM-DD, the workspace's time zone), within the last 90 days",
+              "maxLength": 10,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last day of a custom range",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "description": "Last day of a custom range",
+              "maxLength": 10,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Recipient, message ID, idempotency key, tag or metadata value",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Recipient, message ID, idempotency key, tag or metadata value",
+              "maxLength": 254,
+              "type": "string"
+            }
+          },
+          {
+            "description": "next of the previous page: older messages",
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "description": "next of the previous page: older messages",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "description": "newest of a page: only newer messages (live updates)",
+            "explode": false,
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "description": "newest of a page: only newer messages (live updates)",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 25,
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalLog"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The message log, newest first, with its numbers per status",
+        "tags": [
+          "Transactional messages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      },
       "post": {
         "description": "Answers 202 with the message ID and status queued (scheduled with send_at). Errors are RFC 9457 problems whose detail says what to fix: template_not_found, template_not_published, missing_variables (listed in missing), invalid_recipient, recipient_suppressed (with the reason and date), sender_not_verified, attachments_too_large (naming the route's provider limit), rate_limited (with Retry-After), no_healthy_route. Send an Idempotency-Key header: a retry with the same key within 24 hours gets the first answer and sends nothing. A test-mode key delivers only to the workspace's members and its allowed test addresses.",
         "operationId": "send-transactional-message",
@@ -63668,6 +65101,423 @@
           }
         ],
         "summary": "Send up to 100 messages, each with its own recipient and data",
+        "tags": [
+          "Transactional messages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/messages/export": {
+      "get": {
+        "description": "Holds recipient addresses, so it needs transactional:content. Up to 50,000 rows; every export is audited.",
+        "operationId": "export-transactional-messages",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "default": "all",
+              "enum": [
+                "all",
+                "queued",
+                "sent",
+                "delivered",
+                "deferred",
+                "bounced",
+                "complained",
+                "rejected",
+                "failed",
+                "test"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "A template's ID, or raw for mail that arrived by SMTP",
+            "explode": false,
+            "in": "query",
+            "name": "template",
+            "schema": {
+              "description": "A template's ID, or raw for mail that arrived by SMTP",
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "description": "A sending provider's ID",
+            "explode": false,
+            "in": "query",
+            "name": "provider",
+            "schema": {
+              "description": "A sending provider's ID",
+              "maxLength": 36,
+              "type": "string"
+            }
+          },
+          {
+            "description": "An API key's ID",
+            "explode": false,
+            "in": "query",
+            "name": "key",
+            "schema": {
+              "description": "An API key's ID",
+              "maxLength": 36,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "24h",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "custom"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "First day of a custom range (YYYY-MM-DD, the workspace's time zone), within the last 90 days",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "First day of a custom range (YYYY-MM-DD, the workspace's time zone), within the last 90 days",
+              "maxLength": 10,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last day of a custom range",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "description": "Last day of a custom range",
+              "maxLength": 10,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Recipient, message ID, idempotency key, tag or metadata value",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Recipient, message ID, idempotency key, tag or metadata value",
+              "maxLength": 254,
+              "type": "string"
+            }
+          },
+          {
+            "description": "next of the previous page: older messages",
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "description": "next of the previous page: older messages",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "description": "newest of a page: only newer messages (live updates)",
+            "explode": false,
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "description": "newest of a page: only newer messages (live updates)",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 25,
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export the filtered log as CSV",
+        "tags": [
+          "Transactional messages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:content"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/messages/{messageId}": {
+      "get": {
+        "description": "Sensitive values show as ••••••. The rendered content is a separate call that needs transactional:content.",
+        "operationId": "get-transactional-message",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The message ID the send API answered",
+            "in": "path",
+            "name": "messageId",
+            "required": true,
+            "schema": {
+              "description": "The message ID the send API answered",
+              "maxLength": 36,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalMessageDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One message: summary, timeline, request and attempts",
+        "tags": [
+          "Transactional messages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/messages/{messageId}/content": {
+      "get": {
+        "description": "Content can hold personal data: it needs transactional:content and every view is audited. Sensitive values are masked. Answers 410 content_removed after the content retention.",
+        "operationId": "get-transactional-message-content",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The message ID the send API answered",
+            "in": "path",
+            "name": "messageId",
+            "required": true,
+            "schema": {
+              "description": "The message ID the send API answered",
+              "maxLength": 36,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalContent"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A message's rendered HTML, text and headers",
+        "tags": [
+          "Transactional messages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:content"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/messages/{messageId}/resend": {
+      "post": {
+        "description": "People only. Unavailable when a sensitive variable or attachments weren't stored (resend_unavailable). Audited.",
+        "operationId": "resend-transactional-message",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The message ID the send API answered",
+            "in": "path",
+            "name": "messageId",
+            "required": true,
+            "schema": {
+              "description": "The message ID the send API answered",
+              "maxLength": 36,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalSendResult"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Send a message again with the same data and a new message ID",
         "tags": [
           "Transactional messages"
         ],

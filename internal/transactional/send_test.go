@@ -408,7 +408,10 @@ func TestSendErrors(t *testing.T) {
 		uuid.Must(uuid.NewV7()), s.ws, since)
 	p = code(s.call(secret, "/messages", "sup-1", resetBody("gone@outlook.com")), 422, "recipient_suppressed")
 	meta, _ := p["meta"].(map[string]any)
-	if meta["reason"] != "hard_bounce" || meta["messageId"] == nil || !strings.Contains(p["detail"].(string), "hard bounce on "+since.Format("2 Jan 2006")) {
+	var tz string
+	s.one(`SELECT timezone FROM workspaces WHERE id = $1`, &tz, s.ws)
+	loc, _ := time.LoadLocation(tz)
+	if meta["reason"] != "hard_bounce" || meta["messageId"] == nil || !strings.Contains(p["detail"].(string), "hard bounce on "+since.In(loc).Format("2 Jan 2006")) {
 		t.Fatalf("suppressed: %v", p)
 	}
 	// The refusal is in the log, and a retry answers the same.

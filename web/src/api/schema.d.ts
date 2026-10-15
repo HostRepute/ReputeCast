@@ -6121,6 +6121,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/contacts/{contactId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A contact's transactional messages and category opt-outs
+         * @description For the contact profile's activity timeline. Content stays behind transactional:content.
+         */
+        get: operations["get-contact-transactional-activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/messages": {
         parameters: {
             query?: never;
@@ -6128,7 +6148,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * The message log, newest first, with its numbers per status
+         * @description Messages are kept 90 days; their rendered content as long as the content retention says. Test messages show with status test.
+         */
+        get: operations["list-transactional-messages"];
         put?: never;
         /**
          * Send one message with a template's live version
@@ -6155,6 +6179,86 @@ export interface paths {
          * @description Each message gets its own answer in results, in the order sent: its ID and status, or the problem that stopped it (the same codes as one send).
          */
         post: operations["send-transactional-batch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/messages/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export the filtered log as CSV
+         * @description Holds recipient addresses, so it needs transactional:content. Up to 50,000 rows; every export is audited.
+         */
+        get: operations["export-transactional-messages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/messages/{messageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One message: summary, timeline, request and attempts
+         * @description Sensitive values show as ••••••. The rendered content is a separate call that needs transactional:content.
+         */
+        get: operations["get-transactional-message"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/messages/{messageId}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A message's rendered HTML, text and headers
+         * @description Content can hold personal data: it needs transactional:content and every view is audited. Sensitive values are masked. Answers 410 content_removed after the content retention.
+         */
+        get: operations["get-transactional-message-content"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/messages/{messageId}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a message again with the same data and a new message ID
+         * @description People only. Unavailable when a sensitive variable or attachments weren't stored (resend_unavailable). Audited.
+         */
+        post: operations["resend-transactional-message"];
         delete?: never;
         options?: never;
         head?: never;
@@ -15799,6 +15903,23 @@ export interface components {
             /** @example INV-2026-0418.pdf */
             filename: string;
         };
+        TransactionalAttachmentMeta: {
+            contentId?: string;
+            contentType: string;
+            filename: string;
+            /** Format: int64 */
+            size: number;
+        };
+        TransactionalAttempt: {
+            /** Format: date-time */
+            at: string;
+            down?: boolean;
+            error?: string;
+            gaveUp?: boolean;
+            ok: boolean;
+            provider: string;
+            temporary?: boolean;
+        };
         TransactionalBatch: {
             messages: components["schemas"]["TransactionalSend"][];
         };
@@ -15819,6 +15940,14 @@ export interface components {
             /** Format: int64 */
             failed: number;
             results: components["schemas"]["TransactionalBatchItem"][];
+        };
+        TransactionalBounce: {
+            /** @description mailbox_unknown, mailbox_full, domain_invalid, policy_block, spam_block, reputation, temporary, other */
+            class?: string;
+            /** @example 452 4.2.2 mailbox full */
+            diagnostic?: string;
+            /** @enum {string} */
+            kind: "hard" | "soft";
         };
         TransactionalBreakingChange: {
             breaking: components["schemas"]["TransactionalBreakingVariable"][];
@@ -15928,6 +16057,59 @@ export interface components {
             trackOpens?: boolean;
             variables?: components["schemas"]["TransactionalVariable"][];
         };
+        TransactionalContactActivity: {
+            canViewContent: boolean;
+            categories: components["schemas"]["TransactionalContactCategory"][];
+            messages: components["schemas"]["TransactionalContactMessage"][];
+            optOuts: components["schemas"]["TransactionalContactOptOut"][];
+        };
+        TransactionalContactCategory: {
+            id: string;
+            name: string;
+            on: boolean;
+        };
+        TransactionalContactMessage: {
+            /** Format: date-time */
+            at: string;
+            category?: string;
+            id: string;
+            provider?: string;
+            raw: boolean;
+            /** @enum {string} */
+            status: "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "failed" | "test";
+            subject: string;
+            template?: components["schemas"]["TransactionalLogTemplate"];
+        };
+        TransactionalContactOptOut: {
+            category: string;
+            categoryId: string;
+            reason?: string;
+            /** Format: date-time */
+            since: string;
+            source: string;
+        };
+        TransactionalContent: {
+            /** Format: date-time */
+            expiresAt: string;
+            headers: components["schemas"]["TransactionalHeaderPair"][];
+            html: string;
+            masked: string[];
+            text: string;
+        };
+        TransactionalContentState: {
+            available: boolean;
+            canView: boolean;
+            /** Format: date-time */
+            expiresAt?: string;
+            helpers: string[];
+            masked: string[];
+            /** Format: date-time */
+            metadataUntil: string;
+            /** Format: date-time */
+            removedAt?: string;
+            /** Format: int64 */
+            retentionDays: number;
+        };
         TransactionalDiff: {
             changed: boolean;
             content: components["schemas"]["TransactionalDiffLine"][];
@@ -15980,9 +16162,185 @@ export interface components {
             /** Format: int64 */
             sizeBytes: number;
         };
+        TransactionalFailover: {
+            /** Format: date-time */
+            at?: string;
+            from: string;
+            to: string;
+        };
+        TransactionalHeaderPair: {
+            name: string;
+            value: string;
+        };
+        TransactionalLog: {
+            canExport: boolean;
+            /** Format: int64 */
+            contentDays: number;
+            counts: components["schemas"]["TransactionalLogCounts"];
+            filters: components["schemas"]["TransactionalLogFilters"];
+            items: components["schemas"]["TransactionalLogItem"][];
+            /** Format: int64 */
+            metadataDays: number;
+            newest?: string;
+            next?: string;
+            /** Format: date-time */
+            since: string;
+            /** Format: date-time */
+            until: string;
+        };
+        TransactionalLogCounts: {
+            /** Format: int64 */
+            all: number;
+            /** Format: int64 */
+            bounced: number;
+            /** Format: int64 */
+            complained: number;
+            /** Format: int64 */
+            deferred: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            queued: number;
+            /** Format: int64 */
+            rejected: number;
+            /** Format: int64 */
+            sent: number;
+            /** Format: int64 */
+            test: number;
+        };
+        TransactionalLogFilters: {
+            keys: components["schemas"]["TransactionalRef"][];
+            providers: components["schemas"]["TransactionalRef"][];
+            /** @description id is the template's ID; raw is mail that arrived by SMTP */
+            templates: components["schemas"]["TransactionalRef"][];
+        };
+        TransactionalLogItem: {
+            /**
+             * Format: date-time
+             * @description When the call was accepted
+             */
+            at: string;
+            bounce?: components["schemas"]["TransactionalBounce"];
+            category?: string;
+            /** Format: date-time */
+            clickedAt?: string;
+            contactId?: string;
+            /** Format: int64 */
+            deferrals: number;
+            /** Format: int64 */
+            deliveryMs?: number;
+            email: string;
+            error?: string;
+            failedOver?: components["schemas"]["TransactionalFailover"];
+            id: string;
+            key?: string;
+            name?: string;
+            /** Format: date-time */
+            openedAt?: string;
+            provider?: components["schemas"]["TransactionalRef"];
+            raw: boolean;
+            rejection?: components["schemas"]["TransactionalRejection"];
+            roleAddress: boolean;
+            /** @enum {string} */
+            status: "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "failed" | "test";
+            subject: string;
+            template?: components["schemas"]["TransactionalLogTemplate"];
+            testDelivered: boolean;
+            tracked: boolean;
+        };
+        TransactionalLogTemplate: {
+            key: string;
+            name: string;
+            /** Format: int32 */
+            version?: number;
+        };
         TransactionalMakeOptional: {
             default: string;
             name: string;
+        };
+        TransactionalMessageDetail: {
+            /**
+             * Format: date-time
+             * @description When the call was accepted
+             */
+            at: string;
+            attachments: components["schemas"]["TransactionalAttachmentMeta"][];
+            attempts: components["schemas"]["TransactionalAttempt"][];
+            bcc: string[];
+            bounce?: components["schemas"]["TransactionalBounce"];
+            canRemoveSuppression: boolean;
+            category?: string;
+            categoryKind?: string;
+            cc: string[];
+            /** Format: date-time */
+            clickedAt?: string;
+            contact?: components["schemas"]["TransactionalRef"];
+            contactId?: string;
+            content: components["schemas"]["TransactionalContentState"];
+            /** Format: int64 */
+            contentBytes: number;
+            /** Format: int64 */
+            deferrals: number;
+            /** Format: int64 */
+            deliveryMs?: number;
+            dropped: string[];
+            email: string;
+            error?: string;
+            failedOver?: components["schemas"]["TransactionalFailover"];
+            from: string;
+            id: string;
+            idempotencyKey?: string;
+            ip?: string;
+            key?: string;
+            keyRef?: components["schemas"]["TransactionalRef"];
+            metadata: {
+                [key: string]: string;
+            };
+            name?: string;
+            /** Format: date-time */
+            openedAt?: string;
+            provider?: components["schemas"]["TransactionalRef"];
+            providerMessageId?: string;
+            raw: boolean;
+            rejection?: components["schemas"]["TransactionalRejection"];
+            replyTo?: string;
+            request: components["schemas"]["TransactionalRequest"];
+            resend: components["schemas"]["TransactionalResendState"];
+            resentFrom?: string;
+            roleAddress: boolean;
+            route: components["schemas"]["TransactionalRouteInfo"];
+            /** Format: date-time */
+            sendAt?: string;
+            sensitiveSent: string[];
+            sentBy?: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: int64 */
+            softBounceLimit: number;
+            /** Format: int64 */
+            softBounces?: number;
+            source: string;
+            /** @enum {string} */
+            status: "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "failed" | "test";
+            subject: string;
+            suppression?: components["schemas"]["TransactionalSuppressionInfo"];
+            tags: string[];
+            template?: components["schemas"]["TransactionalLogTemplate"];
+            testDelivered: boolean;
+            timeline: components["schemas"]["TransactionalTimelineEntry"][];
+            tracked: boolean;
+            /** Format: int64 */
+            variables: number;
+            webhooks: components["schemas"]["TransactionalWebhookDelivery"][];
+        };
+        TransactionalOptOutInfo: {
+            category: string;
+            /** Format: date-time */
+            since: string;
+            /** @enum {string} */
+            source: "preference_center" | "unsubscribe_link" | "one_click" | "api" | "member" | "";
         };
         TransactionalPreview: {
             defaults: string[];
@@ -16115,6 +16473,18 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        TransactionalRef: {
+            id: string;
+            name: string;
+        };
+        TransactionalRejection: {
+            allowed?: string[];
+            error?: string;
+            optOut?: components["schemas"]["TransactionalOptOutInfo"];
+            /** @enum {string} */
+            reason: "suppressed" | "opted_out" | "test_not_allowed" | "provider";
+            suppression?: components["schemas"]["TransactionalSuppressionInfo"];
+        };
         TransactionalRenderInput: {
             /** @description The template's variables */
             data?: {
@@ -16135,10 +16505,33 @@ export interface components {
              */
             version: number;
         };
+        TransactionalRequest: {
+            body: unknown;
+            idempotencyKey?: string;
+            method: string;
+            path: string;
+            smtp: boolean;
+        };
+        TransactionalResendState: {
+            available: boolean;
+            /** @enum {string} */
+            reason?: "sensitive" | "attachments" | "raw" | "template" | "permission" | "not_sent" | "";
+            sensitive?: string[];
+        };
         TransactionalRollbackInput: {
             undo?: boolean;
             /** Format: int64 */
             version: number;
+        };
+        TransactionalRouteInfo: {
+            failedOver: boolean;
+            fallback?: string;
+            /** @description The condition's field: category or mailbox_provider */
+            matched?: string;
+            policy?: string;
+            primary?: string;
+            rule: string;
+            value?: string;
         };
         TransactionalSend: {
             attachments?: components["schemas"]["TransactionalAttachmentInput"][];
@@ -16298,6 +16691,21 @@ export interface components {
             /** Format: int64 */
             sent: number;
         };
+        TransactionalSuppressionInfo: {
+            /** @example 550 5.1.1 */
+            code?: string;
+            detail?: string;
+            /** @description The suppression as it is now; empty once it was removed */
+            id?: string;
+            /** @example hard_bounce */
+            reason: string;
+            /** @enum {string} */
+            scope?: "all" | "marketing";
+            /** Format: date-time */
+            since: string;
+            /** @example Postmark */
+            source: string;
+        };
         TransactionalTemplate: {
             access: components["schemas"]["TransactionalTemplateAccess"];
             archived: boolean;
@@ -16435,6 +16843,24 @@ export interface components {
             after: string;
             before: string;
         };
+        TransactionalTimelineEntry: {
+            /** Format: date-time */
+            at: string;
+            code?: string;
+            detail?: string;
+            down?: boolean;
+            event?: string;
+            /** @enum {string} */
+            kind: "accepted" | "rendered" | "scheduled" | "routed" | "handed" | "retry" | "failed_over" | "failed" | "rejected" | "not_delivered" | "delivered" | "deferred" | "bounced" | "complained" | "opened" | "clicked" | "provider_rejected" | "webhook";
+            machine?: boolean;
+            provider?: string;
+            providerMessageId?: string;
+            state?: string;
+            /** Format: int64 */
+            status?: number;
+            to?: string;
+            url?: string;
+        };
         TransactionalVariable: {
             default?: string;
             description?: string;
@@ -16502,6 +16928,17 @@ export interface components {
         TransactionalVersionList: {
             canPublish: boolean;
             items: components["schemas"]["TransactionalVersion"][];
+        };
+        TransactionalWebhookDelivery: {
+            /** Format: date-time */
+            at: string;
+            /** Format: date-time */
+            deliveredAt?: string;
+            event: string;
+            state: string;
+            /** Format: int32 */
+            statusCode?: number;
+            url: string;
         };
         URLCheck: {
             /** Format: date-time */
@@ -31426,6 +31863,91 @@ export interface operations {
             };
         };
     };
+    "get-contact-transactional-activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalContactActivity"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-transactional-messages": {
+        parameters: {
+            query?: {
+                status?: "all" | "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "failed" | "test";
+                /** @description A template's ID, or raw for mail that arrived by SMTP */
+                template?: string;
+                /** @description A sending provider's ID */
+                provider?: string;
+                /** @description An API key's ID */
+                key?: string;
+                range?: "1h" | "24h" | "7d" | "30d" | "custom";
+                /** @description First day of a custom range (YYYY-MM-DD, the workspace's time zone), within the last 90 days */
+                from?: string;
+                /** @description Last day of a custom range */
+                to?: string;
+                /** @description Recipient, message ID, idempotency key, tag or metadata value */
+                q?: string;
+                /** @description next of the previous page: older messages */
+                before?: string;
+                /** @description newest of a page: only newer messages (live updates) */
+                after?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalLog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "send-transactional-message": {
         parameters: {
             query?: never;
@@ -31491,6 +32013,163 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransactionalBatchResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-transactional-messages": {
+        parameters: {
+            query?: {
+                status?: "all" | "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "failed" | "test";
+                /** @description A template's ID, or raw for mail that arrived by SMTP */
+                template?: string;
+                /** @description A sending provider's ID */
+                provider?: string;
+                /** @description An API key's ID */
+                key?: string;
+                range?: "1h" | "24h" | "7d" | "30d" | "custom";
+                /** @description First day of a custom range (YYYY-MM-DD, the workspace's time zone), within the last 90 days */
+                from?: string;
+                /** @description Last day of a custom range */
+                to?: string;
+                /** @description Recipient, message ID, idempotency key, tag or metadata value */
+                q?: string;
+                /** @description next of the previous page: older messages */
+                before?: string;
+                /** @description newest of a page: only newer messages (live updates) */
+                after?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-transactional-message": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The message ID the send API answered */
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalMessageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-transactional-message-content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The message ID the send API answered */
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalContent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resend-transactional-message": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The message ID the send API answered */
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalSendResult"];
                 };
             };
             /** @description Error */

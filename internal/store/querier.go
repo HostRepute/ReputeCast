@@ -1530,6 +1530,9 @@ type Querier interface {
 	TxnCategoryTemplateCount(ctx context.Context, categoryID *uuid.UUID) (int64, error)
 	TxnCategoryUpdate(ctx context.Context, arg TxnCategoryUpdateParams) error
 	TxnContactByEmail(ctx context.Context, arg TxnContactByEmailParams) (TxnContactByEmailRow, error)
+	// A contact's transactional messages for its activity timeline.
+	TxnContactMessages(ctx context.Context, arg TxnContactMessagesParams) ([]TxnContactMessagesRow, error)
+	TxnContent(ctx context.Context, messageID uuid.UUID) (TxnContentRow, error)
 	TxnIdemGet(ctx context.Context, arg TxnIdemGetParams) (TransactionalIdempotency, error)
 	TxnIdemInsert(ctx context.Context, arg TxnIdemInsertParams) (string, error)
 	TxnIdemPurge(ctx context.Context, before time.Time) (int64, error)
@@ -1541,6 +1544,16 @@ type Querier interface {
 	TxnInsertRejectedCall(ctx context.Context, arg TxnInsertRejectedCallParams) error
 	// A key's transactional settings (send-only, test mode, scope, rate).
 	TxnKey(ctx context.Context, arg TxnKeyParams) (TxnKeyRow, error)
+	// The message log, newest first. status is what the log shows: test,
+	// rejected, queued, sent, delivered, deferred, bounced, complained or
+	// failed. before_* pages back; after_* returns only newer messages (live).
+	TxnLog(ctx context.Context, arg TxnLogParams) ([]TxnLogRow, error)
+	// The log's numbers per status for the same filters.
+	TxnLogCounts(ctx context.Context, arg TxnLogCountsParams) ([]TxnLogCountsRow, error)
+	// Keys that can send, for the log's key filter.
+	TxnLogKeys(ctx context.Context, workspaceID uuid.UUID) ([]TxnLogKeysRow, error)
+	// Templates for the log's template filter, archived ones included.
+	TxnLogTemplates(ctx context.Context, workspaceID uuid.UUID) ([]TxnLogTemplatesRow, error)
 	TxnMarkEmitted(ctx context.Context, arg TxnMarkEmittedParams) error
 	TxnMarkFailed(ctx context.Context, arg TxnMarkFailedParams) error
 	TxnMarkFailedOver(ctx context.Context, arg TxnMarkFailedOverParams) error
@@ -1548,9 +1561,14 @@ type Querier interface {
 	// The address and category a transactional message went out with (its
 	// unsubscribe and preference links).
 	TxnMessageCategory(ctx context.Context, arg TxnMessageCategoryParams) (TxnMessageCategoryRow, error)
+	TxnMessageDetail(ctx context.Context, arg TxnMessageDetailParams) (TxnMessageDetailRow, error)
 	// What a message's webhook events carry.
 	TxnMessageEvent(ctx context.Context, messageID uuid.UUID) (TxnMessageEventRow, error)
+	// A message's provider events, oldest first.
+	TxnMessageEvents(ctx context.Context, messageID *uuid.UUID) ([]TxnMessageEventsRow, error)
 	TxnMessageLinks(ctx context.Context, messageID uuid.UUID) ([]string, error)
+	// The webhook deliveries of a message's message.* events.
+	TxnMessageWebhooks(ctx context.Context, arg TxnMessageWebhooksParams) ([]TxnMessageWebhooksRow, error)
 	// A message moves to the next provider of its route (failover).
 	TxnMoveToProvider(ctx context.Context, arg TxnMoveToProviderParams) error
 	TxnOptOut(ctx context.Context, arg TxnOptOutParams) (TxnOptOutRow, error)
@@ -1582,6 +1600,16 @@ type Querier interface {
 	// names (the breaking-change check of the publish dialog).
 	TxnRecentCallKeys(ctx context.Context, arg TxnRecentCallKeysParams) ([]TxnRecentCallKeysRow, error)
 	TxnRejectedCallsForTemplate(ctx context.Context, arg TxnRejectedCallsForTemplateParams) ([]TxnRejectedCallsForTemplateRow, error)
+	// A workspace's messages whose rendered content is past its retention
+	// (expired, or sent before cutoff), up to lim.
+	TxnRetentionContentDue(ctx context.Context, arg TxnRetentionContentDueParams) ([]uuid.UUID, error)
+	TxnRetentionContentRemove(ctx context.Context, ids []uuid.UUID) error
+	TxnRetentionContentRemoved(ctx context.Context, arg TxnRetentionContentRemovedParams) error
+	// Removes up to lim transactional messages older than before (90 days):
+	// their log entry and content go with them.
+	TxnRetentionMessages(ctx context.Context, arg TxnRetentionMessagesParams) (int64, error)
+	TxnRetentionRejectedCalls(ctx context.Context, before time.Time) (int64, error)
+	TxnRetentionWorkspaces(ctx context.Context) ([]TxnRetentionWorkspacesRow, error)
 	// Whether an address carries a marketing-only role suppression (the log
 	// marks it "Role address").
 	TxnRoleSuppressed(ctx context.Context, arg TxnRoleSuppressedParams) (bool, error)
@@ -1615,6 +1643,8 @@ type Querier interface {
 	// The suppression that stops transactional mail to an address, if any:
 	// everything except the marketing-only ones (unsubscribes, role addresses).
 	TxnSuppression(ctx context.Context, arg TxnSuppressionParams) (TxnSuppressionRow, error)
+	// An address's suppression as it is now, whatever its scope.
+	TxnSuppressionFor(ctx context.Context, arg TxnSuppressionForParams) (TxnSuppressionForRow, error)
 	TxnTemplate(ctx context.Context, arg TxnTemplateParams) (TxnTemplateRow, error)
 	TxnTemplateArchive(ctx context.Context, arg TxnTemplateArchiveParams) error
 	TxnTemplateDelete(ctx context.Context, arg TxnTemplateDeleteParams) error

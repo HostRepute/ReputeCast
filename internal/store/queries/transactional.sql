@@ -471,3 +471,166 @@ WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AN
   AND m.status IN ('sent','delivered','deferred','bounced','complained')
   AND (@include_test::boolean OR NOT t.test)
 GROUP BY 1, 2;
+
+-- name: TxnLog :many
+-- The message log, newest first. status is what the log shows: test,
+-- rejected, queued, sent, delivered, deferred, bounced, complained or
+-- failed. before_* pages back; after_* returns only newer messages (live).
+WITH log AS (
+    SELECT t.message_id, t.accepted_at, m.email, m.contact_id, t.to_name, t.source, t.template_key, t.template_name, t.template_version, t.subject,
+           m.provider_id, coalesce(p.name, '')::text AS provider_name, m.error, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at,
+           t.test, t.test_delivered, t.reject_reason, t.reject_detail, t.track_opens, t.track_clicks,
+           t.failed_over_from, coalesce(fp.name, '')::text AS failed_over_from_name, t.failed_over_at,
+           t.key_id, t.key_name, t.idempotency_key, t.tags, t.metadata, t.category_name, t.category_kind, t.workspace_id,
+           (CASE WHEN t.test THEN 'test'
+                 WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+                 WHEN m.status = 'held' THEN 'queued'
+                 ELSE m.status END)::text AS status
+    FROM transactional_messages t
+    JOIN messages m ON m.id = t.message_id
+    LEFT JOIN providers p ON p.id = m.provider_id
+    LEFT JOIN providers fp ON fp.id = t.failed_over_from
+    WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AND t.accepted_at < @until::timestamptz
+      AND (sqlc.narg(template)::text IS NULL OR (sqlc.narg(template)::text = 'raw' AND t.source = 'smtp' AND t.template_key = '') OR t.template_key = sqlc.narg(template)::text)
+      AND (sqlc.narg(provider_id)::uuid IS NULL OR m.provider_id = sqlc.narg(provider_id)::uuid)
+      AND (sqlc.narg(key_id)::uuid IS NULL OR t.key_id = sqlc.narg(key_id)::uuid)
+      AND (sqlc.narg(q)::text IS NULL OR m.email ILIKE '%' || sqlc.narg(q)::text || '%' OR t.message_id::text = sqlc.narg(q)::text
+           OR t.idempotency_key = sqlc.narg(q)::text OR sqlc.narg(q)::text = ANY(t.tags)
+           OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE kv.value = sqlc.narg(q)::text))
+      AND (sqlc.narg(before_at)::timestamptz IS NULL OR (t.accepted_at, t.message_id) < (sqlc.narg(before_at)::timestamptz, sqlc.narg(before_id)::uuid))
+      AND (sqlc.narg(after_at)::timestamptz IS NULL OR (t.accepted_at, t.message_id) > (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
+)
+SELECT log.message_id, log.accepted_at, log.email, log.contact_id, log.to_name, log.source, log.template_key, log.template_name, log.template_version, log.subject,
+       log.provider_id, log.provider_name, log.error, log.sent_at, log.delivered_at, log.opened_at, log.clicked_at,
+       log.test, log.test_delivered, log.reject_reason, log.reject_detail, log.track_opens, log.track_clicks,
+       log.failed_over_from, log.failed_over_from_name, log.failed_over_at,
+       log.key_id, log.key_name, log.idempotency_key, log.tags, log.metadata, log.category_name, log.category_kind, log.status,
+       (SELECT count(*) FROM delivery_events e WHERE e.message_id = log.message_id AND e.type = 'deferred')::int AS deferrals,
+       coalesce((SELECT e.type || ':' || e.bounce_class || ':' || e.original_code || ' ' || e.diagnostic FROM delivery_events e
+                 WHERE e.message_id = log.message_id AND e.type IN ('hard_bounce', 'soft_bounce') ORDER BY e.occurred_at DESC LIMIT 1), '')::text AS bounce,
+       EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = log.workspace_id AND s.email = log.email AND s.reason = 'role')::boolean AS role_address
+FROM log
+WHERE sqlc.narg(status)::text IS NULL OR log.status = sqlc.narg(status)::text
+ORDER BY log.accepted_at DESC, log.message_id DESC
+LIMIT @lim;
+
+-- name: TxnLogCounts :many
+-- The log's numbers per status for the same filters.
+SELECT (CASE WHEN t.test THEN 'test'
+             WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'held' THEN 'queued'
+             ELSE m.status END)::text AS status,
+       count(*)::bigint AS n
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AND t.accepted_at < @until::timestamptz
+  AND (sqlc.narg(template)::text IS NULL OR (sqlc.narg(template)::text = 'raw' AND t.source = 'smtp' AND t.template_key = '') OR t.template_key = sqlc.narg(template)::text)
+  AND (sqlc.narg(provider_id)::uuid IS NULL OR m.provider_id = sqlc.narg(provider_id)::uuid)
+  AND (sqlc.narg(key_id)::uuid IS NULL OR t.key_id = sqlc.narg(key_id)::uuid)
+  AND (sqlc.narg(q)::text IS NULL OR m.email ILIKE '%' || sqlc.narg(q)::text || '%' OR t.message_id::text = sqlc.narg(q)::text
+       OR t.idempotency_key = sqlc.narg(q)::text OR sqlc.narg(q)::text = ANY(t.tags)
+       OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE kv.value = sqlc.narg(q)::text))
+GROUP BY 1;
+
+-- name: TxnLogKeys :many
+-- Keys that can send, for the log's key filter.
+SELECT id, name, revoked_at FROM api_keys
+WHERE workspace_id = @workspace_id AND kind = 'api_key' AND 'transactional:send' = ANY(permissions)
+ORDER BY created_at;
+
+-- name: TxnLogTemplates :many
+-- Templates for the log's template filter, archived ones included.
+SELECT key, name FROM transactional_templates WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at;
+
+-- name: TxnMessageDetail :one
+SELECT t.message_id, t.workspace_id, t.source, t.template_id, t.template_key, t.template_name, t.template_version, t.category_id, t.category_name,
+       t.category_kind, t.key_id, t.key_name, t.user_id, t.ip, t.idempotency_key, t.subject, t.from_email, t.from_name, t.reply_to, t.to_name,
+       t.cc, t.bcc, t.tags, t.metadata, t.data, t.data_keys, t.sensitive, t.attachments, t.size_bytes, t.test, t.test_delivered, t.send_at,
+       t.reject_reason, t.reject_detail, t.track_opens, t.track_clicks, t.route, t.attempts, t.failed_over_from, t.failed_over_at, t.provider_since,
+       t.accepted_at, t.rendered_at, t.content_expires_at, t.content_removed_at, t.resent_from,
+       m.email, m.contact_id, m.provider_id, coalesce(m.provider_message_id, '')::text AS provider_message_id, m.mailbox_provider,
+       m.status AS raw_status, m.error, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at,
+       coalesce(p.name, '')::text AS provider_name,
+       coalesce(fp.name, '')::text AS failed_over_from_name,
+       coalesce(u.name, '')::text AS user_name,
+       coalesce(nullif(trim(c.first_name || ' ' || c.last_name), ''), '')::text AS contact_name,
+       (c.id IS NOT NULL)::boolean AS contact_exists,
+       EXISTS (SELECT 1 FROM transactional_message_content x WHERE x.message_id = t.message_id)::boolean AS has_content,
+       EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = t.workspace_id AND s.email = m.email AND s.reason = 'role')::boolean AS role_address,
+       (CASE WHEN t.test THEN 'test'
+             WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'held' THEN 'queued'
+             ELSE m.status END)::text AS status
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN providers p ON p.id = m.provider_id
+LEFT JOIN providers fp ON fp.id = t.failed_over_from
+LEFT JOIN users u ON u.id = t.user_id
+LEFT JOIN contacts c ON c.id = m.contact_id AND c.erased_at IS NULL
+WHERE t.message_id = @id AND t.workspace_id = @workspace_id;
+
+-- name: TxnMessageEvents :many
+-- A message's provider events, oldest first.
+SELECT e.type, e.occurred_at, e.original_type, e.original_code, e.diagnostic, e.bounce_class, e.machine, e.url, e.user_agent,
+       e.provider_id, coalesce(p.name, '')::text AS provider_name, e.provider_message_id
+FROM delivery_events e LEFT JOIN providers p ON p.id = e.provider_id
+WHERE e.message_id = @message_id
+ORDER BY e.occurred_at, e.received_at;
+
+-- name: TxnMessageWebhooks :many
+-- The webhook deliveries of a message's message.* events.
+SELECT d.event, d.state, d.created_at, d.delivered_at, d.status_code, d.attempt, w.url
+FROM webhook_deliveries d JOIN webhooks w ON w.id = d.webhook_id
+WHERE (d.payload->'data'->>'message_id') = @message_id::text AND d.event LIKE 'message.%' AND w.workspace_id = @workspace_id
+ORDER BY d.created_at;
+
+-- name: TxnSuppressionFor :one
+-- An address's suppression as it is now, whatever its scope.
+SELECT s.id, s.reason, s.source, s.original_code, s.detail, s.created_at, s.scope, coalesce(p.name, '')::text AS provider_name
+FROM suppressions s LEFT JOIN providers p ON p.id = s.source_provider_id
+WHERE s.workspace_id = @workspace_id AND s.email = @email;
+
+-- name: TxnContent :one
+SELECT html, text, headers, expires_at FROM transactional_message_content WHERE message_id = @message_id;
+
+-- name: TxnRetentionWorkspaces :many
+SELECT workspace_id, content_retention_days FROM transactional_settings;
+
+-- name: TxnRetentionContentDue :many
+-- A workspace's messages whose rendered content is past its retention
+-- (expired, or sent before cutoff), up to lim.
+SELECT x.message_id FROM transactional_message_content x
+JOIN transactional_messages t ON t.message_id = x.message_id
+WHERE t.workspace_id = @workspace_id AND (x.expires_at <= @now::timestamptz OR t.accepted_at <= @cutoff::timestamptz)
+LIMIT @lim;
+
+-- name: TxnRetentionContentRemove :exec
+DELETE FROM transactional_message_content WHERE message_id = ANY(@ids::uuid[]);
+
+-- name: TxnRetentionContentRemoved :exec
+UPDATE transactional_messages SET content_removed_at = @now::timestamptz WHERE message_id = ANY(@ids::uuid[]);
+
+-- name: TxnRetentionMessages :execrows
+-- Removes up to lim transactional messages older than before (90 days):
+-- their log entry and content go with them.
+DELETE FROM messages m
+WHERE m.id IN (SELECT t.message_id FROM transactional_messages t WHERE t.accepted_at < @before::timestamptz ORDER BY t.accepted_at LIMIT @lim)
+  AND m.stream = 'transactional';
+
+-- name: TxnRetentionRejectedCalls :execrows
+DELETE FROM transactional_rejected_calls WHERE at < @before::timestamptz;
+
+-- name: TxnContactMessages :many
+-- A contact's transactional messages for its activity timeline.
+SELECT t.message_id, t.accepted_at, t.template_key, t.template_name, t.source, t.subject, t.test, t.reject_reason, t.category_name,
+       coalesce(p.name, '')::text AS provider_name, m.delivered_at,
+       (CASE WHEN t.test THEN 'test'
+             WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'held' THEN 'queued'
+             ELSE m.status END)::text AS status
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN providers p ON p.id = m.provider_id
+WHERE t.workspace_id = @workspace_id AND (m.contact_id = @contact_id OR m.email = @email)
+ORDER BY t.accepted_at DESC
+LIMIT @lim;
