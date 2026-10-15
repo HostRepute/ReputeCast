@@ -1,6 +1,10 @@
 package reports
 
-import "time"
+import (
+	"time"
+
+	"github.com/hostrepute/reputecast/internal/languages"
+)
 
 // CampaignReport is the campaign report (spec 7.7, honest analytics 5.5).
 // It only ever holds aggregate numbers: no contact address or other personal
@@ -16,6 +20,9 @@ type CampaignReport struct {
 	Unsubscribes ReportUnsubscribes   `json:"unsubscribes"`
 	ABTest       *ReportABTest        `json:"abTest,omitempty"`
 	Backlog      *ReportIngestBacklog `json:"backlog,omitempty"`
+	// Languages is "Results per language", for a campaign sent in more than
+	// one language.
+	Languages *languages.ReportLanguages `json:"languages,omitempty"`
 	// NotSent is set for campaigns that haven't sent anything yet.
 	NotSent *ReportNotSent `json:"notSent,omitempty"`
 }
@@ -146,6 +153,9 @@ type ReportClickMap struct {
 	Links     []ReportLink     `json:"links"`
 	Threshold float64          `json:"threshold" doc:"Links under this share (percent) are grouped as Other"`
 	Other     *ReportLinkGroup `json:"other,omitempty"`
+	// Language is the language version the map shows, for a campaign sent
+	// in several languages.
+	Language string `json:"language,omitempty"`
 }
 
 // ReportRates are a slice of the send's results. Rates as in ReportHeadline.

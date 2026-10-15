@@ -247,6 +247,30 @@ type Querier interface {
 	ContactSources(ctx context.Context, workspaceID uuid.UUID) ([]ContactSourcesRow, error)
 	ContentCheckLinkListings(ctx context.Context, domains []string) ([]LinkDomainListing, error)
 	ContentCheckUpsertLinkListing(ctx context.Context, arg ContentCheckUpsertLinkListingParams) error
+	ContentSource(ctx context.Context, arg ContentSourceParams) (ContentSource, error)
+	ContentSourceCopy(ctx context.Context, arg ContentSourceCopyParams) error
+	ContentSourceForUpdate(ctx context.Context, arg ContentSourceForUpdateParams) (ContentSource, error)
+	ContentSourceSetLanguage(ctx context.Context, arg ContentSourceSetLanguageParams) error
+	ContentSourceUpsert(ctx context.Context, arg ContentSourceUpsertParams) error
+	ContentTranslation(ctx context.Context, arg ContentTranslationParams) (ContentTranslationRow, error)
+	ContentTranslationDelete(ctx context.Context, arg ContentTranslationDeleteParams) (int64, error)
+	ContentTranslationForUpdate(ctx context.Context, arg ContentTranslationForUpdateParams) (ContentTranslation, error)
+	ContentTranslationInsert(ctx context.Context, arg ContentTranslationInsertParams) error
+	// Marked translated or up to date: the links point at the current source.
+	ContentTranslationMark(ctx context.Context, arg ContentTranslationMarkParams) error
+	// Keeps the newest autosaves; the first version and named saves stay.
+	ContentTranslationPruneVersions(ctx context.Context, arg ContentTranslationPruneVersionsParams) (int64, error)
+	ContentTranslationSave(ctx context.Context, arg ContentTranslationSaveParams) error
+	ContentTranslationSetHeld(ctx context.Context, arg ContentTranslationSetHeldParams) error
+	ContentTranslationSetLinks(ctx context.Context, arg ContentTranslationSetLinksParams) error
+	ContentTranslationVersion(ctx context.Context, arg ContentTranslationVersionParams) (ContentTranslationVersionRow, error)
+	ContentTranslationVersionInsert(ctx context.Context, arg ContentTranslationVersionInsertParams) error
+	ContentTranslationVersions(ctx context.Context, arg ContentTranslationVersionsParams) ([]ContentTranslationVersionsRow, error)
+	// The language versions of an email, with who translated and last saved them.
+	ContentTranslations(ctx context.Context, arg ContentTranslationsParams) ([]ContentTranslationsRow, error)
+	// Carries an automation email's or template's language versions to its
+	// next version (their versions are immutable).
+	ContentTranslationsCopy(ctx context.Context, arg ContentTranslationsCopyParams) error
 	CountActiveOwners(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountAutomationHeldMessages(ctx context.Context, automationID *uuid.UUID) (int64, error)
 	CountAutomationInFlow(ctx context.Context, automationIds []uuid.UUID) ([]CountAutomationInFlowRow, error)
@@ -640,6 +664,39 @@ type Querier interface {
 	KeysRejections(ctx context.Context, apiKeyID uuid.UUID) (KeysRejectionsRow, error)
 	KeysRevoke(ctx context.Context, arg KeysRevokeParams) (int64, error)
 	KeysTouch(ctx context.Context, arg KeysTouchParams) error
+	// Adding a language that was removed brings it back with its page copy.
+	LanguagesAdd(ctx context.Context, arg LanguagesAddParams) error
+	LanguagesCampaignSendContent(ctx context.Context, campaignID uuid.UUID) (json.RawMessage, error)
+	// What a campaign's source is: its content and who saved it last.
+	LanguagesCampaignSource(ctx context.Context, arg LanguagesCampaignSourceParams) (LanguagesCampaignSourceRow, error)
+	// The source version saved last at or before a time (who changed a block).
+	LanguagesCampaignVersionAt(ctx context.Context, arg LanguagesCampaignVersionAtParams) (LanguagesCampaignVersionAtRow, error)
+	LanguagesClearDefault(ctx context.Context, workspaceID uuid.UUID) error
+	LanguagesClearFallback(ctx context.Context, workspaceID uuid.UUID) error
+	// Contacts per language code as stored ("es-MX", "" for none), erased
+	// contacts left out, as on Contacts.
+	LanguagesContactCodes(ctx context.Context, workspaceID uuid.UUID) ([]LanguagesContactCodesRow, error)
+	// A workspace that never chose its default writes in English: English
+	// becomes its default (and its fallback unless it has one).
+	LanguagesEnsureDefault(ctx context.Context, workspaceID uuid.UUID) error
+	// The newest unsent campaign with the same audience (the report's "Add a
+	// Vietnamese version to …").
+	LanguagesLatestDraftFor(ctx context.Context, arg LanguagesLatestDraftForParams) (LanguagesLatestDraftForRow, error)
+	// Content languages (design expansion M17): workspace languages, language
+	// versions of emails and their sources.
+	// Every language the workspace has had, removed ones included (they keep
+	// their page copy status), with who added it.
+	LanguagesList(ctx context.Context, workspaceID uuid.UUID) ([]LanguagesListRow, error)
+	LanguagesLock(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	// Results of a sent campaign per language version and why readers got it.
+	LanguagesMessageResults(ctx context.Context, campaignID *uuid.UUID) ([]LanguagesMessageResultsRow, error)
+	LanguagesRemove(ctx context.Context, arg LanguagesRemoveParams) (int64, error)
+	LanguagesSetDefault(ctx context.Context, arg LanguagesSetDefaultParams) (int64, error)
+	LanguagesSetFallback(ctx context.Context, arg LanguagesSetFallbackParams) (int64, error)
+	LanguagesSetPageCopy(ctx context.Context, arg LanguagesSetPageCopyParams) (int64, error)
+	// What has a version in a language (the Remove dialog): unsent campaigns,
+	// automation emails used by a flow, transactional templates.
+	LanguagesVersionsIn(ctx context.Context, arg LanguagesVersionsInParams) ([]LanguagesVersionsInRow, error)
 	// When an action was last recorded for a target (throttles repeated emails).
 	LastAuditAt(ctx context.Context, arg LastAuditAtParams) (time.Time, error)
 	LastDeliverabilityAssetCheckAt(ctx context.Context, workspaceID uuid.UUID) (time.Time, error)

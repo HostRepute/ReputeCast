@@ -204,6 +204,7 @@ SELECT page.id::uuid AS id,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS sunset_stopped,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)::boolean AS suppressed,
        coalesce((SELECT p.paused_until > @now::timestamptz FROM contact_preferences p WHERE p.contact_id = c.id), false)::boolean AS paused,
+       coalesce(c.language, '')::text AS language,
        (excluded.contact_id IS NOT NULL)::boolean AS excluded_list,
        (excluded_staged.contact_id IS NOT NULL)::boolean AS excluded_segment,
        coalesce(member_lists.lists, '{}'::uuid[])::uuid[] AS lists,
@@ -282,9 +283,9 @@ WITH picked AS (
 ), upd AS (
     UPDATE messages m SET claimed_at = @now::timestamptz, attempts = m.attempts + 1
     FROM picked WHERE m.id = picked.id
-    RETURNING m.id, m.workspace_id, m.contact_id, m.email, m.variant, m.mailbox_provider, m.attempts
+    RETURNING m.id, m.workspace_id, m.contact_id, m.email, m.variant, m.mailbox_provider, m.attempts, m.language
 )
-SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.mailbox_provider, upd.attempts,
+SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.mailbox_provider, upd.attempts, upd.language,
        coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
        coalesce(c.attributes, '{}'::jsonb)::jsonb AS attributes, coalesce(c.tier, '')::text AS tier,
        coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NOT NULL)::boolean AS engaged,

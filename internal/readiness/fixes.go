@@ -25,7 +25,7 @@ import (
 
 // ReadinessFixRequest is one fix to apply.
 type ReadinessFixRequest struct {
-	Action string            `json:"action" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify"`
+	Action string            `json:"action" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language"`
 	Params map[string]string `json:"params,omitempty"`
 }
 
@@ -173,6 +173,12 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			content = true
 			labels = append(labels, "minified")
 			out.Applied = append(out.Applied, "Minified the inline CSS")
+		case FixMarkLanguageUpToDate, FixMarkLanguageTranslated, FixHoldLanguage, FixReleaseLanguage:
+			label, err := s.languageFix(ctx, ws, p, id, fx.Action, fx.Params["language"], field)
+			if err != nil {
+				return out, err
+			}
+			out.Applied = append(out.Applied, label)
 		default:
 			return out, api.Invalid(field+".action", "Unknown fix.")
 		}

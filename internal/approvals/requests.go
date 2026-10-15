@@ -116,6 +116,11 @@ func (s *Service) buildSnapshot(ctx context.Context, ws *store.Workspace, c stor
 	if c.SenderID != nil {
 		snap.SenderID = c.SenderID.String()
 	}
+	if s.Languages != nil {
+		if snap.Languages, err = s.Languages.CampaignSnapshot(ctx, s.Q, c.ID); err != nil {
+			return Snapshot{}, err
+		}
+	}
 	ws2 := *ws
 	snap.Thresholds = readiness.ParseThresholds(c.Thresholds, ws2.SendThresholds)
 	if a, err := s.Readiness.Audience(ctx, ws, c.Audience); err == nil && !a.Empty {

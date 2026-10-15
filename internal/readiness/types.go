@@ -38,7 +38,7 @@ const (
 )
 
 // Groups lists the check groups in checklist order.
-var Groups = []string{GroupReputation, GroupAuthentication, GroupContent, GroupLinks, GroupCompliance, GroupAudience, GroupRouting}
+var Groups = []string{GroupReputation, GroupAuthentication, GroupContent, GroupLanguages, GroupLinks, GroupCompliance, GroupAudience, GroupRouting}
 
 // Triggers of a run (readiness_runs.trigger).
 const (
@@ -64,7 +64,7 @@ const (
 // where it's fixed (Kind "link", Href is an app path).
 type ReadinessFix struct {
 	Kind   string            `json:"kind" enum:"apply,link"`
-	Action string            `json:"action,omitempty" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify"`
+	Action string            `json:"action,omitempty" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language"`
 	Label  string            `json:"label"`
 	Tone   string            `json:"tone,omitempty" enum:"primary,danger"`
 	Href   string            `json:"href,omitempty"`
@@ -75,7 +75,7 @@ type ReadinessFix struct {
 type ReadinessCheck struct {
 	// Key identifies the check: "audience.unengaged", "reputation.provider.ses".
 	Key    string `json:"key"`
-	Group  string `json:"group" enum:"reputation,authentication,content,links,compliance,audience,routing"`
+	Group  string `json:"group" enum:"reputation,authentication,content,languages,links,compliance,audience,routing"`
 	Status string `json:"status" enum:"pass,warn,block,unknown"`
 	// Title states the finding; FlatTitle is the same finding prefixed with
 	// its group, for lists ordered by severity ("Links: go.acme-promo.link…").
@@ -96,12 +96,22 @@ type ReadinessCheck struct {
 	// Note is a short right-aligned note ("timed out").
 	Note  string         `json:"note,omitempty"`
 	Fixes []ReadinessFix `json:"fixes"`
+	// Rows are a small table of the finding ("Recipients per language":
+	// English 26,890 gets English · …).
+	Rows []ReadinessCheckRow `json:"rows,omitempty"`
+}
+
+// ReadinessCheckRow is one line of a check's table.
+type ReadinessCheckRow struct {
+	Label  string `json:"label"`
+	Count  int64  `json:"count"`
+	Detail string `json:"detail"`
 }
 
 // ReadinessGroup is a group heading with its caption and a summary of what
 // passed (the collapsed "Passed" list and the running state show it).
 type ReadinessGroup struct {
-	Key     string `json:"key" enum:"reputation,authentication,content,links,compliance,audience,routing"`
+	Key     string `json:"key" enum:"reputation,authentication,content,languages,links,compliance,audience,routing"`
 	Title   string `json:"title"`
 	Caption string `json:"caption"`
 	Status  string `json:"status" enum:"pass,warn,block,unknown"`
@@ -252,7 +262,7 @@ type ReadinessRun struct {
 
 // ReadinessProgressGroup is one group of a run in progress.
 type ReadinessProgressGroup struct {
-	Key     string `json:"key" enum:"reputation,authentication,content,links,compliance,audience,routing"`
+	Key     string `json:"key" enum:"reputation,authentication,content,languages,links,compliance,audience,routing"`
 	Title   string `json:"title"`
 	Status  string `json:"status" enum:"queued,running,pass,warn,block,unknown"`
 	Text    string `json:"text"`
