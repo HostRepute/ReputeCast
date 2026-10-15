@@ -1,0 +1,9 @@
+{
+  "note.instanceAdmin": "quản trị hệ thống",
+  "note.breakGlass": "tài khoản khẩn cấp",
+
+  "reason.viewOnly": "Bạn có thể xem nhóm. Mời thành viên cần quyền team:invite và đổi vai trò cần team:manage.",
+  "reason.viewOnlyAsk": "Bạn có thể xem nhóm. Mời thành viên cần quyền team:invite và đổi vai trò cần team:manage. Hãy nhờ {helpers}.",
+  "reason.invite": "Bạn có thể mời người khác với những vai trò bạn có. Đổi vai trò cần team:manage.",
+  "reason.inviteAsk": "Bạn có thể mời người khác với những vai trò bạn có. Đổi vai trò cần team:manage. Hãy nhờ {helpers}."
+}

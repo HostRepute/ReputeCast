@@ -289,7 +289,7 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
                 </Td>
                 <Td>{c.origin ? <span className="k">{t(m.imported, { origin: originName(c.origin) })}</span> : <RouteBadges routes={c.routes} sent={sent} />}</Td>
                 <Td>
-                  <div className="flex flex-wrap justify-end gap-1.5">
+                  <div className="row-actions flex flex-wrap justify-end gap-1.5">
                     <RowActions c={c} />
                   </div>
                 </Td>

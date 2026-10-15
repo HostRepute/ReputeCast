@@ -1,4 +1,6 @@
 import type { NavTab } from '@/components/ui/Tabs'
+import { t } from '@/i18n'
+import { m } from './messages'
 
 /**
  * Workspace settings sections, in the order of the design (A5 §6: Settings
@@ -8,16 +10,16 @@ import type { NavTab } from '@/components/ui/Tabs'
 export function settingsTabs(workspace: string): NavTab[] {
   const params = { workspace }
   return [
-    { label: 'General', to: '/w/$workspace/settings', params, exact: true },
-    { label: 'Senders', to: '/w/$workspace/settings/senders', params },
-    { label: 'Providers', to: '/w/$workspace/settings/providers', params },
-    { label: 'Team', to: '/w/$workspace/settings/team', params },
-    { label: 'Roles', to: '/w/$workspace/settings/roles', params },
-    { label: 'Approvals', to: '/w/$workspace/settings/approvals', params },
-    { label: 'Keys & MCP', to: '/w/$workspace/settings/keys', params },
-    { label: 'Webhooks', to: '/w/$workspace/settings/webhooks', params },
-    { label: 'Integrations', to: '/w/$workspace/settings/integrations', params },
-    { label: 'Audit log', to: '/w/$workspace/settings/audit', params },
+    { label: t(m.general), to: '/w/$workspace/settings', params, exact: true },
+    { label: t(m.senders), to: '/w/$workspace/settings/senders', params },
+    { label: t(m.providers), to: '/w/$workspace/settings/providers', params },
+    { label: t(m.team), to: '/w/$workspace/settings/team', params },
+    { label: t(m.roles), to: '/w/$workspace/settings/roles', params },
+    { label: t(m.approvals), to: '/w/$workspace/settings/approvals', params },
+    { label: t(m.keys), to: '/w/$workspace/settings/keys', params },
+    { label: t(m.webhooks), to: '/w/$workspace/settings/webhooks', params },
+    { label: t(m.integrations), to: '/w/$workspace/settings/integrations', params },
+    { label: t(m.audit), to: '/w/$workspace/settings/audit', params },
   ]
 }
 
@@ -25,11 +27,11 @@ export function settingsTabs(workspace: string): NavTab[] {
 export function adminTabs(workspace: string): NavTab[] {
   const params = { workspace }
   return [
-    { label: 'Users', to: '/w/$workspace/admin/users', params },
-    { label: 'Workspaces', to: '/w/$workspace/admin/workspaces', params },
-    { label: 'Authentication', to: '/w/$workspace/admin/authentication', params },
-    { label: 'SSO providers', to: '/w/$workspace/admin/sso', params },
-    { label: 'Instance & updates', to: '/w/$workspace/admin/instance', params },
-    { label: 'Audit log', to: '/w/$workspace/admin/audit', params },
+    { label: t(m.users), to: '/w/$workspace/admin/users', params },
+    { label: t(m.workspaces), to: '/w/$workspace/admin/workspaces', params },
+    { label: t(m.authentication), to: '/w/$workspace/admin/authentication', params },
+    { label: t(m.sso), to: '/w/$workspace/admin/sso', params },
+    { label: t(m.instance), to: '/w/$workspace/admin/instance', params },
+    { label: t(m.instanceAudit), to: '/w/$workspace/admin/audit', params },
   ]
 }

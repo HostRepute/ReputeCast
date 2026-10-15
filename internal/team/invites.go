@@ -104,10 +104,11 @@ func (s *Service) jitHints(ctx context.Context, wsID uuid.UUID) ([]TeamJITHint, 
 		return nil, err
 	}
 	out := []TeamJITHint{}
+	l := i18n.LangFrom(ctx)
 	for _, r := range rows {
-		role := "Viewer"
+		role := api.RoleName(l, authz.RoleViewer, "Viewer")
 		if b, ok := authz.Builtin(r.JitRoleKey); ok {
-			role = b.Name
+			role = api.RoleName(l, b.Key, b.Name)
 		} else if r.JitRoleKey != "" {
 			if rr, err := s.Q.GetRoleByKey(ctx, store.GetRoleByKeyParams{WorkspaceID: wsID, Key: r.JitRoleKey}); err == nil {
 				role = rr.Name

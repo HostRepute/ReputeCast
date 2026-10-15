@@ -1,0 +1,9 @@
+{
+  "note.instanceAdmin": { "message": "instance admin", "note": "after a member's role in the Team list" },
+  "note.breakGlass": { "message": "break-glass", "note": "the instance's emergency sign-in account" },
+
+  "reason.viewOnly": "You can view the team. Inviting needs the team:invite permission and changing roles needs team:manage.",
+  "reason.viewOnlyAsk": { "message": "You can view the team. Inviting needs the team:invite permission and changing roles needs team:manage. Ask {helpers}.", "note": "helpers: names joined as 'A, B or C'" },
+  "reason.invite": "You can invite people with roles you hold. Changing roles needs team:manage.",
+  "reason.inviteAsk": "You can invite people with roles you hold. Changing roles needs team:manage. Ask {helpers}."
+}

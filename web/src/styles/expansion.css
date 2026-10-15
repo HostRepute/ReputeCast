@@ -51,9 +51,9 @@
 
 /* Proposed for text 40% longer than English (StressCampaignsPseudo): cell
    padding of 10 px instead of 12, a name column of 160 px at least whose
-   names end in an ellipsis at 170 px, and row actions stacked in their
-   cell. It applies to the pseudo-locale until a language that long
-   (German, Finnish) is added. */
+   names end in an ellipsis at 170 px, and a list's row actions
+   (.row-actions) stacked in their cell. It applies to the pseudo-locale
+   until a language that long (German, Finnish) is added. */
 :root[lang='en-XA'] .tbl th,
 :root[lang='en-XA'] .tbl td {
   padding-left: 10px;
@@ -65,7 +65,7 @@
 :root[lang='en-XA'] .tbl td:first-child .ellipsis {
   max-width: 170px;
 }
-:root[lang='en-XA'] .tbl td:last-child > div {
+:root[lang='en-XA'] .tbl td .row-actions {
   flex-direction: column;
   align-items: flex-end;
 }
