@@ -5765,6 +5765,322 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Categories with their templates and opt-outs */
+        get: operations["list-transactional-categories"];
+        put?: never;
+        /** Add a category */
+        post: operations["create-transactional-category"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/categories/{categoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a category (its kind is fixed while it has templates) */
+        put: operations["update-transactional-category"];
+        post?: never;
+        /** Delete a category without templates */
+        delete: operations["delete-transactional-category"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contact linking, content retention, delivery alerts and template defaults */
+        get: operations["get-transactional-settings"];
+        /** Save Settings › Transactional */
+        put: operations["save-transactional-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/starters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Starter templates with their variables and test data */
+        get: operations["list-transactional-starters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List templates with their numbers over a period
+         * @description Each template's live version, draft state, sent, delivery, bounce and complaint rates, median delivery time, last send and a sparkline. Test messages are left out unless includeTest.
+         */
+        get: operations["list-transactional-templates"];
+        put?: never;
+        /**
+         * Create a template: blank, from a starter, as a copy, or with imported content
+         * @description The template starts as a draft. Nothing is sent until it is published.
+         */
+        post: operations["create-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a template with its draft, variables, test data and live version */
+        get: operations["get-transactional-template"];
+        put?: never;
+        post?: never;
+        /** Delete a draft or archived template (its messages stay in the log) */
+        delete: operations["delete-transactional-template"];
+        options?: never;
+        head?: never;
+        /** Rename a template, change its category, or its ID before the first publish */
+        patch: operations["update-transactional-template"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a template: calls answer template_not_found until it is restored */
+        post: operations["archive-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the template's checks on the draft or the editor's unsaved content
+         * @description The composer's content checks (size, alt text, links, plain text; unsubscribe link and footer address for Optional categories) and the transactional ones: Liquid errors, undeclared and unused variables, test data that fails to render, a sensitive variable in the subject, tracking on an Essential template.
+         */
+        post: operations["check-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the draft (autosave)
+         * @description Content, variables, test data, sender, reply-to and tracking. Fails with 409 version_conflict when someone saved a newer revision since baseRevision; the problem's meta says who, when and what each side changed. Send force: true to keep yours.
+         */
+        put: operations["save-transactional-template-draft"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render the draft or a version with test data (nothing is sent) */
+        post: operations["preview-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish the draft as the next version
+         * @description Fails with 409 breaking_change when a newly required variable is missing from recent calls (fix it with makeOptional, or send publishAnyway), 409 approval_required when the workspace's rule applies, 409 version_conflict when the draft changed since baseRevision, and 409 template_does_not_render when a check blocks.
+         */
+        post: operations["publish-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/publish-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * What publishing the draft would change
+         * @description The diff since the live version, the breaking-change check against the calls of the last 7 days, the checks, test renders with each test data set and the last real call, and whether the workspace's approval rule applies. makeOptional previews the recommended fix.
+         */
+        post: operations["preview-transactional-publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/render": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Render the live version with a call's data, without sending
+         * @description Returns the subject, HTML and text a send would use. Errors: template_not_found, template_not_published, missing_variables (listing them in missing).
+         */
+        post: operations["render-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore an archived template */
+        post: operations["restore-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish an earlier version again (roll back, or undo a publish) */
+        post: operations["rollback-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Published versions, newest first */
+        get: operations["list-transactional-template-versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One published version with its content */
+        get: operations["get-transactional-template-version"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transfer": {
         parameters: {
             query?: never;
@@ -13025,6 +13341,7 @@ export interface components {
             membersAffected: number;
             /** Format: int64 */
             pendingApprovals: number;
+            pendingRequests: components["schemas"]["RoleImpactPending"][];
             removed: string[];
             removedSensitive: string[];
             sensitive: string;
@@ -13050,6 +13367,11 @@ export interface components {
             id: string;
             loses: string[];
             name: string;
+        };
+        RoleImpactPending: {
+            requester: string;
+            stillMatches: string[];
+            subject: string;
         };
         RoleInput: {
             description?: string;
@@ -14781,6 +15103,605 @@ export interface components {
             challenge: string;
             code: string;
         };
+        TransactionalAddress: {
+            /** @example sam.rivera@outlook.com */
+            email: string;
+            /** @example Sam Rivera */
+            name?: string;
+        };
+        TransactionalBreakingChange: {
+            breaking: components["schemas"]["TransactionalBreakingVariable"][];
+            /**
+             * Format: int64
+             * @description Calls to the template in the last 7 days
+             */
+            calls: number;
+            summary: string;
+            unused: string[];
+        };
+        TransactionalBreakingVariable: {
+            /** Format: int64 */
+            callsWithout: number;
+            name: string;
+            suggestedDefault: string;
+            type: string;
+        };
+        TransactionalCategory: {
+            /** @description What recipients see in the preference center */
+            description: string;
+            id: string;
+            /** @enum {string} */
+            kind: "essential" | "optional";
+            name: string;
+            /** Format: int64 */
+            optedOut: number;
+            /** Format: int64 */
+            templates: number;
+        };
+        TransactionalCategoryInput: {
+            description?: string;
+            /** @enum {string} */
+            kind: "essential" | "optional";
+            name: string;
+        };
+        TransactionalCategoryList: {
+            canEdit: boolean;
+            items: components["schemas"]["TransactionalCategory"][];
+            reason?: string;
+        };
+        TransactionalCategoryRef: {
+            id: string;
+            /** @enum {string} */
+            kind: "essential" | "optional";
+            name: string;
+        };
+        TransactionalCheck: {
+            detail?: string;
+            fixes: components["schemas"]["TransactionalCheckFix"][];
+            /** @enum {string} */
+            group: "Content" | "Links" | "Compliance" | "Subject" | "Variables" | "Test data" | "Privacy";
+            /** @example variables.undeclared */
+            id: string;
+            /** Format: int64 */
+            line?: number;
+            path: number[];
+            /** @enum {string} */
+            severity: "block" | "warn" | "info" | "pass";
+            testData?: string;
+            title: string;
+            variable?: string;
+            /** @enum {string} */
+            where?: "subject" | "preheader" | "body" | "text";
+        };
+        TransactionalCheckFix: {
+            /** @enum {string} */
+            kind: "declare_variable" | "remove_variable" | "make_optional" | "add_test_value" | "insert_footer" | "set_alt" | "minify" | "edit_link" | "replace_link" | "move_to_body" | "turn_off_tracking";
+            label: string;
+            path?: number[];
+            testData?: string;
+            value?: string;
+            variable?: string;
+        };
+        TransactionalChecks: {
+            /** Format: int64 */
+            blocks: number;
+            checks: components["schemas"]["TransactionalCheck"][];
+            /** Format: int64 */
+            clipBytes: number;
+            /** Format: int64 */
+            images: number;
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            passed: number;
+            plainText: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            testData: components["schemas"]["TransactionalTestRender"][];
+            variables: components["schemas"]["TransactionalVariableReport"];
+            /** @enum {string} */
+            verdict: "ready" | "warnings" | "blocked";
+            /** Format: int64 */
+            warnings: number;
+        };
+        TransactionalChecksInput: {
+            /** @enum {string} */
+            editorMode?: "visual" | "mjml" | "html";
+            html?: string;
+            mjml?: string;
+            plainText?: string;
+            preheader?: string;
+            subject?: string;
+            testData?: components["schemas"]["TransactionalTestData"][];
+            trackClicks?: boolean;
+            trackOpens?: boolean;
+            variables?: components["schemas"]["TransactionalVariable"][];
+        };
+        TransactionalDiff: {
+            changed: boolean;
+            content: components["schemas"]["TransactionalDiffLine"][];
+            contentSummary: string;
+            preheader?: components["schemas"]["TransactionalTextChange"];
+            settings: string[];
+            subject?: components["schemas"]["TransactionalTextChange"];
+            variables: components["schemas"]["TransactionalVariableChange"][];
+        };
+        TransactionalDiffLine: {
+            /** @enum {string} */
+            kind: "ctx" | "add" | "del";
+            text: string;
+        };
+        TransactionalDraftSave: {
+            /** Format: int64 */
+            baseRevision: number;
+            /** @enum {string} */
+            editorMode?: "visual" | "mjml" | "html";
+            force?: boolean;
+            /** @description The HTML the editor compiled; empty compiles the MJML on the server */
+            html?: string;
+            label?: string;
+            mjml?: string;
+            plainText?: string;
+            preheader?: string;
+            replyTo?: string;
+            /** @description A Transactional sender, or empty for the default */
+            senderId?: string;
+            /**
+             * @default autosave
+             * @enum {string}
+             */
+            source: "autosave" | "manual" | "import" | "restore";
+            subject?: string;
+            testData?: components["schemas"]["TransactionalTestData"][];
+            trackClicks?: boolean;
+            trackOpens?: boolean;
+            variables?: components["schemas"]["TransactionalVariable"][];
+        };
+        TransactionalDraftSaved: {
+            draftChanges: boolean;
+            draftHash: string;
+            /** Format: int64 */
+            draftRevision: number;
+            html: string;
+            plainText: string;
+            /** Format: date-time */
+            savedAt: string;
+            /** Format: int64 */
+            sizeBytes: number;
+        };
+        TransactionalMakeOptional: {
+            default: string;
+            name: string;
+        };
+        TransactionalPreview: {
+            defaults: string[];
+            fromEmail: string;
+            fromName: string;
+            html: string;
+            missing: string[];
+            ok: boolean;
+            preheader: string;
+            problem?: string;
+            replyTo: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            subject: string;
+            text: string;
+            version: string;
+        };
+        TransactionalPreviewInput: {
+            /** @description Data to render with instead of a test data set */
+            data?: {
+                [key: string]: unknown;
+            };
+            html?: string;
+            mjml?: string;
+            plainText?: string;
+            preheader?: string;
+            subject?: string;
+            /** @description The name of a test data set */
+            testData?: string;
+            to?: components["schemas"]["TransactionalAddress"];
+            variables?: components["schemas"]["TransactionalVariable"][];
+            /**
+             * @description draft (default), live, or a version number
+             * @example draft
+             */
+            version?: string;
+        };
+        TransactionalPublishApproval: {
+            approvers: string[];
+            reason?: string;
+            required: boolean;
+        };
+        TransactionalPublishInput: {
+            /** Format: int64 */
+            baseRevision: number;
+            makeOptional?: components["schemas"]["TransactionalMakeOptional"][];
+            /** @description Shown in the version history instead of the generated summary */
+            note?: string;
+            publishAnyway?: boolean;
+        };
+        TransactionalPublishPreview: {
+            approval: components["schemas"]["TransactionalPublishApproval"];
+            blocking: string[];
+            breaking: components["schemas"]["TransactionalBreakingChange"];
+            canPublish: boolean;
+            category?: components["schemas"]["TransactionalCategoryRef"];
+            checks: components["schemas"]["TransactionalChecks"];
+            diff: components["schemas"]["TransactionalDiff"];
+            /** Format: int64 */
+            draftRevision: number;
+            /** Format: date-time */
+            draftSavedAt: string;
+            draftSavedBy: string;
+            key: string;
+            liveBy?: string;
+            /** Format: date-time */
+            liveSince?: string;
+            /** Format: int64 */
+            liveVersion?: number;
+            name: string;
+            /** Format: int64 */
+            nextVersion: number;
+            templateId: string;
+            testRenders: components["schemas"]["TransactionalTestRender"][];
+        };
+        TransactionalPublishPreviewInput: {
+            makeOptional?: components["schemas"]["TransactionalMakeOptional"][];
+        };
+        TransactionalPublished: {
+            /**
+             * Format: int64
+             * @description The version that was live before (Undo publishes it again)
+             */
+            previous?: number;
+            template: components["schemas"]["TransactionalTemplate"];
+            /** Format: int64 */
+            version: number;
+        };
+        TransactionalRenderInput: {
+            /** @description The template's variables */
+            data?: {
+                [key: string]: unknown;
+            };
+            /** @description Fills to.email and to.name */
+            to?: components["schemas"]["TransactionalAddress"];
+        };
+        TransactionalRendered: {
+            html: string;
+            subject: string;
+            /** @example password-reset */
+            template: string;
+            text: string;
+            /**
+             * Format: int64
+             * @example 3
+             */
+            version: number;
+        };
+        TransactionalRollbackInput: {
+            undo?: boolean;
+            /** Format: int64 */
+            version: number;
+        };
+        TransactionalSenderOption: {
+            domain: string;
+            email: string;
+            id: string;
+            name: string;
+            replyTo: string;
+            verified: boolean;
+        };
+        TransactionalSenderRef: {
+            email: string;
+            id: string;
+            name: string;
+        };
+        TransactionalSettings: {
+            /**
+             * Format: double
+             * @description Percent of a template's messages in an hour
+             */
+            alertBounceRate: number;
+            /**
+             * Format: int64
+             * @description Failed messages in an hour
+             */
+            alertFailed: number;
+            /**
+             * Format: int64
+             * @description Median delivery time over an hour
+             */
+            alertMedianSeconds: number;
+            canEdit: boolean;
+            /** Format: int64 */
+            contentRetentionDays: number;
+            defaultReplyTo: string;
+            defaultSender?: components["schemas"]["TransactionalSenderRef"];
+            defaultTrackClicks: boolean;
+            defaultTrackOpens: boolean;
+            /** @description Link recipients who match a contact to that contact (never creates contacts) */
+            linkContacts: boolean;
+            productName: string;
+            reason?: string;
+            senders: components["schemas"]["TransactionalSenderOption"][];
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy?: string;
+        };
+        TransactionalSettingsInput: {
+            /** Format: double */
+            alertBounceRate: number;
+            /** Format: int64 */
+            alertFailed: number;
+            /** Format: int64 */
+            alertMedianSeconds: number;
+            /** Format: int64 */
+            contentRetentionDays: number;
+            defaultReplyTo?: string;
+            /** @description A Transactional sender, or empty */
+            defaultSenderId?: string;
+            defaultTrackClicks: boolean;
+            defaultTrackOpens: boolean;
+            linkContacts: boolean;
+        };
+        TransactionalStarter: {
+            /** @description Usually sent with an attachment (a PDF invoice) */
+            attachment: boolean;
+            description: string;
+            /** @example password-reset */
+            key: string;
+            /**
+             * @description The kind of category it belongs in
+             * @enum {string}
+             */
+            kind: "essential" | "optional";
+            /** @example Password reset */
+            name: string;
+            preheader: string;
+            subject: string;
+            testData: components["schemas"]["TransactionalTestData"][];
+            variables: components["schemas"]["TransactionalVariable"][];
+        };
+        TransactionalStarterList: {
+            items: components["schemas"]["TransactionalStarter"][];
+        };
+        TransactionalStats: {
+            /** Format: double */
+            bounceRate: number;
+            /** Format: int64 */
+            bounced: number;
+            /** Format: int64 */
+            clicked: number;
+            /** Format: int64 */
+            complained: number;
+            /** Format: double */
+            complaintRate: number;
+            /** Format: int64 */
+            deferred: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveryRate: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            medianMs?: number;
+            /** Format: int64 */
+            opened: number;
+            /** Format: int64 */
+            rejected: number;
+            /** @description 10 suppressed · 2 opted out */
+            rejectedReason?: string;
+            /** Format: int64 */
+            sent: number;
+        };
+        TransactionalTemplate: {
+            access: components["schemas"]["TransactionalTemplateAccess"];
+            archived: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            category?: components["schemas"]["TransactionalCategoryRef"];
+            /** Format: date-time */
+            createdAt: string;
+            description: string;
+            draftChanges: boolean;
+            draftHash: string;
+            /** Format: int64 */
+            draftRevision: number;
+            /** Format: date-time */
+            draftSavedAt: string;
+            draftSavedBy: string;
+            /** @enum {string} */
+            editorMode: "visual" | "mjml" | "html";
+            html: string;
+            id: string;
+            /** @description The ID the API sends, fixed after the first publish */
+            key: string;
+            keyLocked: boolean;
+            liveBy?: string;
+            /** Format: date-time */
+            liveSince?: string;
+            /** Format: int64 */
+            liveVersion?: number;
+            mjml: string;
+            name: string;
+            origin: {
+                [key: string]: unknown;
+            };
+            plainText: string;
+            preheader: string;
+            replyTo: string;
+            sender?: components["schemas"]["TransactionalSenderRef"];
+            subject: string;
+            testData: components["schemas"]["TransactionalTestData"][];
+            trackClicks: boolean;
+            trackOpens: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+            variables: components["schemas"]["TransactionalVariable"][];
+            /** Format: int64 */
+            versionsCount: number;
+        };
+        TransactionalTemplateAccess: {
+            canEdit: boolean;
+            canPublish: boolean;
+            canSendTestToOthers: boolean;
+            canViewContent: boolean;
+            editReason?: string;
+            publishHelpers: string[];
+            publishReason?: string;
+        };
+        TransactionalTemplateCreate: {
+            /** @description Defaults to the first Essential category */
+            categoryId?: string;
+            description?: string;
+            /** @enum {string} */
+            editorMode?: "visual" | "mjml" | "html";
+            fromTemplate?: string;
+            html?: string;
+            /** @description Defaults to the name in lowercase with hyphens */
+            key?: string;
+            mjml?: string;
+            name: string;
+            origin?: {
+                [key: string]: unknown;
+            };
+            plainText?: string;
+            preheader?: string;
+            /** @description A starter's key (password-reset, magic-link…) */
+            starter?: string;
+            subject?: string;
+            testData?: components["schemas"]["TransactionalTestData"][];
+            variables?: components["schemas"]["TransactionalVariable"][];
+        };
+        TransactionalTemplateList: {
+            canEdit: boolean;
+            canPublish: boolean;
+            items: components["schemas"]["TransactionalTemplateListItem"][];
+            /** @enum {string} */
+            period: "24h" | "7d" | "30d";
+            readOnlyReason?: string;
+        };
+        TransactionalTemplateListItem: {
+            archived: boolean;
+            /** @description Recent messages carried attachments */
+            attachments: boolean;
+            category?: components["schemas"]["TransactionalCategoryRef"];
+            description: string;
+            draftChanges: boolean;
+            /** Format: int64 */
+            draftVersion: number;
+            id: string;
+            key: string;
+            /** Format: date-time */
+            lastSentAt?: string;
+            /** Format: int64 */
+            liveVersion?: number;
+            name: string;
+            spark: number[];
+            stats: components["schemas"]["TransactionalStats"];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        TransactionalTemplateUpdate: {
+            categoryId?: string;
+            description?: string;
+            key?: string;
+            name?: string;
+        };
+        TransactionalTestData: {
+            data: {
+                [key: string]: unknown;
+            };
+            /** @example New user */
+            name: string;
+        };
+        TransactionalTestRender: {
+            at?: string;
+            defaults: string[];
+            missing: string[];
+            name: string;
+            ok: boolean;
+            problem?: string;
+            recipient?: string;
+            /** @enum {string} */
+            source: "test_data" | "last_call";
+            subject?: string;
+        };
+        TransactionalTextChange: {
+            after: string;
+            before: string;
+        };
+        TransactionalVariable: {
+            default?: string;
+            description?: string;
+            /** @example reset_url */
+            name: string;
+            required: boolean;
+            sample?: string;
+            /** @description Never stored: logs and stored content show •••••• */
+            sensitive: boolean;
+            /** @enum {string} */
+            type: "text" | "number" | "boolean" | "date" | "url" | "list" | "object";
+        };
+        TransactionalVariableChange: {
+            after?: components["schemas"]["TransactionalVariable"];
+            before?: components["schemas"]["TransactionalVariable"];
+            /** @enum {string} */
+            change: "added" | "removed" | "changed";
+            name: string;
+            /** @example date · required */
+            summary: string;
+        };
+        TransactionalVariableReport: {
+            undeclared: components["schemas"]["VariableUse"][];
+            unused: string[];
+            used: components["schemas"]["VariableUse"][];
+        };
+        TransactionalVersion: {
+            avatarColor: string;
+            change: string;
+            live: boolean;
+            /** Format: date-time */
+            publishedAt: string;
+            publishedBy: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            subject: string;
+            /** Format: int64 */
+            version: number;
+        };
+        TransactionalVersionDetail: {
+            avatarColor: string;
+            change: string;
+            editorMode: string;
+            html: string;
+            live: boolean;
+            mjml: string;
+            note: string;
+            plainText: string;
+            preheader: string;
+            /** Format: date-time */
+            publishedAt: string;
+            publishedBy: string;
+            replyTo: string;
+            sender?: components["schemas"]["TransactionalSenderRef"];
+            /** Format: int64 */
+            sizeBytes: number;
+            subject: string;
+            testData: components["schemas"]["TransactionalTestData"][];
+            trackClicks: boolean;
+            trackOpens: boolean;
+            variables: components["schemas"]["TransactionalVariable"][];
+            /** Format: int64 */
+            version: number;
+        };
+        TransactionalVersionList: {
+            canPublish: boolean;
+            items: components["schemas"]["TransactionalVersion"][];
+        };
         URLCheck: {
             /** Format: date-time */
             checkedAt: string;
@@ -14821,6 +15742,15 @@ export interface components {
         UpdateDomainInput: {
             note?: string;
             trackingDomain?: string;
+        };
+        VariableUse: {
+            /** Format: int64 */
+            column: number;
+            /** Format: int64 */
+            line: number;
+            name: string;
+            /** @enum {string} */
+            where: "subject" | "preheader" | "body" | "text";
         };
         WarmupCampaignUse: {
             /** Format: int64 */
@@ -28855,6 +29785,822 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderTrackingChecks"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-transactional-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalCategoryList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-transactional-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalCategoryInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalCategory"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-transactional-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                categoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalCategoryInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalCategory"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-transactional-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                categoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-transactional-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-transactional-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-transactional-starters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalStarterList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-transactional-templates": {
+        parameters: {
+            query?: {
+                /** @description The period of the numbers */
+                period?: "24h" | "7d" | "30d";
+                /** @description Count messages sent with test-mode keys */
+                includeTest?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalTemplateList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalTemplateCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalTemplate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalTemplate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalTemplateUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalTemplate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "archive-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalTemplate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalChecksInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalChecks"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-transactional-template-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalDraftSave"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalDraftSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalPublishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalPublished"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-transactional-publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalPublishPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalPublishPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "render-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalRenderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalRendered"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalTemplate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rollback-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalRollbackInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalPublished"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-transactional-template-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalVersionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-transactional-template-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalVersionDetail"];
                 };
             };
             /** @description Error */
