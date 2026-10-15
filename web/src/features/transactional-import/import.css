@@ -1,0 +1,135 @@
+/* Import templates (TransactionalImport, TransactionalImportStates). */
+.dlg.txi-dlg {
+  max-width: 720px;
+}
+.dlg.txi-dlg.wide {
+  max-width: 980px;
+}
+
+/* Step 1: the sources, as cards (border 2 px in the accent when chosen). */
+.txi-sources {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
+  gap: 10px;
+}
+.txi-source {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.txi-source:hover {
+  border-color: var(--line-hover);
+}
+.txi-source.on {
+  padding: 13px;
+  border: 2px solid var(--accent);
+  background: var(--accent-tint);
+}
+
+.txi-err {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bad-strong);
+}
+.txi-dlg .lbl .in {
+  font-weight: 400;
+}
+
+/* Step 3: the templates to pick; also the uploaded files. */
+.txi-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  max-height: 46vh;
+  overflow: auto;
+}
+.txi-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 12px;
+  border-top: 1px solid var(--line-2);
+  font-size: 13px;
+}
+.txi-row:first-child {
+  border-top: 0;
+}
+.txi-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 22px 16px;
+  border: 1px dashed var(--line-hover);
+  border-radius: 10px;
+  background: var(--ground-3);
+  color: var(--ink-2);
+  text-align: center;
+}
+.txi-linklike {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  min-height: 24px;
+}
+
+/* The report's stepper. */
+.txi-steps {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.txi-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.txi-step.done {
+  color: var(--ok-fg);
+}
+.txi-step.now {
+  color: var(--accent);
+}
+.txi-step .k {
+  margin: 0 4px;
+}
+.txi-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ok-bg);
+  font-size: 11px;
+}
+.txi-step.now .txi-dot {
+  background: var(--accent);
+  color: #fff;
+}
+.txi-counts {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
