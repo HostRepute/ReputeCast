@@ -435,6 +435,8 @@ type RoleImpact struct {
 	Approvals string `json:"approvals"`
 	// PendingApprovals counts approval requests by holders that stay pending.
 	PendingApprovals int `json:"pendingApprovals"`
+	// PendingRequests are those requests, with the rules that still match.
+	PendingRequests []RoleImpactPending `json:"pendingRequests"`
 	// Summary is "4 members and 1 API key will lose campaigns:send." (empty without losses).
 	Summary string                 `json:"summary"`
 	Locked  []RoleLockedPermission `json:"locked"`
@@ -451,7 +453,7 @@ func (s *Service) Impact(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 	}
 	next := authz.NewSet(keys...)
-	out := RoleImpact{Added: []string{}, Removed: []string{}, AddedSensitive: []string{}, RemovedSensitive: []string{}, Members: []RoleImpactMember{}, Keys: []RoleImpactKey{}, Locked: []RoleLockedPermission{}}
+	out := RoleImpact{Added: []string{}, Removed: []string{}, AddedSensitive: []string{}, RemovedSensitive: []string{}, Members: []RoleImpactMember{}, Keys: []RoleImpactKey{}, Locked: []RoleLockedPermission{}, PendingRequests: []RoleImpactPending{}}
 	if st, err := s.Q.GetInstanceSettings(ctx); err == nil {
 		out.GraceDays = int(st.TwofaGraceDays)
 	}
@@ -528,9 +530,11 @@ func (s *Service) Impact(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			}
 		}
 		if len(holders) > 0 {
-			var n int
-			_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM approval_requests WHERE workspace_id = $1 AND status = 'pending' AND requested_by = ANY($2)`, ws.ID, holders).Scan(&n)
-			out.PendingApprovals = n
+			pending, err := s.pendingRequests(ctx, ws.ID, holders, next)
+			if err != nil {
+				return out, err
+			}
+			out.PendingRequests, out.PendingApprovals = pending, len(pending)
 		}
 	}
 	if len(next) == 0 {

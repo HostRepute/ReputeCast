@@ -24247,6 +24247,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "pendingRequests": {
+            "items": {
+              "$ref": "#/components/schemas/RoleImpactPending"
+            },
+            "type": "array"
+          },
           "removed": {
             "items": {
               "type": "string"
@@ -24279,6 +24285,7 @@
           "sensitive",
           "approvals",
           "pendingApprovals",
+          "pendingRequests",
           "summary",
           "locked",
           "graceDays"
@@ -24378,6 +24385,29 @@
           "gains",
           "loses",
           "effect"
+        ],
+        "type": "object"
+      },
+      "RoleImpactPending": {
+        "additionalProperties": false,
+        "properties": {
+          "requester": {
+            "type": "string"
+          },
+          "stillMatches": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "requester",
+          "subject",
+          "stillMatches"
         ],
         "type": "object"
       },
