@@ -46,7 +46,7 @@ func TestImportFromPostmark(t *testing.T) {
 	aisha.SignInDemo("aisha@acme.io")
 	key := importer.RecordedKeys["postmark"]
 
-	linh.Do("POST", ws+"/transactional/templates", map[string]any{"name": "Password reset", "starter": "password-reset"}).MustStatus(t, 201)
+	// The demo already has password-reset (seed_transactional_templates.go).
 	aisha.Do("POST", ws+"/transactional/imports", map[string]any{"source": "postmark", "apiKey": key}).MustStatus(t, 403)
 
 	p := linh.Do("POST", ws+"/transactional/imports", map[string]any{"source": "postmark", "apiKey": "pm-not-this-one"}).MustStatus(t, 422).Problem(t)
@@ -151,7 +151,11 @@ func TestImportFiles(t *testing.T) {
 		EditorMode string
 		Variables  []struct{ Name, Type string }
 	}
-	linh.Do("GET", ws+"/transactional/templates/welcome", nil).MustStatus(t, 200).JSON(t, &tpl)
+	// The demo has a welcome template already, so the file's arrives as welcome-2.
+	if imp.Created[0].Key != "welcome-2" || imp.Created[1].Key != "invoice" {
+		t.Fatalf("keys: %+v", imp.Created)
+	}
+	linh.Do("GET", ws+"/transactional/templates/welcome-2", nil).MustStatus(t, 200).JSON(t, &tpl)
 	if tpl.Subject != "Welcome, {{ first_name }}" || tpl.EditorMode != "visual" || len(tpl.Variables) != 2 {
 		t.Fatalf("welcome: %+v", tpl)
 	}

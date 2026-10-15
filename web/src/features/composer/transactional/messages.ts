@@ -347,6 +347,7 @@ export const mp = defineMessages('transactional.publish', {
   testData: 'test data',
   testDataDefaults: 'test data · falls back to the default of {names}',
   realCall: 'Real call · {when} today',
+  realCallOn: 'Real call · {date}, {time}',
   realCallDetail: '{recipient} · sensitive values masked',
   renders: 'Renders',
   rendersDefault: 'Renders with the default',

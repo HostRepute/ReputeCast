@@ -462,7 +462,11 @@ function PublishFlow({ onClose }: { onClose: () => void }) {
                   <div key={`${r.source}-${r.name}`} className="chk">
                     <Icon name={r.ok ? 'check' : 'alertCircle'} size={14} />
                     <span style={{ flex: 1 }}>
-                      <b className="font-semibold">{r.source === 'last_call' && r.at ? t(mp.realCall, { when: clock(r.at) }) : r.name}</b>{' '}
+                      <b className="font-semibold">{r.source === 'last_call' && r.at
+                          ? new Date(r.at).toDateString() === new Date().toDateString()
+                            ? t(mp.realCall, { when: clock(r.at) })
+                            : t(mp.realCallOn, { date: dayMonthDate(r.at), time: clock(r.at) })
+                          : r.name}</b>{' '}
                       <span className="k">
                         {r.source === 'last_call'
                           ? t(mp.realCallDetail, { recipient: r.recipient ?? '' })

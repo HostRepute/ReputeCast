@@ -23,6 +23,8 @@ var (
 	seedNotifications  = noop // notification center items
 	seedAudit          = noop // audit history
 	seedTransactional  = noop // transactional email: Acme Cloud's templates, keys, messages, relay (seed_transactional.go)
+	// transactional templates of the editor and publish boards, welcome prompts (seed_transactional_templates.go)
+	seedTransactionalTemplates = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }
