@@ -429,19 +429,35 @@ function Defaults({ data, brand }: { data: Langs; brand: string }) {
       <div className="grid items-start" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(320px,100%),1fr))', gap: '14px 28px' }}>
         <label className="lbl">
           {t(ms.defaultLabel)}
-          <select id={defaultSelectId} className="in" value={def} disabled={!data.canManage} onChange={(e) => setDef(e.target.value)}>
+          <select
+            id={defaultSelectId}
+            className="in"
+            aria-label={t(ms.defaultLabel)}
+            aria-describedby={`${defaultSelectId}-help`}
+            value={def}
+            disabled={!data.canManage}
+            onChange={(e) => setDef(e.target.value)}
+          >
             {options}
           </select>
-          <span className="k" style={{ fontWeight: 500 }}>
+          <span className="k" id={`${defaultSelectId}-help`} style={{ fontWeight: 500 }}>
             {t(ms.defaultHelp)}
           </span>
         </label>
         <label className="lbl">
           {t(ms.fallbackLabel)}
-          <select id={fallbackSelectId} className="in" value={fb} disabled={!data.canManage} onChange={(e) => setFb(e.target.value)}>
+          <select
+            id={fallbackSelectId}
+            className="in"
+            aria-label={t(ms.fallbackLabel)}
+            aria-describedby={`${fallbackSelectId}-help`}
+            value={fb}
+            disabled={!data.canManage}
+            onChange={(e) => setFb(e.target.value)}
+          >
             {options}
           </select>
-          <span className="k" style={{ fontWeight: 500 }}>
+          <span className="k" id={`${fallbackSelectId}-help`} style={{ fontWeight: 500 }}>
             {t(ms.fallbackHelp)}
           </span>
         </label>
