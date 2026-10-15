@@ -1896,6 +1896,88 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An automation email version's language versions with their status */
+        get: operations["list-automation-email-languages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/languages/{language}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One language version of an automation email version */
+        get: operations["get-automation-email-language"];
+        /**
+         * Write a language version of an automation email, adding it when missing
+         * @description Writing makes the email's next version, with every language version carried over; a step sends it once the flow is published.
+         */
+        put: operations["save-automation-email-language"];
+        post?: never;
+        /**
+         * Remove an automation email's language version
+         * @description Writing makes the email's next version, with every language version carried over; a step sends it once the flow is published.
+         */
+        delete: operations["remove-automation-email-language"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/languages/{language}/mark-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an automation email's Draft language version translated, so it is sent
+         * @description Writing makes the email's next version, with every language version carried over; a step sends it once the flow is published.
+         */
+        post: operations["mark-automation-email-language-translated"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/languages/{language}/mark-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an automation email's Outdated language version up to date
+         * @description Writing makes the email's next version, with every language version carried over; a step sends it once the flow is published.
+         */
+        post: operations["mark-automation-email-language-up-to-date"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/automations": {
         parameters: {
             query?: never;
@@ -7964,6 +8046,17 @@ export interface components {
             name: string;
             subject?: string;
         };
+        AutomationEmailLanguage: {
+            html: string;
+            language: string;
+            name: string;
+            preheader: string;
+            /** @enum {string} */
+            status: "up_to_date" | "outdated" | "draft";
+            subject: string;
+            /** Format: int64 */
+            version: number;
+        };
         AutomationEmailOption: {
             id: string;
             /** Format: int64 */
@@ -8045,6 +8138,23 @@ export interface components {
             nodeId?: string;
             /** @enum {string} */
             severity: "error" | "warning";
+        };
+        AutomationLanguageMark: {
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationLanguageSave: {
+            html: string;
+            preheader?: string;
+            subject: string;
+            translated?: boolean;
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationLanguageSaved: {
+            languages: components["schemas"]["EmailLanguages"];
+            /** Format: int64 */
+            version: number;
         };
         AutomationList: {
             alerts: components["schemas"]["AutomationAlert"][];
@@ -8830,6 +8940,7 @@ export interface components {
         ComposerPreviewRequest: {
             /** Format: uuid */
             contactId?: string;
+            editing?: string;
             html?: string;
             language?: string;
             preheader?: string;
@@ -21246,6 +21357,230 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AutomationEmailContent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-automation-email-languages": {
+        parameters: {
+            query: {
+                /** @description The email version a step sends */
+                version: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation-email-language": {
+        parameters: {
+            query: {
+                /** @description The email version a step sends */
+                version: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationEmailLanguage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-automation-email-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationLanguageSave"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationLanguageSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-automation-email-language": {
+        parameters: {
+            query: {
+                /** @description The email version a step sends */
+                version: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationLanguageSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-automation-email-language-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationLanguageMark"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationLanguageSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-automation-email-language-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationLanguageMark"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationLanguageSaved"];
                 };
             };
             /** @description Error */

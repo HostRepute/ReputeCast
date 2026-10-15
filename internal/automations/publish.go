@@ -138,6 +138,7 @@ func (s *Service) loadPublish(ctx context.Context, q *store.Queries, ws *store.W
 		FromRefs: st.refs, ToVersion: int(a.DraftVersion), Loc: workspaceLoc(ws), Failures: st.failures,
 		Check: func(emailID string, version int) string { return s.checkEmail(ctx, q, ws.ID, emailID, version) },
 	})
+	st.items = s.languageDiff(ctx, q, ws, from, st.draft, st.items)
 	st.issues = Validate(st.draft, st.refs)
 	if st.inflow, err = q.CountAutomationInFlowByNode(ctx, a.ID); err != nil {
 		return nil, err
@@ -294,7 +295,7 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 	if other != "" {
 		out = append(out, AutomationPublishCheck{Status: "bad", Label: other})
 	}
-	return out
+	return append(out, s.languageChecks(ctx, ws, st.draft)...)
 }
 
 // remaining is the longest time a contact can still spend in the flow from

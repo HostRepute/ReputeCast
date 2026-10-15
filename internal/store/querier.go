@@ -668,6 +668,14 @@ type Querier interface {
 	KeysTouch(ctx context.Context, arg KeysTouchParams) error
 	// Adding a language that was removed brings it back with its page copy.
 	LanguagesAdd(ctx context.Context, arg LanguagesAddParams) error
+	// The email's next version: a copy of one of its versions, its translations
+	// to be written.
+	LanguagesAutomationEmailCopyVersion(ctx context.Context, arg LanguagesAutomationEmailCopyVersionParams) error
+	// Locks an automation email to give it its next version.
+	LanguagesAutomationEmailLock(ctx context.Context, arg LanguagesAutomationEmailLockParams) (int32, error)
+	LanguagesAutomationEmailSetLatest(ctx context.Context, arg LanguagesAutomationEmailSetLatestParams) error
+	// An automation email version as the source of its language versions.
+	LanguagesAutomationEmailSource(ctx context.Context, arg LanguagesAutomationEmailSourceParams) (LanguagesAutomationEmailSourceRow, error)
 	LanguagesCampaignSendContent(ctx context.Context, campaignID uuid.UUID) (json.RawMessage, error)
 	// What a campaign's source is: its content and who saved it last.
 	LanguagesCampaignSource(ctx context.Context, arg LanguagesCampaignSourceParams) (LanguagesCampaignSourceRow, error)

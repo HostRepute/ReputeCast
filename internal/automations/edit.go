@@ -451,6 +451,9 @@ func (s *Service) UpdateEmail(ctx context.Context, ws *store.Workspace, by *uuid
 		if _, err := tx.Exec(ctx, `UPDATE automation_emails SET latest_version = $2, updated_at = now() WHERE id = $1`, id, version); err != nil {
 			return err
 		}
+		if err := s.copyLanguages(ctx, q, ws.ID, id, latest, version); err != nil {
+			return err
+		}
 		wsID := ws.ID
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "automation_email.update", TargetType: "automation_email", TargetID: id.String(), TargetName: name,
 			Metadata: map[string]any{"version": version}})

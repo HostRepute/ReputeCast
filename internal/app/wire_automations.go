@@ -16,6 +16,10 @@ var automationMailer = func(*App) automations.Mailer { return automations.QueueO
 // same way; the default publishes right away.
 var automationGate = func(*App) automations.PublishGate { return automations.NoApproval{} }
 
+// automationLanguages gives emails their language versions; the content
+// languages domain replaces it from its wire file.
+var automationLanguages = func(*App) automations.EmailLanguages { return nil }
+
 func newAutomations(a *App) *automations.Service {
 	return &automations.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log,
@@ -25,8 +29,9 @@ func newAutomations(a *App) *automations.Service {
 			}
 			return a.Jobs
 		},
-		Mailer: automationMailer(a),
-		Gate:   automationGate(a),
+		Mailer:    automationMailer(a),
+		Gate:      automationGate(a),
+		Languages: automationLanguages(a),
 	}
 }
 

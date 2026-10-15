@@ -243,3 +243,29 @@ LIMIT 1;
 
 -- name: LanguagesCampaignSendContent :one
 SELECT content FROM campaign_sends WHERE campaign_id = @campaign_id;
+
+-- name: LanguagesAutomationEmailSource :one
+-- An automation email version as the source of its language versions.
+SELECT e.id, e.name, e.latest_version, v.version, v.subject, v.preheader, v.mjml, v.html, v.created_at,
+       coalesce(u.name, '')::text AS created_by_name
+FROM automation_emails e
+JOIN automation_email_versions v ON v.email_id = e.id
+LEFT JOIN users u ON u.id = v.created_by
+WHERE e.workspace_id = @workspace_id AND e.id = @id AND v.version = @version AND e.deleted_at IS NULL;
+
+-- name: LanguagesAutomationEmailLock :one
+-- Locks an automation email to give it its next version.
+SELECT latest_version FROM automation_emails
+WHERE workspace_id = @workspace_id AND id = @id AND deleted_at IS NULL
+FOR UPDATE;
+
+-- name: LanguagesAutomationEmailCopyVersion :exec
+-- The email's next version: a copy of one of its versions, its translations
+-- to be written.
+INSERT INTO automation_email_versions (email_id, version, subject, preheader, mjml, html, plain_text, created_by)
+SELECT src.email_id, @to_version, src.subject, src.preheader, src.mjml, src.html, src.plain_text, sqlc.narg(created_by)
+FROM automation_email_versions src
+WHERE src.email_id = @email_id AND src.version = @from_version;
+
+-- name: LanguagesAutomationEmailSetLatest :exec
+UPDATE automation_emails SET latest_version = @version, updated_at = now() WHERE id = @id;
