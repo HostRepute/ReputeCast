@@ -1,0 +1,395 @@
+/*
+ * The transactional template editor (TransactionalTemplate,
+ * TransactionalPublish boards). The composer's chrome (.cmp) is reused; these
+ * rules add the expansion boards' components, scoped to .txe and its dialogs.
+ */
+
+/* Panel widths: the transactional boards use 248 px blocks and a 344 px right panel. */
+.txe .cpanel.left {
+  flex: 1 1 248px;
+  max-width: 248px;
+}
+.txe .cpanel.right.txe-right {
+  flex: 1 1 344px;
+  max-width: 344px;
+}
+@media (max-width: 1100px) {
+  .txe .cpanel.left,
+  .txe .cpanel.right.txe-right {
+    max-width: none;
+  }
+}
+@media (max-width: 767px) {
+  .txe .cpanel.left,
+  .txe .cpanel.right.txe-right {
+    flex: 1 1 100%;
+  }
+}
+
+.txe .pbody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+.txe-hint {
+  margin: 0;
+  padding: 10px 12px 0;
+}
+.txe-bnote {
+  margin: 6px 12px 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--ground-3);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.txe-banner {
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.txe-bad {
+  color: var(--bad-fg);
+}
+.txe-warn {
+  color: var(--warn-fg);
+}
+
+/* Header: the ID chip */
+.txe-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 7px;
+  background: var(--ground);
+  border: 1px solid var(--line);
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+  color: var(--ink-nav);
+  white-space: nowrap;
+}
+
+/* Toolbar: Preview with */
+.txe-with {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.txe-with .in {
+  height: 30px;
+}
+
+/* Buttons that read as links */
+.txe-link,
+.txe-linklike {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+}
+.txe-linklike {
+  color: var(--accent);
+}
+.txe-linklike:hover {
+  color: var(--accent-hover);
+}
+.txe-link {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* Variables */
+.txe-vrow {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.txe-vrow.on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.txe-vhead {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.txe-vsum {
+  color: var(--ink-nav);
+}
+.txe-vname {
+  font-family: var(--font-family-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.txe-vform {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 12px 12px;
+  padding: 10px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line-2);
+  min-width: 0;
+}
+.txe-sw {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+}
+.txe-fs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.txe-fs legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 13px;
+}
+
+/* Test data chips */
+.txe-fchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-nav);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.txe-fchip.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+/* Dark code boxes (test data JSON, the API call) */
+.txe-cbx {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--dark-line);
+  background: var(--ink);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.txe-cbh {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--dark-line);
+  background: var(--dark-surface);
+  flex-wrap: wrap;
+  color: #c9ced6;
+  font-size: 12px;
+  font-weight: 600;
+}
+.txe-cbh > span {
+  padding: 0 6px;
+}
+.txe-cbh button {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: #b4bac4;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.txe-cbh button.on {
+  background: #273244;
+  color: #fff;
+}
+.txe-cbh .cp {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dark-text);
+  border: 1px solid #374151;
+}
+.txe-pre-dark {
+  margin: 0;
+  padding: 12px 14px;
+  font-family: var(--font-family-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--dark-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 420px;
+  overflow: auto;
+}
+.txe-answer {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+  background: var(--ink);
+  color: var(--dark-text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.txe-ok {
+  color: #fcd34d;
+}
+.txe-err {
+  color: #f9a8d4;
+}
+.txe-cm {
+  min-height: 160px;
+  max-height: 420px;
+  overflow: auto;
+}
+.txe-cm .cm-editor {
+  font-family: var(--font-family-mono);
+  font-size: 12.5px;
+}
+.txe-cm .cm-editor.cm-focused {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Checks */
+.txe-chk {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line-2);
+  font-size: 12.5px;
+}
+.txe-chk:first-child {
+  border-top: 0;
+}
+
+/* Text, HTML-only views */
+.txe-split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+  align-items: flex-start;
+}
+.txe-split > * {
+  flex: 1 1 380px;
+  min-width: 0;
+}
+.txe-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.txe-pre {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+  font-family: var(--font-family-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-height: 160px;
+  max-height: 520px;
+  overflow: auto;
+}
+.txe-code.light {
+  border: 1px solid var(--line-input);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.txe-frame {
+  width: 100%;
+  min-height: 520px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+/* Publish dialog */
+.txe-busy {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+}
+.txe-dh {
+  background: var(--ground-3);
+  font-weight: 600;
+}
+/* The defaults of the variables made optional, under their option. */
+.txe-defaults {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: -2px 0 2px;
+  padding: 0 12px 0 38px;
+}
+.txe-renders {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 2px 12px;
+}
+.txe-renders .chk {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 0;
+  border-top: 1px solid var(--line-2);
+  font-size: 12.5px;
+}
+.txe-renders .chk:first-child {
+  border-top: 0;
+}

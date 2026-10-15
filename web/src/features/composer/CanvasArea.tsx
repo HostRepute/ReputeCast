@@ -141,6 +141,17 @@ export function DeviceSeg({ dim }: { dim?: boolean }) {
 
 export function ViewSeg({ dim }: { dim?: boolean }) {
   const c = useComposer()
+  if (c.views) {
+    return (
+      <div className="seg" role="group" aria-label="View">
+        {c.views.map((it) => (
+          <button key={it.key} type="button" aria-pressed={it.on} disabled={dim} onClick={() => c.selectView?.(it.key)}>
+            {it.label}
+          </button>
+        ))}
+      </div>
+    )
+  }
   const items: { v: 'visual' | 'mjml' | 'html'; label: string }[] = [
     { v: 'visual', label: 'Visual' },
     { v: 'mjml', label: 'MJML' },
@@ -632,16 +643,31 @@ function useFrameStyles(editor: Editor | null, head: string, dark: boolean) {
   }, [editor, head, dark])
 }
 
+/**
+ * Parts the transactional mode replaces: the toolbar, the save-state cards,
+ * the empty canvas and what sits under the email (the campaign's missing
+ * footer warning). Each one left out keeps the campaign's.
+ */
+export interface CanvasSlots {
+  /** Gets the canvas zoom (1 = 100 %). */
+  toolbar?: (zoom: number) => ReactNode
+  cards?: ReactNode
+  empty?: ReactNode
+  below?: ReactNode
+}
+
 export function CanvasArea({
   containerRef,
   savedCard,
   onCloseSaved,
   onReview,
+  slots,
 }: {
   containerRef: RefObject<HTMLDivElement | null>
   savedCard: { version: number; at: string; template?: string } | null
   onCloseSaved: () => void
   onReview: () => void
+  slots?: CanvasSlots
 }) {
   const c = useComposer()
   const [host, setHost] = useState<HTMLDivElement | null>(null)
@@ -667,16 +693,16 @@ export function CanvasArea({
           <DeviceSeg dim />
           <ViewSeg dim />
         </div>
-        <EmptyGallery />
+        {slots?.empty ?? <EmptyGallery />}
       </>
     )
   }
   return (
     <>
-      <Toolbar zoom={zoom} />
+      {slots?.toolbar ? slots.toolbar(zoom) : <Toolbar zoom={zoom} />}
       <div className="cmp-canvas" id={c.view === 'visual' ? 'main' : undefined} tabIndex={-1}>
         <div className="cmp-stage" ref={setStage}>
-          <StateCards saved={savedCard} onCloseSaved={onCloseSaved} onReview={onReview} />
+          {slots?.cards ?? <StateCards saved={savedCard} onCloseSaved={onCloseSaved} onReview={onReview} />}
           <div ref={setHost} className="relative">
             <div ref={setContainer} role="region" aria-label={`Email canvas, ${c.device === 'mobile' ? 'mobile 375 px' : 'desktop 600 px'}`} />
             {ed ? null : (
@@ -697,7 +723,7 @@ export function CanvasArea({
           </div>
           {ed ? (
             <div className="mx-auto" style={{ width: frameWidth }}>
-              <MissingFooter width={frameWidth} />
+              {slots && 'below' in slots ? slots.below : <MissingFooter width={frameWidth} />}
             </div>
           ) : null}
         </div>

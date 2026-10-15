@@ -70,6 +70,8 @@ import { Route as WWorkspaceImportImportIdReportRouteImport } from './routes/w/$
 import { Route as WWorkspaceImportImportIdSourceRouteImport } from './routes/w/$workspace/import/$importId/source'
 import { Route as WWorkspaceProvidersConnectIndexRouteImport } from './routes/w/$workspace/providers/connect/index'
 import { Route as WWorkspaceProvidersConnectAdapterRouteImport } from './routes/w/$workspace/providers/connect/$adapter'
+import { Route as WWorkspaceTransactionalTemplatesTemplateIdRouteImport } from './routes/w/$workspace/transactional/templates/$templateId'
+import { Route as WWorkspaceTransactionalTemplatesNewRouteImport } from './routes/w/$workspace/transactional/templates/new'
 import { Route as WWorkspaceAppAdminSsoIndexRouteImport } from './routes/w/$workspace/_app/admin/sso/index'
 import { Route as WWorkspaceAppAdminSsoProviderIdRouteImport } from './routes/w/$workspace/_app/admin/sso/$providerId'
 import { Route as WWorkspaceAppAudienceContactsContactIdRouteImport } from './routes/w/$workspace/_app/audience/contacts/$contactId'
@@ -435,6 +437,18 @@ const WWorkspaceProvidersConnectAdapterRoute =
     path: '/providers/connect/$adapter',
     getParentRoute: () => WWorkspaceRouteRoute,
   } as any)
+const WWorkspaceTransactionalTemplatesTemplateIdRoute =
+  WWorkspaceTransactionalTemplatesTemplateIdRouteImport.update({
+    id: '/transactional/templates/$templateId',
+    path: '/transactional/templates/$templateId',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceTransactionalTemplatesNewRoute =
+  WWorkspaceTransactionalTemplatesNewRouteImport.update({
+    id: '/transactional/templates/new',
+    path: '/transactional/templates/new',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
 const WWorkspaceAppAdminSsoIndexRoute =
   WWorkspaceAppAdminSsoIndexRouteImport.update({
     id: '/admin/sso/',
@@ -592,6 +606,8 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/import/$importId/report': typeof WWorkspaceImportImportIdReportRoute
   '/w/$workspace/import/$importId/source': typeof WWorkspaceImportImportIdSourceRoute
   '/w/$workspace/providers/connect/$adapter': typeof WWorkspaceProvidersConnectAdapterRoute
+  '/w/$workspace/transactional/templates/$templateId': typeof WWorkspaceTransactionalTemplatesTemplateIdRoute
+  '/w/$workspace/transactional/templates/new': typeof WWorkspaceTransactionalTemplatesNewRoute
   '/w/$workspace/approvals/': typeof WWorkspaceAppApprovalsIndexRoute
   '/w/$workspace/audience/': typeof WWorkspaceAppAudienceIndexRoute
   '/w/$workspace/automations/': typeof WWorkspaceAppAutomationsIndexRoute
@@ -671,6 +687,8 @@ export interface FileRoutesByTo {
   '/w/$workspace/import/$importId/report': typeof WWorkspaceImportImportIdReportRoute
   '/w/$workspace/import/$importId/source': typeof WWorkspaceImportImportIdSourceRoute
   '/w/$workspace/providers/connect/$adapter': typeof WWorkspaceProvidersConnectAdapterRoute
+  '/w/$workspace/transactional/templates/$templateId': typeof WWorkspaceTransactionalTemplatesTemplateIdRoute
+  '/w/$workspace/transactional/templates/new': typeof WWorkspaceTransactionalTemplatesNewRoute
   '/w/$workspace/approvals': typeof WWorkspaceAppApprovalsIndexRoute
   '/w/$workspace/audience': typeof WWorkspaceAppAudienceIndexRoute
   '/w/$workspace/automations': typeof WWorkspaceAppAutomationsIndexRoute
@@ -753,6 +771,8 @@ export interface FileRoutesById {
   '/w/$workspace/import/$importId/report': typeof WWorkspaceImportImportIdReportRoute
   '/w/$workspace/import/$importId/source': typeof WWorkspaceImportImportIdSourceRoute
   '/w/$workspace/providers/connect/$adapter': typeof WWorkspaceProvidersConnectAdapterRoute
+  '/w/$workspace/transactional/templates/$templateId': typeof WWorkspaceTransactionalTemplatesTemplateIdRoute
+  '/w/$workspace/transactional/templates/new': typeof WWorkspaceTransactionalTemplatesNewRoute
   '/w/$workspace/_app/approvals/': typeof WWorkspaceAppApprovalsIndexRoute
   '/w/$workspace/_app/audience/': typeof WWorkspaceAppAudienceIndexRoute
   '/w/$workspace/_app/automations/': typeof WWorkspaceAppAutomationsIndexRoute
@@ -835,6 +855,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/import/$importId/report'
     | '/w/$workspace/import/$importId/source'
     | '/w/$workspace/providers/connect/$adapter'
+    | '/w/$workspace/transactional/templates/$templateId'
+    | '/w/$workspace/transactional/templates/new'
     | '/w/$workspace/approvals/'
     | '/w/$workspace/audience/'
     | '/w/$workspace/automations/'
@@ -914,6 +936,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/import/$importId/report'
     | '/w/$workspace/import/$importId/source'
     | '/w/$workspace/providers/connect/$adapter'
+    | '/w/$workspace/transactional/templates/$templateId'
+    | '/w/$workspace/transactional/templates/new'
     | '/w/$workspace/approvals'
     | '/w/$workspace/audience'
     | '/w/$workspace/automations'
@@ -995,6 +1019,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/import/$importId/report'
     | '/w/$workspace/import/$importId/source'
     | '/w/$workspace/providers/connect/$adapter'
+    | '/w/$workspace/transactional/templates/$templateId'
+    | '/w/$workspace/transactional/templates/new'
     | '/w/$workspace/_app/approvals/'
     | '/w/$workspace/_app/audience/'
     | '/w/$workspace/_app/automations/'
@@ -1468,6 +1494,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceProvidersConnectAdapterRouteImport
       parentRoute: typeof WWorkspaceRouteRoute
     }
+    '/w/$workspace/transactional/templates/$templateId': {
+      id: '/w/$workspace/transactional/templates/$templateId'
+      path: '/transactional/templates/$templateId'
+      fullPath: '/w/$workspace/transactional/templates/$templateId'
+      preLoaderRoute: typeof WWorkspaceTransactionalTemplatesTemplateIdRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/transactional/templates/new': {
+      id: '/w/$workspace/transactional/templates/new'
+      path: '/transactional/templates/new'
+      fullPath: '/w/$workspace/transactional/templates/new'
+      preLoaderRoute: typeof WWorkspaceTransactionalTemplatesNewRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
     '/w/$workspace/_app/admin/sso/': {
       id: '/w/$workspace/_app/admin/sso/'
       path: '/admin/sso'
@@ -1758,6 +1798,8 @@ interface WWorkspaceRouteRouteChildren {
   WWorkspaceImportImportIdReportRoute: typeof WWorkspaceImportImportIdReportRoute
   WWorkspaceImportImportIdSourceRoute: typeof WWorkspaceImportImportIdSourceRoute
   WWorkspaceProvidersConnectAdapterRoute: typeof WWorkspaceProvidersConnectAdapterRoute
+  WWorkspaceTransactionalTemplatesTemplateIdRoute: typeof WWorkspaceTransactionalTemplatesTemplateIdRoute
+  WWorkspaceTransactionalTemplatesNewRoute: typeof WWorkspaceTransactionalTemplatesNewRoute
   WWorkspaceImportImportIdIndexRoute: typeof WWorkspaceImportImportIdIndexRoute
   WWorkspaceProvidersConnectIndexRoute: typeof WWorkspaceProvidersConnectIndexRoute
 }
@@ -1778,6 +1820,10 @@ const WWorkspaceRouteRouteChildren: WWorkspaceRouteRouteChildren = {
   WWorkspaceImportImportIdSourceRoute: WWorkspaceImportImportIdSourceRoute,
   WWorkspaceProvidersConnectAdapterRoute:
     WWorkspaceProvidersConnectAdapterRoute,
+  WWorkspaceTransactionalTemplatesTemplateIdRoute:
+    WWorkspaceTransactionalTemplatesTemplateIdRoute,
+  WWorkspaceTransactionalTemplatesNewRoute:
+    WWorkspaceTransactionalTemplatesNewRoute,
   WWorkspaceImportImportIdIndexRoute: WWorkspaceImportImportIdIndexRoute,
   WWorkspaceProvidersConnectIndexRoute: WWorkspaceProvidersConnectIndexRoute,
 }

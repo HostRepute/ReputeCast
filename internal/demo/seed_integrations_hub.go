@@ -493,7 +493,10 @@ func seedHubWordPress(ctx context.Context, s *Seeder, ids, keys map[string]uuid.
 		staging, ws.ID, blogCats, stagingForms, s.hubDay(13, 9, 24), s.hubDay(2, 22, 10), s.hubTime(14, 2)); err != nil {
 		return err
 	}
-	// The post published at 10:04 and its draft, a minute later.
+	// The post published at 10:04 and its draft, a minute later. Before 11:00
+	// these are the demo's "today" clock times (designDay), like the other
+	// drafts', so Campaigns lists them in a stable order.
+	published := s.designDay(0, 10, 4)
 	post := struct{ title, excerpt, url string }{"Scheduled rollouts are here", "You can now schedule flag changes ahead of time, in any timezone.",
 		"https://blog.acme.io/scheduled-rollouts/"}
 	src := blogPostMJML
@@ -503,7 +506,7 @@ func seedHubWordPress(ctx context.Context, s *Seeder, ids, keys map[string]uuid.
 	}
 	draftHTML := mjml.Compile(src).HTML
 	campaign := ID()
-	created := s.hubTime(10, 5)
+	created := s.designDay(0, 10, 5)
 	audience, _ := json.Marshal(map[string]any{"lists": []uuid.UUID{product}})
 	if _, err := s.Tx.Exec(ctx, `INSERT INTO campaigns (id, workspace_id, name, status, subject, preheader, sender_id, audience, editor_mode, mjml, html, plain_text,
 		version, content_hash, origin, note, created_by, updated_by, created_at, updated_at, autosaved_at)
@@ -517,7 +520,7 @@ func seedHubWordPress(ctx context.Context, s *Seeder, ids, keys map[string]uuid.
 	}
 	s.Campaigns[post.title] = campaign
 	if _, err := s.Tx.Exec(ctx, `INSERT INTO wordpress_drafts (id, integration_id, workspace_id, campaign_id, post_id, post_title, post_url, published_at, notified_user, created_at)
-		VALUES ($1,$2,$3,$4,'812',$5,$6,$7,$8,$9)`, ID(), blog, ws.ID, campaign, post.title, post.url, s.hubTime(10, 4), sofia, created); err != nil {
+		VALUES ($1,$2,$3,$4,'812',$5,$6,$7,$8,$9)`, ID(), blog, ws.ID, campaign, post.title, post.url, published, sofia, created); err != nil {
 		return err
 	}
 	wsID := ws.ID
@@ -529,7 +532,7 @@ func seedHubWordPress(ctx context.Context, s *Seeder, ids, keys map[string]uuid.
 	}
 	keyBlog := keys["blog.acme.io"]
 	if err := hubAudit(ctx, s, keyBlog, "WordPress · blog.acme.io", "api_key", "wordpress.draft_created", campaign, "Product Updates · "+post.title,
-		map[string]any{"summary": "draft from the post published " + s.hubFormat(s.hubTime(10, 4), "15:04") + " · rule Announcements → Product Updates · Sofia Rossi notified",
+		map[string]any{"summary": "draft from the post published " + s.hubFormat(published, "15:04") + " · rule Announcements → Product Updates · Sofia Rossi notified",
 			"actor_label": "integration key", "source": "api", "via": "rc_live_2b7d…a51f"}, created.Add(9*time.Second)); err != nil {
 		return err
 	}
@@ -559,7 +562,7 @@ func seedHubWordPress(ctx context.Context, s *Seeder, ids, keys map[string]uuid.
 		version string
 	}{
 		{"blog.acme.io", s.hubTime(14, 14), "203.0.113.80", "WordPress, ReputeCast plugin 1.2.0", "1.2.0"},
-		{"blog.acme.io", s.hubTime(10, 4), "203.0.113.80", "WordPress, ReputeCast plugin 1.2.0", "1.2.0"},
+		{"blog.acme.io", published, "203.0.113.80", "WordPress, ReputeCast plugin 1.2.0", "1.2.0"},
 		{"staging.acme.io", s.hubDay(2, 22, 10), "203.0.113.81", "WordPress, ReputeCast plugin 1.3.0", "1.3.0"},
 	} {
 		if err := insertHubCall(ctx, s, ids[c.site], keys[c.site], c.ip, c.ver, hubCall{at: c.at, op: "report-wordpress-site", method: "POST", path: report,

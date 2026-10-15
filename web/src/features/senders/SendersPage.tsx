@@ -116,7 +116,7 @@ export function SendersPage() {
 function SendersTable({ data, onEdit }: { data: Overview; onEdit: (s: Sender) => void }) {
   const { slug } = useWorkspace()
   return (
-    <Table className="sd-tbl" caption="Sender identities">
+    <Table className="sd-tbl" fit caption="Sender identities">
       <thead>
         <tr>
           <Th>From</Th>
@@ -184,7 +184,7 @@ function SendersTable({ data, onEdit }: { data: Overview; onEdit: (s: Sender) =>
 function DomainsTable({ data }: { data: Overview }) {
   const { slug } = useWorkspace()
   return (
-    <Table className="sd-tbl" caption="Sending domains">
+    <Table className="sd-tbl" fit caption="Sending domains">
       <thead>
         <tr>
           <Th>Domain</Th>

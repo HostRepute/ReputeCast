@@ -1,0 +1,21 @@
+{
+  "id": "d-1b7e9c3a5f2d4e8a6c0b9d7f3e1a2c4b",
+  "name": "Invoice due",
+  "generation": "dynamic",
+  "updated_at": "2026-08-12 09:41:57",
+  "versions": [
+    {
+      "id": "a1e3c5b7-9d2f-4a6c-8e0b-1d3f5a7c9e2b",
+      "template_id": "d-1b7e9c3a5f2d4e8a6c0b9d7f3e1a2c4b",
+      "active": 1,
+      "name": "Invoice v1",
+      "subject": "Invoice {{invoice_id}} is due",
+      "html_content": "<html>\n<body>\n<p>Hello {{insert name \"default=there\"}},</p>\n<p>Invoice {{invoice_id}} for {{amount_due}} is due on {{due_date}}.</p>\n{{#equals status \"overdue\"}}<p>This invoice is overdue.</p>{{else}}<p>Thanks for paying on time.</p>{{/equals}}\n<p><a href=\"{{pay_url}}\">Pay now</a></p>\n</body>\n</html>",
+      "plain_content": "",
+      "generate_plain_content": true,
+      "editor": "design",
+      "test_data": "{\"name\":\"Sam\",\"invoice_id\":\"INV-2041\",\"amount_due\":\"$29.00\",\"due_date\":\"18 Oct 2026\",\"status\":\"open\",\"pay_url\":\"https://app.acme.io/billing/INV-2041\"}",
+      "updated_at": "2026-08-12 09:41:57"
+    }
+  ]
+}

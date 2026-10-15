@@ -460,7 +460,7 @@ function RecentSignIns() {
           <tbody>
             {q.data.items.map((e) => (
               <tr key={e.id}>
-                <Td className="whitespace-nowrap!">{eventWhen(e.at)}</Td>
+                <Td className="min-w-0 whitespace-nowrap!">{eventWhen(e.at)}</Td>
                 <Td className="whitespace-nowrap!">{e.event}</Td>
                 <Td>{e.account}</Td>
                 <Td>

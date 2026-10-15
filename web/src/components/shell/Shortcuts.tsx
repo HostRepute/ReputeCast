@@ -1,9 +1,12 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Dialog as RDialog } from 'radix-ui'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { T, useT } from '@/i18n'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
 import { focusPageSearch, GO_KEYS, modKeyLabel, runShortcutHandler, SEQUENCE_MS, shortcutFor, type GoTarget } from '@/lib/shortcuts'
 import { toast } from '../ui/Toast'
+import { m } from './messages'
+import { NAV } from './nav'
 
 const GO_PATHS: Record<GoTarget, string> = {
   overview: '/w/$workspace',
@@ -26,8 +29,7 @@ function Keys({ keys, then }: { keys: string[]; then?: string[] }) {
     ))
   return (
     <>
-      {k(keys)}
-      {then ? <> then {k(then)}</> : null}{' '}
+      {then ? <T msg={m.shortcutsSequence} values={{ first: k(keys), second: k(then) }} /> : k(keys)}{' '}
     </>
   )
 }
@@ -42,61 +44,64 @@ function Row({ children }: { children: ReactNode }) {
  */
 export function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const mod = modKeyLabel()
+  const t = useT()
+  // Every "go" target is a sidebar section; the sheet names it as the sidebar does.
+  const section = (to: GoTarget) => t(NAV.find((i) => i.key === to)!.label)
   return (
     <RDialog.Root open={open} onOpenChange={onOpenChange}>
       <RDialog.Portal>
         <RDialog.Overlay className="ovl">
           <RDialog.Content className="dlg kdlg">
             <div className="kdh">
-              <RDialog.Title className="kdt">Keyboard shortcuts</RDialog.Title>
+              <RDialog.Title className="kdt">{t(m.shortcutsTitle)}</RDialog.Title>
               <span className="k" aria-hidden="true">
-                press <kbd>?</kbd>
+                <T msg={m.shortcutsPress} values={{ kbd: (chunks) => <kbd>{chunks}</kbd> }} />
               </span>
             </div>
-            <RDialog.Description className="vh">Press ? to open this sheet from anywhere, Escape to close it.</RDialog.Description>
+            <RDialog.Description className="vh">{t(m.shortcutsDescription)}</RDialog.Description>
             <ul className="kbgrid">
               <Row>
                 <Keys keys={[mod, 'K']} />
-                Search everything
+                {t(m.shortcutSearch)}
               </Row>
               <Row>
                 <Keys keys={['N']} />
-                New campaign
+                {t(m.shortcutNewCampaign)}
               </Row>
               <Row>
                 <Keys keys={[mod, 'S']} />
-                Save version
+                {t(m.shortcutSave)}
               </Row>
               <Row>
                 <Keys keys={[mod, 'Enter']} />
-                Open Send Readiness
+                {t(m.shortcutReadiness)}
               </Row>
               <Row>
                 <Keys keys={['G']} then={['O']} />
-                Overview
+                {section('overview')}
               </Row>
               <Row>
                 <Keys keys={['G']} then={['A']} />
-                Audience
+                {section('audience')}
               </Row>
               <Row>
                 <Keys keys={['Esc']} />
-                Close panel or dialog
+                {t(m.shortcutClose)}
               </Row>
               <Row>
                 <Keys keys={['?']} />
-                This sheet
+                {t(m.shortcutHelp)}
               </Row>
               {Object.entries(GO_KEYS)
                 .filter(([key]) => key !== 'o' && key !== 'a')
                 .map(([key, g]) => (
                   <Row key={key}>
                     <Keys keys={['G']} then={[key.toUpperCase()]} />
-                    {g.label}
+                    {section(g.to)}
                   </Row>
                 ))}
             </ul>
-            <span className="k">Every shortcut has a visible button equivalent; none is required.</span>
+            <span className="k">{t(m.shortcutsFootnote)}</span>
           </RDialog.Content>
         </RDialog.Overlay>
       </RDialog.Portal>

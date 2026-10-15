@@ -53,10 +53,14 @@ func TestListCampaigns(t *testing.T) {
 	if list.Items[1].Name != "November Product Update" || list.Items[1].Status != "approval" {
 		t.Fatalf("waiting for approval: %+v", list.Items[1])
 	}
+	// The integrations hub's post draft (10:05) is the newest draft.
+	if list.Items[2].Name != "Scheduled rollouts are here" || list.Items[2].Status != "draft" {
+		t.Fatalf("post draft: %+v", list.Items[2])
+	}
 	// "3 blocking issues", as on the board and on Review & send: its two
 	// warnings aren't counted.
-	if !list.Items[2].Blocked || list.Items[2].Audience != "All subscribers" || list.Items[2].Readiness == nil || list.Items[2].Readiness.Issues != 3 {
-		t.Fatalf("blocked draft: %+v", list.Items[2])
+	if !list.Items[3].Blocked || list.Items[3].Audience != "All subscribers" || list.Items[3].Readiness == nil || list.Items[3].Readiness.Issues != 3 {
+		t.Fatalf("blocked draft: %+v", list.Items[3])
 	}
 	// Seventh on the board; the post draft (a newer draft) comes before it.
 	var oct = list.Items[7]

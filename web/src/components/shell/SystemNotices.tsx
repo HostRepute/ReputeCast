@@ -1,9 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { T, useT } from '@/i18n'
 import { countdown, duration, spanWords } from '@/lib/format'
 import type { SessionClock } from '@/lib/sessionClock'
 import { clearRateLimit, type RateLimit } from '@/lib/systemStatus'
 import { Badge, type Tone } from '../ui/Badge'
 import { Button } from '../ui/Button'
+import { m } from './messages'
 
 /**
  * "Timeouts and limits" (SystemStates board): a card with a title, a state
@@ -47,7 +49,7 @@ export function SessionEndingNotice({
   onExtend,
   onSignOut,
   extending,
-  workNote = 'anything unsaved stays on this page',
+  workNote,
 }: {
   clock: SessionClock
   onExtend: () => void
@@ -56,28 +58,29 @@ export function SessionEndingNotice({
   /** What happens to unsaved work, from the screen: "the draft autosaves". */
   workNote?: string
 }) {
+  const t = useT()
   const minutes = (ms: number) => duration(ms / 60_000)
   const idle = clock.endsBy === 'idle'
   return (
     <SystemNotice
       alert
-      title={`Session ending ${countdown(clock.msLeft)}`}
-      badge="Timing"
+      title={t(m.sessionEndingTitle, { countdown: countdown(clock.msLeft) })}
+      badge={t(m.sessionEndingBadge)}
       tone="warn"
       actions={
         <>
           {clock.extendable ? (
             <Button variant="primary" onClick={onExtend} loading={extending}>
-              Extend {spanWords(clock.extendMs)}
+              {t(m.sessionExtend, { span: spanWords(clock.extendMs) })}
             </Button>
           ) : null}
-          <Button onClick={onSignOut}>Sign out now</Button>
+          <Button onClick={onSignOut}>{t(m.sessionSignOutNow)}</Button>
         </>
       }
     >
       {idle
-        ? `You've been inactive for ${minutes(clock.idleForMs)}. Extend to keep editing; otherwise ${workNote} and you'll be asked to sign in again.`
-        : `You've been signed in for ${minutes(clock.signedInForMs)}, the longest your instance allows. Save what you're working on; you'll be asked to sign in again.`}
+        ? t(m.sessionIdleBody, { inactive: minutes(clock.idleForMs), work: workNote ?? t(m.sessionWorkStays) })
+        : t(m.sessionLifetimeBody, { signedIn: minutes(clock.signedInForMs) })}
     </SystemNotice>
   )
 }
@@ -106,28 +109,29 @@ export function RateLimitNotice({
   apiKey?: { masked: string; sent: string; allowed: string }
   actions?: ReactNode
 }) {
+  const t = useT()
   const left = useSecondsLeft(limit.until)
-  const resume = left > 0 ? `Requests resume in ${left} s.` : 'Requests can resume now.'
+  const resume = left > 0 ? t(m.rateLimitResumeIn, { seconds: left }) : t(m.rateLimitResumeNow)
   return (
     <SystemNotice
-      title="API rate limit reached"
+      title={t(m.rateLimitTitle)}
       badge="429"
       tone="bad"
       actions={
         actions ?? (
-          <Button size="sm" onClick={clearRateLimit} disabledReason={left > 0 ? `Requests resume in ${left} s.` : undefined}>
-            {left > 0 ? 'Waiting…' : 'Dismiss'}
+          <Button size="sm" onClick={clearRateLimit} disabledReason={left > 0 ? t(m.rateLimitResumeIn, { seconds: left }) : undefined}>
+            {left > 0 ? t(m.rateLimitWaiting) : t(m.rateLimitDismiss)}
           </Button>
         )
       }
     >
       {apiKey ? (
-        <>
-          Key <span className="mono">{apiKey.masked}</span> sent {apiKey.sent} requests this minute; the limit is {apiKey.allowed}. {resume} Batch endpoints accept up to
-          1,000 contacts per call.
-        </>
+        <T
+          msg={m.rateLimitKeyBody}
+          values={{ key: apiKey.masked, sent: apiKey.sent, allowed: apiKey.allowed, resume, mono: (chunks) => <span className="mono">{chunks}</span> }}
+        />
       ) : (
-        <>This browser sent more requests in the last minute than the server allows. {resume} Nothing was lost; retry what didn&apos;t go through.</>
+        t(m.rateLimitBrowserBody, { resume })
       )}
     </SystemNotice>
   )
@@ -146,22 +150,23 @@ export function JobNotice({
   progress: number
   onCancel?: () => void
 }) {
+  const t = useT()
   const pct = Math.max(0, Math.min(100, Math.round(progress)))
   return (
     <section className="card notice" role="status" aria-label={typeof title === 'string' ? title : undefined}>
       <div className="nh">
         <h2 className="nt">{title}</h2>
-        <Badge tone="info">Background job</Badge>
+        <Badge tone="info">{t(m.jobNoticeBadge)}</Badge>
       </div>
       <span className="nb">{children}</span>
       <div className="progress">
-        <span className="track" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Progress">
+        <span className="track" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={t(m.jobNoticeProgress)}>
           <i style={{ width: `${pct}%` }} />
         </span>
-        <span className="k">{pct}%</span>
+        <span className="k">{t(m.jobPercent, { pct })}</span>
         {onCancel ? (
           <Button size="sm" onClick={onCancel}>
-            Cancel
+            {t(m.jobNoticeCancel)}
           </Button>
         ) : null}
       </div>
