@@ -24,10 +24,10 @@ type workspaceLanguages struct {
 	NoLanguage        int64
 	NotOffered        int64
 	Languages         []struct {
-		Code, Name           string
+		Code, Name            string
 		IsDefault, IsFallback bool
-		Contacts             int64
-		PageCopy             struct{ Status string }
+		Contacts              int64
+		PageCopy              struct{ Status string }
 	}
 }
 
@@ -121,8 +121,18 @@ func TestLanguagesAPI(t *testing.T) {
 	// --- Workspace languages (Settings › General) ---
 	var list workspaceLanguages
 	linh.Do("GET", ws+"/languages", nil).MustStatus(t, 200).JSON(t, &list)
-	if list.Default != "en" || list.Fallback != "en" || !list.CanManage || list.TotalContacts == 0 || list.Languages[0].Code != "en" || !list.Languages[0].IsDefault {
+	if list.Default != "en" || list.Fallback != "en" || !list.CanManage || list.Languages[0].Code != "en" || !list.Languages[0].IsDefault ||
+		!slices.Equal(list.codes(), []string{"en", "es", "de", "vi"}) {
 		t.Fatalf("languages: %+v", list)
+	}
+	// The sample's contacts (SettingsLanguages): 48,213 in all.
+	contacts := map[string]int64{}
+	for _, l := range list.Languages {
+		contacts[l.Code] = l.Contacts
+	}
+	if list.TotalContacts != 48213 || list.NoLanguage != 5508 || list.NotOffered != 12 || contacts["en"] != 41020 || contacts["es"] != 4180 ||
+		contacts["de"] != 2240 || contacts["vi"] != 773 || list.Languages[3].PageCopy.Status != "not_set_up" {
+		t.Fatalf("contacts per language: %+v %+v", list, contacts)
 	}
 	var readOnly workspaceLanguages
 	daniel.Do("GET", ws+"/languages", nil).MustStatus(t, 200).JSON(t, &readOnly)
@@ -154,23 +164,23 @@ func TestLanguagesAPI(t *testing.T) {
 	}
 
 	// Adding needs workspace:manage; right-to-left languages are refused.
-	daniel.Do("POST", ws+"/languages", map[string]any{"code": "es"}).MustStatus(t, 403)
+	daniel.Do("POST", ws+"/languages", map[string]any{"code": "fr"}).MustStatus(t, 403)
 	p := linh.Do("POST", ws+"/languages", map[string]any{"code": "ar"}).MustStatus(t, 422).Problem(t)
 	if !strings.Contains(fmt.Sprint(p), "Right-to-left languages aren't supported yet") {
 		t.Fatalf("RTL refusal: %v", p)
 	}
-	linh.Do("POST", ws+"/languages", map[string]any{"code": "es-MX"}).MustStatus(t, 422)
-	for _, code := range []string{"es", "de"} {
+	linh.Do("POST", ws+"/languages", map[string]any{"code": "fr-CA"}).MustStatus(t, 422)
+	for _, code := range []string{"fr", "it"} {
 		linh.Do("POST", ws+"/languages", map[string]any{"code": code}).MustStatus(t, 200).JSON(t, &list)
 	}
-	if !slices.Equal(list.codes(), []string{"en", "es", "de"}) || logged("language.add") != 2 {
-		t.Fatalf("added Spanish and German: %v, %d audited", list.codes(), logged("language.add"))
+	if !slices.Equal(list.codes(), []string{"en", "es", "de", "vi", "fr", "it"}) || logged("language.add") != 2 {
+		t.Fatalf("added French and Italian: %v, %d audited", list.codes(), logged("language.add"))
 	}
-	linh.Do("POST", ws+"/languages", map[string]any{"code": "es"}).MustStatus(t, 409)
+	linh.Do("POST", ws+"/languages", map[string]any{"code": "fr"}).MustStatus(t, 409)
 
 	// The fallback: its impact first, then the change (audited) and back.
 	var impact struct {
-		Fallback                    string
+		Fallback                      string
 		Moved, NoLanguage, NotOffered int64
 	}
 	linh.Do("GET", ws+"/languages/fallback-impact?code=es", nil).MustStatus(t, 200).JSON(t, &impact)
@@ -199,7 +209,7 @@ func TestLanguagesAPI(t *testing.T) {
 		t.Fatalf("versions before adding one: %+v", langs)
 	}
 	aisha.Do("POST", base, map[string]any{"language": "es"}).MustStatus(t, 403)
-	linh.Do("POST", base, map[string]any{"language": "fr"}).MustStatus(t, 422)
+	linh.Do("POST", base, map[string]any{"language": "pt"}).MustStatus(t, 422)
 	daniel.Do("POST", base, map[string]any{"language": "es", "start": "copy"}).MustStatus(t, 201).JSON(t, &langs)
 	es := langs.version(t, "es")
 	if es.Status != "draft" || es.Gets != "en" || langs.CanChangeSource || logged("campaign.language.add") != 1 {
@@ -359,8 +369,9 @@ func TestLanguagesAPI(t *testing.T) {
 	linh.Do("DELETE", ws+"/languages/en", nil).MustStatus(t, 409)
 	removal.Refusal = ""
 	linh.Do("GET", ws+"/languages/es/removal", nil).MustStatus(t, 200).JSON(t, &removal)
-	if removal.Refusal != "" || removal.Fallback != "en" || len(removal.Has) != 1 || removal.Has[0].ID != created.ID || removal.Has[0].State != "draft" ||
-		removal.Has[0].Status != "up_to_date" {
+	mine := slices.IndexFunc(removal.Has, func(h struct{ Kind, ID, State, Status string }) bool { return h.ID == created.ID })
+	if removal.Refusal != "" || removal.Fallback != "en" || removal.Readers != 4180 || mine < 0 || removal.Has[mine].State != "draft" ||
+		removal.Has[mine].Status != "up_to_date" {
 		t.Fatalf("removing Spanish affects the campaign: %+v", removal)
 	}
 	daniel.Do("DELETE", ws+"/languages/es", nil).MustStatus(t, 403)

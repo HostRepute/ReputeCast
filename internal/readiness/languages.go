@@ -2,9 +2,11 @@ package readiness
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -28,6 +30,14 @@ const (
 	FixHoldLanguage           = "hold_language"
 	FixReleaseLanguage        = "release_language"
 )
+
+// FinalRecipients are an audience's final recipients as a run counts them,
+// read with q (the demo gives the Weekly Digest's readers their languages
+// inside its transaction).
+func FinalRecipients(ctx context.Context, q *store.Queries, wsID uuid.UUID, audience, sunsetPolicy json.RawMessage, now time.Time) ([]Recipient, error) {
+	_, out, err := (&Service{}).computeAudience(ctx, q, wsID, ParseAudience(audience), sunsetDays(sunsetPolicy), now)
+	return out, err
+}
 
 // VersionReport is the content check of one language version.
 type VersionReport struct {
