@@ -16,12 +16,12 @@ type policyInput struct {
 	Body AccessibilityPolicyInput
 }
 
-type campaignPath struct {
+type CampaignPath struct {
 	api.WorkspaceInput
 	CampaignID string `path:"campaignId" format:"uuid"`
 }
 
-func (in campaignPath) id() (uuid.UUID, error) {
+func (in CampaignPath) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(in.CampaignID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("Campaign")
@@ -30,7 +30,7 @@ func (in campaignPath) id() (uuid.UUID, error) {
 }
 
 type checkInput struct {
-	campaignPath
+	CampaignPath
 	Body AccessibilityCheckRequest
 }
 
@@ -59,7 +59,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "get-campaign-accessibility", Path: "/workspaces/{workspace}/campaigns/{campaignId}/accessibility", Summary: "Accessibility issues of a campaign as saved",
 		Description: "Every language version's compiled HTML is checked; an issue in several versions is listed once with its languages.", Tags: tags, Access: api.Workspace(authz.CampaignsView)},
-		func(ctx context.Context, in *campaignPath) (*api.Body[AccessibilityReport], error) {
+		func(ctx context.Context, in *CampaignPath) (*api.Body[AccessibilityReport], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err

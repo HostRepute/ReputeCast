@@ -3,11 +3,13 @@ package demo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/campaigns"
@@ -308,8 +310,12 @@ func accessibilityWelcomeButton(ctx context.Context, s *Seeder) error {
 func accessibilityDigestTemplate(ctx context.Context, s *Seeder) error {
 	var id uuid.UUID
 	var src string
-	if err := s.Tx.QueryRow(ctx, `SELECT id, mjml FROM templates WHERE workspace_id = $1 AND name = 'Acme digest v3'`, s.WS().ID).Scan(&id, &src); err != nil {
+	err := s.Tx.QueryRow(ctx, `SELECT id, mjml FROM templates WHERE workspace_id = $1 AND name = 'Acme digest v3'`, s.WS().ID).Scan(&id, &src)
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil // the composer's seeder didn't create it
+	}
+	if err != nil {
+		return err
 	}
 	next := strings.Replace(src, `alt="Acme" width="96px"`, `href="https://acme.io" width="96px"`, 1)
 	next = strings.Replace(next, `>Read the docs</mj-button>`, `>Read more</mj-button>`, 1)
@@ -318,7 +324,7 @@ func accessibilityDigestTemplate(ctx context.Context, s *Seeder) error {
 	if len(res.Errors) > 0 {
 		return fmt.Errorf("compile Acme digest v3: %s", res.Errors[0].Message)
 	}
-	_, err := s.Tx.Exec(ctx, `UPDATE templates SET mjml = $2, html = $3, size_bytes = $4 WHERE id = $1`, id, next, res.HTML, len(res.HTML))
+	_, err = s.Tx.Exec(ctx, `UPDATE templates SET mjml = $2, html = $3, size_bytes = $4 WHERE id = $1`, id, next, res.HTML, len(res.HTML))
 	return err
 }
 

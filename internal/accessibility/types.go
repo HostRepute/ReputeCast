@@ -101,6 +101,16 @@ type AccessibilityFixSpec struct {
 	// Text size fixes.
 	FromPx float64 `json:"fromPx,omitempty"`
 	ToPx   int     `json:"toPx,omitempty"`
+	// Links are the links a link-text fix changes (links that share their
+	// words are one issue).
+	Links []AccessibilityLinkTarget `json:"links"`
+}
+
+// AccessibilityLinkTarget is one link of a link-text issue.
+type AccessibilityLinkTarget struct {
+	Path  []int  `json:"path"`
+	Index int    `json:"index" doc:"The nth link of the text block, from 0"`
+	Href  string `json:"href"`
 }
 
 // AccessibilityIssueVersion is what an issue looks like in one language.

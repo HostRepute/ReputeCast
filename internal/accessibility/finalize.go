@@ -1,6 +1,7 @@
 package accessibility
 
 import (
+	"errors"
 	"io"
 	"strings"
 
@@ -94,7 +95,7 @@ func Finalize(src, lang string) (string, Additions) {
 	for {
 		tt := z.Next()
 		if tt == html.ErrorToken {
-			if z.Err() != io.EOF {
+			if !errors.Is(z.Err(), io.EOF) {
 				return src, add
 			}
 			break

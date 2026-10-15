@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -38,9 +39,13 @@ type AccessibilityGallery struct {
 func (s *Service) Gallery(ctx context.Context, ws *store.Workspace, starterIDs []string) (AccessibilityGallery, error) {
 	lang := s.language(ctx, ws)
 	out := AccessibilityGallery{Language: lang, Templates: []AccessibilityTemplateResult{}}
+	_, min, err := s.Settings(ctx, ws.ID)
+	if err != nil {
+		return out, err
+	}
 	check := func(id, mjmlSrc, htmlSrc string) (AccessibilityTemplateResult, error) {
 		h := sha256.Sum256([]byte(mjmlSrc + "\x00" + htmlSrc))
-		key := ws.ID.String() + ":gallery:" + lang + ":" + hex.EncodeToString(h[:12])
+		key := fmt.Sprintf("%s:gallery:%s:%d:%s", ws.ID, lang, min, hex.EncodeToString(h[:12]))
 		r, ok := s.cached(key)
 		if !ok {
 			var err error
@@ -125,14 +130,14 @@ func moderateSummary(issues []AccessibilityIssue) string {
 	}
 	var order []string
 	groups := map[string]*group{}
-	add := func(key, phrase string) {
+	add := func(key, phrase string, n int) {
 		g := groups[key]
 		if g == nil {
 			g = &group{phrase: phrase}
 			groups[key] = g
 			order = append(order, key)
 		}
-		g.n++
+		g.n += max(n, 1)
 	}
 	for _, is := range issues {
 		if is.Severity != Moderate {
@@ -141,14 +146,14 @@ func moderateSummary(issues []AccessibilityIssue) string {
 		switch is.Kind {
 		case KindLinkText:
 			if strings.HasPrefix(is.Title, "A bare URL") {
-				add("bare", "bare URL")
+				add("bare", "bare URL", is.Element.Count)
 			} else {
-				add("vague:"+strings.ToLower(is.Element.Label), quote(is.Element.Label)+" link")
+				add("vague:"+strings.ToLower(is.Element.Label), quote(is.Element.Label)+" link", is.Element.Count)
 			}
 		case KindHeading:
-			add("heading", "skipped heading level")
+			add("heading", "skipped heading level", 1)
 		case KindTextSize:
-			add("size:"+trimFloat(is.Fix.FromPx), trimFloat(is.Fix.FromPx)+" px text")
+			add("size:"+trimFloat(is.Fix.FromPx), trimFloat(is.Fix.FromPx)+" px text", 1)
 		}
 	}
 	var parts []string

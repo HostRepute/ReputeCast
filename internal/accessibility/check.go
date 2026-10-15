@@ -116,7 +116,7 @@ func checkVersion(v Version, opts Options) (versionCheck, error) {
 	if strings.TrimSpace(v.MJML) != "" {
 		parsed, err := parseDoc(v.MJML)
 		if err != nil {
-			return vc, fmt.Errorf("%w: %v", ErrCompile, err)
+			return vc, fmt.Errorf("%w: %w", ErrCompile, err)
 		}
 		if parsed.body != nil {
 			res := mjml.Compile(annotate(parsed))
@@ -165,6 +165,9 @@ func (c *checker) add(key string, is AccessibilityIssue, ver AccessibilityIssueV
 	}
 	if is.Fix.Headings == nil {
 		is.Fix.Headings = []AccessibilityHeadingChange{}
+	}
+	if is.Fix.Links == nil {
+		is.Fix.Links = []AccessibilityLinkTarget{}
 	}
 	if is.Element.Count == 0 {
 		is.Element.Count = 1
@@ -316,6 +319,8 @@ func socialPair(w *walker, l *linkInfo) bool {
 }
 
 func (c *checker) links() {
+	groups := map[string]*linkGroup{}
+	var order []string
 	for _, l := range c.w.links {
 		c.vc.counts.Links++
 		n := c.nodeAt(l.path)
@@ -375,21 +380,70 @@ func (c *checker) links() {
 			c.vc.counts.LinksOK++
 			continue
 		}
-		ver := AccessibilityIssueVersion{Text: name}
-		if t, ok := c.opts.Titles[l.href]; ok && t.Title != "" && (t.Lang == "" || BaseLanguage(t.Lang) == BaseLanguage(c.lang)) {
-			ver.Suggestion = t.Title
+		// Links with the same words are one issue: "two “Read more” links".
+		gk := "vague:" + normalizeText(name)
+		if bare {
+			gk = "bare:" + strings.ToLower(name)
 		}
-		el := AccessibilityElement{Tag: tag, Role: role, Label: name, Section: c.sectionLabel(p), Index: l.index, Href: l.href}
-		if vague {
-			c.add(KindLinkText+":"+l.path+":"+fmt.Sprint(l.index), AccessibilityIssue{Kind: KindLinkText, Severity: Moderate,
-				Title: quote(name) + " doesn't say where the link goes", Tag: quote(name) + " says nothing",
-				Path: p, Location: c.location(p, inner), Element: el, Fix: AccessibilityFixSpec{Kind: KindLinkText, PerLanguage: true}}, ver)
-			continue
+		g := groups[gk]
+		if g == nil {
+			g = &linkGroup{bare: bare && !vague, name: name, inner: inner}
+			groups[gk] = g
+			order = append(order, gk)
 		}
-		c.add(KindLinkText+":"+l.path+":"+fmt.Sprint(l.index), AccessibilityIssue{Kind: KindLinkText, Severity: Moderate,
-			Title: "A bare URL is the link text: " + name, Tag: "Bare URL as link text",
-			Path: p, Location: c.location(p, inner), Element: el, Fix: AccessibilityFixSpec{Kind: KindLinkText, PerLanguage: true}}, ver)
+		g.links = append(g.links, l)
+		g.els = append(g.els, AccessibilityElement{Tag: tag, Role: role, Label: name, Section: c.sectionLabel(p), Index: l.index, Href: l.href})
 	}
+	for _, gk := range order {
+		c.linkTextIssue(groups[gk])
+	}
+}
+
+// linkGroup is the links of a version that share words that say nothing.
+type linkGroup struct {
+	bare  bool
+	name  string
+	inner string
+	links []*linkInfo
+	els   []AccessibilityElement
+}
+
+func (c *checker) linkTextIssue(g *linkGroup) {
+	first := g.links[0]
+	p := pathOf(first.path)
+	el := g.els[0]
+	el.Count = len(g.links)
+	targets := []AccessibilityLinkTarget{}
+	paths := [][]int{}
+	var keys []string
+	sameHref := true
+	for _, l := range g.links {
+		lp := nonNilPath(pathOf(l.path))
+		targets = append(targets, AccessibilityLinkTarget{Path: lp, Index: l.index, Href: l.href})
+		paths = append(paths, lp)
+		keys = append(keys, l.path+"."+fmt.Sprint(l.index))
+		if l.href != first.href {
+			sameHref = false
+		}
+	}
+	ver := AccessibilityIssueVersion{Text: g.name}
+	if t, ok := c.opts.Titles[first.href]; ok && sameHref && t.Title != "" && (t.Lang == "" || BaseLanguage(t.Lang) == BaseLanguage(c.lang)) {
+		ver.Suggestion = t.Title
+	}
+	is := AccessibilityIssue{Kind: KindLinkText, Severity: Moderate, Path: p, Paths: paths, Location: c.location(p, g.inner), Element: el,
+		Fix: AccessibilityFixSpec{Kind: KindLinkText, PerLanguage: true, Links: targets}}
+	n := len(g.links)
+	switch {
+	case g.bare && n == 1:
+		is.Title, is.Tag = "A bare URL is the link text: "+g.name, "Bare URL as link text"
+	case g.bare:
+		is.Title, is.Tag = fmt.Sprintf("%s links show a bare URL as their text: %s", capitalize(numberWord(n)), g.name), "Bare URL as link text"
+	case n == 1:
+		is.Title, is.Tag = quote(g.name)+" doesn't say where the link goes", quote(g.name)+" says nothing"
+	default:
+		is.Title, is.Tag = fmt.Sprintf("%s %s links don't say where they go", capitalize(numberWord(n)), quote(g.name)), quote(g.name)+" says nothing"
+	}
+	c.add(KindLinkText+":"+strings.Join(keys, ","), is, ver)
 }
 
 type contrastGroup struct {
@@ -400,7 +454,6 @@ type contrastGroup struct {
 	ratio  float64
 	text   []string
 	button bool
-	order  int
 }
 
 func (c *checker) contrast() {

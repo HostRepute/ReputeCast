@@ -109,7 +109,9 @@ func TestCompileKeepsQuotesEscaped(t *testing.T) {
 // A Raw HTML block between two sections stays outside Outlook's
 // conditional comments, so every client shows it.
 func TestCompileKeepsRawBlocksVisible(t *testing.T) {
-	section := func(s string) string { return `<mj-section><mj-column><mj-text>` + s + `</mj-text></mj-column></mj-section>` }
+	section := func(s string) string {
+		return `<mj-section><mj-column><mj-text>` + s + `</mj-text></mj-column></mj-section>`
+	}
 	for _, body := range []string{
 		section("A") + `<mj-raw><p>RAW</p></mj-raw>` + section("B"),
 		`<mj-raw><p>RAW</p></mj-raw>` + section("B"),

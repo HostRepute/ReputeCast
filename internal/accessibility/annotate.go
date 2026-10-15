@@ -1,6 +1,7 @@
 package accessibility
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -229,29 +230,6 @@ func setAttrEdit(src string, start int, name, value string) (edit, bool) {
 	return edit{at, at, " " + name + `="` + esc + `"`}, true
 }
 
-// removeAttrEdit returns the edit that removes an attribute, if present.
-func removeAttrEdit(src string, start int, name string) (edit, bool) {
-	_, attrs, _, ok := openTag(src, start)
-	if !ok {
-		return edit{}, false
-	}
-	for _, a := range attrs {
-		if a.name != name {
-			continue
-		}
-		// From the spaces before the name to the end of the value and its quote.
-		s, e := a.nameStart, a.valEnd
-		if a.quoted {
-			e++
-		}
-		for s > start && isSpaceByte(src[s-1]) {
-			s--
-		}
-		return edit{s, e, ""}, true
-	}
-	return edit{}, false
-}
-
 // classless are MJML elements that never take a css-class.
 var classless = map[string]bool{"mj-raw": true, "mj-include": true}
 
@@ -304,7 +282,7 @@ func rawEdits(src string, n *mjml.Node, key string) []edit {
 	for {
 		tt := z.Next()
 		if tt == html.ErrorToken {
-			if z.Err() != io.EOF {
+			if !errors.Is(z.Err(), io.EOF) {
 				return edits
 			}
 			return edits

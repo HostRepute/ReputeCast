@@ -133,7 +133,7 @@ func elementsOf(content string) []*htmlElement {
 	for {
 		tt := z.Next()
 		if tt == xhtml.ErrorToken {
-			if z.Err() != io.EOF {
+			if !errors.Is(z.Err(), io.EOF) {
 				return out
 			}
 			return out
@@ -285,7 +285,7 @@ func fixColor(d *doc, n *mjml.Node, target, from, to string) (string, error) {
 	if from != "" && n.Tag != "mj-button" {
 		d2, err := parseDoc(out)
 		if err != nil {
-			return out, nil
+			return d.src, err
 		}
 		n2 := d2.nodes[pathKeyOf(d, n)]
 		if n2 == nil {
@@ -363,7 +363,7 @@ func fixTextSize(d *doc, n *mjml.Node, to int) (string, error) {
 	}
 	d2, err := parseDoc(out)
 	if err != nil {
-		return out, nil
+		return d.src, err
 	}
 	n2 := d2.nodes[pathKeyOf(d, n)]
 	if n2 == nil {

@@ -36,7 +36,6 @@ type textRun struct {
 	size      float64
 	bold      bool
 	link      *linkInfo
-	button    bool
 }
 
 type linkInfo struct {

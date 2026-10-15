@@ -42,10 +42,6 @@ type AccessibilityChecker interface {
 // accessibilityRunning is what the group shows while it runs.
 const accessibilityRunning = "alt text, link text, contrast, headings and text size in every language"
 
-func isAccessibilityFix(action string) bool {
-	return action == FixAccessibilityDecorative || action == FixAccessibilityColor || action == FixAccessibilityOneClick
-}
-
 // languageNames is "English, Spanish, German".
 func languageNames(codes []string) string {
 	names := make([]string, 0, len(codes))
@@ -169,9 +165,15 @@ func (b *builder) moderateRow(moderate []accessibility.AccessibilityIssue, r acc
 	for _, is := range moderate {
 		switch is.Kind {
 		case accessibility.KindLinkText:
-			if strings.HasPrefix(is.Title, "A bare URL") {
+			bare := strings.HasPrefix(is.Title, "A bare URL") || strings.Contains(is.Title, "show a bare URL")
+			switch {
+			case bare && is.Element.Count > 1:
+				phrases = append(phrases, fmt.Sprintf("%d bare URLs", is.Element.Count))
+			case bare:
 				phrases = append(phrases, "a bare URL")
-			} else {
+			case is.Element.Count > 1:
+				phrases = append(phrases, fmt.Sprintf("%d “%s” links", is.Element.Count, is.Element.Label))
+			default:
 				phrases = append(phrases, "“"+is.Element.Label+"”")
 			}
 		case accessibility.KindHeading:

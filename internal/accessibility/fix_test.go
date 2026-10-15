@@ -1,6 +1,7 @@
 package accessibility
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -122,7 +123,7 @@ func TestFixInRawHTML(t *testing.T) {
 
 func TestFixErrors(t *testing.T) {
 	src := digest(t)
-	if _, err := ApplyFix(src, FixRequest{Kind: FixAltText, Path: []int{40, 0}, Value: "x"}); err != ErrFixTarget {
+	if _, err := ApplyFix(src, FixRequest{Kind: FixAltText, Path: []int{40, 0}, Value: "x"}); !errors.Is(err, ErrFixTarget) {
 		t.Errorf("missing element: %v", err)
 	}
 	if _, err := ApplyFix(src, FixRequest{Kind: FixAltText, Path: []int{1, 0, 0}}); err == nil {
@@ -134,7 +135,7 @@ func TestFixErrors(t *testing.T) {
 	if _, err := ApplyFix(src, FixRequest{Kind: FixTextSize, Path: []int{7, 0, 0}, ToPx: 30}); err == nil {
 		t.Error("size out of range")
 	}
-	if _, err := ApplyFix(src, FixRequest{Kind: FixHeading, Headings: []AccessibilityHeadingChange{{Path: []int{3, 0, 1}, Index: 0, From: 2, To: 1}}}); err != ErrFixTarget {
+	if _, err := ApplyFix(src, FixRequest{Kind: FixHeading, Headings: []AccessibilityHeadingChange{{Path: []int{3, 0, 1}, Index: 0, From: 2, To: 1}}}); !errors.Is(err, ErrFixTarget) {
 		t.Errorf("a heading that changed since: %v", err)
 	}
 }

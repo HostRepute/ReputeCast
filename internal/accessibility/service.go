@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -324,7 +325,12 @@ func (s *Service) Report(ctx context.Context, ws *store.Workspace, c CampaignCon
 	}
 	key := ""
 	if c.Hash != "" {
-		key = ws.ID.String() + ":" + c.ID.String() + ":" + c.Hash + ":" + versionsKey(versions)
+		// The policy is part of the report: a change makes a new key.
+		policy, min, err := s.Settings(ctx, ws.ID)
+		if err != nil {
+			return AccessibilityReport{}, err
+		}
+		key = fmt.Sprintf("%s:%s:%s:%s:%s:%d", ws.ID, c.ID, c.Hash, versionsKey(versions), policy, min)
 		if r, ok := s.cached(key); ok {
 			return r, nil
 		}
