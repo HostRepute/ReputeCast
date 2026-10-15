@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -214,12 +213,4 @@ func plural(n int, one, many string) string {
 		return one
 	}
 	return many
-}
-
-// timePtr returns a pointer to t (nil for the zero time).
-func timePtr(t time.Time) *time.Time {
-	if t.IsZero() {
-		return nil
-	}
-	return &t
 }

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/mail"
 	"strings"
 	"sync"
 	"time"
@@ -178,6 +179,17 @@ func (p *Provider) Capabilities() providers.Capabilities { return Descriptor().C
 // up to ten at a time. A batch fails as a whole only when every message
 // failed for the same account-level reason (outage, credentials).
 func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]providers.SendResult, error) {
+	return p.send(ctx, msgs, nil)
+}
+
+// SendWithExtras implements providers.ExtrasSender: copies and attachments
+// (transactional mail) go in the raw message, every recipient in the
+// destination.
+func (p *Provider) SendWithExtras(ctx context.Context, msgs []providers.Message, extras []providers.MessageExtras) ([]providers.SendResult, error) {
+	return p.send(ctx, msgs, extras)
+}
+
+func (p *Provider) send(ctx context.Context, msgs []providers.Message, extras []providers.MessageExtras) ([]providers.SendResult, error) {
 	if len(msgs) > BatchSize {
 		return nil, fmt.Errorf("ses: batch of %d exceeds %d", len(msgs), BatchSize)
 	}
@@ -191,7 +203,11 @@ func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]provid
 		go func(i int) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			results[i], callErrs[i] = p.sendOne(ctx, msgs[i])
+			var x providers.MessageExtras
+			if i < len(extras) {
+				x = extras[i]
+			}
+			results[i], callErrs[i] = p.sendOne(ctx, msgs[i], x)
 		}(i)
 	}
 	wg.Wait()
@@ -224,9 +240,9 @@ func errCode(ce *providers.CallError) string {
 
 // sendOne returns a result for message-level outcomes and an error for
 // account- or service-level failures.
-func (p *Provider) sendOne(ctx context.Context, m providers.Message) (providers.SendResult, error) {
+func (p *Provider) sendOne(ctx context.Context, m providers.Message, x providers.MessageExtras) (providers.SendResult, error) {
 	res := providers.SendResult{MessageID: m.ID}
-	raw, _, err := mimemsg.Build(m, time.Now(), nil)
+	raw, _, err := mimemsg.BuildWithExtras(m, x, time.Now(), nil)
 	if err != nil {
 		// A message that can't be rendered fails on its own; the rest of the
 		// batch still goes out.
@@ -235,7 +251,7 @@ func (p *Provider) sendOne(ctx context.Context, m providers.Message) (providers.
 	}
 	in := &sesv2.SendEmailInput{
 		FromEmailAddress: aws.String(m.From.Address),
-		Destination:      &types.Destination{ToAddresses: []string{m.To.Address}},
+		Destination:      &types.Destination{ToAddresses: []string{m.To.Address}, CcAddresses: addresses(x.Cc), BccAddresses: addresses(x.Bcc)},
 		Content:          &types.EmailContent{Raw: &types.RawMessage{Data: raw}},
 		EmailTags: []types.MessageTag{
 			{Name: aws.String(TagMessage), Value: aws.String(m.ID.String())},
@@ -261,6 +277,18 @@ func (p *Provider) sendOne(ctx context.Context, m providers.Message) (providers.
 	}
 	res.ProviderMessageID = aws.ToString(out.MessageId)
 	return res, nil
+}
+
+// addresses lists the bare addresses of a destination.
+func addresses(as []mail.Address) []string {
+	if len(as) == 0 {
+		return nil
+	}
+	out := make([]string, len(as))
+	for i, a := range as {
+		out[i] = a.Address
+	}
+	return out
 }
 
 // validTag reports whether s is allowed in an SES message tag.

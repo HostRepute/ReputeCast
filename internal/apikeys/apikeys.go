@@ -85,6 +85,29 @@ type APIKeyView struct {
 	LastCall   string            `json:"lastCall,omitempty"`
 	Status     string            `json:"status" enum:"active,expired"`
 	Rejections *APIKeyRejections `json:"rejections,omitempty"`
+	// Transactional is set for send-only, test-mode and SMTP keys.
+	Transactional *APIKeyTransactional `json:"transactional,omitempty"`
+}
+
+// APIKeyTransactional describes a send-only key: its preset (send_only, or
+// smtp for an SMTP relay credential), its mode (test keys deliver only to
+// the workspace's members and the allowed test addresses), the templates
+// or categories it is limited to, and its send rate.
+type APIKeyTransactional struct {
+	Preset        string              `json:"preset" enum:"send_only,smtp"`
+	Mode          string              `json:"mode" enum:"live,test"`
+	Templates     []string            `json:"templates" doc:"Template IDs it may send; empty for all, including ones published later"`
+	Categories    []APIKeyCategoryRef `json:"categories" doc:"Categories it may send (SMTP credentials); empty for all"`
+	TestAddresses []string            `json:"testAddresses" doc:"Allowed test addresses besides the members (qa+*@acme.io)"`
+	RatePerSecond int                 `json:"ratePerSecond"`
+	// Username is an SMTP credential's user name: the key's ID.
+	Username string `json:"username,omitempty"`
+}
+
+// APIKeyCategoryRef names a transactional category.
+type APIKeyCategoryRef struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 // APIKeyList is the API keys or MCP agents card.
@@ -113,7 +136,7 @@ func (s *Service) base(ctx context.Context) string {
 	return ""
 }
 
-func view(r store.KeysListRow, lists map[uuid.UUID]string, now time.Time) APIKeyView {
+func viewWith(r store.KeysListRow, lists, categories map[uuid.UUID]string, now time.Time) APIKeyView {
 	perms := authz.ParseSet(r.Permissions)
 	v := APIKeyView{
 		ID: r.ID.String(), Kind: r.Kind, Name: r.Name, Description: r.Description, Masked: r.Prefix,
@@ -140,7 +163,40 @@ func view(r store.KeysListRow, lists map[uuid.UUID]string, now time.Time) APIKey
 			v.Sensitive = append(v.Sensitive, string(k))
 		}
 	}
+	if r.Preset != "" {
+		t := &APIKeyTransactional{Preset: r.Preset, Mode: r.Mode, Templates: nonNil(r.Templates), Categories: []APIKeyCategoryRef{},
+			TestAddresses: nonNil(r.TestAddresses), RatePerSecond: int(r.RatePerSecond)}
+		for _, c := range r.Categories {
+			name := categories[c]
+			if name == "" {
+				name = "deleted category"
+			}
+			t.Categories = append(t.Categories, APIKeyCategoryRef{ID: c.String(), Name: name})
+		}
+		if r.Preset == PresetSMTP {
+			t.Username = r.ID.String()
+		}
+		v.Transactional = t
+	}
 	return v
+}
+
+func nonNil(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
+}
+
+// categoryNames maps the workspace's transactional categories to their names.
+func (s *Service) categoryNames(ctx context.Context, wsID uuid.UUID) map[uuid.UUID]string {
+	out := map[uuid.UUID]string{}
+	if rows, err := s.Q.TxnRouteCategories(ctx, wsID); err == nil {
+		for _, r := range rows {
+			out[r.ID] = r.Name
+		}
+	}
+	return out
 }
 
 // StoredOrder returns the keys the creator picked, in the order picked,
@@ -198,8 +254,9 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	}
 	out := APIKeyList{Items: []APIKeyView{}, Permissions: access.Catalog(), Groups: access.Groups(), Held: p.Permissions.Strings(), Locked: []APIKeyLockedPermission{}, Lists: []access.ScopedList{}}
 	now := s.now()
+	cats := s.categoryNames(ctx, ws.ID)
 	for _, r := range rows {
-		v := view(r, lists, now)
+		v := viewWith(r, lists, cats, now)
 		if v.Status == "expired" {
 			if rj, err := s.rejections(ctx, r.ID); err == nil && rj.Calls > 0 {
 				v.Rejections = &rj
@@ -261,7 +318,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, kind string, id 
 	if err != nil {
 		return APIKeyView{}, err
 	}
-	v := view(store.KeysListRow(r), lists, s.now())
+	v := viewWith(store.KeysListRow(r), lists, s.categoryNames(ctx, ws.ID), s.now())
 	if rj, err := s.rejections(ctx, r.ID); err == nil && rj.Calls > 0 {
 		v.Rejections = &rj
 	}
@@ -297,6 +354,31 @@ type APIKeyCreateInput struct {
 	// Lists restricts the key to these lists (empty = all lists).
 	Lists     []string   `json:"lists,omitempty" maxItems:"100"`
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+	// Transactional makes a send-only, test-mode or SMTP key; its only
+	// permission is then transactional:send.
+	Transactional *APIKeyTransactionalInput `json:"transactional,omitempty"`
+}
+
+// Send-only key presets.
+const (
+	PresetSendOnly = "send_only"
+	PresetSMTP     = "smtp"
+)
+
+// APIKeyTransactionalInput is the "Send-only key" preset of the create
+// dialog, and an SMTP credential.
+type APIKeyTransactionalInput struct {
+	Preset string `json:"preset" enum:"send_only,smtp"`
+	Mode   string `json:"mode,omitempty" enum:"live,test" default:"live"`
+	// Templates limits the key to these template IDs (empty: all, including
+	// ones published later).
+	Templates []string `json:"templates,omitempty" maxItems:"200"`
+	// Categories limits the key to these categories (SMTP credentials).
+	Categories []string `json:"categories,omitempty" maxItems:"50"`
+	// TestAddresses are allowed besides the workspace's members (test mode):
+	// addresses or patterns such as qa+*@acme.io.
+	TestAddresses []string `json:"testAddresses,omitempty" maxItems:"50"`
+	RatePerSecond int      `json:"ratePerSecond,omitempty" minimum:"1" maximum:"10000" doc:"Messages per second (50 by default)"`
 }
 
 // APIKeyCreated is shown exactly once.
@@ -331,11 +413,22 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if in.ExpiresAt != nil && !in.ExpiresAt.After(s.now()) {
 		return APIKeyCreated{}, api.Invalid("body.expiresAt", "Pick an expiry date in the future.")
 	}
+	var tx0 *transactionalKey
+	if in.Transactional != nil {
+		if kind != KindAPIKey {
+			return APIKeyCreated{}, api.Invalid("body.transactional", "Only API keys can be send-only keys.")
+		}
+		tk, err := s.transactionalInput(ctx, ws, in)
+		if err != nil {
+			return APIKeyCreated{}, err
+		}
+		tx0 = &tk
+	}
 	stored := PickedFirst(in.Permissions, set)
 	var out APIKeyCreated
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		var err error
-		out, err = s.insert(ctx, store.New(tx), ws, p, kind, strings.TrimSpace(in.Name), strings.TrimSpace(in.Description), stored, scope, in.ExpiresAt, nil, lists)
+		out, err = s.insertWith(ctx, store.New(tx), ws, p, kind, strings.TrimSpace(in.Name), strings.TrimSpace(in.Description), stored, scope, in.ExpiresAt, nil, lists, tx0)
 		if err != nil {
 			return err
 		}
@@ -367,6 +460,15 @@ func scopeLabel(v access.ScopeSummary) string {
 
 func keySummary(v APIKeyView) string {
 	parts := []string{strings.Join(v.Permissions, ", "), scopeLabel(v.Scope)}
+	if t := v.Transactional; t != nil {
+		parts[1] = transactionalScope(t)
+		if t.Mode == "test" {
+			parts = append(parts, "test mode")
+		}
+		if t.Preset == PresetSMTP {
+			parts = append(parts, "SMTP credential")
+		}
+	}
 	if v.ExpiresAt != nil {
 		parts = append(parts, "expires "+v.ExpiresAt.Format("Jan 2, 2006"))
 	} else {
@@ -415,11 +517,15 @@ func (s *Service) checkGrant(ctx context.Context, ws *store.Workspace, p *authz.
 	return set, nil
 }
 
-func (s *Service) insert(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, kind, name, desc string, perms []string, scope authz.Scope, expires *time.Time, rotatedFrom *uuid.UUID, lists map[uuid.UUID]string) (APIKeyCreated, error) {
+func (s *Service) insertWith(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, kind, name, desc string, perms []string, scope authz.Scope, expires *time.Time, rotatedFrom *uuid.UUID, lists map[uuid.UUID]string, tk *transactionalKey) (APIKeyCreated, error) {
 	if name == "" {
 		return APIKeyCreated{}, api.Invalid("body.name", "Give the key a name.")
 	}
-	secret, hash, masked := authn.NewAPIKey(prefixFor(kind))
+	prefix := prefixFor(kind)
+	if tk != nil {
+		prefix = tk.prefix()
+	}
+	secret, hash, masked := authn.NewAPIKey(prefix)
 	creator := p.UserID
 	id := uuid.Must(uuid.NewV7())
 	row, err := q.KeysCreate(ctx, store.KeysCreateParams{
@@ -430,10 +536,18 @@ func (s *Service) insert(ctx context.Context, q *store.Queries, ws *store.Worksp
 		return APIKeyCreated{}, err
 	}
 	u, _ := q.GetUser(ctx, creator)
-	v := view(store.KeysListRow{
+	lr := store.KeysListRow{
 		ID: id, WorkspaceID: ws.ID, Kind: kind, Name: name, Description: desc, Prefix: masked, Permissions: perms, Scope: access.ScopeJSON(scope),
-		CreatedBy: &creator, CreatedAt: row.CreatedAt, ExpiresAt: expires, CreatedByName: u.Name, CreatedByColor: u.AvatarColor,
-	}, lists, s.now())
+		CreatedBy: &creator, CreatedAt: row.CreatedAt, ExpiresAt: expires, CreatedByName: u.Name, CreatedByColor: u.AvatarColor, Mode: "live", RatePerSecond: 50,
+	}
+	if tk != nil {
+		if err := q.KeysSetTransactional(ctx, store.KeysSetTransactionalParams{ID: id, WorkspaceID: ws.ID, Preset: tk.Preset, Mode: tk.Mode, Templates: tk.Templates,
+			Categories: tk.Categories, TestAddresses: tk.TestAddresses, RatePerSecond: int32(tk.Rate)}); err != nil {
+			return APIKeyCreated{}, err
+		}
+		lr.Preset, lr.Mode, lr.Templates, lr.Categories, lr.TestAddresses, lr.RatePerSecond = tk.Preset, tk.Mode, tk.Templates, tk.Categories, tk.TestAddresses, int32(tk.Rate)
+	}
+	v := viewWith(lr, lists, s.categoryNames(ctx, ws.ID), s.now())
 	ep := s.base(ctx) + api.Version
 	if kind == KindAgent {
 		ep = s.base(ctx) + "/mcp"
@@ -488,7 +602,11 @@ func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			return err
 		}
 		var err error
-		out, err = s.insert(ctx, q, ws, p, kind, old.Name, old.Description, old.Permissions, scope, expires, &old.ID, lists)
+		var tk *transactionalKey
+		if old.Preset != "" {
+			tk = &transactionalKey{Preset: old.Preset, Mode: old.Mode, Templates: old.Templates, Categories: old.Categories, TestAddresses: old.TestAddresses, Rate: int(old.RatePerSecond)}
+		}
+		out, err = s.insertWith(ctx, q, ws, p, kind, old.Name, old.Description, old.Permissions, scope, expires, &old.ID, lists, tk)
 		if err != nil {
 			return err
 		}

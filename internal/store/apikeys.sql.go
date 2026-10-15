@@ -215,7 +215,8 @@ func (q *Queries) KeysFirstRejection(ctx context.Context, apiKeyID uuid.UUID) (t
 const keysGet = `-- name: KeysGet :one
 SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.permissions, k.scope, k.created_by, k.created_at,
        k.expires_at, k.last_used_at, k.last_used_ip, k.last_used_client, k.last_call, k.revoked_at, k.rotated_from,
-       coalesce(u.name, '')::text AS created_by_name, coalesce(u.avatar_color, '')::text AS created_by_color
+       coalesce(u.name, '')::text AS created_by_name, coalesce(u.avatar_color, '')::text AS created_by_color,
+       k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second
 FROM api_keys k
 LEFT JOIN users u ON u.id = k.created_by
 WHERE k.id = $1 AND k.workspace_id = $2 AND k.kind = $3
@@ -247,6 +248,12 @@ type KeysGetRow struct {
 	RotatedFrom    *uuid.UUID      `json:"rotatedFrom"`
 	CreatedByName  string          `json:"createdByName"`
 	CreatedByColor string          `json:"createdByColor"`
+	Preset         string          `json:"preset"`
+	Mode           string          `json:"mode"`
+	Templates      []string        `json:"templates"`
+	Categories     []uuid.UUID     `json:"categories"`
+	TestAddresses  []string        `json:"testAddresses"`
+	RatePerSecond  int32           `json:"ratePerSecond"`
 }
 
 func (q *Queries) KeysGet(ctx context.Context, arg KeysGetParams) (KeysGetRow, error) {
@@ -272,6 +279,12 @@ func (q *Queries) KeysGet(ctx context.Context, arg KeysGetParams) (KeysGetRow, e
 		&i.RotatedFrom,
 		&i.CreatedByName,
 		&i.CreatedByColor,
+		&i.Preset,
+		&i.Mode,
+		&i.Templates,
+		&i.Categories,
+		&i.TestAddresses,
+		&i.RatePerSecond,
 	)
 	return i, err
 }
@@ -280,7 +293,8 @@ const keysList = `-- name: KeysList :many
 
 SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.permissions, k.scope, k.created_by, k.created_at,
        k.expires_at, k.last_used_at, k.last_used_ip, k.last_used_client, k.last_call, k.revoked_at, k.rotated_from,
-       coalesce(u.name, '')::text AS created_by_name, coalesce(u.avatar_color, '')::text AS created_by_color
+       coalesce(u.name, '')::text AS created_by_name, coalesce(u.avatar_color, '')::text AS created_by_color,
+       k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second
 FROM api_keys k
 LEFT JOIN users u ON u.id = k.created_by
 WHERE k.workspace_id = $1 AND k.kind = $2
@@ -316,6 +330,12 @@ type KeysListRow struct {
 	RotatedFrom    *uuid.UUID      `json:"rotatedFrom"`
 	CreatedByName  string          `json:"createdByName"`
 	CreatedByColor string          `json:"createdByColor"`
+	Preset         string          `json:"preset"`
+	Mode           string          `json:"mode"`
+	Templates      []string        `json:"templates"`
+	Categories     []uuid.UUID     `json:"categories"`
+	TestAddresses  []string        `json:"testAddresses"`
+	RatePerSecond  int32           `json:"ratePerSecond"`
 }
 
 // API keys and MCP agents. Both live in api_keys (kind api_key | mcp_agent).
@@ -348,6 +368,12 @@ func (q *Queries) KeysList(ctx context.Context, arg KeysListParams) ([]KeysListR
 			&i.RotatedFrom,
 			&i.CreatedByName,
 			&i.CreatedByColor,
+			&i.Preset,
+			&i.Mode,
+			&i.Templates,
+			&i.Categories,
+			&i.TestAddresses,
+			&i.RatePerSecond,
 		); err != nil {
 			return nil, err
 		}
@@ -430,6 +456,38 @@ func (q *Queries) KeysRevoke(ctx context.Context, arg KeysRevokeParams) (int64, 
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const keysSetTransactional = `-- name: KeysSetTransactional :exec
+UPDATE api_keys SET preset = $1, mode = $2, templates = $3, categories = $4,
+    test_addresses = $5, rate_per_second = $6
+WHERE id = $7 AND workspace_id = $8
+`
+
+type KeysSetTransactionalParams struct {
+	Preset        string      `json:"preset"`
+	Mode          string      `json:"mode"`
+	Templates     []string    `json:"templates"`
+	Categories    []uuid.UUID `json:"categories"`
+	TestAddresses []string    `json:"testAddresses"`
+	RatePerSecond int32       `json:"ratePerSecond"`
+	ID            uuid.UUID   `json:"id"`
+	WorkspaceID   uuid.UUID   `json:"workspaceId"`
+}
+
+// Makes a key a send-only, test-mode or SMTP key (transactional:send only).
+func (q *Queries) KeysSetTransactional(ctx context.Context, arg KeysSetTransactionalParams) error {
+	_, err := q.db.Exec(ctx, keysSetTransactional,
+		arg.Preset,
+		arg.Mode,
+		arg.Templates,
+		arg.Categories,
+		arg.TestAddresses,
+		arg.RatePerSecond,
+		arg.ID,
+		arg.WorkspaceID,
+	)
+	return err
 }
 
 const keysTouch = `-- name: KeysTouch :exec
