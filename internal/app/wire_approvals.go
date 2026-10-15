@@ -46,7 +46,7 @@ func newApprovals(a *App) *approvals.Service {
 	s := &approvals.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, Readiness: rs, Campaigns: rs.Campaigns,
 		Languages: rs.Languages,
-		Sending: func() sending.Starter { return a.Sending },
+		Sending:   func() sending.Starter { return a.Sending },
 		// Publishing an approved automation: the gate already passed.
 		Automations: &automations.Service{
 			Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log,
