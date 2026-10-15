@@ -519,6 +519,8 @@ func streamLabel(s string) string {
 		return "Broadcasts"
 	case providers.StreamAutomation:
 		return "Automations"
+	case routing.StreamTransactional:
+		return "Transactional"
 	}
 	return "System"
 }

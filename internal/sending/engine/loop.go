@@ -434,7 +434,7 @@ func (e *Engine) tick(ctx context.Context, rs *runState, r *runRoute, now time.T
 		r.carry = math.Min(r.carry, rate+1)
 		return 0, nil
 	}
-	granted, err := e.reserve(ctx, r.provider.ID, now.Unix(), total, int(math.Ceil(rate)))
+	granted, err := e.reserveAfterTransactional(ctx, r.provider.ID, now.Unix(), total, int(math.Ceil(rate)), now)
 	if err != nil {
 		return 0, err
 	}

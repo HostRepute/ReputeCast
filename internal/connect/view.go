@@ -444,6 +444,8 @@ func streamName(st string) string {
 		return "Broadcasts"
 	case "automation":
 		return "Automations"
+	case "transactional":
+		return "Transactional"
 	}
 	return "System"
 }

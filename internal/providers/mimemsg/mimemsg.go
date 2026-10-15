@@ -89,6 +89,44 @@ func New(m providers.Message, now time.Time, extra map[string]string) (*gomail.M
 	return msg, id
 }
 
+// NewWithExtras is New plus copies and attachments (transactional mail).
+// Bcc addresses are envelope recipients only: go-mail never writes them in
+// the headers.
+func NewWithExtras(m providers.Message, x providers.MessageExtras, now time.Time, extra map[string]string) (*gomail.Msg, string) {
+	msg, id := New(m, now, extra)
+	for _, a := range x.Cc {
+		addr := a
+		msg.AddCcMailAddress(&addr)
+	}
+	for _, a := range x.Bcc {
+		addr := a
+		msg.AddBccMailAddress(&addr)
+	}
+	for _, a := range x.Attachments {
+		opts := []gomail.FileOption{}
+		if a.ContentType != "" {
+			opts = append(opts, gomail.WithFileContentType(gomail.ContentType(a.ContentType)))
+		}
+		if a.ContentID != "" {
+			opts = append(opts, gomail.WithFileContentID(a.ContentID))
+			_ = msg.EmbedReader(a.Filename, bytes.NewReader(a.Content), opts...)
+			continue
+		}
+		_ = msg.AttachReader(a.Filename, bytes.NewReader(a.Content), opts...)
+	}
+	return msg, id
+}
+
+// BuildWithExtras is Build plus copies and attachments.
+func BuildWithExtras(m providers.Message, x providers.MessageExtras, now time.Time, extra map[string]string) ([]byte, string, error) {
+	msg, id := NewWithExtras(m, x, now, extra)
+	var buf bytes.Buffer
+	if _, err := msg.WriteTo(&buf); err != nil {
+		return nil, "", fmt.Errorf("render message %s: %w", m.ID, err)
+	}
+	return buf.Bytes(), id, nil
+}
+
 // reserved headers are set from the message fields and never overridden.
 var reserved = map[string]bool{
 	"from": true, "to": true, "cc": true, "bcc": true, "reply-to": true, "subject": true,

@@ -51,7 +51,13 @@ type Normalizer struct {
 	// OnSuppressed is called after new addresses joined the shared
 	// suppression list, so other providers get them soon (sync job).
 	OnSuppressed func(ctx context.Context, workspaceID uuid.UUID)
+	// Hooks are told about each event applied to a known message, inside
+	// the transaction that applied it (transactional mail's webhooks).
+	Hooks []MessageHook
 }
+
+// MessageHook is told about an event applied to a message of a stream.
+type MessageHook func(ctx context.Context, tx pgx.Tx, p store.Provider, messageID uuid.UUID, stream string, ev providers.Event) error
 
 func (n *Normalizer) now() time.Time {
 	if n.Now != nil {
@@ -216,6 +222,13 @@ func (n *Normalizer) Apply(ctx context.Context, tx pgx.Tx, p store.Provider, raw
 		}
 		if err := q.IngestUpdateMessage(ctx, store.IngestUpdateMessageParams{ID: msg.ID, Status: status, At: occurred, Error: clip(errText, 500)}); err != nil {
 			return 0, err
+		}
+	}
+	if msg != nil {
+		for _, h := range n.Hooks {
+			if err := h(ctx, tx, p, msg.ID, msg.Stream, ev); err != nil {
+				return 0, err
+			}
 		}
 	}
 	if msg != nil && msg.CampaignID != nil {

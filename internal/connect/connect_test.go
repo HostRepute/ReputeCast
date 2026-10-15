@@ -404,7 +404,7 @@ func TestConnectAPIProvider(t *testing.T) {
 
 	// Streams: a 20% split of Broadcasts and the Automations fallback.
 	c.Do("GET", base, nil).MustStatus(t, 200).JSON(t, &st)
-	if len(st.Streams.Streams) != 3 || !st.Streams.Streams[0].HasRoute || st.Streams.Streams[0].Role != "split" || st.Streams.Streams[2].Role != "fallback" {
+	if len(st.Streams.Streams) != 4 || !st.Streams.Streams[0].HasRoute || st.Streams.Streams[0].Role != "split" || st.Streams.Streams[2].Role != "fallback" {
 		t.Fatalf("streams view: %+v", st.Streams)
 	}
 	c.Do("PUT", base+"/streams", map[string]any{"streams": []map[string]any{

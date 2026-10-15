@@ -211,6 +211,16 @@ func dialError(err error) error {
 
 // Send implements providers.Provider over one SMTP connection.
 func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]providers.SendResult, error) {
+	return p.send(ctx, msgs, nil)
+}
+
+// SendWithExtras implements providers.ExtrasSender: copies and attachments
+// (transactional mail).
+func (p *Provider) SendWithExtras(ctx context.Context, msgs []providers.Message, extras []providers.MessageExtras) ([]providers.SendResult, error) {
+	return p.send(ctx, msgs, extras)
+}
+
+func (p *Provider) send(ctx context.Context, msgs []providers.Message, extras []providers.MessageExtras) ([]providers.SendResult, error) {
 	if len(msgs) == 0 {
 		return []providers.SendResult{}, nil
 	}
@@ -226,7 +236,11 @@ func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]provid
 	gms := make([]*gomail.Msg, len(msgs))
 	ids := make([]string, len(msgs))
 	for i, m := range msgs {
-		gm, id := mimemsg.New(m, now, nil)
+		var x providers.MessageExtras
+		if i < len(extras) {
+			x = extras[i]
+		}
+		gm, id := mimemsg.NewWithExtras(m, x, now, nil)
 		if p.s.ReturnPath != "" {
 			_ = gm.EnvelopeFrom(p.s.ReturnPath)
 		}
