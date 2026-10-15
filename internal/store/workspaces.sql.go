@@ -43,7 +43,7 @@ func (q *Queries) CountActiveOwners(ctx context.Context, workspaceID uuid.UUID) 
 const createAPIKey = `-- name: CreateAPIKey :one
 INSERT INTO api_keys (id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, expires_at, rotated_from)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, created_at, expires_at, last_used_at, last_used_ip, revoked_at, rotated_from, last_used_client, last_call
+RETURNING id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, created_at, expires_at, last_used_at, last_used_ip, revoked_at, rotated_from, last_used_client, last_call, preset, mode, templates, categories, test_addresses, rate_per_second
 `
 
 type CreateAPIKeyParams struct {
@@ -96,6 +96,12 @@ func (q *Queries) CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (Api
 		&i.RotatedFrom,
 		&i.LastUsedClient,
 		&i.LastCall,
+		&i.Preset,
+		&i.Mode,
+		&i.Templates,
+		&i.Categories,
+		&i.TestAddresses,
+		&i.RatePerSecond,
 	)
 	return i, err
 }
@@ -332,7 +338,7 @@ func (q *Queries) DeleteRole(ctx context.Context, roleID uuid.UUID) (int64, erro
 }
 
 const getAPIKey = `-- name: GetAPIKey :one
-SELECT id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, created_at, expires_at, last_used_at, last_used_ip, revoked_at, rotated_from, last_used_client, last_call FROM api_keys WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, created_at, expires_at, last_used_at, last_used_ip, revoked_at, rotated_from, last_used_client, last_call, preset, mode, templates, categories, test_addresses, rate_per_second FROM api_keys WHERE id = $1 AND workspace_id = $2
 `
 
 type GetAPIKeyParams struct {
@@ -362,12 +368,18 @@ func (q *Queries) GetAPIKey(ctx context.Context, arg GetAPIKeyParams) (ApiKey, e
 		&i.RotatedFrom,
 		&i.LastUsedClient,
 		&i.LastCall,
+		&i.Preset,
+		&i.Mode,
+		&i.Templates,
+		&i.Categories,
+		&i.TestAddresses,
+		&i.RatePerSecond,
 	)
 	return i, err
 }
 
 const getAPIKeyByToken = `-- name: GetAPIKeyByToken :one
-SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.token_hash, k.permissions, k.scope, k.created_by, k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, k.rotated_from, k.last_used_client, k.last_call, w.slug AS workspace_slug
+SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.token_hash, k.permissions, k.scope, k.created_by, k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, k.rotated_from, k.last_used_client, k.last_call, k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second, w.slug AS workspace_slug
 FROM api_keys k JOIN workspaces w ON w.id = k.workspace_id AND w.deleted_at IS NULL
 WHERE k.token_hash = $1
 `
@@ -391,6 +403,12 @@ type GetAPIKeyByTokenRow struct {
 	RotatedFrom    *uuid.UUID      `json:"rotatedFrom"`
 	LastUsedClient string          `json:"lastUsedClient"`
 	LastCall       string          `json:"lastCall"`
+	Preset         string          `json:"preset"`
+	Mode           string          `json:"mode"`
+	Templates      []string        `json:"templates"`
+	Categories     []uuid.UUID     `json:"categories"`
+	TestAddresses  []string        `json:"testAddresses"`
+	RatePerSecond  int32           `json:"ratePerSecond"`
 	WorkspaceSlug  string          `json:"workspaceSlug"`
 }
 
@@ -416,6 +434,12 @@ func (q *Queries) GetAPIKeyByToken(ctx context.Context, tokenHash []byte) (GetAP
 		&i.RotatedFrom,
 		&i.LastUsedClient,
 		&i.LastCall,
+		&i.Preset,
+		&i.Mode,
+		&i.Templates,
+		&i.Categories,
+		&i.TestAddresses,
+		&i.RatePerSecond,
 		&i.WorkspaceSlug,
 	)
 	return i, err
@@ -738,7 +762,7 @@ func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspac
 }
 
 const listAPIKeys = `-- name: ListAPIKeys :many
-SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.token_hash, k.permissions, k.scope, k.created_by, k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, k.rotated_from, k.last_used_client, k.last_call, u.name AS created_by_name
+SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.token_hash, k.permissions, k.scope, k.created_by, k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, k.rotated_from, k.last_used_client, k.last_call, k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second, u.name AS created_by_name
 FROM api_keys k LEFT JOIN users u ON u.id = k.created_by
 WHERE k.workspace_id = $1 AND k.kind = $2
 ORDER BY k.revoked_at IS NOT NULL, k.created_at DESC
@@ -768,6 +792,12 @@ type ListAPIKeysRow struct {
 	RotatedFrom    *uuid.UUID      `json:"rotatedFrom"`
 	LastUsedClient string          `json:"lastUsedClient"`
 	LastCall       string          `json:"lastCall"`
+	Preset         string          `json:"preset"`
+	Mode           string          `json:"mode"`
+	Templates      []string        `json:"templates"`
+	Categories     []uuid.UUID     `json:"categories"`
+	TestAddresses  []string        `json:"testAddresses"`
+	RatePerSecond  int32           `json:"ratePerSecond"`
 	CreatedByName  *string         `json:"createdByName"`
 }
 
@@ -799,6 +829,12 @@ func (q *Queries) ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]Lis
 			&i.RotatedFrom,
 			&i.LastUsedClient,
 			&i.LastCall,
+			&i.Preset,
+			&i.Mode,
+			&i.Templates,
+			&i.Categories,
+			&i.TestAddresses,
+			&i.RatePerSecond,
 			&i.CreatedByName,
 		); err != nil {
 			return nil, err

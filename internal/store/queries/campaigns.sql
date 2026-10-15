@@ -220,7 +220,7 @@ WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS 
 
 -- name: ComposerPreviewContacts :many
 -- Contacts to preview as: the campaign's audience first, people with a first name first.
-SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier
+SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier, c.language
 FROM contacts c
 WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL AND c.status = 'active'
   AND (@query::text = '' OR c.email ILIKE '%' || @query::text || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || @query::text || '%')
@@ -229,12 +229,12 @@ ORDER BY (c.first_name = '') ASC, c.last_open_at DESC NULLS LAST, c.email
 LIMIT @lim;
 
 -- name: ComposerPreviewContactByID :one
-SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier
+SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier, c.language
 FROM contacts c
 WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.erased_at IS NULL;
 
 -- name: ComposerRandomContact :one
-SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier
+SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier, c.language
 FROM contacts c
 WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL AND c.status = 'active' AND c.tier = 'active'
 ORDER BY random()

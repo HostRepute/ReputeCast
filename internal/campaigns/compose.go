@@ -198,6 +198,9 @@ type ComposerPreviewRequest struct {
 	Subject   *string `json:"subject,omitempty" maxLength:"998"`
 	Preheader *string `json:"preheader,omitempty" maxLength:"500"`
 	HTML      *string `json:"html,omitempty" maxLength:"2500000"`
+	// Language previews a language version. Empty: the source, or, when
+	// previewing as a contact, the version that contact gets.
+	Language string `json:"language,omitempty" maxLength:"16"`
 }
 
 // ComposerPreviewContact is who the preview is personalized for.
@@ -207,6 +210,8 @@ type ComposerPreviewContact struct {
 	Email string `json:"email"`
 	// Label describes the choice ("first_name set", "fallback "there"").
 	Label string `json:"label"`
+	// Language is the contact's language code ("es-MX"), empty when unset.
+	Language string `json:"language"`
 }
 
 // ComposerTokenValue is what one token printed.
@@ -232,6 +237,11 @@ type ComposerPreview struct {
 	MissingFirstName *int64                 `json:"missingFirstName,omitempty"`
 	Problems         []liquid.LiquidProblem `json:"problems"`
 	RenderedAt       time.Time              `json:"renderedAt"`
+	// Language is the language version shown, and LanguageReason why when
+	// it was picked for the contact (match, no_language, not_offered,
+	// missing, draft, held). Empty without content languages.
+	Language       string `json:"language"`
+	LanguageReason string `json:"languageReason"`
 }
 
 var systemLinks = map[string]bool{"unsubscribe_url": true, "preferences_url": true, "view_in_browser_url": true}
@@ -242,8 +252,29 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if err != nil {
 		return ComposerPreview{}, api.MapError(err, "Campaign")
 	}
-	subject, preheader, html := c.Subject, c.Preheader, c.Html
-	if ab := abFromDB(c.AbTest); ab != nil && in.Variant != "" && in.Variant != "A" {
+	subject, preheader, html, abRaw := c.Subject, c.Preheader, c.Html, c.AbTest
+	contact, attrs, err := s.previewContact(ctx, ws, p, c.Audience, in)
+	if err != nil {
+		return ComposerPreview{}, err
+	}
+	src := s.sourceLanguage(ctx, ws, id)
+	lang, reason := src, ""
+	switch {
+	case in.Language != "":
+		lang = in.Language
+	case src != "" && contact != nil && contact.ID != "":
+		if l, r, err := s.Translations.Choose(ctx, ws, id, contact.Language); err == nil {
+			lang, reason = l, r
+		}
+	}
+	if src != "" && lang != src {
+		t, err := s.Translations.Content(ctx, ws, id, lang)
+		if err != nil {
+			return ComposerPreview{}, err
+		}
+		subject, preheader, html, abRaw = t.Subject, t.Preheader, t.HTML, t.ABTest
+	}
+	if ab := abFromDB(abRaw); ab != nil && in.Variant != "" && in.Variant != "A" {
 		for _, v := range ab.Variants {
 			if v.Key == in.Variant {
 				if v.Subject != "" {
@@ -267,10 +298,6 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if in.HTML != nil {
 		html = *in.HTML
 	}
-	contact, attrs, err := s.previewContact(ctx, ws, p, c.Audience, in)
-	if err != nil {
-		return ComposerPreview{}, err
-	}
 	links := map[string]string{"unsubscribe_url": "#unsubscribe", "preferences_url": "#preferences", "view_in_browser_url": "#view-in-browser"}
 	first, last := "", ""
 	if contact != nil {
@@ -281,7 +308,8 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		email = contact.Email
 	}
 	vars := liquid.Vars(email, first, last, attrs, links)
-	out := ComposerPreview{Contact: contact, Tokens: []ComposerTokenValue{}, Problems: []liquid.LiquidProblem{}, RenderedAt: s.now(), FromName: c.SenderName, FromEmail: c.SenderEmail}
+	out := ComposerPreview{Contact: contact, Tokens: []ComposerTokenValue{}, Problems: []liquid.LiquidProblem{}, RenderedAt: s.now(), FromName: c.SenderName, FromEmail: c.SenderEmail,
+		Language: lang, LanguageReason: reason}
 	render := func(src string) string {
 		r, err := liquid.Render(src, vars)
 		if err != nil {
@@ -403,7 +431,7 @@ func (s *Service) previewContact(ctx context.Context, ws *store.Workspace, p *au
 	if row.FirstName == "" {
 		label = "no first_name · fallback"
 	}
-	return &ComposerPreviewContact{ID: row.ID.String(), Name: name, Email: row.Email, Label: label}, attrs, nil
+	return &ComposerPreviewContact{ID: row.ID.String(), Name: name, Email: row.Email, Label: label, Language: row.Language}, attrs, nil
 }
 
 // ComposerPreviewContactList is who the preview can be personalized for.
@@ -427,7 +455,7 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, id u
 		if r.FirstName == "" {
 			label = "no first_name"
 		}
-		out.Items = append(out.Items, ComposerPreviewContact{ID: r.ID.String(), Name: strings.TrimSpace(r.FirstName + " " + r.LastName), Email: r.Email, Label: label})
+		out.Items = append(out.Items, ComposerPreviewContact{ID: r.ID.String(), Name: strings.TrimSpace(r.FirstName + " " + r.LastName), Email: r.Email, Label: label, Language: r.Language})
 	}
 	return out, nil
 }
@@ -437,12 +465,18 @@ type ComposerTestSend struct {
 	To        []string `json:"to" minItems:"1" maxItems:"10"`
 	Variant   string   `json:"variant,omitempty" enum:"A,B,C"`
 	ContactID string   `json:"contactId,omitempty" format:"uuid" doc:"Personalize as this contact"`
+	// Language sends one language version (the source when empty);
+	// EachLanguage sends one email per language that would be sent.
+	Language     string `json:"language,omitempty" maxLength:"16"`
+	EachLanguage bool   `json:"eachLanguage,omitempty"`
 }
 
 // ComposerTestSendResult says where the test went.
 type ComposerTestSendResult struct {
 	Sent     []string `json:"sent"`
 	Provider string   `json:"provider"`
+	// Languages are the versions sent to each address.
+	Languages []string `json:"languages"`
 }
 
 // SendTest delivers test emails through the System route. Content Writers
@@ -465,18 +499,34 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		}
 		to = append(to, e)
 	}
-	pv, err := s.Preview(ctx, ws, p, id, ComposerPreviewRequest{ContactID: in.ContactID, Variant: in.Variant})
-	if err != nil {
-		return ComposerTestSendResult{}, err
+	langs := []string{in.Language}
+	if in.EachLanguage && s.Translations != nil {
+		ready, err := s.Translations.Ready(ctx, ws, id)
+		if err != nil {
+			return ComposerTestSendResult{}, err
+		}
+		langs = ready
+	}
+	if len(langs) == 0 || (in.Language == "" && !in.EachLanguage) {
+		langs = []string{s.sourceLanguage(ctx, ws, id)}
 	}
 	links := map[string]string{
 		"#unsubscribe":     s.URLs.Unsubscribe(ws.Slug, "test"),
 		"#preferences":     s.URLs.Preferences(ws.Slug, "test"),
 		"#view-in-browser": s.URLs.ViewOnline(ws.Slug, "test"),
 	}
-	html := pv.HTML
-	for k, v := range links {
-		html = strings.ReplaceAll(html, `href="`+k+`"`, `href="`+v+`"`)
+	type testEmail struct{ subject, html string }
+	emails := make([]testEmail, 0, len(langs))
+	for _, lang := range langs {
+		pv, err := s.Preview(ctx, ws, p, id, ComposerPreviewRequest{ContactID: in.ContactID, Variant: in.Variant, Language: lang})
+		if err != nil {
+			return ComposerTestSendResult{}, err
+		}
+		html := pv.HTML
+		for k, v := range links {
+			html = strings.ReplaceAll(html, `href="`+k+`"`, `href="`+v+`"`)
+		}
+		emails = append(emails, testEmail{pv.Subject, html})
 	}
 	sender := s.mailer()
 	if !sender.SystemAvailable(ctx, &ws.ID) {
@@ -485,19 +535,30 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	}
 	provider := ""
 	for _, addr := range to {
-		name, err := sender.SendSystem(ctx, mailer.Message{WorkspaceID: &ws.ID, To: addr, Subject: "[Test] " + pv.Subject, HTML: html, Text: contentcheck.PlainText(html), Kind: "campaign_test"})
-		if err != nil {
-			if errors.Is(err, mailer.ErrNoSystemProvider) {
-				return ComposerTestSendResult{}, api.Err(http.StatusConflict, api.CodeProviderUnavailable,
-					"Test emails go out through the System route, and no sending provider can deliver them yet. Connect one in Sending providers, or check the email in Preview.")
+		for _, e := range emails {
+			name, err := sender.SendSystem(ctx, mailer.Message{WorkspaceID: &ws.ID, To: addr, Subject: "[Test] " + e.subject, HTML: e.html, Text: contentcheck.PlainText(e.html), Kind: "campaign_test"})
+			if err != nil {
+				if errors.Is(err, mailer.ErrNoSystemProvider) {
+					return ComposerTestSendResult{}, api.Err(http.StatusConflict, api.CodeProviderUnavailable,
+						"Test emails go out through the System route, and no sending provider can deliver them yet. Connect one in Sending providers, or check the email in Preview.")
+				}
+				return ComposerTestSendResult{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, "The sending provider refused the test email: "+err.Error())
 			}
-			return ComposerTestSendResult{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, "The sending provider refused the test email: "+err.Error())
+			provider = name
 		}
-		provider = name
 	}
-	err = s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.test_send", TargetType: "campaign", TargetID: id.String(),
-		After: map[string]any{"to": to, "variant": in.Variant, "provider": provider}})
-	return ComposerTestSendResult{Sent: to, Provider: provider}, err
+	sent := []string{}
+	for _, l := range langs {
+		if l != "" {
+			sent = append(sent, l)
+		}
+	}
+	after := map[string]any{"to": to, "variant": in.Variant, "provider": provider}
+	if len(sent) > 0 {
+		after["languages"] = sent
+	}
+	err := s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.test_send", TargetType: "campaign", TargetID: id.String(), After: after})
+	return ComposerTestSendResult{Sent: to, Provider: provider, Languages: sent}, err
 }
 
 func (s *Service) mailer() mailer.Sender {
@@ -516,6 +577,9 @@ type ComposerChecksRequest struct {
 	MJML       string `json:"mjml,omitempty" maxLength:"2000000"`
 	HTML       string `json:"html,omitempty" maxLength:"2500000"`
 	ProbeLinks bool   `json:"probeLinks,omitempty" doc:"Also request every link (slower; Send Readiness does it)"`
+	// Language is the language version checked: subject heuristics look for
+	// English phrases only in English.
+	Language string `json:"language,omitempty" maxLength:"16"`
 }
 
 // ComposerChecks is a content report plus what the composer shows around it.
@@ -559,7 +623,7 @@ func (s *Service) Checks(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 		html = contentcheck.Minify(html)
 	}
 	r, err := checker.Check(ctx, contentcheck.Input{Subject: in.Subject, Preheader: in.Preheader, MJML: in.MJML, HTML: html, OwnDomains: domains,
-		Address: templates.WorkspaceAddress(ws), Fields: fields, ProbeLinks: in.ProbeLinks})
+		Address: templates.WorkspaceAddress(ws), Fields: fields, ProbeLinks: in.ProbeLinks, Language: in.Language})
 	if err != nil {
 		return ComposerChecks{}, err
 	}
