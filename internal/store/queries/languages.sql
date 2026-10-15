@@ -1,0 +1,231 @@
+-- Content languages (design expansion M17): workspace languages, language
+-- versions of emails and their sources.
+
+-- name: LanguagesList :many
+-- Every language the workspace has had, removed ones included (they keep
+-- their page copy status), with who added it.
+SELECT wl.code, wl.is_default, wl.is_fallback, wl.added_at, wl.removed_at,
+       wl.page_copy_status, wl.page_copy_missing, wl.page_copy_at,
+       coalesce(au.name, '')::text AS added_by_name,
+       coalesce(pu.name, '')::text AS page_copy_by_name
+FROM workspace_languages wl
+LEFT JOIN users au ON au.id = wl.added_by
+LEFT JOIN users pu ON pu.id = wl.page_copy_by
+WHERE wl.workspace_id = @workspace_id
+ORDER BY wl.is_default DESC, wl.added_at, wl.code;
+
+-- name: LanguagesEnsureDefault :exec
+-- A workspace that never chose its default writes in English: English
+-- becomes its default (and its fallback unless it has one).
+INSERT INTO workspace_languages (workspace_id, code, is_default, is_fallback, added_at, page_copy_status)
+SELECT @workspace_id, 'en', true, NOT EXISTS (SELECT 1 FROM workspace_languages f WHERE f.workspace_id = @workspace_id AND f.is_fallback), w.created_at, 'live'
+FROM workspaces w
+WHERE w.id = @workspace_id AND NOT EXISTS (SELECT 1 FROM workspace_languages d WHERE d.workspace_id = @workspace_id AND d.is_default)
+ON CONFLICT (workspace_id, code) DO UPDATE SET is_default = true, is_fallback = EXCLUDED.is_fallback OR workspace_languages.is_fallback, removed_at = NULL, removed_by = NULL;
+
+-- name: LanguagesLock :many
+SELECT code FROM workspace_languages WHERE workspace_id = @workspace_id FOR UPDATE;
+
+-- name: LanguagesAdd :exec
+-- Adding a language that was removed brings it back with its page copy.
+INSERT INTO workspace_languages (workspace_id, code, added_by, added_at, page_copy_status)
+VALUES (@workspace_id, @code, @added_by, @at, @page_copy_status)
+ON CONFLICT (workspace_id, code) DO UPDATE
+SET removed_at = NULL, removed_by = NULL, added_by = EXCLUDED.added_by, added_at = EXCLUDED.added_at;
+
+-- name: LanguagesRemove :execrows
+UPDATE workspace_languages SET removed_at = @at, removed_by = @removed_by
+WHERE workspace_id = @workspace_id AND code = @code AND removed_at IS NULL AND NOT is_default AND NOT is_fallback;
+
+-- name: LanguagesClearDefault :exec
+UPDATE workspace_languages SET is_default = false WHERE workspace_id = @workspace_id AND is_default;
+
+-- name: LanguagesSetDefault :execrows
+UPDATE workspace_languages SET is_default = true WHERE workspace_id = @workspace_id AND code = @code AND removed_at IS NULL;
+
+-- name: LanguagesClearFallback :exec
+UPDATE workspace_languages SET is_fallback = false WHERE workspace_id = @workspace_id AND is_fallback;
+
+-- name: LanguagesSetFallback :execrows
+UPDATE workspace_languages SET is_fallback = true WHERE workspace_id = @workspace_id AND code = @code AND removed_at IS NULL;
+
+-- name: LanguagesSetPageCopy :execrows
+UPDATE workspace_languages
+SET page_copy_status = @status, page_copy_missing = @missing, page_copy_by = sqlc.narg(by), page_copy_at = @at
+WHERE workspace_id = @workspace_id AND code = @code;
+
+-- name: LanguagesContactCodes :many
+-- Contacts per language code as stored ("es-MX", "" for none), erased
+-- contacts left out, as on Contacts.
+SELECT lower(replace(language, '_', '-'))::text AS code, count(*)::bigint AS n
+FROM contacts
+WHERE workspace_id = @workspace_id AND erased_at IS NULL
+GROUP BY 1;
+
+-- name: LanguagesVersionsIn :many
+-- What has a version in a language (the Remove dialog): unsent campaigns,
+-- automation emails used by a flow, transactional templates.
+SELECT t.owner_kind, t.owner_id, t.owner_version, t.status, t.held,
+       coalesce(c.name, ae.name, '')::text AS name,
+       coalesce(c.status, '')::text AS campaign_status,
+       coalesce(a.name, '')::text AS automation_name,
+       coalesce(a.id, '00000000-0000-0000-0000-000000000000'::uuid)::uuid AS automation_id
+FROM content_translations t
+LEFT JOIN campaigns c ON t.owner_kind = 'campaign' AND c.id = t.owner_id AND c.deleted_at IS NULL
+LEFT JOIN automation_emails ae ON t.owner_kind = 'automation_email' AND ae.id = t.owner_id AND ae.deleted_at IS NULL
+LEFT JOIN automations a ON a.id = ae.automation_id
+WHERE t.workspace_id = @workspace_id AND t.language = @language
+  AND (t.owner_kind <> 'campaign' OR c.status IN ('draft','approval','approved','scheduled','sending','paused'))
+  AND (t.owner_kind <> 'automation_email' OR ae.id IS NOT NULL)
+ORDER BY t.owner_kind, t.updated_at DESC;
+
+-- name: ContentSource :one
+SELECT * FROM content_sources
+WHERE owner_kind = @owner_kind AND owner_id = @owner_id AND owner_version = @owner_version;
+
+-- name: ContentSourceForUpdate :one
+SELECT * FROM content_sources
+WHERE owner_kind = @owner_kind AND owner_id = @owner_id AND owner_version = @owner_version
+FOR UPDATE;
+
+-- name: ContentSourceUpsert :exec
+INSERT INTO content_sources (workspace_id, owner_kind, owner_id, owner_version, language, blocks, subject_hash, preheader_hash, version, next_key, updated_at)
+VALUES (@workspace_id, @owner_kind, @owner_id, @owner_version, @language, @blocks, @subject_hash, @preheader_hash, @version, @next_key, @at)
+ON CONFLICT (owner_kind, owner_id, owner_version) DO UPDATE
+SET language = EXCLUDED.language, blocks = EXCLUDED.blocks, subject_hash = EXCLUDED.subject_hash, preheader_hash = EXCLUDED.preheader_hash,
+    version = EXCLUDED.version, next_key = EXCLUDED.next_key, updated_at = EXCLUDED.updated_at;
+
+-- name: ContentSourceSetLanguage :exec
+UPDATE content_sources SET language = @language, updated_at = @at
+WHERE owner_kind = @owner_kind AND owner_id = @owner_id AND owner_version = @owner_version;
+
+-- name: ContentTranslations :many
+-- The language versions of an email, with who translated and last saved them.
+SELECT t.*,
+       coalesce(tu.name, '')::text AS translated_by_name,
+       coalesce(uu.name, '')::text AS updated_by_name
+FROM content_translations t
+LEFT JOIN users tu ON tu.id = t.translated_by
+LEFT JOIN users uu ON uu.id = t.updated_by
+WHERE t.owner_kind = @owner_kind AND t.owner_id = @owner_id AND t.owner_version = @owner_version
+ORDER BY t.created_at, t.language;
+
+-- name: ContentTranslation :one
+SELECT t.*,
+       coalesce(tu.name, '')::text AS translated_by_name,
+       coalesce(uu.name, '')::text AS updated_by_name
+FROM content_translations t
+LEFT JOIN users tu ON tu.id = t.translated_by
+LEFT JOIN users uu ON uu.id = t.updated_by
+WHERE t.owner_kind = @owner_kind AND t.owner_id = @owner_id AND t.owner_version = @owner_version AND t.language = @language;
+
+-- name: ContentTranslationForUpdate :one
+SELECT * FROM content_translations
+WHERE owner_kind = @owner_kind AND owner_id = @owner_id AND owner_version = @owner_version AND language = @language
+FOR UPDATE;
+
+-- name: ContentTranslationInsert :exec
+INSERT INTO content_translations (id, workspace_id, owner_kind, owner_id, owner_version, language, status, held, subject, preheader, mjml, html, plain_text,
+    ab_test, links, version, content_hash, translated_from, translated_by, translated_at, created_by, created_at, updated_by, updated_at, autosaved_at)
+VALUES (@id, @workspace_id, @owner_kind, @owner_id, @owner_version, @language, @status, @held, @subject, @preheader, @mjml, @html, @plain_text,
+    @ab_test, @links, @version, @content_hash, @translated_from, sqlc.narg(translated_by), sqlc.narg(translated_at), sqlc.narg(created_by), @created_at,
+    sqlc.narg(updated_by), @updated_at, sqlc.narg(autosaved_at));
+
+-- name: ContentTranslationSave :exec
+UPDATE content_translations
+SET subject = @subject, preheader = @preheader, mjml = @mjml, html = @html, plain_text = @plain_text, ab_test = @ab_test, links = @links,
+    version = @version, content_hash = @content_hash, updated_by = sqlc.narg(updated_by), updated_at = @at, autosaved_at = @at
+WHERE id = @id;
+
+-- name: ContentTranslationSetLinks :exec
+UPDATE content_translations SET links = @links WHERE id = @id;
+
+-- name: ContentTranslationMark :exec
+-- Marked translated or up to date: the links point at the current source.
+UPDATE content_translations
+SET status = @status, links = @links, translated_from = @translated_from, translated_by = sqlc.narg(translated_by), translated_at = @at,
+    held = CASE WHEN @status::text = 'translated' THEN held ELSE false END
+WHERE id = @id;
+
+-- name: ContentTranslationSetHeld :exec
+UPDATE content_translations SET held = @held, updated_at = @at WHERE id = @id;
+
+-- name: ContentTranslationDelete :execrows
+DELETE FROM content_translations
+WHERE owner_kind = @owner_kind AND owner_id = @owner_id AND owner_version = @owner_version AND language = @language;
+
+-- name: ContentTranslationVersionInsert :exec
+INSERT INTO content_translation_versions (translation_id, version, subject, preheader, mjml, html, plain_text, ab_test, links, saved_by, saved_at, label, source, size_bytes)
+VALUES (@translation_id, @version, @subject, @preheader, @mjml, @html, @plain_text, @ab_test, @links, sqlc.narg(saved_by), @saved_at, @label, @source, @size_bytes);
+
+-- name: ContentTranslationVersions :many
+SELECT v.version, v.saved_at, v.label, v.source, v.size_bytes, coalesce(u.name, '')::text AS saved_by_name
+FROM content_translation_versions v
+LEFT JOIN users u ON u.id = v.saved_by
+WHERE v.translation_id = @translation_id
+ORDER BY v.version DESC
+LIMIT @lim;
+
+-- name: ContentTranslationVersion :one
+SELECT v.*, coalesce(u.name, '')::text AS saved_by_name
+FROM content_translation_versions v
+LEFT JOIN users u ON u.id = v.saved_by
+WHERE v.translation_id = @translation_id AND v.version = @version;
+
+-- name: ContentTranslationPruneVersions :execrows
+-- Keeps the newest autosaves; the first version and named saves stay.
+DELETE FROM content_translation_versions v
+WHERE v.translation_id = @translation_id AND v.version > 1 AND v.label = '' AND v.source = 'autosave'
+  AND v.version NOT IN (SELECT version FROM content_translation_versions WHERE translation_id = @translation_id ORDER BY version DESC LIMIT @keep);
+
+-- name: ContentTranslationsCopy :exec
+-- Carries an automation email's or template's language versions to its
+-- next version (their versions are immutable).
+INSERT INTO content_translations (id, workspace_id, owner_kind, owner_id, owner_version, language, status, held, subject, preheader, mjml, html, plain_text,
+    ab_test, links, version, content_hash, translated_from, translated_by, translated_at, created_by, created_at, updated_by, updated_at, autosaved_at)
+SELECT gen_random_uuid(), src.workspace_id, src.owner_kind, src.owner_id, @to_version, src.language, src.status, src.held, src.subject, src.preheader,
+    src.mjml, src.html, src.plain_text, src.ab_test, src.links, src.version, src.content_hash, src.translated_from, src.translated_by, src.translated_at,
+    src.created_by, src.created_at, src.updated_by, src.updated_at, src.autosaved_at
+FROM content_translations src
+WHERE src.owner_kind = @owner_kind AND src.owner_id = @owner_id AND src.owner_version = @from_version
+ON CONFLICT (owner_kind, owner_id, owner_version, language) DO NOTHING;
+
+-- name: ContentSourceCopy :exec
+INSERT INTO content_sources (workspace_id, owner_kind, owner_id, owner_version, language, blocks, subject_hash, preheader_hash, version, next_key, updated_at)
+SELECT src.workspace_id, src.owner_kind, src.owner_id, @to_version, src.language, src.blocks, src.subject_hash, src.preheader_hash, src.version,
+    src.next_key, src.updated_at
+FROM content_sources src
+WHERE src.owner_kind = @owner_kind AND src.owner_id = @owner_id AND src.owner_version = @from_version
+ON CONFLICT (owner_kind, owner_id, owner_version) DO NOTHING;
+
+-- name: LanguagesCampaignSource :one
+-- What a campaign's source is: its content and who saved it last.
+SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.mjml, c.html, c.plain_text, c.ab_test, c.version,
+       c.content_hash, c.audience, c.updated_at, c.autosaved_at, c.started_at,
+       coalesce(u.name, '')::text AS updated_by_name
+FROM campaigns c
+LEFT JOIN users u ON u.id = c.updated_by
+WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.deleted_at IS NULL;
+
+-- name: LanguagesCampaignVersionAt :one
+-- The source version saved last at or before a time (who changed a block).
+SELECT v.version, v.saved_at, coalesce(u.name, '')::text AS saved_by_name
+FROM campaign_versions v
+LEFT JOIN users u ON u.id = v.saved_by
+WHERE v.campaign_id = @campaign_id AND v.version = @version;
+
+-- name: LanguagesMessageResults :many
+-- Results of a sent campaign per language version and why readers got it.
+SELECT m.language, m.language_reason, m.contact_language,
+       count(*) FILTER (WHERE m.sent_at IS NOT NULL)::bigint AS sent,
+       count(*) FILTER (WHERE m.delivered_at IS NOT NULL OR m.status = 'complained')::bigint AS delivered,
+       count(*) FILTER (WHERE m.human_opened_at IS NOT NULL)::bigint AS human_opens,
+       count(*) FILTER (WHERE m.clicked_at IS NOT NULL)::bigint AS clicks,
+       count(*) FILTER (WHERE m.status = 'complained')::bigint AS complaints,
+       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM delivery_events e WHERE e.message_id = m.id AND e.type = 'unsubscribe'))::bigint AS unsubscribes
+FROM messages m
+WHERE m.campaign_id = @campaign_id AND m.status <> 'cancelled'
+GROUP BY 1, 2, 3;
+
+-- name: LanguagesCampaignSendContent :one
+SELECT content FROM campaign_sends WHERE campaign_id = @campaign_id;

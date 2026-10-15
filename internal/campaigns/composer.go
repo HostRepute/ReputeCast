@@ -219,6 +219,12 @@ type ComposerCampaign struct {
 	Route         ComposerRoute           `json:"route"`
 	Readiness     *ReadinessSummary       `json:"readiness,omitempty"`
 	Access        ComposerAccess          `json:"access"`
+	// Language is the language of the content returned: the source's, or
+	// the language version asked for with ?language=. SourceLanguage is the
+	// language the campaign is written in. Both are empty without content
+	// languages.
+	Language       string `json:"language"`
+	SourceLanguage string `json:"sourceLanguage"`
 }
 
 var editableStatuses = map[string]bool{"draft": true, "approval": true, "approved": true, "scheduled": true}
@@ -236,6 +242,12 @@ func ContentHash(subject, preheader, mjmlSrc, html string, ab json.RawMessage) s
 
 // Detail loads a campaign for the composer.
 func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (ComposerCampaign, error) {
+	return s.DetailIn(ctx, ws, p, id, "")
+}
+
+// DetailIn loads a campaign for the composer with the content of one
+// language version ("" or the source language: the source).
+func (s *Service) DetailIn(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, lang string) (ComposerCampaign, error) {
 	r, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
 		return ComposerCampaign{}, api.MapError(err, "Campaign")
@@ -262,6 +274,18 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		d.Readiness = &ReadinessSummary{Verdict: run.Verdict, Issues: run.Issues}
 	}
 	d.Access = s.access(ctx, ws, p, r.Status, r.StartedAt)
+	if src := s.sourceLanguage(ctx, ws, id); src != "" {
+		d.SourceLanguage, d.Language = src, src
+		if lang != "" && lang != src {
+			t, err := s.Translations.Content(ctx, ws, id, lang)
+			if err != nil {
+				return ComposerCampaign{}, err
+			}
+			d.Language, d.Subject, d.Preheader, d.MJML, d.HTML, d.PlainText = t.Language, t.Subject, t.Preheader, t.MJML, t.HTML, t.PlainText
+			d.Version, d.VersionCount, d.ContentHash, d.ABTest = t.Version, t.VersionCount, t.ContentHash, abFromDB(t.ABTest)
+			d.UpdatedAt, d.UpdatedBy, d.AutosavedAt = t.UpdatedAt, t.UpdatedBy, t.AutosavedAt
+		}
+	}
 	return d, nil
 }
 

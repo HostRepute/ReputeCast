@@ -105,6 +105,13 @@ type sendContent struct {
 	ReplyTo   string         `json:"reply_to"`
 	Tracking  Tracking       `json:"tracking"`
 	Links     map[string]int `json:"links"` // first link position per variant
+	// Source is the language the campaign is written in, and Languages its
+	// language versions (content languages); empty when they don't apply.
+	Source          string        `json:"source,omitempty"`
+	DefaultLanguage string        `json:"default_language,omitempty"`
+	Fallback        string        `json:"fallback,omitempty"`
+	Offered         []string      `json:"offered,omitempty"`
+	Languages       []langContent `json:"languages,omitempty"`
 }
 
 // abTest is campaigns.ab_test.
@@ -210,6 +217,18 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 		return e.fail(ctx, cc, "The email can't be rendered: "+err.Error(), now)
 	}
 	if snd.PrepareCursor == nil {
+		if err := e.sendLanguages(ctx, cc.WorkspaceID, campaignID, &content); err != nil {
+			return err
+		}
+	} else if len(snd.Content) > 0 {
+		// A build that continues keeps the versions captured when it began.
+		var prev sendContent
+		if json.Unmarshal(snd.Content, &prev) == nil {
+			content.Source, content.DefaultLanguage, content.Fallback, content.Offered, content.Languages = prev.Source, prev.DefaultLanguage, prev.Fallback, prev.Offered, prev.Languages
+		}
+	}
+	chooser, multilingual := content.chooser()
+	if snd.PrepareCursor == nil {
 		if err := e.startPrepare(ctx, cc, def, content, now); err != nil {
 			return err
 		}
@@ -282,7 +301,9 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			// A random send order: the first minutes of the send are a fair
 			// sample of the audience (migration 00652).
 			order := rand.Int32() //nolint:gosec // an order, not a secret
-			msgs = append(msgs, []any{newID(), cc.WorkspaceID, "broadcast", &campaignID, &c.ID, c.Email, variant, &pid, mbp, status, now, next, rt.note, rt.failover, order})
+			ml := content.pick(chooser, multilingual, c.Language)
+			msgs = append(msgs, []any{newID(), cc.WorkspaceID, "broadcast", &campaignID, &c.ID, c.Email, variant, &pid, mbp, status, now, next, rt.note, rt.failover, order,
+				ml.Language, ml.Contact, ml.Reason})
 			planned[pid]++
 		}
 		last := rows[len(rows)-1].ID
@@ -300,7 +321,8 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			}
 			if len(msgs) > 0 {
 				if _, err := tx.CopyFrom(ctx, pgx.Identifier{"messages"}, []string{"id", "workspace_id", "stream", "campaign_id", "contact_id", "email", "variant", "provider_id",
-					"mailbox_provider", "status", "queued_at", "next_attempt_at", "route_note", "failover", "send_order"}, pgx.CopyFromRows(msgs)); err != nil {
+					"mailbox_provider", "status", "queued_at", "next_attempt_at", "route_note", "failover", "send_order", "language", "contact_language", "language_reason"},
+					pgx.CopyFromRows(msgs)); err != nil {
 					return err
 				}
 			}
@@ -724,7 +746,8 @@ func (e *Engine) indexLinks(c sendContent) ([]TrackedLink, error) {
 }
 
 // variantKeys lists the variants with their own content: "" (the campaign,
-// also variant A) and any content variant with its own HTML.
+// also variant A) and any content variant with its own HTML, then each
+// language version's ("de|", "de|B").
 func variantKeys(c sendContent) []string {
 	keys := []string{""}
 	for _, v := range c.Variants {
@@ -732,11 +755,18 @@ func variantKeys(c sendContent) []string {
 			keys = append(keys, v.Key)
 		}
 	}
-	return keys
+	return append(keys, languageVariantKeys(c)...)
 }
 
-// forVariant is the content a variant renders.
+// forVariant is the content a variant renders; "de|B" is variant B of the
+// German version.
 func (c sendContent) forVariant(key string) Content {
+	if lang, variant := splitKey(key); lang != "" {
+		if l := c.translation(lang); l != nil {
+			return l.forVariant(variant)
+		}
+		key = variant
+	}
 	out := Content{Subject: c.Subject, Preheader: c.Preheader, HTML: c.HTML, Text: c.Text}
 	for _, v := range c.Variants {
 		if v.Key != key || key == "" {

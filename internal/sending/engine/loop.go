@@ -154,6 +154,14 @@ func (e *Engine) templatesFor(id uuid.UUID, c sendContent) (map[string]*Template
 	for _, v := range c.Variants {
 		keys = append(keys, v.Key)
 	}
+	for _, lang := range c.readyLanguages() {
+		n := len(keys)
+		for _, k := range keys[:n] {
+			if _, v := splitKey(k); k == v {
+				keys = append(keys, langKey(lang, k))
+			}
+		}
+	}
 	for _, k := range keys {
 		t, err := Prepare(c.forVariant(k), c.Tracking)
 		if err != nil {
@@ -820,7 +828,10 @@ func simRows(ws uuid.UUID, campaign *uuid.UUID, msg, provider uuid.UUID, now tim
 // compose builds one recipient's message: personalization, per-recipient
 // tracking and system links, and the bulk-mail headers.
 func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow) (providers.Message, error) {
-	tpl := rs.templates[m.Variant]
+	tpl := rs.templates[renderKey(rs.content, m.Language, m.Variant)]
+	if tpl == nil {
+		tpl = rs.templates[renderKey(rs.content, m.Language, "")]
+	}
 	if tpl == nil {
 		tpl = rs.templates[""]
 	}
@@ -843,7 +854,7 @@ func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow) (pr
 		if tpl.Opens {
 			links[OpenVar] = e.URLs.Open(sign(linktoken.Open, 0))
 		}
-		off := rs.content.Links[contentKey(rs.content, m.Variant)]
+		off := rs.content.Links[languageContentKey(rs.content, m.Language, m.Variant)]
 		for _, l := range tpl.Links {
 			links[LinkVar(l.Position)] = e.URLs.Click(sign(linktoken.Click, uint32(off+l.Position)))
 		}
