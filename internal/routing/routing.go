@@ -46,20 +46,29 @@ func DefaultPolicy(s providers.Stream) Policy {
 	return Automatic
 }
 
+// StreamTransactional is the fourth stream (design expansion phase 1):
+// mail from the workspace's own product, sent through the transactional
+// API and the SMTP relay. It fails over automatically, bulk-marketing terms
+// don't apply to it, and on a provider it shares with Broadcasts it goes
+// first within the provider's rate.
+const StreamTransactional providers.Stream = "transactional"
+
 // Streams in display order.
-var Streams = []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}
+var Streams = []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem, StreamTransactional}
 
 // Conditions restrict a rule; an empty set is the stream's default rule.
-// Values within a field are OR-ed, fields are AND-ed.
+// Values within a field are OR-ed, fields are AND-ed. Categories (ids of
+// transactional categories) only apply to the Transactional stream.
 type Conditions struct {
 	Lists            []string `json:"lists,omitempty"`
 	SenderDomains    []string `json:"sender_domains,omitempty"`
 	MailboxProviders []string `json:"mailbox_providers,omitempty"`
+	Categories       []string `json:"categories,omitempty"`
 }
 
 // Empty reports whether the conditions match everything.
 func (c Conditions) Empty() bool {
-	return len(c.Lists) == 0 && len(c.SenderDomains) == 0 && len(c.MailboxProviders) == 0
+	return len(c.Lists) == 0 && len(c.SenderDomains) == 0 && len(c.MailboxProviders) == 0 && len(c.Categories) == 0
 }
 
 // Split is one provider's share of a rule, in percent.
@@ -133,6 +142,8 @@ type Recipient struct {
 	Lists           []string
 	SenderDomain    string
 	MailboxProvider string // gmail, outlook, yahoo, icloud, other; derived from Email when empty
+	// Category is the transactional category of the message (its id).
+	Category string
 }
 
 // Decision is where a recipient goes and why.
@@ -197,6 +208,14 @@ func match(c Conditions, r Recipient, mbp string) (field, value string, ok bool)
 		}
 		if field == "" {
 			field, value = "list", hit
+		}
+	}
+	if len(c.Categories) > 0 {
+		if r.Category == "" || !slices.Contains(c.Categories, r.Category) {
+			return "", "", false
+		}
+		if field == "" {
+			field, value = "category", r.Category
 		}
 	}
 	if len(c.SenderDomains) > 0 {

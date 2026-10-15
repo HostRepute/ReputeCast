@@ -1473,6 +1473,16 @@ type Querier interface {
 	// names (the breaking-change check of the publish dialog).
 	TxnRecentCallKeys(ctx context.Context, arg TxnRecentCallKeysParams) ([]TxnRecentCallKeysRow, error)
 	TxnRejectedCallsForTemplate(ctx context.Context, arg TxnRejectedCallsForTemplateParams) ([]TxnRejectedCallsForTemplateRow, error)
+	// Transactional categories for the routing screen's conditions.
+	TxnRouteCategories(ctx context.Context, workspaceID uuid.UUID) ([]TxnRouteCategoriesRow, error)
+	// Sending domains marked for transactional mail.
+	TxnRouteDomains(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	TxnRouteSetPriority(ctx context.Context, arg TxnRouteSetPriorityParams) error
+	// Whether a suppression stops transactional mail: everything except the
+	// marketing-only ones (unsubscribes and role addresses).
+	TxnRouteSuppressedAllMail(ctx context.Context, arg TxnRouteSuppressedAllMailParams) (bool, error)
+	TxnRouteTemplateCategory(ctx context.Context, arg TxnRouteTemplateCategoryParams) (*uuid.UUID, error)
+	TxnRouteTemplates(ctx context.Context, workspaceID uuid.UUID) ([]TxnRouteTemplatesRow, error)
 	TxnSenderByEmail(ctx context.Context, arg TxnSenderByEmailParams) (TxnSenderByEmailRow, error)
 	TxnSenderByID(ctx context.Context, arg TxnSenderByIDParams) (TxnSenderByIDRow, error)
 	// The workspace's senders with their domain's transactional flag and

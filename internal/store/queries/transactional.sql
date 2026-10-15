@@ -219,6 +219,31 @@ WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since AND t.template_
   AND (@include_test::boolean OR NOT t.test)
 GROUP BY t.template_id;
 
+-- name: TxnRouteCategories :many
+-- Transactional categories for the routing screen's conditions.
+SELECT id, name FROM transactional_categories WHERE workspace_id = @workspace_id ORDER BY position, created_at;
+
+-- name: TxnRouteTemplates :many
+SELECT key, name FROM transactional_templates WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND archived_at IS NULL ORDER BY created_at;
+
+-- name: TxnRouteTemplateCategory :one
+SELECT category_id FROM transactional_templates WHERE workspace_id = @workspace_id AND key = @key AND deleted_at IS NULL;
+
+-- name: TxnRouteDomains :many
+-- Sending domains marked for transactional mail.
+SELECT domain FROM sending_domains WHERE workspace_id = @workspace_id AND transactional ORDER BY created_at, domain;
+
+-- name: TxnRouteSetPriority :exec
+INSERT INTO stream_policies (workspace_id, stream, failover, priority)
+VALUES (@workspace_id, 'transactional', 'automatic', @priority)
+ON CONFLICT (workspace_id, stream) DO UPDATE SET priority = EXCLUDED.priority;
+
+-- name: TxnRouteSuppressedAllMail :one
+-- Whether a suppression stops transactional mail: everything except the
+-- marketing-only ones (unsubscribes and role addresses).
+SELECT EXISTS (SELECT 1 FROM suppressions WHERE workspace_id = @workspace_id AND email = @email
+               AND scope = 'all' AND reason NOT IN ('unsubscribe', 'role'))::boolean;
+
 -- name: TxnTemplateSpark :many
 -- Messages a provider accepted per template and bucket of a period.
 SELECT t.template_id::uuid AS template_id,

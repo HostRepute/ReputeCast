@@ -271,6 +271,141 @@ func (q *Queries) TxnRejectedCallsForTemplate(ctx context.Context, arg TxnReject
 	return items, nil
 }
 
+const txnRouteCategories = `-- name: TxnRouteCategories :many
+SELECT id, name FROM transactional_categories WHERE workspace_id = $1 ORDER BY position, created_at
+`
+
+type TxnRouteCategoriesRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// Transactional categories for the routing screen's conditions.
+func (q *Queries) TxnRouteCategories(ctx context.Context, workspaceID uuid.UUID) ([]TxnRouteCategoriesRow, error) {
+	rows, err := q.db.Query(ctx, txnRouteCategories, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnRouteCategoriesRow{}
+	for rows.Next() {
+		var i TxnRouteCategoriesRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnRouteDomains = `-- name: TxnRouteDomains :many
+SELECT domain FROM sending_domains WHERE workspace_id = $1 AND transactional ORDER BY created_at, domain
+`
+
+// Sending domains marked for transactional mail.
+func (q *Queries) TxnRouteDomains(ctx context.Context, workspaceID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, txnRouteDomains, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var domain string
+		if err := rows.Scan(&domain); err != nil {
+			return nil, err
+		}
+		items = append(items, domain)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnRouteSetPriority = `-- name: TxnRouteSetPriority :exec
+INSERT INTO stream_policies (workspace_id, stream, failover, priority)
+VALUES ($1, 'transactional', 'automatic', $2)
+ON CONFLICT (workspace_id, stream) DO UPDATE SET priority = EXCLUDED.priority
+`
+
+type TxnRouteSetPriorityParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Priority    bool      `json:"priority"`
+}
+
+func (q *Queries) TxnRouteSetPriority(ctx context.Context, arg TxnRouteSetPriorityParams) error {
+	_, err := q.db.Exec(ctx, txnRouteSetPriority, arg.WorkspaceID, arg.Priority)
+	return err
+}
+
+const txnRouteSuppressedAllMail = `-- name: TxnRouteSuppressedAllMail :one
+SELECT EXISTS (SELECT 1 FROM suppressions WHERE workspace_id = $1 AND email = $2
+               AND scope = 'all' AND reason NOT IN ('unsubscribe', 'role'))::boolean
+`
+
+type TxnRouteSuppressedAllMailParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+}
+
+// Whether a suppression stops transactional mail: everything except the
+// marketing-only ones (unsubscribes and role addresses).
+func (q *Queries) TxnRouteSuppressedAllMail(ctx context.Context, arg TxnRouteSuppressedAllMailParams) (bool, error) {
+	row := q.db.QueryRow(ctx, txnRouteSuppressedAllMail, arg.WorkspaceID, arg.Email)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const txnRouteTemplateCategory = `-- name: TxnRouteTemplateCategory :one
+SELECT category_id FROM transactional_templates WHERE workspace_id = $1 AND key = $2 AND deleted_at IS NULL
+`
+
+type TxnRouteTemplateCategoryParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Key         string    `json:"key"`
+}
+
+func (q *Queries) TxnRouteTemplateCategory(ctx context.Context, arg TxnRouteTemplateCategoryParams) (*uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, txnRouteTemplateCategory, arg.WorkspaceID, arg.Key)
+	var category_id *uuid.UUID
+	err := row.Scan(&category_id)
+	return category_id, err
+}
+
+const txnRouteTemplates = `-- name: TxnRouteTemplates :many
+SELECT key, name FROM transactional_templates WHERE workspace_id = $1 AND deleted_at IS NULL AND archived_at IS NULL ORDER BY created_at
+`
+
+type TxnRouteTemplatesRow struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
+}
+
+func (q *Queries) TxnRouteTemplates(ctx context.Context, workspaceID uuid.UUID) ([]TxnRouteTemplatesRow, error) {
+	rows, err := q.db.Query(ctx, txnRouteTemplates, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnRouteTemplatesRow{}
+	for rows.Next() {
+		var i TxnRouteTemplatesRow
+		if err := rows.Scan(&i.Key, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const txnSenderByEmail = `-- name: TxnSenderByEmail :one
 SELECT s.id, s.name, s.email, s.reply_to, s.verification, d.domain, d.status AS domain_status, d.transactional
 FROM senders s JOIN sending_domains d ON d.id = s.domain_id
