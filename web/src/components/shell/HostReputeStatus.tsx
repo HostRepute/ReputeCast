@@ -22,7 +22,7 @@ export function HostReputeStatus() {
   const hr = useHostReputeLine()
   return (
     <Link
-      to="/w/$workspace/settings/integrations"
+      to="/w/$workspace/settings/integrations/hostrepute"
       params={{ workspace: slug }}
       className="flex items-center gap-2 rounded-lg border border-line bg-white px-2.5 py-2 text-ink hover:text-ink"
     >
