@@ -219,6 +219,195 @@ WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since AND t.template_
   AND (@include_test::boolean OR NOT t.test)
 GROUP BY t.template_id;
 
+-- name: TxnKey :one
+-- A key's transactional settings (send-only, test mode, scope, rate).
+SELECT id, name, kind, preset, mode, templates, categories, test_addresses, rate_per_second, permissions, created_by
+FROM api_keys WHERE id = @id AND workspace_id = @workspace_id;
+
+-- name: TxnIdemInsert :one
+INSERT INTO transactional_idempotency (workspace_id, key, request_hash, created_at)
+VALUES (@workspace_id, @key, @request_hash, @created_at)
+ON CONFLICT (workspace_id, key) DO NOTHING
+RETURNING key;
+
+-- name: TxnIdemGet :one
+SELECT * FROM transactional_idempotency WHERE workspace_id = @workspace_id AND key = @key;
+
+-- name: TxnIdemSave :exec
+UPDATE transactional_idempotency SET status = @status, response = @response WHERE workspace_id = @workspace_id AND key = @key;
+
+-- name: TxnIdemPurge :execrows
+DELETE FROM transactional_idempotency WHERE created_at < @before;
+
+-- name: TxnSuppression :one
+-- The suppression that stops transactional mail to an address, if any:
+-- everything except the marketing-only ones (unsubscribes, role addresses).
+SELECT s.reason, s.source, s.original_code, s.detail, s.created_at, coalesce(p.name, '')::text AS provider_name
+FROM suppressions s LEFT JOIN providers p ON p.id = s.source_provider_id
+WHERE s.workspace_id = @workspace_id AND s.email = @email AND s.scope = 'all' AND s.reason NOT IN ('unsubscribe', 'role');
+
+-- name: TxnRoleSuppressed :one
+-- Whether an address carries a marketing-only role suppression (the log
+-- marks it "Role address").
+SELECT EXISTS (SELECT 1 FROM suppressions WHERE workspace_id = @workspace_id AND email = @email AND reason = 'role')::boolean;
+
+-- name: TxnOptOut :one
+SELECT o.opted_out_at, o.source, c.name AS category_name
+FROM transactional_opt_outs o JOIN transactional_categories c ON c.id = o.category_id
+WHERE o.workspace_id = @workspace_id AND o.email = @email AND o.category_id = @category_id;
+
+-- name: TxnContactByEmail :one
+SELECT id, mailbox_provider, first_name, last_name FROM contacts
+WHERE workspace_id = @workspace_id AND email = @email AND erased_at IS NULL;
+
+-- name: TxnMemberEmails :many
+SELECT u.email FROM workspace_members m JOIN users u ON u.id = m.user_id
+WHERE m.workspace_id = @workspace_id AND m.status = 'active' AND u.status = 'active';
+
+-- name: TxnInsertMessage :exec
+INSERT INTO messages (id, workspace_id, stream, contact_id, email, provider_id, mailbox_provider, status, queued_at, next_attempt_at, kind, error, route_note)
+VALUES (@id, @workspace_id, 'transactional', sqlc.narg(contact_id), @email, sqlc.narg(provider_id), @mailbox_provider, @status, @queued_at,
+        sqlc.narg(next_attempt_at), @kind, @error, @route_note);
+
+-- name: TxnInsertMessageLog :exec
+INSERT INTO transactional_messages (message_id, workspace_id, source, template_id, template_key, template_name, template_version,
+    category_id, category_name, category_kind, key_id, key_name, user_id, ip, idempotency_key, subject, from_email, from_name, reply_to,
+    to_name, cc, bcc, tags, metadata, data, data_keys, sensitive, attachments, size_bytes, test, test_delivered, send_at,
+    reject_reason, reject_detail, track_opens, track_clicks, links, route, provider_since, accepted_at, rendered_at, content_expires_at, resent_from)
+VALUES (@message_id, @workspace_id, @source, sqlc.narg(template_id), @template_key, @template_name, sqlc.narg(template_version),
+    sqlc.narg(category_id), @category_name, @category_kind, sqlc.narg(key_id), @key_name, sqlc.narg(user_id), sqlc.narg(ip), @idempotency_key,
+    @subject, @from_email, @from_name, @reply_to, @to_name, @cc, @bcc, @tags, @metadata, @data, @data_keys, @sensitive, @attachments,
+    @size_bytes, @test, @test_delivered, sqlc.narg(send_at), @reject_reason, @reject_detail, @track_opens, @track_clicks, @links, @route,
+    sqlc.narg(provider_since), @accepted_at, sqlc.narg(rendered_at), sqlc.narg(content_expires_at), sqlc.narg(resent_from));
+
+-- name: TxnInsertContent :exec
+INSERT INTO transactional_message_content (message_id, html, text, headers, expires_at) VALUES (@message_id, @html, @text, @headers, @expires_at);
+
+-- name: TxnInsertOutbox :exec
+INSERT INTO transactional_outbox (message_id, sealed, created_at) VALUES (@message_id, @sealed, @created_at);
+
+-- name: TxnInsertRejectedCall :exec
+INSERT INTO transactional_rejected_calls (id, workspace_id, key_id, user_id, at, status, code, detail, template_key, recipient, idempotency_key, ip)
+VALUES (@id, @workspace_id, sqlc.narg(key_id), sqlc.narg(user_id), @at, @status, @code, @detail, @template_key, @recipient, @idempotency_key, sqlc.narg(ip));
+
+-- name: TxnMessageEvent :one
+-- What a message's webhook events carry.
+SELECT t.message_id, t.template_key, t.template_version, t.category_name, t.tags, t.metadata, t.test, t.reject_reason, t.source,
+       m.email, m.status, m.error, coalesce(m.provider_message_id, '')::text AS provider_message_id,
+       coalesce(p.name, '')::text AS provider_name, t.events_emitted
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN providers p ON p.id = m.provider_id
+WHERE t.message_id = @message_id;
+
+-- name: TxnMarkEmitted :exec
+UPDATE transactional_messages SET events_emitted = array_append(events_emitted, @event::text) WHERE message_id = @message_id;
+
+-- name: TxnOutboxProviders :many
+-- Providers with transactional mail to send now.
+SELECT DISTINCT m.provider_id::uuid AS provider_id FROM messages m
+WHERE m.status = 'queued' AND m.stream = 'transactional' AND m.provider_id IS NOT NULL
+  AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= @now::timestamptz);
+
+-- name: TxnOutboxHeadroom :one
+-- How much of a provider's second transactional mail takes before
+-- Broadcasts: its due transactional messages when the workspace keeps
+-- "first in line on shared providers" on (the default), else 0.
+SELECT CASE WHEN coalesce((SELECT sp.priority FROM stream_policies sp JOIN providers p ON p.workspace_id = sp.workspace_id
+                          WHERE p.id = @provider_id AND sp.stream = 'transactional'), true)
+            THEN (SELECT count(*) FROM messages m
+                  WHERE m.provider_id = @provider_id AND m.status = 'queued' AND m.stream = 'transactional'
+                    AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= @now::timestamptz))
+            ELSE 0 END::bigint;
+
+-- name: TxnOutboxDue :one
+-- How many transactional messages a provider has to send now.
+SELECT count(*) FROM messages m
+WHERE m.provider_id = @provider_id AND m.status = 'queued' AND m.stream = 'transactional'
+  AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= @now::timestamptz);
+
+-- name: TxnOutboxClaim :many
+-- Claims up to lim due transactional messages of one provider, with their
+-- sealed payload and what failover needs.
+WITH picked AS (
+    SELECT m.id FROM messages m
+    WHERE m.provider_id = @provider_id AND m.status = 'queued' AND m.stream = 'transactional'
+      AND (m.claimed_at IS NULL OR m.claimed_at < @stale::timestamptz)
+      AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= @now::timestamptz)
+    ORDER BY m.id
+    LIMIT @lim
+    FOR UPDATE SKIP LOCKED
+), upd AS (
+    UPDATE messages m SET claimed_at = @now::timestamptz, attempts = m.attempts + 1
+    FROM picked WHERE m.id = picked.id
+    RETURNING m.id, m.workspace_id, m.email, m.mailbox_provider, m.attempts
+)
+SELECT upd.id, upd.workspace_id, upd.email, upd.mailbox_provider, upd.attempts,
+       coalesce(o.sealed, ''::bytea)::bytea AS sealed, t.provider_since, t.route, t.attempts AS tried, t.template_key, t.accepted_at, t.track_opens, t.track_clicks
+FROM upd
+LEFT JOIN transactional_outbox o ON o.message_id = upd.id
+JOIN transactional_messages t ON t.message_id = upd.id
+ORDER BY upd.id;
+
+-- name: TxnOutboxQueuedOn :many
+-- Queued transactional messages of a provider (failover when it is down).
+SELECT m.id, m.workspace_id, t.provider_since, t.route, t.attempts AS tried
+FROM messages m JOIN transactional_messages t ON t.message_id = m.id
+WHERE m.provider_id = @provider_id AND m.status = 'queued' AND m.stream = 'transactional'
+  AND (m.claimed_at IS NULL OR m.claimed_at < @stale::timestamptz)
+ORDER BY m.id
+LIMIT 500;
+
+-- name: TxnOutboxOrphans :many
+-- Queued transactional messages whose provider was removed.
+SELECT m.id, m.workspace_id, t.route, t.attempts AS tried, t.provider_since
+FROM messages m JOIN transactional_messages t ON t.message_id = m.id
+WHERE m.status = 'queued' AND m.stream = 'transactional' AND m.provider_id IS NULL AND t.reject_reason = ''
+LIMIT 500;
+
+-- name: TxnOutboxDone :exec
+-- The provider accepted these messages, or every provider failed: their
+-- sealed payload (and its sensitive values) goes.
+DELETE FROM transactional_outbox WHERE message_id = ANY(@ids::uuid[]);
+
+-- name: TxnAppendAttempts :exec
+UPDATE transactional_messages t SET attempts = t.attempts || x.attempt
+FROM (SELECT unnest(@ids::uuid[]) AS id, unnest(@attempts::jsonb[]) AS attempt) AS x
+WHERE t.message_id = x.id;
+
+-- name: TxnMoveToProvider :exec
+-- A message moves to the next provider of its route (failover).
+UPDATE messages SET provider_id = @provider_id, claimed_at = NULL, next_attempt_at = NULL, route_note = 'failover', failover = true
+WHERE id = @id;
+
+-- name: TxnMarkFailedOver :exec
+UPDATE transactional_messages SET provider_since = @at::timestamptz, failed_over_from = sqlc.narg(from_provider), failed_over_at = @at::timestamptz
+WHERE message_id = @message_id;
+
+-- name: TxnMarkFailed :exec
+UPDATE messages SET status = 'failed', claimed_at = NULL, next_attempt_at = NULL, error = @error WHERE id = @id;
+
+-- name: TxnSetBounced :exec
+-- A soft bounce of a transactional message is its final answer: the log
+-- shows it as Bounced (soft), where campaigns count it as a deferral.
+UPDATE messages SET status = 'bounced', error = @error WHERE id = @id AND status IN ('sent', 'deferred', 'queued');
+
+-- name: TxnSoftBounces :one
+SELECT count(*)::bigint FROM delivery_events
+WHERE workspace_id = @workspace_id AND recipient = @recipient AND type = 'soft_bounce' AND occurred_at >= @since;
+
+-- name: TxnSuppressSoftBounces :one
+INSERT INTO suppressions (id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_at, scope, context)
+VALUES (@id, @workspace_id, @email, 'invalid', 'webhook', sqlc.narg(source_provider_id), @original_code, @detail, @created_at, 'all', 'Transactional')
+ON CONFLICT (workspace_id, email) DO NOTHING
+RETURNING id;
+
+-- name: TxnMessageLinks :one
+SELECT links FROM transactional_messages WHERE message_id = @message_id;
+
+-- name: TxnTrackingDomainVerified :one
+SELECT EXISTS (SELECT 1 FROM sending_domains WHERE workspace_id = @workspace_id AND tracking_domain = @domain AND tracking_status = 'verified')::boolean;
+
 -- name: TxnRouteCategories :many
 -- Transactional categories for the routing screen's conditions.
 SELECT id, name FROM transactional_categories WHERE workspace_id = @workspace_id ORDER BY position, created_at;

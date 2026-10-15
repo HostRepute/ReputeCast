@@ -2387,6 +2387,217 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A campaign's language versions with their status and readers
+         * @description Every workspace language is listed: the source, versions that are Up to date, Outdated (with the blocks that changed) or Draft, and Missing ones, whose readers get the fallback.
+         */
+        get: operations["list-campaign-languages"];
+        put?: never;
+        /**
+         * Add a language version (a Draft) to a campaign
+         * @description It starts from a copy of the source (layout and text) or from the layout only. A Draft is never sent: its readers get the fallback until it is marked translated.
+         */
+        post: operations["add-campaign-language"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply a source link or image change to every language version */
+        post: operations["apply-to-campaign-languages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/keep-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep every language version up to date after a source edit that needs no translating */
+        post: operations["keep-campaign-languages-up-to-date"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the language a campaign is written in (while it has one version) */
+        put: operations["set-campaign-source-language"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a campaign's language version */
+        delete: operations["remove-campaign-language"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compare a language version with the source, block by block */
+        get: operations["compare-campaign-language"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/copy-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a block new in the source into a language version */
+        post: operations["copy-block-to-campaign-language"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/hold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Send the fallback to a language's readers instead, or stop doing so */
+        put: operations["hold-campaign-language"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/mark-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a Draft language version translated, so it is sent */
+        post: operations["mark-campaign-language-translated"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/mark-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an Outdated language version (or some of its blocks) up to date */
+        post: operations["mark-campaign-language-up-to-date"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/remove-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove a block the source no longer has from a language version */
+        post: operations["remove-block-from-campaign-language"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved versions of a campaign's language version, newest first */
+        get: operations["list-campaign-language-versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live": {
         parameters: {
             query?: never;
@@ -4339,6 +4550,115 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The workspace's languages, default and fallback, with their contacts */
+        get: operations["list-workspace-languages"];
+        put?: never;
+        /**
+         * Add a language to the workspace
+         * @description Right-to-left languages aren't supported yet and answer 422. Adding a language that was removed brings back its versions and page copy.
+         */
+        post: operations["add-workspace-language"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/languages/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Languages that can be added, with the contacts who already have them */
+        get: operations["list-language-catalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/languages/defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the default and fallback languages */
+        put: operations["set-language-defaults"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/languages/fallback-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many contacts a new fallback language moves */
+        get: operations["get-fallback-impact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/languages/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a language from the workspace
+         * @description Its email versions and page copy are kept but no longer used; its contacts keep their language and get the fallback. The default and the fallback can't be removed (409).
+         */
+        delete: operations["remove-workspace-language"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/languages/{code}/removal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What removing a language affects */
+        get: operations["get-language-removal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/leave": {
         parameters: {
             query?: never;
@@ -5801,6 +6121,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send one message with a template's live version
+         * @description Answers 202 with the message ID and status queued (scheduled with send_at). Errors are RFC 9457 problems whose detail says what to fix: template_not_found, template_not_published, missing_variables (listed in missing), invalid_recipient, recipient_suppressed (with the reason and date), sender_not_verified, attachments_too_large (naming the route's provider limit), rate_limited (with Retry-After), no_healthy_route. Send an Idempotency-Key header: a retry with the same key within 24 hours gets the first answer and sends nothing. A test-mode key delivers only to the workspace's members and its allowed test addresses.
+         */
+        post: operations["send-transactional-message"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/messages/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send up to 100 messages, each with its own recipient and data
+         * @description Each message gets its own answer in results, in the order sent: its ID and status, or the problem that stopped it (the same codes as one send).
+         */
+        post: operations["send-transactional-batch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/settings": {
         parameters: {
             query?: never;
@@ -6343,6 +6703,10 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        APIKeyCategoryRef: {
+            id: string;
+            name: string;
+        };
         APIKeyCreateInput: {
             /** @description Client label, e.g. Claude Desktop */
             description?: string;
@@ -6351,6 +6715,7 @@ export interface components {
             lists?: string[];
             name: string;
             permissions: string[];
+            transactional?: components["schemas"]["APIKeyTransactionalInput"];
         };
         APIKeyCreated: {
             endpoint: string;
@@ -6392,6 +6757,38 @@ export interface components {
              */
             since?: string;
         };
+        APIKeyTransactional: {
+            /** @description Categories it may send (SMTP credentials); empty for all */
+            categories: components["schemas"]["APIKeyCategoryRef"][];
+            /** @enum {string} */
+            mode: "live" | "test";
+            /** @enum {string} */
+            preset: "send_only" | "smtp";
+            /** Format: int64 */
+            ratePerSecond: number;
+            /** @description Template IDs it may send; empty for all, including ones published later */
+            templates: string[];
+            /** @description Allowed test addresses besides the members (qa+*@acme.io) */
+            testAddresses: string[];
+            username?: string;
+        };
+        APIKeyTransactionalInput: {
+            categories?: string[];
+            /**
+             * @default live
+             * @enum {string}
+             */
+            mode: "live" | "test";
+            /** @enum {string} */
+            preset: "send_only" | "smtp";
+            /**
+             * Format: int64
+             * @description Messages per second (50 by default)
+             */
+            ratePerSecond?: number;
+            templates?: string[];
+            testAddresses?: string[];
+        };
         APIKeyView: {
             /** Format: date-time */
             createdAt: string;
@@ -6418,6 +6815,7 @@ export interface components {
             sensitive: string[];
             /** @enum {string} */
             status: "active" | "expired";
+            transactional?: components["schemas"]["APIKeyTransactional"];
         };
         AccessRequestInputBody: {
             /** @description Why you need it; shown to whoever decides */
@@ -6763,10 +7161,35 @@ export interface components {
             upToDate: boolean;
             version: string;
         };
+        AddLanguageInput: {
+            /** @description A workspace language */
+            language: string;
+            /**
+             * @default copy
+             * @enum {string}
+             */
+            start: "copy" | "layout";
+        };
         AddSuppressionsInput: {
             emails: string[];
             /** @description Why, shown as the original code */
             note?: string;
+        };
+        AddWorkspaceLanguage: {
+            /** @description A base language code, such as fr */
+            code: string;
+        };
+        ApplyInput: {
+            block?: string;
+            from: string;
+            /** @enum {string} */
+            kind: "link" | "image";
+            to: string;
+        };
+        ApplyResult: {
+            languages: string[];
+            /** Format: int64 */
+            replaced: number;
         };
         ApprovalAudienceRule: {
             enabled: boolean;
@@ -7987,6 +8410,18 @@ export interface components {
         AutomationWebhookCalls: {
             calls: components["schemas"]["AutomationWebhookCall"][];
         };
+        BlockChange: {
+            /** Format: date-time */
+            at: string;
+            by: string;
+            /** Format: int64 */
+            version: number;
+        };
+        BlockInput: {
+            /** Format: int64 */
+            index?: number;
+            key?: string;
+        };
         CampaignList: {
             counts: components["schemas"]["CampaignStatusCounts"];
             items: components["schemas"]["CampaignListItem"][];
@@ -8098,6 +8533,18 @@ export interface components {
             /** Format: int64 */
             sent: number;
         };
+        CatalogLanguage: {
+            added: boolean;
+            builtinLabels: boolean;
+            code: string;
+            contactCodes: string[];
+            /** Format: int64 */
+            contacts: number;
+            name: string;
+            native: string;
+            regions: string[];
+            rtl: boolean;
+        };
         "Change-passwordRequest": {
             current?: string;
             password: string;
@@ -8117,6 +8564,33 @@ export interface components {
             skipped: string[];
             updated: string[];
             zone: string;
+        };
+        CompareBlock: {
+            /** Format: int64 */
+            index: number;
+            name: string;
+            segments: components["schemas"]["Segment"][];
+            text: string;
+        };
+        CompareRow: {
+            before: string;
+            changed?: components["schemas"]["BlockChange"];
+            /** Format: int64 */
+            fromVersion: number;
+            key: string;
+            /** Format: int64 */
+            number: number;
+            source?: components["schemas"]["CompareBlock"];
+            /** @enum {string} */
+            state: "up_to_date" | "changed" | "still" | "new" | "removed" | "only";
+            version?: components["schemas"]["CompareBlock"];
+        };
+        CompareText: {
+            before: string;
+            source: string;
+            /** @enum {string} */
+            state: "up_to_date" | "changed";
+            version: string;
         };
         ComposerABTest: {
             bestTime?: boolean;
@@ -8197,6 +8671,7 @@ export interface components {
             editorMode: "visual" | "mjml" | "html";
             html: string;
             id: string;
+            language: string;
             mjml: string;
             name: string;
             plainText: string;
@@ -8208,6 +8683,7 @@ export interface components {
             scheduledAt?: string;
             sender?: components["schemas"]["ComposerSenderRef"];
             settings: components["schemas"]["ComposerContentSettings"];
+            sourceLanguage: string;
             /** @enum {string} */
             status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
             subject: string;
@@ -8257,6 +8733,7 @@ export interface components {
         };
         ComposerChecksRequest: {
             html?: string;
+            language?: string;
             mjml?: string;
             preheader?: string;
             /** @description Also request every link (slower; Send Readiness does it) */
@@ -8305,6 +8782,8 @@ export interface components {
             fromEmail: string;
             fromName: string;
             html: string;
+            language: string;
+            languageReason: string;
             /** Format: int64 */
             missingFirstName?: number;
             preheader: string;
@@ -8319,6 +8798,7 @@ export interface components {
             email: string;
             id?: string;
             label: string;
+            language: string;
             name: string;
         };
         ComposerPreviewContactList: {
@@ -8328,6 +8808,7 @@ export interface components {
             /** Format: uuid */
             contactId?: string;
             html?: string;
+            language?: string;
             preheader?: string;
             /**
              * @default contact
@@ -8396,11 +8877,14 @@ export interface components {
              * @description Personalize as this contact
              */
             contactId?: string;
+            eachLanguage?: boolean;
+            language?: string;
             to: string[];
             /** @enum {string} */
             variant?: "A" | "B" | "C";
         };
         ComposerTestSendResult: {
+            languages: string[];
             provider: string;
             sent: string[];
         };
@@ -8864,7 +9348,7 @@ export interface components {
             /** @enum {string} */
             role?: "primary" | "split" | "fallback";
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
             /** Format: int64 */
             weight?: number;
         };
@@ -8882,7 +9366,7 @@ export interface components {
             role: "primary" | "split" | "fallback";
             roleLabel: string;
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
             tracking: string;
             /** Format: int64 */
             weight: number;
@@ -9719,6 +10203,70 @@ export interface components {
             /** @description What it is for, e.g. primary sending domain */
             note?: string;
         };
+        EmailLanguage: {
+            /** Format: int64 */
+            attention: number;
+            /** Format: int64 */
+            blocks: number;
+            /** Format: int64 */
+            changed: number;
+            changedBlocks: string[];
+            changedIndexes: number[];
+            gets: string;
+            held: boolean;
+            language: string;
+            lastChange?: components["schemas"]["BlockChange"];
+            name: string;
+            native: string;
+            /** Format: int64 */
+            noLanguage: number;
+            /** Format: int64 */
+            notOffered: number;
+            offered: boolean;
+            preheader: string;
+            preheaderChanged: boolean;
+            /** Format: int64 */
+            readers?: number;
+            /** @enum {string} */
+            status: "source" | "up_to_date" | "outdated" | "draft" | "missing";
+            /** Format: int64 */
+            still: number;
+            stillIndexes: number[];
+            subject: string;
+            subjectChanged: boolean;
+            /** Format: int64 */
+            translated: number;
+            /** Format: date-time */
+            translatedAt?: string;
+            translatedBy: string;
+            /** Format: int64 */
+            translatedFrom: number;
+            /** Format: int64 */
+            upToDate: number;
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy: string;
+            /** Format: int64 */
+            version: number;
+        };
+        EmailLanguages: {
+            /** Format: int64 */
+            blocks: number;
+            canChangeSource: boolean;
+            canEdit: boolean;
+            canManageWorkspace: boolean;
+            default: string;
+            editHelpers: string[];
+            fallback: string;
+            /** Format: int64 */
+            readers?: number;
+            source: string;
+            sourceChange?: components["schemas"]["LanguageSourceChange"];
+            /** Format: int64 */
+            sourceVersion: number;
+            versions: components["schemas"]["EmailLanguage"][];
+            workspaceHelpers: string[];
+        };
         EmailTemplateDetail: {
             builtin: boolean;
             description: string;
@@ -9787,6 +10335,15 @@ export interface components {
             /** @description The value at the given location */
             value?: unknown;
         };
+        FallbackImpact: {
+            fallback: string;
+            /** Format: int64 */
+            moved: number;
+            /** Format: int64 */
+            noLanguage: number;
+            /** Format: int64 */
+            notOffered: number;
+        };
         HealthTierCard: {
             /** Format: int64 */
             count: number;
@@ -9812,6 +10369,9 @@ export interface components {
             day: string;
             /** Format: double */
             sunset: number;
+        };
+        HoldInput: {
+            held: boolean;
         };
         HostReputeAPIKeyInputBody: {
             /** @description A HostRepute API key (hr_live_…) with the monitor:read, alerts:read and assets:write scopes. Write-only: it is stored encrypted and never returned. */
@@ -10843,6 +11403,70 @@ export interface components {
         ItemsAudienceListSummary: {
             items: components["schemas"]["AudienceListSummary"][];
         };
+        KeepUpToDateInput: {
+            blocks: string[];
+        };
+        LanguageCatalogList: {
+            items: components["schemas"]["CatalogLanguage"][];
+        };
+        LanguageCompare: {
+            /** Format: int64 */
+            attention: number;
+            /** Format: int64 */
+            blocks: number;
+            language: string;
+            preheader: components["schemas"]["CompareText"];
+            rows: components["schemas"]["CompareRow"][];
+            source: string;
+            /** Format: int64 */
+            sourceVersion: number;
+            /** @enum {string} */
+            status: "up_to_date" | "outdated" | "draft";
+            subject: components["schemas"]["CompareText"];
+            /** Format: int64 */
+            translated: number;
+            /** Format: date-time */
+            translatedAt?: string;
+            translatedBy: string;
+            /** Format: int64 */
+            translatedFrom: number;
+            /** Format: int64 */
+            upToDate: number;
+            /** Format: int64 */
+            version: number;
+        };
+        LanguageDefaults: {
+            default: string;
+            fallback: string;
+        };
+        LanguagePageCopy: {
+            /** Format: date-time */
+            at?: string;
+            builtinLabels: boolean;
+            by: string;
+            /** Format: int64 */
+            missing: number;
+            /** @enum {string} */
+            status: "live" | "incomplete" | "not_set_up";
+        };
+        LanguageRemoval: {
+            code: string;
+            fallback: string;
+            has: components["schemas"]["RemovalItem"][];
+            name: string;
+            /** Format: int64 */
+            readers: number;
+            refusal?: string;
+        };
+        LanguageSourceChange: {
+            /** Format: date-time */
+            at: string;
+            blocks: string[];
+            by: string;
+            outdated: string[];
+            /** Format: int64 */
+            version: number;
+        };
         LiquidProblem: {
             /** Format: int64 */
             line: number;
@@ -11369,6 +11993,9 @@ export interface components {
             row?: components["schemas"]["MJMLThumbItem"][];
             /** Format: int64 */
             w?: number;
+        };
+        MarkInput: {
+            blocks?: string[];
         };
         Me: {
             instance: components["schemas"]["MeInstance"];
@@ -12134,7 +12761,7 @@ export interface components {
             /** @enum {string} */
             state: "failover_active" | "waiting" | "held" | "fallback_unavailable";
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
             suggestion?: string;
             /** Format: int64 */
             switchBackMinutes: number;
@@ -12215,7 +12842,7 @@ export interface components {
             /** @enum {string} */
             role: "primary" | "split" | "fallback" | "condition";
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
         };
         ProviderStreamRoute: {
             /** Format: int64 */
@@ -12225,7 +12852,7 @@ export interface components {
             fallback?: components["schemas"]["ProviderRouteShare"];
             splits: components["schemas"]["ProviderRouteShare"][];
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
         };
         ProviderTrackingActionInput: {
             /** @enum {string} */
@@ -12529,15 +13156,22 @@ export interface components {
             fixes: components["schemas"]["ReadinessFix"][];
             flatTitle: string;
             /** @enum {string} */
-            group: "reputation" | "authentication" | "content" | "links" | "compliance" | "audience" | "routing";
+            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing";
             key: string;
             label?: string;
             mono?: boolean;
             note?: string;
+            rows?: components["schemas"]["ReadinessCheckRow"][];
             short?: string;
             /** @enum {string} */
             status: "pass" | "warn" | "block" | "unknown";
             title: string;
+        };
+        ReadinessCheckRow: {
+            /** Format: int64 */
+            count: number;
+            detail: string;
+            label: string;
         };
         ReadinessCounts: {
             /** Format: int64 */
@@ -12558,7 +13192,7 @@ export interface components {
         };
         ReadinessFix: {
             /** @enum {string} */
-            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify";
+            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language";
             href?: string;
             /** @enum {string} */
             kind: "apply" | "link";
@@ -12577,7 +13211,7 @@ export interface components {
         };
         ReadinessFixRequest: {
             /** @enum {string} */
-            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify";
+            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language";
             params?: {
                 [key: string]: string;
             };
@@ -12588,7 +13222,7 @@ export interface components {
         ReadinessGroup: {
             caption: string;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "links" | "compliance" | "audience" | "routing";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing";
             /** Format: int64 */
             passed: number;
             running: string;
@@ -12626,7 +13260,7 @@ export interface components {
             /** Format: int64 */
             done: number;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "links" | "compliance" | "audience" | "routing";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing";
             /** @enum {string} */
             status: "queued" | "running" | "pass" | "warn" | "block" | "unknown";
             text: string;
@@ -12748,6 +13382,13 @@ export interface components {
         };
         RecoveryCodes: {
             codes: string[];
+        };
+        RemovalItem: {
+            detail: string;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation_email" | "transactional_template";
+            name: string;
         };
         RemoveSuppressionInput: {
             reason: string;
@@ -13386,7 +14027,8 @@ export interface components {
             listId?: string;
             senderDomain?: string;
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
+            template?: string;
         };
         RouteTestResult: {
             /** @enum {string} */
@@ -13425,16 +14067,22 @@ export interface components {
             warming?: string;
         };
         RoutingCondition: {
-            /** @enum {string} */
-            field: "mailbox_provider" | "list" | "sender_domain";
+            /**
+             * @description category: a transactional category (Transactional stream only)
+             * @enum {string}
+             */
+            field: "mailbox_provider" | "list" | "sender_domain" | "category";
             note?: string;
             /** Format: uuid */
             providerId: string;
             values: string[];
         };
         RoutingConditionView: {
-            /** @enum {string} */
-            field: "mailbox_provider" | "list" | "sender_domain";
+            /**
+             * @description category: a transactional category (Transactional stream only)
+             * @enum {string}
+             */
+            field: "mailbox_provider" | "list" | "sender_domain" | "category";
             note?: string;
             /** Format: uuid */
             providerId: string;
@@ -13442,6 +14090,7 @@ export interface components {
             values: string[];
         };
         RoutingConfig: {
+            categories: components["schemas"]["RoutingNamed"][];
             issues: components["schemas"]["RoutingIssue"][];
             lists: components["schemas"]["RoutingNamed"][];
             providers: components["schemas"]["RoutingProvider"][];
@@ -13451,6 +14100,7 @@ export interface components {
             senderDomains: string[];
             shared: components["schemas"]["RoutingShared"];
             streams: components["schemas"]["RoutingStreamView"][];
+            templates: components["schemas"]["RoutingNamed"][];
         };
         RoutingIssue: {
             blocking: boolean;
@@ -13514,9 +14164,10 @@ export interface components {
             failover: "automatic" | "pause_and_ask" | "warm_only";
             /** @description Provider id, or empty for none */
             fallback?: string;
+            priority?: boolean;
             splits: components["schemas"]["RoutingSplit"][];
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
         };
         RoutingStreamView: {
             /** Format: date-time */
@@ -13525,9 +14176,11 @@ export interface components {
             /** @enum {string} */
             failover: "automatic" | "pause_and_ask" | "warm_only";
             fallback: string;
+            priority?: boolean;
+            senderDomains?: string[];
             splits: components["schemas"]["RoutingSplit"][];
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
             volume?: components["schemas"]["RoutingVolume"];
         };
         RoutingTerms: {
@@ -13859,6 +14512,19 @@ export interface components {
         ScopedList: {
             id: string;
             name: string;
+        };
+        Segment: {
+            alt?: string;
+            /** Format: int64 */
+            column: number;
+            /** Format: int64 */
+            heading: number;
+            html?: string;
+            kind: string;
+            path: number[];
+            strong: boolean;
+            text: string;
+            url?: string;
         };
         SegmentCatalog: {
             fields: components["schemas"]["SegmentCatalogField"][];
@@ -14593,6 +15259,9 @@ export interface components {
             systemProvider: string;
             turnstile: components["schemas"]["PublicTurnstile"];
         };
+        SourceInput: {
+            language: string;
+        };
         SubscribePage: {
             description: string;
             footnote: string;
@@ -15040,6 +15709,40 @@ export interface components {
             /** @example Sam Rivera */
             name?: string;
         };
+        TransactionalAttachmentInput: {
+            /** @description The file, base64-encoded */
+            content: string;
+            /** @description Makes it an inline image the HTML references as cid:<content_id> */
+            content_id?: string;
+            /**
+             * @description Guessed from the file name when omitted
+             * @example application/pdf
+             */
+            content_type?: string;
+            /** @example INV-2026-0418.pdf */
+            filename: string;
+        };
+        TransactionalBatch: {
+            messages: components["schemas"]["TransactionalSend"][];
+        };
+        TransactionalBatchItem: {
+            error?: components["schemas"]["TransactionalProblem"];
+            id?: string;
+            /** Format: int64 */
+            index: number;
+            /** Format: date-time */
+            send_at?: string;
+            /** @enum {string} */
+            status: "queued" | "scheduled" | "not_delivered" | "error";
+            test?: boolean;
+        };
+        TransactionalBatchResult: {
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            failed: number;
+            results: components["schemas"]["TransactionalBatchItem"][];
+        };
         TransactionalBreakingChange: {
             breaking: components["schemas"]["TransactionalBreakingVariable"][];
             /**
@@ -15240,6 +15943,50 @@ export interface components {
              */
             version?: string;
         };
+        TransactionalProblem: {
+            /** @description Stable error code, e.g. permission_denied */
+            code?: string;
+            /**
+             * @description A human-readable explanation specific to this occurrence of the problem.
+             * @example Property foo is required but is missing.
+             */
+            detail?: string;
+            /** @description Optional list of individual error details */
+            errors?: components["schemas"]["ErrorDetail"][];
+            /** @description Members who hold the missing permission */
+            helpers?: string[];
+            /**
+             * Format: uri
+             * @description A URI reference that identifies the specific occurrence of the problem.
+             * @example https://example.com/error-log/abc123
+             */
+            instance?: string;
+            meta?: {
+                [key: string]: unknown;
+            };
+            /** @description Required variables the call didn't send (missing_variables) */
+            missing?: string[];
+            /** @description The missing permission key */
+            permission?: string;
+            /**
+             * Format: int64
+             * @description HTTP status code
+             * @example 400
+             */
+            status?: number;
+            /**
+             * @description A short, human-readable summary of the problem type. This value should not change between occurrences of the error.
+             * @example Bad Request
+             */
+            title?: string;
+            /**
+             * Format: uri
+             * @description A URI reference to human-readable documentation for the error.
+             * @default about:blank
+             * @example https://example.com/errors/example
+             */
+            type: string;
+        };
         TransactionalPublishApproval: {
             approvers: string[];
             reason?: string;
@@ -15315,6 +16062,52 @@ export interface components {
             undo?: boolean;
             /** Format: int64 */
             version: number;
+        };
+        TransactionalSend: {
+            attachments?: components["schemas"]["TransactionalAttachmentInput"][];
+            bcc?: components["schemas"]["TransactionalAddress"][];
+            cc?: components["schemas"]["TransactionalAddress"][];
+            /** @description The template's variables */
+            data?: {
+                [key: string]: unknown;
+            };
+            /** @description A verified Transactional sender, as an address or "Name <address>"; the template's sender when omitted */
+            from?: string;
+            metadata?: {
+                [key: string]: string;
+            };
+            /** @description Overrides the template's preheader (Liquid) */
+            preheader?: string;
+            reply_to?: string;
+            /**
+             * Format: date-time
+             * @description Send later, up to 72 hours ahead
+             */
+            send_at?: string;
+            /** @description Overrides the template's subject (Liquid) */
+            subject?: string;
+            /** @description Returned with every webhook event of the message */
+            tags?: string[];
+            /**
+             * @description The template's ID
+             * @example password-reset
+             */
+            template: string;
+            to: components["schemas"]["TransactionalAddress"];
+        };
+        TransactionalSendResult: {
+            detail?: string;
+            /** @example 0192f1c4-7b2e-7c51-9d0a-3f5e8b1a2c44 */
+            id: string;
+            /** Format: date-time */
+            send_at?: string;
+            /**
+             * @description not_delivered: a test-mode key's message to an address that isn't allowed
+             * @enum {string}
+             */
+            status: "queued" | "scheduled" | "not_delivered";
+            /** @description Sent with a test-mode key */
+            test?: boolean;
         };
         TransactionalSenderOption: {
             domain: string;
@@ -15970,6 +16763,40 @@ export interface components {
             defaultSenderId?: string;
             name: string;
             timezone: string;
+        };
+        WorkspaceLanguage: {
+            /** Format: date-time */
+            addedAt?: string;
+            addedBy: string;
+            /** @example es */
+            code: string;
+            codes: string[];
+            /** Format: int64 */
+            contacts: number;
+            isDefault: boolean;
+            isFallback: boolean;
+            moreCodes: boolean;
+            /** @example Spanish */
+            name: string;
+            /** @example Español */
+            native: string;
+            /** Format: int64 */
+            own: number;
+            pageCopy: components["schemas"]["LanguagePageCopy"];
+        };
+        WorkspaceLanguages: {
+            canManage: boolean;
+            default: string;
+            fallback: string;
+            helpers: string[];
+            languages: components["schemas"]["WorkspaceLanguage"][];
+            /** Format: int64 */
+            noLanguage: number;
+            /** Format: int64 */
+            notOffered: number;
+            notOfferedCodes: string[];
+            /** Format: int64 */
+            totalContacts: number;
         };
         WorkspaceMe: {
             /** @enum {string} */
@@ -21298,7 +22125,10 @@ export interface operations {
     };
     "get-campaign": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Return a language version's content (its code, such as de); empty returns the source */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -21479,7 +22309,10 @@ export interface operations {
     };
     "save-campaign-content": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Save a language version (its code, such as de); empty saves the source */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -21534,6 +22367,427 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComposerCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-campaign-languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-campaign-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddLanguageInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "apply-to-campaign-languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "keep-campaign-languages-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeepUpToDateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-campaign-source-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-campaign-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "compare-campaign-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageCompare"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "copy-block-to-campaign-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlockInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageCompare"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "hold-campaign-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoldInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-campaign-language-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-campaign-language-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-block-from-campaign-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlockInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageCompare"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-campaign-language-versions": {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerVersionList"];
                 };
             };
             /** @description Error */
@@ -26106,6 +27360,245 @@ export interface operations {
             };
         };
     };
+    "list-workspace-languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-workspace-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddWorkspaceLanguage"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-language-catalog": {
+        parameters: {
+            query?: {
+                /** @description Search by name, own name or code */
+                q?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageCatalogList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-language-defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LanguageDefaults"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-fallback-impact": {
+        parameters: {
+            query: {
+                code: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FallbackImpact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-workspace-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-language-removal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageRemoval"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "leave-workspace": {
         parameters: {
             query?: never;
@@ -29838,6 +31331,84 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-transactional-message": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A retry with the same key within 24 hours never sends twice */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalSend"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalSendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-transactional-batch": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A retry of the same batch within 24 hours never sends twice */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalBatch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalBatchResult"];
+                };
             };
             /** @description Error */
             default: {

@@ -163,7 +163,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, ref string, 
 	if rerr != nil {
 		// A template that doesn't render is the preview's answer, not a failure.
 		out.Problem = rerr.Error()
-		return out, nil
+		return out, nil //nolint:nilerr // the preview's answer, not a failure
 	}
 	out.Subject, out.Preheader, out.HTML, out.Text, out.SizeBytes = r.Subject, r.Preheader, r.HTML, r.Text, len(r.HTML)
 	out.OK = len(out.Missing) == 0
