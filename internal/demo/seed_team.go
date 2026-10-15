@@ -29,7 +29,10 @@ func seedTeamImpl(ctx context.Context, s *Seeder) error {
 		Description: "Edit campaigns and templates, view reports, request approval. Can't send, export contacts or touch providers",
 		Builtin:     false,
 		Permissions: authz.NewSet(authz.CampaignsView, authz.CampaignsEdit, authz.TemplatesView, authz.TemplatesEdit, authz.AutomationsView,
-			authz.SubscribersView, authz.ReportsView, authz.DeliverabilityView, authz.ProvidersView, authz.TeamView).Strings(),
+			authz.SubscribersView, authz.ReportsView, authz.DeliverabilityView, authz.ProvidersView, authz.TeamView,
+			// What the expansion's briefs give the sample's custom role (Roles board).
+			authz.TransactionalView, authz.TransactionalEdit, authz.IntegrationsView, authz.AIUse, authz.GrowView,
+			authz.WebsiteView, authz.WebsiteEdit, authz.ProductsView, authz.ProductsEdit).Strings(),
 		CreatedBy: &linh.ID,
 	})
 	if err != nil {

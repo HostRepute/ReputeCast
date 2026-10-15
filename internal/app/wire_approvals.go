@@ -32,9 +32,12 @@ func readinessService(a *App) *readiness.Service {
 		Mail:      func() mailer.Sender { return a.Mail },
 		URLs:      a.URLs,
 		Checker:   &contentcheck.Checker{Blocklist: contentcheck.StoreBlocklist{Q: a.Q}, Prober: prober},
+		// Send Readiness checks and fixes every language version.
+		Translations: campaignTranslations(a),
 	}
 	_, dl := deliverabilityServices(a)
-	return &readiness.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, Campaigns: cs, Deliverability: dl, URLs: a.URLs, Segments: a.segments()}
+	return &readiness.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, Campaigns: cs, Deliverability: dl, URLs: a.URLs, Segments: a.segments(),
+		Languages: languagesService(a)}
 }
 
 // newApprovals builds the approvals service with its own Send Readiness.
@@ -42,7 +45,8 @@ func newApprovals(a *App) *approvals.Service {
 	rs := readinessService(a)
 	s := &approvals.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, Readiness: rs, Campaigns: rs.Campaigns,
-		Sending: func() sending.Starter { return a.Sending },
+		Languages: rs.Languages,
+		Sending:   func() sending.Starter { return a.Sending },
 		// Publishing an approved automation: the gate already passed.
 		Automations: &automations.Service{
 			Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log,

@@ -53,6 +53,8 @@ type Recipient struct {
 	MailboxProvider string
 	Lists           []string
 	Tier            string
+	// Language is the contact's language code as stored.
+	Language string
 }
 
 // mailboxKey folds aliases that reach the same mailbox: plus-tags anywhere,
@@ -134,7 +136,7 @@ func (n audienceNames) labels(a AudienceDef) (base, group string, names []string
 // computeAudience counts the final recipients of a definition: suppressed,
 // role, duplicate and (when excluded) sunset-tier contacts are removed.
 func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uuid.UUID, def AudienceDef, unengagedDays int, now time.Time) (AudienceFacts, []Recipient, error) {
-	out := AudienceFacts{Mailboxes: map[string]int64{}, UnengagedDays: unengagedDays, UnengagedExcluded: def.ExcludesSunset(), Lists: []string{},
+	out := AudienceFacts{Mailboxes: map[string]int64{}, Languages: map[string]int64{}, UnengagedDays: unengagedDays, UnengagedExcluded: def.ExcludesSunset(), Lists: []string{},
 		SunsetOverride: def.IncludeSunset && !def.ExcludesSunset()}
 	names, err := s.names(ctx, q, wsID)
 	if err != nil {
@@ -226,11 +228,12 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 			mbp = routing.MailboxProvider(r.Email)
 		}
 		out.Mailboxes[mbp]++
+		out.Languages[strings.ToLower(strings.TrimSpace(r.Language))]++
 		lists := make([]string, len(r.ListIds))
 		for i, l := range r.ListIds {
 			lists[i] = l.String()
 		}
-		recipients = append(recipients, Recipient{Email: r.Email, MailboxProvider: mbp, Lists: lists, Tier: r.Tier})
+		recipients = append(recipients, Recipient{Email: r.Email, MailboxProvider: mbp, Lists: lists, Tier: r.Tier, Language: r.Language})
 	}
 	return out, recipients, nil
 }

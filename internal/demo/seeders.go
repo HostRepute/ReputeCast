@@ -22,6 +22,7 @@ var (
 	seedIntegrations   = noop // API keys, MCP agents, webhooks and deliveries
 	seedNotifications  = noop // notification center items
 	seedAudit          = noop // audit history
+	seedTransactional  = noop // transactional email: Acme Cloud's templates, keys, messages, relay (seed_transactional.go)
 	// Design expansion (append-only).
 	seedIntegrationsHub = noop // integrations hub: Zapier, n8n, WordPress sites (seed_integrations_hub.go)
 )

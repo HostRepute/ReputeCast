@@ -412,7 +412,7 @@ func (q *Queries) ReadinessPruneRuns(ctx context.Context, campaignID uuid.UUID) 
 }
 
 const readinessRecipients = `-- name: ReadinessRecipients :many
-SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address,
+SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address, c.language,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS broadcasts_stopped,
        coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')::uuid[] AS list_ids,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email) AS suppressed,
@@ -440,6 +440,7 @@ type ReadinessRecipientsRow struct {
 	MailboxProvider   string      `json:"mailboxProvider"`
 	Tier              string      `json:"tier"`
 	RoleAddress       bool        `json:"roleAddress"`
+	Language          string      `json:"language"`
 	BroadcastsStopped bool        `json:"broadcastsStopped"`
 	ListIds           []uuid.UUID `json:"listIds"`
 	Suppressed        bool        `json:"suppressed"`
@@ -472,6 +473,7 @@ func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipien
 			&i.MailboxProvider,
 			&i.Tier,
 			&i.RoleAddress,
+			&i.Language,
 			&i.BroadcastsStopped,
 			&i.ListIds,
 			&i.Suppressed,

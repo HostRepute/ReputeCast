@@ -50,10 +50,11 @@ const (
 	stageLinks    stage = GroupLinks
 	stageAudience stage = GroupAudience
 	stageRouting  stage = GroupRouting
+	stageLang     stage = GroupLanguages
 )
 
 // runOrder is the order groups run (and tick in on the review screen).
-var runOrder = []string{GroupAuthentication, GroupContent, GroupCompliance, GroupReputation, GroupLinks, GroupAudience, GroupRouting}
+var runOrder = []string{GroupAuthentication, GroupContent, GroupLanguages, GroupCompliance, GroupReputation, GroupLinks, GroupAudience, GroupRouting}
 
 // sunsetDays is the number of days without an open or click after which a
 // contact is unengaged: the last day before the sunset tier of the
@@ -152,6 +153,26 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 		}
 	}
 	done(stageContent, f)
+
+	// Languages: who gets which version, and the content checks of every
+	// version that is sent.
+	if s.Languages != nil {
+		lf, err := s.Languages.CampaignReadiness(ctx, ws, c.ID, f.Audience.Languages)
+		if err != nil {
+			return f, fmt.Errorf("languages: %w", err)
+		}
+		f.Languages = lf
+		if f.Content.Checked && s.Campaigns != nil {
+			for _, v := range lf.Versions {
+				chk, err := s.Campaigns.Checks(ctx, ws, c.ID, campaigns.ComposerChecksRequest{Subject: v.Subject, Preheader: v.Preheader, MJML: v.MJML, HTML: v.HTML, Language: v.Language})
+				if err != nil {
+					return f, fmt.Errorf("languages: %s content: %w", v.Language, err)
+				}
+				f.Content.Versions = append(f.Content.Versions, VersionReport{Language: v.Language, Report: chk.ContentCheckReport})
+			}
+		}
+	}
+	done(stageLang, f)
 
 	f.Compliance = s.compliance(ws, f)
 	done(stageComply, f)

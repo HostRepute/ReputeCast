@@ -23,6 +23,8 @@ func init() {
 			},
 			// Saves re-check the campaign's open approval.
 			AfterChange: CampaignChangeHook(a),
+			// ?language= reaches the campaign's language versions.
+			Translations: campaignTranslations(a),
 		}
 		campaigns.Register(h, s)
 		campaigns.RegisterComposer(h, s)

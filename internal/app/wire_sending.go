@@ -11,6 +11,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/tracking"
@@ -82,6 +83,8 @@ func sendingEngine(a *App) *engine.Engine {
 		Normalizer:  a.normalizer(),
 		Recorder:    sendingTracker(a),
 		Automations: &automations.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log},
+		// Each reader gets the language version for them.
+		Languages: &languages.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
 	}
 	v, _ := sendingEngines.LoadOrStore(a, e)
 	return v.(*engine.Engine)

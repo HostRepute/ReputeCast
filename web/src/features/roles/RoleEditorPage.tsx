@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { FullPageState } from '@/components/shell/SystemScreens'
@@ -12,8 +12,12 @@ import { KeyValues } from '@/components/ui/Data'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { common } from '@/i18n/common'
+import { formatList, T, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { deniedReason, useWorkspace } from '@/lib/session'
+import { m } from './messages'
+import { editorNote, groupNote } from './notes'
 import { SaveRoleDialog, type SaveKind } from './SaveRoleDialog'
 
 type RoleList = Schemas['RoleList']
@@ -26,25 +30,28 @@ export interface RoleEditorSearch {
   saved?: 'created' | 'updated'
 }
 
+const mono = (chunks: ReactNode[]) => <span className="mono">{chunks}</span>
+
 /** A5 §5.8 role editor (RoleEditor, RoleEditorStates): "new", a duplicate (?from=) or an existing custom role. */
 export function RoleEditorPage({ roleId, search }: { roleId: string; search: RoleEditorSearch }) {
   const { slug } = useWorkspace()
+  const tr = useT()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/roles', { params: { path: { workspace: slug } } })
   const isNew = roleId === 'new'
   const role = isNew ? undefined : q.data?.roles.find((r) => r.id === roleId)
   const source = isNew && search.from ? q.data?.roles.find((r) => r.id === search.from) : undefined
-  const title = isNew ? 'New custom role' : (role?.name ?? 'Role')
+  const title = isNew ? tr(m.editorNewTitle) : (role?.name ?? tr(m.editorRoleTitle))
   return (
     <Page
       title={title}
       breadcrumb={[
-        { label: 'Settings', to: '/w/$workspace/settings', params: { workspace: slug } },
-        { label: 'Roles', to: '/w/$workspace/settings/roles', params: { workspace: slug } },
+        { label: tr(m.breadcrumbSettings), to: '/w/$workspace/settings', params: { workspace: slug } },
+        { label: tr(m.breadcrumbRoles), to: '/w/$workspace/settings/roles', params: { workspace: slug } },
         { label: title },
       ]}
     >
       {q.isError ? (
-        <ErrorPanel title="Couldn't load the role" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
+        <ErrorPanel title={tr(m.editorLoadFailed)} actions={<Button onClick={() => q.refetch()}>{tr(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : q.isPending ? (
@@ -52,15 +59,15 @@ export function RoleEditorPage({ roleId, search }: { roleId: string; search: Rol
       ) : !isNew && !role ? (
         <FullPageState
           icon="searchLarge"
-          badge="Not found"
-          title="This role doesn't exist"
+          badge={tr(m.notFoundBadge)}
+          title={tr(m.notFoundTitle)}
           actions={
             <ButtonLink to="/w/$workspace/settings/roles" params={{ workspace: slug }}>
-              Back to Roles
+              {tr(m.backToRoles)}
             </ButtonLink>
           }
         >
-          It may have been deleted. The audit log keeps its history.
+          {tr(m.notFoundBody)}
         </FullPageState>
       ) : (
         // A saved role remounts the editor with its new values (and a fresh unsaved-changes guard).
@@ -90,10 +97,11 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
   const { slug, me } = useWorkspace()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const tr = useT()
   const catalog = useMemo(() => list.permissions.filter((p) => !p.ownerOnly), [list.permissions])
   const builtin = Boolean(role?.builtin)
   const readOnly = !list.canManage || builtin
-  const [name, setName] = useState(role?.name ?? (source ? `${source.name} (copy)` : ''))
+  const [name, setName] = useState(role?.name ?? (source ? tr(m.copyName, { name: source.name }) : ''))
   const [description, setDescription] = useState(role?.description ?? source?.description ?? '')
   // A duplicate keeps only what the caller can grant; an existing role keeps what it has.
   const [picked, setPicked] = useState<string[]>(() =>
@@ -124,7 +132,7 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
   const recalculating = !readOnly && (impact.isFetching || debounced !== wanted)
   const [waiting, setWaiting] = useState(false)
   const lockReason = (key: string) =>
-    impact.data?.locked.find((l) => l.key === key)?.reason ?? `You can't grant ${key} because you don't hold it.${list.helpers.length ? ` Ask ${list.helpers[0]}.` : ''}`
+    impact.data?.locked.find((l) => l.key === key)?.reason ?? (list.helpers.length ? tr(m.cantGrantAsk, { key, name: list.helpers[0]! }) : tr(m.cantGrant, { key }))
 
   const create = $api.useMutation('post', '/api/v1/workspaces/{workspace}/roles')
   const update = $api.useMutation('put', '/api/v1/workspaces/{workspace}/roles/{roleId}')
@@ -139,7 +147,7 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
   const save = () => {
     setError(undefined)
     if (!body.name) {
-      setError({ field: 'name', message: 'Give the role a name.' })
+      setError({ field: 'name', message: tr(m.nameRequired) })
       return
     }
     if (!role) {
@@ -161,7 +169,7 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
       {
         onSuccess: () => {
           setDialog(undefined)
-          toast({ title: `Role “${body.name}” saved`, detail: 'logged as role.updated' })
+          toast({ title: tr(m.savedToast, { name: body.name }), detail: tr(m.savedToastDetail) })
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/roles'] })
           void qc.invalidateQueries({ queryKey: ['role-impact'] })
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members'] })
@@ -200,38 +208,46 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
     picked.some((k) => !role?.permissions.includes(k))
 
   const held = list.held.length
-  const ownerNote = me.workspace.roleKey === 'owner' ? 'As Owner you hold all of them.' : lockedKeys.length === 0 ? 'You hold all of them.' : ''
+  const grantNote =
+    me.workspace.roleKey === 'owner'
+      ? tr(m.grantNoteOwner)
+      : lockedKeys.length === 0
+        ? tr(m.grantNoteAll)
+        : list.helpers.length
+          ? tr(m.grantNoteSomeAsk, { held, total: catalog.length, locked: lockedKeys.length, names: formatList(list.helpers, 'disjunction') })
+          : tr(m.grantNoteSome, { held, total: catalog.length, locked: lockedKeys.length })
   const groups = list.groups.map((g) => ({ g, rows: catalog.filter((p) => p.group === g) })).filter((x) => x.rows.length > 0)
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-5 max-md:grid-cols-1">
       <div className="col gap-5">
         {saved && role && !dirty ? (
-          <Note tone="ok" label="Saved">
-            Role “{role.name}” {saved === 'created' ? 'created' : 'saved'}.{' '}
-            {saved === 'created' ? (
-              <>
-                Assign it from{' '}
-                <Link to="/w/$workspace/settings/team" params={{ workspace: slug }}>
-                  Team
-                </Link>
-                .{' '}
-              </>
-            ) : null}
-            Logged as <span className="mono">{saved === 'created' ? 'role.created' : 'role.updated'}</span>.
+          <Note tone="ok" label={tr(m.savedBadge)}>
+            <T
+              msg={saved === 'created' ? m.savedCreated : m.savedUpdated}
+              values={{
+                name: role.name,
+                mono,
+                team: (chunks) => (
+                  <Link to="/w/$workspace/settings/team" params={{ workspace: slug }}>
+                    {chunks}
+                  </Link>
+                ),
+              }}
+            />
           </Note>
         ) : null}
         <section className="card" aria-labelledby="role-h">
           <div className="sec">
             <h2 className="h2" id="role-h">
-              Role
+              {tr(m.roleCard)}
             </h2>
-            {builtin ? <Badge tone="neutral">Built-in · read-only</Badge> : <Badge tone="info">Custom role</Badge>}
+            {builtin ? <Badge tone="neutral">{tr(m.builtinBadge)}</Badge> : <Badge tone="info">{tr(m.customBadge)}</Badge>}
           </div>
           <div className="pad col gap-3.5">
             <div className="grid grid-cols-[1fr_2fr] gap-3.5 max-md:grid-cols-1 [&>*]:min-w-0">
               <label className="lbl">
-                Name
+                {tr(m.nameLabel)}
                 <input
                   className="in"
                   type="text"
@@ -249,9 +265,9 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
                 ) : null}
               </label>
               <label className="lbl">
-                Description
+                {tr(m.descriptionLabel)}
                 <input className="in" type="text" value={description} onChange={(e) => setDescription(e.target.value)} disabled={readOnly} maxLength={300} />
-                <span className="k font-medium">Shown to members and in the audit log.</span>
+                <span className="k font-medium">{tr(m.descriptionHelp)}</span>
               </label>
             </div>
           </div>
@@ -260,17 +276,13 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
           <div className="sec">
             <div className="col gap-0.5">
               <h2 className="h2" id="perm-h">
-                Permissions
+                {tr(m.permissionsTitle)}
               </h2>
-              <span className="k">A permission includes its view permission automatically. ⚑ marks sensitive permissions: holders must use two-factor.</span>
+              <span className="k">{tr(m.permissionsCaption)}</span>
             </div>
             {readOnly ? null : (
               <div className="row gap-2">
-                {lockedKeys.length > 0 ? (
-                  <Badge tone="warn">
-                    {lockedKeys.length} {lockedKeys.length === 1 ? 'permission' : 'permissions'} locked
-                  </Badge>
-                ) : null}
+                {lockedKeys.length > 0 ? <Badge tone="warn">{tr(m.lockedBadge, { count: lockedKeys.length })}</Badge> : null}
                 <Button
                   size="sm"
                   onClick={() => {
@@ -278,21 +290,22 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
                     if (editor) setPicked(editor.permissions.filter((k) => list.held.includes(k) && catalog.some((p) => p.key === k)))
                   }}
                 >
-                  Start from Editor
+                  {tr(m.startFromEditor)}
                 </Button>
                 <Button size="sm" onClick={() => setPicked([])}>
-                  Clear all
+                  {tr(m.clearAll)}
                 </Button>
               </div>
             )}
           </div>
           {!readOnly && lockedKeys.length > 0 ? (
             <Note tone="neutral" className="mx-4.5 mb-3 mt-3.5">
-              Nobody can grant a permission they don&apos;t hold: not to a role, a member, an API key or an MCP agent. Locked rows explain why and who can help.
+              {tr(m.guardNote)}
             </Note>
           ) : null}
           {groups.map(({ g, rows }) => {
             const gid = `g-${g.toLowerCase().replace(/[^a-z]+/g, '-')}`
+            const after = groupNote(g)
             return (
               <div key={g} role="group" aria-labelledby={gid}>
                 <div id={gid} className="border-t border-line-2 px-4.5 pb-1 pt-2.5 text-[12px] font-bold uppercase tracking-[.04em] text-ink-2">
@@ -304,47 +317,64 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
                   const locked = lockedKeys.includes(p.key) && !readOnly
                   const disabled = readOnly || Boolean(by) || (locked && !picked.includes(p.key))
                   const id = `p-${p.key.replace(':', '-')}`
+                  const own = editorNote(p)
                   const note = by ? (
                     <span className="k" id={`d-${id}`}>
-                      included by {by}
+                      {tr(m.includedBy, { key: by })}
                     </span>
                   ) : locked ? (
                     <span className="k max-w-[260px] whitespace-normal text-bad-fg!" id={`d-${id}`}>
                       {lockReason(p.key)}
                     </span>
+                  ) : own.aside ? (
+                    <span className="k" id={`d-${id}`}>
+                      {tr(own.aside)}
+                    </span>
                   ) : !readOnly && lockedKeys.length > 0 && on ? (
                     <span className="k" id={`d-${id}`}>
-                      Held by you · can be granted
+                      {tr(m.heldByYou)}
                     </span>
                   ) : null
+                  const describedBy = [own.line ? `l-${id}` : '', note ? `d-${id}` : ''].filter(Boolean).join(' ')
                   return (
-                    <div key={p.key} className="row flex-nowrap gap-3 px-4.5 max-sm:flex-wrap max-sm:gap-y-0">
+                    <div key={p.key} className="row flex-nowrap gap-3 px-4.5">
                       <input
                         type="checkbox"
                         id={id}
                         checked={on}
                         disabled={disabled}
-                        aria-describedby={note ? `d-${id}` : undefined}
+                        aria-describedby={describedBy || undefined}
                         onChange={(e) => setPicked((cur) => (e.target.checked ? [...cur, p.key] : cur.filter((k) => k !== p.key)))}
                       />
-                      <label htmlFor={id} className={cn('flex min-w-0 flex-1 flex-col gap-px py-[7px] text-[13.5px]', !disabled && 'cursor-pointer')}>
+                      <label htmlFor={id} className={cn('flex min-w-min flex-1 flex-col gap-px py-[7px] text-[13.5px]', !disabled && 'cursor-pointer')}>
                         <span>
                           {p.label}
                           {p.sensitive ? (
                             <>
                               {' '}
-                              <span title="Sensitive permission">
-                                <SensitiveFlag />
+                              <span title={tr(m.sensitiveTitle)}>
+                                <SensitiveFlag>{tr(m.sensitive)}</SensitiveFlag>
                               </span>
                             </>
                           ) : null}
                         </span>
-                        <span className="k mono">{p.key}</span>
+                        {/* A key never breaks; the note beside it wraps instead. */}
+                        <span className="k mono [overflow-wrap:normal]!">{p.key}</span>
+                        {own.line ? (
+                          <span className="k whitespace-normal" id={`l-${id}`}>
+                            {tr(own.line)}
+                          </span>
+                        ) : null}
                       </label>
                       {note}
                     </div>
                   )
                 })}
+                {after ? (
+                  <div className="k whitespace-normal px-4.5 pb-2.5 pt-0.5">
+                    <T msg={after} values={{ mono }} />
+                  </div>
+                ) : null}
               </div>
             )
           })}
@@ -353,50 +383,35 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
       <section className="card md:sticky md:top-4" aria-labelledby="impact-h">
         <div className="sec">
           <h2 className="h2" id="impact-h">
-            Impact preview
+            {tr(m.impactTitle)}
           </h2>
         </div>
         <div className={cn('pad col gap-3', recalculating && 'opacity-80')} aria-busy={recalculating || undefined}>
           <ImpactValues role={role} impact={impact.data} readOnly={readOnly} />
-          {readOnly ? (
-            <Note tone="neutral">
-              {builtin
-                ? 'Built-in roles can’t be edited. Duplicate this one to start a custom role with the same permissions.'
-                : `${deniedReason('team:manage', list.helpers)}`}
-            </Note>
-          ) : (
-            <Note tone="neutral">
-              You can only grant permissions you hold yourself.{' '}
-              {ownerNote ||
-                `You hold ${held} of ${catalog.length}; ${lockedKeys.length} ${lockedKeys.length === 1 ? 'is' : 'are'} locked.${list.helpers.length ? ` Ask ${list.helpers.join(' or ')} for more.` : ''}`}
-            </Note>
-          )}
+          {readOnly ? <Note tone="neutral">{builtin ? tr(m.builtinReadOnly) : deniedReason('team:manage', list.helpers)}</Note> : <Note tone="neutral">{grantNote}</Note>}
           {error ? (
-            <Note tone="bad" label="Not saved">
+            <Note tone="bad" label={tr(m.notSavedLabel)}>
               {error.message}
             </Note>
           ) : null}
           <div className="row justify-end gap-2">
             <ButtonLink to="/w/$workspace/settings/roles" params={{ workspace: slug }}>
-              {readOnly ? 'Back to roles' : 'Cancel'}
+              {readOnly ? tr(m.backToRolesLower) : tr(m.cancel)}
             </ButtonLink>
             {builtin && list.canManage && role ? (
               <ButtonLink variant="primary" to="/w/$workspace/settings/roles/$roleId" params={{ workspace: slug, roleId: 'new' }} search={{ from: role.id }}>
-                Duplicate to customize
+                {tr(m.duplicateToCustomize)}
               </ButtonLink>
             ) : readOnly ? null : (
               <Button variant="primary" loading={busy || waiting} onClick={() => void requestSave()}>
-                {busy || waiting ? 'Saving…' : role ? 'Save role' : 'Create role'}
+                {busy || waiting ? tr(m.saving) : role ? tr(m.saveRole) : tr(m.createRole)}
               </Button>
             )}
           </div>
-          {waiting ? <span className="k">Impact is recalculated after each change; saving waits for it.</span> : null}
+          {waiting ? <span className="k">{tr(m.waitingImpact)}</span> : null}
         </div>
       </section>
-      <UnsavedChangesGuard
-        dirty={!readOnly && dirty && !leaving}
-        description={role ? `Your changes to “${role.name}” aren't saved. Its members keep their current permissions.` : "The new role isn't created yet."}
-      />
+      <UnsavedChangesGuard dirty={!readOnly && dirty && !leaving} description={role ? tr(m.unsavedRole, { name: role.name }) : tr(m.unsavedNew)} />
       {dialog && role && impact.data ? (
         <SaveRoleDialog kind={dialog} role={role} name={body.name} impact={impact.data} busy={busy} onBack={() => setDialog(undefined)} onSave={save} />
       ) : null}
@@ -405,24 +420,25 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
 }
 
 function ImpactValues({ role, impact, readOnly }: { role?: Role; impact?: Impact; readOnly: boolean }) {
-  const holders = role ? role.members.filter((m) => m.status === 'active') : []
+  const tr = useT()
+  const holders = role ? role.members.filter((x) => x.status === 'active') : []
   const members = !role
-    ? '0 · assign the role from Team after saving'
+    ? tr(m.impactMembersNew)
     : holders.length === 0
       ? '0'
-      : `${holders.length} · ${holders
-          .slice(0, 3)
-          .map((m) => m.name)
-          .join(', ')}${holders.length > 3 ? ` +${holders.length - 3}` : ''}`
+      : tr(m.impactMembersList, {
+          count: holders.length,
+          names: holders.length > 3 ? tr(m.membersNames, { names: holders.slice(0, 3).map((x) => x.name).join(', '), more: holders.length - 3 }) : holders.map((x) => x.name).join(', '),
+        })
   if (readOnly || !impact) {
     return (
       <KeyValues
         items={[
-          ['Members', members],
-          ['API keys', readOnly ? '–' : <Skeleton key="k" w={24} />],
-          ['MCP agents', readOnly ? '–' : <Skeleton key="a" w={24} />],
-          ['Sensitive', readOnly ? '–' : <Skeleton key="s" w="80%" />],
-          ['Approvals', readOnly ? '–' : <Skeleton key="p" w="90%" />],
+          [tr(m.impactMembers), members],
+          [tr(m.impactKeys), readOnly ? '–' : <Skeleton key="k" w={24} />],
+          [tr(m.impactAgents), readOnly ? '–' : <Skeleton key="a" w={24} />],
+          [tr(m.impactSensitive), readOnly ? '–' : <Skeleton key="s" w="80%" />],
+          [tr(m.impactApprovals), readOnly ? '–' : <Skeleton key="p" w="90%" />],
         ]}
       />
     )
@@ -430,21 +446,22 @@ function ImpactValues({ role, impact, readOnly }: { role?: Role; impact?: Impact
   return (
     <KeyValues
       items={[
-        ['Members', members],
-        ['API keys', String(impact.apiKeys)],
-        ['MCP agents', String(impact.agents)],
-        ['Sensitive', impact.sensitive],
-        ['Approvals', impact.approvals],
+        [tr(m.impactMembers), members],
+        [tr(m.impactKeys), String(impact.apiKeys)],
+        [tr(m.impactAgents), String(impact.agents)],
+        [tr(m.impactSensitive), impact.sensitive],
+        [tr(m.impactApprovals), impact.approvals],
       ]}
     />
   )
 }
 
 function EditorSkeleton() {
+  const tr = useT()
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-5 max-md:grid-cols-1" aria-busy="true">
       <span className="vh" role="status">
-        Loading the role
+        {tr(m.editorLoading)}
       </span>
       <div className="col gap-5">
         <section className="card pad flex flex-col gap-3">

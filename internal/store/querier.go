@@ -247,6 +247,30 @@ type Querier interface {
 	ContactSources(ctx context.Context, workspaceID uuid.UUID) ([]ContactSourcesRow, error)
 	ContentCheckLinkListings(ctx context.Context, domains []string) ([]LinkDomainListing, error)
 	ContentCheckUpsertLinkListing(ctx context.Context, arg ContentCheckUpsertLinkListingParams) error
+	ContentSource(ctx context.Context, arg ContentSourceParams) (ContentSource, error)
+	ContentSourceCopy(ctx context.Context, arg ContentSourceCopyParams) error
+	ContentSourceForUpdate(ctx context.Context, arg ContentSourceForUpdateParams) (ContentSource, error)
+	ContentSourceSetLanguage(ctx context.Context, arg ContentSourceSetLanguageParams) error
+	ContentSourceUpsert(ctx context.Context, arg ContentSourceUpsertParams) error
+	ContentTranslation(ctx context.Context, arg ContentTranslationParams) (ContentTranslationRow, error)
+	ContentTranslationDelete(ctx context.Context, arg ContentTranslationDeleteParams) (int64, error)
+	ContentTranslationForUpdate(ctx context.Context, arg ContentTranslationForUpdateParams) (ContentTranslation, error)
+	ContentTranslationInsert(ctx context.Context, arg ContentTranslationInsertParams) error
+	// Marked translated or up to date: the links point at the current source.
+	ContentTranslationMark(ctx context.Context, arg ContentTranslationMarkParams) error
+	// Keeps the newest autosaves; the first version and named saves stay.
+	ContentTranslationPruneVersions(ctx context.Context, arg ContentTranslationPruneVersionsParams) (int64, error)
+	ContentTranslationSave(ctx context.Context, arg ContentTranslationSaveParams) error
+	ContentTranslationSetHeld(ctx context.Context, arg ContentTranslationSetHeldParams) error
+	ContentTranslationSetLinks(ctx context.Context, arg ContentTranslationSetLinksParams) error
+	ContentTranslationVersion(ctx context.Context, arg ContentTranslationVersionParams) (ContentTranslationVersionRow, error)
+	ContentTranslationVersionInsert(ctx context.Context, arg ContentTranslationVersionInsertParams) error
+	ContentTranslationVersions(ctx context.Context, arg ContentTranslationVersionsParams) ([]ContentTranslationVersionsRow, error)
+	// The language versions of an email, with who translated and last saved them.
+	ContentTranslations(ctx context.Context, arg ContentTranslationsParams) ([]ContentTranslationsRow, error)
+	// Carries an automation email's or template's language versions to its
+	// next version (their versions are immutable).
+	ContentTranslationsCopy(ctx context.Context, arg ContentTranslationsCopyParams) error
 	CountActiveOwners(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountAutomationHeldMessages(ctx context.Context, automationID *uuid.UUID) (int64, error)
 	CountAutomationInFlow(ctx context.Context, automationIds []uuid.UUID) ([]CountAutomationInFlowRow, error)
@@ -749,6 +773,39 @@ type Querier interface {
 	KeysRejections(ctx context.Context, apiKeyID uuid.UUID) (KeysRejectionsRow, error)
 	KeysRevoke(ctx context.Context, arg KeysRevokeParams) (int64, error)
 	KeysTouch(ctx context.Context, arg KeysTouchParams) error
+	// Adding a language that was removed brings it back with its page copy.
+	LanguagesAdd(ctx context.Context, arg LanguagesAddParams) error
+	LanguagesCampaignSendContent(ctx context.Context, campaignID uuid.UUID) (json.RawMessage, error)
+	// What a campaign's source is: its content and who saved it last.
+	LanguagesCampaignSource(ctx context.Context, arg LanguagesCampaignSourceParams) (LanguagesCampaignSourceRow, error)
+	// The source version saved last at or before a time (who changed a block).
+	LanguagesCampaignVersionAt(ctx context.Context, arg LanguagesCampaignVersionAtParams) (LanguagesCampaignVersionAtRow, error)
+	LanguagesClearDefault(ctx context.Context, workspaceID uuid.UUID) error
+	LanguagesClearFallback(ctx context.Context, workspaceID uuid.UUID) error
+	// Contacts per language code as stored ("es-MX", "" for none), erased
+	// contacts left out, as on Contacts.
+	LanguagesContactCodes(ctx context.Context, workspaceID uuid.UUID) ([]LanguagesContactCodesRow, error)
+	// A workspace that never chose its default writes in English: English
+	// becomes its default (and its fallback unless it has one).
+	LanguagesEnsureDefault(ctx context.Context, workspaceID uuid.UUID) error
+	// The newest unsent campaign with the same audience (the report's "Add a
+	// Vietnamese version to …").
+	LanguagesLatestDraftFor(ctx context.Context, arg LanguagesLatestDraftForParams) (LanguagesLatestDraftForRow, error)
+	// Content languages (design expansion M17): workspace languages, language
+	// versions of emails and their sources.
+	// Every language the workspace has had, removed ones included (they keep
+	// their page copy status), with who added it.
+	LanguagesList(ctx context.Context, workspaceID uuid.UUID) ([]LanguagesListRow, error)
+	LanguagesLock(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	// Results of a sent campaign per language version and why readers got it.
+	LanguagesMessageResults(ctx context.Context, campaignID *uuid.UUID) ([]LanguagesMessageResultsRow, error)
+	LanguagesRemove(ctx context.Context, arg LanguagesRemoveParams) (int64, error)
+	LanguagesSetDefault(ctx context.Context, arg LanguagesSetDefaultParams) (int64, error)
+	LanguagesSetFallback(ctx context.Context, arg LanguagesSetFallbackParams) (int64, error)
+	LanguagesSetPageCopy(ctx context.Context, arg LanguagesSetPageCopyParams) (int64, error)
+	// What has a version in a language (the Remove dialog): unsent campaigns,
+	// automation emails used by a flow, transactional templates.
+	LanguagesVersionsIn(ctx context.Context, arg LanguagesVersionsInParams) ([]LanguagesVersionsInRow, error)
 	// When an action was last recorded for a target (throttles repeated emails).
 	LastAuditAt(ctx context.Context, arg LastAuditAtParams) (time.Time, error)
 	LastDeliverabilityAssetCheckAt(ctx context.Context, workspaceID uuid.UUID) (time.Time, error)
@@ -1571,6 +1628,54 @@ type Querier interface {
 	// last_open_at counts every open, last_human_open_at only people's (tiers
 	// and the sunset policy use it); last_open_machine says what the latest was.
 	TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error
+	// Categories with their template counts and opt-outs.
+	TxnCategories(ctx context.Context, workspaceID uuid.UUID) ([]TxnCategoriesRow, error)
+	TxnCategory(ctx context.Context, arg TxnCategoryParams) (TransactionalCategory, error)
+	TxnCategoryDelete(ctx context.Context, arg TxnCategoryDeleteParams) (int64, error)
+	TxnCategoryInsert(ctx context.Context, arg TxnCategoryInsertParams) error
+	TxnCategoryTemplateCount(ctx context.Context, categoryID *uuid.UUID) (int64, error)
+	TxnCategoryUpdate(ctx context.Context, arg TxnCategoryUpdateParams) error
+	// What the template's calls of a period sent: per call, the variable
+	// names (the breaking-change check of the publish dialog).
+	TxnRecentCallKeys(ctx context.Context, arg TxnRecentCallKeysParams) ([]TxnRecentCallKeysRow, error)
+	TxnRejectedCallsForTemplate(ctx context.Context, arg TxnRejectedCallsForTemplateParams) ([]TxnRejectedCallsForTemplateRow, error)
+	TxnSenderByEmail(ctx context.Context, arg TxnSenderByEmailParams) (TxnSenderByEmailRow, error)
+	TxnSenderByID(ctx context.Context, arg TxnSenderByIDParams) (TxnSenderByIDRow, error)
+	// The workspace's senders with their domain's transactional flag and
+	// verification state.
+	TxnSenders(ctx context.Context, workspaceID uuid.UUID) ([]TxnSendersRow, error)
+	TxnSettings(ctx context.Context, workspaceID uuid.UUID) (TxnSettingsRow, error)
+	// Transactional email: settings, categories, templates, versions, the
+	// message log, opt-outs, idempotency, alerts and the first-send guide.
+	TxnSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
+	TxnSettingsForUpdate(ctx context.Context, workspaceID uuid.UUID) (TransactionalSetting, error)
+	TxnSettingsSetGuide(ctx context.Context, arg TxnSettingsSetGuideParams) error
+	TxnSettingsUpdate(ctx context.Context, arg TxnSettingsUpdateParams) error
+	TxnTemplate(ctx context.Context, arg TxnTemplateParams) (TxnTemplateRow, error)
+	TxnTemplateArchive(ctx context.Context, arg TxnTemplateArchiveParams) error
+	TxnTemplateDelete(ctx context.Context, arg TxnTemplateDeleteParams) error
+	TxnTemplateDraftRevision(ctx context.Context, arg TxnTemplateDraftRevisionParams) (TxnTemplateDraftRevisionRow, error)
+	TxnTemplateForUpdate(ctx context.Context, arg TxnTemplateForUpdateParams) (TransactionalTemplate, error)
+	TxnTemplateIDByKey(ctx context.Context, arg TxnTemplateIDByKeyParams) (uuid.UUID, error)
+	TxnTemplateInsert(ctx context.Context, arg TxnTemplateInsertParams) error
+	TxnTemplateInsertDraftRevision(ctx context.Context, arg TxnTemplateInsertDraftRevisionParams) error
+	TxnTemplateKeyTaken(ctx context.Context, arg TxnTemplateKeyTakenParams) (bool, error)
+	TxnTemplatePruneDrafts(ctx context.Context, arg TxnTemplatePruneDraftsParams) error
+	TxnTemplatePublish(ctx context.Context, arg TxnTemplatePublishParams) error
+	TxnTemplateSaveDraft(ctx context.Context, arg TxnTemplateSaveDraftParams) error
+	TxnTemplateSetLive(ctx context.Context, arg TxnTemplateSetLiveParams) error
+	// Messages a provider accepted per template and bucket of a period.
+	TxnTemplateSpark(ctx context.Context, arg TxnTemplateSparkParams) ([]TxnTemplateSparkRow, error)
+	// Each template's numbers over a period. Test messages are left out unless
+	// include_test; sent counts what a provider accepted; delivered includes
+	// messages complained about later; a soft bounce counts as a bounce.
+	TxnTemplateStats(ctx context.Context, arg TxnTemplateStatsParams) ([]TxnTemplateStatsRow, error)
+	TxnTemplateUpdateMeta(ctx context.Context, arg TxnTemplateUpdateMetaParams) error
+	// The workspace's templates (archived ones too), with what the list shows.
+	TxnTemplates(ctx context.Context, workspaceID uuid.UUID) ([]TxnTemplatesRow, error)
+	TxnVersion(ctx context.Context, arg TxnVersionParams) (TxnVersionRow, error)
+	TxnVersionInsert(ctx context.Context, arg TxnVersionInsertParams) error
+	TxnVersions(ctx context.Context, templateID uuid.UUID) ([]TxnVersionsRow, error)
 	UpdateAuthPolicy(ctx context.Context, arg UpdateAuthPolicyParams) (InstanceSetting, error)
 	UpdateAutomationDraftGraph(ctx context.Context, arg UpdateAutomationDraftGraphParams) (int64, error)
 	UpdateAutomationMeta(ctx context.Context, arg UpdateAutomationMetaParams) (Automation, error)
