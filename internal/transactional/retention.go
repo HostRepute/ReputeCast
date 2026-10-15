@@ -116,4 +116,6 @@ func (w *RetentionWorker) Work(ctx context.Context, _ *river.Job[RetentionArgs])
 func RegisterJobs(reg *jobs.Registry, s *Service) {
 	river.AddWorker(reg.Workers, &RetentionWorker{S: s})
 	reg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return RetentionArgs{}, nil }, true)
+	river.AddWorker(reg.Workers, &AlertsWorker{S: s})
+	reg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return AlertsArgs{}, nil }, false)
 }

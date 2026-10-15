@@ -634,3 +634,161 @@ LEFT JOIN providers p ON p.id = m.provider_id
 WHERE t.workspace_id = @workspace_id AND (m.contact_id = @contact_id OR m.email = @email)
 ORDER BY t.accepted_at DESC
 LIMIT @lim;
+
+-- name: TxnAlertWorkspaces :many
+-- Workspaces to check: transactional mail in the window, or an open alert.
+SELECT DISTINCT workspace_id FROM transactional_messages WHERE accepted_at >= @since::timestamptz
+UNION
+SELECT workspace_id FROM transactional_alerts WHERE ended_at IS NULL;
+
+-- name: TxnAlertTemplateHour :many
+-- Each template's last hour: messages a provider accepted, bounces and
+-- hard bounces (test messages left out).
+SELECT t.template_id::uuid AS template_id, coalesce(max(tt.key), max(t.template_key))::text AS template_key,
+       coalesce(max(tt.name), max(t.template_name))::text AS template_name,
+       count(*) FILTER (WHERE m.status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
+       count(*) FILTER (WHERE m.status = 'bounced')::bigint AS bounced,
+       count(*) FILTER (WHERE m.status = 'bounced'
+                          AND EXISTS (SELECT 1 FROM delivery_events e WHERE e.message_id = m.id AND e.type = 'hard_bounce'))::bigint AS hard
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN transactional_templates tt ON tt.id = t.template_id
+WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AND t.template_id IS NOT NULL AND NOT t.test
+GROUP BY t.template_id;
+
+-- name: TxnAlertBounceDomains :many
+-- The domains a template's bounces of the window went to, most first.
+SELECT split_part(m.email, '@', 2)::text AS domain, count(*)::bigint AS n
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = @workspace_id AND t.template_id = @template_id AND t.accepted_at >= @since::timestamptz AND m.status = 'bounced' AND NOT t.test
+GROUP BY 1
+ORDER BY 2 DESC, 1
+LIMIT 3;
+
+-- name: TxnAlertHour :one
+-- The workspace's last hour: failed messages and the median delivery time.
+SELECT count(*) FILTER (WHERE m.status = 'failed')::bigint AS failed,
+       count(*) FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)::bigint AS delivered,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AND NOT t.test;
+
+-- name: TxnAlertFailovers :many
+-- Messages that left a provider of their route since a time: how many,
+-- how many were lost, where they went and how fast they were delivered.
+SELECT t.failed_over_from::uuid AS provider_id, coalesce(max(p.name), '')::text AS provider_name,
+       count(*)::bigint AS messages,
+       count(*) FILTER (WHERE m.status = 'failed')::bigint AS lost,
+       min(t.failed_over_at)::timestamptz AS first_at,
+       max(t.failed_over_at)::timestamptz AS last_at,
+       coalesce(max(np.name), '')::text AS fallback_name,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN providers p ON p.id = t.failed_over_from
+LEFT JOIN providers np ON np.id = m.provider_id
+WHERE t.workspace_id = @workspace_id AND t.failed_over_from IS NOT NULL AND t.failed_over_at >= @since::timestamptz
+GROUP BY t.failed_over_from;
+
+-- name: TxnAlertInsert :one
+-- Opens an alert; nothing happens when one of its kind (and template) is open.
+INSERT INTO transactional_alerts (id, workspace_id, kind, template_id, provider_id, value, threshold, detail, started_at)
+VALUES (@id, @workspace_id, @kind, sqlc.narg(template_id), sqlc.narg(provider_id), @value, @threshold, @detail, @started_at)
+ON CONFLICT (workspace_id, kind, coalesce(template_id, '00000000-0000-0000-0000-000000000000'::uuid)) WHERE ended_at IS NULL DO NOTHING
+RETURNING id;
+
+-- name: TxnAlertRefresh :exec
+-- Keeps an open alert's worst value and latest detail.
+UPDATE transactional_alerts SET value = greatest(value, @value::numeric), detail = @detail
+WHERE workspace_id = @workspace_id AND kind = @kind AND ended_at IS NULL
+  AND coalesce(template_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce(sqlc.narg(template_id)::uuid, '00000000-0000-0000-0000-000000000000'::uuid);
+
+-- name: TxnAlertEnd :execrows
+UPDATE transactional_alerts SET ended_at = @now::timestamptz
+WHERE workspace_id = @workspace_id AND kind = @kind AND ended_at IS NULL
+  AND coalesce(template_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce(sqlc.narg(template_id)::uuid, '00000000-0000-0000-0000-000000000000'::uuid);
+
+-- name: TxnAlertsOpenFor :many
+-- A workspace's open alerts of a kind.
+SELECT id, template_id FROM transactional_alerts WHERE workspace_id = @workspace_id AND kind = @kind AND ended_at IS NULL;
+
+-- name: TxnAlerts :many
+-- Open alerts and those of a period, newest first.
+SELECT a.id, a.kind, a.template_id, a.provider_id, a.value::float8 AS value, a.threshold::float8 AS threshold, a.detail, a.started_at, a.ended_at, a.seen_at,
+       coalesce(t.key, '')::text AS template_key, coalesce(t.name, '')::text AS template_name, coalesce(p.name, '')::text AS provider_name
+FROM transactional_alerts a
+LEFT JOIN transactional_templates t ON t.id = a.template_id
+LEFT JOIN providers p ON p.id = a.provider_id
+WHERE a.workspace_id = @workspace_id AND (a.ended_at IS NULL OR a.started_at >= @since::timestamptz)
+ORDER BY a.started_at DESC
+LIMIT 50;
+
+-- name: TxnAlertSeen :execrows
+UPDATE transactional_alerts SET seen_at = @now::timestamptz, seen_by = @user_id WHERE id = @id AND workspace_id = @workspace_id;
+
+-- name: TxnOverviewStats :one
+-- The workspace's numbers over a period (Raw SMTP mail included).
+SELECT count(*) FILTER (WHERE m.status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
+       count(*) FILTER (WHERE m.status IN ('delivered', 'complained'))::bigint AS delivered,
+       count(*) FILTER (WHERE m.status = 'bounced')::bigint AS bounced,
+       count(*) FILTER (WHERE m.status = 'complained')::bigint AS complained,
+       count(*) FILTER (WHERE m.status = 'deferred')::bigint AS deferred,
+       count(*) FILTER (WHERE t.reject_reason = 'suppressed' AND NOT t.test)::bigint AS suppressed,
+       count(*) FILTER (WHERE t.reject_reason = 'opted_out' AND NOT t.test)::bigint AS opted_out,
+       count(*) FILTER (WHERE m.status = 'failed')::bigint AS failed,
+       count(*) FILTER (WHERE m.opened_at IS NOT NULL)::bigint AS opened,
+       count(*) FILTER (WHERE m.clicked_at IS NOT NULL)::bigint AS clicked,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms,
+       count(DISTINCT t.key_id) FILTER (WHERE t.source <> 'smtp' AND t.key_id IS NOT NULL)::bigint AS keys,
+       (count(*) FILTER (WHERE t.source = 'smtp') > 0)::boolean AS smtp,
+       coalesce(string_agg(DISTINCT t.template_key, ',') FILTER (WHERE m.status = 'complained'), '')::text AS complained_templates
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz
+  AND (@include_test::boolean OR NOT t.test);
+
+-- name: TxnSendingKeys :many
+-- Keys holding transactional:send, for the overview and Setup.
+SELECT k.id, k.name, k.prefix, k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second,
+       k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, coalesce(u.name, '')::text AS created_by_name
+FROM api_keys k LEFT JOIN users u ON u.id = k.created_by
+WHERE k.workspace_id = @workspace_id AND k.kind = 'api_key' AND 'transactional:send' = ANY(k.permissions) AND k.revoked_at IS NULL
+ORDER BY k.created_at;
+
+-- name: TxnFirstRun :one
+-- What the first-run state and the guide need to know.
+SELECT (SELECT count(*) FROM transactional_templates t WHERE t.workspace_id = @workspace_id AND t.deleted_at IS NULL)::bigint AS templates,
+       (SELECT count(*) FROM transactional_templates t WHERE t.workspace_id = @workspace_id AND t.deleted_at IS NULL AND t.live_version IS NOT NULL)::bigint AS published,
+       (SELECT count(*) FROM transactional_messages m WHERE m.workspace_id = @workspace_id)::bigint AS messages;
+
+-- name: TxnRoutePriority :one
+-- "First in line on shared providers" (on unless turned off).
+SELECT coalesce((SELECT priority FROM stream_policies WHERE workspace_id = @workspace_id AND stream = 'transactional'), true)::boolean;
+
+-- name: TxnHourStats :one
+-- The last hour's numbers for the alert banner.
+SELECT count(*) FILTER (WHERE m.status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
+       count(*) FILTER (WHERE m.status = 'bounced')::bigint AS bounced,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AND NOT t.test;
+
+-- name: TxnSettingsSetDefaultSender :exec
+-- The default From of transactional templates (Settings › Senders).
+UPDATE transactional_settings SET default_sender_id = sqlc.narg(sender_id), updated_by = sqlc.narg(updated_by), updated_at = @updated_at
+WHERE workspace_id = @workspace_id;
+
+-- name: TxnSMTPFromAddresses :many
+-- From addresses mail arriving through the SMTP relay used lately.
+SELECT DISTINCT from_email FROM transactional_messages
+WHERE workspace_id = @workspace_id AND source = 'smtp' AND accepted_at >= @since::timestamptz AND from_email <> '';
+
+-- name: TxnSetDomainTransactional :exec
+UPDATE sending_domains SET transactional = @transactional WHERE id = @id;

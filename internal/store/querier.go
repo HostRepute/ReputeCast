@@ -1521,6 +1521,28 @@ type Querier interface {
 	// last_open_at counts every open, last_human_open_at only people's (tiers
 	// and the sunset policy use it); last_open_machine says what the latest was.
 	TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error
+	// The domains a template's bounces of the window went to, most first.
+	TxnAlertBounceDomains(ctx context.Context, arg TxnAlertBounceDomainsParams) ([]TxnAlertBounceDomainsRow, error)
+	TxnAlertEnd(ctx context.Context, arg TxnAlertEndParams) (int64, error)
+	// Messages that left a provider of their route since a time: how many,
+	// how many were lost, where they went and how fast they were delivered.
+	TxnAlertFailovers(ctx context.Context, arg TxnAlertFailoversParams) ([]TxnAlertFailoversRow, error)
+	// The workspace's last hour: failed messages and the median delivery time.
+	TxnAlertHour(ctx context.Context, arg TxnAlertHourParams) (TxnAlertHourRow, error)
+	// Opens an alert; nothing happens when one of its kind (and template) is open.
+	TxnAlertInsert(ctx context.Context, arg TxnAlertInsertParams) (uuid.UUID, error)
+	// Keeps an open alert's worst value and latest detail.
+	TxnAlertRefresh(ctx context.Context, arg TxnAlertRefreshParams) error
+	TxnAlertSeen(ctx context.Context, arg TxnAlertSeenParams) (int64, error)
+	// Each template's last hour: messages a provider accepted, bounces and
+	// hard bounces (test messages left out).
+	TxnAlertTemplateHour(ctx context.Context, arg TxnAlertTemplateHourParams) ([]TxnAlertTemplateHourRow, error)
+	// Workspaces to check: transactional mail in the window, or an open alert.
+	TxnAlertWorkspaces(ctx context.Context, since time.Time) ([]uuid.UUID, error)
+	// Open alerts and those of a period, newest first.
+	TxnAlerts(ctx context.Context, arg TxnAlertsParams) ([]TxnAlertsRow, error)
+	// A workspace's open alerts of a kind.
+	TxnAlertsOpenFor(ctx context.Context, arg TxnAlertsOpenForParams) ([]TxnAlertsOpenForRow, error)
 	TxnAppendAttempts(ctx context.Context, arg TxnAppendAttemptsParams) error
 	// Categories with their template counts and opt-outs.
 	TxnCategories(ctx context.Context, workspaceID uuid.UUID) ([]TxnCategoriesRow, error)
@@ -1533,6 +1555,10 @@ type Querier interface {
 	// A contact's transactional messages for its activity timeline.
 	TxnContactMessages(ctx context.Context, arg TxnContactMessagesParams) ([]TxnContactMessagesRow, error)
 	TxnContent(ctx context.Context, messageID uuid.UUID) (TxnContentRow, error)
+	// What the first-run state and the guide need to know.
+	TxnFirstRun(ctx context.Context, workspaceID uuid.UUID) (TxnFirstRunRow, error)
+	// The last hour's numbers for the alert banner.
+	TxnHourStats(ctx context.Context, arg TxnHourStatsParams) (TxnHourStatsRow, error)
 	TxnIdemGet(ctx context.Context, arg TxnIdemGetParams) (TransactionalIdempotency, error)
 	TxnIdemInsert(ctx context.Context, arg TxnIdemInsertParams) (string, error)
 	TxnIdemPurge(ctx context.Context, before time.Time) (int64, error)
@@ -1596,6 +1622,8 @@ type Querier interface {
 	TxnOutboxProviders(ctx context.Context, now time.Time) ([]uuid.UUID, error)
 	// Queued transactional messages of a provider (failover when it is down).
 	TxnOutboxQueuedOn(ctx context.Context, arg TxnOutboxQueuedOnParams) ([]TxnOutboxQueuedOnRow, error)
+	// The workspace's numbers over a period (Raw SMTP mail included).
+	TxnOverviewStats(ctx context.Context, arg TxnOverviewStatsParams) (TxnOverviewStatsRow, error)
 	// What the template's calls of a period sent: per call, the variable
 	// names (the breaking-change check of the publish dialog).
 	TxnRecentCallKeys(ctx context.Context, arg TxnRecentCallKeysParams) ([]TxnRecentCallKeysRow, error)
@@ -1617,25 +1645,34 @@ type Querier interface {
 	TxnRouteCategories(ctx context.Context, workspaceID uuid.UUID) ([]TxnRouteCategoriesRow, error)
 	// Sending domains marked for transactional mail.
 	TxnRouteDomains(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	// "First in line on shared providers" (on unless turned off).
+	TxnRoutePriority(ctx context.Context, workspaceID uuid.UUID) (bool, error)
 	TxnRouteSetPriority(ctx context.Context, arg TxnRouteSetPriorityParams) error
 	// Whether a suppression stops transactional mail: everything except the
 	// marketing-only ones (unsubscribes and role addresses).
 	TxnRouteSuppressedAllMail(ctx context.Context, arg TxnRouteSuppressedAllMailParams) (bool, error)
 	TxnRouteTemplateCategory(ctx context.Context, arg TxnRouteTemplateCategoryParams) (*uuid.UUID, error)
 	TxnRouteTemplates(ctx context.Context, workspaceID uuid.UUID) ([]TxnRouteTemplatesRow, error)
+	// From addresses mail arriving through the SMTP relay used lately.
+	TxnSMTPFromAddresses(ctx context.Context, arg TxnSMTPFromAddressesParams) ([]string, error)
 	TxnSenderByEmail(ctx context.Context, arg TxnSenderByEmailParams) (TxnSenderByEmailRow, error)
 	TxnSenderByID(ctx context.Context, arg TxnSenderByIDParams) (TxnSenderByIDRow, error)
 	// The workspace's senders with their domain's transactional flag and
 	// verification state.
 	TxnSenders(ctx context.Context, workspaceID uuid.UUID) ([]TxnSendersRow, error)
+	// Keys holding transactional:send, for the overview and Setup.
+	TxnSendingKeys(ctx context.Context, workspaceID uuid.UUID) ([]TxnSendingKeysRow, error)
 	// A soft bounce of a transactional message is its final answer: the log
 	// shows it as Bounced (soft), where campaigns count it as a deferral.
 	TxnSetBounced(ctx context.Context, arg TxnSetBouncedParams) error
+	TxnSetDomainTransactional(ctx context.Context, arg TxnSetDomainTransactionalParams) error
 	TxnSettings(ctx context.Context, workspaceID uuid.UUID) (TxnSettingsRow, error)
 	// Transactional email: settings, categories, templates, versions, the
 	// message log, opt-outs, idempotency, alerts and the first-send guide.
 	TxnSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
 	TxnSettingsForUpdate(ctx context.Context, workspaceID uuid.UUID) (TransactionalSetting, error)
+	// The default From of transactional templates (Settings › Senders).
+	TxnSettingsSetDefaultSender(ctx context.Context, arg TxnSettingsSetDefaultSenderParams) error
 	TxnSettingsSetGuide(ctx context.Context, arg TxnSettingsSetGuideParams) error
 	TxnSettingsUpdate(ctx context.Context, arg TxnSettingsUpdateParams) error
 	TxnSoftBounces(ctx context.Context, arg TxnSoftBouncesParams) (int64, error)

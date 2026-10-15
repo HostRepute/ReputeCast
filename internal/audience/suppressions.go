@@ -48,10 +48,11 @@ func reasonName(r string) string {
 	return r
 }
 
-// scopeFor is the streams a suppression blocks: unsubscribes keep System
-// mail (password resets, receipts); everything else blocks every stream.
+// scopeFor is the streams a suppression blocks: unsubscribes and role
+// addresses are marketing only, so System and Transactional mail (password
+// resets, receipts) still arrive; everything else blocks every stream.
 func scopeFor(reason string) string {
-	if reason == "unsubscribe" {
+	if reason == "unsubscribe" || reason == "role" {
 		return "marketing"
 	}
 	return "all"
@@ -143,6 +144,10 @@ type SuppressionFilter struct {
 	Source string // provider:<id>, import:<id>, manual, preference_center, one_click, api, bounce_mailbox
 	Since  string // 7d, 30d
 	Import string // show the rows of one import group
+	// AppliesTo is all (every stream, transactional mail included) or
+	// marketing (Broadcasts and Automations only: unsubscribes and role
+	// addresses).
+	AppliesTo string
 }
 
 // ListSuppressions returns one page of the shared suppression list. Rows
@@ -179,6 +184,12 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 	case f.Source != "":
 		fs.add("s.source = ? AND s.source_provider_id IS NULL", f.Source)
 	}
+	switch f.AppliesTo {
+	case "marketing":
+		fs.add("(s.scope = 'marketing' OR s.reason IN ('unsubscribe', 'role'))")
+	case "all":
+		fs.add("s.scope = 'all' AND s.reason NOT IN ('unsubscribe', 'role')")
+	}
 	switch f.Since {
 	case "7d":
 		fs.add("s.created_at >= ?", s.now().AddDate(0, 0, -7))
@@ -196,7 +207,8 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 	cte := `WITH f AS (SELECT s.* FROM suppressions s WHERE ` + fs.where + `),
 	r AS (
 		SELECT false AS grp, f.id, f.email, ARRAY[f.reason] AS reasons, f.source, f.source_provider_id, f.original_code, f.created_at,
-		       f.campaign_id, f.automation_id, f.automation_step, f.context, f.scope, f.import_id, 1::bigint AS n, f.created_by
+		       f.campaign_id, f.automation_id, f.automation_step, f.context,
+		       CASE WHEN f.reason IN ('unsubscribe', 'role') THEN 'marketing' ELSE f.scope END, f.import_id, 1::bigint AS n, f.created_by
 		FROM f WHERE NOT ` + fmt.Sprint(group) + ` OR f.import_id IS NULL
 		UNION ALL
 		SELECT true, (array_agg(f.id ORDER BY f.created_at, f.id))[1], '', array_agg(DISTINCT f.reason), 'import', NULL, max(f.original_code),

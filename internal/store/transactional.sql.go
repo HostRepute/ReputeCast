@@ -14,6 +14,440 @@ import (
 	"github.com/google/uuid"
 )
 
+const txnAlertBounceDomains = `-- name: TxnAlertBounceDomains :many
+SELECT split_part(m.email, '@', 2)::text AS domain, count(*)::bigint AS n
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = $1 AND t.template_id = $2 AND t.accepted_at >= $3::timestamptz AND m.status = 'bounced' AND NOT t.test
+GROUP BY 1
+ORDER BY 2 DESC, 1
+LIMIT 3
+`
+
+type TxnAlertBounceDomainsParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	TemplateID  *uuid.UUID `json:"templateId"`
+	Since       time.Time  `json:"since"`
+}
+
+type TxnAlertBounceDomainsRow struct {
+	Domain string `json:"domain"`
+	N      int64  `json:"n"`
+}
+
+// The domains a template's bounces of the window went to, most first.
+func (q *Queries) TxnAlertBounceDomains(ctx context.Context, arg TxnAlertBounceDomainsParams) ([]TxnAlertBounceDomainsRow, error) {
+	rows, err := q.db.Query(ctx, txnAlertBounceDomains, arg.WorkspaceID, arg.TemplateID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnAlertBounceDomainsRow{}
+	for rows.Next() {
+		var i TxnAlertBounceDomainsRow
+		if err := rows.Scan(&i.Domain, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnAlertEnd = `-- name: TxnAlertEnd :execrows
+UPDATE transactional_alerts SET ended_at = $1::timestamptz
+WHERE workspace_id = $2 AND kind = $3 AND ended_at IS NULL
+  AND coalesce(template_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce($4::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
+`
+
+type TxnAlertEndParams struct {
+	Now         time.Time  `json:"now"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Kind        string     `json:"kind"`
+	TemplateID  *uuid.UUID `json:"templateId"`
+}
+
+func (q *Queries) TxnAlertEnd(ctx context.Context, arg TxnAlertEndParams) (int64, error) {
+	result, err := q.db.Exec(ctx, txnAlertEnd,
+		arg.Now,
+		arg.WorkspaceID,
+		arg.Kind,
+		arg.TemplateID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnAlertFailovers = `-- name: TxnAlertFailovers :many
+SELECT t.failed_over_from::uuid AS provider_id, coalesce(max(p.name), '')::text AS provider_name,
+       count(*)::bigint AS messages,
+       count(*) FILTER (WHERE m.status = 'failed')::bigint AS lost,
+       min(t.failed_over_at)::timestamptz AS first_at,
+       max(t.failed_over_at)::timestamptz AS last_at,
+       coalesce(max(np.name), '')::text AS fallback_name,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN providers p ON p.id = t.failed_over_from
+LEFT JOIN providers np ON np.id = m.provider_id
+WHERE t.workspace_id = $1 AND t.failed_over_from IS NOT NULL AND t.failed_over_at >= $2::timestamptz
+GROUP BY t.failed_over_from
+`
+
+type TxnAlertFailoversParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type TxnAlertFailoversRow struct {
+	ProviderID   uuid.UUID `json:"providerId"`
+	ProviderName string    `json:"providerName"`
+	Messages     int64     `json:"messages"`
+	Lost         int64     `json:"lost"`
+	FirstAt      time.Time `json:"firstAt"`
+	LastAt       time.Time `json:"lastAt"`
+	FallbackName string    `json:"fallbackName"`
+	MedianMs     int64     `json:"medianMs"`
+}
+
+// Messages that left a provider of their route since a time: how many,
+// how many were lost, where they went and how fast they were delivered.
+func (q *Queries) TxnAlertFailovers(ctx context.Context, arg TxnAlertFailoversParams) ([]TxnAlertFailoversRow, error) {
+	rows, err := q.db.Query(ctx, txnAlertFailovers, arg.WorkspaceID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnAlertFailoversRow{}
+	for rows.Next() {
+		var i TxnAlertFailoversRow
+		if err := rows.Scan(
+			&i.ProviderID,
+			&i.ProviderName,
+			&i.Messages,
+			&i.Lost,
+			&i.FirstAt,
+			&i.LastAt,
+			&i.FallbackName,
+			&i.MedianMs,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnAlertHour = `-- name: TxnAlertHour :one
+SELECT count(*) FILTER (WHERE m.status = 'failed')::bigint AS failed,
+       count(*) FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)::bigint AS delivered,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = $1 AND t.accepted_at >= $2::timestamptz AND NOT t.test
+`
+
+type TxnAlertHourParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type TxnAlertHourRow struct {
+	Failed    int64 `json:"failed"`
+	Delivered int64 `json:"delivered"`
+	MedianMs  int64 `json:"medianMs"`
+}
+
+// The workspace's last hour: failed messages and the median delivery time.
+func (q *Queries) TxnAlertHour(ctx context.Context, arg TxnAlertHourParams) (TxnAlertHourRow, error) {
+	row := q.db.QueryRow(ctx, txnAlertHour, arg.WorkspaceID, arg.Since)
+	var i TxnAlertHourRow
+	err := row.Scan(&i.Failed, &i.Delivered, &i.MedianMs)
+	return i, err
+}
+
+const txnAlertInsert = `-- name: TxnAlertInsert :one
+INSERT INTO transactional_alerts (id, workspace_id, kind, template_id, provider_id, value, threshold, detail, started_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+ON CONFLICT (workspace_id, kind, coalesce(template_id, '00000000-0000-0000-0000-000000000000'::uuid)) WHERE ended_at IS NULL DO NOTHING
+RETURNING id
+`
+
+type TxnAlertInsertParams struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Kind        string          `json:"kind"`
+	TemplateID  *uuid.UUID      `json:"templateId"`
+	ProviderID  *uuid.UUID      `json:"providerId"`
+	Value       float64         `json:"value"`
+	Threshold   float64         `json:"threshold"`
+	Detail      json.RawMessage `json:"detail"`
+	StartedAt   time.Time       `json:"startedAt"`
+}
+
+// Opens an alert; nothing happens when one of its kind (and template) is open.
+func (q *Queries) TxnAlertInsert(ctx context.Context, arg TxnAlertInsertParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, txnAlertInsert,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.Kind,
+		arg.TemplateID,
+		arg.ProviderID,
+		arg.Value,
+		arg.Threshold,
+		arg.Detail,
+		arg.StartedAt,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const txnAlertRefresh = `-- name: TxnAlertRefresh :exec
+UPDATE transactional_alerts SET value = greatest(value, $1::numeric), detail = $2
+WHERE workspace_id = $3 AND kind = $4 AND ended_at IS NULL
+  AND coalesce(template_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce($5::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
+`
+
+type TxnAlertRefreshParams struct {
+	Value       float64         `json:"value"`
+	Detail      json.RawMessage `json:"detail"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Kind        string          `json:"kind"`
+	TemplateID  *uuid.UUID      `json:"templateId"`
+}
+
+// Keeps an open alert's worst value and latest detail.
+func (q *Queries) TxnAlertRefresh(ctx context.Context, arg TxnAlertRefreshParams) error {
+	_, err := q.db.Exec(ctx, txnAlertRefresh,
+		arg.Value,
+		arg.Detail,
+		arg.WorkspaceID,
+		arg.Kind,
+		arg.TemplateID,
+	)
+	return err
+}
+
+const txnAlertSeen = `-- name: TxnAlertSeen :execrows
+UPDATE transactional_alerts SET seen_at = $1::timestamptz, seen_by = $2 WHERE id = $3 AND workspace_id = $4
+`
+
+type TxnAlertSeenParams struct {
+	Now         time.Time  `json:"now"`
+	UserID      *uuid.UUID `json:"userId"`
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+}
+
+func (q *Queries) TxnAlertSeen(ctx context.Context, arg TxnAlertSeenParams) (int64, error) {
+	result, err := q.db.Exec(ctx, txnAlertSeen,
+		arg.Now,
+		arg.UserID,
+		arg.ID,
+		arg.WorkspaceID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnAlertTemplateHour = `-- name: TxnAlertTemplateHour :many
+SELECT t.template_id::uuid AS template_id, coalesce(max(tt.key), max(t.template_key))::text AS template_key,
+       coalesce(max(tt.name), max(t.template_name))::text AS template_name,
+       count(*) FILTER (WHERE m.status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
+       count(*) FILTER (WHERE m.status = 'bounced')::bigint AS bounced,
+       count(*) FILTER (WHERE m.status = 'bounced'
+                          AND EXISTS (SELECT 1 FROM delivery_events e WHERE e.message_id = m.id AND e.type = 'hard_bounce'))::bigint AS hard
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN transactional_templates tt ON tt.id = t.template_id
+WHERE t.workspace_id = $1 AND t.accepted_at >= $2::timestamptz AND t.template_id IS NOT NULL AND NOT t.test
+GROUP BY t.template_id
+`
+
+type TxnAlertTemplateHourParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type TxnAlertTemplateHourRow struct {
+	TemplateID   uuid.UUID `json:"templateId"`
+	TemplateKey  string    `json:"templateKey"`
+	TemplateName string    `json:"templateName"`
+	Sent         int64     `json:"sent"`
+	Bounced      int64     `json:"bounced"`
+	Hard         int64     `json:"hard"`
+}
+
+// Each template's last hour: messages a provider accepted, bounces and
+// hard bounces (test messages left out).
+func (q *Queries) TxnAlertTemplateHour(ctx context.Context, arg TxnAlertTemplateHourParams) ([]TxnAlertTemplateHourRow, error) {
+	rows, err := q.db.Query(ctx, txnAlertTemplateHour, arg.WorkspaceID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnAlertTemplateHourRow{}
+	for rows.Next() {
+		var i TxnAlertTemplateHourRow
+		if err := rows.Scan(
+			&i.TemplateID,
+			&i.TemplateKey,
+			&i.TemplateName,
+			&i.Sent,
+			&i.Bounced,
+			&i.Hard,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnAlertWorkspaces = `-- name: TxnAlertWorkspaces :many
+SELECT DISTINCT workspace_id FROM transactional_messages WHERE accepted_at >= $1::timestamptz
+UNION
+SELECT workspace_id FROM transactional_alerts WHERE ended_at IS NULL
+`
+
+// Workspaces to check: transactional mail in the window, or an open alert.
+func (q *Queries) TxnAlertWorkspaces(ctx context.Context, since time.Time) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, txnAlertWorkspaces, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var workspace_id uuid.UUID
+		if err := rows.Scan(&workspace_id); err != nil {
+			return nil, err
+		}
+		items = append(items, workspace_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnAlerts = `-- name: TxnAlerts :many
+SELECT a.id, a.kind, a.template_id, a.provider_id, a.value::float8 AS value, a.threshold::float8 AS threshold, a.detail, a.started_at, a.ended_at, a.seen_at,
+       coalesce(t.key, '')::text AS template_key, coalesce(t.name, '')::text AS template_name, coalesce(p.name, '')::text AS provider_name
+FROM transactional_alerts a
+LEFT JOIN transactional_templates t ON t.id = a.template_id
+LEFT JOIN providers p ON p.id = a.provider_id
+WHERE a.workspace_id = $1 AND (a.ended_at IS NULL OR a.started_at >= $2::timestamptz)
+ORDER BY a.started_at DESC
+LIMIT 50
+`
+
+type TxnAlertsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type TxnAlertsRow struct {
+	ID           uuid.UUID       `json:"id"`
+	Kind         string          `json:"kind"`
+	TemplateID   *uuid.UUID      `json:"templateId"`
+	ProviderID   *uuid.UUID      `json:"providerId"`
+	Value        float64         `json:"value"`
+	Threshold    float64         `json:"threshold"`
+	Detail       json.RawMessage `json:"detail"`
+	StartedAt    time.Time       `json:"startedAt"`
+	EndedAt      *time.Time      `json:"endedAt"`
+	SeenAt       *time.Time      `json:"seenAt"`
+	TemplateKey  string          `json:"templateKey"`
+	TemplateName string          `json:"templateName"`
+	ProviderName string          `json:"providerName"`
+}
+
+// Open alerts and those of a period, newest first.
+func (q *Queries) TxnAlerts(ctx context.Context, arg TxnAlertsParams) ([]TxnAlertsRow, error) {
+	rows, err := q.db.Query(ctx, txnAlerts, arg.WorkspaceID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnAlertsRow{}
+	for rows.Next() {
+		var i TxnAlertsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.TemplateID,
+			&i.ProviderID,
+			&i.Value,
+			&i.Threshold,
+			&i.Detail,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.SeenAt,
+			&i.TemplateKey,
+			&i.TemplateName,
+			&i.ProviderName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnAlertsOpenFor = `-- name: TxnAlertsOpenFor :many
+SELECT id, template_id FROM transactional_alerts WHERE workspace_id = $1 AND kind = $2 AND ended_at IS NULL
+`
+
+type TxnAlertsOpenForParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Kind        string    `json:"kind"`
+}
+
+type TxnAlertsOpenForRow struct {
+	ID         uuid.UUID  `json:"id"`
+	TemplateID *uuid.UUID `json:"templateId"`
+}
+
+// A workspace's open alerts of a kind.
+func (q *Queries) TxnAlertsOpenFor(ctx context.Context, arg TxnAlertsOpenForParams) ([]TxnAlertsOpenForRow, error) {
+	rows, err := q.db.Query(ctx, txnAlertsOpenFor, arg.WorkspaceID, arg.Kind)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnAlertsOpenForRow{}
+	for rows.Next() {
+		var i TxnAlertsOpenForRow
+		if err := rows.Scan(&i.ID, &i.TemplateID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const txnAppendAttempts = `-- name: TxnAppendAttempts :exec
 UPDATE transactional_messages t SET attempts = t.attempts || x.attempt
 FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::jsonb[]) AS attempt) AS x
@@ -321,6 +755,55 @@ func (q *Queries) TxnContent(ctx context.Context, messageID uuid.UUID) (TxnConte
 		&i.Headers,
 		&i.ExpiresAt,
 	)
+	return i, err
+}
+
+const txnFirstRun = `-- name: TxnFirstRun :one
+SELECT (SELECT count(*) FROM transactional_templates t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL)::bigint AS templates,
+       (SELECT count(*) FROM transactional_templates t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL AND t.live_version IS NOT NULL)::bigint AS published,
+       (SELECT count(*) FROM transactional_messages m WHERE m.workspace_id = $1)::bigint AS messages
+`
+
+type TxnFirstRunRow struct {
+	Templates int64 `json:"templates"`
+	Published int64 `json:"published"`
+	Messages  int64 `json:"messages"`
+}
+
+// What the first-run state and the guide need to know.
+func (q *Queries) TxnFirstRun(ctx context.Context, workspaceID uuid.UUID) (TxnFirstRunRow, error) {
+	row := q.db.QueryRow(ctx, txnFirstRun, workspaceID)
+	var i TxnFirstRunRow
+	err := row.Scan(&i.Templates, &i.Published, &i.Messages)
+	return i, err
+}
+
+const txnHourStats = `-- name: TxnHourStats :one
+SELECT count(*) FILTER (WHERE m.status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
+       count(*) FILTER (WHERE m.status = 'bounced')::bigint AS bounced,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = $1 AND t.accepted_at >= $2::timestamptz AND NOT t.test
+`
+
+type TxnHourStatsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type TxnHourStatsRow struct {
+	Sent     int64 `json:"sent"`
+	Bounced  int64 `json:"bounced"`
+	MedianMs int64 `json:"medianMs"`
+}
+
+// The last hour's numbers for the alert banner.
+func (q *Queries) TxnHourStats(ctx context.Context, arg TxnHourStatsParams) (TxnHourStatsRow, error) {
+	row := q.db.QueryRow(ctx, txnHourStats, arg.WorkspaceID, arg.Since)
+	var i TxnHourStatsRow
+	err := row.Scan(&i.Sent, &i.Bounced, &i.MedianMs)
 	return i, err
 }
 
@@ -1834,6 +2317,74 @@ func (q *Queries) TxnOutboxQueuedOn(ctx context.Context, arg TxnOutboxQueuedOnPa
 	return items, nil
 }
 
+const txnOverviewStats = `-- name: TxnOverviewStats :one
+SELECT count(*) FILTER (WHERE m.status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
+       count(*) FILTER (WHERE m.status IN ('delivered', 'complained'))::bigint AS delivered,
+       count(*) FILTER (WHERE m.status = 'bounced')::bigint AS bounced,
+       count(*) FILTER (WHERE m.status = 'complained')::bigint AS complained,
+       count(*) FILTER (WHERE m.status = 'deferred')::bigint AS deferred,
+       count(*) FILTER (WHERE t.reject_reason = 'suppressed' AND NOT t.test)::bigint AS suppressed,
+       count(*) FILTER (WHERE t.reject_reason = 'opted_out' AND NOT t.test)::bigint AS opted_out,
+       count(*) FILTER (WHERE m.status = 'failed')::bigint AS failed,
+       count(*) FILTER (WHERE m.opened_at IS NOT NULL)::bigint AS opened,
+       count(*) FILTER (WHERE m.clicked_at IS NOT NULL)::bigint AS clicked,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms,
+       count(DISTINCT t.key_id) FILTER (WHERE t.source <> 'smtp' AND t.key_id IS NOT NULL)::bigint AS keys,
+       (count(*) FILTER (WHERE t.source = 'smtp') > 0)::boolean AS smtp,
+       coalesce(string_agg(DISTINCT t.template_key, ',') FILTER (WHERE m.status = 'complained'), '')::text AS complained_templates
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = $1 AND t.accepted_at >= $2::timestamptz
+  AND ($3::boolean OR NOT t.test)
+`
+
+type TxnOverviewStatsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+	IncludeTest bool      `json:"includeTest"`
+}
+
+type TxnOverviewStatsRow struct {
+	Sent                int64  `json:"sent"`
+	Delivered           int64  `json:"delivered"`
+	Bounced             int64  `json:"bounced"`
+	Complained          int64  `json:"complained"`
+	Deferred            int64  `json:"deferred"`
+	Suppressed          int64  `json:"suppressed"`
+	OptedOut            int64  `json:"optedOut"`
+	Failed              int64  `json:"failed"`
+	Opened              int64  `json:"opened"`
+	Clicked             int64  `json:"clicked"`
+	MedianMs            int64  `json:"medianMs"`
+	Keys                int64  `json:"keys"`
+	Smtp                bool   `json:"smtp"`
+	ComplainedTemplates string `json:"complainedTemplates"`
+}
+
+// The workspace's numbers over a period (Raw SMTP mail included).
+func (q *Queries) TxnOverviewStats(ctx context.Context, arg TxnOverviewStatsParams) (TxnOverviewStatsRow, error) {
+	row := q.db.QueryRow(ctx, txnOverviewStats, arg.WorkspaceID, arg.Since, arg.IncludeTest)
+	var i TxnOverviewStatsRow
+	err := row.Scan(
+		&i.Sent,
+		&i.Delivered,
+		&i.Bounced,
+		&i.Complained,
+		&i.Deferred,
+		&i.Suppressed,
+		&i.OptedOut,
+		&i.Failed,
+		&i.Opened,
+		&i.Clicked,
+		&i.MedianMs,
+		&i.Keys,
+		&i.Smtp,
+		&i.ComplainedTemplates,
+	)
+	return i, err
+}
+
 const txnRecentCallKeys = `-- name: TxnRecentCallKeys :many
 SELECT m.message_id, m.accepted_at, m.data_keys, m.template_version, m.data, m.sensitive, mm.email
 FROM transactional_messages m
@@ -2125,6 +2676,18 @@ func (q *Queries) TxnRouteDomains(ctx context.Context, workspaceID uuid.UUID) ([
 	return items, nil
 }
 
+const txnRoutePriority = `-- name: TxnRoutePriority :one
+SELECT coalesce((SELECT priority FROM stream_policies WHERE workspace_id = $1 AND stream = 'transactional'), true)::boolean
+`
+
+// "First in line on shared providers" (on unless turned off).
+func (q *Queries) TxnRoutePriority(ctx context.Context, workspaceID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, txnRoutePriority, workspaceID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const txnRouteSetPriority = `-- name: TxnRouteSetPriority :exec
 INSERT INTO stream_policies (workspace_id, stream, failover, priority)
 VALUES ($1, 'transactional', 'automatic', $2)
@@ -2198,6 +2761,37 @@ func (q *Queries) TxnRouteTemplates(ctx context.Context, workspaceID uuid.UUID) 
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnSMTPFromAddresses = `-- name: TxnSMTPFromAddresses :many
+SELECT DISTINCT from_email FROM transactional_messages
+WHERE workspace_id = $1 AND source = 'smtp' AND accepted_at >= $2::timestamptz AND from_email <> ''
+`
+
+type TxnSMTPFromAddressesParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+// From addresses mail arriving through the SMTP relay used lately.
+func (q *Queries) TxnSMTPFromAddresses(ctx context.Context, arg TxnSMTPFromAddressesParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, txnSMTPFromAddresses, arg.WorkspaceID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var from_email string
+		if err := rows.Scan(&from_email); err != nil {
+			return nil, err
+		}
+		items = append(items, from_email)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -2333,6 +2927,69 @@ func (q *Queries) TxnSenders(ctx context.Context, workspaceID uuid.UUID) ([]TxnS
 	return items, nil
 }
 
+const txnSendingKeys = `-- name: TxnSendingKeys :many
+SELECT k.id, k.name, k.prefix, k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second,
+       k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, coalesce(u.name, '')::text AS created_by_name
+FROM api_keys k LEFT JOIN users u ON u.id = k.created_by
+WHERE k.workspace_id = $1 AND k.kind = 'api_key' AND 'transactional:send' = ANY(k.permissions) AND k.revoked_at IS NULL
+ORDER BY k.created_at
+`
+
+type TxnSendingKeysRow struct {
+	ID            uuid.UUID   `json:"id"`
+	Name          string      `json:"name"`
+	Prefix        string      `json:"prefix"`
+	Preset        string      `json:"preset"`
+	Mode          string      `json:"mode"`
+	Templates     []string    `json:"templates"`
+	Categories    []uuid.UUID `json:"categories"`
+	TestAddresses []string    `json:"testAddresses"`
+	RatePerSecond int32       `json:"ratePerSecond"`
+	CreatedAt     time.Time   `json:"createdAt"`
+	ExpiresAt     *time.Time  `json:"expiresAt"`
+	LastUsedAt    *time.Time  `json:"lastUsedAt"`
+	LastUsedIp    *netip.Addr `json:"lastUsedIp"`
+	RevokedAt     *time.Time  `json:"revokedAt"`
+	CreatedByName string      `json:"createdByName"`
+}
+
+// Keys holding transactional:send, for the overview and Setup.
+func (q *Queries) TxnSendingKeys(ctx context.Context, workspaceID uuid.UUID) ([]TxnSendingKeysRow, error) {
+	rows, err := q.db.Query(ctx, txnSendingKeys, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnSendingKeysRow{}
+	for rows.Next() {
+		var i TxnSendingKeysRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Prefix,
+			&i.Preset,
+			&i.Mode,
+			&i.Templates,
+			&i.Categories,
+			&i.TestAddresses,
+			&i.RatePerSecond,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+			&i.LastUsedAt,
+			&i.LastUsedIp,
+			&i.RevokedAt,
+			&i.CreatedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const txnSetBounced = `-- name: TxnSetBounced :exec
 UPDATE messages SET status = 'bounced', error = $1 WHERE id = $2 AND status IN ('sent', 'deferred', 'queued')
 `
@@ -2346,6 +3003,20 @@ type TxnSetBouncedParams struct {
 // shows it as Bounced (soft), where campaigns count it as a deferral.
 func (q *Queries) TxnSetBounced(ctx context.Context, arg TxnSetBouncedParams) error {
 	_, err := q.db.Exec(ctx, txnSetBounced, arg.Error, arg.ID)
+	return err
+}
+
+const txnSetDomainTransactional = `-- name: TxnSetDomainTransactional :exec
+UPDATE sending_domains SET transactional = $1 WHERE id = $2
+`
+
+type TxnSetDomainTransactionalParams struct {
+	Transactional bool      `json:"transactional"`
+	ID            uuid.UUID `json:"id"`
+}
+
+func (q *Queries) TxnSetDomainTransactional(ctx context.Context, arg TxnSetDomainTransactionalParams) error {
+	_, err := q.db.Exec(ctx, txnSetDomainTransactional, arg.Transactional, arg.ID)
 	return err
 }
 
@@ -2436,6 +3107,29 @@ func (q *Queries) TxnSettingsForUpdate(ctx context.Context, workspaceID uuid.UUI
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const txnSettingsSetDefaultSender = `-- name: TxnSettingsSetDefaultSender :exec
+UPDATE transactional_settings SET default_sender_id = $1, updated_by = $2, updated_at = $3
+WHERE workspace_id = $4
+`
+
+type TxnSettingsSetDefaultSenderParams struct {
+	SenderID    *uuid.UUID `json:"senderId"`
+	UpdatedBy   *uuid.UUID `json:"updatedBy"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+}
+
+// The default From of transactional templates (Settings › Senders).
+func (q *Queries) TxnSettingsSetDefaultSender(ctx context.Context, arg TxnSettingsSetDefaultSenderParams) error {
+	_, err := q.db.Exec(ctx, txnSettingsSetDefaultSender,
+		arg.SenderID,
+		arg.UpdatedBy,
+		arg.UpdatedAt,
+		arg.WorkspaceID,
+	)
+	return err
 }
 
 const txnSettingsSetGuide = `-- name: TxnSettingsSetGuide :exec

@@ -6085,6 +6085,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/alerts/{alertId}/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a delivery alert as seen (it stays open until the numbers recover) */
+        post: operations["mark-transactional-alert-seen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/categories": {
         parameters: {
             query?: never;
@@ -6259,6 +6276,26 @@ export interface paths {
          * @description People only. Unavailable when a sensitive variable or attachments weren't stored (resend_unavailable). Audited.
          */
         post: operations["resend-transactional-message"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The period's numbers, the route, alerts, incidents and the keys that can send
+         * @description The Templates tab's header and side cards, and the Overview's Transactional card.
+         */
+        get: operations["get-transactional-overview"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -7282,6 +7319,11 @@ export interface components {
         AddWorkspaceLanguage: {
             /** @description A base language code, such as fr */
             code: string;
+        };
+        AlertDomain: {
+            /** Format: int64 */
+            count: number;
+            domain: string;
         };
         ApplyInput: {
             block?: string;
@@ -12267,7 +12309,7 @@ export interface components {
             /** @description Full sentence for the notification center */
             body: string;
             /** @enum {string} */
-            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other";
+            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other" | "transactional";
             /** @example Approvals */
             categoryLabel: string;
             /** Format: date-time */
@@ -14837,6 +14879,7 @@ export interface components {
             systemSenderId: string;
             trackingDomain: string;
             trackingOptions: components["schemas"]["SenderTrackingOption"][];
+            transactionalSenderId: string;
         };
         SenderDefaultsInput: {
             /** @description Default From for new campaigns (the Broadcasts default) */
@@ -14847,6 +14890,7 @@ export interface components {
             replyTo?: string;
             /** @description Empty for the provider default */
             trackingDomain?: string;
+            transactionalSenderId?: string;
         };
         SenderDomainCell: {
             text: string;
@@ -14863,10 +14907,13 @@ export interface components {
             note: string;
             pending: boolean;
             replyTo: string;
+            smtpRelay: boolean;
+            transactional: boolean;
             verification: components["schemas"]["SenderVerification"][];
         };
         SenderInput: {
-            defaultFor?: ("broadcast" | "automation" | "system")[];
+            /** @description transactional needs a sender on a Transactional domain */
+            defaultFor?: ("broadcast" | "automation" | "system" | "transactional")[];
             /** @description Required when creating; the address can't change later */
             email?: string;
             name: string;
@@ -15012,6 +15059,7 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "verified" | "partial" | "failed";
             tracking: components["schemas"]["SenderDomainCell"];
+            transactional: boolean;
             usedBy: string[];
         };
         SendingDomainTracking: {
@@ -15884,11 +15932,55 @@ export interface components {
             challenge: string;
             code: string;
         };
+        TransactionalAccess: {
+            content: boolean;
+            edit: boolean;
+            editRoute: boolean;
+            manageKeys: boolean;
+            publish: boolean;
+            send: boolean;
+        };
         TransactionalAddress: {
             /** @example sam.rivera@outlook.com */
             email: string;
             /** @example Sam Rivera */
             name?: string;
+        };
+        TransactionalAlert: {
+            /** Format: int64 */
+            bounced?: number;
+            domains?: components["schemas"]["AlertDomain"][];
+            /** Format: date-time */
+            endedAt?: string;
+            fallback?: string;
+            /** Format: int64 */
+            hard?: number;
+            id: string;
+            /** @enum {string} */
+            kind: "bounce_rate" | "failed" | "median_delivery" | "failover";
+            /** Format: int64 */
+            lost?: number;
+            /** Format: int64 */
+            medianMs?: number;
+            /** Format: int64 */
+            messages?: number;
+            /** @description The provider messages failed over from */
+            provider?: components["schemas"]["TransactionalRef"];
+            /** Format: date-time */
+            seenAt?: string;
+            /** Format: int64 */
+            sent?: number;
+            /** Format: date-time */
+            startedAt: string;
+            /** @description id is the template's ID (password-reset) */
+            template?: components["schemas"]["TransactionalRef"];
+            /** Format: double */
+            threshold: number;
+            /**
+             * Format: double
+             * @description bounce rate %, failed messages, median seconds or failed-over messages
+             */
+            value: number;
         };
         TransactionalAttachmentInput: {
             /** @description The file, base64-encoded */
@@ -16168,9 +16260,49 @@ export interface components {
             from: string;
             to: string;
         };
+        TransactionalFailoverState: {
+            code?: string;
+            from: components["schemas"]["TransactionalRef"];
+            /** Format: int64 */
+            lost: number;
+            /** Format: int64 */
+            medianMs?: number;
+            /** Format: int64 */
+            messages: number;
+            recovering: boolean;
+            /** Format: date-time */
+            since: string;
+            to: components["schemas"]["TransactionalRef"];
+        };
+        TransactionalFirstRun: {
+            /** Format: int64 */
+            keys: number;
+            /** Format: int64 */
+            messages: number;
+            /** Format: int64 */
+            published: number;
+            /**
+             * Format: int64
+             * @description Senders on Transactional domains
+             */
+            senders: number;
+            /** Format: int64 */
+            templates: number;
+            verifiedSender: boolean;
+        };
         TransactionalHeaderPair: {
             name: string;
             value: string;
+        };
+        TransactionalHour: {
+            /** Format: double */
+            bounceRate: number;
+            /** Format: int64 */
+            bounced: number;
+            /** Format: int64 */
+            medianMs?: number;
+            /** Format: int64 */
+            sent: number;
         };
         TransactionalLog: {
             canExport: boolean;
@@ -16341,6 +16473,59 @@ export interface components {
             since: string;
             /** @enum {string} */
             source: "preference_center" | "unsubscribe_link" | "one_click" | "api" | "member" | "";
+        };
+        TransactionalOverview: {
+            alerts: components["schemas"]["TransactionalAlert"][];
+            can: components["schemas"]["TransactionalAccess"];
+            endpoint: string;
+            failover?: components["schemas"]["TransactionalFailoverState"];
+            firstRun: components["schemas"]["TransactionalFirstRun"];
+            hour: components["schemas"]["TransactionalHour"];
+            incidents: components["schemas"]["TransactionalAlert"][];
+            includeTest: boolean;
+            keys: components["schemas"]["TransactionalSendingKey"][];
+            /** @enum {string} */
+            period: "24h" | "7d" | "30d";
+            route: components["schemas"]["TransactionalRouteSummary"];
+            stats: components["schemas"]["TransactionalOverviewStats"];
+        };
+        TransactionalOverviewStats: {
+            /** Format: double */
+            bounceRate: number;
+            /** Format: int64 */
+            bounced: number;
+            /** Format: int64 */
+            clicked: number;
+            /** Format: int64 */
+            complained: number;
+            complainedOn: string[];
+            /** Format: double */
+            complaintRate: number;
+            /** Format: int64 */
+            deferred: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveryRate: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            keys: number;
+            /** Format: int64 */
+            medianMs?: number;
+            /** Format: int64 */
+            opened: number;
+            /** Format: int64 */
+            optedOut: number;
+            /** Format: int64 */
+            rejected: number;
+            /** @description 10 suppressed · 2 opted out */
+            rejectedReason?: string;
+            /** Format: int64 */
+            sent: number;
+            smtp: boolean;
+            /** Format: int64 */
+            suppressed: number;
         };
         TransactionalPreview: {
             defaults: string[];
@@ -16533,6 +16718,17 @@ export interface components {
             rule: string;
             value?: string;
         };
+        TransactionalRouteSummary: {
+            /** Format: int64 */
+            conditions: number;
+            configured: boolean;
+            fallback?: components["schemas"]["TransactionalRef"];
+            /** @enum {string} */
+            policy?: "automatic" | "pause_and_ask" | "warm_only" | "";
+            primary?: components["schemas"]["TransactionalRef"];
+            priority: boolean;
+            system?: components["schemas"]["TransactionalRef"];
+        };
         TransactionalSend: {
             attachments?: components["schemas"]["TransactionalAttachmentInput"][];
             bcc?: components["schemas"]["TransactionalAddress"][];
@@ -16591,6 +16787,30 @@ export interface components {
             email: string;
             id: string;
             name: string;
+        };
+        TransactionalSendingKey: {
+            /** @description Category names the key is limited to */
+            categories: string[];
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            expired: boolean;
+            /** Format: date-time */
+            expiresAt?: string;
+            id: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            lastUsedIp?: string;
+            masked: string;
+            /** @enum {string} */
+            mode: "live" | "test";
+            name: string;
+            /** @enum {string} */
+            preset: "send_only" | "smtp" | "";
+            /** Format: int64 */
+            ratePerSecond: number;
+            templates: string[];
+            testAddresses: string[];
         };
         TransactionalSettings: {
             /**
@@ -16980,6 +17200,7 @@ export interface components {
         UpdateDomainInput: {
             note?: string;
             trackingDomain?: string;
+            transactional?: boolean;
         };
         VariableUse: {
             /** Format: int64 */
@@ -21393,7 +21614,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "transactional";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -21475,7 +21696,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "transactional";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -29103,7 +29324,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description Notification center tab */
-                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute";
+                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute" | "transactional";
                 /** @description Opaque cursor from a previous page */
                 cursor?: string;
                 limit?: number;
@@ -31315,6 +31536,8 @@ export interface operations {
                 since?: "7d" | "30d" | "";
                 /** @description Show the rows of one import group */
                 import?: string;
+                /** @description all: every stream; marketing: Broadcasts and Automations only (unsubscribes, role addresses) */
+                appliesTo?: "all" | "marketing" | "";
                 page?: number;
                 pageSize?: number;
             };
@@ -31715,6 +31938,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProviderTrackingChecks"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-transactional-alert-seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                alertId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -32170,6 +32424,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransactionalSendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-transactional-overview": {
+        parameters: {
+            query?: {
+                period?: "24h" | "7d" | "30d";
+                /** @description Count messages sent with test-mode keys */
+                includeTest?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalOverview"];
                 };
             };
             /** @description Error */

@@ -37,6 +37,17 @@ type MessagePath struct {
 	MessageID string `path:"messageId" maxLength:"36" doc:"The message ID the send API answered"`
 }
 
+type overviewInput struct {
+	api.WorkspaceInput
+	Period      string `query:"period" enum:"24h,7d,30d" default:"7d"`
+	IncludeTest bool   `query:"includeTest" doc:"Count messages sent with test-mode keys"`
+}
+
+type alertPath struct {
+	api.WorkspaceInput
+	AlertID string `path:"alertId" maxLength:"36"`
+}
+
 type contactActivityInput struct {
 	api.WorkspaceInput
 	ContactID string `path:"contactId" maxLength:"36"`
@@ -126,6 +137,21 @@ func RegisterMessages(h huma.API, s *Service) {
 				return nil, err
 			}
 			return &resendOutput{Status: http.StatusAccepted, Body: out}, nil
+		})
+	api.Get(h, api.Op{ID: "get-transactional-overview", Path: Base + "/overview", Summary: "The period's numbers, the route, alerts, incidents and the keys that can send",
+		Description: "The Templates tab's header and side cards, and the Overview's Transactional card.", Tags: tagLog, Access: view},
+		func(ctx context.Context, in *overviewInput) (*api.Body[TransactionalOverview], error) {
+			out, err := s.Overview(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Period, in.IncludeTest)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "mark-transactional-alert-seen", Path: Base + "/alerts/{alertId}/seen", Summary: "Mark a delivery alert as seen (it stays open until the numbers recover)",
+		Tags: tagLog, Access: view},
+		func(ctx context.Context, in *alertPath) (*api.Empty, error) {
+			id, err := uuid.Parse(in.AlertID)
+			if err != nil {
+				return nil, api.NotFound("Alert")
+			}
+			return api.NoContent, s.MarkAlertSeen(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 		})
 	api.Get(h, api.Op{ID: "get-contact-transactional-activity", Path: Base + "/contacts/{contactId}", Summary: "A contact's transactional messages and category opt-outs",
 		Description: "For the contact profile's activity timeline. Content stays behind transactional:content.", Tags: tagLog, Access: view},

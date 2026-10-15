@@ -26,6 +26,8 @@ var Events = []EventType{
 	{Key: KindWebhooksSilent, Label: "Webhooks silent", Short: "silent webhooks", DefaultEmail: false, Kinds: []string{KindWebhooksSilent}},
 	{Key: KindInviteAccepted, Label: "Invite accepted", Audience: "Inviter only", Short: "invites", DefaultEmail: false, Kinds: []string{KindInviteAccepted, KindInviteRequested}},
 	{Key: KindHostReputeAlert, Label: "HostRepute alerts", Audience: "Everyone with deliverability:view", Short: "HostRepute alerts", DefaultEmail: false, Kinds: []string{KindHostReputeAlert}},
+	{Key: KindTransactionalAlert, Label: "Transactional delivery alert", Audience: "Everyone with transactional:view", Short: "transactional delivery alerts", DefaultEmail: true, Kinds: []string{KindTransactionalAlert}},
+	{Key: KindSMTPRelayUnreachable, Label: "SMTP relay unreachable", Audience: "Instance admins only", Short: "SMTP relay outages", DefaultEmail: true, Urgent: true, Kinds: []string{KindSMTPRelayUnreachable}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -52,23 +54,28 @@ const (
 	CategoryTeam       = "team"
 	CategoryHostRepute = "hostrepute"
 	CategoryOther      = "other"
+	// CategoryTransactional holds transactional mail's delivery alerts and
+	// the SMTP relay.
+	CategoryTransactional = "transactional"
 )
 
 var categoryKinds = map[string][]string{
-	CategoryApprovals:  {KindApprovalRequested, KindApprovalDecided, KindApprovalInvalidated},
-	CategorySending:    {KindSendPaused, KindSendBlocked, KindSendFinished},
-	CategoryProviders:  {KindProviderDown, KindProviderDegraded, KindWebhooksSilent},
-	CategoryTeam:       {KindInviteAccepted, KindInviteRequested},
-	CategoryHostRepute: {KindHostReputeAlert},
+	CategoryApprovals:     {KindApprovalRequested, KindApprovalDecided, KindApprovalInvalidated},
+	CategorySending:       {KindSendPaused, KindSendBlocked, KindSendFinished},
+	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent},
+	CategoryTeam:          {KindInviteAccepted, KindInviteRequested},
+	CategoryHostRepute:    {KindHostReputeAlert},
+	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 }
 
 var categoryLabels = map[string]string{
-	CategoryApprovals:  "Approvals",
-	CategorySending:    "Sending",
-	CategoryProviders:  "Providers",
-	CategoryTeam:       "Team",
-	CategoryHostRepute: "HostRepute",
-	CategoryOther:      "Other",
+	CategoryApprovals:     "Approvals",
+	CategorySending:       "Sending",
+	CategoryProviders:     "Providers",
+	CategoryTeam:          "Team",
+	CategoryHostRepute:    "HostRepute",
+	CategoryOther:         "Other",
+	CategoryTransactional: "Transactional",
 }
 
 // CategoryOf returns the center tab a kind is listed under.

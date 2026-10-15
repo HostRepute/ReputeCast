@@ -15,7 +15,9 @@ func (a *App) mcpserver() *mcpserver.Service {
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Sending: a.Sending, Mail: a.Mail,
 		Campaigns: &campaigns.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
 		Languages: languagesService(a),
-		PublicURL: func(context.Context) string { return a.URLs.Base() },
+		// Agents list templates, render previews and read the log; they never send.
+		Transactional: transactionalService(a),
+		PublicURL:     func(context.Context) string { return a.URLs.Base() },
 	}
 }
 

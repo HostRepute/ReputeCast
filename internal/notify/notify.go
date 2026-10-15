@@ -29,6 +29,13 @@ const (
 	KindHostReputeAlert     = "hostrepute_alert"
 	KindSendFinished        = "send_finished"
 	KindJobFinished         = "job_finished" // imports, exports
+	// KindTransactionalAlert is a delivery alert of transactional mail: a
+	// template's bounce rate, failed messages or the median delivery time
+	// over the last hour passed its limit.
+	KindTransactionalAlert = "transactional_alert"
+	// KindSMTPRelayUnreachable tells instance admins the SMTP relay can't
+	// be reached from the internet.
+	KindSMTPRelayUnreachable = "smtp_relay_unreachable"
 )
 
 // Notification is what appears in the notification center.

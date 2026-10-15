@@ -305,6 +305,10 @@ type UpdateDomainInput struct {
 	// TrackingDomain is a subdomain that CNAMEs to ReputeCast so links and
 	// the open pixel use the sender's domain ("" removes it).
 	TrackingDomain *string `json:"trackingDomain,omitempty" maxLength:"253"`
+	// Transactional marks the domain as carrying transactional mail: its
+	// verified senders become the Transactional senders (the send API's
+	// from, the SMTP relay's allowed From addresses).
+	Transactional *bool `json:"transactional,omitempty"`
 }
 
 // UpdateDomain changes a domain's note ("rename") or tracking domain.
@@ -317,8 +321,11 @@ func (s *Service) UpdateDomain(ctx context.Context, ws *store.Workspace, rawID s
 	if err != nil {
 		return store.SendingDomain{}, api.MapError(err, "Sending domain")
 	}
-	before := map[string]any{"note": d.Note, "tracking_domain": d.TrackingDomain}
-	note, tracking := d.Note, d.TrackingDomain
+	before := map[string]any{"note": d.Note, "tracking_domain": d.TrackingDomain, "transactional": d.Transactional}
+	note, tracking, transactional := d.Note, d.TrackingDomain, d.Transactional
+	if in.Transactional != nil {
+		transactional = *in.Transactional
+	}
 	if in.Note != nil {
 		note = strings.TrimSpace(*in.Note)
 	}
@@ -347,8 +354,13 @@ func (s *Service) UpdateDomain(ctx context.Context, ws *store.Workspace, rawID s
 				return err
 			}
 		}
+		if transactional != d.Transactional {
+			if err := q.TxnSetDomainTransactional(ctx, store.TxnSetDomainTransactionalParams{ID: d.ID, Transactional: transactional}); err != nil {
+				return err
+			}
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "domain.update", TargetType: "sending_domain", TargetID: d.ID.String(), TargetName: d.Domain,
-			Before: before, After: map[string]any{"note": note, "tracking_domain": tracking}})
+			Before: before, After: map[string]any{"note": note, "tracking_domain": tracking, "transactional": transactional}})
 	})
 	if err != nil {
 		return store.SendingDomain{}, err
