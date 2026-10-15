@@ -41,6 +41,9 @@ type Service struct {
 	URLs publicurl.Builder
 	// AfterChange is told when a fix or a send setting changed a campaign.
 	AfterChange AfterChange
+	// Accessibility runs the Accessibility group and its fixes; nil leaves
+	// the group out.
+	Accessibility AccessibilityChecker
 }
 
 func (s *Service) now() time.Time {
@@ -108,6 +111,9 @@ func (s *Service) Run(ctx context.Context, ws *store.Workspace, id uuid.UUID, o 
 	runID := uuid.Must(uuid.NewV7())
 	groups := make([]ReadinessProgressGroup, 0, len(runOrder))
 	for _, g := range runOrder {
+		if g == GroupAccessibility && s.Accessibility == nil {
+			continue
+		}
 		groups = append(groups, ReadinessProgressGroup{Key: g, Title: groupTitles[g], Status: "queued", Text: RunningText(g)})
 	}
 	groups[0].Status = "running"

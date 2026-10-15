@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
@@ -45,6 +46,7 @@ const (
 	stagePrepare  stage = "prepare"
 	stageAuth     stage = GroupAuthentication
 	stageContent  stage = GroupContent
+	stageAccess   stage = GroupAccessibility
 	stageComply   stage = GroupCompliance
 	stageReput    stage = GroupReputation
 	stageLinks    stage = GroupLinks
@@ -53,7 +55,7 @@ const (
 )
 
 // runOrder is the order groups run (and tick in on the review screen).
-var runOrder = []string{GroupAuthentication, GroupContent, GroupCompliance, GroupReputation, GroupLinks, GroupAudience, GroupRouting}
+var runOrder = []string{GroupAuthentication, GroupContent, GroupAccessibility, GroupCompliance, GroupReputation, GroupLinks, GroupAudience, GroupRouting}
 
 // sunsetDays is the number of days without an open or click after which a
 // contact is unengaged: the last day before the sunset tier of the
@@ -152,6 +154,12 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 		}
 	}
 	done(stageContent, f)
+
+	// Accessibility: every language version, on the content as saved.
+	if s.Accessibility != nil {
+		f.Accessibility = s.Accessibility.ReadinessFacts(ctx, ws, accessibility.CampaignContent{ID: c.ID, Name: c.Name, Status: c.Status, MJML: c.Mjml, HTML: c.Html, Hash: c.ContentHash})
+		done(stageAccess, f)
+	}
 
 	f.Compliance = s.compliance(ws, f)
 	done(stageComply, f)

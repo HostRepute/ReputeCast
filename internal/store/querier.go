@@ -18,6 +18,21 @@ type Querier interface {
 	// Access requests from the "403 · no permission" screen (internal/accessrequests).
 	// The member's latest request for this role in the last day (one a day).
 	AccessRequestsLatest(ctx context.Context, arg AccessRequestsLatestParams) (time.Time, error)
+	AccessibilityCampaign(ctx context.Context, arg AccessibilityCampaignParams) (AccessibilityCampaignRow, error)
+	// Automations with a draft version that isn't live yet.
+	AccessibilityDraftAutomations(ctx context.Context, workspaceID uuid.UUID) ([]AccessibilityDraftAutomationsRow, error)
+	AccessibilityInsertFix(ctx context.Context, arg AccessibilityInsertFixParams) error
+	AccessibilityLatestFix(ctx context.Context, campaignID uuid.UUID) (AccessibilityLatestFixRow, error)
+	AccessibilityLinkTitles(ctx context.Context, urls []string) ([]AccessibilityLinkTitlesRow, error)
+	// Campaigns that haven't started: drafts, waiting for or holding an
+	// approval, and scheduled sends.
+	AccessibilityPendingCampaigns(ctx context.Context, workspaceID uuid.UUID) ([]AccessibilityPendingCampaignsRow, error)
+	// Accessibility checks (X06): the workspace policy, linked pages' titles
+	// and the fixes applied from Review & send.
+	AccessibilityPolicy(ctx context.Context, workspaceID uuid.UUID) (AccessibilityPolicyRow, error)
+	AccessibilityTemplates(ctx context.Context, workspaceID uuid.UUID) ([]AccessibilityTemplatesRow, error)
+	AccessibilityUpsertLinkTitle(ctx context.Context, arg AccessibilityUpsertLinkTitleParams) error
+	AccessibilityUpsertPolicy(ctx context.Context, arg AccessibilityUpsertPolicyParams) error
 	// The draft or running import the wizard resumes.
 	ActiveImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
 	AddSegmentMembers(ctx context.Context, arg AddSegmentMembersParams) error

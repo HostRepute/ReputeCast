@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -25,7 +26,7 @@ import (
 
 // ReadinessFixRequest is one fix to apply.
 type ReadinessFixRequest struct {
-	Action string            `json:"action" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify"`
+	Action string            `json:"action" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,accessibility_decorative,accessibility_color,accessibility_one_click"`
 	Params map[string]string `json:"params,omitempty"`
 }
 
@@ -114,6 +115,7 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 	// Content fixes are applied together as one new version.
 	src, subject, content := c.Mjml, c.Subject, false
 	labels := []string{}
+	var a11y []accessibility.FixChange
 	for i, fx := range in.Fixes {
 		field := fmt.Sprintf("body.fixes[%d]", i)
 		switch fx.Action {
@@ -173,6 +175,18 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			content = true
 			labels = append(labels, "minified")
 			out.Applied = append(out.Applied, "Minified the inline CSS")
+		case FixAccessibilityDecorative, FixAccessibilityColor, FixAccessibilityOneClick:
+			if s.Accessibility == nil {
+				return out, api.Conflict("Accessibility fixes aren't available in this process.")
+			}
+			next, change, err := s.Accessibility.FixMJML(ctx, ws, src, fx.Action, fx.Params)
+			if err != nil {
+				return out, api.Invalid(field, sentence(capitalize(err.Error())))
+			}
+			src, content = next, true
+			labels = append(labels, change.Label)
+			out.Applied = append(out.Applied, change.Applied)
+			a11y = append(a11y, change)
 		default:
 			return out, api.Invalid(field+".action", "Unknown fix.")
 		}
@@ -192,6 +206,19 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			return out, err
 		}
 		out.Version = saved.Version
+		if len(a11y) > 0 {
+			var langs []string
+			for _, ch := range a11y {
+				for _, l := range ch.Languages {
+					if !slices.Contains(langs, l) {
+						langs = append(langs, l)
+					}
+				}
+			}
+			if err := s.Accessibility.RecordFix(ctx, ws, p, id, c.Name, saved.ContentHash, langs, a11y); err != nil {
+				return out, err
+			}
+		}
 	}
 	s.changed(ctx, ws, id)
 	return out, nil

@@ -430,7 +430,9 @@ func fixHeadings(d *doc, changes []AccessibilityHeadingChange) (string, error) {
 		content := d.src[s:e]
 		els := elementsOf(content)
 		for _, c := range byPath[k] {
-			h := nth(els, func(x *htmlElement) bool { return len(x.tag) == 2 && x.tag[0] == 'h' && x.tag[1] >= '1' && x.tag[1] <= '6' }, c.Index)
+			h := nth(els, func(x *htmlElement) bool {
+				return len(x.tag) == 2 && x.tag[0] == 'h' && x.tag[1] >= '1' && x.tag[1] <= '6'
+			}, c.Index)
 			if h == nil || h.tag != "h"+strconv.Itoa(c.From) {
 				return d.src, ErrFixTarget
 			}

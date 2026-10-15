@@ -3,6 +3,7 @@ package readiness
 import (
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 )
@@ -24,6 +25,8 @@ type Facts struct {
 	Auth       AuthFacts
 	Content    ContentFacts
 	Compliance ComplianceFacts
+	// Accessibility is the accessibility checks of every language version.
+	Accessibility accessibility.ReadinessFacts
 	// MailboxRates are the per-mailbox-provider throttles (messages per
 	// second, 0 = full rate).
 	MailboxRates map[string]float64

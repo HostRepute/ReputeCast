@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -426,6 +427,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if src != "" && html == "" {
 		html = mjml.Compile(src).HTML
 	}
+	html = accessibility.FinalizeStored(ctx, ws, html)
 	id := uuid.Must(uuid.NewV7())
 	now := s.now()
 	actor := p.UserID
