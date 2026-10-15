@@ -240,6 +240,49 @@ handlers. Never hand-write API types; derive them: `type Item = Schemas['Campaig
   fields; errors are sentences next to the field with `aria-invalid`.
 - **URLs** hold UI state that should survive reload/share (filters, tabs, page).
 
+### Text and app languages
+
+The app comes in English and Vietnamese (design expansion, phase 2,
+`docs/spec/reputecast-design-addon-connect-reach.md` §3.7). Every string a
+person reads goes through `web/src/i18n`; screens written before that are
+being converted.
+
+- **Messages** are ICU MessageFormat, declared next to the code that uses
+  them. A feature has a `messages.ts`, or `<screen>.messages.ts` when it's
+  large:
+
+  ```ts
+  export const m = defineMessages('transactional', {
+    title: 'Transactional',
+    sent: '{count, plural, one {# message} other {# messages}} sent',
+    sentTo: 'Sent to <b>{name}</b> via {provider}',
+  })
+  ```
+
+  Use `useT()` for plain text (`t(m.sent, { count })`), `<T msg={m.sentTo}
+  values={{ name, provider, b: (c) => <b>{c}</b> }} />` for markup, and `t()`
+  from `@/i18n` outside React. Shared words are in `common` (`@/i18n/common`).
+- **IDs** are `namespace.key`: the namespace is the feature (`transactional`,
+  `integrations.catalog`), the key says what the text is for (`emptyTitle`,
+  `publishButton`), not what it says. Never reuse a message for a different
+  purpose because the English happens to match.
+- **Whole sentences only.** Never build a sentence from pieces or join
+  translated fragments; put the variables inside one message. Plurals use
+  `{n, plural, one {…} other {…}}` (Vietnamese has only `other`). Lists use
+  `formatList`, sorting uses `compareText`.
+- **Numbers and dates** still go through `lib/format`; pass the formatted
+  string into the message. `{n, plural}` and `#` follow the region format.
+- **Translations** sit next to the source as `messages.vi.ts` (or
+  `<screen>.messages.vi.ts`), default-exporting `translate(m, { … })`. Keys
+  are checked against the source; a missing one shows English.
+- **Never translated:** workspace content (campaign, list, template and form
+  names), permission keys, audit action names, API error codes, provider
+  names and codes, DNS records, code samples and CLI output.
+- **Layout for longer text** (the stress-test boards, Vietnamese and +40%):
+  filters size to their longest option; buttons, badges and tabs stay on one
+  line while their cell or row wraps; table headers may take two lines; a
+  truncated name shows in full on hover and focus.
+
 ### Accessibility (WCAG 2.2 AA, as audited on the boards)
 
 One `h1` per screen (the top bar's title), landmarks (`header`, `main#main`,

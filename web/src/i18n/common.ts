@@ -1,0 +1,31 @@
+import { defineMessages } from './define'
+
+/** Words that recur across the app. Feature text lives in each feature's own messages. */
+export const common = defineMessages('common', {
+  save: 'Save',
+  saveChanges: 'Save changes',
+  cancel: 'Cancel',
+  close: 'Close',
+  delete: 'Delete',
+  edit: 'Edit',
+  back: 'Back',
+  next: 'Next',
+  done: 'Done',
+  retry: 'Retry',
+  tryAgain: 'Try again',
+  loading: 'Loading…',
+  search: 'Search',
+  copy: 'Copy',
+  copied: 'Copied',
+  learnMore: 'Learn more',
+  showMore: 'Show more',
+  showLess: 'Show less',
+  viewAll: 'View all',
+  on: 'On',
+  off: 'Off',
+  yes: 'Yes',
+  no: 'No',
+  none: 'None',
+  optional: 'Optional',
+  required: 'Required',
+})
