@@ -123,6 +123,9 @@ samples, CLI output, "MCP", "2FA", "TOTP", "IdP", "SSO", "JIT", "A/B",
 | New | Mới |
 | Not saved | Chưa lưu |
 | Development | Phát triển |
+| Auto-paused | Tự tạm dừng |
+| Pending approval · Approved | Chờ phê duyệt · Đã phê duyệt |
+| Cancelled · Failed | Đã hủy · Thất bại |
 
 ## Campaigns
 
@@ -153,6 +156,9 @@ samples, CLI output, "MCP", "2FA", "TOTP", "IdP", "SSO", "JIT", "A/B",
 | auto-paused once, Yahoo deferrals | tự tạm dừng một lần vì Yahoo hoãn nhận |
 | Showing 9 of 48 | Hiển thị 9 trên 48 |
 | Previous · Next | Trước · Sau |
+| Live monitor | Theo dõi trực tiếp |
+| imported from Brevo · Brevo · imported | nhập từ Brevo · Brevo · đã nhập |
+| segment (in an audience: 2 segments) | phân khúc (2 phân khúc) |
 
 ## Review & send
 

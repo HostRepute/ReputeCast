@@ -5,7 +5,6 @@ package campaigns
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -181,22 +181,13 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 	if err != nil {
 		return CampaignList{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	notes := map[uuid.UUID][]string{}
 	for _, in := range incidents {
 		if in.Kind != "threshold" {
 			continue
 		}
-		times := "once"
-		if in.N == 2 {
-			times = "twice"
-		} else if in.N > 2 {
-			times = fmt.Sprintf("%d times", in.N)
-		}
-		n := "auto-paused " + times
-		if in.MailboxProvider != "" {
-			n += ", " + mailboxName(in.MailboxProvider) + " " + metricNoun(in.Metric)
-		}
-		notes[in.CampaignID] = append(notes[in.CampaignID], n)
+		notes[in.CampaignID] = append(notes[in.CampaignID], autoPausedNote(l, int64(in.N), in.MailboxProvider, in.Metric))
 	}
 	out := CampaignList{Items: make([]CampaignListItem, 0, len(rows)), Total: total, Page: p.Page, PageSize: p.PageSize, Counts: counts}
 	for _, r := range rows {
@@ -226,11 +217,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 				Winner string `json:"winner"`
 			}
 			if json.Unmarshal(r.AbTest, &ab) == nil && ab.Kind != "" {
-				n := "A/B " + strings.ReplaceAll(ab.Kind, "_", " ")
-				if ab.Winner != "" {
-					n += ", winner " + ab.Winner
-				}
-				it.Notes = append(it.Notes, n)
+				it.Notes = append(it.Notes, abNote(l, ab.Kind, ab.Winner))
 			}
 		}
 		it.Notes = append(it.Notes, notes[r.ID]...)
@@ -279,6 +266,7 @@ func (s *Service) audienceLabeler(ctx context.Context, wsID uuid.UUID) (func(jso
 	for _, l := range lists {
 		names[l.ID] = l.Name
 	}
+	l := i18n.LangFrom(ctx)
 	return func(raw json.RawMessage) string {
 		var a struct {
 			Lists    []uuid.UUID `json:"lists"`
@@ -288,7 +276,7 @@ func (s *Service) audienceLabeler(ctx context.Context, wsID uuid.UUID) (func(jso
 			return ""
 		}
 		if len(a.Segments) == 0 && len(a.Lists) == len(names) && len(names) > 1 {
-			return "All subscribers"
+			return mAudienceAll.Text(l, nil)
 		}
 		parts := make([]string, 0, len(a.Lists))
 		for _, id := range a.Lists {
@@ -297,7 +285,7 @@ func (s *Service) audienceLabeler(ctx context.Context, wsID uuid.UUID) (func(jso
 			}
 		}
 		if len(a.Segments) > 0 {
-			parts = append(parts, fmt.Sprintf("%d segment%s", len(a.Segments), plural(len(a.Segments))))
+			parts = append(parts, mAudienceSegments.Text(l, i18n.Args{"count": len(a.Segments)}))
 		}
 		return strings.Join(parts, " + ")
 	}, nil
@@ -345,13 +333,6 @@ func pct(n, d int64) *float64 {
 	return &v
 }
 
-func plural(n int) string {
-	if n == 1 {
-		return ""
-	}
-	return "s"
-}
-
 func mailboxName(k string) string {
 	switch k {
 	case "gmail":
@@ -363,19 +344,7 @@ func mailboxName(k string) string {
 	case "icloud":
 		return "iCloud"
 	}
-	return "Other"
-}
-
-func metricNoun(m string) string {
-	switch m {
-	case "deferral":
-		return "deferrals"
-	case "complaint":
-		return "complaints"
-	case "hard_bounce", "bounce":
-		return "bounces"
-	}
-	return m
+	return ""
 }
 
 // CampaignSummary is the KPI row above the list (last 30 days).

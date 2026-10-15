@@ -278,10 +278,51 @@ being converted.
 - **Never translated:** workspace content (campaign, list, template and form
   names), permission keys, audit action names, API error codes, provider
   names and codes, DNS records, code samples and CLI output.
-- **Layout for longer text** (the stress-test boards, Vietnamese and +40%):
-  filters size to their longest option; buttons, badges and tabs stay on one
-  line while their cell or row wraps; table headers may take two lines; a
-  truncated name shows in full on hover and focus.
+- **Server text** a member reads (problem details with their fix, "who can
+  help", notifications, member emails, the invitation page's role
+  description) comes from the package's `messages/<locale>.json` catalog
+  through `internal/i18n`, in the request's language (`i18n.LangFrom(ctx)`).
+  API clients get English unless they send `Accept-Language`.
+- **Checks:** `pnpm run i18n:check` lists what each language misses, by file,
+  and fails on broken ICU or a translation that uses an argument or a tag
+  its English doesn't have. It writes `src/i18n/status.gen.ts`: outside
+  development the language picker offers only complete languages. Before a
+  screen is done, look at it in the pseudo-locale (Account & security ›
+  Language & region › Pseudo (+40%), in development): text without ⟦ ⟧
+  skipped `web/src/i18n`, and a missing ⟧ is text that was cut off.
+  `docs/i18n/translating.md` is the translators' guide.
+
+### Text expansion
+
+Translations run longer than English: Vietnamese by about a quarter, the
+pseudo-locale by 40%. The stress-test boards (`StressCampaigns…`,
+`StressReview…`, `StressTeam…`) settle how screens make room:
+
+1. **Never cut off** verdicts, status badges, numbers, buttons, permission
+   keys, error messages or anything in a dialog. They wrap, or the layout
+   makes room.
+2. **Ellipsis, with the full text on hover and focus,** for user content in
+   table cells (campaign, list and member names, email addresses) and the
+   middle of breadcrumbs: wrap the cell's link in `components/ui/Truncate`.
+3. **At most two lines** for table headers, stat-tile labels, sidebar labels
+   and card captions. `Th` measures a translated header on two lines, so its
+   column never gets narrower than that and doesn't squeeze its numbers;
+   stat-tile labels use `line-clamp-2` with a `title`.
+4. **Buttons don't wrap.** A button group that doesn't fit moves to its own
+   row, as the page header's actions and the composer header's do.
+5. **Badges don't wrap;** the cell wraps around them.
+6. **Tabs scroll sideways** (`NavTabs`, `FilterTabs`), as in English.
+7. **Line height of at least 1.4** for body text in Vietnamese, whose
+   diacritics stack (ệ, ở, Ữ); overlines stay uppercase. Anything clipped
+   (`overflow: hidden`) keeps room above and below for the marks.
+
+Rules that change a layout for longer text live in
+`web/src/styles/expansion.css` and apply only when the app isn't in English
+(`:root:not([lang='en'])`), so English keeps the boards' layout. The board's
+proposal for text 40% longer (cell padding of 10 px, a 160–170 px name
+column, row actions stacked) applies to the pseudo-locale until a language
+that long is added. Never select elements by their text (`[aria-label=…]`,
+`:has-text`): it breaks in every other language.
 
 ### Accessibility (WCAG 2.2 AA, as audited on the boards)
 
