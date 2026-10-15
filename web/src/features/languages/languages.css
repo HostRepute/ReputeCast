@@ -1,0 +1,111 @@
+/* Content languages (SettingsLanguages, LanguageStates, ComposerLanguages,
+   ComposerCompare): the boards' option rows, table rows and footers. */
+
+label.lng-rad {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+label.lng-rad input {
+  margin-top: 3px;
+  flex: none;
+}
+label.lng-rad.on {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
+label.lng-rad.off {
+  background: var(--ground-3);
+  cursor: not-allowed;
+}
+
+.lng-tbl tr.nob td {
+  border-bottom: 0;
+}
+.lng-tbl tr.subr td {
+  padding-top: 0;
+}
+
+.lng-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line-2);
+}
+
+/* "How contacts get a language" */
+.lng-how {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+.lng-how > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.lng-box {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+}
+
+/* Review & send: the "Recipients per language" rows and Audience › By version. */
+.lng-lb {
+  display: grid;
+  grid-template-columns: minmax(84px, max-content) minmax(56px, max-content) minmax(0, 1fr);
+  gap: 4px 14px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+.lng-lb .ld {
+  color: var(--ink-nav);
+}
+@media (max-width: 767px) {
+  .lng-lb {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0 12px;
+  }
+  .lng-lb .ld {
+    grid-column: 1 / -1;
+    margin: 0 0 8px;
+  }
+}
+.lng-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  gap: 2px;
+}
+.lng-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.lng-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.lng-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}

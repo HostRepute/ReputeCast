@@ -166,4 +166,15 @@ export const entries: Entry[] = [
   { board: 'PublicUnsubscribe', manual: true },
   // X01 · the phone tab bar's More sheet: open it with More at 390 × 844 (any screen; the board draws it over Overview).
   { board: 'ShellMore', manual: true },
+  // X05 · content languages. The Languages card is on Settings › General; the boards draw it alone.
+  { board: 'SettingsLanguages', path: `${ws}/settings`, widths: [1440] },
+  { board: 'SettingsLanguagesTablet', path: `${ws}/settings`, widths: [834] },
+  { board: 'SettingsLanguagesPhone', path: `${ws}/settings`, widths: [390] },
+  { board: 'LanguageStates', manual: true },
+  { board: 'ComposerLanguages', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?language=de`, widths: [1440] },
+  { board: 'ComposerLanguagesTablet', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?language=de`, widths: [834] },
+  { board: 'ComposerLanguagesPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?language=de`, widths: [390] },
+  { board: 'ComposerCompare', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?language=de&view=compare`, widths: [1440] },
+  { board: 'ReportLanguages', manual: true },
+  { board: 'AutomationLanguages', manual: true },
 ]

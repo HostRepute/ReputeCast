@@ -26,9 +26,10 @@ import {
   type Thresholds,
 } from './logic'
 import { whenText } from './parts'
+import { EACH, TestLanguageSelect, testLanguages, type SentVersion } from '@/features/languages/review'
 
 /** Audience: the lists, what's excluded and the final count. */
-export function AudienceCard({ audience }: { audience: Run['estimates']['audience'] }) {
+export function AudienceCard({ audience, children }: { audience: Run['estimates']['audience']; children?: ReactNode }) {
   return (
     <section className="card rv-card" aria-labelledby="rv-audience">
       <h2 className="h2" id="rv-audience">
@@ -44,6 +45,7 @@ export function AudienceCard({ audience }: { audience: Run['estimates']['audienc
         <span className="font-semibold">Final recipients</span>
         <span className="n text-[20px]">{count(audience.final)}</span>
       </div>
+      {children}
     </section>
   )
 }
@@ -390,21 +392,25 @@ export function TestSendsCard({
   toOthers,
   disabledReason,
   onSend,
+  versions = [],
 }: {
   sends: Schemas['ReviewTestSend'][]
   me: string
   toOthers: boolean
   disabledReason?: string
-  onSend: (to: string) => Promise<boolean>
+  onSend: (to: string, language?: string) => Promise<boolean>
+  /** The email's language versions: the test sends one, or one of each. */
+  versions?: SentVersion[]
 }) {
   const id = useId()
   const [to, setTo] = useState(me)
   const [busy, setBusy] = useState(false)
+  const [language, setLanguage] = useState(EACH)
   const send = async () => {
     const addr = (toOthers ? to : me).trim()
     if (!addr) return
     setBusy(true)
-    await onSend(addr)
+    await onSend(addr, versions.length > 1 ? language : undefined)
     setBusy(false)
   }
   return (
@@ -427,16 +433,24 @@ export function TestSendsCard({
             if (e.key === 'Enter') void send()
           }}
         />
-        <Button disabledReason={disabledReason} loading={busy} onClick={() => void send()}>
+        {versions.length > 1 ? <TestLanguageSelect versions={versions} value={language} onChange={setLanguage} /> : null}
+        {versions.length > 1 ? null : (
+          <Button disabledReason={disabledReason} loading={busy} onClick={() => void send()}>
+            Send test
+          </Button>
+        )}
+      </div>
+      {versions.length > 1 ? (
+        <Button className="self-start" disabledReason={disabledReason} loading={busy} onClick={() => void send()}>
           Send test
         </Button>
-      </div>
+      ) : null}
       {!toOthers ? <span className="k">Test emails go to your own address. Sending them to others needs campaigns:send.</span> : null}
       {sends.map((s, i) => (
         <div key={i} className="rv-sum">
           <span className="k">
             {s.to} · {whenText(s.at)}
-            {s.provider ? ` · via ${s.provider}` : ''}
+            {testLanguages(s.languages, versions) ? ` · ${testLanguages(s.languages, versions)}` : s.provider ? ` · via ${s.provider}` : ''}
           </span>
           {s.delivered ? <Badge tone="ok">Delivered to {s.delivered}</Badge> : <Badge tone="neutral">Sent</Badge>}
         </div>

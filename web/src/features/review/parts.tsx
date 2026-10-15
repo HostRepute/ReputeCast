@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
 import { clock, shortDate } from '@/lib/format'
 import { deniedReason } from '@/lib/session'
+import { CheckRowsGrid } from '@/features/languages/review'
 import { statusWord, type Check, type CheckStatus, type Fix } from './logic'
 
 /** The 40px verdict mark of the banners (warn, bad, ok) and the 36px error mark. */
@@ -120,6 +121,7 @@ export function CheckRow({
       <div className="rv-rt">
         <span className="rv-t">{title ?? check.title}</span>
         {showDetail && check.detail ? <span className={cn('k', check.mono && 'mono')}>{check.detail}</span> : null}
+        {check.rows?.length ? <CheckRowsGrid rows={check.rows} /> : null}
       </div>
       {children}
     </div>
