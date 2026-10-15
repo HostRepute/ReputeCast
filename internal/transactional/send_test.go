@@ -408,9 +408,13 @@ func TestSendErrors(t *testing.T) {
 		uuid.Must(uuid.NewV7()), s.ws, since)
 	p = code(s.call(secret, "/messages", "sup-1", resetBody("gone@outlook.com")), 422, "recipient_suppressed")
 	meta, _ := p["meta"].(map[string]any)
+	// The date is written in the workspace's timezone, not the test's.
 	var tz string
-	s.one(`SELECT timezone FROM workspaces WHERE id = $1`, &tz, s.ws)
-	loc, _ := time.LoadLocation(tz)
+	s.scan(`SELECT timezone FROM workspaces WHERE slug = 'acme-newsletter'`, &tz)
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if meta["reason"] != "hard_bounce" || meta["messageId"] == nil || !strings.Contains(p["detail"].(string), "hard bounce on "+since.In(loc).Format("2 Jan 2006")) {
 		t.Fatalf("suppressed: %v", p)
 	}
