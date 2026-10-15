@@ -1761,6 +1761,7 @@ type Workspace struct {
 	DefaultAutomationSenderID *uuid.UUID      `json:"defaultAutomationSenderId"`
 	DefaultSystemSenderID     *uuid.UUID      `json:"defaultSystemSenderId"`
 	SendingDefaults           json.RawMessage `json:"sendingDefaults"`
+	HiddenSections            []string        `json:"hiddenSections"`
 }
 
 type WorkspaceMember struct {

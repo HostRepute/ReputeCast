@@ -39,12 +39,14 @@ import { Route as WWorkspaceAppAutomationsIndexRouteImport } from './routes/w/$w
 import { Route as WWorkspaceAppCampaignsIndexRouteImport } from './routes/w/$workspace/_app/campaigns/index'
 import { Route as WWorkspaceAppDeliverabilityIndexRouteImport } from './routes/w/$workspace/_app/deliverability/index'
 import { Route as WWorkspaceAppDeliverabilityConnectRouteImport } from './routes/w/$workspace/_app/deliverability/connect'
+import { Route as WWorkspaceAppEarnIndexRouteImport } from './routes/w/$workspace/_app/earn/index'
 import { Route as WWorkspaceAppFormsIndexRouteImport } from './routes/w/$workspace/_app/forms/index'
 import { Route as WWorkspaceAppFormsArchiveRouteImport } from './routes/w/$workspace/_app/forms/archive'
 import { Route as WWorkspaceAppFormsBrandingRouteImport } from './routes/w/$workspace/_app/forms/branding'
 import { Route as WWorkspaceAppFormsPreferencesRouteImport } from './routes/w/$workspace/_app/forms/preferences'
 import { Route as WWorkspaceAppFormsSubscribeRouteImport } from './routes/w/$workspace/_app/forms/subscribe'
 import { Route as WWorkspaceAppFormsUnsubscribeRouteImport } from './routes/w/$workspace/_app/forms/unsubscribe'
+import { Route as WWorkspaceAppGrowIndexRouteImport } from './routes/w/$workspace/_app/grow/index'
 import { Route as WWorkspaceAppProvidersIndexRouteImport } from './routes/w/$workspace/_app/providers/index'
 import { Route as WWorkspaceAppProvidersAdaptersRouteImport } from './routes/w/$workspace/_app/providers/adapters'
 import { Route as WWorkspaceAppProvidersEventsRouteImport } from './routes/w/$workspace/_app/providers/events'
@@ -58,6 +60,7 @@ import { Route as WWorkspaceAppSettingsKeysRouteImport } from './routes/w/$works
 import { Route as WWorkspaceAppSettingsMcpRouteImport } from './routes/w/$workspace/_app/settings/mcp'
 import { Route as WWorkspaceAppSettingsProvidersRouteImport } from './routes/w/$workspace/_app/settings/providers'
 import { Route as WWorkspaceAppSettingsWebhooksRouteImport } from './routes/w/$workspace/_app/settings/webhooks'
+import { Route as WWorkspaceAppTransactionalIndexRouteImport } from './routes/w/$workspace/_app/transactional/index'
 import { Route as WWorkspaceCampaignsCampaignIdEditRouteImport } from './routes/w/$workspace/campaigns/$campaignId/edit'
 import { Route as WWorkspaceImportImportIdIndexRouteImport } from './routes/w/$workspace/import/$importId/index'
 import { Route as WWorkspaceImportImportIdConsentRouteImport } from './routes/w/$workspace/import/$importId/consent'
@@ -246,6 +249,11 @@ const WWorkspaceAppDeliverabilityConnectRoute =
     path: '/deliverability/connect',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppEarnIndexRoute = WWorkspaceAppEarnIndexRouteImport.update({
+  id: '/earn/',
+  path: '/earn/',
+  getParentRoute: () => WWorkspaceAppRouteRoute,
+} as any)
 const WWorkspaceAppFormsIndexRoute = WWorkspaceAppFormsIndexRouteImport.update({
   id: '/forms/',
   path: '/forms/',
@@ -281,6 +289,11 @@ const WWorkspaceAppFormsUnsubscribeRoute =
     path: '/forms/unsubscribe',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppGrowIndexRoute = WWorkspaceAppGrowIndexRouteImport.update({
+  id: '/grow/',
+  path: '/grow/',
+  getParentRoute: () => WWorkspaceAppRouteRoute,
+} as any)
 const WWorkspaceAppProvidersIndexRoute =
   WWorkspaceAppProvidersIndexRouteImport.update({
     id: '/providers/',
@@ -357,6 +370,12 @@ const WWorkspaceAppSettingsWebhooksRoute =
   WWorkspaceAppSettingsWebhooksRouteImport.update({
     id: '/settings/webhooks',
     path: '/settings/webhooks',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppTransactionalIndexRoute =
+  WWorkspaceAppTransactionalIndexRouteImport.update({
+    id: '/transactional/',
+    path: '/transactional/',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceCampaignsCampaignIdEditRoute =
@@ -558,9 +577,12 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/automations/': typeof WWorkspaceAppAutomationsIndexRoute
   '/w/$workspace/campaigns/': typeof WWorkspaceAppCampaignsIndexRoute
   '/w/$workspace/deliverability/': typeof WWorkspaceAppDeliverabilityIndexRoute
+  '/w/$workspace/earn/': typeof WWorkspaceAppEarnIndexRoute
   '/w/$workspace/forms/': typeof WWorkspaceAppFormsIndexRoute
+  '/w/$workspace/grow/': typeof WWorkspaceAppGrowIndexRoute
   '/w/$workspace/providers/': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/settings/': typeof WWorkspaceAppSettingsIndexRoute
+  '/w/$workspace/transactional/': typeof WWorkspaceAppTransactionalIndexRoute
   '/w/$workspace/import/$importId/': typeof WWorkspaceImportImportIdIndexRoute
   '/w/$workspace/providers/connect/': typeof WWorkspaceProvidersConnectIndexRoute
   '/w/$workspace/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
@@ -631,9 +653,12 @@ export interface FileRoutesByTo {
   '/w/$workspace/automations': typeof WWorkspaceAppAutomationsIndexRoute
   '/w/$workspace/campaigns': typeof WWorkspaceAppCampaignsIndexRoute
   '/w/$workspace/deliverability': typeof WWorkspaceAppDeliverabilityIndexRoute
+  '/w/$workspace/earn': typeof WWorkspaceAppEarnIndexRoute
   '/w/$workspace/forms': typeof WWorkspaceAppFormsIndexRoute
+  '/w/$workspace/grow': typeof WWorkspaceAppGrowIndexRoute
   '/w/$workspace/providers': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/settings': typeof WWorkspaceAppSettingsIndexRoute
+  '/w/$workspace/transactional': typeof WWorkspaceAppTransactionalIndexRoute
   '/w/$workspace/import/$importId': typeof WWorkspaceImportImportIdIndexRoute
   '/w/$workspace/providers/connect': typeof WWorkspaceProvidersConnectIndexRoute
   '/w/$workspace/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
@@ -707,9 +732,12 @@ export interface FileRoutesById {
   '/w/$workspace/_app/automations/': typeof WWorkspaceAppAutomationsIndexRoute
   '/w/$workspace/_app/campaigns/': typeof WWorkspaceAppCampaignsIndexRoute
   '/w/$workspace/_app/deliverability/': typeof WWorkspaceAppDeliverabilityIndexRoute
+  '/w/$workspace/_app/earn/': typeof WWorkspaceAppEarnIndexRoute
   '/w/$workspace/_app/forms/': typeof WWorkspaceAppFormsIndexRoute
+  '/w/$workspace/_app/grow/': typeof WWorkspaceAppGrowIndexRoute
   '/w/$workspace/_app/providers/': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/_app/settings/': typeof WWorkspaceAppSettingsIndexRoute
+  '/w/$workspace/_app/transactional/': typeof WWorkspaceAppTransactionalIndexRoute
   '/w/$workspace/import/$importId/': typeof WWorkspaceImportImportIdIndexRoute
   '/w/$workspace/providers/connect/': typeof WWorkspaceProvidersConnectIndexRoute
   '/w/$workspace/_app/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
@@ -783,9 +811,12 @@ export interface FileRouteTypes {
     | '/w/$workspace/automations/'
     | '/w/$workspace/campaigns/'
     | '/w/$workspace/deliverability/'
+    | '/w/$workspace/earn/'
     | '/w/$workspace/forms/'
+    | '/w/$workspace/grow/'
     | '/w/$workspace/providers/'
     | '/w/$workspace/settings/'
+    | '/w/$workspace/transactional/'
     | '/w/$workspace/import/$importId/'
     | '/w/$workspace/providers/connect/'
     | '/w/$workspace/admin/sso/$providerId'
@@ -856,9 +887,12 @@ export interface FileRouteTypes {
     | '/w/$workspace/automations'
     | '/w/$workspace/campaigns'
     | '/w/$workspace/deliverability'
+    | '/w/$workspace/earn'
     | '/w/$workspace/forms'
+    | '/w/$workspace/grow'
     | '/w/$workspace/providers'
     | '/w/$workspace/settings'
+    | '/w/$workspace/transactional'
     | '/w/$workspace/import/$importId'
     | '/w/$workspace/providers/connect'
     | '/w/$workspace/admin/sso/$providerId'
@@ -931,9 +965,12 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/automations/'
     | '/w/$workspace/_app/campaigns/'
     | '/w/$workspace/_app/deliverability/'
+    | '/w/$workspace/_app/earn/'
     | '/w/$workspace/_app/forms/'
+    | '/w/$workspace/_app/grow/'
     | '/w/$workspace/_app/providers/'
     | '/w/$workspace/_app/settings/'
+    | '/w/$workspace/_app/transactional/'
     | '/w/$workspace/import/$importId/'
     | '/w/$workspace/providers/connect/'
     | '/w/$workspace/_app/admin/sso/$providerId'
@@ -1175,6 +1212,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppDeliverabilityConnectRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/earn/': {
+      id: '/w/$workspace/_app/earn/'
+      path: '/earn'
+      fullPath: '/w/$workspace/earn/'
+      preLoaderRoute: typeof WWorkspaceAppEarnIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/forms/': {
       id: '/w/$workspace/_app/forms/'
       path: '/forms'
@@ -1215,6 +1259,13 @@ declare module '@tanstack/react-router' {
       path: '/forms/unsubscribe'
       fullPath: '/w/$workspace/forms/unsubscribe'
       preLoaderRoute: typeof WWorkspaceAppFormsUnsubscribeRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/grow/': {
+      id: '/w/$workspace/_app/grow/'
+      path: '/grow'
+      fullPath: '/w/$workspace/grow/'
+      preLoaderRoute: typeof WWorkspaceAppGrowIndexRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/providers/': {
@@ -1306,6 +1357,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/webhooks'
       fullPath: '/w/$workspace/settings/webhooks'
       preLoaderRoute: typeof WWorkspaceAppSettingsWebhooksRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/transactional/': {
+      id: '/w/$workspace/_app/transactional/'
+      path: '/transactional'
+      fullPath: '/w/$workspace/transactional/'
+      preLoaderRoute: typeof WWorkspaceAppTransactionalIndexRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/campaigns/$campaignId/edit': {
@@ -1525,9 +1583,12 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppAutomationsIndexRoute: typeof WWorkspaceAppAutomationsIndexRoute
   WWorkspaceAppCampaignsIndexRoute: typeof WWorkspaceAppCampaignsIndexRoute
   WWorkspaceAppDeliverabilityIndexRoute: typeof WWorkspaceAppDeliverabilityIndexRoute
+  WWorkspaceAppEarnIndexRoute: typeof WWorkspaceAppEarnIndexRoute
   WWorkspaceAppFormsIndexRoute: typeof WWorkspaceAppFormsIndexRoute
+  WWorkspaceAppGrowIndexRoute: typeof WWorkspaceAppGrowIndexRoute
   WWorkspaceAppProvidersIndexRoute: typeof WWorkspaceAppProvidersIndexRoute
   WWorkspaceAppSettingsIndexRoute: typeof WWorkspaceAppSettingsIndexRoute
+  WWorkspaceAppTransactionalIndexRoute: typeof WWorkspaceAppTransactionalIndexRoute
   WWorkspaceAppAdminSsoProviderIdRoute: typeof WWorkspaceAppAdminSsoProviderIdRoute
   WWorkspaceAppAudienceContactsContactIdRoute: typeof WWorkspaceAppAudienceContactsContactIdRoute
   WWorkspaceAppAudienceSegmentsSegmentIdRoute: typeof WWorkspaceAppAudienceSegmentsSegmentIdRoute
@@ -1581,9 +1642,12 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppAutomationsIndexRoute: WWorkspaceAppAutomationsIndexRoute,
   WWorkspaceAppCampaignsIndexRoute: WWorkspaceAppCampaignsIndexRoute,
   WWorkspaceAppDeliverabilityIndexRoute: WWorkspaceAppDeliverabilityIndexRoute,
+  WWorkspaceAppEarnIndexRoute: WWorkspaceAppEarnIndexRoute,
   WWorkspaceAppFormsIndexRoute: WWorkspaceAppFormsIndexRoute,
+  WWorkspaceAppGrowIndexRoute: WWorkspaceAppGrowIndexRoute,
   WWorkspaceAppProvidersIndexRoute: WWorkspaceAppProvidersIndexRoute,
   WWorkspaceAppSettingsIndexRoute: WWorkspaceAppSettingsIndexRoute,
+  WWorkspaceAppTransactionalIndexRoute: WWorkspaceAppTransactionalIndexRoute,
   WWorkspaceAppAdminSsoProviderIdRoute: WWorkspaceAppAdminSsoProviderIdRoute,
   WWorkspaceAppAudienceContactsContactIdRoute:
     WWorkspaceAppAudienceContactsContactIdRoute,
