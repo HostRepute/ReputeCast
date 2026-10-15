@@ -1457,6 +1457,28 @@
         ],
         "type": "object"
       },
+      "AddLanguageInput": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "description": "A workspace language",
+            "pattern": "^[a-z]{2,3}$",
+            "type": "string"
+          },
+          "start": {
+            "default": "copy",
+            "enum": [
+              "copy",
+              "layout"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "language"
+        ],
+        "type": "object"
+      },
       "AddSuppressionsInput": {
         "additionalProperties": false,
         "properties": {
@@ -1476,6 +1498,72 @@
         },
         "required": [
           "emails"
+        ],
+        "type": "object"
+      },
+      "AddWorkspaceLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "description": "A base language code, such as fr",
+            "pattern": "^[a-z]{2,3}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "ApplyInput": {
+        "additionalProperties": false,
+        "properties": {
+          "block": {
+            "maxLength": 32,
+            "type": "string"
+          },
+          "from": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "link",
+              "image"
+            ],
+            "type": "string"
+          },
+          "to": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "from",
+          "to"
+        ],
+        "type": "object"
+      },
+      "ApplyResult": {
+        "additionalProperties": false,
+        "properties": {
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "replaced": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "languages",
+          "replaced"
         ],
         "type": "object"
       },
@@ -1724,11 +1812,15 @@
               "audience",
               "audience_count",
               "route",
-              "schedule"
+              "schedule",
+              "language"
             ],
             "type": "string"
           },
           "label": {
+            "type": "string"
+          },
+          "what": {
             "type": "string"
           }
         },
@@ -2426,6 +2518,15 @@
           "html": {
             "type": "string"
           },
+          "language": {
+            "type": "string"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalPreviewLanguage"
+            },
+            "type": "array"
+          },
           "preheader": {
             "type": "string"
           },
@@ -2441,7 +2542,34 @@
           "subject",
           "preheader",
           "html",
-          "version"
+          "version",
+          "language",
+          "languages"
+        ],
+        "type": "object"
+      },
+      "ApprovalPreviewLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "source",
+              "translated",
+              "draft"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "name",
+          "status"
         ],
         "type": "object"
       },
@@ -5745,6 +5873,90 @@
         ],
         "type": "object"
       },
+      "BlockChange": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "by",
+          "at"
+        ],
+        "type": "object"
+      },
+      "BlockInput": {
+        "additionalProperties": false,
+        "properties": {
+          "index": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "key": {
+            "maxLength": 32,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "BlockSegment": {
+        "additionalProperties": false,
+        "properties": {
+          "alt": {
+            "type": "string"
+          },
+          "column": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "heading": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "html": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "path": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "strong": {
+            "type": "boolean"
+          },
+          "text": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "kind",
+          "text",
+          "strong",
+          "column",
+          "heading"
+        ],
+        "type": "object"
+      },
       "CampaignList": {
         "additionalProperties": false,
         "properties": {
@@ -5903,6 +6115,9 @@
           },
           "headline": {
             "$ref": "#/components/schemas/ReportHeadline"
+          },
+          "languages": {
+            "$ref": "#/components/schemas/ReportLanguages"
           },
           "mailboxes": {
             "items": {
@@ -6089,6 +6304,57 @@
         ],
         "type": "object"
       },
+      "CatalogLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "added": {
+            "type": "boolean"
+          },
+          "builtinLabels": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "contactCodes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "native": {
+            "type": "string"
+          },
+          "regions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rtl": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "native",
+          "rtl",
+          "regions",
+          "contacts",
+          "contactCodes",
+          "builtinLabels",
+          "added"
+        ],
+        "type": "object"
+      },
       "Change-passwordRequest": {
         "additionalProperties": false,
         "properties": {
@@ -6181,6 +6447,109 @@
           "updated",
           "skipped",
           "failed"
+        ],
+        "type": "object"
+      },
+      "CompareBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "index": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/BlockSegment"
+            },
+            "type": "array"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "name",
+          "text",
+          "segments"
+        ],
+        "type": "object"
+      },
+      "CompareRow": {
+        "additionalProperties": false,
+        "properties": {
+          "before": {
+            "type": "string"
+          },
+          "changed": {
+            "$ref": "#/components/schemas/BlockChange"
+          },
+          "fromVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "source": {
+            "$ref": "#/components/schemas/CompareBlock"
+          },
+          "state": {
+            "enum": [
+              "up_to_date",
+              "changed",
+              "still",
+              "new",
+              "removed",
+              "only"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "$ref": "#/components/schemas/CompareBlock"
+          }
+        },
+        "required": [
+          "number",
+          "key",
+          "state",
+          "before",
+          "fromVersion"
+        ],
+        "type": "object"
+      },
+      "CompareText": {
+        "additionalProperties": false,
+        "properties": {
+          "before": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "up_to_date",
+              "changed"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "version",
+          "state",
+          "before"
         ],
         "type": "object"
       },
@@ -6476,6 +6845,9 @@
           "id": {
             "type": "string"
           },
+          "language": {
+            "type": "string"
+          },
           "mjml": {
             "type": "string"
           },
@@ -6506,6 +6878,9 @@
           },
           "settings": {
             "$ref": "#/components/schemas/ComposerContentSettings"
+          },
+          "sourceLanguage": {
+            "type": "string"
           },
           "status": {
             "enum": [
@@ -6561,7 +6936,9 @@
           "updatedAt",
           "updatedBy",
           "route",
-          "access"
+          "access",
+          "language",
+          "sourceLanguage"
         ],
         "type": "object"
       },
@@ -6690,6 +7067,10 @@
         "properties": {
           "html": {
             "maxLength": 2500000,
+            "type": "string"
+          },
+          "language": {
+            "maxLength": 16,
             "type": "string"
           },
           "mjml": {
@@ -6873,6 +7254,12 @@
           "html": {
             "type": "string"
           },
+          "language": {
+            "type": "string"
+          },
+          "languageReason": {
+            "type": "string"
+          },
           "missingFirstName": {
             "format": "int64",
             "type": "integer"
@@ -6912,7 +7299,9 @@
           "fromEmail",
           "tokens",
           "problems",
-          "renderedAt"
+          "renderedAt",
+          "language",
+          "languageReason"
         ],
         "type": "object"
       },
@@ -6928,6 +7317,9 @@
           "label": {
             "type": "string"
           },
+          "language": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           }
@@ -6935,7 +7327,8 @@
         "required": [
           "name",
           "email",
-          "label"
+          "label",
+          "language"
         ],
         "type": "object"
       },
@@ -6963,6 +7356,10 @@
           },
           "html": {
             "maxLength": 2500000,
+            "type": "string"
+          },
+          "language": {
+            "maxLength": 16,
             "type": "string"
           },
           "preheader": {
@@ -7188,6 +7585,13 @@
             "format": "uuid",
             "type": "string"
           },
+          "eachLanguage": {
+            "type": "boolean"
+          },
+          "language": {
+            "maxLength": 16,
+            "type": "string"
+          },
           "to": {
             "items": {
               "type": "string"
@@ -7213,6 +7617,12 @@
       "ComposerTestSendResult": {
         "additionalProperties": false,
         "properties": {
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "provider": {
             "type": "string"
           },
@@ -7225,7 +7635,8 @@
         },
         "required": [
           "sent",
-          "provider"
+          "provider",
+          "languages"
         ],
         "type": "object"
       },
@@ -12088,6 +12499,231 @@
         ],
         "type": "object"
       },
+      "EmailLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "attention": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "blocks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "changed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "changedBlocks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "changedIndexes": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "gets": {
+            "type": "string"
+          },
+          "held": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string"
+          },
+          "lastChange": {
+            "$ref": "#/components/schemas/BlockChange"
+          },
+          "name": {
+            "type": "string"
+          },
+          "native": {
+            "type": "string"
+          },
+          "noLanguage": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notOffered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "offered": {
+            "type": "boolean"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "preheaderChanged": {
+            "type": "boolean"
+          },
+          "readers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "source",
+              "up_to_date",
+              "outdated",
+              "draft",
+              "missing"
+            ],
+            "type": "string"
+          },
+          "still": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "stillIndexes": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "subjectChanged": {
+            "type": "boolean"
+          },
+          "translated": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "translatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "translatedBy": {
+            "type": "string"
+          },
+          "translatedFrom": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "upToDate": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "language",
+          "name",
+          "native",
+          "status",
+          "offered",
+          "held",
+          "attention",
+          "changed",
+          "blocks",
+          "upToDate",
+          "translated",
+          "still",
+          "subjectChanged",
+          "preheaderChanged",
+          "noLanguage",
+          "notOffered",
+          "gets",
+          "translatedBy",
+          "translatedFrom",
+          "version",
+          "updatedBy",
+          "subject",
+          "preheader",
+          "changedBlocks",
+          "stillIndexes",
+          "changedIndexes"
+        ],
+        "type": "object"
+      },
+      "EmailLanguages": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "canChangeSource": {
+            "type": "boolean"
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canManageWorkspace": {
+            "type": "boolean"
+          },
+          "default": {
+            "type": "string"
+          },
+          "editHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "fallback": {
+            "type": "string"
+          },
+          "readers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceChange": {
+            "$ref": "#/components/schemas/LanguageSourceChange"
+          },
+          "sourceVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/EmailLanguage"
+            },
+            "type": "array"
+          },
+          "workspaceHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "source",
+          "sourceVersion",
+          "canChangeSource",
+          "default",
+          "fallback",
+          "blocks",
+          "versions",
+          "canEdit",
+          "editHelpers",
+          "canManageWorkspace",
+          "workspaceHelpers"
+        ],
+        "type": "object"
+      },
       "EmailTemplateDetail": {
         "additionalProperties": false,
         "properties": {
@@ -12327,6 +12963,33 @@
         },
         "type": "object"
       },
+      "FallbackImpact": {
+        "additionalProperties": false,
+        "properties": {
+          "fallback": {
+            "type": "string"
+          },
+          "moved": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "noLanguage": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notOffered": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "fallback",
+          "moved",
+          "noLanguage",
+          "notOffered"
+        ],
+        "type": "object"
+      },
       "HealthTierCard": {
         "additionalProperties": false,
         "properties": {
@@ -12394,6 +13057,18 @@
           "cooling",
           "atRisk",
           "sunset"
+        ],
+        "type": "object"
+      },
+      "HoldInput": {
+        "additionalProperties": false,
+        "properties": {
+          "held": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "held"
         ],
         "type": "object"
       },
@@ -15956,6 +16631,244 @@
         ],
         "type": "object"
       },
+      "KeepUpToDateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "blocks"
+        ],
+        "type": "object"
+      },
+      "LanguageCatalogList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogLanguage"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "LanguageCompare": {
+        "additionalProperties": false,
+        "properties": {
+          "attention": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "blocks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "language": {
+            "type": "string"
+          },
+          "preheader": {
+            "$ref": "#/components/schemas/CompareText"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/CompareRow"
+            },
+            "type": "array"
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "up_to_date",
+              "outdated",
+              "draft"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/CompareText"
+          },
+          "translated": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "translatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "translatedBy": {
+            "type": "string"
+          },
+          "translatedFrom": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "upToDate": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source",
+          "language",
+          "sourceVersion",
+          "translatedFrom",
+          "translatedBy",
+          "status",
+          "blocks",
+          "upToDate",
+          "attention",
+          "translated",
+          "version",
+          "subject",
+          "preheader",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "LanguageDefaults": {
+        "additionalProperties": false,
+        "properties": {
+          "default": {
+            "pattern": "^[a-z]{2,3}$",
+            "type": "string"
+          },
+          "fallback": {
+            "pattern": "^[a-z]{2,3}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "default",
+          "fallback"
+        ],
+        "type": "object"
+      },
+      "LanguagePageCopy": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "builtinLabels": {
+            "type": "boolean"
+          },
+          "by": {
+            "type": "string"
+          },
+          "missing": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "live",
+              "incomplete",
+              "not_set_up"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "missing",
+          "by",
+          "builtinLabels"
+        ],
+        "type": "object"
+      },
+      "LanguageRemoval": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "fallback": {
+            "type": "string"
+          },
+          "has": {
+            "items": {
+              "$ref": "#/components/schemas/RemovalItem"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "readers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refusal": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "has",
+          "readers",
+          "fallback"
+        ],
+        "type": "object"
+      },
+      "LanguageSourceChange": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "blocks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "by": {
+            "type": "string"
+          },
+          "outdated": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "by",
+          "at",
+          "blocks",
+          "outdated"
+        ],
+        "type": "object"
+      },
       "LiquidProblem": {
         "additionalProperties": false,
         "properties": {
@@ -17733,6 +18646,19 @@
           "w": {
             "format": "int64",
             "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "MarkInput": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "type": "array"
           }
         },
         "type": "object"
@@ -21771,6 +22697,7 @@
               "reputation",
               "authentication",
               "content",
+              "languages",
               "links",
               "compliance",
               "audience",
@@ -21789,6 +22716,12 @@
           },
           "note": {
             "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessCheckRow"
+            },
+            "type": "array"
           },
           "short": {
             "type": "string"
@@ -21813,6 +22746,36 @@
           "title",
           "flatTitle",
           "fixes"
+        ],
+        "type": "object"
+      },
+      "ReadinessCheckRow": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "gets": {
+            "type": "string"
+          },
+          "getsName": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "count",
+          "detail"
         ],
         "type": "object"
       },
@@ -21882,7 +22845,11 @@
               "insert_footer",
               "replace_link",
               "use_subject",
-              "minify"
+              "minify",
+              "mark_language_up_to_date",
+              "mark_language_translated",
+              "hold_language",
+              "release_language"
             ],
             "type": "string"
           },
@@ -21952,7 +22919,11 @@
               "insert_footer",
               "replace_link",
               "use_subject",
-              "minify"
+              "minify",
+              "mark_language_up_to_date",
+              "mark_language_translated",
+              "hold_language",
+              "release_language"
             ],
             "type": "string"
           },
@@ -21996,6 +22967,7 @@
               "reputation",
               "authentication",
               "content",
+              "languages",
               "links",
               "compliance",
               "audience",
@@ -22129,6 +23101,7 @@
               "reputation",
               "authentication",
               "content",
+              "languages",
               "links",
               "compliance",
               "audience",
@@ -22581,6 +23554,53 @@
         ],
         "type": "object"
       },
+      "RemovalItem": {
+        "additionalProperties": false,
+        "properties": {
+          "changed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "campaign",
+              "automation_email",
+              "transactional_template"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "draft",
+              "scheduled",
+              "waiting",
+              "sending"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "up_to_date",
+              "outdated",
+              "draft",
+              "held"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "RemoveSuppressionInput": {
         "additionalProperties": false,
         "properties": {
@@ -23012,6 +24032,9 @@
           "html": {
             "type": "string"
           },
+          "language": {
+            "type": "string"
+          },
           "links": {
             "items": {
               "$ref": "#/components/schemas/ReportLink"
@@ -23269,6 +24292,230 @@
           "minutes",
           "providers",
           "current"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "name",
+          "count"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageFallback": {
+        "additionalProperties": false,
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/ReportLanguageDraft"
+          },
+          "gap": {
+            "format": "double",
+            "type": "number"
+          },
+          "got": {
+            "type": "string"
+          },
+          "readers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "readers",
+          "got"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageOption": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageRow": {
+        "additionalProperties": false,
+        "properties": {
+          "clickRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "clicks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "complaintRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "complaints": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deliveredRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "fallback": {
+            "type": "boolean"
+          },
+          "humanOpenRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "humanOpens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kinds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "language": {
+            "type": "string"
+          },
+          "missing": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "readers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "enum": [
+              "missing",
+              "draft",
+              "held"
+            ],
+            "type": "string"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "source": {
+            "type": "boolean"
+          },
+          "translatedFrom": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unsubscribeRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "unsubscribes": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "language",
+          "name",
+          "fallback",
+          "readers",
+          "kinds",
+          "source",
+          "sent",
+          "delivered",
+          "humanOpens",
+          "clicks",
+          "unsubscribes",
+          "complaints"
+        ],
+        "type": "object"
+      },
+      "ReportLanguages": {
+        "additionalProperties": false,
+        "properties": {
+          "clickMaps": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLanguageOption"
+            },
+            "type": "array"
+          },
+          "fallback": {
+            "$ref": "#/components/schemas/ReportLanguageFallback"
+          },
+          "languages": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLanguageRow"
+            },
+            "type": "array"
+          },
+          "sent": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLanguageCount"
+            },
+            "type": "array"
+          },
+          "versions": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "languages",
+          "versions",
+          "rows",
+          "sent",
+          "clickMaps"
         ],
         "type": "object"
       },
@@ -24117,6 +25364,12 @@
           },
           "delivered": {
             "type": "string"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "provider": {
             "type": "string"
@@ -29204,6 +30457,19 @@
         ],
         "type": "object"
       },
+      "SourceInput": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "pattern": "^[a-z]{2,3}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "language"
+        ],
+        "type": "object"
+      },
       "SubscribePage": {
         "additionalProperties": false,
         "properties": {
@@ -33925,6 +35191,132 @@
         "required": [
           "name",
           "timezone"
+        ],
+        "type": "object"
+      },
+      "WorkspaceLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "addedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "addedBy": {
+            "type": "string"
+          },
+          "code": {
+            "examples": [
+              "es"
+            ],
+            "type": "string"
+          },
+          "codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "isFallback": {
+            "type": "boolean"
+          },
+          "moreCodes": {
+            "type": "boolean"
+          },
+          "name": {
+            "examples": [
+              "Spanish"
+            ],
+            "type": "string"
+          },
+          "native": {
+            "examples": [
+              "Español"
+            ],
+            "type": "string"
+          },
+          "own": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pageCopy": {
+            "$ref": "#/components/schemas/LanguagePageCopy"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "native",
+          "codes",
+          "moreCodes",
+          "contacts",
+          "own",
+          "isDefault",
+          "isFallback",
+          "pageCopy",
+          "addedBy"
+        ],
+        "type": "object"
+      },
+      "WorkspaceLanguages": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "default": {
+            "type": "string"
+          },
+          "fallback": {
+            "type": "string"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceLanguage"
+            },
+            "type": "array"
+          },
+          "noLanguage": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notOffered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notOfferedCodes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "totalContacts": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "languages",
+          "default",
+          "fallback",
+          "totalContacts",
+          "noLanguage",
+          "notOffered",
+          "notOfferedCodes",
+          "canManage",
+          "helpers"
         ],
         "type": "object"
       },
@@ -40329,6 +41721,17 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Preview a language version the approval covers; empty shows the source",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "Preview a language version the approval covers; empty shows the source",
+              "maxLength": 16,
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -43491,6 +44894,17 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Return a language version's content (its code, such as de); empty returns the source",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "Return a language version's content (its code, such as de); empty returns the source",
+              "maxLength": 16,
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -43856,6 +45270,17 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Save a language version (its code, such as de); empty saves the source",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "Save a language version (its code, such as de); empty saves the source",
+              "maxLength": 16,
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -43970,6 +45395,1028 @@
         ],
         "x-access": "workspace",
         "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages": {
+      "get": {
+        "description": "Every workspace language is listed: the source, versions that are Up to date, Outdated (with the blocks that changed) or Draft, and Missing ones, whose readers get the fallback.",
+        "operationId": "list-campaign-languages",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A campaign's language versions with their status and readers",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      },
+      "post": {
+        "description": "It starts from a copy of the source (layout and text) or from the layout only. A Draft is never sent: its readers get the fallback until it is marked translated.",
+        "operationId": "add-campaign-language",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLanguageInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLanguages"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a language version (a Draft) to a campaign",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/apply": {
+      "post": {
+        "operationId": "apply-to-campaign-languages",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplyResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply a source link or image change to every language version",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/keep-up-to-date": {
+      "post": {
+        "operationId": "keep-campaign-languages-up-to-date",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeepUpToDateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Keep every language version up to date after a source edit that needs no translating",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/source": {
+      "put": {
+        "operationId": "set-campaign-source-language",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change the language a campaign is written in (while it has one version)",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}": {
+      "delete": {
+        "operationId": "remove-campaign-language",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a campaign's language version",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/compare": {
+      "get": {
+        "operationId": "compare-campaign-language",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguageCompare"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Compare a language version with the source, block by block",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/copy-block": {
+      "post": {
+        "operationId": "copy-block-to-campaign-language",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlockInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguageCompare"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Copy a block new in the source into a language version",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/hold": {
+      "put": {
+        "operationId": "hold-campaign-language",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send the fallback to a language's readers instead, or stop doing so",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/mark-translated": {
+      "post": {
+        "operationId": "mark-campaign-language-translated",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a Draft language version translated, so it is sent",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/mark-up-to-date": {
+      "post": {
+        "operationId": "mark-campaign-language-up-to-date",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark an Outdated language version (or some of its blocks) up to date",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/remove-block": {
+      "post": {
+        "operationId": "remove-block-from-campaign-language",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlockInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguageCompare"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a block the source no longer has from a language version",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/versions": {
+      "get": {
+        "operationId": "list-campaign-language-versions",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "format": "int64",
+              "maximum": 300,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerVersionList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Saved versions of a campaign's language version, newest first",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
       }
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live": {
@@ -45086,6 +47533,17 @@
             "schema": {
               "description": "Campaign id",
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Show the click map of one language version (campaigns sent in several languages)",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "Show the click map of one language version (campaigns sent in several languages)",
+              "maxLength": 16,
               "type": "string"
             }
           }
@@ -53180,6 +55638,460 @@
         ],
         "x-access": "workspace",
         "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/languages": {
+      "get": {
+        "operationId": "list-workspace-languages",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The workspace's languages, default and fallback, with their contacts",
+        "tags": [
+          "Languages"
+        ],
+        "x-access": "workspace"
+      },
+      "post": {
+        "description": "Right-to-left languages aren't supported yet and answer 422. Adding a language that was removed brings back its versions and page copy.",
+        "operationId": "add-workspace-language",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddWorkspaceLanguage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a language to the workspace",
+        "tags": [
+          "Languages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/languages/catalog": {
+      "get": {
+        "operationId": "list-language-catalog",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Search by name, own name or code",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Search by name, own name or code",
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguageCatalogList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Languages that can be added, with the contacts who already have them",
+        "tags": [
+          "Languages"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/languages/defaults": {
+      "put": {
+        "operationId": "set-language-defaults",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LanguageDefaults"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change the default and fallback languages",
+        "tags": [
+          "Languages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/languages/fallback-impact": {
+      "get": {
+        "operationId": "get-fallback-impact",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FallbackImpact"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How many contacts a new fallback language moves",
+        "tags": [
+          "Languages"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/languages/{code}": {
+      "delete": {
+        "description": "Its email versions and page copy are kept but no longer used; its contacts keep their language and get the fallback. The default and the fallback can't be removed (409).",
+        "operationId": "remove-workspace-language",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a language from the workspace",
+        "tags": [
+          "Languages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/languages/{code}/removal": {
+      "get": {
+        "operationId": "get-language-removal",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguageRemoval"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What removing a language affects",
+        "tags": [
+          "Languages"
+        ],
+        "x-access": "workspace"
       }
     },
     "/api/v1/workspaces/{workspace}/leave": {

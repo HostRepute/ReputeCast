@@ -51,13 +51,15 @@ type fallbackInput struct {
 	Code string `query:"code" pattern:"^[a-z]{2,3}$" required:"true"`
 }
 
-// campaignPath is {workspace}/campaigns/{campaignId}.
-type campaignPath struct {
+// CampaignPath is {workspace}/campaigns/{campaignId}. Inputs embed it, so
+// it is exported: Huma binds no path field promoted through an unexported
+// embedded struct.
+type CampaignPath struct {
 	api.WorkspaceInput
 	CampaignID string `path:"campaignId" format:"uuid"`
 }
 
-func (in campaignPath) id() (uuid.UUID, error) {
+func (in CampaignPath) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(in.CampaignID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("Campaign")
@@ -65,49 +67,49 @@ func (in campaignPath) id() (uuid.UUID, error) {
 	return id, nil
 }
 
-// campaignLangPath adds a {language}.
-type campaignLangPath struct {
-	campaignPath
+// CampaignLanguagePath adds a {language}.
+type CampaignLanguagePath struct {
+	CampaignPath
 	Language string `path:"language" pattern:"^[a-z]{2,3}$"`
 }
 
 type addVersionInput struct {
-	campaignPath
+	CampaignPath
 	Body AddLanguageInput
 }
 
 type markInput struct {
-	campaignLangPath
+	CampaignLanguagePath
 	Body MarkInput
 }
 
 type holdInput struct {
-	campaignLangPath
+	CampaignLanguagePath
 	Body HoldInput
 }
 
 type keepInput struct {
-	campaignPath
+	CampaignPath
 	Body KeepUpToDateInput
 }
 
 type applyInput struct {
-	campaignPath
+	CampaignPath
 	Body ApplyInput
 }
 
 type sourceInput struct {
-	campaignPath
+	CampaignPath
 	Body SourceInput
 }
 
 type blockInput struct {
-	campaignLangPath
+	CampaignLanguagePath
 	Body BlockInput
 }
 
 type historyInput struct {
-	campaignLangPath
+	CampaignLanguagePath
 	Limit int `query:"limit" minimum:"1" maximum:"300" default:"50"`
 }
 
@@ -172,7 +174,7 @@ func registerCampaign(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "list-campaign-languages", Path: base, Summary: "A campaign's language versions with their status and readers",
 		Description: "Every workspace language is listed: the source, versions that are Up to date, Outdated (with the blocks that changed) or Draft, and Missing ones, whose readers get the fallback.",
 		Tags:        tags, Access: view},
-		func(ctx context.Context, in *campaignPath) (*api.Body[EmailLanguages], error) {
+		func(ctx context.Context, in *CampaignPath) (*api.Body[EmailLanguages], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -193,7 +195,7 @@ func registerCampaign(h huma.API, s *Service) {
 		})
 	api.Delete(h, api.Op{ID: "remove-campaign-language", Path: base + "/{language}", Summary: "Remove a campaign's language version",
 		Tags: tags, Access: edit, Status: http.StatusOK},
-		func(ctx context.Context, in *campaignLangPath) (*api.Body[EmailLanguages], error) {
+		func(ctx context.Context, in *CampaignLanguagePath) (*api.Body[EmailLanguages], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -203,7 +205,7 @@ func registerCampaign(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "mark-campaign-language-translated", Path: base + "/{language}/mark-translated", Summary: "Mark a Draft language version translated, so it is sent",
 		Tags: tags, Access: edit},
-		func(ctx context.Context, in *campaignLangPath) (*api.Body[EmailLanguages], error) {
+		func(ctx context.Context, in *CampaignLanguagePath) (*api.Body[EmailLanguages], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -263,7 +265,7 @@ func registerCampaign(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "compare-campaign-language", Path: base + "/{language}/compare", Summary: "Compare a language version with the source, block by block",
 		Tags: tags, Access: view},
-		func(ctx context.Context, in *campaignLangPath) (*api.Body[LanguageCompare], error) {
+		func(ctx context.Context, in *CampaignLanguagePath) (*api.Body[LanguageCompare], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
