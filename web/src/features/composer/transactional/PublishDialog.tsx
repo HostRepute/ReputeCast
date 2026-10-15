@@ -249,6 +249,7 @@ function PublishFlow({ onClose }: { onClose: () => void }) {
     const decided = approval && approval.coversDraft && (approval.status === 'changes_requested' || approval.status === 'rejected') ? approval : null
     return (
       <Dialog
+        className="txe-dlg"
         open={open}
         onOpenChange={(o) => !o && !busy && onClose()}
         size="md"
@@ -321,6 +322,7 @@ function PublishFlow({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog
+      className="txe-dlg"
       open={open}
       onOpenChange={(o) => !o && !busy && onClose()}
       size="lg"

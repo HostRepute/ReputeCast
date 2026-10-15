@@ -54,6 +54,19 @@
 .txe-bad {
   color: var(--bad-fg);
 }
+/* Fields inside a label read as values, not as the label's bold; mono ones stay mono. */
+.txe .lbl .in,
+.txe-dlg .lbl .in {
+  font-weight: 400;
+}
+.txe .in.mono,
+.txe-dlg .in.mono {
+  font-family: var(--font-family-mono);
+}
+/* Notes in the 344 px panel keep their icon beside the text (the boards' notes wrap at 220 px). */
+.txe-right .note > :last-child {
+  flex-basis: 200px;
+}
 .txe-warn {
   color: var(--warn-fg);
 }

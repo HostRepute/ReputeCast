@@ -200,6 +200,7 @@ export function VersionsDialog({ target, onTarget }: { target: CompareTarget | '
   const open = target !== null
   return (
     <Dialog
+      className="txe-dlg"
       open={open}
       onOpenChange={(o) => !o && onTarget(null)}
       size="lg"
