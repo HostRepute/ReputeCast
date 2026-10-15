@@ -7258,8 +7258,9 @@ export interface components {
             after: string;
             before: string;
             /** @enum {string} */
-            field: "subject" | "preheader" | "link" | "content" | "sender" | "audience" | "audience_count" | "route" | "schedule";
+            field: "subject" | "preheader" | "link" | "content" | "sender" | "audience" | "audience_count" | "route" | "schedule" | "language";
             label: string;
+            what?: string;
         };
         ApprovalCommentInput: {
             body: string;
@@ -7443,10 +7444,18 @@ export interface components {
         };
         ApprovalPreview: {
             html: string;
+            language: string;
+            languages: components["schemas"]["ApprovalPreviewLanguage"][];
             preheader: string;
             subject: string;
             /** Format: int64 */
             version: number;
+        };
+        ApprovalPreviewLanguage: {
+            language: string;
+            name: string;
+            /** @enum {string} */
+            status: "source" | "translated" | "draft";
         };
         ApprovalReadinessView: {
             /** Format: int64 */
@@ -8473,6 +8482,7 @@ export interface components {
             clickMap: components["schemas"]["ReportClickMap"];
             engagement: components["schemas"]["ReportEngagement"];
             headline: components["schemas"]["ReportHeadline"];
+            languages?: components["schemas"]["ReportLanguages"];
             mailboxes: components["schemas"]["ReportMailboxRow"][];
             notSent?: components["schemas"]["ReportNotSent"];
             providers: components["schemas"]["ReportProviderTable"];
@@ -13515,6 +13525,7 @@ export interface components {
         ReportClickMap: {
             available: boolean;
             html: string;
+            language?: string;
             links: components["schemas"]["ReportLink"][];
             other?: components["schemas"]["ReportLinkGroup"];
             /**
@@ -13609,6 +13620,72 @@ export interface components {
             providers: components["schemas"]["ReportBacklogProvider"][];
             /** Format: date-time */
             since: string;
+        };
+        ReportLanguageCount: {
+            /** Format: int64 */
+            count: number;
+            language: string;
+            name: string;
+        };
+        ReportLanguageDraft: {
+            id: string;
+            name: string;
+        };
+        ReportLanguageFallback: {
+            draft?: components["schemas"]["ReportLanguageDraft"];
+            /** Format: double */
+            gap?: number;
+            got: string;
+            readers: string[];
+        };
+        ReportLanguageOption: {
+            language: string;
+            name: string;
+        };
+        ReportLanguageRow: {
+            /** Format: double */
+            clickRate?: number;
+            /** Format: int64 */
+            clicks: number;
+            /** Format: double */
+            complaintRate?: number;
+            /** Format: int64 */
+            complaints: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveredRate?: number;
+            fallback: boolean;
+            /** Format: double */
+            humanOpenRate?: number;
+            /** Format: int64 */
+            humanOpens: number;
+            kinds: string[];
+            language: string;
+            missing?: string;
+            name: string;
+            readers: string[];
+            /** @enum {string} */
+            reason?: "missing" | "draft" | "held";
+            /** Format: int64 */
+            sent: number;
+            source: boolean;
+            /** Format: int64 */
+            translatedFrom?: number;
+            /** Format: double */
+            unsubscribeRate?: number;
+            /** Format: int64 */
+            unsubscribes: number;
+        };
+        ReportLanguages: {
+            clickMaps: components["schemas"]["ReportLanguageOption"][];
+            fallback?: components["schemas"]["ReportLanguageFallback"];
+            /** Format: int64 */
+            languages: number;
+            rows: components["schemas"]["ReportLanguageRow"][];
+            sent: components["schemas"]["ReportLanguageCount"][];
+            /** Format: int64 */
+            versions: number;
         };
         ReportLink: {
             /** Format: int64 */
@@ -20635,7 +20712,10 @@ export interface operations {
     };
     "preview-approval": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Preview a language version the approval covers; empty shows the source */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -23325,7 +23405,10 @@ export interface operations {
     };
     "get-campaign-report": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Show the click map of one language version (campaigns sent in several languages) */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */

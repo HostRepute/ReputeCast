@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -32,6 +33,8 @@ type Service struct {
 	Sending   sending.Starter
 	Mail      mailer.Sender
 	Campaigns *campaigns.Service
+	// Languages handles campaigns' language versions; nil leaves them out.
+	Languages *languages.Service
 	PublicURL func(context.Context) string
 	Now       func() time.Time
 
@@ -60,7 +63,7 @@ var Tools = []MCPToolInfo{
 	{"get_campaign_report", "Results of a campaign by sending provider and mailbox provider.", string(authz.ReportsView), false},
 	{"get_send_readiness", "The latest Send Readiness verdict and checks of a campaign.", string(authz.CampaignsView), false},
 	{"create_campaign_draft", "Create a draft campaign from MJML.", string(authz.CampaignsEdit), true},
-	{"update_campaign_content", "Change the subject, preheader or MJML of a draft.", string(authz.CampaignsEdit), true},
+	{"update_campaign_content", "Change the subject, preheader or MJML of a draft, or of one of its language versions.", string(authz.CampaignsEdit), true},
 	{"schedule_campaign", "Propose a send time. A team member confirms it in ReputeCast.", string(authz.CampaignsSend), true},
 	{"pause_campaign", "Pause a running send.", string(authz.CampaignsPause), true},
 	{"resume_campaign", "Resume a paused send.", string(authz.CampaignsSend), true},
@@ -74,6 +77,7 @@ var Tools = []MCPToolInfo{
 	{"list_automations", "Automations with their status.", string(authz.AutomationsView), false},
 	{"get_deliverability", "Domain authentication, blocklists and Postmaster reputation.", string(authz.DeliverabilityView), false},
 	{"send_test_email", "Send a test of a campaign to a member of the workspace.", string(authz.CampaignsEdit), true},
+	{"get_campaign_languages", "A campaign's language versions: each one's status (up to date, outdated, draft, missing) and who gets it.", string(authz.CampaignsView), false},
 }
 
 // Settings are the per-workspace MCP options.

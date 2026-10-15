@@ -150,6 +150,18 @@ func reportCSV(r CampaignReport, loc *time.Location) []byte {
 		}
 		row()
 	}
+	if r.Languages != nil {
+		row("Language version", "Readers", "Sent", "Delivered", "Human opens", "Clicks", "Unsubscribes", "Complaints")
+		for _, l := range r.Languages.Rows {
+			name := l.Name
+			if l.Fallback {
+				name += ", as the fallback"
+			}
+			row(name, strings.Join(l.Readers, ", "), num(l.Sent), pctText(l.DeliveredRate, 2), pctText(l.HumanOpenRate, 2), pctText(l.ClickRate, 2),
+				pctText(l.UnsubscribeRate, 2), pctText(l.ComplaintRate, 2))
+		}
+		row()
+	}
 	if r.Engagement.Available {
 		row("Hours after send", "Human opens (cumulative)", "Machine opens (cumulative)", "Clicks (cumulative)")
 		for _, p := range r.Engagement.Points {

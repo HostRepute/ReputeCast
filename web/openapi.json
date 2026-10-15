@@ -1942,11 +1942,15 @@
               "audience",
               "audience_count",
               "route",
-              "schedule"
+              "schedule",
+              "language"
             ],
             "type": "string"
           },
           "label": {
+            "type": "string"
+          },
+          "what": {
             "type": "string"
           }
         },
@@ -2644,6 +2648,15 @@
           "html": {
             "type": "string"
           },
+          "language": {
+            "type": "string"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalPreviewLanguage"
+            },
+            "type": "array"
+          },
           "preheader": {
             "type": "string"
           },
@@ -2659,7 +2672,34 @@
           "subject",
           "preheader",
           "html",
-          "version"
+          "version",
+          "language",
+          "languages"
+        ],
+        "type": "object"
+      },
+      "ApprovalPreviewLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "source",
+              "translated",
+              "draft"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "name",
+          "status"
         ],
         "type": "object"
       },
@@ -6158,6 +6198,9 @@
           },
           "headline": {
             "$ref": "#/components/schemas/ReportHeadline"
+          },
+          "languages": {
+            "$ref": "#/components/schemas/ReportLanguages"
           },
           "mailboxes": {
             "items": {
@@ -24050,6 +24093,9 @@
           "html": {
             "type": "string"
           },
+          "language": {
+            "type": "string"
+          },
           "links": {
             "items": {
               "$ref": "#/components/schemas/ReportLink"
@@ -24307,6 +24353,230 @@
           "minutes",
           "providers",
           "current"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "name",
+          "count"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageFallback": {
+        "additionalProperties": false,
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/ReportLanguageDraft"
+          },
+          "gap": {
+            "format": "double",
+            "type": "number"
+          },
+          "got": {
+            "type": "string"
+          },
+          "readers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "readers",
+          "got"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageOption": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageRow": {
+        "additionalProperties": false,
+        "properties": {
+          "clickRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "clicks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "complaintRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "complaints": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deliveredRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "fallback": {
+            "type": "boolean"
+          },
+          "humanOpenRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "humanOpens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kinds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "language": {
+            "type": "string"
+          },
+          "missing": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "readers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "enum": [
+              "missing",
+              "draft",
+              "held"
+            ],
+            "type": "string"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "source": {
+            "type": "boolean"
+          },
+          "translatedFrom": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unsubscribeRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "unsubscribes": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "language",
+          "name",
+          "fallback",
+          "readers",
+          "kinds",
+          "source",
+          "sent",
+          "delivered",
+          "humanOpens",
+          "clicks",
+          "unsubscribes",
+          "complaints"
+        ],
+        "type": "object"
+      },
+      "ReportLanguages": {
+        "additionalProperties": false,
+        "properties": {
+          "clickMaps": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLanguageOption"
+            },
+            "type": "array"
+          },
+          "fallback": {
+            "$ref": "#/components/schemas/ReportLanguageFallback"
+          },
+          "languages": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLanguageRow"
+            },
+            "type": "array"
+          },
+          "sent": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLanguageCount"
+            },
+            "type": "array"
+          },
+          "versions": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "languages",
+          "versions",
+          "rows",
+          "sent",
+          "clickMaps"
         ],
         "type": "object"
       },
@@ -41902,6 +42172,17 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Preview a language version the approval covers; empty shows the source",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "Preview a language version the approval covers; empty shows the source",
+              "maxLength": 16,
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -47366,6 +47647,17 @@
             "schema": {
               "description": "Campaign id",
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Show the click map of one language version (campaigns sent in several languages)",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "Show the click map of one language version (campaigns sent in several languages)",
+              "maxLength": 16,
               "type": "string"
             }
           }

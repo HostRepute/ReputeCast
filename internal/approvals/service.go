@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/readiness"
@@ -39,6 +40,8 @@ type Service struct {
 	Sending func() sending.Starter
 	// Automations publishes an automation once its approval is granted.
 	Automations *automations.Service
+	// Languages snapshots a campaign's language versions; nil leaves them out.
+	Languages *languages.Service
 }
 
 func (s *Service) now() time.Time {
@@ -172,6 +175,11 @@ func (s *Service) current(ctx context.Context, ws *store.Workspace, c store.Read
 		return cur, err
 	}
 	cur.RouteKey, cur.SplitLabel = rc.Key, rc.Label
+	if s.Languages != nil {
+		if cur.Languages, err = s.Languages.CampaignSnapshot(ctx, s.Q, c.ID); err != nil {
+			return cur, err
+		}
+	}
 	return cur, nil
 }
 

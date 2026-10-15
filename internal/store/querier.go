@@ -681,6 +681,9 @@ type Querier interface {
 	// A workspace that never chose its default writes in English: English
 	// becomes its default (and its fallback unless it has one).
 	LanguagesEnsureDefault(ctx context.Context, workspaceID uuid.UUID) error
+	// The newest unsent campaign with the same audience (the report's "Add a
+	// Vietnamese version to …").
+	LanguagesLatestDraftFor(ctx context.Context, arg LanguagesLatestDraftForParams) (LanguagesLatestDraftForRow, error)
 	// Content languages (design expansion M17): workspace languages, language
 	// versions of emails and their sources.
 	// Every language the workspace has had, removed ones included (they keep
