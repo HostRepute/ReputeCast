@@ -1,0 +1,31 @@
+{
+  "inviter.unknown": { "message": "An admin of {workspace}", "note": "who sent an invitation whose inviter's account is gone; starts a sentence" },
+  "inviter.unknownLower": { "message": "an admin of {workspace}", "note": "the same in the middle of a sentence: Ask an admin of Acme Newsletter for a new one." },
+
+  "scope.lists": { "message": "{lists} {count, plural, one {list} other {lists}} only", "note": "a member scope: Beta Program list only; lists: names joined as 'A, B and C'" },
+  "scope.domains": { "message": "{domains} {count, plural, one {sender domain} other {sender domains}} only", "note": "domains: news.acme.io" },
+  "scope.both": "{lists} {listCount, plural, one {list} other {lists}} and {domains} {domainCount, plural, one {sender domain} other {sender domains}} only",
+
+  "role.owner": "You'll have full access to {workspace}, including its team, sending providers and settings.",
+  "role.admin": "You'll be able to manage campaigns, contacts, sending providers and the team of {workspace}.",
+  "role.viewer": "You'll be able to view campaigns, reports and settings. Nothing you do can change them, and secrets are never shown.",
+  "role.send": "You'll be able to create, edit and send campaigns.",
+  "role.sendLists": "You'll be able to create, edit and send campaigns for the {lists} {count, plural, one {list} other {lists}}.",
+  "role.edit": "You'll be able to create and edit campaigns, and ask for approval to send them.",
+  "role.editLists": "You'll be able to create and edit campaigns, and ask for approval to send them for the {lists} {count, plural, one {list} other {lists}}.",
+  "role.approval": { "message": "Sends over {count} recipients need a second person's approval.", "note": "follows role.send or role.sendLists; count: 10,000" },
+
+  "twoFactor.everyone": "This instance requires two-factor for everyone.",
+  "twoFactor.campaigns:send": "Your role can send campaigns, so two-factor is required.",
+  "twoFactor.campaigns:approve": "Your role can approve campaigns, so two-factor is required.",
+  "twoFactor.providers:manage": "Your role can manage sending providers, so two-factor is required.",
+  "twoFactor.subscribers:export": "Your role can export contacts, so two-factor is required.",
+  "twoFactor.team:manage": "Your role can manage the team, so two-factor is required.",
+  "twoFactor.automations:publish": "Your role can publish automations, so two-factor is required.",
+  "twoFactor.apikeys:manage": "Your role can manage API keys, so two-factor is required.",
+  "twoFactor.sensitive": "Your role holds sensitive permissions, so two-factor is required.",
+
+  "closed.expired": { "message": "This invitation has expired. Ask {inviter} for a new one.", "note": "inviter: Linh Nguyen, or inviter.unknownLower" },
+  "closed.revoked": "This invitation was revoked. The link no longer works.",
+  "closed.accepted": "This invitation was already used. Sign in to continue."
+}

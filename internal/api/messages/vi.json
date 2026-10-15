@@ -88,5 +88,10 @@
   "fixed.policyUnavailable": "Chưa kiểm tra được chính sách đăng nhập. Hãy thử lại sau giây lát.",
   "fixed.twoFactorRequired": "Hệ thống của bạn yêu cầu xác thực hai lớp. Hãy thêm khóa truy cập hoặc ứng dụng xác thực để tiếp tục.",
   "fixed.whoUnavailable": "Hiện chưa xác định được bạn là ai. Hãy thử lại sau giây lát.",
-  "keyExpired": "Khóa API này đã hết hạn ngày {date}. Hãy tạo khóa mới trong Cài đặt › Khóa và MCP."
+  "keyExpired": "Khóa API này đã hết hạn ngày {date}. Hãy tạo khóa mới trong Cài đặt › Khóa và MCP.",
+
+  "role.owner": "Chủ sở hữu",
+  "role.admin": "Quản trị viên",
+  "role.editor": "Biên tập viên",
+  "role.viewer": "Người xem"
 }

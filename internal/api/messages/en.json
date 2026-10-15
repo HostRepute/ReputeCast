@@ -88,5 +88,10 @@
   "fixed.policyUnavailable": "Couldn't check the sign-in policy. Try again in a moment.",
   "fixed.twoFactorRequired": "Your instance requires two-factor authentication. Add a passkey or an authenticator app to continue.",
   "fixed.whoUnavailable": "Couldn't check who you are right now. Try again in a moment.",
-  "keyExpired": { "message": "This API key expired on {date}. Rotate it in Settings › Keys & MCP.", "note": "date: Oct 22, 2026" }
+  "keyExpired": { "message": "This API key expired on {date}. Rotate it in Settings › Keys & MCP.", "note": "date: Oct 22, 2026" },
+
+  "role.owner": { "message": "Owner", "note": "the built-in roles; a role someone renamed keeps its name" },
+  "role.admin": "Admin",
+  "role.editor": "Editor",
+  "role.viewer": "Viewer"
 }

@@ -91,6 +91,21 @@ func DeniedText(l i18n.Lang, perm authz.Permission, helpers []string) string {
 	return mDenied.Text(l, args)
 }
 
+// RoleName writes a role's name in a language: the built-in roles (Owner,
+// Admin, Editor, Viewer) are translated; custom roles, and a built-in role
+// stored under another name, keep the name they were given.
+func RoleName(l i18n.Lang, key, name string) string {
+	b, ok := authz.Builtin(key)
+	if !ok || (name != "" && name != b.Name) {
+		return name
+	}
+	m, err := msgs.Lookup("role." + key)
+	if err != nil {
+		return b.Name
+	}
+	return m.Text(l, nil)
+}
+
 var (
 	escalationRe = regexp.MustCompile(`^You can't grant (.+) because you don't hold it\.$`)
 	keyExpiredRe = regexp.MustCompile(`^This API key expired on (.+)\. Rotate it in Settings › Keys & MCP\.$`)

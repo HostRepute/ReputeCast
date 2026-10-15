@@ -1,0 +1,38 @@
+import { translate } from '@/i18n'
+import { m } from './reset.messages'
+
+export default translate(m, {
+  title: 'Đặt lại mật khẩu',
+  emailInvalid: 'Hãy nhập email công việc của bạn, như ban@congty.com.',
+  emailUnavailableLabel: 'Không gửi được email',
+  emailUnavailable: 'Chưa có nhà cung cấp gửi thư nào được kết nối với luồng Hệ thống, nên email đặt lại không thể gửi đi. Quản trị viên hệ thống có thể đặt lại từ máy chủ:',
+  commandNote: 'Lệnh in ra một liên kết dùng một lần, có hiệu lực trong {minutes} phút. Việc đặt lại xác thực hai lớp cũng vậy: <mono>reputecast user reset-2fa --email …</mono>',
+  backToSignIn: 'Quay lại đăng nhập',
+  managedTitle: 'Mật khẩu của bạn do {name} quản lý',
+  ssoLabel: 'SSO',
+  managedNote: 'Tài khoản {domain} đăng nhập qua {name}. ReputeCast không lưu mật khẩu cho tài khoản này, nên không có gì để đặt lại ở đây.',
+  continueWith: 'Tiếp tục với {name}',
+  lockedOut: 'Cũng không vào được {provider}? Hãy liên hệ quản trị viên {name} của bạn.',
+  workEmail: 'Email công việc',
+  emailMe: 'Gửi cho tôi liên kết đặt lại',
+  sentLabel: 'Đã gửi',
+  sent: 'Nếu {email} là của một thành viên, liên kết đang được gửi đến. Liên kết chỉ dùng được một lần và hết hạn sau {minutes} phút. Hãy xem mục Quảng cáo hoặc thư rác nếu chậm.',
+  expiredLabel: 'Đã hết hạn',
+  expired: 'Liên kết đặt lại này đã quá 15 phút hoặc đã được dùng. <link>Yêu cầu liên kết mới</link>; mật khẩu hiện tại vẫn dùng được cho đến khi bạn đổi.',
+  foot: '<link>Quay lại đăng nhập</link> · Không gian làm việc dùng SSO đặt lại mật khẩu bằng nhà cung cấp danh tính của họ.',
+
+  newTitle: 'Đặt mật khẩu mới',
+  checking: 'Đang kiểm tra liên kết đặt lại…',
+  errorLabel: 'Lỗi',
+  stillWorks: 'Liên kết vẫn dùng được cho đến khi hết hạn.',
+  tryAgain: 'Thử lại',
+  tooShort: 'Hãy dùng ít nhất {min} ký tự. Cụm mật khẩu dài cũng được.',
+  mismatch: 'Hai mật khẩu không khớp.',
+  notSavedLabel: 'Chưa lưu',
+  newPassword: 'Mật khẩu mới',
+  hintBreached: 'Ít nhất {min} ký tự. Được kiểm tra với các vụ lộ dữ liệu đã biết.',
+  hintPassphrase: 'Ít nhất {min} ký tự. Cụm mật khẩu dài cũng được.',
+  confirmPassword: 'Xác nhận mật khẩu mới',
+  save: 'Lưu mật khẩu mới',
+  tokenFoot: 'Liên kết dùng được một lần, đến {time}. Lưu sẽ đăng xuất mọi phiên; xác thực hai lớp vẫn áp dụng khi đăng nhập.',
+})

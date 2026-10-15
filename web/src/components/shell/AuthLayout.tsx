@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { http } from '@/api/client'
+import { AuthLanguageMenu } from '@/features/language/AuthLanguageMenu'
 import { useDocumentTitle } from '@/lib/hooks'
 import { LogoMark } from '../icons/Icon'
 
@@ -15,6 +16,7 @@ export function useInstanceMeta() {
 /** Centered card used by sign-in, two-factor, invite, reset and first-run screens. */
 export function AuthLayout({ title, children, labelledBy, wide }: { title: string; children: ReactNode; labelledBy: string; wide?: boolean }) {
   useDocumentTitle(`${title} · ReputeCast`)
+  const { data } = useInstanceMeta()
   return (
     <div className="auth-page rc-app">
       <main id="main" className="w-full" style={{ maxWidth: wide ? 560 : 440 }}>
@@ -22,6 +24,7 @@ export function AuthLayout({ title, children, labelledBy, wide }: { title: strin
           <InstanceBrand />
           {children}
         </section>
+        <AuthLanguageMenu languages={data?.languages} />
       </main>
     </div>
   )

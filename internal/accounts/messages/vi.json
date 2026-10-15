@@ -1,0 +1,31 @@
+{
+  "inviter.unknown": "Một quản trị viên của {workspace}",
+  "inviter.unknownLower": "một quản trị viên của {workspace}",
+
+  "scope.lists": "Chỉ danh sách {lists}",
+  "scope.domains": "Chỉ tên miền gửi {domains}",
+  "scope.both": "Chỉ danh sách {lists} và tên miền gửi {domains}",
+
+  "role.owner": "Bạn sẽ có toàn quyền với {workspace}, kể cả nhóm, nhà cung cấp gửi thư và cài đặt.",
+  "role.admin": "Bạn sẽ quản lý được chiến dịch, liên hệ, nhà cung cấp gửi thư và nhóm của {workspace}.",
+  "role.viewer": "Bạn sẽ xem được chiến dịch, báo cáo và cài đặt. Bạn không thể thay đổi chúng, và thông tin bí mật không bao giờ được hiển thị.",
+  "role.send": "Bạn sẽ tạo, sửa và gửi được chiến dịch.",
+  "role.sendLists": "Bạn sẽ tạo, sửa và gửi được chiến dịch cho danh sách {lists}.",
+  "role.edit": "Bạn sẽ tạo và sửa được chiến dịch, và gửi yêu cầu phê duyệt để gửi chúng.",
+  "role.editLists": "Bạn sẽ tạo và sửa được chiến dịch cho danh sách {lists}, và gửi yêu cầu phê duyệt để gửi chúng.",
+  "role.approval": "Lần gửi trên {count} người nhận cần người thứ hai phê duyệt.",
+
+  "twoFactor.everyone": "Hệ thống này yêu cầu xác thực hai lớp cho mọi người.",
+  "twoFactor.campaigns:send": "Vai trò của bạn có thể gửi chiến dịch, nên bắt buộc xác thực hai lớp.",
+  "twoFactor.campaigns:approve": "Vai trò của bạn có thể phê duyệt chiến dịch, nên bắt buộc xác thực hai lớp.",
+  "twoFactor.providers:manage": "Vai trò của bạn có thể quản lý nhà cung cấp gửi thư, nên bắt buộc xác thực hai lớp.",
+  "twoFactor.subscribers:export": "Vai trò của bạn có thể xuất liên hệ, nên bắt buộc xác thực hai lớp.",
+  "twoFactor.team:manage": "Vai trò của bạn có thể quản lý nhóm, nên bắt buộc xác thực hai lớp.",
+  "twoFactor.automations:publish": "Vai trò của bạn có thể xuất bản tự động hóa, nên bắt buộc xác thực hai lớp.",
+  "twoFactor.apikeys:manage": "Vai trò của bạn có thể quản lý khóa API, nên bắt buộc xác thực hai lớp.",
+  "twoFactor.sensitive": "Vai trò của bạn có quyền nhạy cảm, nên bắt buộc xác thực hai lớp.",
+
+  "closed.expired": "Lời mời này đã hết hạn. Hãy nhờ {inviter} gửi lời mời mới.",
+  "closed.revoked": "Lời mời này đã bị thu hồi. Liên kết không còn dùng được.",
+  "closed.accepted": "Lời mời này đã được dùng. Hãy đăng nhập để tiếp tục."
+}

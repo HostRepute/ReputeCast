@@ -7,8 +7,10 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
+import { T, useT } from '@/i18n'
 import { clock } from '@/lib/format'
 import { AuthHeading, SocialMark } from './AuthParts'
+import { m } from './reset.messages'
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -37,6 +39,7 @@ function ResultNote({ tone, label, role, children }: { tone: 'ok' | 'bad'; label
  * instance without a System-stream provider shows the server command.
  */
 export function ResetRequestPage({ email: initial, expired }: { email?: string; expired?: boolean }) {
+  const t = useT()
   const [email, setEmail] = useState(initial ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
@@ -47,7 +50,7 @@ export function ResetRequestPage({ email: initial, expired }: { email?: string; 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!EMAIL.test(email.trim())) {
-      setError('Enter your work email, like you@company.com.')
+      setError(t(m.emailInvalid))
       return
     }
     setBusy(true)
@@ -64,18 +67,17 @@ export function ResetRequestPage({ email: initial, expired }: { email?: string; 
 
   if (result?.status === 'email_unavailable') {
     return (
-      <AuthLayout title="Reset your password" labelledBy="h-reset-cli">
-        <AuthHeading id="h-reset-cli" title="Reset your password" sub={result.email} />
-        <Note tone="warn" label="Email unavailable" role="status">
-          No sending provider is connected to the System stream yet, so the reset email can't go out. An instance admin can reset it from the server:
+      <AuthLayout title={t(m.title)} labelledBy="h-reset-cli">
+        <AuthHeading id="h-reset-cli" title={t(m.title)} sub={result.email} />
+        <Note tone="warn" label={t(m.emailUnavailableLabel)} role="status">
+          {t(m.emailUnavailable)}
         </Note>
         <pre className="code">{result.command}</pre>
         <p className="m-0 text-[13px] text-ink-nav">
-          The command prints a one-time link that works for {result.expiresInMinutes} minutes. The same applies to two-factor resets:{' '}
-          <span className="mono">reputecast user reset-2fa --email …</span>
+          <T msg={m.commandNote} values={{ minutes: result.expiresInMinutes, mono: (c) => <span className="mono">{c}</span> }} />
         </p>
         <Link className="btn" to="/sign-in">
-          Back to sign in
+          {t(m.backToSignIn)}
         </Link>
       </AuthLayout>
     )
@@ -85,30 +87,28 @@ export function ResetRequestPage({ email: initial, expired }: { email?: string; 
     const sso = result.sso
     const domain = result.email.split('@')[1] ?? ''
     return (
-      <AuthLayout title={`Your password is managed by ${sso.name}`} labelledBy="h-reset-sso">
-        <AuthHeading id="h-reset-sso" title={`Your password is managed by ${sso.name}`} sub={result.email} />
-        <Note tone="info" label="SSO">
-          {domain} accounts sign in through {sso.name}. ReputeCast doesn't store a password for this account, so there is nothing to reset here.
+      <AuthLayout title={t(m.managedTitle, { name: sso.name })} labelledBy="h-reset-sso">
+        <AuthHeading id="h-reset-sso" title={t(m.managedTitle, { name: sso.name })} sub={result.email} />
+        <Note tone="info" label={t(m.ssoLabel)}>
+          {t(m.managedNote, { domain, name: sso.name })}
         </Note>
         <a className="btn pri" href={sso.startUrl}>
           <SocialMark provider={sso.preset === 'google' ? 'google' : 'sso'} />
-          Continue with {sso.name}
+          {t(m.continueWith, { name: sso.name })}
         </a>
-        <span className="foot">
-          Locked out of {shortProvider(sso)} too? Contact your {sso.name} admin.
-        </span>
+        <span className="foot">{t(m.lockedOut, { provider: shortProvider(sso), name: sso.name })}</span>
       </AuthLayout>
     )
   }
 
   return (
-    <AuthLayout title="Reset your password" labelledBy="h-reset">
+    <AuthLayout title={t(m.title)} labelledBy="h-reset">
       {/* This card's board spaces its rows 14px apart (the others use 16px). */}
       <div className="-mt-0.5 flex flex-col gap-3.5">
-        <h1 id="h-reset">Reset your password</h1>
+        <h1 id="h-reset">{t(m.title)}</h1>
         <form className="flex flex-col gap-3.5" onSubmit={submit} noValidate>
           <label className="lbl">
-            Work email
+            {t(m.workEmail)}
             <input
               ref={input}
               className={error ? 'in err' : 'in'}
@@ -127,31 +127,36 @@ export function ResetRequestPage({ email: initial, expired }: { email?: string; 
             ) : null}
           </label>
           <Button type="submit" variant="primary" loading={busy}>
-            Email me a reset link
+            {t(m.emailMe)}
           </Button>
         </form>
         {result?.status === 'sent' ? (
-          <ResultNote tone="ok" label="Sent" role="status">
-            If {result.email} belongs to a member, a link is on its way. It works once and expires in {result.expiresInMinutes} minutes. Check Promotions or spam if it's slow.
+          <ResultNote tone="ok" label={t(m.sentLabel)} role="status">
+            {t(m.sent, { email: result.email, minutes: result.expiresInMinutes })}
           </ResultNote>
         ) : null}
         {expired && !result ? (
-          <ResultNote tone="bad" label="Expired" role="alert">
-            This reset link is older than 15 minutes or was already used.{' '}
-            <a
-              href="#email"
-              onClick={(e) => {
-                e.preventDefault()
-                input.current?.focus()
+          <ResultNote tone="bad" label={t(m.expiredLabel)} role="alert">
+            <T
+              msg={m.expired}
+              values={{
+                link: (c) => (
+                  <a
+                    href="#email"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      input.current?.focus()
+                    }}
+                  >
+                    {c}
+                  </a>
+                ),
               }}
-            >
-              Request a new one
-            </a>
-            ; your current password still works until you change it.
+            />
           </ResultNote>
         ) : null}
         <span className="foot">
-          <Link to="/sign-in">Back to sign in</Link> · Workspaces that use SSO reset passwords with their identity provider.
+          <T msg={m.foot} values={{ link: (c) => <Link to="/sign-in">{c}</Link> }} />
         </span>
       </div>
     </AuthLayout>
@@ -160,6 +165,7 @@ export function ResetRequestPage({ email: initial, expired }: { email?: string; 
 
 /** Set a new password with a one-time link (15 minutes). */
 export function ResetTokenPage({ token }: { token: string }) {
+  const t = useT()
   const navigate = useNavigate()
   const info = useQuery({
     queryKey: ['password-reset', token],
@@ -177,17 +183,17 @@ export function ResetTokenPage({ token }: { token: string }) {
 
   if (info.isPending) {
     return (
-      <AuthLayout title="Set a new password" labelledBy="h-newpw">
+      <AuthLayout title={t(m.newTitle)} labelledBy="h-newpw">
         <div className="flex flex-col gap-3" aria-busy="true">
           <h1 id="h-newpw" className="vh">
-            Set a new password
+            {t(m.newTitle)}
           </h1>
           <Skeleton w="60%" h={22} />
           <Skeleton w="40%" h={12} />
           <Skeleton w="100%" h={40} r={8} />
           <Skeleton w="100%" h={40} r={8} />
           <span className="vh" role="status">
-            Checking the reset link…
+            {t(m.checking)}
           </span>
         </div>
       </AuthLayout>
@@ -196,13 +202,13 @@ export function ResetTokenPage({ token }: { token: string }) {
   if (info.isError) {
     if (info.error instanceof ApiError && (info.error.code === 'reset_expired' || info.error.status === 404)) return <ResetRequestPage expired />
     return (
-      <AuthLayout title="Set a new password" labelledBy="h-newpw">
-        <AuthHeading id="h-newpw" title="Set a new password" />
-        <Note tone="bad" label="Error">
-          {errorMessage(info.error)} The link still works until it expires.
+      <AuthLayout title={t(m.newTitle)} labelledBy="h-newpw">
+        <AuthHeading id="h-newpw" title={t(m.newTitle)} />
+        <Note tone="bad" label={t(m.errorLabel)}>
+          {errorMessage(info.error)} {t(m.stillWorks)}
         </Note>
         <Button variant="primary" onClick={() => info.refetch()}>
-          Try again
+          {t(m.tryAgain)}
         </Button>
       </AuthLayout>
     )
@@ -212,8 +218,8 @@ export function ResetTokenPage({ token }: { token: string }) {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     const next: typeof errors = {}
-    if ([...password].length < data.minLength) next.password = `Use at least ${data.minLength} characters. Passphrases are fine.`
-    if (confirm !== password) next.confirm = "The two passwords don't match."
+    if ([...password].length < data.minLength) next.password = t(m.tooShort, { min: data.minLength })
+    if (confirm !== password) next.confirm = t(m.mismatch)
     setErrors(next)
     if (next.password || next.confirm) return
     setBusy(true)
@@ -233,17 +239,17 @@ export function ResetTokenPage({ token }: { token: string }) {
   }
 
   return (
-    <AuthLayout title="Set a new password" labelledBy="h-newpw">
-      <AuthHeading id="h-newpw" title="Set a new password" sub={data.email} />
+    <AuthLayout title={t(m.newTitle)} labelledBy="h-newpw">
+      <AuthHeading id="h-newpw" title={t(m.newTitle)} sub={data.email} />
       {errors.form ? (
-        <Note tone="bad" label="Not saved">
+        <Note tone="bad" label={t(m.notSavedLabel)}>
           {errors.form}
         </Note>
       ) : null}
       <form className="flex flex-col gap-4" onSubmit={submit} noValidate>
         <input type="email" name="email" autoComplete="username" value={data.email} readOnly hidden />
         <label className="lbl">
-          New password
+          {t(m.newPassword)}
           <input
             className={errors.password ? 'in err' : 'in'}
             type="password"
@@ -260,11 +266,11 @@ export function ResetTokenPage({ token }: { token: string }) {
             </span>
           ) : null}
           <span className="k" id={pwHint}>
-            At least {data.minLength} characters. {data.breachedCheck ? 'Checked against known breaches.' : 'Passphrases are fine.'}
+            {data.breachedCheck ? t(m.hintBreached, { min: data.minLength }) : t(m.hintPassphrase, { min: data.minLength })}
           </span>
         </label>
         <label className="lbl">
-          Confirm new password
+          {t(m.confirmPassword)}
           <input
             className={errors.confirm ? 'in err' : 'in'}
             type="password"
@@ -281,12 +287,10 @@ export function ResetTokenPage({ token }: { token: string }) {
           ) : null}
         </label>
         <Button type="submit" variant="primary" loading={busy}>
-          Save new password
+          {t(m.save)}
         </Button>
       </form>
-      <span className="foot">
-        The link works once, until {clock(data.expiresAt)}. Saving signs out every session; two-factor still applies at sign-in.
-      </span>
+      <span className="foot">{t(m.tokenFoot, { time: clock(data.expiresAt) })}</span>
     </AuthLayout>
   )
 }

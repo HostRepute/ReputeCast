@@ -16505,6 +16505,9 @@
           "inviterName": {
             "type": "string"
           },
+          "inviterUnknown": {
+            "type": "boolean"
+          },
           "language": {
             "examples": [
               "en"

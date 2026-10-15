@@ -264,9 +264,10 @@ func (s *Service) methodsOf(ctx context.Context, u store.User) signInMethods {
 // twoFactorRequired reports whether the instance policy requires a second
 // factor for the person, and why ("Your role can send campaigns").
 func (s *Service) twoFactorRequired(ctx context.Context, u store.User, st store.InstanceSetting) (bool, string) {
+	l := langOf(ctx)
 	switch st.TwofaEnforcement {
 	case "everyone":
-		return true, "This instance requires two-factor for everyone."
+		return true, mTwoFactorEveryone.Text(l, nil)
 	case "off":
 		return false, ""
 	}
@@ -277,29 +278,8 @@ func (s *Service) twoFactorRequired(ctx context.Context, u store.User, st store.
 			continue
 		}
 		if perms := authz.Effective(m.RoleKey, m.RoleBuiltin, m.RolePermissions); perms.HasSensitive() {
-			return true, sensitiveReason(perms)
+			return true, sensitiveReason(l, perms)
 		}
 	}
 	return false, ""
-}
-
-// sensitiveReason names the most familiar sensitive permission a role holds.
-func sensitiveReason(perms authz.Set) string {
-	for _, c := range []struct {
-		perm authz.Permission
-		what string
-	}{
-		{authz.CampaignsSend, "send campaigns"},
-		{authz.CampaignsApprove, "approve campaigns"},
-		{authz.ProvidersManage, "manage sending providers"},
-		{authz.SubscribersExport, "export contacts"},
-		{authz.TeamManage, "manage the team"},
-		{authz.AutomationsPublish, "publish automations"},
-		{authz.APIKeysManage, "manage API keys"},
-	} {
-		if perms.Has(c.perm) {
-			return "Your role can " + c.what + ", so two-factor is required."
-		}
-	}
-	return "Your role holds sensitive permissions, so two-factor is required."
 }

@@ -428,7 +428,7 @@ func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	for _, c := range made {
 		ci := TeamCreatedInvitation{ID: c.id.String(), Email: c.email, Link: base + "/invite/" + c.token}
 		if !stop {
-			provider, err := s.sendInvite(ctx, ws, p, c.email, c.token, role.Name, in.Message, expires, language)
+			provider, err := s.sendInvite(ctx, ws, p, c.email, c.token, role.Key, role.Name, in.Message, expires, language)
 			if err == nil {
 				ci.Emailed = true
 				res.SentVia = provider
@@ -467,13 +467,14 @@ func wsLocation(tz string) *time.Location {
 
 // sendInvite emails an invitation in its language (the instance default
 // when it has none).
-func (s *Service) sendInvite(ctx context.Context, ws *store.Workspace, p *authz.Principal, email, token, role, message string, expires time.Time, language string) (string, error) {
+func (s *Service) sendInvite(ctx context.Context, ws *store.Workspace, p *authz.Principal, email, token, roleKey, roleName, message string, expires time.Time, language string) (string, error) {
 	if s.Mail == nil {
 		return "", errNoMail
 	}
 	link := s.base(ctx) + "/invite/" + token
-	msg := membermail.Invitation(applang.ForInvitation(ctx, s.Q, language), membermail.InvitationEmail{
-		Inviter: p.Name, Workspace: ws.Name, Role: role, Message: message, Link: link, Expires: expires.In(wsLocation(ws.Timezone)),
+	l := applang.ForInvitation(ctx, s.Q, language)
+	msg := membermail.Invitation(l, membermail.InvitationEmail{
+		Inviter: p.Name, Workspace: ws.Name, Role: api.RoleName(l, roleKey, roleName), Message: message, Link: link, Expires: expires.In(wsLocation(ws.Timezone)),
 	})
 	wsID := ws.ID
 	msg.WorkspaceID, msg.To = &wsID, email
@@ -561,7 +562,7 @@ func (s *Service) Resend(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	expires := s.now().Add(time.Duration(days) * 24 * time.Hour)
 	res := TeamResendResult{Link: s.base(ctx) + "/invite/" + token, ExpiresAt: expires}
 	language, _ := s.Q.AppLangInvitationLanguage(ctx, inv.ID)
-	provider, mailErr := s.sendInvite(ctx, ws, p, inv.Email, token, inv.RoleName, inv.Message, expires, language)
+	provider, mailErr := s.sendInvite(ctx, ws, p, inv.Email, token, inv.RoleKey, inv.RoleName, inv.Message, expires, language)
 	var via *string
 	if mailErr == nil {
 		res.Emailed, res.SentVia = true, provider

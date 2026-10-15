@@ -108,7 +108,7 @@ func (s *Service) AcceptInvitationExternal(ctx context.Context, token string, id
 	}
 	now := s.now()
 	if status := inviteStatus(inv, now); status != "pending" {
-		return ExternalResult{}, inviteClosed(status, inv)
+		return ExternalResult{}, inviteClosed(langOf(ctx), status, inv)
 	}
 	if !strings.EqualFold(strings.TrimSpace(id.Email), inv.Email) {
 		return ExternalResult{}, api.Err(http.StatusConflict, "invite_wrong_account",
@@ -165,7 +165,7 @@ func (s *Service) AcceptInvitationExternal(ctx context.Context, token string, id
 		} else if err != nil {
 			return err
 		}
-		return s.joinWorkspace(ctx, tx, inv, user, newAccount, inviteTwoFactor(st, perms).Required)
+		return s.joinWorkspace(ctx, tx, inv, user, newAccount, inviteTwoFactor(langOf(ctx), st, perms).Required)
 	})
 	if err != nil {
 		return ExternalResult{}, err

@@ -11336,6 +11336,7 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
             inviterName: string;
+            inviterUnknown?: boolean;
             /** @example en */
             language?: string;
             /** @description Personal message from the inviter */
