@@ -1462,6 +1462,54 @@ type Querier interface {
 	// last_open_at counts every open, last_human_open_at only people's (tiers
 	// and the sunset policy use it); last_open_machine says what the latest was.
 	TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error
+	// Categories with their template counts and opt-outs.
+	TxnCategories(ctx context.Context, workspaceID uuid.UUID) ([]TxnCategoriesRow, error)
+	TxnCategory(ctx context.Context, arg TxnCategoryParams) (TransactionalCategory, error)
+	TxnCategoryDelete(ctx context.Context, arg TxnCategoryDeleteParams) (int64, error)
+	TxnCategoryInsert(ctx context.Context, arg TxnCategoryInsertParams) error
+	TxnCategoryTemplateCount(ctx context.Context, categoryID *uuid.UUID) (int64, error)
+	TxnCategoryUpdate(ctx context.Context, arg TxnCategoryUpdateParams) error
+	// What the template's calls of a period sent: per call, the variable
+	// names (the breaking-change check of the publish dialog).
+	TxnRecentCallKeys(ctx context.Context, arg TxnRecentCallKeysParams) ([]TxnRecentCallKeysRow, error)
+	TxnRejectedCallsForTemplate(ctx context.Context, arg TxnRejectedCallsForTemplateParams) ([]TxnRejectedCallsForTemplateRow, error)
+	TxnSenderByEmail(ctx context.Context, arg TxnSenderByEmailParams) (TxnSenderByEmailRow, error)
+	TxnSenderByID(ctx context.Context, arg TxnSenderByIDParams) (TxnSenderByIDRow, error)
+	// The workspace's senders with their domain's transactional flag and
+	// verification state.
+	TxnSenders(ctx context.Context, workspaceID uuid.UUID) ([]TxnSendersRow, error)
+	TxnSettings(ctx context.Context, workspaceID uuid.UUID) (TxnSettingsRow, error)
+	// Transactional email: settings, categories, templates, versions, the
+	// message log, opt-outs, idempotency, alerts and the first-send guide.
+	TxnSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
+	TxnSettingsForUpdate(ctx context.Context, workspaceID uuid.UUID) (TransactionalSetting, error)
+	TxnSettingsSetGuide(ctx context.Context, arg TxnSettingsSetGuideParams) error
+	TxnSettingsUpdate(ctx context.Context, arg TxnSettingsUpdateParams) error
+	TxnTemplate(ctx context.Context, arg TxnTemplateParams) (TxnTemplateRow, error)
+	TxnTemplateArchive(ctx context.Context, arg TxnTemplateArchiveParams) error
+	TxnTemplateDelete(ctx context.Context, arg TxnTemplateDeleteParams) error
+	TxnTemplateDraftRevision(ctx context.Context, arg TxnTemplateDraftRevisionParams) (TxnTemplateDraftRevisionRow, error)
+	TxnTemplateForUpdate(ctx context.Context, arg TxnTemplateForUpdateParams) (TransactionalTemplate, error)
+	TxnTemplateIDByKey(ctx context.Context, arg TxnTemplateIDByKeyParams) (uuid.UUID, error)
+	TxnTemplateInsert(ctx context.Context, arg TxnTemplateInsertParams) error
+	TxnTemplateInsertDraftRevision(ctx context.Context, arg TxnTemplateInsertDraftRevisionParams) error
+	TxnTemplateKeyTaken(ctx context.Context, arg TxnTemplateKeyTakenParams) (bool, error)
+	TxnTemplatePruneDrafts(ctx context.Context, arg TxnTemplatePruneDraftsParams) error
+	TxnTemplatePublish(ctx context.Context, arg TxnTemplatePublishParams) error
+	TxnTemplateSaveDraft(ctx context.Context, arg TxnTemplateSaveDraftParams) error
+	TxnTemplateSetLive(ctx context.Context, arg TxnTemplateSetLiveParams) error
+	// Messages a provider accepted per template and bucket of a period.
+	TxnTemplateSpark(ctx context.Context, arg TxnTemplateSparkParams) ([]TxnTemplateSparkRow, error)
+	// Each template's numbers over a period. Test messages are left out unless
+	// include_test; sent counts what a provider accepted; delivered includes
+	// messages complained about later; a soft bounce counts as a bounce.
+	TxnTemplateStats(ctx context.Context, arg TxnTemplateStatsParams) ([]TxnTemplateStatsRow, error)
+	TxnTemplateUpdateMeta(ctx context.Context, arg TxnTemplateUpdateMetaParams) error
+	// The workspace's templates (archived ones too), with what the list shows.
+	TxnTemplates(ctx context.Context, workspaceID uuid.UUID) ([]TxnTemplatesRow, error)
+	TxnVersion(ctx context.Context, arg TxnVersionParams) (TxnVersionRow, error)
+	TxnVersionInsert(ctx context.Context, arg TxnVersionInsertParams) error
+	TxnVersions(ctx context.Context, templateID uuid.UUID) ([]TxnVersionsRow, error)
 	UpdateAuthPolicy(ctx context.Context, arg UpdateAuthPolicyParams) (InstanceSetting, error)
 	UpdateAutomationDraftGraph(ctx context.Context, arg UpdateAutomationDraftGraphParams) (int64, error)
 	UpdateAutomationMeta(ctx context.Context, arg UpdateAutomationMetaParams) (Automation, error)

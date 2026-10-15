@@ -16,7 +16,7 @@ import (
 const domCreate = `-- name: DomCreate :one
 INSERT INTO sending_domains (id, workspace_id, domain, note, dns_records, status, created_by, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, $7)
-RETURNING id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at
+RETURNING id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional
 `
 
 type DomCreateParams struct {
@@ -57,6 +57,7 @@ func (q *Queries) DomCreate(ctx context.Context, arg DomCreateParams) (SendingDo
 		&i.AuthDetail,
 		&i.CreatedBy,
 		&i.UpdatedAt,
+		&i.Transactional,
 	)
 	return i, err
 }
@@ -118,7 +119,7 @@ func (q *Queries) DomDue(ctx context.Context, arg DomDueParams) ([]uuid.UUID, er
 }
 
 const domGet = `-- name: DomGet :one
-SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at FROM sending_domains
+SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional FROM sending_domains
 WHERE workspace_id = $1 AND id = $2
 `
 
@@ -147,12 +148,13 @@ func (q *Queries) DomGet(ctx context.Context, arg DomGetParams) (SendingDomain, 
 		&i.AuthDetail,
 		&i.CreatedBy,
 		&i.UpdatedAt,
+		&i.Transactional,
 	)
 	return i, err
 }
 
 const domGetAny = `-- name: DomGetAny :one
-SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at FROM sending_domains WHERE id = $1
+SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional FROM sending_domains WHERE id = $1
 `
 
 func (q *Queries) DomGetAny(ctx context.Context, id uuid.UUID) (SendingDomain, error) {
@@ -175,12 +177,13 @@ func (q *Queries) DomGetAny(ctx context.Context, id uuid.UUID) (SendingDomain, e
 		&i.AuthDetail,
 		&i.CreatedBy,
 		&i.UpdatedAt,
+		&i.Transactional,
 	)
 	return i, err
 }
 
 const domGetByName = `-- name: DomGetByName :one
-SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at FROM sending_domains
+SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional FROM sending_domains
 WHERE workspace_id = $1 AND domain = $2
 `
 
@@ -209,13 +212,14 @@ func (q *Queries) DomGetByName(ctx context.Context, arg DomGetByNameParams) (Sen
 		&i.AuthDetail,
 		&i.CreatedBy,
 		&i.UpdatedAt,
+		&i.Transactional,
 	)
 	return i, err
 }
 
 const domList = `-- name: DomList :many
 
-SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at FROM sending_domains
+SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional FROM sending_domains
 WHERE workspace_id = $1
 ORDER BY created_at, domain
 `
@@ -249,6 +253,7 @@ func (q *Queries) DomList(ctx context.Context, workspaceID uuid.UUID) ([]Sending
 			&i.AuthDetail,
 			&i.CreatedBy,
 			&i.UpdatedAt,
+			&i.Transactional,
 		); err != nil {
 			return nil, err
 		}
