@@ -121,8 +121,8 @@ func (s *Service) Subscribe(ctx context.Context, ws *store.Workspace, p *authz.P
 			summary += " · workflow " + wf.Name
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "webhook.created", TargetType: "webhook", TargetID: id.String(), TargetName: u.String(),
-			After: map[string]any{"url": u.String(), "events": []string{event}, "managed_by": ik.Kind, "workflow": wf.Name},
-			Metadata: map[string]any{"summary": summary, "permission": string(authz.WebhooksManage), "actor_label": "integration key"}})
+			After:    map[string]any{"url": u.String(), "events": []string{event}, "managed_by": ik.Kind, "workflow": wf.Name},
+			Metadata: s.keyMeta(ctx, map[string]any{"summary": summary, "permission": string(authz.WebhooksManage)})})
 	})
 	if err != nil {
 		return IntegrationHook{}, err
@@ -167,7 +167,7 @@ func (s *Service) Unsubscribe(ctx context.Context, ws *store.Workspace, hookID u
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "webhook.deleted", TargetType: "webhook", TargetID: hookID.String(), TargetName: h.Url,
 			Before:   map[string]any{"url": h.Url, "events": []string{h.Event}},
-			Metadata: map[string]any{"summary": fmt.Sprintf("managed by %s · the workflow was turned off", ik.Name), "permission": string(authz.WebhooksManage), "actor_label": "integration key"}})
+			Metadata: s.keyMeta(ctx, map[string]any{"summary": fmt.Sprintf("managed by %s · the workflow was turned off", ik.Name), "permission": string(authz.WebhooksManage)})})
 	})
 }
 

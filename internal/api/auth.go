@@ -125,6 +125,14 @@ func (a *Authenticator) Middleware(hapi huma.API) func(huma.Context, func(huma.C
 				"This key belongs to %s and works only for what %s can do. Change what %s can do in Settings › Integrations.", c.ik.Name, c.ik.Name, c.ik.Name)))
 			return
 		}
+		if access.Integration != "" && (c.ik == nil || access.Integration != "*" && c.ik.Kind != access.Integration) {
+			who := "an integration's key"
+			if access.Integration == "wordpress" {
+				who = "a WordPress site's key"
+			}
+			refuse(Err(http.StatusForbidden, CodePermissionDenied, "Only "+who+" calls this."))
+			return
+		}
 		if access.HumansOnly && p.Type != authz.ActorUser {
 			refuse(Err(http.StatusForbidden, CodeHumansOnly, "This action can only be taken by a signed-in person, not an API key or agent."))
 			return

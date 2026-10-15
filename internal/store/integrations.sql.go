@@ -876,6 +876,45 @@ func (q *Queries) IntegrationEventContacts(ctx context.Context, ids []uuid.UUID)
 	return items, nil
 }
 
+const integrationFirstCall = `-- name: IntegrationFirstCall :one
+SELECT c.id, c.occurred_at, c.operation, c.status, c.ip, c.client, c.workflow_name
+FROM integration_calls c
+WHERE c.integration_id = $1 AND c.api_key_id = $2
+ORDER BY c.occurred_at
+LIMIT 1
+`
+
+type IntegrationFirstCallParams struct {
+	IntegrationID uuid.UUID  `json:"integrationId"`
+	ApiKeyID      *uuid.UUID `json:"apiKeyId"`
+}
+
+type IntegrationFirstCallRow struct {
+	ID           uuid.UUID   `json:"id"`
+	OccurredAt   time.Time   `json:"occurredAt"`
+	Operation    string      `json:"operation"`
+	Status       int32       `json:"status"`
+	Ip           *netip.Addr `json:"ip"`
+	Client       string      `json:"client"`
+	WorkflowName string      `json:"workflowName"`
+}
+
+// The first call made with a key (the "waiting for a first call" timeline).
+func (q *Queries) IntegrationFirstCall(ctx context.Context, arg IntegrationFirstCallParams) (IntegrationFirstCallRow, error) {
+	row := q.db.QueryRow(ctx, integrationFirstCall, arg.IntegrationID, arg.ApiKeyID)
+	var i IntegrationFirstCallRow
+	err := row.Scan(
+		&i.ID,
+		&i.OccurredAt,
+		&i.Operation,
+		&i.Status,
+		&i.Ip,
+		&i.Client,
+		&i.WorkflowName,
+	)
+	return i, err
+}
+
 const integrationGet = `-- name: IntegrationGet :one
 SELECT i.id, i.workspace_id, i.kind, i.label, i.items, i.off_items, i.settings, i.connected_by, i.connected_at, i.first_call_at, i.last_call_at, i.attention, i.notified, i.disconnected_at, i.disconnected_by, coalesce(u.name, '')::text AS connected_by_name
 FROM integrations i
@@ -1115,6 +1154,31 @@ func (q *Queries) IntegrationKeyRevoke(ctx context.Context, arg IntegrationKeyRe
 	return result.RowsAffected(), nil
 }
 
+const integrationKeyRevokedBy = `-- name: IntegrationKeyRevokedBy :one
+SELECT e.actor_name, e.occurred_at FROM audit_events e
+WHERE e.workspace_id = $1 AND e.action = 'apikey.revoked' AND e.target_id = $2::text
+ORDER BY e.occurred_at DESC
+LIMIT 1
+`
+
+type IntegrationKeyRevokedByParams struct {
+	WorkspaceID *uuid.UUID `json:"workspaceId"`
+	KeyID       string     `json:"keyId"`
+}
+
+type IntegrationKeyRevokedByRow struct {
+	ActorName  string    `json:"actorName"`
+	OccurredAt time.Time `json:"occurredAt"`
+}
+
+// Who revoked a key in Keys & MCP, and when.
+func (q *Queries) IntegrationKeyRevokedBy(ctx context.Context, arg IntegrationKeyRevokedByParams) (IntegrationKeyRevokedByRow, error) {
+	row := q.db.QueryRow(ctx, integrationKeyRevokedBy, arg.WorkspaceID, arg.KeyID)
+	var i IntegrationKeyRevokedByRow
+	err := row.Scan(&i.ActorName, &i.OccurredAt)
+	return i, err
+}
+
 const integrationKeySetName = `-- name: IntegrationKeySetName :exec
 UPDATE api_keys SET name = $1 WHERE integration_id = $2 AND revoked_at IS NULL
 `
@@ -1184,6 +1248,20 @@ type IntegrationKeyTakeOverParams struct {
 // period) a new owner; the secret stays the same.
 func (q *Queries) IntegrationKeyTakeOver(ctx context.Context, arg IntegrationKeyTakeOverParams) error {
 	_, err := q.db.Exec(ctx, integrationKeyTakeOver, arg.Owner, arg.IntegrationID)
+	return err
+}
+
+const integrationKeyTouchClient = `-- name: IntegrationKeyTouchClient :exec
+UPDATE api_keys SET last_used_client = $1 WHERE id = $2 AND $1::text <> ''
+`
+
+type IntegrationKeyTouchClientParams struct {
+	Client string    `json:"client"`
+	ID     uuid.UUID `json:"id"`
+}
+
+func (q *Queries) IntegrationKeyTouchClient(ctx context.Context, arg IntegrationKeyTouchClientParams) error {
+	_, err := q.db.Exec(ctx, integrationKeyTouchClient, arg.Client, arg.ID)
 	return err
 }
 
@@ -1480,6 +1558,48 @@ func (q *Queries) IntegrationListNames(ctx context.Context, workspaceID uuid.UUI
 	return items, nil
 }
 
+const integrationListSizes = `-- name: IntegrationListSizes :many
+SELECT l.id, l.name, l.double_opt_in, coalesce(n.subscribed, 0)::bigint AS contacts
+FROM lists l
+LEFT JOIN LATERAL (
+    SELECT count(*) AS subscribed FROM list_memberships m WHERE m.list_id = l.id AND m.status = 'subscribed'
+) n ON true
+WHERE l.workspace_id = $1 AND l.deleted_at IS NULL
+ORDER BY l.name
+`
+
+type IntegrationListSizesRow struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	DoubleOptIn bool      `json:"doubleOptIn"`
+	Contacts    int64     `json:"contacts"`
+}
+
+func (q *Queries) IntegrationListSizes(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationListSizesRow, error) {
+	rows, err := q.db.Query(ctx, integrationListSizes, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []IntegrationListSizesRow{}
+	for rows.Next() {
+		var i IntegrationListSizesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.DoubleOptIn,
+			&i.Contacts,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const integrationManagedHook = `-- name: IntegrationManagedHook :one
 SELECT iw.webhook_id, i.id AS integration_id, i.workspace_id, i.kind, i.label, iw.event, iw.workflow_name, h.url
 FROM integration_webhooks iw
@@ -1546,6 +1666,56 @@ func (q *Queries) IntegrationManagedHooks(ctx context.Context, workspaceID uuid.
 			&i.Kind,
 			&i.Label,
 			&i.WorkflowName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const integrationMembers = `-- name: IntegrationMembers :many
+SELECT u.id, u.name, u.email, u.avatar_color, r.key AS role_key, r.name AS role_name, r.builtin, r.permissions
+FROM workspace_members m
+JOIN roles r ON r.id = m.role_id
+JOIN users u ON u.id = m.user_id AND u.status = 'active'
+WHERE m.workspace_id = $1 AND m.status = 'active'
+ORDER BY CASE r.key WHEN 'admin' THEN 0 WHEN 'owner' THEN 1 ELSE 2 END, u.name
+`
+
+type IntegrationMembersRow struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Email       string    `json:"email"`
+	AvatarColor string    `json:"avatarColor"`
+	RoleKey     string    `json:"roleKey"`
+	RoleName    string    `json:"roleName"`
+	Builtin     bool      `json:"builtin"`
+	Permissions []string  `json:"permissions"`
+}
+
+// Active members, Admins first then Owners, with their role (helpers and pickers).
+func (q *Queries) IntegrationMembers(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationMembersRow, error) {
+	rows, err := q.db.Query(ctx, integrationMembers, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []IntegrationMembersRow{}
+	for rows.Next() {
+		var i IntegrationMembersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.AvatarColor,
+			&i.RoleKey,
+			&i.RoleName,
+			&i.Builtin,
+			&i.Permissions,
 		); err != nil {
 			return nil, err
 		}
@@ -1792,6 +1962,24 @@ func (q *Queries) IntegrationTouchCall(ctx context.Context, arg IntegrationTouch
 	return err
 }
 
+const integrationWebhookCounts = `-- name: IntegrationWebhookCounts :one
+SELECT count(*)::bigint AS endpoints,
+       count(*) FILTER (WHERE failing_since IS NOT NULL)::bigint AS failing
+FROM webhooks WHERE workspace_id = $1
+`
+
+type IntegrationWebhookCountsRow struct {
+	Endpoints int64 `json:"endpoints"`
+	Failing   int64 `json:"failing"`
+}
+
+func (q *Queries) IntegrationWebhookCounts(ctx context.Context, workspaceID uuid.UUID) (IntegrationWebhookCountsRow, error) {
+	row := q.db.QueryRow(ctx, integrationWebhookCounts, workspaceID)
+	var i IntegrationWebhookCountsRow
+	err := row.Scan(&i.Endpoints, &i.Failing)
+	return i, err
+}
+
 const integrationWebhookDelete = `-- name: IntegrationWebhookDelete :execrows
 DELETE FROM webhooks WHERE id = $1
 `
@@ -1882,7 +2070,7 @@ SELECT h.id, h.url, h.events, h.enabled, h.created_at, h.last_status, h.last_del
        iw.event, iw.workflow_key, iw.workflow_name, iw.api_key_id,
        coalesce(s.delivered, 0)::bigint AS delivered_24h, coalesce(s.total, 0)::bigint AS total_24h,
        coalesce(q.retrying, 0)::bigint AS retrying, coalesce(q.queued, 0)::bigint AS queued,
-       coalesce(q.dead, 0)::bigint AS dead, q.next_attempt_at::timestamptz AS next_attempt_at,
+       coalesce(q.dead, 0)::bigint AS dead, (SELECT min(d2.next_attempt_at) FROM webhook_deliveries d2 WHERE d2.webhook_id = h.id AND d2.state IN ('pending','retrying')) AS next_attempt_at,
        coalesce(w7.deliveries, 0)::bigint AS deliveries_7d
 FROM integration_webhooks iw
 JOIN webhooks h ON h.id = iw.webhook_id
@@ -1906,26 +2094,26 @@ ORDER BY h.created_at
 `
 
 type IntegrationWebhooksRow struct {
-	ID             uuid.UUID  `json:"id"`
-	Url            string     `json:"url"`
-	Events         []string   `json:"events"`
-	Enabled        bool       `json:"enabled"`
-	CreatedAt      time.Time  `json:"createdAt"`
-	LastStatus     *int32     `json:"lastStatus"`
-	LastDeliveryAt *time.Time `json:"lastDeliveryAt"`
-	FailingSince   *time.Time `json:"failingSince"`
-	Demo           bool       `json:"demo"`
-	Event          string     `json:"event"`
-	WorkflowKey    string     `json:"workflowKey"`
-	WorkflowName   string     `json:"workflowName"`
-	ApiKeyID       *uuid.UUID `json:"apiKeyId"`
-	Delivered24h   int64      `json:"delivered24h"`
-	Total24h       int64      `json:"total24h"`
-	Retrying       int64      `json:"retrying"`
-	Queued         int64      `json:"queued"`
-	Dead           int64      `json:"dead"`
-	NextAttemptAt  time.Time  `json:"nextAttemptAt"`
-	Deliveries7d   int64      `json:"deliveries7d"`
+	ID             uuid.UUID   `json:"id"`
+	Url            string      `json:"url"`
+	Events         []string    `json:"events"`
+	Enabled        bool        `json:"enabled"`
+	CreatedAt      time.Time   `json:"createdAt"`
+	LastStatus     *int32      `json:"lastStatus"`
+	LastDeliveryAt *time.Time  `json:"lastDeliveryAt"`
+	FailingSince   *time.Time  `json:"failingSince"`
+	Demo           bool        `json:"demo"`
+	Event          string      `json:"event"`
+	WorkflowKey    string      `json:"workflowKey"`
+	WorkflowName   string      `json:"workflowName"`
+	ApiKeyID       *uuid.UUID  `json:"apiKeyId"`
+	Delivered24h   int64       `json:"delivered24h"`
+	Total24h       int64       `json:"total24h"`
+	Retrying       int64       `json:"retrying"`
+	Queued         int64       `json:"queued"`
+	Dead           int64       `json:"dead"`
+	NextAttemptAt  interface{} `json:"nextAttemptAt"`
+	Deliveries7d   int64       `json:"deliveries7d"`
 }
 
 // The webhooks a connection manages, with 24-hour delivery counts.
@@ -2445,37 +2633,6 @@ func (q *Queries) WordPressDraftsWeek(ctx context.Context, arg WordPressDraftsWe
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err
-}
-
-const wordPressFormAllowOrigin = `-- name: WordPressFormAllowOrigin :one
-UPDATE forms SET allowed_origins = array_append(allowed_origins, $1::text), updated_by = $2, updated_at = now()
-WHERE id = $3 AND workspace_id = $4 AND NOT ($1::text = ANY (allowed_origins))
-RETURNING id, name, allowed_origins
-`
-
-type WordPressFormAllowOriginParams struct {
-	Origin      string     `json:"origin"`
-	By          *uuid.UUID `json:"by"`
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-}
-
-type WordPressFormAllowOriginRow struct {
-	ID             uuid.UUID `json:"id"`
-	Name           string    `json:"name"`
-	AllowedOrigins []string  `json:"allowedOrigins"`
-}
-
-func (q *Queries) WordPressFormAllowOrigin(ctx context.Context, arg WordPressFormAllowOriginParams) (WordPressFormAllowOriginRow, error) {
-	row := q.db.QueryRow(ctx, wordPressFormAllowOrigin,
-		arg.Origin,
-		arg.By,
-		arg.ID,
-		arg.WorkspaceID,
-	)
-	var i WordPressFormAllowOriginRow
-	err := row.Scan(&i.ID, &i.Name, &i.AllowedOrigins)
-	return i, err
 }
 
 const wordPressForms = `-- name: WordPressForms :many

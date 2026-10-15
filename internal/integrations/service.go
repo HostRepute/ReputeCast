@@ -140,7 +140,7 @@ func unquote(v string) string {
 	return v
 }
 
-// decodeName undoes percent-encoding (and RFC 8187's UTF-8'' prefix).
+// decodeName undoes percent-encoding (and RFC 8187's UTF-8” prefix).
 func decodeName(v string) string {
 	v = strings.TrimPrefix(strings.TrimPrefix(v, "UTF-8''"), "utf-8''")
 	if strings.Contains(v, "%") {

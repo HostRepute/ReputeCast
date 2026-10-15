@@ -803,7 +803,7 @@ func (s *Service) TakeOver(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "integration.taken_over", TargetType: "integration", TargetID: conn.ID.String(),
 			TargetName: Name(conn.Kind) + " · " + conn.Label,
 			Before:     map[string]any{"owner": prev.Key.Owner.Name}, After: map[string]any{"owner": p.Name, "missing": prev.Missing},
-			Metadata:   map[string]any{"summary": summary, "permission": string(authz.IntegrationsManage)}})
+			Metadata: map[string]any{"summary": summary, "permission": string(authz.IntegrationsManage)}})
 	})
 	return prev, err
 }

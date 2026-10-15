@@ -48,6 +48,9 @@ type Access struct {
 	AllowPending bool
 	// HumansOnly rejects API keys and agents (account security, approvals).
 	HumansOnly bool
+	// Integration limits the operation to the keys of one kind of
+	// integration ("wordpress"), or of any integration ("*").
+	Integration string
 }
 
 // Common access requirements.
@@ -71,6 +74,13 @@ func WorkspaceHuman(perm authz.Permission) Access {
 // CallingKey is for operations about the API key that calls them, in its
 // own workspace. It needs no permission: a key may always describe itself.
 var CallingKey = Access{Kind: AccessKey}
+
+// IntegrationOnly is Workspace for the keys of one kind of integration
+// ("wordpress"), or of any integration ("*"): the operations the apps and
+// the WordPress plugin call, which people and other keys don't.
+func IntegrationOnly(kind string, perm authz.Permission) Access {
+	return Access{Kind: AccessWorkspace, Permission: perm, Integration: kind}
+}
 
 const accessMetaKey = "reputecast.access"
 
@@ -106,14 +116,20 @@ func (o Op) operation() huma.Operation {
 	if o.Access.Permission != "" {
 		op.Extensions["x-permission"] = string(o.Access.Permission)
 	}
+	if o.Access.Integration != "" {
+		op.Extensions["x-integration"] = o.Access.Integration
+	}
 	switch o.Access.Kind {
 	case AccessPublic:
 	case AccessKey:
 		op.Security = []map[string][]string{{"bearer": {}}}
 	case AccessWorkspace:
-		if o.Access.HumansOnly {
+		switch {
+		case o.Access.HumansOnly:
 			op.Security = []map[string][]string{{"session": {}}}
-		} else {
+		case o.Access.Integration != "":
+			op.Security = []map[string][]string{{"bearer": {}}}
+		default:
 			op.Security = []map[string][]string{{"session": {}}, {"bearer": {}}}
 		}
 	default:

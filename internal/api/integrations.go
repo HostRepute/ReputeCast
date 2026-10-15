@@ -72,6 +72,9 @@ type IntegrationCall struct {
 	UserAgent string
 	// Notes are what the operation said about the call (NoteCall).
 	Notes map[string]string
+	// Headers are the request headers the call log shows (the workflow and
+	// the idempotency key); never Authorization.
+	Headers map[string]string
 }
 
 // Integrations connects the authenticator to the integrations hub
@@ -164,7 +167,12 @@ func (c *recorder) BodyWriter() io.Writer {
 func (a *Authenticator) callOf(ctx context.Context, hctx huma.Context, ik *IntegrationKey, keyID uuid.UUID, start time.Time) IntegrationCall {
 	u := hctx.URL()
 	c := IntegrationCall{Integration: ik, KeyID: keyID, Method: hctx.Method(), Path: u.Path, At: start,
-		Workflow: hctx.Header(HeaderWorkflow), UserAgent: hctx.Header("User-Agent")}
+		Workflow: hctx.Header(HeaderWorkflow), UserAgent: hctx.Header("User-Agent"), Headers: map[string]string{}}
+	for _, h := range []string{HeaderWorkflow, "Idempotency-Key"} {
+		if v := hctx.Header(h); v != "" {
+			c.Headers[h] = v
+		}
+	}
 	if op := hctx.Operation(); op != nil {
 		c.Operation = op.OperationID
 	}

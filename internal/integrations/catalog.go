@@ -42,7 +42,6 @@ const (
 	OpWPReport      = "report-wordpress-site"
 	OpWPForms       = "list-wordpress-forms"
 	OpWPDraft       = "create-wordpress-draft"
-	OpWPCategories  = "list-wordpress-categories"
 	transactionalOp = OpSendMessage
 )
 
@@ -97,7 +96,7 @@ var platformItems = []Item{
 // wordpressItems are what a WordPress site's key can do (brief 3.3).
 var wordpressItems = []Item{
 	{Key: "list_forms", Kind: ItemAction, Permissions: []authz.Permission{authz.SubscribersView}, Operations: []string{OpWPForms}},
-	{Key: "create_drafts", Kind: ItemAction, Permissions: []authz.Permission{authz.CampaignsEdit}, Operations: []string{OpWPDraft, OpWPCategories}},
+	{Key: "create_drafts", Kind: ItemAction, Permissions: []authz.Permission{authz.CampaignsEdit}, Operations: []string{OpWPDraft}},
 }
 
 // alwaysOps are what every key of a kind may call, whatever is turned on.

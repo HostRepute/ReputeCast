@@ -234,7 +234,7 @@ SELECT h.id, h.url, h.events, h.enabled, h.created_at, h.last_status, h.last_del
        iw.event, iw.workflow_key, iw.workflow_name, iw.api_key_id,
        coalesce(s.delivered, 0)::bigint AS delivered_24h, coalesce(s.total, 0)::bigint AS total_24h,
        coalesce(q.retrying, 0)::bigint AS retrying, coalesce(q.queued, 0)::bigint AS queued,
-       coalesce(q.dead, 0)::bigint AS dead, q.next_attempt_at::timestamptz AS next_attempt_at,
+       coalesce(q.dead, 0)::bigint AS dead, (SELECT min(d2.next_attempt_at) FROM webhook_deliveries d2 WHERE d2.webhook_id = h.id AND d2.state IN ('pending','retrying')) AS next_attempt_at,
        coalesce(w7.deliveries, 0)::bigint AS deliveries_7d
 FROM integration_webhooks iw
 JOIN webhooks h ON h.id = iw.webhook_id
@@ -372,11 +372,6 @@ SELECT f.id, f.public_id, f.name, f.kind, f.status, f.allowed_origins, f.list_id
 FROM forms f WHERE f.workspace_id = @workspace_id
 ORDER BY f.created_at;
 
--- name: WordPressFormAllowOrigin :one
-UPDATE forms SET allowed_origins = array_append(allowed_origins, @origin::text), updated_by = @by, updated_at = now()
-WHERE id = @id AND workspace_id = @workspace_id AND NOT (@origin::text = ANY (allowed_origins))
-RETURNING id, name, allowed_origins;
-
 -- name: IntegrationReleaseGet :one
 SELECT * FROM integration_releases WHERE kind = @kind;
 
@@ -466,3 +461,44 @@ VALUES (@campaign_id, 1, @subject, @preheader, @mjml, @html, @plain_text, sqlc.n
 
 -- name: IntegrationInstanceAdmins :many
 SELECT name, email FROM users WHERE is_instance_admin AND status = 'active' ORDER BY created_at LIMIT 3;
+
+-- name: IntegrationKeyRevokedBy :one
+-- Who revoked a key in Keys & MCP, and when.
+SELECT e.actor_name, e.occurred_at FROM audit_events e
+WHERE e.workspace_id = @workspace_id AND e.action = 'apikey.revoked' AND e.target_id = @key_id::text
+ORDER BY e.occurred_at DESC
+LIMIT 1;
+
+-- name: IntegrationKeyTouchClient :exec
+UPDATE api_keys SET last_used_client = @client WHERE id = @id AND @client::text <> '';
+
+-- name: IntegrationListSizes :many
+SELECT l.id, l.name, l.double_opt_in, coalesce(n.subscribed, 0)::bigint AS contacts
+FROM lists l
+LEFT JOIN LATERAL (
+    SELECT count(*) AS subscribed FROM list_memberships m WHERE m.list_id = l.id AND m.status = 'subscribed'
+) n ON true
+WHERE l.workspace_id = @workspace_id AND l.deleted_at IS NULL
+ORDER BY l.name;
+
+-- name: IntegrationMembers :many
+-- Active members, Admins first then Owners, with their role (helpers and pickers).
+SELECT u.id, u.name, u.email, u.avatar_color, r.key AS role_key, r.name AS role_name, r.builtin, r.permissions
+FROM workspace_members m
+JOIN roles r ON r.id = m.role_id
+JOIN users u ON u.id = m.user_id AND u.status = 'active'
+WHERE m.workspace_id = @workspace_id AND m.status = 'active'
+ORDER BY CASE r.key WHEN 'admin' THEN 0 WHEN 'owner' THEN 1 ELSE 2 END, u.name;
+
+-- name: IntegrationFirstCall :one
+-- The first call made with a key (the "waiting for a first call" timeline).
+SELECT c.id, c.occurred_at, c.operation, c.status, c.ip, c.client, c.workflow_name
+FROM integration_calls c
+WHERE c.integration_id = @integration_id AND c.api_key_id = @api_key_id
+ORDER BY c.occurred_at
+LIMIT 1;
+
+-- name: IntegrationWebhookCounts :one
+SELECT count(*)::bigint AS endpoints,
+       count(*) FILTER (WHERE failing_since IS NOT NULL)::bigint AS failing
+FROM webhooks WHERE workspace_id = @workspace_id;

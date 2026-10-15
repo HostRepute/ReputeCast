@@ -56,7 +56,7 @@ type AuditActor struct {
 	ID          string `json:"id,omitempty"`
 	Name        string `json:"name"`
 	AvatarColor string `json:"avatarColor,omitempty"`
-	// Label is "member", "API key", "MCP agent" or "automatic".
+	// Label is "member", "API key", "integration key", "MCP agent" or "automatic".
 	Label string `json:"label"`
 	// Role is the member's current role in the workspace ("Admin").
 	Role string `json:"role,omitempty"`
@@ -123,10 +123,11 @@ type AuditCategory struct {
 // Categories are the action filter's choices, in the order of the board.
 var Categories = []AuditCategory{
 	{Key: "sending", Label: "Sending", Groups: []string{"campaign", "approval", "send", "report", "template", "automation"}},
-	{Key: "routing", Label: "Routing & providers", Groups: []string{"routing", "provider", "warmup", "deliverability", "domain", "sender", "integration"}},
+	{Key: "routing", Label: "Routing & providers", Groups: []string{"routing", "provider", "warmup", "deliverability", "domain", "sender"}},
 	{Key: "audience", Label: "Audience & consent", Groups: []string{"contact", "contacts", "subscriber", "subscribers", "list", "segment", "form", "consent", "suppression", "import"}},
 	{Key: "team", Label: "Team & access", Groups: []string{"team", "member", "role", "apikey", "agent", "auth", "invitation", "user", "session", "sso"}},
 	{Key: "settings", Label: "Settings", Groups: []string{"workspace", "webhook", "audit", "settings", "mcp", "instance"}},
+	{Key: "integrations", Label: "Integrations", Groups: []string{"integration", "wordpress", "hostrepute"}},
 }
 
 // Filter narrows the log.
@@ -237,6 +238,8 @@ type meta struct {
 	Tool     string `json:"tool"`
 	Note     string `json:"note"`
 	LinkPath string `json:"link"`
+	// ActorLabel replaces the actor type's label ("integration key").
+	ActorLabel string `json:"actor_label"`
 }
 
 func parseMeta(raw json.RawMessage) meta {
@@ -245,6 +248,13 @@ func parseMeta(raw json.RawMessage) meta {
 		_ = json.Unmarshal(raw, &m)
 	}
 	return m
+}
+
+func firstLabel(label, fallback string) string {
+	if label != "" {
+		return label
+	}
+	return fallback
 }
 
 func actorLabel(t string) string {
@@ -292,7 +302,7 @@ func item(id uuid.UUID, at time.Time, actorType string, actorID *uuid.UUID, acto
 	it := AuditEventItem{
 		ID: id.String(), OccurredAt: at, Action: action, TargetType: targetType, TargetID: targetID, TargetName: targetName,
 		Target: targetLine(targetType, targetName, m), Result: result, Reason: reason, RequestID: requestID,
-		Actor:  AuditActor{Type: actorType, Name: actorName, AvatarColor: color, Label: actorLabel(actorType), Role: role},
+		Actor:  AuditActor{Type: actorType, Name: actorName, AvatarColor: color, Label: firstLabel(m.ActorLabel, actorLabel(actorType)), Role: role},
 		Source: source(actorType, ip, m),
 	}
 	if actorID != nil {

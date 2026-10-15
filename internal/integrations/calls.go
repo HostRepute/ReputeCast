@@ -48,6 +48,23 @@ func noteTargetJSON(ctx context.Context, t CallTarget) {
 	api.NoteCall(ctx, noteTarget, string(b))
 }
 
+// keyMeta adds to an audit entry's metadata how the audit log shows a
+// change an integration key made: "integration key", from "api" with the
+// key's masked value.
+func (s *Service) keyMeta(ctx context.Context, m map[string]any) map[string]any {
+	ik := api.IntegrationFrom(ctx)
+	p := api.PrincipalFrom(ctx)
+	if ik == nil || p == nil {
+		return m
+	}
+	m["actor_label"] = "integration key"
+	m["source"] = "api"
+	if k, err := s.Q.GetAPIKey(ctx, store.GetAPIKeyParams{ID: p.ID, WorkspaceID: ik.WorkspaceID}); err == nil {
+		m["via"] = k.Prefix
+	}
+	return m
+}
+
 // itemOf maps an operation to the catalog item it belongs to.
 func itemOf(kind, op string) string {
 	switch op {
@@ -63,7 +80,7 @@ func itemOf(kind, op string) string {
 		return "send_transactional"
 	case OpWPForms:
 		return "list_forms"
-	case OpWPDraft, OpWPCategories:
+	case OpWPDraft:
 		return "create_drafts"
 	case OpLists:
 		return "upsert_contact"
@@ -120,7 +137,7 @@ func (s *Service) Record(ctx context.Context, c api.IntegrationCall) {
 		ID: uuid.Must(uuid.NewV7()), IntegrationID: ik.ID, WorkspaceID: ik.WorkspaceID, ApiKeyID: &keyID, OccurredAt: c.At,
 		WorkflowKey: wf.Key(), WorkflowName: wf.Name, Operation: c.Operation, Item: item, Method: c.Method, Path: c.Path,
 		Status: int32(c.Status), Code: code, Detail: clip(detail, 1000), DurationMs: int32(c.Duration.Milliseconds()),
-		Target: target, ContactID: contactID, Request: s.maskBody(ctx, ik.WorkspaceID, c.Operation, c.Request),
+		Target: target, ContactID: contactID, Request: requestLog(c.Headers, s.maskBody(ctx, ik.WorkspaceID, c.Operation, c.Request)),
 		Response: jsonOrNil(c.Response), Ip: c.IP, Client: clientLabel(c.UserAgent),
 	})
 	if err != nil {
@@ -128,6 +145,7 @@ func (s *Service) Record(ctx context.Context, c api.IntegrationCall) {
 		return
 	}
 	_ = s.Q.IntegrationTouchCall(ctx, store.IntegrationTouchCallParams{ID: ik.ID, At: c.At})
+	_ = s.Q.IntegrationKeyTouchClient(ctx, store.IntegrationKeyTouchClientParams{ID: keyID, Client: clientLabel(c.UserAgent)})
 	if !IsPlatform(ik.Kind) || c.Operation == OpMe || item == "" && c.Notes[noteUses] == "" {
 		return
 	}
@@ -218,6 +236,21 @@ func (s *Service) describe(ctx context.Context, wsID uuid.UUID, c api.Integratio
 		return CallTarget{Kind: "send_transactional", Template: str(req, "template"), Email: email}, cid
 	}
 	return CallTarget{Kind: "call"}, nil
+}
+
+// CallRequest is a logged request: the headers the log shows and the body
+// with its sensitive values masked.
+type CallRequest struct {
+	Headers map[string]string `json:"headers"`
+	Body    json.RawMessage   `json:"body,omitempty"`
+}
+
+func requestLog(headers map[string]string, body json.RawMessage) json.RawMessage {
+	if headers == nil {
+		headers = map[string]string{}
+	}
+	b, _ := json.Marshal(CallRequest{Headers: headers, Body: body})
+	return b
 }
 
 func jsonOrNil(b []byte) json.RawMessage {

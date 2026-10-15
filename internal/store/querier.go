@@ -653,6 +653,8 @@ type Querier interface {
 	IntegrationDraftVersion(ctx context.Context, arg IntegrationDraftVersionParams) error
 	// Contacts for event payloads, with their lists.
 	IntegrationEventContacts(ctx context.Context, ids []uuid.UUID) ([]IntegrationEventContactsRow, error)
+	// The first call made with a key (the "waiting for a first call" timeline).
+	IntegrationFirstCall(ctx context.Context, arg IntegrationFirstCallParams) (IntegrationFirstCallRow, error)
 	IntegrationGet(ctx context.Context, arg IntegrationGetParams) (IntegrationGetRow, error)
 	IntegrationInsert(ctx context.Context, arg IntegrationInsertParams) error
 	IntegrationInstanceAdmins(ctx context.Context) ([]IntegrationInstanceAdminsRow, error)
@@ -664,6 +666,8 @@ type Querier interface {
 	IntegrationKeyLimit(ctx context.Context, id uuid.UUID) (IntegrationKeyLimitRow, error)
 	// Revokes a key; with grace_until it keeps working until then (rotation).
 	IntegrationKeyRevoke(ctx context.Context, arg IntegrationKeyRevokeParams) (int64, error)
+	// Who revoked a key in Keys & MCP, and when.
+	IntegrationKeyRevokedBy(ctx context.Context, arg IntegrationKeyRevokedByParams) (IntegrationKeyRevokedByRow, error)
 	IntegrationKeySetName(ctx context.Context, arg IntegrationKeySetNameParams) error
 	IntegrationKeySetPermissions(ctx context.Context, arg IntegrationKeySetPermissionsParams) error
 	IntegrationKeySetScope(ctx context.Context, arg IntegrationKeySetScopeParams) error
@@ -671,6 +675,7 @@ type Querier interface {
 	// Gives the connection's live keys (and a rotated one still in its grace
 	// period) a new owner; the secret stays the same.
 	IntegrationKeyTakeOver(ctx context.Context, arg IntegrationKeyTakeOverParams) error
+	IntegrationKeyTouchClient(ctx context.Context, arg IntegrationKeyTouchClientParams) error
 	// The keys of a connection, newest first: the current key, then rotated ones.
 	IntegrationKeys(ctx context.Context, integrationID *uuid.UUID) ([]IntegrationKeysRow, error)
 	// Every key of the workspace's active connections (Keys & MCP's second table).
@@ -684,9 +689,12 @@ type Querier interface {
 	// When and how a contact left a list ("left Beta Program on 2 Oct").
 	IntegrationLastLeft(ctx context.Context, arg IntegrationLastLeftParams) (IntegrationLastLeftRow, error)
 	IntegrationListNames(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationListNamesRow, error)
+	IntegrationListSizes(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationListSizesRow, error)
 	IntegrationManagedHook(ctx context.Context, webhookID uuid.UUID) (IntegrationManagedHookRow, error)
 	// Endpoints of the workspace an integration manages (the Webhooks page).
 	IntegrationManagedHooks(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationManagedHooksRow, error)
+	// Active members, Admins first then Owners, with their role (helpers and pickers).
+	IntegrationMembers(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationMembersRow, error)
 	IntegrationMembership(ctx context.Context, arg IntegrationMembershipParams) (IntegrationMembershipRow, error)
 	// A new key after a revoked or expired one: waiting for its first call again.
 	IntegrationReconnected(ctx context.Context, id uuid.UUID) error
@@ -701,6 +709,7 @@ type Querier interface {
 	// Saved templates for the post-draft rule (kind template, not deleted).
 	IntegrationTemplates(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationTemplatesRow, error)
 	IntegrationTouchCall(ctx context.Context, arg IntegrationTouchCallParams) error
+	IntegrationWebhookCounts(ctx context.Context, workspaceID uuid.UUID) (IntegrationWebhookCountsRow, error)
 	// Deleting the endpoint deletes its queued and dead-letter deliveries too.
 	IntegrationWebhookDelete(ctx context.Context, id uuid.UUID) (int64, error)
 	IntegrationWebhookInsert(ctx context.Context, arg IntegrationWebhookInsertParams) error
@@ -1621,7 +1630,6 @@ type Querier interface {
 	WordPressDraftInsert(ctx context.Context, arg WordPressDraftInsertParams) error
 	WordPressDrafts(ctx context.Context, arg WordPressDraftsParams) ([]WordPressDraftsRow, error)
 	WordPressDraftsWeek(ctx context.Context, arg WordPressDraftsWeekParams) (int64, error)
-	WordPressFormAllowOrigin(ctx context.Context, arg WordPressFormAllowOriginParams) (WordPressFormAllowOriginRow, error)
 	// The workspace's signup forms, for the block and the site page.
 	WordPressForms(ctx context.Context, workspaceID uuid.UUID) ([]WordPressFormsRow, error)
 	WordPressSite(ctx context.Context, integrationID uuid.UUID) (WordpressSite, error)

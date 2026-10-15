@@ -22,6 +22,8 @@ var (
 	seedIntegrations   = noop // API keys, MCP agents, webhooks and deliveries
 	seedNotifications  = noop // notification center items
 	seedAudit          = noop // audit history
+	// Design expansion (append-only).
+	seedIntegrationsHub = noop // integrations hub: Zapier, n8n, WordPress sites (seed_integrations_hub.go)
 )
 
 func noop(context.Context, *Seeder) error { return nil }

@@ -286,7 +286,7 @@ func (s *Service) UpsertContact(ctx context.Context, ws *store.Workspace, p *aut
 		}
 		after := map[string]any{"email": email, "lists": listNames(joins), "tags": out.Tags}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: "contact", TargetID: contactID.String(), TargetName: email,
-			Before: before, After: after, Metadata: map[string]any{"summary": "through " + integrationName(ctx), "actor_label": actorLabel(ctx)}})
+			Before: before, After: after, Metadata: s.keyMeta(ctx, map[string]any{"summary": "through " + integrationName(ctx)})})
 	})
 	if err != nil {
 		return ContactUpsertResult{}, err
@@ -371,7 +371,7 @@ func (s *Service) AddToList(ctx context.Context, ws *store.Workspace, p *authz.P
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "contact.list_added", TargetType: "contact", TargetID: c.ID.String(), TargetName: email,
-			After: map[string]any{"lists": listNames(joins)}, Metadata: map[string]any{"summary": "through " + integrationName(ctx), "actor_label": actorLabel(ctx)}})
+			After: map[string]any{"lists": listNames(joins)}, Metadata: s.keyMeta(ctx, map[string]any{"summary": "through " + integrationName(ctx)})})
 	})
 	if err != nil {
 		return ContactUpsertResult{}, err
@@ -411,7 +411,7 @@ func (s *Service) TagContact(ctx context.Context, ws *store.Workspace, in Contac
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "contact.update", TargetType: "contact", TargetID: c.ID.String(), TargetName: email,
 			Before: map[string]any{"tags": nonNil(c.Tags)}, After: map[string]any{"tags": merged},
-			Metadata: map[string]any{"summary": "tagged " + strings.Join(tags, ", ") + " through " + integrationName(ctx), "actor_label": actorLabel(ctx)}})
+			Metadata: s.keyMeta(ctx, map[string]any{"summary": "tagged " + strings.Join(tags, ", ") + " through " + integrationName(ctx)})})
 	})
 	return out, err
 }
@@ -453,12 +453,6 @@ func integrationName(ctx context.Context) string {
 	return "the API"
 }
 
-func actorLabel(ctx context.Context) string {
-	if api.IntegrationFrom(ctx) != nil {
-		return "integration key"
-	}
-	return ""
-}
 
 func listNames(joins []joinPlan) []string {
 	out := []string{}
@@ -599,6 +593,36 @@ var (
 		"arabic": "ar", "hebrew": "he", "hindi": "hi", "indonesian": "id", "thai": "th",
 	}
 )
+
+// Lists returns the lists the key's scope reaches, for the apps' dropdowns.
+func (s *Service) Lists(ctx context.Context, ws *store.Workspace, p *authz.Principal) (IntegrationListItems, error) {
+	rows, err := s.Q.IntegrationListNames(ctx, ws.ID)
+	if err != nil {
+		return IntegrationListItems{}, err
+	}
+	noteTargetJSON(ctx, CallTarget{Kind: "lists"})
+	out := IntegrationListItems{Items: []IntegrationListItem{}}
+	for _, l := range rows {
+		if p.Scope.AllowsList(l.ID) {
+			out.Items = append(out.Items, IntegrationListItem{ID: l.ID.String(), Name: l.Name, DoubleOptIn: l.DoubleOptIn})
+		}
+	}
+	return out, nil
+}
+
+// Fields returns the custom fields, for the apps' field mapping.
+func (s *Service) Fields(ctx context.Context, ws *store.Workspace) (IntegrationFieldItems, error) {
+	rows, err := s.Q.IntegrationCustomFields(ctx, ws.ID)
+	if err != nil {
+		return IntegrationFieldItems{}, err
+	}
+	noteTargetJSON(ctx, CallTarget{Kind: "fields"})
+	out := IntegrationFieldItems{Items: []IntegrationFieldItem{}}
+	for _, f := range rows {
+		out.Items = append(out.Items, IntegrationFieldItem{Key: f.Key, Label: f.Label, Type: f.Type})
+	}
+	return out, nil
+}
 
 // normalizeLanguage turns "es_MX", "ES" or "Spanish" into a BCP 47 code. An
 // unknown value answers 422 with the closest match when there is one.
