@@ -30733,6 +30733,2119 @@
         ],
         "type": "object"
       },
+      "TransactionalAddress": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "examples": [
+              "sam.rivera@outlook.com"
+            ],
+            "maxLength": 254,
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "Sam Rivera"
+            ],
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
+      "TransactionalBreakingChange": {
+        "additionalProperties": false,
+        "properties": {
+          "breaking": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalBreakingVariable"
+            },
+            "type": "array"
+          },
+          "calls": {
+            "description": "Calls to the template in the last 7 days",
+            "format": "int64",
+            "type": "integer"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "unused": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "calls",
+          "breaking",
+          "unused",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "TransactionalBreakingVariable": {
+        "additionalProperties": false,
+        "properties": {
+          "callsWithout": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "suggestedDefault": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "callsWithout",
+          "type",
+          "suggestedDefault"
+        ],
+        "type": "object"
+      },
+      "TransactionalCategory": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "description": "What recipients see in the preference center",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "essential",
+              "optional"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "optedOut": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "templates": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "description",
+          "templates",
+          "optedOut"
+        ],
+        "type": "object"
+      },
+      "TransactionalCategoryInput": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "essential",
+              "optional"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "TransactionalCategoryList": {
+        "additionalProperties": false,
+        "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalCategory"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "canEdit"
+        ],
+        "type": "object"
+      },
+      "TransactionalCategoryRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "essential",
+              "optional"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "TransactionalCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "fixes": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalCheckFix"
+            },
+            "type": "array"
+          },
+          "group": {
+            "enum": [
+              "Content",
+              "Links",
+              "Compliance",
+              "Subject",
+              "Variables",
+              "Test data",
+              "Privacy"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "examples": [
+              "variables.undeclared"
+            ],
+            "type": "string"
+          },
+          "line": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "path": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "severity": {
+            "enum": [
+              "block",
+              "warn",
+              "info",
+              "pass"
+            ],
+            "type": "string"
+          },
+          "testData": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "variable": {
+            "type": "string"
+          },
+          "where": {
+            "enum": [
+              "subject",
+              "preheader",
+              "body",
+              "text"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "severity",
+          "group",
+          "title",
+          "path",
+          "fixes"
+        ],
+        "type": "object"
+      },
+      "TransactionalCheckFix": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "declare_variable",
+              "remove_variable",
+              "make_optional",
+              "add_test_value",
+              "insert_footer",
+              "set_alt",
+              "minify",
+              "edit_link",
+              "replace_link",
+              "move_to_body",
+              "turn_off_tracking"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "path": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "testData": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "variable": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "label"
+        ],
+        "type": "object"
+      },
+      "TransactionalChecks": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalCheck"
+            },
+            "type": "array"
+          },
+          "clipBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "images": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "links": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "passed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "plainText": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "testData": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalTestRender"
+            },
+            "type": "array"
+          },
+          "variables": {
+            "$ref": "#/components/schemas/TransactionalVariableReport"
+          },
+          "verdict": {
+            "enum": [
+              "ready",
+              "warnings",
+              "blocked"
+            ],
+            "type": "string"
+          },
+          "warnings": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "verdict",
+          "blocks",
+          "warnings",
+          "passed",
+          "sizeBytes",
+          "clipBytes",
+          "links",
+          "images",
+          "checks",
+          "variables",
+          "testData",
+          "plainText"
+        ],
+        "type": "object"
+      },
+      "TransactionalChecksInput": {
+        "additionalProperties": false,
+        "properties": {
+          "editorMode": {
+            "enum": [
+              "visual",
+              "mjml",
+              "html"
+            ],
+            "type": "string"
+          },
+          "html": {
+            "maxLength": 2500000,
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "plainText": {
+            "maxLength": 500000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          },
+          "testData": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalTestData"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "trackClicks": {
+            "type": "boolean"
+          },
+          "trackOpens": {
+            "type": "boolean"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalVariable"
+            },
+            "maxItems": 200,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TransactionalDiff": {
+        "additionalProperties": false,
+        "properties": {
+          "changed": {
+            "type": "boolean"
+          },
+          "content": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalDiffLine"
+            },
+            "type": "array"
+          },
+          "contentSummary": {
+            "type": "string"
+          },
+          "preheader": {
+            "$ref": "#/components/schemas/TransactionalTextChange"
+          },
+          "settings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/TransactionalTextChange"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalVariableChange"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "variables",
+          "contentSummary",
+          "content",
+          "settings",
+          "changed"
+        ],
+        "type": "object"
+      },
+      "TransactionalDiffLine": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "ctx",
+              "add",
+              "del"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ],
+        "type": "object"
+      },
+      "TransactionalDraftSave": {
+        "additionalProperties": false,
+        "properties": {
+          "baseRevision": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "editorMode": {
+            "enum": [
+              "visual",
+              "mjml",
+              "html"
+            ],
+            "type": "string"
+          },
+          "force": {
+            "type": "boolean"
+          },
+          "html": {
+            "description": "The HTML the editor compiled; empty compiles the MJML on the server",
+            "maxLength": 2500000,
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "plainText": {
+            "maxLength": 500000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "replyTo": {
+            "maxLength": 254,
+            "type": "string"
+          },
+          "senderId": {
+            "description": "A Transactional sender, or empty for the default",
+            "type": "string"
+          },
+          "source": {
+            "default": "autosave",
+            "enum": [
+              "autosave",
+              "manual",
+              "import",
+              "restore"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          },
+          "testData": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalTestData"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "trackClicks": {
+            "type": "boolean"
+          },
+          "trackOpens": {
+            "type": "boolean"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalVariable"
+            },
+            "maxItems": 200,
+            "type": "array"
+          }
+        },
+        "required": [
+          "baseRevision"
+        ],
+        "type": "object"
+      },
+      "TransactionalDraftSaved": {
+        "additionalProperties": false,
+        "properties": {
+          "draftChanges": {
+            "type": "boolean"
+          },
+          "draftHash": {
+            "type": "string"
+          },
+          "draftRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "html": {
+            "type": "string"
+          },
+          "plainText": {
+            "type": "string"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "draftRevision",
+          "savedAt",
+          "draftHash",
+          "draftChanges",
+          "sizeBytes",
+          "html",
+          "plainText"
+        ],
+        "type": "object"
+      },
+      "TransactionalMakeOptional": {
+        "additionalProperties": false,
+        "properties": {
+          "default": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "default"
+        ],
+        "type": "object"
+      },
+      "TransactionalPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "defaults": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "fromEmail": {
+            "type": "string"
+          },
+          "fromName": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "replyTo": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "subject",
+          "preheader",
+          "html",
+          "text",
+          "fromName",
+          "fromEmail",
+          "replyTo",
+          "sizeBytes",
+          "ok",
+          "missing",
+          "defaults"
+        ],
+        "type": "object"
+      },
+      "TransactionalPreviewInput": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "additionalProperties": {},
+            "description": "Data to render with instead of a test data set",
+            "type": "object"
+          },
+          "html": {
+            "maxLength": 2500000,
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "plainText": {
+            "maxLength": 500000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          },
+          "testData": {
+            "description": "The name of a test data set",
+            "maxLength": 80,
+            "type": "string"
+          },
+          "to": {
+            "$ref": "#/components/schemas/TransactionalAddress"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalVariable"
+            },
+            "maxItems": 200,
+            "type": "array"
+          },
+          "version": {
+            "description": "draft (default), live, or a version number",
+            "examples": [
+              "draft"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TransactionalPublishApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "approvers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "required",
+          "approvers"
+        ],
+        "type": "object"
+      },
+      "TransactionalPublishInput": {
+        "additionalProperties": false,
+        "properties": {
+          "baseRevision": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "makeOptional": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalMakeOptional"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "note": {
+            "description": "Shown in the version history instead of the generated summary",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "publishAnyway": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "baseRevision"
+        ],
+        "type": "object"
+      },
+      "TransactionalPublishPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "approval": {
+            "$ref": "#/components/schemas/TransactionalPublishApproval"
+          },
+          "blocking": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "breaking": {
+            "$ref": "#/components/schemas/TransactionalBreakingChange"
+          },
+          "canPublish": {
+            "type": "boolean"
+          },
+          "category": {
+            "$ref": "#/components/schemas/TransactionalCategoryRef"
+          },
+          "checks": {
+            "$ref": "#/components/schemas/TransactionalChecks"
+          },
+          "diff": {
+            "$ref": "#/components/schemas/TransactionalDiff"
+          },
+          "draftRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "draftSavedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "draftSavedBy": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "liveBy": {
+            "type": "string"
+          },
+          "liveSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "liveVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nextVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "templateId": {
+            "type": "string"
+          },
+          "testRenders": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalTestRender"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "templateId",
+          "key",
+          "name",
+          "nextVersion",
+          "draftRevision",
+          "draftSavedAt",
+          "draftSavedBy",
+          "diff",
+          "breaking",
+          "testRenders",
+          "checks",
+          "approval",
+          "blocking",
+          "canPublish"
+        ],
+        "type": "object"
+      },
+      "TransactionalPublishPreviewInput": {
+        "additionalProperties": false,
+        "properties": {
+          "makeOptional": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalMakeOptional"
+            },
+            "maxItems": 50,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TransactionalPublished": {
+        "additionalProperties": false,
+        "properties": {
+          "previous": {
+            "description": "The version that was live before (Undo publishes it again)",
+            "format": "int64",
+            "type": "integer"
+          },
+          "template": {
+            "$ref": "#/components/schemas/TransactionalTemplate"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "template"
+        ],
+        "type": "object"
+      },
+      "TransactionalRenderInput": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "additionalProperties": {},
+            "description": "The template's variables",
+            "type": "object"
+          },
+          "to": {
+            "$ref": "#/components/schemas/TransactionalAddress",
+            "description": "Fills to.email and to.name"
+          }
+        },
+        "type": "object"
+      },
+      "TransactionalRendered": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "template": {
+            "examples": [
+              "password-reset"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "version": {
+            "examples": [
+              3
+            ],
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "template",
+          "version",
+          "subject",
+          "html",
+          "text"
+        ],
+        "type": "object"
+      },
+      "TransactionalRollbackInput": {
+        "additionalProperties": false,
+        "properties": {
+          "undo": {
+            "type": "boolean"
+          },
+          "version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "type": "object"
+      },
+      "TransactionalSenderOption": {
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "replyTo": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "replyTo",
+          "domain",
+          "verified"
+        ],
+        "type": "object"
+      },
+      "TransactionalSenderRef": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email"
+        ],
+        "type": "object"
+      },
+      "TransactionalSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "alertBounceRate": {
+            "description": "Percent of a template's messages in an hour",
+            "format": "double",
+            "type": "number"
+          },
+          "alertFailed": {
+            "description": "Failed messages in an hour",
+            "format": "int64",
+            "type": "integer"
+          },
+          "alertMedianSeconds": {
+            "description": "Median delivery time over an hour",
+            "format": "int64",
+            "type": "integer"
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "contentRetentionDays": {
+            "format": "int64",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "defaultReplyTo": {
+            "type": "string"
+          },
+          "defaultSender": {
+            "$ref": "#/components/schemas/TransactionalSenderRef"
+          },
+          "defaultTrackClicks": {
+            "type": "boolean"
+          },
+          "defaultTrackOpens": {
+            "type": "boolean"
+          },
+          "linkContacts": {
+            "description": "Link recipients who match a contact to that contact (never creates contacts)",
+            "type": "boolean"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "senders": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalSenderOption"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "linkContacts",
+          "contentRetentionDays",
+          "alertBounceRate",
+          "alertFailed",
+          "alertMedianSeconds",
+          "defaultReplyTo",
+          "defaultTrackOpens",
+          "defaultTrackClicks",
+          "senders",
+          "productName",
+          "canEdit"
+        ],
+        "type": "object"
+      },
+      "TransactionalSettingsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "alertBounceRate": {
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0.1,
+            "type": "number"
+          },
+          "alertFailed": {
+            "format": "int64",
+            "maximum": 100000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "alertMedianSeconds": {
+            "format": "int64",
+            "maximum": 3600,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "contentRetentionDays": {
+            "format": "int64",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "defaultReplyTo": {
+            "maxLength": 254,
+            "type": "string"
+          },
+          "defaultSenderId": {
+            "description": "A Transactional sender, or empty",
+            "type": "string"
+          },
+          "defaultTrackClicks": {
+            "type": "boolean"
+          },
+          "defaultTrackOpens": {
+            "type": "boolean"
+          },
+          "linkContacts": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "linkContacts",
+          "contentRetentionDays",
+          "alertBounceRate",
+          "alertFailed",
+          "alertMedianSeconds",
+          "defaultTrackOpens",
+          "defaultTrackClicks"
+        ],
+        "type": "object"
+      },
+      "TransactionalStarter": {
+        "additionalProperties": false,
+        "properties": {
+          "attachment": {
+            "description": "Usually sent with an attachment (a PDF invoice)",
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "examples": [
+              "password-reset"
+            ],
+            "type": "string"
+          },
+          "kind": {
+            "description": "The kind of category it belongs in",
+            "enum": [
+              "essential",
+              "optional"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "Password reset"
+            ],
+            "type": "string"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "testData": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalTestData"
+            },
+            "type": "array"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalVariable"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "description",
+          "kind",
+          "attachment",
+          "subject",
+          "preheader",
+          "variables",
+          "testData"
+        ],
+        "type": "object"
+      },
+      "TransactionalStarterList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalStarter"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "TransactionalStats": {
+        "additionalProperties": false,
+        "properties": {
+          "bounceRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "bounced": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "clicked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "complained": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "complaintRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "deferred": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deliveryRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "failed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "medianMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "opened": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rejected": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rejectedReason": {
+            "description": "10 suppressed · 2 opted out",
+            "type": "string"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sent",
+          "delivered",
+          "deliveryRate",
+          "bounced",
+          "bounceRate",
+          "complained",
+          "complaintRate",
+          "deferred",
+          "rejected",
+          "failed",
+          "opened",
+          "clicked"
+        ],
+        "type": "object"
+      },
+      "TransactionalTemplate": {
+        "additionalProperties": false,
+        "properties": {
+          "access": {
+            "$ref": "#/components/schemas/TransactionalTemplateAccess"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/TransactionalCategoryRef"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "draftChanges": {
+            "type": "boolean"
+          },
+          "draftHash": {
+            "type": "string"
+          },
+          "draftRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "draftSavedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "draftSavedBy": {
+            "type": "string"
+          },
+          "editorMode": {
+            "enum": [
+              "visual",
+              "mjml",
+              "html"
+            ],
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "description": "The ID the API sends, fixed after the first publish",
+            "type": "string"
+          },
+          "keyLocked": {
+            "type": "boolean"
+          },
+          "liveBy": {
+            "type": "string"
+          },
+          "liveSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "liveVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "mjml": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "origin": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "plainText": {
+            "type": "string"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "replyTo": {
+            "type": "string"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/TransactionalSenderRef"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "testData": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalTestData"
+            },
+            "type": "array"
+          },
+          "trackClicks": {
+            "type": "boolean"
+          },
+          "trackOpens": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalVariable"
+            },
+            "type": "array"
+          },
+          "versionsCount": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "keyLocked",
+          "name",
+          "description",
+          "subject",
+          "preheader",
+          "editorMode",
+          "mjml",
+          "html",
+          "plainText",
+          "variables",
+          "testData",
+          "replyTo",
+          "trackOpens",
+          "trackClicks",
+          "draftRevision",
+          "draftSavedAt",
+          "draftSavedBy",
+          "draftHash",
+          "draftChanges",
+          "versionsCount",
+          "archived",
+          "origin",
+          "createdAt",
+          "updatedAt",
+          "access"
+        ],
+        "type": "object"
+      },
+      "TransactionalTemplateAccess": {
+        "additionalProperties": false,
+        "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canPublish": {
+            "type": "boolean"
+          },
+          "canSendTestToOthers": {
+            "type": "boolean"
+          },
+          "canViewContent": {
+            "type": "boolean"
+          },
+          "editReason": {
+            "type": "string"
+          },
+          "publishHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "publishReason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "canEdit",
+          "canPublish",
+          "canSendTestToOthers",
+          "canViewContent",
+          "publishHelpers"
+        ],
+        "type": "object"
+      },
+      "TransactionalTemplateCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "categoryId": {
+            "description": "Defaults to the first Essential category",
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "editorMode": {
+            "enum": [
+              "visual",
+              "mjml",
+              "html"
+            ],
+            "type": "string"
+          },
+          "fromTemplate": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "html": {
+            "maxLength": 2500000,
+            "type": "string"
+          },
+          "key": {
+            "description": "Defaults to the name in lowercase with hyphens",
+            "maxLength": 64,
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "origin": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "plainText": {
+            "maxLength": 500000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "starter": {
+            "description": "A starter's key (password-reset, magic-link…)",
+            "maxLength": 40,
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          },
+          "testData": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalTestData"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalVariable"
+            },
+            "maxItems": 200,
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "TransactionalTemplateList": {
+        "additionalProperties": false,
+        "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canPublish": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalTemplateListItem"
+            },
+            "type": "array"
+          },
+          "period": {
+            "enum": [
+              "24h",
+              "7d",
+              "30d"
+            ],
+            "type": "string"
+          },
+          "readOnlyReason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "period",
+          "canEdit",
+          "canPublish"
+        ],
+        "type": "object"
+      },
+      "TransactionalTemplateListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "archived": {
+            "type": "boolean"
+          },
+          "attachments": {
+            "description": "Recent messages carried attachments",
+            "type": "boolean"
+          },
+          "category": {
+            "$ref": "#/components/schemas/TransactionalCategoryRef"
+          },
+          "description": {
+            "type": "string"
+          },
+          "draftChanges": {
+            "type": "boolean"
+          },
+          "draftVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "lastSentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "liveVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "spark": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/TransactionalStats"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "description",
+          "draftChanges",
+          "draftVersion",
+          "archived",
+          "attachments",
+          "stats",
+          "spark",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "TransactionalTemplateUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "categoryId": {
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "key": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TransactionalTestData": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "name": {
+            "examples": [
+              "New user"
+            ],
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "data"
+        ],
+        "type": "object"
+      },
+      "TransactionalTestRender": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "defaults": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "recipient": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "test_data",
+              "last_call"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "source",
+          "ok",
+          "missing",
+          "defaults"
+        ],
+        "type": "object"
+      },
+      "TransactionalTextChange": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "before",
+          "after"
+        ],
+        "type": "object"
+      },
+      "TransactionalVariable": {
+        "additionalProperties": false,
+        "properties": {
+          "default": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "reset_url"
+            ],
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "sample": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "sensitive": {
+            "description": "Never stored: logs and stored content show ••••••",
+            "type": "boolean"
+          },
+          "type": {
+            "enum": [
+              "text",
+              "number",
+              "boolean",
+              "date",
+              "url",
+              "list",
+              "object"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "required",
+          "sensitive"
+        ],
+        "type": "object"
+      },
+      "TransactionalVariableChange": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "$ref": "#/components/schemas/TransactionalVariable"
+          },
+          "before": {
+            "$ref": "#/components/schemas/TransactionalVariable"
+          },
+          "change": {
+            "enum": [
+              "added",
+              "removed",
+              "changed"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "summary": {
+            "examples": [
+              "date · required"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "change",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "TransactionalVariableReport": {
+        "additionalProperties": false,
+        "properties": {
+          "undeclared": {
+            "items": {
+              "$ref": "#/components/schemas/VariableUse"
+            },
+            "type": "array"
+          },
+          "unused": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "used": {
+            "items": {
+              "$ref": "#/components/schemas/VariableUse"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "used",
+          "undeclared",
+          "unused"
+        ],
+        "type": "object"
+      },
+      "TransactionalVersion": {
+        "additionalProperties": false,
+        "properties": {
+          "avatarColor": {
+            "type": "string"
+          },
+          "change": {
+            "type": "string"
+          },
+          "live": {
+            "type": "boolean"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "publishedBy": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "live",
+          "publishedAt",
+          "publishedBy",
+          "avatarColor",
+          "change",
+          "subject",
+          "sizeBytes"
+        ],
+        "type": "object"
+      },
+      "TransactionalVersionDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "avatarColor": {
+            "type": "string"
+          },
+          "change": {
+            "type": "string"
+          },
+          "editorMode": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "live": {
+            "type": "boolean"
+          },
+          "mjml": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "plainText": {
+            "type": "string"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "publishedBy": {
+            "type": "string"
+          },
+          "replyTo": {
+            "type": "string"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/TransactionalSenderRef"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "testData": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalTestData"
+            },
+            "type": "array"
+          },
+          "trackClicks": {
+            "type": "boolean"
+          },
+          "trackOpens": {
+            "type": "boolean"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalVariable"
+            },
+            "type": "array"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "preheader",
+          "editorMode",
+          "mjml",
+          "html",
+          "plainText",
+          "variables",
+          "testData",
+          "replyTo",
+          "trackOpens",
+          "trackClicks",
+          "note",
+          "version",
+          "live",
+          "publishedAt",
+          "publishedBy",
+          "avatarColor",
+          "change",
+          "subject",
+          "sizeBytes"
+        ],
+        "type": "object"
+      },
+      "TransactionalVersionList": {
+        "additionalProperties": false,
+        "properties": {
+          "canPublish": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalVersion"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "canPublish"
+        ],
+        "type": "object"
+      },
       "URLCheck": {
         "additionalProperties": false,
         "properties": {
@@ -30839,6 +32952,38 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "VariableUse": {
+        "additionalProperties": false,
+        "properties": {
+          "column": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "line": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "where": {
+            "enum": [
+              "subject",
+              "preheader",
+              "body",
+              "text"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "where",
+          "line",
+          "column"
+        ],
         "type": "object"
       },
       "WarmupCampaignUse": {
@@ -57921,6 +60066,1668 @@
         ],
         "x-access": "workspace",
         "x-permission": "providers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/categories": {
+      "get": {
+        "operationId": "list-transactional-categories",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalCategoryList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Categories with their templates and opt-outs",
+        "tags": [
+          "Transactional settings"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      },
+      "post": {
+        "operationId": "create-transactional-category",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalCategoryInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalCategory"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a category",
+        "tags": [
+          "Transactional settings"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/categories/{categoryId}": {
+      "delete": {
+        "operationId": "delete-transactional-category",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "categoryId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a category without templates",
+        "tags": [
+          "Transactional settings"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:publish"
+      },
+      "put": {
+        "operationId": "update-transactional-category",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "categoryId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalCategoryInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalCategory"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a category (its kind is fixed while it has templates)",
+        "tags": [
+          "Transactional settings"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/settings": {
+      "get": {
+        "operationId": "get-transactional-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Contact linking, content retention, delivery alerts and template defaults",
+        "tags": [
+          "Transactional settings"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      },
+      "put": {
+        "operationId": "save-transactional-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save Settings › Transactional",
+        "tags": [
+          "Transactional settings"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/starters": {
+      "get": {
+        "operationId": "list-transactional-starters",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalStarterList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Starter templates with their variables and test data",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates": {
+      "get": {
+        "description": "Each template's live version, draft state, sent, delivery, bounce and complaint rates, median delivery time, last send and a sparkline. Test messages are left out unless includeTest.",
+        "operationId": "list-transactional-templates",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The period of the numbers",
+            "explode": false,
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "default": "7d",
+              "description": "The period of the numbers",
+              "enum": [
+                "24h",
+                "7d",
+                "30d"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Count messages sent with test-mode keys",
+            "explode": false,
+            "in": "query",
+            "name": "includeTest",
+            "schema": {
+              "description": "Count messages sent with test-mode keys",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalTemplateList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List templates with their numbers over a period",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      },
+      "post": {
+        "description": "The template starts as a draft. Nothing is sent until it is published.",
+        "operationId": "create-transactional-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalTemplateCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalTemplate"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a template: blank, from a starter, as a copy, or with imported content",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}": {
+      "delete": {
+        "operationId": "delete-transactional-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a draft or archived template (its messages stay in the log)",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:publish"
+      },
+      "get": {
+        "operationId": "get-transactional-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalTemplate"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a template with its draft, variables, test data and live version",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      },
+      "patch": {
+        "operationId": "update-transactional-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalTemplateUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalTemplate"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a template, change its category, or its ID before the first publish",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/archive": {
+      "post": {
+        "operationId": "archive-transactional-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalTemplate"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive a template: calls answer template_not_found until it is restored",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/checks": {
+      "post": {
+        "description": "The composer's content checks (size, alt text, links, plain text; unsubscribe link and footer address for Optional categories) and the transactional ones: Liquid errors, undeclared and unused variables, test data that fails to render, a sensitive variable in the subject, tracking on an Essential template.",
+        "operationId": "check-transactional-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalChecksInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalChecks"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Run the template's checks on the draft or the editor's unsaved content",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/draft": {
+      "put": {
+        "description": "Content, variables, test data, sender, reply-to and tracking. Fails with 409 version_conflict when someone saved a newer revision since baseRevision; the problem's meta says who, when and what each side changed. Send force: true to keep yours.",
+        "operationId": "save-transactional-template-draft",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalDraftSave"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalDraftSaved"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the draft (autosave)",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/preview": {
+      "post": {
+        "operationId": "preview-transactional-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalPreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Render the draft or a version with test data (nothing is sent)",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/publish": {
+      "post": {
+        "description": "Fails with 409 breaking_change when a newly required variable is missing from recent calls (fix it with makeOptional, or send publishAnyway), 409 approval_required when the workspace's rule applies, 409 version_conflict when the draft changed since baseRevision, and 409 template_does_not_render when a check blocks.",
+        "operationId": "publish-transactional-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalPublishInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalPublished"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish the draft as the next version",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/publish-preview": {
+      "post": {
+        "description": "The diff since the live version, the breaking-change check against the calls of the last 7 days, the checks, test renders with each test data set and the last real call, and whether the workspace's approval rule applies. makeOptional previews the recommended fix.",
+        "operationId": "preview-transactional-publish",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalPublishPreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalPublishPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What publishing the draft would change",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/render": {
+      "post": {
+        "description": "Returns the subject, HTML and text a send would use. Errors: template_not_found, template_not_published, missing_variables (listing them in missing).",
+        "operationId": "render-transactional-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalRenderInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalRendered"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Render the live version with a call's data, without sending",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/restore": {
+      "post": {
+        "operationId": "restore-transactional-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalTemplate"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore an archived template",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/rollback": {
+      "post": {
+        "operationId": "rollback-transactional-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalRollbackInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalPublished"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish an earlier version again (roll back, or undo a publish)",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/versions": {
+      "get": {
+        "operationId": "list-transactional-template-versions",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalVersionList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Published versions, newest first",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/versions/{version}": {
+      "get": {
+        "operationId": "get-transactional-template-version",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalVersionDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One published version with its content",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
       }
     },
     "/api/v1/workspaces/{workspace}/transfer": {

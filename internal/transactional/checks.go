@@ -1,0 +1,448 @@
+package transactional
+
+import (
+	"context"
+	"fmt"
+	"math"
+	"slices"
+	"strings"
+
+	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/liquid"
+	"github.com/hostrepute/reputecast/internal/store"
+)
+
+func mapTemplateErr(err error) error { return api.MapError(err, "Template") }
+
+// Check severities.
+const (
+	SevBlock = "block"
+	SevWarn  = "warn"
+	SevInfo  = "info"
+	SevPass  = "pass"
+)
+
+// TransactionalCheckFix is a one-click fix offered with a finding.
+type TransactionalCheckFix struct {
+	Kind  string `json:"kind" enum:"declare_variable,remove_variable,make_optional,add_test_value,insert_footer,set_alt,minify,edit_link,replace_link,move_to_body,turn_off_tracking"`
+	Label string `json:"label"`
+	Value string `json:"value,omitempty"`
+	// Variable and TestData say what the fix is about.
+	Variable string `json:"variable,omitempty"`
+	TestData string `json:"testData,omitempty"`
+	Path     []int  `json:"path,omitempty"`
+}
+
+// TransactionalCheck is one finding of a template's checks: the composer's
+// content checks plus the transactional ones (Liquid errors, undeclared and
+// unused variables, test data that fails to render, a sensitive variable in
+// the subject, tracking on an Essential template).
+type TransactionalCheck struct {
+	ID       string                  `json:"id" example:"variables.undeclared"`
+	Severity string                  `json:"severity" enum:"block,warn,info,pass"`
+	Group    string                  `json:"group" enum:"Content,Links,Compliance,Subject,Variables,Test data,Privacy"`
+	Title    string                  `json:"title"`
+	Detail   string                  `json:"detail,omitempty"`
+	Where    string                  `json:"where,omitempty" enum:"subject,preheader,body,text"`
+	Line     int                     `json:"line,omitempty"`
+	Variable string                  `json:"variable,omitempty"`
+	TestData string                  `json:"testData,omitempty"`
+	Path     []int                   `json:"path"`
+	Fixes    []TransactionalCheckFix `json:"fixes"`
+}
+
+// TransactionalTestRender is the result of rendering one test data set (or
+// a recent real call) with the template.
+type TransactionalTestRender struct {
+	Name    string `json:"name"`
+	Source  string `json:"source" enum:"test_data,last_call"`
+	OK      bool   `json:"ok"`
+	Subject string `json:"subject,omitempty"`
+	// Missing lists the required variables the set lacks.
+	Missing []string `json:"missing"`
+	// Defaults lists the optional variables that fell back to their default.
+	Defaults []string `json:"defaults"`
+	Problem  string   `json:"problem,omitempty"`
+	// Recipient and At describe a real call ("ops@contoso.example", 10:39).
+	Recipient string `json:"recipient,omitempty"`
+	At        string `json:"at,omitempty"`
+}
+
+// TransactionalVariableReport compares what a template declares with what
+// it uses.
+type TransactionalVariableReport struct {
+	Used       []VariableUse `json:"used"`
+	Undeclared []VariableUse `json:"undeclared"`
+	Unused     []string      `json:"unused"`
+}
+
+// TransactionalChecks is the Checks tab and the publish dialog's summary.
+type TransactionalChecks struct {
+	Verdict   string                      `json:"verdict" enum:"ready,warnings,blocked"`
+	Blocks    int                         `json:"blocks"`
+	Warnings  int                         `json:"warnings"`
+	Passed    int                         `json:"passed"`
+	SizeBytes int                         `json:"sizeBytes"`
+	ClipBytes int                         `json:"clipBytes"`
+	Links     int                         `json:"links"`
+	Images    int                         `json:"images"`
+	Checks    []TransactionalCheck        `json:"checks"`
+	Variables TransactionalVariableReport `json:"variables"`
+	TestData  []TransactionalTestRender   `json:"testData"`
+	PlainText string                      `json:"plainText"`
+}
+
+// TransactionalChecksInput runs the checks on the editor's current,
+// unsaved content; omitted fields use the saved draft.
+type TransactionalChecksInput struct {
+	Subject     *string                  `json:"subject,omitempty" maxLength:"998"`
+	Preheader   *string                  `json:"preheader,omitempty" maxLength:"500"`
+	EditorMode  *string                  `json:"editorMode,omitempty" enum:"visual,mjml,html"`
+	MJML        *string                  `json:"mjml,omitempty" maxLength:"2000000"`
+	HTML        *string                  `json:"html,omitempty" maxLength:"2500000"`
+	PlainText   *string                  `json:"plainText,omitempty" maxLength:"500000"`
+	Variables   *[]TransactionalVariable `json:"variables,omitempty" maxItems:"200"`
+	TestData    *[]TransactionalTestData `json:"testData,omitempty" maxItems:"50"`
+	TrackOpens  *bool                    `json:"trackOpens,omitempty"`
+	TrackClicks *bool                    `json:"trackClicks,omitempty"`
+}
+
+// checkSubject is what the checks run on.
+type checkSubject struct {
+	content
+	TestData    []TransactionalTestData
+	Kind        string // essential, optional
+	TrackOpens  bool
+	TrackClicks bool
+	ProbeLinks  bool
+	OwnDomains  []string
+	Address     string
+}
+
+// runChecks runs every check on a template's content.
+func (s *Service) runChecks(ctx context.Context, cs checkSubject) TransactionalChecks {
+	out := TransactionalChecks{ClipBytes: contentcheck.ClipBytes, Checks: []TransactionalCheck{}, TestData: []TransactionalTestRender{},
+		Variables: TransactionalVariableReport{Used: []VariableUse{}, Undeclared: []VariableUse{}, Unused: []string{}}}
+	add := func(c TransactionalCheck) {
+		if c.Fixes == nil {
+			c.Fixes = []TransactionalCheckFix{}
+		}
+		if c.Path == nil {
+			c.Path = []int{}
+		}
+		out.Checks = append(out.Checks, c)
+	}
+	body := cs.MJML
+	if strings.TrimSpace(body) == "" {
+		body = cs.HTML
+	}
+
+	// Liquid syntax: a template that doesn't parse can't be published.
+	liquidOK := true
+	for _, part := range []struct{ where, label, src string }{{"subject", "Subject", cs.Subject}, {"preheader", "Preheader", cs.Preheader}, {"body", "Body", body}, {"text", "Plain text", cs.Text}} {
+		for _, p := range liquid.Validate(part.src) {
+			liquidOK = false
+			title := "Liquid error"
+			if p.Line > 0 && part.where == "body" {
+				title = fmt.Sprintf("Liquid error on line %d", p.Line)
+			} else if part.where != "body" {
+				title = "Liquid error in the " + strings.ToLower(part.label)
+			}
+			add(TransactionalCheck{ID: "liquid.syntax", Severity: SevBlock, Group: "Variables", Where: part.where, Line: p.Line, Title: title,
+				Detail: liquidMessage(p) + " The template can't render, so it can't be published."})
+		}
+	}
+
+	// Declared versus used variables.
+	uses := templateUses(cs.Subject, cs.Preheader, body, cs.Text)
+	declared := map[string]TransactionalVariable{}
+	for _, v := range cs.Variables {
+		declared[v.Name] = v
+	}
+	usedNames := map[string]bool{}
+	for _, u := range uses {
+		if slices.Contains(reserved, u.Name) {
+			continue
+		}
+		usedNames[u.Name] = true
+		out.Variables.Used = append(out.Variables.Used, u)
+		if _, ok := declared[u.Name]; ok {
+			continue
+		}
+		out.Variables.Undeclared = append(out.Variables.Undeclared, u)
+		where := ""
+		if u.Where == "body" {
+			where = fmt.Sprintf(" on line %d", u.Line)
+		} else {
+			where = " in the " + u.Where
+		}
+		add(TransactionalCheck{ID: "variables.undeclared", Severity: SevWarn, Group: "Variables", Where: u.Where, Line: u.Line, Variable: u.Name,
+			Title:  fmt.Sprintf("%s is used but not declared", u.Name),
+			Detail: fmt.Sprintf("%s is used%s but not declared. Calls won't send it, so it prints nothing.", u.Name, where),
+			Fixes: []TransactionalCheckFix{{Kind: "declare_variable", Label: "Declare it as optional text", Variable: u.Name},
+				{Kind: "remove_variable", Label: "Remove it", Variable: u.Name}}})
+	}
+	for _, v := range cs.Variables {
+		if usedNames[v.Name] {
+			continue
+		}
+		out.Variables.Unused = append(out.Variables.Unused, v.Name)
+		add(TransactionalCheck{ID: "variables.unused", Severity: SevInfo, Group: "Variables", Variable: v.Name,
+			Title:  fmt.Sprintf("%s is declared but never used", v.Name),
+			Detail: "It's harmless; remove it to keep the payload honest.",
+			Fixes:  []TransactionalCheckFix{{Kind: "remove_variable", Label: "Remove the declaration", Variable: v.Name}}})
+	}
+
+	// A sensitive variable in the subject ends up in the log.
+	for _, u := range usedVariables(cs.Subject, "subject") {
+		if v, ok := declared[u.Name]; ok && v.Sensitive {
+			add(TransactionalCheck{ID: "variables.sensitive_subject", Severity: SevWarn, Group: "Privacy", Where: "subject", Variable: u.Name,
+				Title:  fmt.Sprintf("%s is sensitive but appears in the subject", u.Name),
+				Detail: "Subjects are stored in the message log, so the value would be kept. Move it to the body.",
+				Fixes:  []TransactionalCheckFix{{Kind: "move_to_body", Label: "Remove it from the subject", Variable: u.Name}}})
+		}
+	}
+
+	// Test data must render: a set missing a required variable is a call
+	// that would fail.
+	if liquidOK {
+		for _, td := range cs.TestData {
+			r := s.testRender(cs.content, td.Name, "test_data", td.Data)
+			out.TestData = append(out.TestData, r)
+			if len(r.Missing) > 0 {
+				v := r.Missing[0]
+				add(TransactionalCheck{ID: "testdata.missing", Severity: SevBlock, Group: "Test data", TestData: td.Name, Variable: v,
+					Title:  fmt.Sprintf("“%s” can't render", td.Name),
+					Detail: fmt.Sprintf("%s is required and missing from “%s”. A real call shaped like this one fails with missing_variables and sends nothing.", joinAnd(r.Missing), td.Name),
+					Fixes:  []TransactionalCheckFix{{Kind: "add_test_value", Label: "Add " + v + " with its sample value", Variable: v, TestData: td.Name}}})
+				continue
+			}
+			if !r.OK {
+				add(TransactionalCheck{ID: "testdata.render", Severity: SevBlock, Group: "Test data", TestData: td.Name, Title: fmt.Sprintf("“%s” can't render", td.Name), Detail: r.Problem})
+			}
+		}
+	}
+
+	// Tracking on an Essential template: a privacy note, not a block.
+	if cs.Kind == KindEssential && (cs.TrackOpens || cs.TrackClicks) {
+		what := "Open and click tracking are"
+		switch {
+		case !cs.TrackClicks:
+			what = "Open tracking is"
+		case !cs.TrackOpens:
+			what = "Click tracking is"
+		}
+		add(TransactionalCheck{ID: "privacy.tracking", Severity: SevInfo, Group: "Privacy", Title: what + " on for an Essential template",
+			Detail: "Account emails reach everyone, and recipients can't turn them off. Consider leaving them untracked; rewritten links in a password reset look suspicious to recipients and filters.",
+			Fixes:  []TransactionalCheckFix{{Kind: "turn_off_tracking", Label: "Turn tracking off"}}})
+	}
+
+	// The composer's content checks, adapted: the unsubscribe link and the
+	// footer address are required for Optional categories only.
+	html, err := cs.compiledHTML()
+	if err != nil {
+		add(TransactionalCheck{ID: "content.compile", Severity: SevBlock, Group: "Content", Title: "The MJML doesn't compile", Detail: sentenceCase(err.Error()) + "."})
+	}
+	checker := s.Checker
+	if checker == nil {
+		checker = &contentcheck.Checker{}
+	}
+	rep, cerr := checker.Check(ctx, contentcheck.Input{Subject: cs.Subject, Preheader: cs.Preheader, MJML: cs.MJML, HTML: html, OwnDomains: cs.OwnDomains,
+		Address: cs.Address, ProbeLinks: cs.ProbeLinks})
+	if cerr == nil {
+		out.SizeBytes, out.Links, out.Images, out.PlainText = rep.SizeBytes, len(rep.LinkList), rep.Images, rep.PlainText
+		hasUnsub, hasAddress := true, true
+		for _, is := range rep.Issues {
+			switch is.ID {
+			case "personalization.syntax", "personalization.unknown_field":
+				continue // the transactional checks above cover Liquid and variables
+			case "compliance.footer":
+				hasUnsub = !strings.Contains(is.Title, "unsubscribe link")
+				hasAddress = !strings.Contains(is.Title, "postal address")
+				if cs.Kind != KindOptional {
+					continue
+				}
+				add(TransactionalCheck{ID: is.ID, Severity: SevBlock, Group: "Compliance", Title: is.Title,
+					Detail: "Optional categories need a visible unsubscribe link and the postal address; the List-Unsubscribe header is added for you.",
+					Fixes:  []TransactionalCheckFix{{Kind: "insert_footer", Label: "Insert the unsubscribe footer"}}})
+				continue
+			case "subject.spam":
+				is.Severity = contentcheck.Info
+			}
+			c := TransactionalCheck{ID: is.ID, Severity: is.Severity, Group: is.Group, Title: is.Title, Detail: is.Detail, Path: is.Path}
+			for _, f := range is.Fixes {
+				switch f.Kind {
+				case "set_alt", "minify", "edit_link", "replace_link", "insert_footer":
+					c.Fixes = append(c.Fixes, TransactionalCheckFix{Kind: f.Kind, Label: f.Label, Value: f.Value, Path: f.Path})
+				}
+			}
+			add(c)
+		}
+		// Passing checks, as the publish dialog lists them.
+		if cs.Kind == KindOptional && hasUnsub {
+			add(TransactionalCheck{ID: "compliance.unsubscribe", Severity: SevPass, Group: "Compliance", Title: "Unsubscribe link present"})
+		}
+		if hasAddress {
+			add(TransactionalCheck{ID: "compliance.address", Severity: SevPass, Group: "Compliance", Title: "Footer address"})
+		}
+		if rep.SizeBytes < contentcheck.NearClipBytes {
+			add(TransactionalCheck{ID: "content.size", Severity: SevPass, Group: "Content", Title: fmt.Sprintf("%d KB of 102 KB", int(math.Max(1, math.Round(float64(rep.SizeBytes)/1024))))})
+		}
+		if n := len(rep.LinkList); n > 0 && rep.LinksBlocklisted == 0 && rep.LinksBroken == 0 {
+			title := fmt.Sprintf("%d %s", n, plural(n, "link", "links"))
+			if cs.ProbeLinks {
+				title += " resolve"
+			}
+			add(TransactionalCheck{ID: "links.ok", Severity: SevPass, Group: "Links", Title: title})
+		}
+		if strings.TrimSpace(rep.PlainText) != "" {
+			add(TransactionalCheck{ID: "content.plain_text", Severity: SevPass, Group: "Content", Title: "Plain text"})
+		}
+	}
+	if liquidOK {
+		add(TransactionalCheck{ID: "liquid.ok", Severity: SevPass, Group: "Variables", Title: "Liquid renders"})
+	}
+	if len(out.Variables.Undeclared) == 0 && len(cs.Variables) > 0 {
+		add(TransactionalCheck{ID: "variables.ok", Severity: SevPass, Group: "Variables", Title: fmt.Sprintf("%d %s declared and used", len(usedNames), plural(len(usedNames), "variable", "variables"))})
+	}
+
+	slices.SortStableFunc(out.Checks, func(a, b TransactionalCheck) int { return sevRank(a.Severity) - sevRank(b.Severity) })
+	for _, c := range out.Checks {
+		switch c.Severity {
+		case SevBlock:
+			out.Blocks++
+		case SevWarn:
+			out.Warnings++
+		case SevPass:
+			out.Passed++
+		}
+	}
+	switch {
+	case out.Blocks > 0:
+		out.Verdict = "blocked"
+	case out.Warnings > 0:
+		out.Verdict = "warnings"
+	default:
+		out.Verdict = "ready"
+	}
+	return out
+}
+
+func sevRank(s string) int {
+	switch s {
+	case SevBlock:
+		return 0
+	case SevWarn:
+		return 1
+	case SevInfo:
+		return 2
+	}
+	return 3
+}
+
+// testRender renders a template with one data set.
+func (s *Service) testRender(c content, name, source string, data map[string]any) TransactionalTestRender {
+	r := TransactionalTestRender{Name: name, Source: source, Missing: missingRequired(c.Variables, data), Defaults: []string{}}
+	if len(r.Missing) > 0 {
+		r.Problem = fmt.Sprintf("%s is required and missing.", joinAnd(r.Missing))
+		return r
+	}
+	for _, v := range c.Variables {
+		if val, ok := data[v.Name]; (!ok || val == nil || val == "") && !v.Required && v.Default != "" {
+			r.Defaults = append(r.Defaults, v.Name)
+		}
+	}
+	out, err := render(c, data, recipient{Email: "test@example.com", Name: "Test"}, map[string]string{"unsubscribe_url": "#", "preferences_url": "#"})
+	if err != nil {
+		r.Problem = err.Error()
+		return r
+	}
+	r.OK, r.Subject = true, out.Subject
+	return r
+}
+
+func joinAnd(items []string) string {
+	switch len(items) {
+	case 0:
+		return ""
+	case 1:
+		return items[0]
+	}
+	return strings.Join(items[:len(items)-1], ", ") + " and " + items[len(items)-1]
+}
+
+// TemplateChecks runs the checks on a template's draft, or on the editor's
+// unsaved content.
+func (s *Service) TemplateChecks(ctx context.Context, ws *store.Workspace, ref string, in TransactionalChecksInput) (TransactionalChecks, error) {
+	id, err := s.resolveTemplate(ctx, s.Q, ws.ID, ref)
+	if err != nil {
+		return TransactionalChecks{}, err
+	}
+	t, err := s.Q.TxnTemplate(ctx, store.TxnTemplateParams{WorkspaceID: ws.ID, ID: id})
+	if err != nil {
+		return TransactionalChecks{}, mapTemplateErr(err)
+	}
+	cs := s.draftSubject(ctx, ws, t)
+	if in.Subject != nil {
+		cs.Subject = *in.Subject
+	}
+	if in.Preheader != nil {
+		cs.Preheader = *in.Preheader
+	}
+	if in.EditorMode != nil {
+		cs.EditorMode = *in.EditorMode
+	}
+	if in.MJML != nil {
+		cs.MJML = *in.MJML
+		if in.HTML == nil {
+			cs.HTML = ""
+		}
+	}
+	if in.HTML != nil {
+		cs.HTML = *in.HTML
+	}
+	if in.PlainText != nil {
+		cs.Text = *in.PlainText
+	}
+	if in.Variables != nil {
+		cs.Variables = *in.Variables
+	}
+	if in.TestData != nil {
+		cs.TestData = *in.TestData
+	}
+	if in.TrackOpens != nil {
+		cs.TrackOpens = *in.TrackOpens
+	}
+	if in.TrackClicks != nil {
+		cs.TrackClicks = *in.TrackClicks
+	}
+	return s.runChecks(ctx, cs), nil
+}
+
+// draftSubject is what the checks of a template's draft run on.
+func (s *Service) draftSubject(ctx context.Context, ws *store.Workspace, t store.TxnTemplateRow) checkSubject {
+	return checkSubject{
+		content:  content{Subject: t.Subject, Preheader: t.Preheader, EditorMode: t.EditorMode, MJML: t.Mjml, HTML: t.Html, Text: t.PlainText, Variables: parseVariables(t.Variables)},
+		TestData: parseTestData(t.TestData), Kind: t.CategoryKind, TrackOpens: t.TrackOpens, TrackClicks: t.TrackClicks,
+		OwnDomains: s.ownDomains(ctx, ws.ID), Address: s.footer(ctx, ws),
+	}
+}
+
+func (s *Service) ownDomains(ctx context.Context, wsID uuid.UUID) []string {
+	rows, err := s.Q.TxnSenders(ctx, wsID)
+	if err != nil {
+		return nil
+	}
+	out := []string{}
+	seen := map[string]bool{}
+	for _, r := range rows {
+		if !seen[r.Domain] {
+			seen[r.Domain] = true
+			out = append(out, r.Domain)
+		}
+	}
+	return out
+}

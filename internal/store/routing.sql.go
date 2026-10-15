@@ -125,7 +125,7 @@ func (q *Queries) RoutingIsSuppressed(ctx context.Context, arg RoutingIsSuppress
 }
 
 const routingListPolicies = `-- name: RoutingListPolicies :many
-SELECT workspace_id, stream, failover, bulk_terms_ack_at, bulk_terms_ack_by FROM stream_policies WHERE workspace_id = $1
+SELECT workspace_id, stream, failover, bulk_terms_ack_at, bulk_terms_ack_by, priority FROM stream_policies WHERE workspace_id = $1
 `
 
 func (q *Queries) RoutingListPolicies(ctx context.Context, workspaceID uuid.UUID) ([]StreamPolicy, error) {
@@ -143,6 +143,7 @@ func (q *Queries) RoutingListPolicies(ctx context.Context, workspaceID uuid.UUID
 			&i.Failover,
 			&i.BulkTermsAckAt,
 			&i.BulkTermsAckBy,
+			&i.Priority,
 		); err != nil {
 			return nil, err
 		}
