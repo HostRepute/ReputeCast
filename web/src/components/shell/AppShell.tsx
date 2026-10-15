@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { formatList, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useMediaQuery } from '@/lib/hooks'
+import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { Icon, LogoMark } from '../icons/Icon'
 import { Avatar } from '../ui/Avatar'
@@ -87,7 +88,7 @@ function Sidebar() {
             <Avatar name={user.name || user.email} color={user.avatarColor} size={26} />
             <div className="flex flex-col leading-[1.25]">
               <span className="text-[12px] font-semibold">{user.name || user.email}</span>
-              <span className="k text-[11px]">{ws.workspace.roleName}</span>
+              <span className="k text-[11px]">{roleName({ key: ws.workspace.roleKey, name: ws.workspace.roleName })}</span>
             </div>
           </div>
         ) : null}

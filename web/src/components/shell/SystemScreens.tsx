@@ -5,6 +5,7 @@ import { $api, ApiError, errorMessage } from '@/api/client'
 import { formatList, T, t, useT } from '@/i18n'
 import { ago } from '@/lib/format'
 import { useDocumentTitle } from '@/lib/hooks'
+import { roleName } from '@/lib/roles'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
 import { Icon, LogoMark } from '../icons/Icon'
 import { Badge, type Tone } from '../ui/Badge'
@@ -303,11 +304,12 @@ export function ForbiddenState({
   })
   const tr = useT()
   const s = q.data
-  const role = me.workspace.roleName
+  const role = roleName({ key: me.workspace.roleKey, name: me.workspace.roleName })
+  const needed = s ? roleName({ name: s.roleName }) : ''
   const sentence = s
     ? s.owners.length
-      ? tr(m.stateForbiddenNeedsOwners, { workspace: me.workspace.name, role, action: s.action, needed: s.roleName, owners: s.owners.join(', ') })
-      : tr(m.stateForbiddenNeeds, { workspace: me.workspace.name, role, action: s.action, needed: s.roleName })
+      ? tr(m.stateForbiddenNeedsOwners, { workspace: me.workspace.name, role, action: s.action, needed, owners: s.owners.join(', ') })
+      : tr(m.stateForbiddenNeeds, { workspace: me.workspace.name, role, action: s.action, needed })
     : tr(m.stateForbiddenDenied, { workspace: me.workspace.name, role, reason: deniedReason(permission) })
   return (
     <>
@@ -320,7 +322,7 @@ export function ForbiddenState({
           <>
             {s?.requestedAt ? null : (
               <Button variant="primary" onClick={() => setAsking(true)} disabledReason={q.isPending ? tr(m.stateChecking) : undefined}>
-                {s ? tr(m.stateRequestRole, { role: s.roleName }) : tr(m.stateRequestAccess)}
+                {s ? tr(m.stateRequestRole, { role: needed }) : tr(m.stateRequestAccess)}
               </Button>
             )}
             {readOnly}
@@ -332,7 +334,7 @@ export function ForbiddenState({
       >
         {sentence}
       </FullPageState>
-      {s ? <RequestAccessDialog open={asking} onOpenChange={setAsking} permission={permission} roleName={s.roleName} managers={s.managers} /> : null}
+      {s ? <RequestAccessDialog open={asking} onOpenChange={setAsking} permission={permission} roleName={needed} managers={s.managers} /> : null}
     </>
   )
 }
