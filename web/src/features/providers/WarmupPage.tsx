@@ -247,7 +247,7 @@ function RampCard({ plan }: { plan: WarmupPlan }) {
         </div>
       </div>
       <div className="border-t border-line-2">
-        <Table className="pv-9" phoneWrap>
+        <Table className="pv-9 [&_td]:px-2.5 [&_th]:px-2.5" phoneWrap fit>
           <thead>
             <tr>
               <Th>Day</Th>

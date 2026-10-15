@@ -111,7 +111,7 @@ function EventLog({ search }: { search: EventsSearch }) {
           </ErrorPanel>
         </div>
       ) : (
-        <Table className="pv-10 pv-top" phoneWrap aria-busy={q.isFetching || undefined}>
+        <Table className="pv-10 pv-top" phoneWrap fit aria-busy={q.isFetching || undefined}>
           <thead>
             <tr>
               <Th>Received</Th>
@@ -259,7 +259,7 @@ function SyncCard() {
           </ErrorPanel>
         </div>
       ) : (
-        <Table className="pv-10 pv-top" phoneWrap>
+        <Table className="pv-10 pv-top" phoneWrap fit>
           <thead>
             <tr>
               <Th>Sending provider</Th>

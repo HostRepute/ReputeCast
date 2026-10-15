@@ -696,23 +696,23 @@ func demoCredentials(adapter string) []byte {
 }
 
 // seedCommunityAdapters installs the three community adapters of the
-// Adapters board (instance-wide, none connected). The maintainer handles
-// are the board's placeholders.
+// Adapters board (instance-wide, none connected), with the maintainers'
+// handles the board shows.
 func seedCommunityAdapters(ctx context.Context, s *Seeder) error {
 	for _, a := range []struct {
-		name, version, latest string
-		caps                  []string
-		lastRelease           time.Time
-		installed             time.Duration
+		name, version, latest, maintainer string
+		caps                              []string
+		lastRelease                       time.Time
+		installed                         time.Duration
 	}{
-		{"Scaleway Transactional Email", "0.6.1", "0.7.0", []string{"webhooks", "suppression pull", "batch 50"}, s.Ago(9 * 24 * time.Hour), 160 * 24 * time.Hour},
-		{"Mailtrap Sending", "1.1.0", "1.1.0", []string{"webhooks", "domain setup via API"}, s.Ago(52 * 24 * time.Hour), 130 * 24 * time.Hour},
-		{"MailerSend", "0.3.4", "0.3.4", []string{"webhooks"}, s.Now.AddDate(0, -14, -3), 100 * 24 * time.Hour},
+		{"Scaleway Transactional Email", "0.6.1", "0.7.0", "@kaito-n", []string{"webhooks", "suppression pull", "batch 50"}, s.Ago(9 * 24 * time.Hour), 160 * 24 * time.Hour},
+		{"Mailtrap Sending", "1.1.0", "1.1.0", "@mbrandt", []string{"webhooks", "domain setup via API"}, s.Ago(52 * 24 * time.Hour), 130 * 24 * time.Hour},
+		{"MailerSend", "0.3.4", "0.3.4", "@hollis-dev", []string{"webhooks"}, s.Now.AddDate(0, -14, -3), 100 * 24 * time.Hour},
 	} {
 		manifest, _ := json.Marshal(map[string]any{"demo": true, "kind": "wasm", "capabilities": a.caps, "last_release": a.lastRelease.UTC().Format(time.RFC3339)})
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO installed_adapters (id, name, kind, version, maintainer, source_url, manifest, latest_version, installed_at)
-			VALUES ($1, $2, 'wasm', $3, '[MAINTAINER HANDLE]', 'https://github.com/hostrepute/reputecast-adapters', $4, $5, $6)
-			ON CONFLICT (name) DO NOTHING`, ID(), a.name, a.version, manifest, a.latest, s.Ago(a.installed)); err != nil {
+			VALUES ($1, $2, 'wasm', $3, $7, 'https://github.com/hostrepute/reputecast-adapters', $4, $5, $6)
+			ON CONFLICT (name) DO NOTHING`, ID(), a.name, a.version, manifest, a.latest, s.Ago(a.installed), a.maintainer); err != nil {
 			return err
 		}
 	}

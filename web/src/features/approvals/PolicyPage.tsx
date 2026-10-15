@@ -193,6 +193,8 @@ function PolicyForm({ view }: { view: View }) {
               </div>
             </div>
           </section>
+          {/* In the wide column, so its table fits the card (ApprovalPolicy). */}
+          <PendingCard pending={view.pending} />
         </div>
         <div className="col gap-5!">
           <section className="card" aria-labelledby="ap-approvers">
@@ -275,7 +277,6 @@ function PolicyForm({ view }: { view: View }) {
               </dl>
             </div>
           </section>
-          <PendingCard pending={view.pending} />
         </div>
       </div>
       {read ? null : (
