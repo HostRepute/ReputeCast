@@ -170,7 +170,9 @@ function AgentsMatrix({ o }: { o: Overview }) {
           <span className="k">Permissions per agent. &quot;Approve&quot; means a team member confirms in ReputeCast before the action runs.</span>
         </div>
       </div>
-      <Table phoneWrap fit density="dense" caption="Agents and what they can do" className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(4)]:min-w-[240px] [&_td]:whitespace-normal">
+      {/* The board's 240 px for the fourth column is a preferred width here, not a
+          minimum: the column gives way when a long tool name needs the room. */}
+      <Table phoneWrap fit density="dense" caption="Agents and what they can do" className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(4)]:w-[240px] [&_td]:whitespace-normal">
         <thead>
           <tr>
             <Th>Agent</Th>

@@ -285,8 +285,9 @@ function SyncCard() {
                   const st = syncStatus[r.status]
                   return (
                     <tr key={`${r.providerId ?? r.provider}-${r.direction}`}>
-                      <Td className="font-semibold whitespace-nowrap">
-                        {r.provider}
+                      <Td className="font-semibold">
+                        {/* The name stays whole; a long scope ("enforced before sending") wraps so the status fits the card. */}
+                        <span className="whitespace-nowrap">{r.provider}</span>
                         <div className="k">{r.scope}</div>
                       </Td>
                       <Td className="whitespace-nowrap">{direction[r.direction]}</Td>
