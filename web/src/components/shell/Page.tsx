@@ -1,10 +1,12 @@
 import { Link, type LinkProps } from '@tanstack/react-router'
 import { Fragment, useEffect, useRef, type ReactNode } from 'react'
 import { LanguageSuggestion } from '@/features/language/LanguageSuggestion'
+import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useDocumentTitle } from '@/lib/hooks'
 import { useOptionalWorkspace } from '@/lib/session'
 import { NavTabs, type NavTab } from '../ui/Tabs'
+import { m } from './messages'
 import { NotificationsPopover } from './NotificationsPopover'
 import { UserMenu } from './UserMenu'
 
@@ -20,7 +22,7 @@ export function Page({
   filters,
   actions,
   tabs,
-  tabsLabel = 'Sections',
+  tabsLabel,
   children,
   contentClassName,
   breadcrumb,
@@ -50,7 +52,9 @@ export function Page({
   toolsAfterTabs?: boolean
 }) {
   const ws = useOptionalWorkspace()
-  useDocumentTitle(`${documentTitle ?? title}${ws ? ` · ${ws.me.workspace.name}` : ''} · ReputeCast`)
+  const t = useT()
+  const docTitle = documentTitle ?? title
+  useDocumentTitle(ws ? t(m.docTitleWorkspace, { title: docTitle, workspace: ws.me.workspace.name }) : t(m.docTitle, { title: docTitle }))
   const h1 = useRef<HTMLHeadingElement>(null)
   useEffect(() => {
     // Move focus to the screen title after client-side navigation so screen
@@ -72,7 +76,7 @@ export function Page({
     <>
       <header className="top">
         {breadcrumb ? (
-          <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-[13px]">
+          <nav aria-label={t(m.breadcrumbLabel)} className="flex flex-wrap items-center gap-2 text-[13px]">
             {breadcrumb.map((c, i) => (
               <Fragment key={i}>
                 {i > 0 ? <span className="k">/</span> : null}
@@ -94,7 +98,7 @@ export function Page({
         {badges}
         {filters}
         {toolsAfterTabs ? null : acts}
-        {tabs ? <NavTabs tabs={tabs} label={tabsLabel} className="sections" /> : null}
+        {tabs ? <NavTabs tabs={tabs} label={tabsLabel ?? t(m.sectionTabsLabel)} className="sections" /> : null}
         {toolsAfterTabs ? acts : null}
       </header>
       <main className={cn('content', contentClassName)} id="main" tabIndex={-1}>

@@ -41,6 +41,8 @@ const cfg: RoutingConfig = {
   ],
   lists: [],
   senderDomains: [],
+  categories: [],
+  templates: [],
   savedBy: '',
   issues: [],
   shared: { suppressions: 0 },

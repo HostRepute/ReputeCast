@@ -2489,3 +2489,20 @@
     text-decoration-thickness: 1px;
   }
 }
+
+/* Design expansion · X01: tables whose cells wrap so every column fits its
+   card, the expansion's layout fix on ListHealth, SettingsSenders,
+   SettingsMCP, AutomationsList, ProvidersEvents and ProvidersWarmup
+   ("table cells may wrap so every column fits its card"). Text and header
+   labels wrap; badges and buttons stay on one line. The element in the
+   selector outranks screens' own one-line cell rules (.tbl.pv-9 td). */
+@layer components {
+  table.tbl.fit td,
+  table.tbl.fit th {
+    white-space: normal;
+  }
+  table.tbl.fit .badge,
+  table.tbl.fit .btn {
+    white-space: nowrap;
+  }
+}

@@ -6259,6 +6259,27 @@ export interface paths {
         patch: operations["update-transactional-template"];
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether publishing the draft needs approval, and its latest request */
+        get: operations["get-transactional-template-approval"];
+        put?: never;
+        /**
+         * Ask for approval to publish the draft
+         * @description When the workspace's rule is on. The request covers the draft as it is; a changed draft needs a new request. Approvers are notified.
+         */
+        post: operations["request-transactional-template-approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/templates/{template}/archive": {
         parameters: {
             query?: never;
@@ -6713,6 +6734,43 @@ export interface paths {
         put?: never;
         /** Send a webhook.test event now and return the result */
         post: operations["test-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/welcome-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The Welcome series prompt for a screen
+         * @description The first list of the screen whose new subscribers get no welcome email: no live automation starts on it (or on the form), and nobody dismissed it.
+         */
+        get: operations["get-welcome-prompt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/welcome-prompt/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop offering the Welcome series for a list (Not now) */
+        post: operations["dismiss-welcome-prompt"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7361,7 +7419,8 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation";
+            subjectType: "campaign" | "automation" | "transactional_template";
+            transactional?: components["schemas"]["ApprovalTransactionalSnapshot"];
             /** Format: int64 */
             version: number;
         };
@@ -7405,7 +7464,8 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation";
+            subjectType: "campaign" | "automation" | "transactional_template";
+            transactionalTemplateId?: string;
         };
         ApprovalPendingItem: {
             /** Format: int64 */
@@ -7436,6 +7496,7 @@ export interface components {
             /** Format: int64 */
             newProviderDays: number;
             readyWithWarnings: boolean;
+            transactionalPublish: boolean;
             warmingProvider: boolean;
         };
         ApprovalPolicyMatches: {
@@ -7524,7 +7585,7 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation";
+            subjectType: "campaign" | "automation" | "transactional_template";
             /** Format: int64 */
             version: number;
         };
@@ -7539,7 +7600,7 @@ export interface components {
             author?: string;
             badge: string;
             /** @enum {string} */
-            key: "audience_min" | "warming_provider" | "new_provider" | "ready_with_warnings" | "author_lacks_send" | "approval_lists" | "automation_publish";
+            key: "audience_min" | "warming_provider" | "new_provider" | "ready_with_warnings" | "author_lacks_send" | "approval_lists" | "automation_publish" | "transactional_publish";
             label: string;
             role?: string;
             short: string;
@@ -7584,6 +7645,34 @@ export interface components {
             timezone?: string;
             /** Format: int64 */
             version: number;
+        };
+        ApprovalTransactionalSnapshot: {
+            breaking?: string;
+            category: string;
+            contentSummary: string;
+            /** Format: int64 */
+            draftRevision: number;
+            key: string;
+            /** Format: int64 */
+            liveVersion?: number;
+            name: string;
+            /** Format: int64 */
+            passed: number;
+            /** Format: int64 */
+            published_version?: number;
+            subjectAfter?: string;
+            subjectBefore?: string;
+            templateId: string;
+            testRenders: components["schemas"]["ApprovalTransactionalTestRender"][];
+            variables: string[];
+            /** Format: int64 */
+            version: number;
+            /** Format: int64 */
+            warnings: number;
+        };
+        ApprovalTransactionalTestRender: {
+            name: string;
+            ok: boolean;
         };
         ArchiveIssueInput: {
             /** @description Empty uses the preheader */
@@ -7874,6 +7963,11 @@ export interface components {
             within?: components["schemas"]["AutomationDuration"];
         };
         AutomationCreateBody: {
+            /**
+             * Format: uuid
+             * @description For a template that starts on a list (welcome-series): the list; otherwise the workspace's first list
+             */
+            list?: string;
             name?: string;
             /**
              * @description Starter template; omit for a blank canvas
@@ -10541,7 +10635,7 @@ export interface components {
             apiKey: string;
             /**
              * Format: uri
-             * @description listmonk or Keila server address
+             * @description listmonk, Keila or Notifuse server address
              */
             baseUrl?: string;
             /** @description listmonk API user */
@@ -10554,6 +10648,7 @@ export interface components {
             checkedAt: string;
             dataCenter?: string;
             lists: components["schemas"]["ImportSourceList"][];
+            templates?: components["schemas"]["ImportTemplateCounts"];
         };
         ImportConsentMap: {
             /** @enum {string} */
@@ -10594,7 +10689,7 @@ export interface components {
         };
         ImportCreateInput: {
             /** @enum {string} */
-            source: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "csv" | "xlsx";
+            source: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "notifuse" | "csv" | "xlsx";
         };
         ImportDetail: {
             connection?: components["schemas"]["ImportConnection"];
@@ -10738,6 +10833,7 @@ export interface components {
             evidence: "trust" | "repermission";
             importEngagement: boolean;
             importTags: boolean;
+            importTemplates: boolean;
             lists: components["schemas"]["ImportListChoice"][];
             /** @enum {string} */
             onConflict: "fill" | "overwrite" | "keep";
@@ -10904,6 +11000,7 @@ export interface components {
             suppressedBy: {
                 [key: string]: number;
             };
+            templates?: components["schemas"]["ImportTemplateStats"];
         };
         ImportSummary: {
             /**
@@ -10923,10 +11020,34 @@ export interface components {
             status: string;
             step: string;
         };
+        ImportTemplateCounts: {
+            /** Format: int64 */
+            saved: number;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: int64 */
+            transactional: number;
+        };
+        ImportTemplateStats: {
+            /** Format: int64 */
+            manual: number;
+            /**
+             * Format: int64
+             * @description Marketing and other templates added to the saved templates
+             */
+            saved: number;
+            /** Format: int64 */
+            skipped: number;
+            /**
+             * Format: int64
+             * @description Transactional templates imported as drafts
+             */
+            transactional: number;
+        };
         ImportUpdateInput: {
             options?: components["schemas"]["ImportOptions"];
             /** @enum {string} */
-            source?: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "csv" | "xlsx" | "";
+            source?: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "notifuse" | "csv" | "xlsx" | "";
             /** @enum {string} */
             step?: "source" | "fields" | "consent" | "preview" | "";
         };
@@ -15863,6 +15984,28 @@ export interface components {
             /** @example Sam Rivera */
             name?: string;
         };
+        TransactionalApprovalInput: {
+            /** @description Shown to the approvers */
+            note?: string;
+        };
+        TransactionalApprovalState: {
+            approvers: string[];
+            canRequest: boolean;
+            comment?: string;
+            coversDraft: boolean;
+            /** Format: date-time */
+            decidedAt?: string;
+            decidedBy?: string;
+            note?: string;
+            requestId?: string;
+            requestReason?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            requestedBy?: string;
+            required: boolean;
+            /** @enum {string} */
+            status: "none" | "pending" | "approved" | "changes_requested" | "rejected";
+        };
         TransactionalAttachmentInput: {
             /** @description The file, base64-encoded */
             content: string;
@@ -16866,6 +17009,21 @@ export interface components {
              */
             total24h: number;
             url: string;
+        };
+        WelcomePrompt: {
+            coveredLists: string[];
+            draftId?: string;
+            listId: string;
+            listName: string;
+            /** @enum {string} */
+            starter: "welcome-series";
+        };
+        WelcomePromptDismissInput: {
+            /** Format: uuid */
+            listId: string;
+        };
+        WelcomePromptResult: {
+            prompt?: components["schemas"]["WelcomePrompt"];
         };
         WorkspaceApprovals: {
             /** Format: int64 */
@@ -31891,6 +32049,78 @@ export interface operations {
             };
         };
     };
+    "get-transactional-template-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID or UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalApprovalState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "request-transactional-template-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID or UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalApprovalInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalApprovalState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "archive-transactional-template": {
         parameters: {
             query?: never;
@@ -32890,6 +33120,77 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WebhookTestResult"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-welcome-prompt": {
+        parameters: {
+            query?: {
+                /** @description The screen: List health, a form in the builder, or an import's summary */
+                context?: "health" | "form" | "import";
+                /** @description The form or the import (not for List health) */
+                id?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WelcomePromptResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "dismiss-welcome-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WelcomePromptDismissInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

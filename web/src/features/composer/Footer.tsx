@@ -30,7 +30,7 @@ function childrenSummary(c: Component): string {
   return kids.every((k) => tagOf(k) === tag) ? `${tag} × ${kids.length}` : ''
 }
 
-function Breadcrumb() {
+export function Breadcrumb() {
   const c = useComposer()
   const sel = c.selected && tagOf(c.selected) ? c.selected : null
   if (!sel) {

@@ -1,0 +1,17 @@
+{
+  "contacts": [
+    {
+      "email": "quinn@gmail.com", "first_name": "Quinn", "last_name": "Park", "custom_datetime_1": "2026-09-30T00:00:00Z", "created_at": "2026-05-01T10:00:00Z", "updated_at": "2026-05-01T10:00:00Z",
+      "contact_lists": [ { "email": "quinn@gmail.com", "list_id": "product_updates", "list_name": "Product Updates", "status": "active", "created_at": "2026-05-01T10:00:00Z", "updated_at": "2026-05-01T10:00:00Z", "deleted_at": null } ]
+    },
+    {
+      "email": "rae@hotmail.com", "first_name": "Rae", "created_at": "2026-05-02T10:00:00Z", "updated_at": "2026-06-02T10:00:00Z",
+      "contact_lists": [ { "email": "rae@hotmail.com", "list_id": "product_updates", "list_name": "Product Updates", "status": "bounced", "created_at": "2026-05-02T10:00:00Z", "updated_at": "2026-06-02T10:00:00Z", "deleted_at": null } ]
+    },
+    {
+      "email": "sol@gmail.com", "first_name": "Sol", "created_at": "2026-06-12T10:00:00Z", "updated_at": "2026-06-12T10:00:00Z",
+      "contact_lists": [ { "email": "sol@gmail.com", "list_id": "product_updates", "list_name": "Product Updates", "status": "active", "created_at": "2026-06-12T10:00:00Z", "updated_at": "2026-06-12T10:00:00Z", "deleted_at": null } ]
+    }
+  ],
+  "next_cursor": null
+}

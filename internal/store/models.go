@@ -84,30 +84,31 @@ type ApprovalDecision struct {
 }
 
 type ApprovalRequest struct {
-	ID                uuid.UUID       `json:"id"`
-	WorkspaceID       uuid.UUID       `json:"workspaceId"`
-	SubjectType       string          `json:"subjectType"`
-	CampaignID        *uuid.UUID      `json:"campaignId"`
-	AutomationID      *uuid.UUID      `json:"automationId"`
-	RequestedBy       *uuid.UUID      `json:"requestedBy"`
-	RequestedAt       time.Time       `json:"requestedAt"`
-	Note              string          `json:"note"`
-	Status            string          `json:"status"`
-	MatchedRules      []string        `json:"matchedRules"`
-	ApprovalsRequired int32           `json:"approvalsRequired"`
-	Snapshot          json.RawMessage `json:"snapshot"`
-	InvalidatedAt     *time.Time      `json:"invalidatedAt"`
-	InvalidatedReason string          `json:"invalidatedReason"`
-	Changes           json.RawMessage `json:"changes"`
-	BypassReason      string          `json:"bypassReason"`
-	DecidedAt         *time.Time      `json:"decidedAt"`
-	CampaignVersion   *int32          `json:"campaignVersion"`
-	ReadinessRunID    *uuid.UUID      `json:"readinessRunId"`
-	DecidedBy         *uuid.UUID      `json:"decidedBy"`
-	InvalidatedBy     *uuid.UUID      `json:"invalidatedBy"`
-	RemindedAt        *time.Time      `json:"remindedAt"`
-	PreviousID        *uuid.UUID      `json:"previousId"`
-	InvalidatedFrom   string          `json:"invalidatedFrom"`
+	ID                      uuid.UUID       `json:"id"`
+	WorkspaceID             uuid.UUID       `json:"workspaceId"`
+	SubjectType             string          `json:"subjectType"`
+	CampaignID              *uuid.UUID      `json:"campaignId"`
+	AutomationID            *uuid.UUID      `json:"automationId"`
+	RequestedBy             *uuid.UUID      `json:"requestedBy"`
+	RequestedAt             time.Time       `json:"requestedAt"`
+	Note                    string          `json:"note"`
+	Status                  string          `json:"status"`
+	MatchedRules            []string        `json:"matchedRules"`
+	ApprovalsRequired       int32           `json:"approvalsRequired"`
+	Snapshot                json.RawMessage `json:"snapshot"`
+	InvalidatedAt           *time.Time      `json:"invalidatedAt"`
+	InvalidatedReason       string          `json:"invalidatedReason"`
+	Changes                 json.RawMessage `json:"changes"`
+	BypassReason            string          `json:"bypassReason"`
+	DecidedAt               *time.Time      `json:"decidedAt"`
+	CampaignVersion         *int32          `json:"campaignVersion"`
+	ReadinessRunID          *uuid.UUID      `json:"readinessRunId"`
+	DecidedBy               *uuid.UUID      `json:"decidedBy"`
+	InvalidatedBy           *uuid.UUID      `json:"invalidatedBy"`
+	RemindedAt              *time.Time      `json:"remindedAt"`
+	PreviousID              *uuid.UUID      `json:"previousId"`
+	InvalidatedFrom         string          `json:"invalidatedFrom"`
+	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
 }
 
 type ArchiveIssue struct {
@@ -1747,6 +1748,25 @@ type TransactionalTemplateDraft struct {
 	Source     string          `json:"source"`
 }
 
+type TransactionalTemplateImport struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	Source         string          `json:"source"`
+	Status         string          `json:"status"`
+	CredentialsEnc []byte          `json:"credentialsEnc"`
+	Connection     json.RawMessage `json:"connection"`
+	Available      json.RawMessage `json:"available"`
+	Picked         []string        `json:"picked"`
+	Files          json.RawMessage `json:"files"`
+	Report         json.RawMessage `json:"report"`
+	Error          json.RawMessage `json:"error"`
+	Result         json.RawMessage `json:"result"`
+	CreatedBy      *uuid.UUID      `json:"createdBy"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
+	FinishedAt     *time.Time      `json:"finishedAt"`
+}
+
 type TransactionalTemplateVersion struct {
 	TemplateID  uuid.UUID       `json:"templateId"`
 	Version     int32           `json:"version"`
@@ -1936,6 +1956,13 @@ type WebhookDelivery struct {
 	EnqueuedAt    *time.Time      `json:"enqueuedAt"`
 	LastAttemptAt *time.Time      `json:"lastAttemptAt"`
 	DeliveredAt   *time.Time      `json:"deliveredAt"`
+}
+
+type WelcomePromptDismissal struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ListID      uuid.UUID  `json:"listId"`
+	DismissedBy *uuid.UUID `json:"dismissedBy"`
+	DismissedAt time.Time  `json:"dismissedAt"`
 }
 
 type Workspace struct {

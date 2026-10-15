@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New comment on {{ project_name }}</title>
+<style>
+body { margin: 0; background: #f4f4f7; }
+.wrap { max-width: 570px; margin: 0 auto; }
+.comment { border-left: 3px solid #d6d8de; padding: 8px 16px; }
+.button { background: #3869d4; color: #ffffff; padding: 10px 18px; border-radius: 3px; text-decoration: none; }
+</style>
+</head>
+<body>
+<table class="wrap" width="100%" cellpadding="0" cellspacing="0" role="presentation">
+<tr>
+<td style="padding:24px;font-family:Helvetica,Arial,sans-serif;color:#51545e">
+<h1 style="font-size:20px;color:#333333">{{ commenter_name }} commented on {{ project_name }}</h1>
+<div class="comment">
+<p>{{ comment_body }}</p>
+</div>
+<p>
+<a class="button" href="{{ action_url }}">Reply to the comment</a>
+</p>
+<p>You get these emails because you follow {{ project_name }}.</p>
+</td>
+</tr>
+<tr>
+<td style="padding:0 24px 24px">
+<hr style="border:0;border-top:1px solid #eaeaec">
+<!-- Shared footer -->
+{{> footer}}
+</td>
+</tr>
+</table>
+</body>
+</html>

@@ -1,0 +1,1 @@
+{ "TemplateId": 31004, "Name": "Team invitation", "Alias": "team-invite", "Subject": "{{ invite_sender_name }} invited you to {{ invite_sender_organization_name }} on Acme Cloud", "TemplateType": "Standard", "LayoutTemplate": null, "Active": true, "AssociatedServerId": 41208 }

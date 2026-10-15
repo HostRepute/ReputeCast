@@ -9,6 +9,9 @@ import { toast } from '@/components/ui/Toast'
 import { TableScroll } from '@/components/ui/Table'
 import { useAudienceSummary } from '@/features/audience/AudienceTabs'
 import { saveBlob, fileName as downloadName } from '@/features/audience/download'
+import { NotifuseTemplatesOption } from '@/features/transactional-import/NotifuseOption'
+import { m as notifuse } from '@/features/transactional-import/notifuse.messages'
+import { t } from '@/i18n'
 import { clock, count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ImportFrame, PreviousImport, stepPath, useImportDetail, useRefreshImport, WizardHeading, type Detail } from './ImportFrame'
@@ -32,6 +35,14 @@ export const sources: SourceInfo[] = [
   { id: 'mailerlite', name: 'MailerLite', what: 'API key · groups, fields', unit: 'group', keyUrl: 'https://dashboard.mailerlite.com/integrations/api' },
   { id: 'listmonk', name: 'listmonk', what: 'API · lists, attribs', unit: 'list' },
   { id: 'keila', name: 'Keila', what: 'API key · segments, data', unit: 'segment' },
+  {
+    id: 'notifuse',
+    name: 'Notifuse',
+    get what() {
+      return t(notifuse.sourceWhat)
+    },
+    unit: 'list',
+  },
   { id: 'csv', name: 'CSV or XLSX', what: 'Drag a file · map columns yourself', unit: 'file' },
 ]
 
@@ -347,7 +358,7 @@ function ConnectCard({ d }: { d: Detail }) {
   const [user, setUser] = useState('')
   const [base, setBase] = useState(d.connection?.baseUrl ?? (d.source === 'keila' ? 'https://app.keila.io' : ''))
   const [err, setErr] = useState<string | null>(null)
-  const selfHosted = d.source === 'listmonk' || d.source === 'keila'
+  const selfHosted = d.source === 'listmonk' || d.source === 'keila' || d.source === 'notifuse'
   const authFailed = (connect.error instanceof ApiError && connect.error.code === 'source_auth_failed') || (!connect.isPending && d.error?.code === 'source_auth_failed')
   const submit = async () => {
     setErr(null)
@@ -432,7 +443,13 @@ function ConnectCard({ d }: { d: Detail }) {
           {selfHosted ? (
             <label className="lbl">
               Server address
-              <input className="in mono" type="url" placeholder="https://lists.example.com" value={base} onChange={(e) => setBase(e.target.value)} />
+              <input
+                className="in mono"
+                type="url"
+                placeholder={d.source === 'notifuse' ? 'https://notifuse.example.com' : 'https://lists.example.com'}
+                value={base}
+                onChange={(e) => setBase(e.target.value)}
+              />
             </label>
           ) : null}
           {d.source === 'listmonk' ? (
@@ -632,6 +649,9 @@ function Choose({ d }: { d: Detail }) {
                 </span>
               </label>
             </>
+          ) : null}
+          {d.source === 'notifuse' && conn.templates ? (
+            <NotifuseTemplatesOption counts={conn.templates} checked={opts.importTemplates} onChange={(v) => setOpts({ ...opts, importTemplates: v })} />
           ) : null}
           <label className="flex items-start gap-2.5 text-[13px]">
             <input type="checkbox" className="mt-[3px]" checked={opts.pullSuppressions} onChange={(e) => setOpts({ ...opts, pullSuppressions: e.target.checked })} />

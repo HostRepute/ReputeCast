@@ -56,6 +56,10 @@ type Snapshot struct {
 	Automation *ApprovalAutomationSnapshot `json:"automation,omitempty"`
 	// Languages are the language versions the approval covers.
 	Languages []languages.VersionSnapshot `json:"languages,omitempty"`
+	// DraftHash and Transactional: what a transactional template publish
+	// request covers (one draft of the template).
+	DraftHash     string                         `json:"draft_hash,omitempty"`
+	Transactional *ApprovalTransactionalSnapshot `json:"transactional,omitempty"`
 }
 
 // SnapshotShare is one provider of the route at request time.
