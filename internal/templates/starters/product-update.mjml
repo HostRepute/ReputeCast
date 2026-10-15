@@ -15,7 +15,7 @@
     <mj-section background-color="#ffffff" padding="24px 24px 28px">
       <mj-column>
         <mj-image src="rc-asset:hero.png" alt="Describe what the image shows" width="552px" padding="0px 0px 18px"></mj-image>
-        <mj-text font-size="26px" line-height="1.2" font-weight="700" color="#0B1220" padding="0px 0px 10px">Announce the one thing that changed</mj-text>
+        <mj-text font-size="26px" line-height="1.2" font-weight="700" color="#0B1220" padding="0px 0px 10px"><h1 style="margin:0;font-size:26px;line-height:1.2;font-weight:700">Announce the one thing that changed</h1></mj-text>
         <mj-text font-size="15px" line-height="1.55" padding="0px 0px 18px">Hi {{ first_name | default: "there" }}, say what's new, who it's for and what they can do with it today. Keep it to one idea so the button has one job.</mj-text>
         <mj-button href="https://example.com/whats-new" align="left" background-color="#0F766E" color="#ffffff" font-family="'IBM Plex Sans', Helvetica, Arial, sans-serif" font-size="14px" font-weight="600" border-radius="6px" inner-padding="11px 18px" padding="0px">See what's new</mj-button>
       </mj-column>
