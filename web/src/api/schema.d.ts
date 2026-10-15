@@ -13272,6 +13272,7 @@ export interface components {
             membersAffected: number;
             /** Format: int64 */
             pendingApprovals: number;
+            pendingRequests: components["schemas"]["RoleImpactPending"][];
             removed: string[];
             removedSensitive: string[];
             sensitive: string;
@@ -13297,6 +13298,11 @@ export interface components {
             id: string;
             loses: string[];
             name: string;
+        };
+        RoleImpactPending: {
+            requester: string;
+            stillMatches: string[];
+            subject: string;
         };
         RoleInput: {
             description?: string;
