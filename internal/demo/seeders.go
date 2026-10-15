@@ -23,6 +23,7 @@ var (
 	seedNotifications  = noop // notification center items
 	seedAudit          = noop // audit history
 	seedTransactional  = noop // transactional email: Acme Cloud's templates, keys, messages, relay (seed_transactional.go)
+	seedAppLanguages   = noop // app languages: instance defaults, Marcus's region format, the invitation's language (seed_app_languages.go)
 )
 
 func noop(context.Context, *Seeder) error { return nil }
