@@ -1158,6 +1158,23 @@ func TestDemoPages(t *testing.T) {
 		strings.Join(n8n.Workflows[1].Uses[0].GoalOf, ",") != "Onboarding · new workspace" || n8n.Workflows[2].Deliveries7d != 14 {
 		t.Errorf("n8n's workflows: %+v", n8n.Workflows)
 	}
+	// The delivery log shows n8n's endpoint masked, as its page does.
+	var log struct {
+		Items []struct{ Endpoint string }
+	}
+	c.Do("GET", ws+"/webhooks/deliveries?limit=200", nil).MustStatus(t, 200).JSON(t, &log)
+	masked := 0
+	for _, d := range log.Items {
+		if strings.Contains(d.Endpoint, "7c1e9d42") {
+			t.Fatalf("delivery shows the full n8n address: %s", d.Endpoint)
+		}
+		if strings.Contains(d.Endpoint, "n8n.acme.io/webhook/7c1e…/reputecast") {
+			masked++
+		}
+	}
+	if masked == 0 {
+		t.Errorf("no n8n deliveries in the log: %+v", log.Items)
+	}
 	// SettingsAudit's "Integrations" filter: the hub's actions, by group.
 	var audit struct {
 		Items []struct{ Action string }

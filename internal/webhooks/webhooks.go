@@ -573,7 +573,8 @@ func endpointLabel(raw string) string {
 	if err != nil {
 		return raw
 	}
-	return strings.TrimSuffix(u.Host+u.EscapedPath(), "/")
+	// A label, not a link: "…" in a masked address reads as typed.
+	return strings.TrimSuffix(u.Host+u.Path, "/")
 }
 
 func deliveryView(id, webhookID uuid.UUID, hookURL, event, subtype, state string, code, dur *int32, errText string, attempts, maxAttempts int32, created time.Time, last, next *time.Time) WebhookDeliveryView {
@@ -603,24 +604,31 @@ func (s *Service) Deliveries(ctx context.Context, ws *store.Workspace, webhookID
 		return WebhookDeliveryList{}, err
 	}
 	out := WebhookDeliveryList{Items: []WebhookDeliveryView{}, Queued: map[string]int64{}}
-	hidden := map[uuid.UUID]WebhookManagedBy{}
-	if hidesManaged(ctx) {
-		if hidden, err = s.managed(ctx, ws.ID); err != nil {
-			return WebhookDeliveryList{}, err
-		}
+	// Keys don't see the endpoints integrations manage; people see their
+	// addresses masked, as on the integration's page.
+	managed, err := s.managed(ctx, ws.ID)
+	if err != nil {
+		return WebhookDeliveryList{}, err
 	}
+	hide := hidesManaged(ctx)
 	for _, r := range rows {
-		if _, ok := hidden[r.WebhookID]; ok {
-			continue
+		url := r.WebhookUrl
+		if m, ok := managed[r.WebhookID]; ok {
+			if hide {
+				continue
+			}
+			if m.Endpoint != "" {
+				url = m.Endpoint
+			}
 		}
-		out.Items = append(out.Items, deliveryView(r.ID, r.WebhookID, r.WebhookUrl, r.Event, r.Subtype, r.State, r.StatusCode, r.DurationMs, r.Error, r.Attempt, r.MaxAttempts, r.CreatedAt, r.LastAttemptAt, r.NextAttemptAt))
+		out.Items = append(out.Items, deliveryView(r.ID, r.WebhookID, url, r.Event, r.Subtype, r.State, r.StatusCode, r.DurationMs, r.Error, r.Attempt, r.MaxAttempts, r.CreatedAt, r.LastAttemptAt, r.NextAttemptAt))
 	}
 	hooks, err := s.Q.HooksList(ctx, ws.ID)
 	if err != nil {
 		return WebhookDeliveryList{}, err
 	}
 	for _, h := range hooks {
-		if _, ok := hidden[h.ID]; ok {
+		if _, ok := managed[h.ID]; ok && hide {
 			continue
 		}
 		out.Queued[h.ID.String()] = h.Queued
@@ -647,8 +655,19 @@ func (s *Service) Delivery(ctx context.Context, ws *store.Workspace, id uuid.UUI
 		} `json:"data"`
 	}
 	_ = json.Unmarshal(d.Payload, &sub)
+	url := d.WebhookUrl
+	if s.Managed != nil {
+		if m, err := s.Managed.ManagedHook(ctx, d.WebhookID); err == nil && m != nil {
+			if hidesManaged(ctx) {
+				return WebhookDeliveryDetail{}, api.NotFound("Delivery")
+			}
+			if m.Endpoint != "" {
+				url = m.Endpoint
+			}
+		}
+	}
 	return WebhookDeliveryDetail{
-		Delivery: deliveryView(d.ID, d.WebhookID, d.WebhookUrl, d.Event, sub.Data.Subtype, d.State, d.StatusCode, d.DurationMs, d.Error, d.Attempt, d.MaxAttempts, d.CreatedAt, d.LastAttemptAt, d.NextAttemptAt),
+		Delivery: deliveryView(d.ID, d.WebhookID, url, d.Event, sub.Data.Subtype, d.State, d.StatusCode, d.DurationMs, d.Error, d.Attempt, d.MaxAttempts, d.CreatedAt, d.LastAttemptAt, d.NextAttemptAt),
 		Payload:  d.Payload, Response: d.Response,
 	}, nil
 }

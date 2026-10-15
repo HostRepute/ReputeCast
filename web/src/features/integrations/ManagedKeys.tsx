@@ -98,9 +98,9 @@ export function ManagedKeysCard() {
                 </Td>
                 <Td wrap>
                   <div className="col gap-1">
-                    <div className="row gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {k.permissions.map((p) => (
-                        <span key={p} className="row gap-1">
+                        <span key={p} className="inline-flex items-center gap-1">
                           <Badge tone="neutral" className="mono font-medium!">
                             {p}
                           </Badge>
