@@ -488,3 +488,75 @@ func TestLanguageVersions(t *testing.T) {
 		}
 	}
 }
+
+// Transactional templates: the Accessibility group in their checks, lang
+// and dir on the stored draft, and the Block policy holding publishing.
+func TestTransactionalTemplates(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	linh := env.Client()
+	linh.SignInDemo("linh@acme.io")
+	ctx := context.Background()
+	const tx = ws + "/transactional/templates"
+	mj := `<mjml><mj-body><mj-section><mj-column>` +
+		`<mj-image src="https://acme.io/img/lock.png" width="120px"></mj-image>` +
+		`<mj-text><p>Use the button below to choose a new password.</p></mj-text>` +
+		`<mj-button href="https://acme.io/reset" background-color="#5EBFB0" color="#FFFFFF">Choose a new password</mj-button>` +
+		`</mj-column></mj-section></mj-body></mjml>`
+	linh.Do("POST", tx, map[string]any{"name": "A11y reset", "key": "a11y-reset", "subject": "Choose a new password", "editorMode": "mjml", "mjml": mj}).MustStatus(t, 201)
+	var html string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT html FROM transactional_templates WHERE key = 'a11y-reset'`).Scan(&html); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(html, `<html lang="en" dir="ltr"`) {
+		t.Fatalf("the draft is stored with lang and dir: %.200s", html)
+	}
+
+	type check struct{ ID, Severity, Group, Title, Detail string }
+	var checks struct {
+		Verdict string
+		Checks  []check
+	}
+	group := func() []string {
+		var out []string
+		for _, c := range checks.Checks {
+			if c.Group == "Accessibility" {
+				out = append(out, c.Severity+" "+c.ID)
+			}
+			if c.ID == "content.alt_text" {
+				t.Fatal("alt text is in the Accessibility group")
+			}
+		}
+		return out
+	}
+	linh.Do("POST", tx+"/a11y-reset/checks", map[string]any{}).MustStatus(t, 200).JSON(t, &checks)
+	got := strings.Join(group(), ", ")
+	if !strings.Contains(got, "warn accessibility.alt_text:") || !strings.Contains(got, "warn accessibility.contrast:") || !strings.Contains(got, "pass accessibility.lang_dir") {
+		t.Fatalf("Warn: %s", got)
+	}
+
+	// Block: publishing waits for the fix.
+	setPolicy(t, linh, "block", 12)
+	linh.Do("POST", tx+"/a11y-reset/checks", map[string]any{}).MustStatus(t, 200).JSON(t, &checks)
+	if got := strings.Join(group(), ", "); checks.Verdict != "blocked" || !strings.Contains(got, "block accessibility.contrast:") {
+		t.Fatalf("Block: %s %s", checks.Verdict, got)
+	}
+	var pv struct {
+		CanPublish bool
+		Blocking   []string
+	}
+	linh.Do("POST", tx+"/a11y-reset/publish-preview", map[string]any{}).MustStatus(t, 200).JSON(t, &pv)
+	if pv.CanPublish || len(pv.Blocking) < 2 {
+		t.Fatalf("publish preview: %+v", pv)
+	}
+	var tpl struct{ DraftRevision int }
+	linh.Do("GET", tx+"/a11y-reset", nil).MustStatus(t, 200).JSON(t, &tpl)
+	linh.Do("POST", tx+"/a11y-reset/publish", map[string]any{"baseRevision": tpl.DraftRevision}).MustStatus(t, 409)
+
+	// Alt text and a darker button: it publishes.
+	fixed := strings.Replace(strings.Replace(mj, `width="120px"`, `alt="A padlock" width="120px"`, 1), "#5EBFB0", "#0F766E", 1)
+	var saved struct{ DraftRevision int }
+	linh.Do("PUT", tx+"/a11y-reset/draft", map[string]any{"baseRevision": tpl.DraftRevision, "subject": "Choose a new password", "editorMode": "mjml", "mjml": fixed}).
+		MustStatus(t, 200).JSON(t, &saved)
+	linh.Do("POST", tx+"/a11y-reset/publish", map[string]any{"baseRevision": saved.DraftRevision}).MustStatus(t, 200)
+}

@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -692,6 +693,8 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		html := t.Html
 		if strings.TrimSpace(html) == "" {
 			html, _ = content{Subject: t.Subject, Preheader: t.Preheader, MJML: t.Mjml}.compiledHTML()
+			// lang, dir and the layout tables' role (accessibility).
+			html = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerTransactional, id, 0, html)
 		}
 		hash := draftHash(t.Subject, t.Preheader, t.EditorMode, t.Mjml, t.Html, t.PlainText, vars, t.SenderID, t.ReplyTo, t.TrackOpens, t.TrackClicks)
 		change := strings.TrimSpace(in.Note)

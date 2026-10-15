@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/transactional"
 )
 
 // Accessibility checks (design expansion, M19): the checks on compiled
@@ -84,6 +85,36 @@ func languageVersions(ctx context.Context, a *App, wsID uuid.UUID, kind string, 
 	return out, nil
 }
 
+// transactionalChecks is a transactional template's Accessibility group,
+// on the draft and its language versions.
+type transactionalChecks struct {
+	a *App
+	s *accessibility.Service
+}
+
+// TemplateChecks implements transactional.AccessibilityChecker.
+func (c transactionalChecks) TemplateChecks(ctx context.Context, wsID, templateID uuid.UUID, mjml, html string) ([]transactional.TransactionalCheck, error) {
+	src := accessibility.Version{Lang: accessibility.EmailLanguage(ctx, c.a.Q, wsID, accessibility.OwnerTransactional, templateID, 0), MJML: mjml, HTML: html, Source: true}
+	versions, err := languageVersions(ctx, c.a, wsID, accessibility.OwnerTransactional, templateID, 0, src, nil)
+	if err != nil {
+		return nil, err
+	}
+	r, err := c.s.CheckVersions(ctx, wsID, versions)
+	if err != nil {
+		return nil, err
+	}
+	out := []transactional.TransactionalCheck{}
+	for _, f := range accessibility.Findings(r) {
+		tc := transactional.TransactionalCheck{ID: "accessibility." + f.ID, Severity: f.Status, Group: transactional.GroupAccessibility, Title: f.Title, Detail: f.Detail,
+			Path: f.Path, Fixes: []transactional.TransactionalCheckFix{}}
+		if f.AltText && len(f.Path) > 0 {
+			tc.Fixes = append(tc.Fixes, transactional.TransactionalCheckFix{Kind: "set_alt", Label: "Save", Path: f.Path})
+		}
+		out = append(out, tc)
+	}
+	return out, nil
+}
+
 // accessibilityGate is the automations publish dialog's accessibility check.
 type accessibilityGate struct{ s *accessibility.Service }
 
@@ -147,6 +178,7 @@ func titleFetcher(a *App) accessibility.TitleFetcher {
 func init() {
 	automationAccessibility = func(a *App) automations.AccessibilityGate { return accessibilityGate{newAccessibility(a)} }
 	readinessAccessibility = func(a *App) readiness.AccessibilityChecker { return newAccessibility(a) }
+	transactionalAccessibility = func(a *App) transactional.AccessibilityChecker { return transactionalChecks{a, newAccessibility(a)} }
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		accessibility.Register(h, newAccessibility(a))
 	})

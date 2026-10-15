@@ -19,6 +19,10 @@ import (
 // publishing never needs one.
 var transactionalGate = func(*App) transactional.PublishGate { return nil }
 
+// transactionalAccessibility adds the Accessibility group to a template's
+// checks; the accessibility domain replaces it from its wire file.
+var transactionalAccessibility = func(*App) transactional.AccessibilityChecker { return nil }
+
 // The service keeps per-process state (each key's send rate), so each App
 // has exactly one.
 var transactionalServices sync.Map // *App → *transactional.Service
@@ -37,6 +41,7 @@ func transactionalService(a *App) *transactional.Service {
 		Gate: transactionalGate(a),
 		Mail: func() mailer.Sender { return a.Mail },
 	}
+	s.Accessibility = transactionalAccessibility(a)
 	v, _ := transactionalServices.LoadOrStore(a, s)
 	return v.(*transactional.Service)
 }

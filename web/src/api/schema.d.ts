@@ -16043,7 +16043,7 @@ export interface components {
             detail?: string;
             fixes: components["schemas"]["TransactionalCheckFix"][];
             /** @enum {string} */
-            group: "Content" | "Links" | "Compliance" | "Subject" | "Variables" | "Test data" | "Privacy";
+            group: "Content" | "Links" | "Compliance" | "Subject" | "Variables" | "Test data" | "Privacy" | "Accessibility";
             /** @example variables.undeclared */
             id: string;
             /** Format: int64 */

@@ -43,7 +43,7 @@ type TransactionalCheckFix struct {
 type TransactionalCheck struct {
 	ID       string                  `json:"id" example:"variables.undeclared"`
 	Severity string                  `json:"severity" enum:"block,warn,info,pass"`
-	Group    string                  `json:"group" enum:"Content,Links,Compliance,Subject,Variables,Test data,Privacy"`
+	Group    string                  `json:"group" enum:"Content,Links,Compliance,Subject,Variables,Test data,Privacy,Accessibility"`
 	Title    string                  `json:"title"`
 	Detail   string                  `json:"detail,omitempty"`
 	Where    string                  `json:"where,omitempty" enum:"subject,preheader,body,text"`
@@ -120,6 +120,10 @@ type checkSubject struct {
 	ProbeLinks  bool
 	OwnDomains  []string
 	Address     string
+	// WorkspaceID and TemplateID say whose policy and language versions the
+	// accessibility checks use.
+	WorkspaceID uuid.UUID
+	TemplateID  uuid.UUID
 }
 
 // runChecks runs every check on a template's content.
@@ -246,6 +250,8 @@ func (s *Service) runChecks(ctx context.Context, cs checkSubject) TransactionalC
 	if err != nil {
 		add(TransactionalCheck{ID: "content.compile", Severity: SevBlock, Group: "Content", Title: "The MJML doesn't compile", Detail: sentenceCase(err.Error()) + "."})
 	}
+	// Accessibility: alt text, link text, contrast, headings and text size.
+	a11y := err == nil && s.accessibilityChecks(ctx, cs, html, add)
 	checker := s.Checker
 	if checker == nil {
 		checker = &contentcheck.Checker{}
@@ -259,6 +265,10 @@ func (s *Service) runChecks(ctx context.Context, cs checkSubject) TransactionalC
 			switch is.ID {
 			case "personalization.syntax", "personalization.unknown_field":
 				continue // the transactional checks above cover Liquid and variables
+			case "content.alt_text":
+				if a11y {
+					continue // listed in the Accessibility group
+				}
 			case "compliance.footer":
 				hasUnsub = !strings.Contains(is.Title, "unsubscribe link")
 				hasAddress = !strings.Contains(is.Title, "postal address")
@@ -427,7 +437,7 @@ func (s *Service) draftSubject(ctx context.Context, ws *store.Workspace, t store
 	return checkSubject{
 		content:  content{Subject: t.Subject, Preheader: t.Preheader, EditorMode: t.EditorMode, MJML: t.Mjml, HTML: t.Html, Text: t.PlainText, Variables: parseVariables(t.Variables)},
 		TestData: parseTestData(t.TestData), Kind: t.CategoryKind, TrackOpens: t.TrackOpens, TrackClicks: t.TrackClicks,
-		OwnDomains: s.ownDomains(ctx, ws.ID), Address: s.footer(ctx, ws),
+		OwnDomains: s.ownDomains(ctx, ws.ID), Address: s.footer(ctx, ws), WorkspaceID: ws.ID, TemplateID: t.ID,
 	}
 }
 
