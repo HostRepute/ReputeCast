@@ -143,13 +143,22 @@ func notifuseAnswer(r *http.Request) (*http.Response, error) {
 	if p != "/api/workspaces.list" && r.URL.Query().Get("workspace_id") != "acmecloud" {
 		return answer(r, 400, []byte(`{"error":"workspace_id is required"}`)), nil
 	}
+	q := r.URL.Query()
 	switch p {
 	case "/api/workspaces.list":
 		return fileOr404(r, "notifuse/workspaces.json")
 	case "/api/templates.list":
 		return fileOr404(r, "notifuse/templates.json")
 	case "/api/templates.get":
-		return fileOr404(r, "notifuse/"+path.Base(r.URL.Query().Get("id"))+".json")
+		return fileOr404(r, "notifuse/"+path.Base(q.Get("id"))+".json")
+	case "/api/lists.stats":
+		return fileOr404(r, "notifuse/lists.stats-"+path.Base(q.Get("list_id"))+".json")
+	case "/api/contacts.list":
+		name := "notifuse/contacts.list-" + path.Base(q.Get("list_id"))
+		if c := q.Get("cursor"); c != "" {
+			name += "-" + path.Base(c)
+		}
+		return fileOr404(r, name+".json")
 	}
 	if b, ok := recorded("notifuse/" + strings.TrimPrefix(p, "/api/") + ".json"); ok {
 		return answer(r, 200, b), nil

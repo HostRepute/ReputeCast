@@ -9635,7 +9635,7 @@ export interface components {
             apiKey: string;
             /**
              * Format: uri
-             * @description listmonk or Keila server address
+             * @description listmonk, Keila or Notifuse server address
              */
             baseUrl?: string;
             /** @description listmonk API user */
@@ -9648,6 +9648,7 @@ export interface components {
             checkedAt: string;
             dataCenter?: string;
             lists: components["schemas"]["ImportSourceList"][];
+            templates?: components["schemas"]["ImportTemplateCounts"];
         };
         ImportConsentMap: {
             /** @enum {string} */
@@ -9688,7 +9689,7 @@ export interface components {
         };
         ImportCreateInput: {
             /** @enum {string} */
-            source: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "csv" | "xlsx";
+            source: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "notifuse" | "csv" | "xlsx";
         };
         ImportDetail: {
             connection?: components["schemas"]["ImportConnection"];
@@ -9832,6 +9833,7 @@ export interface components {
             evidence: "trust" | "repermission";
             importEngagement: boolean;
             importTags: boolean;
+            importTemplates: boolean;
             lists: components["schemas"]["ImportListChoice"][];
             /** @enum {string} */
             onConflict: "fill" | "overwrite" | "keep";
@@ -9998,6 +10000,7 @@ export interface components {
             suppressedBy: {
                 [key: string]: number;
             };
+            templates?: components["schemas"]["ImportTemplateStats"];
         };
         ImportSummary: {
             /**
@@ -10017,10 +10020,34 @@ export interface components {
             status: string;
             step: string;
         };
+        ImportTemplateCounts: {
+            /** Format: int64 */
+            saved: number;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: int64 */
+            transactional: number;
+        };
+        ImportTemplateStats: {
+            /** Format: int64 */
+            manual: number;
+            /**
+             * Format: int64
+             * @description Marketing and other templates added to the saved templates
+             */
+            saved: number;
+            /** Format: int64 */
+            skipped: number;
+            /**
+             * Format: int64
+             * @description Transactional templates imported as drafts
+             */
+            transactional: number;
+        };
         ImportUpdateInput: {
             options?: components["schemas"]["ImportOptions"];
             /** @enum {string} */
-            source?: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "csv" | "xlsx" | "";
+            source?: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "notifuse" | "csv" | "xlsx" | "";
             /** @enum {string} */
             step?: "source" | "fields" | "consent" | "preview" | "";
         };
