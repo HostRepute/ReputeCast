@@ -1,0 +1,23 @@
+{
+  "result": [
+    {
+      "id": "d-8f2c1a9d4b6e4f0a9c3e7b5d2a1f0e9c",
+      "name": "Order shipped",
+      "generation": "dynamic",
+      "updated_at": "2026-09-30 14:02:11",
+      "versions": [
+        { "id": "5c9b2f1e-7a44-4d0e-9f63-2b8d1c4e6a70", "template_id": "d-8f2c1a9d4b6e4f0a9c3e7b5d2a1f0e9c", "active": 1, "name": "v3", "subject": "Your order {{order.number}} is on its way", "updated_at": "2026-09-30 14:02:11", "editor": "code" }
+      ]
+    },
+    {
+      "id": "d-1b7e9c3a5f2d4e8a6c0b9d7f3e1a2c4b",
+      "name": "Invoice due",
+      "generation": "dynamic",
+      "updated_at": "2026-08-12 09:41:57",
+      "versions": [
+        { "id": "a1e3c5b7-9d2f-4a6c-8e0b-1d3f5a7c9e2b", "template_id": "d-1b7e9c3a5f2d4e8a6c0b9d7f3e1a2c4b", "active": 1, "name": "Invoice v1", "subject": "Invoice {{invoice_id}} is due", "updated_at": "2026-08-12 09:41:57", "editor": "design" }
+      ]
+    }
+  ],
+  "_metadata": { "self": "https://api.sendgrid.com/v3/templates?generations=dynamic&page_size=200", "count": 2 }
+}

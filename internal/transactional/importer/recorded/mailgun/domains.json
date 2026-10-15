@@ -1,0 +1,7 @@
+{
+  "total_count": 2,
+  "items": [
+    { "name": "mg.acme.io", "state": "active", "type": "custom", "created_at": "Tue, 03 Mar 2026 10:12:00 GMT", "spam_action": "disabled", "is_disabled": false },
+    { "name": "sandbox4f2a.mailgun.org", "state": "disabled", "type": "sandbox", "created_at": "Tue, 03 Mar 2026 10:00:00 GMT", "spam_action": "disabled", "is_disabled": true }
+  ]
+}

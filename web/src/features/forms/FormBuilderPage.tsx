@@ -11,6 +11,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input } from '@/components/ui/Field'
 import { Menu, MenuItem, MenuSeparator, Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
+import { WelcomePromptCard } from '@/features/welcome-prompt/WelcomePromptCard'
 import { ago, andList, count, trimPct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { Icon } from '@/components/icons/Icon'
@@ -409,6 +410,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
               </button>
             </div>
           </div>
+          <WelcomePromptCard where={{ context: 'form', id: form.id }} className="mx-3.5 mt-3" raised />
           <div className="fb-stage">
             {blocked.map((b) => (
               <BlockedOriginAlert key={b.origin} form={form} blocked={b} />

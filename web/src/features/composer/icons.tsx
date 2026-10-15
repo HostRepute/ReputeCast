@@ -85,6 +85,12 @@ const blocks: Record<string, ReactNode> = {
     </>
   ),
   saved: <path d="M12 3v18M3 12h18" />,
+  rcReceipt: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M7 9h10M7 13h6" />
+    </>
+  ),
 }
 
 export function BlockIcon({ name }: { name: string }) {

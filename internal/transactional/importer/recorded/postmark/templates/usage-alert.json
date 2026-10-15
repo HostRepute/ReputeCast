@@ -1,0 +1,1 @@
+{ "TemplateId": 31005, "Name": "Usage alert", "Alias": "usage-alert", "Subject": "You've used {{ usage_percent }}% of your Acme Cloud plan", "TemplateType": "Standard", "LayoutTemplate": null, "Active": true, "AssociatedServerId": 41208 }

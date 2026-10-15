@@ -2231,9 +2231,13 @@
           "subjectType": {
             "enum": [
               "campaign",
-              "automation"
+              "automation",
+              "transactional_template"
             ],
             "type": "string"
+          },
+          "transactional": {
+            "$ref": "#/components/schemas/ApprovalTransactionalSnapshot"
           },
           "version": {
             "format": "int64",
@@ -2402,8 +2406,12 @@
           "subjectType": {
             "enum": [
               "campaign",
-              "automation"
+              "automation",
+              "transactional_template"
             ],
+            "type": "string"
+          },
+          "transactionalTemplateId": {
             "type": "string"
           }
         },
@@ -2519,6 +2527,9 @@
           "readyWithWarnings": {
             "type": "boolean"
           },
+          "transactionalPublish": {
+            "type": "boolean"
+          },
           "warmingProvider": {
             "type": "boolean"
           }
@@ -2532,6 +2543,7 @@
           "approvalLists",
           "approvalsRequired",
           "automationPublish",
+          "transactionalPublish",
           "emergencyBypass"
         ],
         "type": "object"
@@ -2853,7 +2865,8 @@
           "subjectType": {
             "enum": [
               "campaign",
-              "automation"
+              "automation",
+              "transactional_template"
             ],
             "type": "string"
           },
@@ -2927,7 +2940,8 @@
               "ready_with_warnings",
               "author_lacks_send",
               "approval_lists",
-              "automation_publish"
+              "automation_publish",
+              "transactional_publish"
             ],
             "type": "string"
           },
@@ -3089,6 +3103,101 @@
           "splitLabel",
           "scheduleText",
           "scheduleMode"
+        ],
+        "type": "object"
+      },
+      "ApprovalTransactionalSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "breaking": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "contentSummary": {
+            "type": "string"
+          },
+          "draftRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "liveVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "passed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "published_version": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "subjectAfter": {
+            "type": "string"
+          },
+          "subjectBefore": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string"
+          },
+          "testRenders": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalTransactionalTestRender"
+            },
+            "type": "array"
+          },
+          "variables": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warnings": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "templateId",
+          "key",
+          "name",
+          "category",
+          "version",
+          "draftRevision",
+          "variables",
+          "contentSummary",
+          "testRenders",
+          "passed",
+          "warnings"
+        ],
+        "type": "object"
+      },
+      "ApprovalTransactionalTestRender": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "ok"
         ],
         "type": "object"
       },
@@ -4146,6 +4255,11 @@
       "AutomationCreateBody": {
         "additionalProperties": false,
         "properties": {
+          "list": {
+            "description": "For a template that starts on a list (welcome-series): the list; otherwise the workspace's first list",
+            "format": "uuid",
+            "type": "string"
+          },
           "name": {
             "maxLength": 120,
             "type": "string"
@@ -13625,7 +13739,7 @@
             "type": "string"
           },
           "baseUrl": {
-            "description": "listmonk or Keila server address",
+            "description": "listmonk, Keila or Notifuse server address",
             "format": "uri",
             "maxLength": 500,
             "type": "string"
@@ -13662,6 +13776,9 @@
               "$ref": "#/components/schemas/ImportSourceList"
             },
             "type": "array"
+          },
+          "templates": {
+            "$ref": "#/components/schemas/ImportTemplateCounts"
           }
         },
         "required": [
@@ -13828,6 +13945,7 @@
               "mailerlite",
               "listmonk",
               "keila",
+              "notifuse",
               "csv",
               "xlsx"
             ],
@@ -14350,6 +14468,9 @@
           "importTags": {
             "type": "boolean"
           },
+          "importTemplates": {
+            "type": "boolean"
+          },
           "lists": {
             "items": {
               "$ref": "#/components/schemas/ImportListChoice"
@@ -14396,7 +14517,8 @@
           "evidence",
           "onConflict",
           "risky",
-          "skipRows"
+          "skipRows",
+          "importTemplates"
         ],
         "type": "object"
       },
@@ -14847,6 +14969,9 @@
             },
             "description": "unsubscribe, hard_bounce, complaint",
             "type": "object"
+          },
+          "templates": {
+            "$ref": "#/components/schemas/ImportTemplateStats"
           }
         },
         "required": [
@@ -14916,6 +15041,59 @@
         ],
         "type": "object"
       },
+      "ImportTemplateCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "saved": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "skipped": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "transactional": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "transactional",
+          "saved",
+          "skipped"
+        ],
+        "type": "object"
+      },
+      "ImportTemplateStats": {
+        "additionalProperties": false,
+        "properties": {
+          "manual": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "saved": {
+            "description": "Marketing and other templates added to the saved templates",
+            "format": "int64",
+            "type": "integer"
+          },
+          "skipped": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "transactional": {
+            "description": "Transactional templates imported as drafts",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "transactional",
+          "saved",
+          "manual",
+          "skipped"
+        ],
+        "type": "object"
+      },
       "ImportUpdateInput": {
         "additionalProperties": false,
         "properties": {
@@ -14929,6 +15107,7 @@
               "mailerlite",
               "listmonk",
               "keila",
+              "notifuse",
               "csv",
               "xlsx",
               ""
@@ -32190,6 +32369,81 @@
         ],
         "type": "object"
       },
+      "TransactionalApprovalInput": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "description": "Shown to the approvers",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TransactionalApprovalState": {
+        "additionalProperties": false,
+        "properties": {
+          "approvers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "canRequest": {
+            "type": "boolean"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "coversDraft": {
+            "type": "boolean"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "decidedBy": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "requestReason": {
+            "type": "string"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "requestedBy": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "none",
+              "pending",
+              "approved",
+              "changes_requested",
+              "rejected"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "required",
+          "approvers",
+          "status",
+          "coversDraft",
+          "canRequest"
+        ],
+        "type": "object"
+      },
       "TransactionalAttachmentInput": {
         "additionalProperties": false,
         "properties": {
@@ -35483,6 +35737,61 @@
           "total24h",
           "queued"
         ],
+        "type": "object"
+      },
+      "WelcomePrompt": {
+        "additionalProperties": false,
+        "properties": {
+          "coveredLists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "draftId": {
+            "type": "string"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "starter": {
+            "enum": [
+              "welcome-series"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "listId",
+          "listName",
+          "coveredLists",
+          "starter"
+        ],
+        "type": "object"
+      },
+      "WelcomePromptDismissInput": {
+        "additionalProperties": false,
+        "properties": {
+          "listId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "listId"
+        ],
+        "type": "object"
+      },
+      "WelcomePromptResult": {
+        "additionalProperties": false,
+        "properties": {
+          "prompt": {
+            "$ref": "#/components/schemas/WelcomePrompt"
+          }
+        },
         "type": "object"
       },
       "WorkspaceApprovals": {
@@ -64216,6 +64525,148 @@
         "x-permission": "transactional:edit"
       }
     },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/approval": {
+      "get": {
+        "operationId": "get-transactional-template-approval",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID or UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID or UUID",
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalApprovalState"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether publishing the draft needs approval, and its latest request",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      },
+      "post": {
+        "description": "When the workspace's rule is on. The request covers the draft as it is; a changed draft needs a new request. Approvers are notified.",
+        "operationId": "request-transactional-template-approval",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID or UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID or UUID",
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalApprovalInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalApprovalState"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Ask for approval to publish the draft",
+        "tags": [
+          "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:publish"
+      }
+    },
     "/api/v1/workspaces/{workspace}/transactional/templates/{template}/archive": {
       "post": {
         "operationId": "archive-transactional-template",
@@ -66263,6 +66714,144 @@
         ],
         "x-access": "workspace",
         "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/welcome-prompt": {
+      "get": {
+        "description": "The first list of the screen whose new subscribers get no welcome email: no live automation starts on it (or on the form), and nobody dismissed it.",
+        "operationId": "get-welcome-prompt",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The screen: List health, a form in the builder, or an import's summary",
+            "explode": false,
+            "in": "query",
+            "name": "context",
+            "schema": {
+              "description": "The screen: List health, a form in the builder, or an import's summary",
+              "enum": [
+                "health",
+                "form",
+                "import"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "The form or the import (not for List health)",
+            "explode": false,
+            "in": "query",
+            "name": "id",
+            "schema": {
+              "description": "The form or the import (not for List health)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WelcomePromptResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The Welcome series prompt for a screen",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/welcome-prompt/dismiss": {
+      "post": {
+        "operationId": "dismiss-welcome-prompt",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WelcomePromptDismissInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Stop offering the Welcome series for a list (Not now)",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
       }
     }
   }

@@ -1,0 +1,16 @@
+{
+  "template": {
+    "createdAt": "Thu, 11 Jun 2026 15:02:10 UTC",
+    "description": "",
+    "name": "trial-ending",
+    "id": "6b2d4f8a-1c3e-4a5b-9d7f-0e2c4a6b8d1f",
+    "version": {
+      "createdAt": "Thu, 11 Jun 2026 15:02:10 UTC",
+      "engine": "handlebars",
+      "tag": "initial",
+      "comment": "",
+      "active": true,
+      "template": "<html>\n<body>\n<p>Your trial ends in {{days_left}} days.</p>\n{{#unless has_card}}<p><a href=\"{{billing_url}}\">Add a card</a> to keep your workspace.</p>{{/unless}}\n</body>\n</html>"
+    }
+  }
+}
