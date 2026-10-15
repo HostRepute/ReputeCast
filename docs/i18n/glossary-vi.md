@@ -9,7 +9,7 @@ design's stress-test boards (`StressCampaignsVi`, `StressReviewVi`,
 > **Status: draft.** These are the first non-English words in ReputeCast. A
 > native speaker reviews them before Vietnamese ships in a release (brief
 > §8.17). Change a term here first, then in the translations
-> (`web/src/**/messages.vi.ts`, `internal/**/messages.vi.json`).
+> (`web/src/**/messages.vi.ts`, `internal/<package>/messages/vi.json`).
 
 How to add or complete a language: [`translating.md`](translating.md).
 
@@ -93,7 +93,8 @@ samples, CLI output, "MCP", "2FA", "TOTP", "IdP", "SSO", "JIT", "A/B",
 | Editor | Biên tập viên |
 | Viewer | Người xem |
 | custom (role) | tùy chỉnh |
-| instance admin | quản trị hệ thống |
+| instance admin (the area, a label: "Instance admin", "· instance admin") | quản trị hệ thống |
+| instance admin (a person, in a sentence: "Ask your instance admin") | quản trị viên hệ thống |
 | break-glass account | tài khoản khẩn cấp |
 | member | thành viên |
 | invitee | người được mời |

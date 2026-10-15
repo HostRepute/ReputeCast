@@ -9,11 +9,14 @@ import { Grid } from '@/components/ui/Layout'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { LanguageRegionCard } from '@/features/language/LanguageRegionCard'
+import { useT } from '@/i18n'
+import { roleName } from '@/lib/roles'
 import { meQueryKey, useWorkspace } from '@/lib/session'
 import { ConnectedSignInsCard } from './ConnectedSignInsCard'
 import { NotificationPreferencesCard, WorkspacesCard } from './OtherCards'
 import { ProfileCard } from './ProfileCard'
 import { AuthenticatorCard, PasskeysCard, PasswordCard } from './SecurityCards'
+import { m } from './messages'
 import { SessionsCard } from './SessionsCard'
 
 export const accountKey = ['get', '/api/v1/me/account'] as const
@@ -28,16 +31,20 @@ export function useRefreshAccount() {
 
 /** A5 §5.6 Account & security (AccountSecurity and AccountStates boards). */
 export function AccountPage({ verifyEmail }: { verifyEmail?: string }) {
+  const t = useT()
   const { me: ws } = useWorkspace()
   const account = $api.useQuery('get', '/api/v1/me/account')
   const a = account.data
-  const subtitle = a ? [a.profile.email, `${ws.workspace.roleName} of ${ws.workspace.name}`, a.profile.isInstanceAdmin ? 'instance admin' : null].filter(Boolean).join(' · ') : undefined
+  const role = roleName({ key: ws.workspace.roleKey, name: ws.workspace.roleName })
+  const subtitle = a
+    ? [a.profile.email, t(m.roleIn, { role, workspace: ws.workspace.name }), a.profile.isInstanceAdmin ? t(m.instanceAdmin) : null].filter(Boolean).join(' · ')
+    : undefined
   return (
-    <Page title="Account & security" subtitle={subtitle}>
+    <Page title={t(m.title)} subtitle={subtitle}>
       <VerifyEmail token={verifyEmail} />
       {account.isError ? (
-        <ErrorPanel title="Couldn't load your account" actions={<Button onClick={() => account.refetch()}>Retry</Button>}>
-          {errorMessage(account.error)} Nothing was changed.
+        <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => account.refetch()}>{t(m.retry)}</Button>}>
+          {errorMessage(account.error)} {t(m.nothingChanged)}
         </ErrorPanel>
       ) : !a ? (
         <AccountSkeleton />
