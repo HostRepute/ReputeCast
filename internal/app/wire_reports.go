@@ -6,6 +6,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/hostrepute/reputecast/internal/audience"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/reports"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -16,6 +17,8 @@ func init() {
 		reports.Register(h, &reports.Service{
 			Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, URLs: a.URLs,
 			Suppress: reportSuppressor{a}, Limits: reports.NewLimiter(),
+			// Results per language for campaigns sent in several languages.
+			Languages: &languages.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
 		})
 	})
 }

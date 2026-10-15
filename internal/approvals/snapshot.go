@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/readiness"
@@ -53,6 +54,8 @@ type Snapshot struct {
 	AuthorRole string `json:"author_role"`
 
 	Automation *ApprovalAutomationSnapshot `json:"automation,omitempty"`
+	// Languages are the language versions the approval covers.
+	Languages []languages.VersionSnapshot `json:"languages,omitempty"`
 }
 
 // SnapshotShare is one provider of the route at request time.
@@ -89,6 +92,17 @@ type ApprovalAutomationSnapshot struct {
 	Version   int      `json:"version"`
 	Migration string   `json:"migration"`
 	Changes   []string `json:"changes"`
+}
+
+// snapshotVersion is the version of a language an approval covers (0 when
+// it covers none: the current one).
+func snapshotVersion(s Snapshot, lang string) int {
+	for _, v := range s.Languages {
+		if v.Language == lang {
+			return v.Version
+		}
+	}
+	return 0
 }
 
 // Baseline is the count audience drift is measured against.
@@ -142,6 +156,7 @@ type Current struct {
 	Schedule      json.RawMessage
 	Timezone      string
 	UpdatedBy     string
+	Languages     []languages.VersionSnapshot
 }
 
 var hrefRe = regexp.MustCompile(`(?i)href\s*=\s*["']([^"']+)["']`)
@@ -194,10 +209,12 @@ func trim(v float64) string {
 // ApprovalChange is one difference between an approval's snapshot and the
 // campaign.
 type ApprovalChange struct {
-	Field  string `json:"field" enum:"subject,preheader,link,content,sender,audience,audience_count,route,schedule"`
+	Field  string `json:"field" enum:"subject,preheader,link,content,sender,audience,audience_count,route,schedule,language"`
 	Label  string `json:"label"`
 	Before string `json:"before"`
 	After  string `json:"after"`
+	// What says how a language version changed ("intro changed").
+	What string `json:"what,omitempty"`
 }
 
 // Diff compares a snapshot with the campaign as it stands. loc formats the
@@ -234,6 +251,9 @@ func Diff(s Snapshot, c Current, loc *time.Location) []ApprovalChange {
 			}
 			out = append(out, ApprovalChange{Field: "content", Label: "Content", Before: fmt.Sprintf("v%d", s.Version), After: after})
 		}
+	}
+	for _, vc := range languages.DiffVersions(s.Languages, c.Languages) {
+		out = append(out, ApprovalChange{Field: "language", Label: vc.Name, Before: vc.Before, After: vc.After, What: vc.What})
 	}
 	if s.SenderID != c.SenderID {
 		out = append(out, ApprovalChange{Field: "sender", Label: "From", Before: s.From, After: c.From})
@@ -363,6 +383,12 @@ func InvalidationReason(changes []ApprovalChange) string {
 			}
 		case "sender":
 			fields = append(fields, "sender")
+		case "language":
+			// "German: intro changed after approval".
+			if len(changes) == 1 {
+				return c.Label + ": " + c.What + " after approval"
+			}
+			fields = append(fields, c.Label+" version")
 		}
 	}
 	if len(fields) == 0 {

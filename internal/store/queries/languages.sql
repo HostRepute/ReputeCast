@@ -216,16 +216,30 @@ WHERE v.campaign_id = @campaign_id AND v.version = @version;
 
 -- name: LanguagesMessageResults :many
 -- Results of a sent campaign per language version and why readers got it.
+WITH unsub AS (
+    SELECT DISTINCT e.message_id FROM delivery_events e
+    WHERE e.campaign_id = @campaign_id AND e.type = 'unsubscribe' AND e.message_id IS NOT NULL
+)
 SELECT m.language, m.language_reason, m.contact_language,
        count(*) FILTER (WHERE m.sent_at IS NOT NULL)::bigint AS sent,
        count(*) FILTER (WHERE m.delivered_at IS NOT NULL OR m.status = 'complained')::bigint AS delivered,
        count(*) FILTER (WHERE m.human_opened_at IS NOT NULL)::bigint AS human_opens,
        count(*) FILTER (WHERE m.clicked_at IS NOT NULL)::bigint AS clicks,
        count(*) FILTER (WHERE m.status = 'complained')::bigint AS complaints,
-       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM delivery_events e WHERE e.message_id = m.id AND e.type = 'unsubscribe'))::bigint AS unsubscribes
+       count(*) FILTER (WHERE unsub.message_id IS NOT NULL)::bigint AS unsubscribes
 FROM messages m
+LEFT JOIN unsub ON unsub.message_id = m.id
 WHERE m.campaign_id = @campaign_id AND m.status <> 'cancelled'
 GROUP BY 1, 2, 3;
+
+-- name: LanguagesLatestDraftFor :one
+-- The newest unsent campaign with the same audience (the report's "Add a
+-- Vietnamese version to …").
+SELECT c.id, c.name FROM campaigns c
+WHERE c.workspace_id = @workspace_id AND c.id <> @except_id AND c.deleted_at IS NULL
+  AND c.status IN ('draft','approval','approved','scheduled') AND c.audience = @audience
+ORDER BY c.created_at DESC
+LIMIT 1;
 
 -- name: LanguagesCampaignSendContent :one
 SELECT content FROM campaign_sends WHERE campaign_id = @campaign_id;

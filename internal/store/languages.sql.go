@@ -973,6 +973,34 @@ func (q *Queries) LanguagesEnsureDefault(ctx context.Context, workspaceID uuid.U
 	return err
 }
 
+const languagesLatestDraftFor = `-- name: LanguagesLatestDraftFor :one
+SELECT c.id, c.name FROM campaigns c
+WHERE c.workspace_id = $1 AND c.id <> $2 AND c.deleted_at IS NULL
+  AND c.status IN ('draft','approval','approved','scheduled') AND c.audience = $3
+ORDER BY c.created_at DESC
+LIMIT 1
+`
+
+type LanguagesLatestDraftForParams struct {
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	ExceptID    uuid.UUID       `json:"exceptId"`
+	Audience    json.RawMessage `json:"audience"`
+}
+
+type LanguagesLatestDraftForRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// The newest unsent campaign with the same audience (the report's "Add a
+// Vietnamese version to …").
+func (q *Queries) LanguagesLatestDraftFor(ctx context.Context, arg LanguagesLatestDraftForParams) (LanguagesLatestDraftForRow, error) {
+	row := q.db.QueryRow(ctx, languagesLatestDraftFor, arg.WorkspaceID, arg.ExceptID, arg.Audience)
+	var i LanguagesLatestDraftForRow
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
 const languagesList = `-- name: LanguagesList :many
 
 SELECT wl.code, wl.is_default, wl.is_fallback, wl.added_at, wl.removed_at,
@@ -1059,14 +1087,19 @@ func (q *Queries) LanguagesLock(ctx context.Context, workspaceID uuid.UUID) ([]s
 }
 
 const languagesMessageResults = `-- name: LanguagesMessageResults :many
+WITH unsub AS (
+    SELECT DISTINCT e.message_id FROM delivery_events e
+    WHERE e.campaign_id = $1 AND e.type = 'unsubscribe' AND e.message_id IS NOT NULL
+)
 SELECT m.language, m.language_reason, m.contact_language,
        count(*) FILTER (WHERE m.sent_at IS NOT NULL)::bigint AS sent,
        count(*) FILTER (WHERE m.delivered_at IS NOT NULL OR m.status = 'complained')::bigint AS delivered,
        count(*) FILTER (WHERE m.human_opened_at IS NOT NULL)::bigint AS human_opens,
        count(*) FILTER (WHERE m.clicked_at IS NOT NULL)::bigint AS clicks,
        count(*) FILTER (WHERE m.status = 'complained')::bigint AS complaints,
-       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM delivery_events e WHERE e.message_id = m.id AND e.type = 'unsubscribe'))::bigint AS unsubscribes
+       count(*) FILTER (WHERE unsub.message_id IS NOT NULL)::bigint AS unsubscribes
 FROM messages m
+LEFT JOIN unsub ON unsub.message_id = m.id
 WHERE m.campaign_id = $1 AND m.status <> 'cancelled'
 GROUP BY 1, 2, 3
 `

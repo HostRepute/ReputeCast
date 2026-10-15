@@ -48,6 +48,7 @@ type updateContentIn struct {
 	Subject   *string `json:"subject,omitempty"`
 	Preheader *string `json:"preheader,omitempty"`
 	MJML      *string `json:"mjml,omitempty" jsonschema:"MJML 4 source"`
+	Language  string  `json:"language,omitempty" jsonschema:"change this language version (its code, such as de) instead of the source; get_campaign_languages lists them"`
 }
 
 type scheduleIn struct {
@@ -277,6 +278,9 @@ func (s *Service) addTools(srv *mcp.Server) {
 		e.targetID, e.targetName = cp.ID.String(), cp.Name
 		if cp.Status != "draft" {
 			return nil, e, fmt.Errorf("only drafts can be changed by an agent; %q is %s", cp.Name, cp.Status)
+		}
+		if in.Language != "" && s.Languages != nil {
+			return s.updateLanguage(ctx, c, cp, in, e)
 		}
 		creator := c.Principal.UserID
 		var by *uuid.UUID
@@ -639,6 +643,8 @@ func (s *Service) addTools(srv *mcp.Server) {
 		}
 		return map[string]any{"sent_to": to, "via": provider}, e, nil
 	}, nil)
+
+	s.addLanguageTools(srv)
 }
 
 func healthyLine(names []string) []string {

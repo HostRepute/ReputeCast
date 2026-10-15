@@ -18,6 +18,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/languages"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
@@ -55,6 +56,8 @@ type Service struct {
 	// Limits protects the public report endpoint; nil uses defaults.
 	Limits *Limiter
 	Now    func() time.Time
+	// Languages adds results per language; nil leaves them out.
+	Languages *languages.Service
 }
 
 func (s *Service) now() time.Time {
@@ -68,14 +71,24 @@ func (s *Service) now() time.Time {
 var unsent = map[string]bool{"draft": true, "approval": true, "approved": true, "scheduled": true}
 
 func (s *Service) Report(ctx context.Context, ws *store.Workspace, id uuid.UUID) (CampaignReport, error) {
+	return s.ReportIn(ctx, ws, id, "")
+}
+
+// ReportIn is the report with the click map of one language version ("" is
+// the source).
+func (s *Service) ReportIn(ctx context.Context, ws *store.Workspace, id uuid.UUID, lang string) (CampaignReport, error) {
 	c, err := s.Q.ReportCampaign(ctx, store.ReportCampaignParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
 		return CampaignReport{}, api.MapError(err, "Campaign")
 	}
-	return s.build(ctx, ws, c)
+	return s.buildIn(ctx, ws, c, lang)
 }
 
 func (s *Service) build(ctx context.Context, ws *store.Workspace, c store.ReportCampaignRow) (CampaignReport, error) {
+	return s.buildIn(ctx, ws, c, "")
+}
+
+func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.ReportCampaignRow, lang string) (CampaignReport, error) {
 	now := s.now()
 	loc := provstate.Location(ws.Timezone)
 	out := CampaignReport{Mailboxes: []ReportMailboxRow{}}
@@ -159,6 +172,28 @@ func (s *Service) build(ctx context.Context, ws *store.Workspace, c store.Report
 		return out, err
 	}
 	out.ClickMap = clickMap(c.Html, links)
+	if s.Languages != nil {
+		if out.Languages, err = s.Languages.CampaignResults(ctx, ws, c.ID, c.Audience); err != nil {
+			return out, err
+		}
+		if out.Languages != nil {
+			// The map shows one language version: its HTML and its links.
+			if html, from, to, ok := s.Languages.ClickMapVersion(ctx, c.ID, lang); ok {
+				mine := make([]store.ReportLinksRow, 0, len(links))
+				for _, l := range links {
+					if int(l.Position) >= from && int(l.Position) < to {
+						l.Position -= int32(from)
+						mine = append(mine, l)
+					}
+				}
+				out.ClickMap = clickMap(html, mine)
+				out.ClickMap.Language = lang
+				if lang == "" && len(out.Languages.ClickMaps) > 0 {
+					out.ClickMap.Language = out.Languages.ClickMaps[0].Language
+				}
+			}
+		}
+	}
 	cid := c.ID
 	codes, err := s.Q.ReportBounceCodes(ctx, store.ReportBounceCodesParams{CampaignID: &cid, WorkspaceID: ws.ID})
 	if err != nil {
