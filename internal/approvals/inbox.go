@@ -14,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/readiness"
@@ -508,11 +509,27 @@ type ApprovalPreview struct {
 	Preheader string `json:"preheader"`
 	HTML      string `json:"html"`
 	Version   int    `json:"version"`
+	// Language is the language version shown; Languages are the versions
+	// the approval covers, the source first (the preview's language picker).
+	Language  string                    `json:"language"`
+	Languages []ApprovalPreviewLanguage `json:"languages"`
+}
+
+// ApprovalPreviewLanguage is one language version an approval covers.
+type ApprovalPreviewLanguage struct {
+	Language string `json:"language"`
+	Name     string `json:"name"`
+	Status   string `json:"status" enum:"source,translated,draft"`
 }
 
 // Preview renders the version a request covers with the personalization
 // fallbacks ("there" for an empty first name).
 func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (ApprovalPreview, error) {
+	return s.PreviewIn(ctx, ws, p, id, "")
+}
+
+// PreviewIn renders one language version a request covers ("" is the source).
+func (s *Service) PreviewIn(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, lang string) (ApprovalPreview, error) {
 	r, err := s.Q.ApprovalGet(ctx, store.ApprovalGetParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
 		return ApprovalPreview{}, api.MapError(err, "Approval request")
@@ -528,11 +545,31 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	} else if c, cerr := s.Readiness.Campaign(ctx, ws, *r.CampaignID); cerr == nil {
 		html = c.Html
 	}
-	vars := liquid.Vars("", "", "", nil, map[string]string{"unsubscribe_url": "#unsubscribe", "preferences_url": "#preferences", "view_in_browser_url": "#view-in-browser"})
-	if out, err := liquid.Render(html, vars); err == nil {
-		html = out
+	out := ApprovalPreview{Version: snap.Version, Languages: []ApprovalPreviewLanguage{}}
+	if s.Languages != nil {
+		src, err := languages.Campaigns{S: s.Languages}.SourceLanguage(ctx, ws, *r.CampaignID)
+		if err != nil {
+			return out, err
+		}
+		out.Language = src
+		out.Languages = append(out.Languages, ApprovalPreviewLanguage{Language: src, Name: languages.NameOf(src), Status: "source"})
+		for _, v := range snap.Languages {
+			out.Languages = append(out.Languages, ApprovalPreviewLanguage{Language: v.Language, Name: languages.NameOf(v.Language), Status: v.Status})
+		}
+		if lang != "" && lang != src {
+			c, err := s.Languages.CampaignVersionAt(ctx, *r.CampaignID, lang, snapshotVersion(snap, lang))
+			if err != nil {
+				return out, err
+			}
+			html, subject, pre, out.Language = c.HTML, c.Subject, c.Preheader, lang
+		}
 	}
-	return ApprovalPreview{Subject: subject, Preheader: pre, HTML: html, Version: snap.Version}, nil
+	vars := liquid.Vars("", "", "", nil, map[string]string{"unsubscribe_url": "#unsubscribe", "preferences_url": "#preferences", "view_in_browser_url": "#view-in-browser"})
+	if r, err := liquid.Render(html, vars); err == nil {
+		html = r
+	}
+	out.Subject, out.Preheader, out.HTML = subject, pre, html
+	return out, nil
 }
 
 // scaleRoute spreads a moved audience over a snapshot's route by its split;

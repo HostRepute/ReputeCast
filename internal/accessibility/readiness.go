@@ -91,21 +91,11 @@ type FixChange struct {
 	// text is 12 px"); Kinds the fixed issue kinds.
 	Summary string
 	Kinds   []string
-	// Languages are the versions the fix changed.
-	Languages []string
 }
 
-// FixMJML applies a Review & send fix to a campaign's MJML. Fixes need no
-// words, so they apply to every language version alike.
+// FixMJML applies a Review & send fix to an email's MJML. These fixes need
+// no words, so Send Readiness applies them to every language version alike.
 func (s *Service) FixMJML(ctx context.Context, ws *store.Workspace, src, action string, params map[string]string) (string, FixChange, error) {
-	next, change, err := s.fixMJML(ctx, ws, src, action, params)
-	if err == nil {
-		change.Languages = []string{s.language(ctx, ws)}
-	}
-	return next, change, err
-}
-
-func (s *Service) fixMJML(ctx context.Context, ws *store.Workspace, src, action string, params map[string]string) (string, FixChange, error) {
 	if strings.TrimSpace(src) == "" {
 		return src, FixChange{}, errors.New("this campaign is written in HTML: fix it in the composer's code view")
 	}

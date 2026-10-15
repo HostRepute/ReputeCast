@@ -87,10 +87,7 @@ func (s *Service) language(ctx context.Context, ws *store.Workspace) string {
 			return l
 		}
 	}
-	if l := ContentLanguage(ctx, ws); l != "" {
-		return l
-	}
-	return "en"
+	return WorkspaceLanguage(ctx, s.Q, ws.ID)
 }
 
 // AccessibilityPolicy is the workspace's policy as Settings › General shows it.
@@ -319,7 +316,7 @@ func (s *Service) CampaignReport(ctx context.Context, ws *store.Workspace, id uu
 // content is cached by its hash, so Review & send and the gallery don't
 // compile the same email twice.
 func (s *Service) Report(ctx context.Context, ws *store.Workspace, c CampaignContent) (AccessibilityReport, error) {
-	versions, err := s.versionsOf(ctx, ws, c.ID, Version{Lang: s.language(ctx, ws), MJML: c.MJML, HTML: c.HTML, Source: true})
+	versions, err := s.versionsOf(ctx, ws, c.ID, Version{Lang: EmailLanguage(ctx, s.Q, ws.ID, OwnerCampaign, c.ID, 0), MJML: c.MJML, HTML: c.HTML, Source: true})
 	if err != nil {
 		return AccessibilityReport{}, err
 	}
@@ -363,11 +360,12 @@ func (s *Service) CheckCampaign(ctx context.Context, ws *store.Workspace, id uui
 	if strings.TrimSpace(in.MJML) == "" && strings.TrimSpace(in.HTML) == "" {
 		return s.Report(ctx, ws, CampaignContent{ID: c.ID, Name: c.Name, Status: c.Status, MJML: c.Mjml, HTML: c.Html, Hash: c.ContentHash})
 	}
+	source := EmailLanguage(ctx, s.Q, ws.ID, OwnerCampaign, c.ID, 0)
 	lang := in.Lang
 	if lang == "" {
-		lang = s.language(ctx, ws)
+		lang = source
 	}
-	versions, err := s.versionsOf(ctx, ws, c.ID, Version{Lang: lang, MJML: in.MJML, HTML: in.HTML, Source: in.Lang == "" || BaseLanguage(in.Lang) == BaseLanguage(s.language(ctx, ws))})
+	versions, err := s.versionsOf(ctx, ws, c.ID, Version{Lang: lang, MJML: in.MJML, HTML: in.HTML, Source: BaseLanguage(lang) == BaseLanguage(source)})
 	if err != nil {
 		return AccessibilityReport{}, err
 	}

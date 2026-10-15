@@ -2475,6 +2475,217 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A campaign's language versions with their status and readers
+         * @description Every workspace language is listed: the source, versions that are Up to date, Outdated (with the blocks that changed) or Draft, and Missing ones, whose readers get the fallback.
+         */
+        get: operations["list-campaign-languages"];
+        put?: never;
+        /**
+         * Add a language version (a Draft) to a campaign
+         * @description It starts from a copy of the source (layout and text) or from the layout only. A Draft is never sent: its readers get the fallback until it is marked translated.
+         */
+        post: operations["add-campaign-language"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply a source link or image change to every language version */
+        post: operations["apply-to-campaign-languages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/keep-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep every language version up to date after a source edit that needs no translating */
+        post: operations["keep-campaign-languages-up-to-date"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the language a campaign is written in (while it has one version) */
+        put: operations["set-campaign-source-language"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a campaign's language version */
+        delete: operations["remove-campaign-language"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compare a language version with the source, block by block */
+        get: operations["compare-campaign-language"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/copy-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a block new in the source into a language version */
+        post: operations["copy-block-to-campaign-language"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/hold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Send the fallback to a language's readers instead, or stop doing so */
+        put: operations["hold-campaign-language"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/mark-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a Draft language version translated, so it is sent */
+        post: operations["mark-campaign-language-translated"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/mark-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an Outdated language version (or some of its blocks) up to date */
+        post: operations["mark-campaign-language-up-to-date"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/remove-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove a block the source no longer has from a language version */
+        post: operations["remove-block-from-campaign-language"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved versions of a campaign's language version, newest first */
+        get: operations["list-campaign-language-versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live": {
         parameters: {
             query?: never;
@@ -4427,6 +4638,115 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The workspace's languages, default and fallback, with their contacts */
+        get: operations["list-workspace-languages"];
+        put?: never;
+        /**
+         * Add a language to the workspace
+         * @description Right-to-left languages aren't supported yet and answer 422. Adding a language that was removed brings back its versions and page copy.
+         */
+        post: operations["add-workspace-language"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/languages/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Languages that can be added, with the contacts who already have them */
+        get: operations["list-language-catalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/languages/defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the default and fallback languages */
+        put: operations["set-language-defaults"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/languages/fallback-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many contacts a new fallback language moves */
+        get: operations["get-fallback-impact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/languages/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a language from the workspace
+         * @description Its email versions and page copy are kept but no longer used; its contacts keep their language and get the fallback. The default and the fallback can't be removed (409).
+         */
+        delete: operations["remove-workspace-language"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/languages/{code}/removal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What removing a language affects */
+        get: operations["get-language-removal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/leave": {
         parameters: {
             query?: never;
@@ -5853,6 +6173,322 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Categories with their templates and opt-outs */
+        get: operations["list-transactional-categories"];
+        put?: never;
+        /** Add a category */
+        post: operations["create-transactional-category"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/categories/{categoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a category (its kind is fixed while it has templates) */
+        put: operations["update-transactional-category"];
+        post?: never;
+        /** Delete a category without templates */
+        delete: operations["delete-transactional-category"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contact linking, content retention, delivery alerts and template defaults */
+        get: operations["get-transactional-settings"];
+        /** Save Settings › Transactional */
+        put: operations["save-transactional-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/starters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Starter templates with their variables and test data */
+        get: operations["list-transactional-starters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List templates with their numbers over a period
+         * @description Each template's live version, draft state, sent, delivery, bounce and complaint rates, median delivery time, last send and a sparkline. Test messages are left out unless includeTest.
+         */
+        get: operations["list-transactional-templates"];
+        put?: never;
+        /**
+         * Create a template: blank, from a starter, as a copy, or with imported content
+         * @description The template starts as a draft. Nothing is sent until it is published.
+         */
+        post: operations["create-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a template with its draft, variables, test data and live version */
+        get: operations["get-transactional-template"];
+        put?: never;
+        post?: never;
+        /** Delete a draft or archived template (its messages stay in the log) */
+        delete: operations["delete-transactional-template"];
+        options?: never;
+        head?: never;
+        /** Rename a template, change its category, or its ID before the first publish */
+        patch: operations["update-transactional-template"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a template: calls answer template_not_found until it is restored */
+        post: operations["archive-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the template's checks on the draft or the editor's unsaved content
+         * @description The composer's content checks (size, alt text, links, plain text; unsubscribe link and footer address for Optional categories) and the transactional ones: Liquid errors, undeclared and unused variables, test data that fails to render, a sensitive variable in the subject, tracking on an Essential template.
+         */
+        post: operations["check-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the draft (autosave)
+         * @description Content, variables, test data, sender, reply-to and tracking. Fails with 409 version_conflict when someone saved a newer revision since baseRevision; the problem's meta says who, when and what each side changed. Send force: true to keep yours.
+         */
+        put: operations["save-transactional-template-draft"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render the draft or a version with test data (nothing is sent) */
+        post: operations["preview-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish the draft as the next version
+         * @description Fails with 409 breaking_change when a newly required variable is missing from recent calls (fix it with makeOptional, or send publishAnyway), 409 approval_required when the workspace's rule applies, 409 version_conflict when the draft changed since baseRevision, and 409 template_does_not_render when a check blocks.
+         */
+        post: operations["publish-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/publish-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * What publishing the draft would change
+         * @description The diff since the live version, the breaking-change check against the calls of the last 7 days, the checks, test renders with each test data set and the last real call, and whether the workspace's approval rule applies. makeOptional previews the recommended fix.
+         */
+        post: operations["preview-transactional-publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/render": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Render the live version with a call's data, without sending
+         * @description Returns the subject, HTML and text a send would use. Errors: template_not_found, template_not_published, missing_variables (listing them in missing).
+         */
+        post: operations["render-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore an archived template */
+        post: operations["restore-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish an earlier version again (roll back, or undo a publish) */
+        post: operations["rollback-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Published versions, newest first */
+        get: operations["list-transactional-template-versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One published version with its content */
+        get: operations["get-transactional-template-version"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transfer": {
         parameters: {
             query?: never;
@@ -6295,6 +6931,7 @@ export interface components {
             perLanguage: boolean;
             /** Format: double */
             ratio?: number;
+            subject?: string;
             suggestions: components["schemas"]["AccessibilityColorSuggestion"][];
             /** @enum {string} */
             target?: "background" | "text";
@@ -6364,6 +7001,7 @@ export interface components {
             paths: number[][];
             /** @enum {string} */
             severity: "serious" | "moderate";
+            short: string;
             tag: string;
             title: string;
             versions: components["schemas"]["AccessibilityIssueVersion"][];
@@ -6741,10 +7379,35 @@ export interface components {
             upToDate: boolean;
             version: string;
         };
+        AddLanguageInput: {
+            /** @description A workspace language */
+            language: string;
+            /**
+             * @default copy
+             * @enum {string}
+             */
+            start: "copy" | "layout";
+        };
         AddSuppressionsInput: {
             emails: string[];
             /** @description Why, shown as the original code */
             note?: string;
+        };
+        AddWorkspaceLanguage: {
+            /** @description A base language code, such as fr */
+            code: string;
+        };
+        ApplyInput: {
+            block?: string;
+            from: string;
+            /** @enum {string} */
+            kind: "link" | "image";
+            to: string;
+        };
+        ApplyResult: {
+            languages: string[];
+            /** Format: int64 */
+            replaced: number;
         };
         ApprovalAudienceRule: {
             enabled: boolean;
@@ -6813,8 +7476,9 @@ export interface components {
             after: string;
             before: string;
             /** @enum {string} */
-            field: "subject" | "preheader" | "link" | "content" | "sender" | "audience" | "audience_count" | "route" | "schedule";
+            field: "subject" | "preheader" | "link" | "content" | "sender" | "audience" | "audience_count" | "route" | "schedule" | "language";
             label: string;
+            what?: string;
         };
         ApprovalCommentInput: {
             body: string;
@@ -6998,10 +7662,18 @@ export interface components {
         };
         ApprovalPreview: {
             html: string;
+            language: string;
+            languages: components["schemas"]["ApprovalPreviewLanguage"][];
             preheader: string;
             subject: string;
             /** Format: int64 */
             version: number;
+        };
+        ApprovalPreviewLanguage: {
+            language: string;
+            name: string;
+            /** @enum {string} */
+            status: "source" | "translated" | "draft";
         };
         ApprovalReadinessView: {
             /** Format: int64 */
@@ -7965,6 +8637,18 @@ export interface components {
         AutomationWebhookCalls: {
             calls: components["schemas"]["AutomationWebhookCall"][];
         };
+        BlockChange: {
+            /** Format: date-time */
+            at: string;
+            by: string;
+            /** Format: int64 */
+            version: number;
+        };
+        BlockInput: {
+            /** Format: int64 */
+            index?: number;
+            key?: string;
+        };
         CampaignList: {
             counts: components["schemas"]["CampaignStatusCounts"];
             items: components["schemas"]["CampaignListItem"][];
@@ -8016,6 +8700,7 @@ export interface components {
             clickMap: components["schemas"]["ReportClickMap"];
             engagement: components["schemas"]["ReportEngagement"];
             headline: components["schemas"]["ReportHeadline"];
+            languages?: components["schemas"]["ReportLanguages"];
             mailboxes: components["schemas"]["ReportMailboxRow"][];
             notSent?: components["schemas"]["ReportNotSent"];
             providers: components["schemas"]["ReportProviderTable"];
@@ -8076,6 +8761,18 @@ export interface components {
             /** Format: int64 */
             sent: number;
         };
+        CatalogLanguage: {
+            added: boolean;
+            builtinLabels: boolean;
+            code: string;
+            contactCodes: string[];
+            /** Format: int64 */
+            contacts: number;
+            name: string;
+            native: string;
+            regions: string[];
+            rtl: boolean;
+        };
         "Change-passwordRequest": {
             current?: string;
             password: string;
@@ -8095,6 +8792,33 @@ export interface components {
             skipped: string[];
             updated: string[];
             zone: string;
+        };
+        CompareBlock: {
+            /** Format: int64 */
+            index: number;
+            name: string;
+            segments: components["schemas"]["Segment"][];
+            text: string;
+        };
+        CompareRow: {
+            before: string;
+            changed?: components["schemas"]["BlockChange"];
+            /** Format: int64 */
+            fromVersion: number;
+            key: string;
+            /** Format: int64 */
+            number: number;
+            source?: components["schemas"]["CompareBlock"];
+            /** @enum {string} */
+            state: "up_to_date" | "changed" | "still" | "new" | "removed" | "only";
+            version?: components["schemas"]["CompareBlock"];
+        };
+        CompareText: {
+            before: string;
+            source: string;
+            /** @enum {string} */
+            state: "up_to_date" | "changed";
+            version: string;
         };
         ComposerABTest: {
             bestTime?: boolean;
@@ -8175,6 +8899,7 @@ export interface components {
             editorMode: "visual" | "mjml" | "html";
             html: string;
             id: string;
+            language: string;
             mjml: string;
             name: string;
             plainText: string;
@@ -8186,6 +8911,7 @@ export interface components {
             scheduledAt?: string;
             sender?: components["schemas"]["ComposerSenderRef"];
             settings: components["schemas"]["ComposerContentSettings"];
+            sourceLanguage: string;
             /** @enum {string} */
             status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
             subject: string;
@@ -8235,6 +8961,7 @@ export interface components {
         };
         ComposerChecksRequest: {
             html?: string;
+            language?: string;
             mjml?: string;
             preheader?: string;
             /** @description Also request every link (slower; Send Readiness does it) */
@@ -8283,6 +9010,8 @@ export interface components {
             fromEmail: string;
             fromName: string;
             html: string;
+            language: string;
+            languageReason: string;
             /** Format: int64 */
             missingFirstName?: number;
             preheader: string;
@@ -8297,6 +9026,7 @@ export interface components {
             email: string;
             id?: string;
             label: string;
+            language: string;
             name: string;
         };
         ComposerPreviewContactList: {
@@ -8306,6 +9036,7 @@ export interface components {
             /** Format: uuid */
             contactId?: string;
             html?: string;
+            language?: string;
             preheader?: string;
             /**
              * @default contact
@@ -8374,11 +9105,14 @@ export interface components {
              * @description Personalize as this contact
              */
             contactId?: string;
+            eachLanguage?: boolean;
+            language?: string;
             to: string[];
             /** @enum {string} */
             variant?: "A" | "B" | "C";
         };
         ComposerTestSendResult: {
+            languages: string[];
             provider: string;
             sent: string[];
         };
@@ -9697,6 +10431,70 @@ export interface components {
             /** @description What it is for, e.g. primary sending domain */
             note?: string;
         };
+        EmailLanguage: {
+            /** Format: int64 */
+            attention: number;
+            /** Format: int64 */
+            blocks: number;
+            /** Format: int64 */
+            changed: number;
+            changedBlocks: string[];
+            changedIndexes: number[];
+            gets: string;
+            held: boolean;
+            language: string;
+            lastChange?: components["schemas"]["BlockChange"];
+            name: string;
+            native: string;
+            /** Format: int64 */
+            noLanguage: number;
+            /** Format: int64 */
+            notOffered: number;
+            offered: boolean;
+            preheader: string;
+            preheaderChanged: boolean;
+            /** Format: int64 */
+            readers?: number;
+            /** @enum {string} */
+            status: "source" | "up_to_date" | "outdated" | "draft" | "missing";
+            /** Format: int64 */
+            still: number;
+            stillIndexes: number[];
+            subject: string;
+            subjectChanged: boolean;
+            /** Format: int64 */
+            translated: number;
+            /** Format: date-time */
+            translatedAt?: string;
+            translatedBy: string;
+            /** Format: int64 */
+            translatedFrom: number;
+            /** Format: int64 */
+            upToDate: number;
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy: string;
+            /** Format: int64 */
+            version: number;
+        };
+        EmailLanguages: {
+            /** Format: int64 */
+            blocks: number;
+            canChangeSource: boolean;
+            canEdit: boolean;
+            canManageWorkspace: boolean;
+            default: string;
+            editHelpers: string[];
+            fallback: string;
+            /** Format: int64 */
+            readers?: number;
+            source: string;
+            sourceChange?: components["schemas"]["LanguageSourceChange"];
+            /** Format: int64 */
+            sourceVersion: number;
+            versions: components["schemas"]["EmailLanguage"][];
+            workspaceHelpers: string[];
+        };
         EmailTemplateDetail: {
             builtin: boolean;
             description: string;
@@ -9765,6 +10563,15 @@ export interface components {
             /** @description The value at the given location */
             value?: unknown;
         };
+        FallbackImpact: {
+            fallback: string;
+            /** Format: int64 */
+            moved: number;
+            /** Format: int64 */
+            noLanguage: number;
+            /** Format: int64 */
+            notOffered: number;
+        };
         HealthTierCard: {
             /** Format: int64 */
             count: number;
@@ -9790,6 +10597,9 @@ export interface components {
             day: string;
             /** Format: double */
             sunset: number;
+        };
+        HoldInput: {
+            held: boolean;
         };
         HostReputeAPIKeyInputBody: {
             /** @description A HostRepute API key (hr_live_…) with the monitor:read, alerts:read and assets:write scopes. Write-only: it is stored encrypted and never returned. */
@@ -10821,6 +11631,70 @@ export interface components {
         ItemsAudienceListSummary: {
             items: components["schemas"]["AudienceListSummary"][];
         };
+        KeepUpToDateInput: {
+            blocks: string[];
+        };
+        LanguageCatalogList: {
+            items: components["schemas"]["CatalogLanguage"][];
+        };
+        LanguageCompare: {
+            /** Format: int64 */
+            attention: number;
+            /** Format: int64 */
+            blocks: number;
+            language: string;
+            preheader: components["schemas"]["CompareText"];
+            rows: components["schemas"]["CompareRow"][];
+            source: string;
+            /** Format: int64 */
+            sourceVersion: number;
+            /** @enum {string} */
+            status: "up_to_date" | "outdated" | "draft";
+            subject: components["schemas"]["CompareText"];
+            /** Format: int64 */
+            translated: number;
+            /** Format: date-time */
+            translatedAt?: string;
+            translatedBy: string;
+            /** Format: int64 */
+            translatedFrom: number;
+            /** Format: int64 */
+            upToDate: number;
+            /** Format: int64 */
+            version: number;
+        };
+        LanguageDefaults: {
+            default: string;
+            fallback: string;
+        };
+        LanguagePageCopy: {
+            /** Format: date-time */
+            at?: string;
+            builtinLabels: boolean;
+            by: string;
+            /** Format: int64 */
+            missing: number;
+            /** @enum {string} */
+            status: "live" | "incomplete" | "not_set_up";
+        };
+        LanguageRemoval: {
+            code: string;
+            fallback: string;
+            has: components["schemas"]["RemovalItem"][];
+            name: string;
+            /** Format: int64 */
+            readers: number;
+            refusal?: string;
+        };
+        LanguageSourceChange: {
+            /** Format: date-time */
+            at: string;
+            blocks: string[];
+            by: string;
+            outdated: string[];
+            /** Format: int64 */
+            version: number;
+        };
         LiquidProblem: {
             /** Format: int64 */
             line: number;
@@ -11347,6 +12221,9 @@ export interface components {
             row?: components["schemas"]["MJMLThumbItem"][];
             /** Format: int64 */
             w?: number;
+        };
+        MarkInput: {
+            blocks?: string[];
         };
         Me: {
             instance: components["schemas"]["MeInstance"];
@@ -12507,15 +13384,22 @@ export interface components {
             fixes: components["schemas"]["ReadinessFix"][];
             flatTitle: string;
             /** @enum {string} */
-            group: "reputation" | "authentication" | "content" | "links" | "compliance" | "audience" | "routing" | "accessibility";
+            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
             key: string;
             label?: string;
             mono?: boolean;
             note?: string;
+            rows?: components["schemas"]["ReadinessCheckRow"][];
             short?: string;
             /** @enum {string} */
             status: "pass" | "warn" | "block" | "unknown";
             title: string;
+        };
+        ReadinessCheckRow: {
+            /** Format: int64 */
+            count: number;
+            detail: string;
+            label: string;
         };
         ReadinessCounts: {
             /** Format: int64 */
@@ -12536,7 +13420,7 @@ export interface components {
         };
         ReadinessFix: {
             /** @enum {string} */
-            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click";
+            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click";
             href?: string;
             /** @enum {string} */
             kind: "apply" | "link";
@@ -12555,7 +13439,7 @@ export interface components {
         };
         ReadinessFixRequest: {
             /** @enum {string} */
-            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click";
+            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click";
             params?: {
                 [key: string]: string;
             };
@@ -12566,7 +13450,7 @@ export interface components {
         ReadinessGroup: {
             caption: string;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "links" | "compliance" | "audience" | "routing" | "accessibility";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
             note?: string;
             /** Format: int64 */
             passed: number;
@@ -12605,7 +13489,7 @@ export interface components {
             /** Format: int64 */
             done: number;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "links" | "compliance" | "audience" | "routing" | "accessibility";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
             /** @enum {string} */
             status: "queued" | "running" | "pass" | "warn" | "block" | "unknown";
             text: string;
@@ -12727,6 +13611,13 @@ export interface components {
         };
         RecoveryCodes: {
             codes: string[];
+        };
+        RemovalItem: {
+            detail: string;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation_email" | "transactional_template";
+            name: string;
         };
         RemoveSuppressionInput: {
             reason: string;
@@ -12853,6 +13744,7 @@ export interface components {
         ReportClickMap: {
             available: boolean;
             html: string;
+            language?: string;
             links: components["schemas"]["ReportLink"][];
             other?: components["schemas"]["ReportLinkGroup"];
             /**
@@ -12947,6 +13839,72 @@ export interface components {
             providers: components["schemas"]["ReportBacklogProvider"][];
             /** Format: date-time */
             since: string;
+        };
+        ReportLanguageCount: {
+            /** Format: int64 */
+            count: number;
+            language: string;
+            name: string;
+        };
+        ReportLanguageDraft: {
+            id: string;
+            name: string;
+        };
+        ReportLanguageFallback: {
+            draft?: components["schemas"]["ReportLanguageDraft"];
+            /** Format: double */
+            gap?: number;
+            got: string;
+            readers: string[];
+        };
+        ReportLanguageOption: {
+            language: string;
+            name: string;
+        };
+        ReportLanguageRow: {
+            /** Format: double */
+            clickRate?: number;
+            /** Format: int64 */
+            clicks: number;
+            /** Format: double */
+            complaintRate?: number;
+            /** Format: int64 */
+            complaints: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveredRate?: number;
+            fallback: boolean;
+            /** Format: double */
+            humanOpenRate?: number;
+            /** Format: int64 */
+            humanOpens: number;
+            kinds: string[];
+            language: string;
+            missing?: string;
+            name: string;
+            readers: string[];
+            /** @enum {string} */
+            reason?: "missing" | "draft" | "held";
+            /** Format: int64 */
+            sent: number;
+            source: boolean;
+            /** Format: int64 */
+            translatedFrom?: number;
+            /** Format: double */
+            unsubscribeRate?: number;
+            /** Format: int64 */
+            unsubscribes: number;
+        };
+        ReportLanguages: {
+            clickMaps: components["schemas"]["ReportLanguageOption"][];
+            fallback?: components["schemas"]["ReportLanguageFallback"];
+            /** Format: int64 */
+            languages: number;
+            rows: components["schemas"]["ReportLanguageRow"][];
+            sent: components["schemas"]["ReportLanguageCount"][];
+            /** Format: int64 */
+            versions: number;
         };
         ReportLink: {
             /** Format: int64 */
@@ -13251,6 +14209,7 @@ export interface components {
             membersAffected: number;
             /** Format: int64 */
             pendingApprovals: number;
+            pendingRequests: components["schemas"]["RoleImpactPending"][];
             removed: string[];
             removedSensitive: string[];
             sensitive: string;
@@ -13276,6 +14235,11 @@ export interface components {
             id: string;
             loses: string[];
             name: string;
+        };
+        RoleImpactPending: {
+            requester: string;
+            stillMatches: string[];
+            subject: string;
         };
         RoleInput: {
             description?: string;
@@ -13832,6 +14796,19 @@ export interface components {
         ScopedList: {
             id: string;
             name: string;
+        };
+        Segment: {
+            alt?: string;
+            /** Format: int64 */
+            column: number;
+            /** Format: int64 */
+            heading: number;
+            html?: string;
+            kind: string;
+            path: number[];
+            strong: boolean;
+            text: string;
+            url?: string;
         };
         SegmentCatalog: {
             fields: components["schemas"]["SegmentCatalogField"][];
@@ -14566,6 +15543,9 @@ export interface components {
             systemProvider: string;
             turnstile: components["schemas"]["PublicTurnstile"];
         };
+        SourceInput: {
+            language: string;
+        };
         SubscribePage: {
             description: string;
             footnote: string;
@@ -15007,6 +15987,605 @@ export interface components {
             challenge: string;
             code: string;
         };
+        TransactionalAddress: {
+            /** @example sam.rivera@outlook.com */
+            email: string;
+            /** @example Sam Rivera */
+            name?: string;
+        };
+        TransactionalBreakingChange: {
+            breaking: components["schemas"]["TransactionalBreakingVariable"][];
+            /**
+             * Format: int64
+             * @description Calls to the template in the last 7 days
+             */
+            calls: number;
+            summary: string;
+            unused: string[];
+        };
+        TransactionalBreakingVariable: {
+            /** Format: int64 */
+            callsWithout: number;
+            name: string;
+            suggestedDefault: string;
+            type: string;
+        };
+        TransactionalCategory: {
+            /** @description What recipients see in the preference center */
+            description: string;
+            id: string;
+            /** @enum {string} */
+            kind: "essential" | "optional";
+            name: string;
+            /** Format: int64 */
+            optedOut: number;
+            /** Format: int64 */
+            templates: number;
+        };
+        TransactionalCategoryInput: {
+            description?: string;
+            /** @enum {string} */
+            kind: "essential" | "optional";
+            name: string;
+        };
+        TransactionalCategoryList: {
+            canEdit: boolean;
+            items: components["schemas"]["TransactionalCategory"][];
+            reason?: string;
+        };
+        TransactionalCategoryRef: {
+            id: string;
+            /** @enum {string} */
+            kind: "essential" | "optional";
+            name: string;
+        };
+        TransactionalCheck: {
+            detail?: string;
+            fixes: components["schemas"]["TransactionalCheckFix"][];
+            /** @enum {string} */
+            group: "Content" | "Links" | "Compliance" | "Subject" | "Variables" | "Test data" | "Privacy";
+            /** @example variables.undeclared */
+            id: string;
+            /** Format: int64 */
+            line?: number;
+            path: number[];
+            /** @enum {string} */
+            severity: "block" | "warn" | "info" | "pass";
+            testData?: string;
+            title: string;
+            variable?: string;
+            /** @enum {string} */
+            where?: "subject" | "preheader" | "body" | "text";
+        };
+        TransactionalCheckFix: {
+            /** @enum {string} */
+            kind: "declare_variable" | "remove_variable" | "make_optional" | "add_test_value" | "insert_footer" | "set_alt" | "minify" | "edit_link" | "replace_link" | "move_to_body" | "turn_off_tracking";
+            label: string;
+            path?: number[];
+            testData?: string;
+            value?: string;
+            variable?: string;
+        };
+        TransactionalChecks: {
+            /** Format: int64 */
+            blocks: number;
+            checks: components["schemas"]["TransactionalCheck"][];
+            /** Format: int64 */
+            clipBytes: number;
+            /** Format: int64 */
+            images: number;
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            passed: number;
+            plainText: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            testData: components["schemas"]["TransactionalTestRender"][];
+            variables: components["schemas"]["TransactionalVariableReport"];
+            /** @enum {string} */
+            verdict: "ready" | "warnings" | "blocked";
+            /** Format: int64 */
+            warnings: number;
+        };
+        TransactionalChecksInput: {
+            /** @enum {string} */
+            editorMode?: "visual" | "mjml" | "html";
+            html?: string;
+            mjml?: string;
+            plainText?: string;
+            preheader?: string;
+            subject?: string;
+            testData?: components["schemas"]["TransactionalTestData"][];
+            trackClicks?: boolean;
+            trackOpens?: boolean;
+            variables?: components["schemas"]["TransactionalVariable"][];
+        };
+        TransactionalDiff: {
+            changed: boolean;
+            content: components["schemas"]["TransactionalDiffLine"][];
+            contentSummary: string;
+            preheader?: components["schemas"]["TransactionalTextChange"];
+            settings: string[];
+            subject?: components["schemas"]["TransactionalTextChange"];
+            variables: components["schemas"]["TransactionalVariableChange"][];
+        };
+        TransactionalDiffLine: {
+            /** @enum {string} */
+            kind: "ctx" | "add" | "del";
+            text: string;
+        };
+        TransactionalDraftSave: {
+            /** Format: int64 */
+            baseRevision: number;
+            /** @enum {string} */
+            editorMode?: "visual" | "mjml" | "html";
+            force?: boolean;
+            /** @description The HTML the editor compiled; empty compiles the MJML on the server */
+            html?: string;
+            label?: string;
+            mjml?: string;
+            plainText?: string;
+            preheader?: string;
+            replyTo?: string;
+            /** @description A Transactional sender, or empty for the default */
+            senderId?: string;
+            /**
+             * @default autosave
+             * @enum {string}
+             */
+            source: "autosave" | "manual" | "import" | "restore";
+            subject?: string;
+            testData?: components["schemas"]["TransactionalTestData"][];
+            trackClicks?: boolean;
+            trackOpens?: boolean;
+            variables?: components["schemas"]["TransactionalVariable"][];
+        };
+        TransactionalDraftSaved: {
+            draftChanges: boolean;
+            draftHash: string;
+            /** Format: int64 */
+            draftRevision: number;
+            html: string;
+            plainText: string;
+            /** Format: date-time */
+            savedAt: string;
+            /** Format: int64 */
+            sizeBytes: number;
+        };
+        TransactionalMakeOptional: {
+            default: string;
+            name: string;
+        };
+        TransactionalPreview: {
+            defaults: string[];
+            fromEmail: string;
+            fromName: string;
+            html: string;
+            missing: string[];
+            ok: boolean;
+            preheader: string;
+            problem?: string;
+            replyTo: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            subject: string;
+            text: string;
+            version: string;
+        };
+        TransactionalPreviewInput: {
+            /** @description Data to render with instead of a test data set */
+            data?: {
+                [key: string]: unknown;
+            };
+            html?: string;
+            mjml?: string;
+            plainText?: string;
+            preheader?: string;
+            subject?: string;
+            /** @description The name of a test data set */
+            testData?: string;
+            to?: components["schemas"]["TransactionalAddress"];
+            variables?: components["schemas"]["TransactionalVariable"][];
+            /**
+             * @description draft (default), live, or a version number
+             * @example draft
+             */
+            version?: string;
+        };
+        TransactionalPublishApproval: {
+            approvers: string[];
+            reason?: string;
+            required: boolean;
+        };
+        TransactionalPublishInput: {
+            /** Format: int64 */
+            baseRevision: number;
+            makeOptional?: components["schemas"]["TransactionalMakeOptional"][];
+            /** @description Shown in the version history instead of the generated summary */
+            note?: string;
+            publishAnyway?: boolean;
+        };
+        TransactionalPublishPreview: {
+            approval: components["schemas"]["TransactionalPublishApproval"];
+            blocking: string[];
+            breaking: components["schemas"]["TransactionalBreakingChange"];
+            canPublish: boolean;
+            category?: components["schemas"]["TransactionalCategoryRef"];
+            checks: components["schemas"]["TransactionalChecks"];
+            diff: components["schemas"]["TransactionalDiff"];
+            /** Format: int64 */
+            draftRevision: number;
+            /** Format: date-time */
+            draftSavedAt: string;
+            draftSavedBy: string;
+            key: string;
+            liveBy?: string;
+            /** Format: date-time */
+            liveSince?: string;
+            /** Format: int64 */
+            liveVersion?: number;
+            name: string;
+            /** Format: int64 */
+            nextVersion: number;
+            templateId: string;
+            testRenders: components["schemas"]["TransactionalTestRender"][];
+        };
+        TransactionalPublishPreviewInput: {
+            makeOptional?: components["schemas"]["TransactionalMakeOptional"][];
+        };
+        TransactionalPublished: {
+            /**
+             * Format: int64
+             * @description The version that was live before (Undo publishes it again)
+             */
+            previous?: number;
+            template: components["schemas"]["TransactionalTemplate"];
+            /** Format: int64 */
+            version: number;
+        };
+        TransactionalRenderInput: {
+            /** @description The template's variables */
+            data?: {
+                [key: string]: unknown;
+            };
+            /** @description Fills to.email and to.name */
+            to?: components["schemas"]["TransactionalAddress"];
+        };
+        TransactionalRendered: {
+            html: string;
+            subject: string;
+            /** @example password-reset */
+            template: string;
+            text: string;
+            /**
+             * Format: int64
+             * @example 3
+             */
+            version: number;
+        };
+        TransactionalRollbackInput: {
+            undo?: boolean;
+            /** Format: int64 */
+            version: number;
+        };
+        TransactionalSenderOption: {
+            domain: string;
+            email: string;
+            id: string;
+            name: string;
+            replyTo: string;
+            verified: boolean;
+        };
+        TransactionalSenderRef: {
+            email: string;
+            id: string;
+            name: string;
+        };
+        TransactionalSettings: {
+            /**
+             * Format: double
+             * @description Percent of a template's messages in an hour
+             */
+            alertBounceRate: number;
+            /**
+             * Format: int64
+             * @description Failed messages in an hour
+             */
+            alertFailed: number;
+            /**
+             * Format: int64
+             * @description Median delivery time over an hour
+             */
+            alertMedianSeconds: number;
+            canEdit: boolean;
+            /** Format: int64 */
+            contentRetentionDays: number;
+            defaultReplyTo: string;
+            defaultSender?: components["schemas"]["TransactionalSenderRef"];
+            defaultTrackClicks: boolean;
+            defaultTrackOpens: boolean;
+            /** @description Link recipients who match a contact to that contact (never creates contacts) */
+            linkContacts: boolean;
+            productName: string;
+            reason?: string;
+            senders: components["schemas"]["TransactionalSenderOption"][];
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy?: string;
+        };
+        TransactionalSettingsInput: {
+            /** Format: double */
+            alertBounceRate: number;
+            /** Format: int64 */
+            alertFailed: number;
+            /** Format: int64 */
+            alertMedianSeconds: number;
+            /** Format: int64 */
+            contentRetentionDays: number;
+            defaultReplyTo?: string;
+            /** @description A Transactional sender, or empty */
+            defaultSenderId?: string;
+            defaultTrackClicks: boolean;
+            defaultTrackOpens: boolean;
+            linkContacts: boolean;
+        };
+        TransactionalStarter: {
+            /** @description Usually sent with an attachment (a PDF invoice) */
+            attachment: boolean;
+            description: string;
+            /** @example password-reset */
+            key: string;
+            /**
+             * @description The kind of category it belongs in
+             * @enum {string}
+             */
+            kind: "essential" | "optional";
+            /** @example Password reset */
+            name: string;
+            preheader: string;
+            subject: string;
+            testData: components["schemas"]["TransactionalTestData"][];
+            variables: components["schemas"]["TransactionalVariable"][];
+        };
+        TransactionalStarterList: {
+            items: components["schemas"]["TransactionalStarter"][];
+        };
+        TransactionalStats: {
+            /** Format: double */
+            bounceRate: number;
+            /** Format: int64 */
+            bounced: number;
+            /** Format: int64 */
+            clicked: number;
+            /** Format: int64 */
+            complained: number;
+            /** Format: double */
+            complaintRate: number;
+            /** Format: int64 */
+            deferred: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveryRate: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            medianMs?: number;
+            /** Format: int64 */
+            opened: number;
+            /** Format: int64 */
+            rejected: number;
+            /** @description 10 suppressed · 2 opted out */
+            rejectedReason?: string;
+            /** Format: int64 */
+            sent: number;
+        };
+        TransactionalTemplate: {
+            access: components["schemas"]["TransactionalTemplateAccess"];
+            archived: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            category?: components["schemas"]["TransactionalCategoryRef"];
+            /** Format: date-time */
+            createdAt: string;
+            description: string;
+            draftChanges: boolean;
+            draftHash: string;
+            /** Format: int64 */
+            draftRevision: number;
+            /** Format: date-time */
+            draftSavedAt: string;
+            draftSavedBy: string;
+            /** @enum {string} */
+            editorMode: "visual" | "mjml" | "html";
+            html: string;
+            id: string;
+            /** @description The ID the API sends, fixed after the first publish */
+            key: string;
+            keyLocked: boolean;
+            liveBy?: string;
+            /** Format: date-time */
+            liveSince?: string;
+            /** Format: int64 */
+            liveVersion?: number;
+            mjml: string;
+            name: string;
+            origin: {
+                [key: string]: unknown;
+            };
+            plainText: string;
+            preheader: string;
+            replyTo: string;
+            sender?: components["schemas"]["TransactionalSenderRef"];
+            subject: string;
+            testData: components["schemas"]["TransactionalTestData"][];
+            trackClicks: boolean;
+            trackOpens: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+            variables: components["schemas"]["TransactionalVariable"][];
+            /** Format: int64 */
+            versionsCount: number;
+        };
+        TransactionalTemplateAccess: {
+            canEdit: boolean;
+            canPublish: boolean;
+            canSendTestToOthers: boolean;
+            canViewContent: boolean;
+            editReason?: string;
+            publishHelpers: string[];
+            publishReason?: string;
+        };
+        TransactionalTemplateCreate: {
+            /** @description Defaults to the first Essential category */
+            categoryId?: string;
+            description?: string;
+            /** @enum {string} */
+            editorMode?: "visual" | "mjml" | "html";
+            fromTemplate?: string;
+            html?: string;
+            /** @description Defaults to the name in lowercase with hyphens */
+            key?: string;
+            mjml?: string;
+            name: string;
+            origin?: {
+                [key: string]: unknown;
+            };
+            plainText?: string;
+            preheader?: string;
+            /** @description A starter's key (password-reset, magic-link…) */
+            starter?: string;
+            subject?: string;
+            testData?: components["schemas"]["TransactionalTestData"][];
+            variables?: components["schemas"]["TransactionalVariable"][];
+        };
+        TransactionalTemplateList: {
+            canEdit: boolean;
+            canPublish: boolean;
+            items: components["schemas"]["TransactionalTemplateListItem"][];
+            /** @enum {string} */
+            period: "24h" | "7d" | "30d";
+            readOnlyReason?: string;
+        };
+        TransactionalTemplateListItem: {
+            archived: boolean;
+            /** @description Recent messages carried attachments */
+            attachments: boolean;
+            category?: components["schemas"]["TransactionalCategoryRef"];
+            description: string;
+            draftChanges: boolean;
+            /** Format: int64 */
+            draftVersion: number;
+            id: string;
+            key: string;
+            /** Format: date-time */
+            lastSentAt?: string;
+            /** Format: int64 */
+            liveVersion?: number;
+            name: string;
+            spark: number[];
+            stats: components["schemas"]["TransactionalStats"];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        TransactionalTemplateUpdate: {
+            categoryId?: string;
+            description?: string;
+            key?: string;
+            name?: string;
+        };
+        TransactionalTestData: {
+            data: {
+                [key: string]: unknown;
+            };
+            /** @example New user */
+            name: string;
+        };
+        TransactionalTestRender: {
+            at?: string;
+            defaults: string[];
+            missing: string[];
+            name: string;
+            ok: boolean;
+            problem?: string;
+            recipient?: string;
+            /** @enum {string} */
+            source: "test_data" | "last_call";
+            subject?: string;
+        };
+        TransactionalTextChange: {
+            after: string;
+            before: string;
+        };
+        TransactionalVariable: {
+            default?: string;
+            description?: string;
+            /** @example reset_url */
+            name: string;
+            required: boolean;
+            sample?: string;
+            /** @description Never stored: logs and stored content show •••••• */
+            sensitive: boolean;
+            /** @enum {string} */
+            type: "text" | "number" | "boolean" | "date" | "url" | "list" | "object";
+        };
+        TransactionalVariableChange: {
+            after?: components["schemas"]["TransactionalVariable"];
+            before?: components["schemas"]["TransactionalVariable"];
+            /** @enum {string} */
+            change: "added" | "removed" | "changed";
+            name: string;
+            /** @example date · required */
+            summary: string;
+        };
+        TransactionalVariableReport: {
+            undeclared: components["schemas"]["VariableUse"][];
+            unused: string[];
+            used: components["schemas"]["VariableUse"][];
+        };
+        TransactionalVersion: {
+            avatarColor: string;
+            change: string;
+            live: boolean;
+            /** Format: date-time */
+            publishedAt: string;
+            publishedBy: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            subject: string;
+            /** Format: int64 */
+            version: number;
+        };
+        TransactionalVersionDetail: {
+            avatarColor: string;
+            change: string;
+            editorMode: string;
+            html: string;
+            live: boolean;
+            mjml: string;
+            note: string;
+            plainText: string;
+            preheader: string;
+            /** Format: date-time */
+            publishedAt: string;
+            publishedBy: string;
+            replyTo: string;
+            sender?: components["schemas"]["TransactionalSenderRef"];
+            /** Format: int64 */
+            sizeBytes: number;
+            subject: string;
+            testData: components["schemas"]["TransactionalTestData"][];
+            trackClicks: boolean;
+            trackOpens: boolean;
+            variables: components["schemas"]["TransactionalVariable"][];
+            /** Format: int64 */
+            version: number;
+        };
+        TransactionalVersionList: {
+            canPublish: boolean;
+            items: components["schemas"]["TransactionalVersion"][];
+        };
         URLCheck: {
             /** Format: date-time */
             checkedAt: string;
@@ -15047,6 +16626,15 @@ export interface components {
         UpdateDomainInput: {
             note?: string;
             trackingDomain?: string;
+        };
+        VariableUse: {
+            /** Format: int64 */
+            column: number;
+            /** Format: int64 */
+            line: number;
+            name: string;
+            /** @enum {string} */
+            where: "subject" | "preheader" | "body" | "text";
         };
         WarmupCampaignUse: {
             /** Format: int64 */
@@ -15335,6 +16923,40 @@ export interface components {
             defaultSenderId?: string;
             name: string;
             timezone: string;
+        };
+        WorkspaceLanguage: {
+            /** Format: date-time */
+            addedAt?: string;
+            addedBy: string;
+            /** @example es */
+            code: string;
+            codes: string[];
+            /** Format: int64 */
+            contacts: number;
+            isDefault: boolean;
+            isFallback: boolean;
+            moreCodes: boolean;
+            /** @example Spanish */
+            name: string;
+            /** @example Español */
+            native: string;
+            /** Format: int64 */
+            own: number;
+            pageCopy: components["schemas"]["LanguagePageCopy"];
+        };
+        WorkspaceLanguages: {
+            canManage: boolean;
+            default: string;
+            fallback: string;
+            helpers: string[];
+            languages: components["schemas"]["WorkspaceLanguage"][];
+            /** Format: int64 */
+            noLanguage: number;
+            /** Format: int64 */
+            notOffered: number;
+            notOfferedCodes: string[];
+            /** Format: int64 */
+            totalContacts: number;
         };
         WorkspaceMe: {
             /** @enum {string} */
@@ -19309,7 +20931,10 @@ export interface operations {
     };
     "preview-approval": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Preview a language version the approval covers; empty shows the source */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -20799,7 +22424,10 @@ export interface operations {
     };
     "get-campaign": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Return a language version's content (its code, such as de); empty returns the source */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -21050,7 +22678,10 @@ export interface operations {
     };
     "save-campaign-content": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Save a language version (its code, such as de); empty saves the source */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -21105,6 +22736,427 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComposerCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-campaign-languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-campaign-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddLanguageInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "apply-to-campaign-languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "keep-campaign-languages-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeepUpToDateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-campaign-source-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-campaign-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "compare-campaign-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageCompare"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "copy-block-to-campaign-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlockInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageCompare"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "hold-campaign-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoldInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-campaign-language-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-campaign-language-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-block-from-campaign-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlockInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageCompare"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-campaign-language-versions": {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerVersionList"];
                 };
             };
             /** @description Error */
@@ -21642,7 +23694,10 @@ export interface operations {
     };
     "get-campaign-report": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Show the click map of one language version (campaigns sent in several languages) */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -25677,6 +27732,245 @@ export interface operations {
             };
         };
     };
+    "list-workspace-languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-workspace-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddWorkspaceLanguage"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-language-catalog": {
+        parameters: {
+            query?: {
+                /** @description Search by name, own name or code */
+                q?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageCatalogList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-language-defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LanguageDefaults"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-fallback-impact": {
+        parameters: {
+            query: {
+                code: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FallbackImpact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-workspace-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-language-removal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageRemoval"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "leave-workspace": {
         parameters: {
             query?: never;
@@ -29272,6 +31566,822 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderTrackingChecks"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-transactional-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalCategoryList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-transactional-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalCategoryInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalCategory"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-transactional-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                categoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalCategoryInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalCategory"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-transactional-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                categoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-transactional-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-transactional-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-transactional-starters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalStarterList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-transactional-templates": {
+        parameters: {
+            query?: {
+                /** @description The period of the numbers */
+                period?: "24h" | "7d" | "30d";
+                /** @description Count messages sent with test-mode keys */
+                includeTest?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalTemplateList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalTemplateCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalTemplate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalTemplate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalTemplateUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalTemplate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "archive-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalTemplate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalChecksInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalChecks"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-transactional-template-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalDraftSave"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalDraftSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalPublishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalPublished"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-transactional-publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalPublishPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalPublishPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "render-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalRenderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalRendered"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalTemplate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rollback-transactional-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalRollbackInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalPublished"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-transactional-template-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalVersionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-transactional-template-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalVersionDetail"];
                 };
             };
             /** @description Error */

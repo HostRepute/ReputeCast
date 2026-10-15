@@ -58,8 +58,9 @@ func TestOverviewCards(t *testing.T) {
 	}
 	// The Campaigns board's two drafts plus the approval sample data:
 	// November Product Update (waiting for approval) and two of Daniel's
-	// drafts from the approval inbox's history.
-	if n.Drafts != 5 {
+	// drafts from the approval inbox's history; and the accessibility
+	// sample's Weekly Digest #143.
+	if n.Drafts != 6 {
 		t.Fatalf("drafts: %d", n.Drafts)
 	}
 

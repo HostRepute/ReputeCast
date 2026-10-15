@@ -149,6 +149,37 @@ func seriousPhrase(is AccessibilityIssue, articles bool) string {
 	return strings.ToLower(is.Tag)
 }
 
+// ShortName names an issue inside a sentence: "the hero image's alt text",
+// "the button contrast", "“Click here”", "2 “Read more” links", "a bare
+// URL", "a skipped heading level", "11 px footer text".
+func ShortName(is AccessibilityIssue) string {
+	if is.Severity == Serious {
+		return seriousPhrase(is, true)
+	}
+	switch is.Kind {
+	case KindLinkText:
+		bare := strings.HasPrefix(is.Title, "A bare URL") || strings.Contains(is.Title, "show a bare URL")
+		switch {
+		case bare && is.Element.Count > 1:
+			return fmt.Sprintf("%d bare URLs", is.Element.Count)
+		case bare:
+			return "a bare URL"
+		case is.Element.Count > 1:
+			return fmt.Sprintf("%d %s links", is.Element.Count, quote(is.Element.Label))
+		}
+		return quote(is.Element.Label)
+	case KindHeading:
+		return "a skipped heading level"
+	case KindTextSize:
+		what := "text"
+		if is.Element.Section != "" {
+			what = is.Element.Section + " text"
+		}
+		return fmt.Sprintf("%s px %s", trimFloat(is.Fix.FromPx), what)
+	}
+	return strings.ToLower(is.Tag)
+}
+
 // IssueCount is "1 serious issue" or "2 serious issues".
 func IssueCount(n int, severity string) string {
 	return fmt.Sprintf("%s %s", count(n), map[bool]string{true: severity + " issue", false: severity + " issues"}[n == 1])

@@ -17,11 +17,11 @@ import (
 var (
 	groupTitles = map[string]string{
 		GroupReputation: "Sender reputation", GroupAuthentication: "Authentication", GroupContent: "Content", GroupLinks: "Links",
-		GroupCompliance: "Compliance", GroupAudience: "Audience quality", GroupRouting: "Routing",
+		GroupCompliance: "Compliance", GroupAudience: "Audience quality", GroupRouting: "Routing", GroupLanguages: "Languages",
 	}
 	groupPrefixes = map[string]string{
 		GroupReputation: "Sender reputation", GroupAuthentication: "Authentication", GroupContent: "Content", GroupLinks: "Links",
-		GroupCompliance: "Compliance", GroupAudience: "Audience", GroupRouting: "Routing",
+		GroupCompliance: "Compliance", GroupAudience: "Audience", GroupRouting: "Routing", GroupLanguages: "Languages",
 	}
 )
 
@@ -76,11 +76,13 @@ func Assemble(f Facts) ReadinessResult {
 	b.reputation()
 	b.authentication()
 	b.content()
+	b.languages()
 	b.accessibility()
 	b.links()
 	b.compliance()
 	b.audience()
 	b.routing()
+	b.everyVersion()
 	for i := range b.checks {
 		if b.checks[i].Fixes == nil {
 			b.checks[i].Fixes = []ReadinessFix{}
@@ -1522,13 +1524,21 @@ func (b *builder) caption(g string, grp ReadinessGroup) string {
 		return domain + " · records required by " + JoinAnd(names)
 	case GroupContent:
 		s := b.f.Campaign.Name
+		if n := len(b.f.Content.Versions); n > 0 && b.f.Campaign.CompiledAt != nil {
+			return fmt.Sprintf("%s · %d versions compiled from MJML %s", s, n+1, b.when(*b.f.Campaign.CompiledAt))
+		}
 		if b.f.Campaign.CompiledAt != nil {
 			s += " · compiled from MJML " + b.when(*b.f.Campaign.CompiledAt)
 		}
 		return s
 	case GroupLinks:
 		r := b.f.Content.Report
+		if len(b.f.Content.Versions) > 0 {
+			return fmt.Sprintf("%d %s in each version · checked %s", len(r.LinkList), Plural(int64(len(r.LinkList)), "link", "links"), b.when(r.CheckedAt))
+		}
 		return fmt.Sprintf("%d %s · checked %s", len(r.LinkList), Plural(int64(len(r.LinkList)), "link", "links"), b.when(r.CheckedAt))
+	case GroupLanguages:
+		return b.languagesCaption()
 	case GroupCompliance:
 		return "Gmail and Yahoo bulk-sender rules"
 	case GroupAudience:
@@ -1626,6 +1636,8 @@ func (b *builder) running(g string) string {
 		return "unengaged, recently bounced and role addresses"
 	case GroupRouting:
 		return "provider health, terms and tracking settings"
+	case GroupLanguages:
+		return "who gets which version, outdated and draft versions, page copy"
 	case GroupAccessibility:
 		return accessibilityRunning
 	}
@@ -1649,6 +1661,8 @@ func RunningText(g string) string {
 		return "unengaged, recently bounced and role addresses"
 	case GroupRouting:
 		return "provider health, terms and tracking settings"
+	case GroupLanguages:
+		return "who gets which version, outdated and draft versions, page copy"
 	case GroupAccessibility:
 		return accessibilityRunning
 	}

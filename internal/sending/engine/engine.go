@@ -57,6 +57,9 @@ type Engine struct {
 	Recorder sending.Recorder
 	// Automations receives delivery outcomes of automation emails.
 	Automations *automations.Service
+	// Languages supplies the language versions each reader picks from;
+	// nil sends the source to everyone.
+	Languages LanguageVersions
 	// QuietDemo makes the demo transport report no delivery or engagement
 	// events (throughput measurements of the send path alone).
 	QuietDemo bool

@@ -5,6 +5,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 )
 
@@ -25,6 +26,8 @@ type Facts struct {
 	Auth       AuthFacts
 	Content    ContentFacts
 	Compliance ComplianceFacts
+	// Languages are the email's language versions (content languages).
+	Languages LanguagesFacts
 	// Accessibility is the accessibility checks of every language version.
 	Accessibility accessibility.ReadinessFacts
 	// MailboxRates are the per-mailbox-provider throttles (messages per
@@ -84,11 +87,17 @@ type AudienceFacts struct {
 	RecentlyBounced int64
 	// Mailboxes counts final recipients per mailbox provider.
 	Mailboxes map[string]int64
+	// Languages counts final recipients per contact language code
+	// (lowercase, "" for none), for content languages.
+	Languages map[string]int64
 	// Empty is true when the campaign has no audience yet.
 	Empty bool
 	// SegmentsSkipped is true when segments couldn't be counted.
 	SegmentsSkipped bool
 }
+
+// LanguagesFacts are the email's language versions and who gets which.
+type LanguagesFacts = languages.ReadinessFacts
 
 // RouteFacts is the sending route of the campaign and its providers.
 type RouteFacts struct {
@@ -228,6 +237,9 @@ type ContentFacts struct {
 	URIBlocklists []string
 	// OwnDomain is the registrable domain of the sending domain ("acme.io").
 	OwnDomain string
+	// Versions are the content checks of the language versions that are
+	// sent, besides the source's (Report).
+	Versions []VersionReport
 }
 
 // ComplianceFacts are what the bulk-sender rules need.

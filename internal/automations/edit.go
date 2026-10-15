@@ -78,7 +78,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 				if err := q.CreateAutomationEmail(ctx, store.CreateAutomationEmailParams{ID: eid, WorkspaceID: ws.ID, AutomationID: &id, Name: e.name, CreatedBy: by}); err != nil {
 					return err
 				}
-				if err := q.InsertAutomationEmailVersion(ctx, store.InsertAutomationEmailVersionParams{EmailID: eid, Version: 1, Subject: c.Subject, Preheader: c.Preheader, Mjml: c.MJML, Html: accessibility.FinalizeStored(ctx, ws, c.HTML), PlainText: c.Text, CreatedBy: by}); err != nil {
+				if err := q.InsertAutomationEmailVersion(ctx, store.InsertAutomationEmailVersionParams{EmailID: eid, Version: 1, Subject: c.Subject, Preheader: c.Preheader, Mjml: c.MJML, Html: accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerAutomationEmail, eid, 1, c.HTML), PlainText: c.Text, CreatedBy: by}); err != nil {
 					return err
 				}
 			}
@@ -406,7 +406,7 @@ func (s *Service) CreateEmail(ctx context.Context, ws *store.Workspace, by *uuid
 		if err := q.CreateAutomationEmail(ctx, store.CreateAutomationEmailParams{ID: id, WorkspaceID: ws.ID, AutomationID: automation, Name: name, CreatedBy: by}); err != nil {
 			return err
 		}
-		if err := q.InsertAutomationEmailVersion(ctx, store.InsertAutomationEmailVersionParams{EmailID: id, Version: 1, Subject: c.Subject, Preheader: c.Preheader, Mjml: c.MJML, Html: accessibility.FinalizeStored(ctx, ws, c.HTML), PlainText: c.Text, CreatedBy: by}); err != nil {
+		if err := q.InsertAutomationEmailVersion(ctx, store.InsertAutomationEmailVersionParams{EmailID: id, Version: 1, Subject: c.Subject, Preheader: c.Preheader, Mjml: c.MJML, Html: accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerAutomationEmail, id, 1, c.HTML), PlainText: c.Text, CreatedBy: by}); err != nil {
 			return err
 		}
 		wsID := ws.ID
@@ -446,7 +446,7 @@ func (s *Service) UpdateEmail(ctx context.Context, ws *store.Workspace, by *uuid
 		}
 		version = latest + 1
 		q := store.New(tx)
-		if err := q.InsertAutomationEmailVersion(ctx, store.InsertAutomationEmailVersionParams{EmailID: id, Version: version, Subject: u.Subject, Preheader: u.Preheader, Html: accessibility.FinalizeStored(ctx, ws, u.HTML), PlainText: u.Text, CreatedBy: by}); err != nil {
+		if err := q.InsertAutomationEmailVersion(ctx, store.InsertAutomationEmailVersionParams{EmailID: id, Version: version, Subject: u.Subject, Preheader: u.Preheader, Html: accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerAutomationEmail, id, version, u.HTML), PlainText: u.Text, CreatedBy: by}); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE automation_emails SET latest_version = $2, updated_at = now() WHERE id = $1`, id, version); err != nil {

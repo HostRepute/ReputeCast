@@ -9,6 +9,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -37,6 +38,45 @@ type AccessibilityChecker interface {
 	ReadinessFacts(ctx context.Context, ws *store.Workspace, c accessibility.CampaignContent) accessibility.ReadinessFacts
 	FixMJML(ctx context.Context, ws *store.Workspace, src, action string, params map[string]string) (string, accessibility.FixChange, error)
 	RecordFix(ctx context.Context, ws *store.Workspace, p *authz.Principal, campaignID uuid.UUID, campaign, contentHash string, languages []string, changes []accessibility.FixChange) error
+}
+
+// fixLanguageVersions applies Review & send's accessibility fixes, which
+// need no words, to every language version as the source got them. A
+// version whose layout differs where a fix points keeps that issue; its own
+// check shows it. It returns the languages it changed.
+func (s *Service) fixLanguageVersions(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, fixes []ReadinessFixRequest, label string) ([]string, error) {
+	changed := []string{}
+	if s.Campaigns == nil || s.Campaigns.Translations == nil || s.Accessibility == nil || len(fixes) == 0 {
+		return changed, nil
+	}
+	rows, err := s.Q.ContentTranslations(ctx, store.ContentTranslationsParams{OwnerKind: accessibility.OwnerCampaign, OwnerID: id})
+	if err != nil {
+		return changed, err
+	}
+	for _, r := range rows {
+		if strings.TrimSpace(r.Mjml) == "" {
+			continue
+		}
+		d, err := s.Campaigns.DetailIn(ctx, ws, p, id, r.Language)
+		if err != nil {
+			return changed, err
+		}
+		src := d.MJML
+		for _, fx := range fixes {
+			if next, _, err := s.Accessibility.FixMJML(ctx, ws, src, fx.Action, fx.Params); err == nil {
+				src = next
+			}
+		}
+		if src == d.MJML {
+			continue
+		}
+		if _, err := s.Campaigns.SaveIn(ctx, ws, p, id, r.Language, campaigns.ComposerSaveContent{BaseVersion: d.Version, Subject: d.Subject, Preheader: d.Preheader,
+			MJML: src, ABTest: d.ABTest, Label: label, Source: "manual"}); err != nil {
+			return changed, err
+		}
+		changed = append(changed, r.Language)
+	}
+	return changed, nil
 }
 
 // accessibilityRunning is what the group shows while it runs.
@@ -163,28 +203,7 @@ func (b *builder) moderateRow(moderate []accessibility.AccessibilityIssue, r acc
 	oneClick := 0
 	var kinds []string
 	for _, is := range moderate {
-		switch is.Kind {
-		case accessibility.KindLinkText:
-			bare := strings.HasPrefix(is.Title, "A bare URL") || strings.Contains(is.Title, "show a bare URL")
-			switch {
-			case bare && is.Element.Count > 1:
-				phrases = append(phrases, fmt.Sprintf("%d bare URLs", is.Element.Count))
-			case bare:
-				phrases = append(phrases, "a bare URL")
-			case is.Element.Count > 1:
-				phrases = append(phrases, fmt.Sprintf("%d “%s” links", is.Element.Count, is.Element.Label))
-			default:
-				phrases = append(phrases, "“"+is.Element.Label+"”")
-			}
-		case accessibility.KindHeading:
-			phrases = append(phrases, "a skipped heading level")
-		case accessibility.KindTextSize:
-			what := "text"
-			if is.Element.Section != "" {
-				what = is.Element.Section + " text"
-			}
-			phrases = append(phrases, fmt.Sprintf("%s px %s", trimNumber(is.Fix.FromPx, 1), what))
-		}
+		phrases = append(phrases, is.Short)
 		if is.Fix.OneClick {
 			oneClick++
 			kinds = append(kinds, is.Kind)

@@ -101,6 +101,9 @@ type AccessibilityFixSpec struct {
 	// Text size fixes.
 	FromPx float64 `json:"fromPx,omitempty"`
 	ToPx   int     `json:"toPx,omitempty"`
+	// Subject names what a one-click fix changes, as its preview lists it:
+	// "Card titles", "Footer text".
+	Subject string `json:"subject,omitempty"`
 	// Links are the links a link-text fix changes (links that share their
 	// words are one issue).
 	Links []AccessibilityLinkTarget `json:"links"`
@@ -134,7 +137,10 @@ type AccessibilityIssue struct {
 	Title  string `json:"title"`
 	Detail string `json:"detail,omitempty"`
 	// Tag is the short label on the canvas ("No alt text").
-	Tag       string   `json:"tag"`
+	Tag string `json:"tag"`
+	// Short names the issue inside a sentence: "the hero image's alt text",
+	// "“Click here”", "a bare URL", "11 px footer text".
+	Short     string   `json:"short"`
 	Languages []string `json:"languages"`
 	// Path is the element-index path from mj-body of the (first) element;
 	// Paths lists every element the issue covers. Empty for HTML-only emails.

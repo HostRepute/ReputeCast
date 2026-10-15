@@ -600,7 +600,7 @@ func (c *checker) sizes() {
 		c.add(KindTextSize+":"+k, AccessibilityIssue{Kind: KindTextSize, Severity: Moderate,
 			Title: fmt.Sprintf("%s is %s px. The minimum is %d px.", what, trimFloat(size), c.opts.MinTextPx), Tag: trimFloat(size) + " px text",
 			Path: p, Location: c.location(p, ""), Element: AccessibilityElement{Tag: tagOr(n, "span"), Role: "text", Section: label},
-			Fix: AccessibilityFixSpec{Kind: KindTextSize, OneClick: true, FromPx: size, ToPx: c.opts.MinTextPx}}, AccessibilityIssueVersion{})
+			Fix: AccessibilityFixSpec{Kind: KindTextSize, OneClick: true, FromPx: size, ToPx: c.opts.MinTextPx, Subject: what}}, AccessibilityIssueVersion{})
 	}
 }
 
@@ -662,8 +662,10 @@ func (c *checker) headings() {
 			what = "card titles"
 		}
 		var title, fixLabel string
+		subject := capitalize(what)
 		switch n {
 		case 1:
+			subject = quote(texts[0])
 			title = fmt.Sprintf("%s is Heading %d, right after a Heading %d", quote(texts[0]), first.from, first.prev)
 			fixLabel = fmt.Sprintf("Change it to Heading %d", first.to)
 		case 2:
@@ -681,7 +683,7 @@ func (c *checker) headings() {
 		c.add(KindHeading+":"+strings.Join(keyParts, ","), AccessibilityIssue{Kind: KindHeading, Severity: Moderate, Title: title, Detail: fixLabel + ". The text keeps its look.",
 			Tag: fmt.Sprintf("Heading %d after Heading %d", first.from, first.prev), Path: p, Paths: paths, Location: c.location(p, inner),
 			Element: AccessibilityElement{Tag: fmt.Sprintf("h%d", first.from), Role: "heading", Label: texts[0], Section: c.sectionLabel(p), Index: first.h.index, Count: n},
-			Fix:     AccessibilityFixSpec{Kind: KindHeading, OneClick: true, Headings: changes}}, AccessibilityIssueVersion{})
+			Fix:     AccessibilityFixSpec{Kind: KindHeading, OneClick: true, Headings: changes, Subject: subject}}, AccessibilityIssueVersion{})
 	}
 }
 
@@ -737,6 +739,7 @@ func merge(checks []versionCheck, langs []AccessibilityLanguage) []Accessibility
 		if is.Kind == KindLinkText {
 			is.Detail = linkTextDetail(*is, langs)
 		}
+		is.Short = ShortName(*is)
 		out = append(out, *is)
 	}
 	rank := map[string]int{KindAltText: 0, KindLinkNoText: 1, KindContrast: 2, KindLinkText: 3, KindHeading: 4, KindTextSize: 5}

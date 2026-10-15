@@ -79,8 +79,35 @@ func validateSubject(subject string) error {
 
 // Save stores a new version of the content.
 func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in ComposerSaveContent) (ComposerSavedContent, error) {
+	return s.SaveIn(ctx, ws, p, id, "", in)
+}
+
+// SaveIn stores a new version of one language version's content ("" or
+// the source language: the source).
+func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, lang string, in ComposerSaveContent) (ComposerSavedContent, error) {
 	if err := validateSubject(in.Subject); err != nil {
 		return ComposerSavedContent{}, err
+	}
+	if s.translated(ctx, ws, id, lang) {
+		if in.ABTest != nil {
+			if err := validateAB(in.ABTest); err != nil {
+				return ComposerSavedContent{}, err
+			}
+		}
+		c, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id})
+		if err != nil {
+			return ComposerSavedContent{}, api.MapError(err, "Campaign")
+		}
+		if !editableStatuses[c.Status] {
+			return ComposerSavedContent{}, api.Conflict(s.access(ctx, ws, p, c.Status, c.StartedAt).ReadOnlyReason)
+		}
+		var settings ComposerContentSettings
+		_ = json.Unmarshal(c.ContentSettings, &settings)
+		out, err := s.Translations.Save(ctx, ws, p, id, lang, in, settings.Minify)
+		if err == nil {
+			s.changed(ctx, ws, id)
+		}
+		return out, err
 	}
 	if in.Source == "" {
 		in.Source = "autosave"
@@ -133,10 +160,10 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			html = contentcheck.Minify(html)
 		}
 		// lang, dir and the layout tables' role (accessibility).
-		html = accessibility.FinalizeStored(ctx, ws, html)
+		html = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerCampaign, id, 0, html)
 		if in.ABTest != nil {
 			for i := range in.ABTest.Variants {
-				in.ABTest.Variants[i].HTML = accessibility.FinalizeStored(ctx, ws, in.ABTest.Variants[i].HTML)
+				in.ABTest.Variants[i].HTML = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerCampaign, id, 0, in.ABTest.Variants[i].HTML)
 			}
 		}
 		ab := in.ABTest.toDB()

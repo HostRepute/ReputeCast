@@ -6,8 +6,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/languages"
 )
 
 const ws = "/workspaces/acme-newsletter"
@@ -387,5 +391,100 @@ func TestGallery(t *testing.T) {
 	raw, _ := json.Marshal(g)
 	if strings.Contains(string(raw), "null") {
 		t.Fatalf("no nulls in lists: %s", raw)
+	}
+}
+
+// Language versions are checked as they are sent, are stored in their own
+// language, and get the fixes that need no words.
+func TestLanguageVersions(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	linh := env.Client()
+	linh.SignInDemo("linh@acme.io")
+	ctx := context.Background()
+	id := campaignID(t, linh, "Weekly Digest #143")
+	if resp := linh.Do("POST", ws+"/languages", map[string]any{"code": "es"}); resp.Status >= 300 {
+		t.Fatalf("add Spanish: %d %s", resp.Status, resp.Body)
+	}
+	// The Spanish version, added and marked translated through the content
+	// languages service.
+	acme, err := env.App.Q.GetWorkspaceBySlug(ctx, "acme-newsletter")
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, err := env.App.Q.GetUserByEmail(ctx, "linh@acme.io")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := &authz.Principal{Type: authz.ActorUser, ID: u.ID, UserID: u.ID, Name: u.Name, WorkspaceID: acme.ID, Permissions: authz.All()}
+	content := &languages.Service{Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit}
+	cid := uuid.MustParse(id)
+	if _, err := content.AddCampaignLanguage(ctx, &acme, p, cid, languages.AddLanguageInput{Language: "es"}); err != nil {
+		t.Fatal(err)
+	}
+	stored := func() (mj, html string) {
+		t.Helper()
+		if err := env.App.Pool.QueryRow(ctx, `SELECT mjml, html FROM content_translations WHERE owner_id = $1 AND language = 'es'`, id).Scan(&mj, &html); err != nil {
+			t.Fatal(err)
+		}
+		return mj, html
+	}
+	if _, html := stored(); !strings.Contains(html, `<html lang="es" dir="ltr"`) {
+		t.Fatalf("the Spanish version is stored in Spanish: %.300s", html)
+	}
+	langsOf := func(r accessibility.AccessibilityReport) string {
+		var codes []string
+		for _, l := range r.Languages {
+			codes = append(codes, l.Code)
+		}
+		return strings.Join(codes, ",")
+	}
+
+	// A Draft isn't sent, so it isn't checked.
+	var r accessibility.AccessibilityReport
+	linh.Do("GET", ws+"/campaigns/"+id+"/accessibility", nil).MustStatus(t, 200).JSON(t, &r)
+	if langsOf(r) != "en" {
+		t.Fatalf("draft checked: %s", langsOf(r))
+	}
+	// Translated, it is: each issue is listed once, with both languages.
+	if _, err := content.MarkCampaignLanguage(ctx, &acme, p, cid, "es", true, languages.MarkInput{}); err != nil {
+		t.Fatal(err)
+	}
+	linh.Do("GET", ws+"/campaigns/"+id+"/accessibility", nil).MustStatus(t, 200).JSON(t, &r)
+	if langsOf(r) != "en,es" || len(r.Issues) != 6 || strings.Join(r.Issues[0].Languages, ",") != "en,es" {
+		t.Fatalf("both versions: %s, %d issues, %+v", langsOf(r), len(r.Issues), r.Issues[0].Languages)
+	}
+	// The Spanish canvas replaces the stored Spanish version: alt text
+	// written there leaves the issue in English only.
+	mj, _ := stored()
+	es := strings.Replace(mj, `width="552px" height="200px"`, `alt="Un cambio programado para las 2 a. m." width="552px" height="200px"`, 1)
+	linh.Do("POST", ws+"/campaigns/"+id+"/accessibility", map[string]any{"lang": "es", "mjml": es}).MustStatus(t, 200).JSON(t, &r)
+	if r.Issues[0].Kind != accessibility.KindAltText || strings.Join(r.Issues[0].Languages, ",") != "en" {
+		t.Fatalf("alt text in Spanish: %+v", r.Issues[0])
+	}
+
+	// "Fix 2 in one click" fixes every version and says so.
+	var out struct {
+		Applied []string
+		Run     *readinessRun
+	}
+	linh.Do("POST", ws+"/campaigns/"+id+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": "accessibility_one_click"}}}).MustStatus(t, 200).JSON(t, &out)
+	if mj, _ := stored(); strings.Count(mj, "<h2") < 2 || strings.Contains(mj, "<h3") {
+		t.Fatalf("the Spanish card titles stay Heading 3: %s", mj)
+	}
+	var langs []string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT languages FROM accessibility_fixes WHERE campaign_id = $1 ORDER BY fixed_at DESC LIMIT 1`, id).Scan(&langs); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(langs, ",") != "en,es" {
+		t.Fatalf("fixed languages: %v", langs)
+	}
+	if out.Run == nil {
+		t.Fatal("the checks run again")
+	}
+	for _, c := range out.Run.Checks {
+		if c.Key == "accessibility.fixed" && !strings.HasSuffix(c.Detail, "in English and Spanish · recorded in the audit log") {
+			t.Fatalf("fixed row: %q", c.Detail)
+		}
 	}
 }

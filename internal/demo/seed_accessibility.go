@@ -36,7 +36,7 @@ func seedAccessibilityImpl(ctx context.Context, s *Seeder) error {
 	ws := s.WS()
 	linh := s.Users["linh@acme.io"]
 	if _, err := s.Tx.Exec(ctx, `INSERT INTO accessibility_policies (workspace_id, on_serious, min_text_px, updated_by, updated_at) VALUES ($1,'warn',12,$2,$3)
-		ON CONFLICT (workspace_id) DO NOTHING`, ws.ID, linh.ID, s.sampleAgo(9, 10, 5)); err != nil {
+		ON CONFLICT (workspace_id) DO NOTHING`, ws.ID, linh.ID, s.designDay(9, 10, 5)); err != nil {
 		return err
 	}
 	for url, t := range accessibilityTitles {
@@ -167,7 +167,7 @@ func seedDigest143(ctx context.Context, s *Seeder) error {
 			created_by, updated_by, created_at, updated_at)
 			VALUES ($1,$2,'Weekly Digest #143','draft',$3,$4,$5,$6,$7,$8,$9,'hello@acme.io',$10,$10,$11,$11)`,
 			id, ws.ID, digest143Subject, digest143Preheader, s.Senders["digest@news.acme.io"], aud, n, schedule, json.RawMessage(readinessThresholds),
-			sofia.ID, s.sampleAgo(2, 15, 40)); err != nil {
+			sofia.ID, s.designDay(2, 15, 40)); err != nil {
 			return err
 		}
 		s.Campaigns["Weekly Digest #143"] = id
@@ -193,6 +193,10 @@ func seedDigest143(ctx context.Context, s *Seeder) error {
 	}
 	for i, v := range history {
 		version := i + 1
+		at := s.designDay(v.day, v.h, v.m)
+		if v.day == 0 {
+			at = s.sampleToday(v.h, v.m)
+		}
 		src = withImages(digest143MJML(version))
 		res := mjml.Compile(src)
 		if len(res.Errors) > 0 {
@@ -205,21 +209,21 @@ func seedDigest143(ctx context.Context, s *Seeder) error {
 		}
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO campaign_versions (campaign_id, version, subject, preheader, mjml, html, plain_text, saved_by, saved_at, label, source, size_bytes)
 			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT DO NOTHING`,
-			id, version, digest143Subject, digest143Preheader, src, html, contentcheck.PlainText(html), sofia.ID, s.sampleAgo(v.day, v.h, v.m), v.label, source, len(html)); err != nil {
+			id, version, digest143Subject, digest143Preheader, src, html, contentcheck.PlainText(html), sofia.ID, at, v.label, source, len(html)); err != nil {
 			return err
 		}
 	}
-	last := s.sampleAgo(0, 9, 12)
+	last := s.sampleToday(9, 12)
 	if created {
 		if _, err := s.Tx.Exec(ctx, `UPDATE campaigns SET mjml = $2, html = $3, plain_text = $4, content_hash = $5, version = $6, updated_by = $7, updated_at = $8, autosaved_at = $9
 			WHERE id = $1`, id, src, html, contentcheck.PlainText(html), campaigns.ContentHash(digest143Subject, digest143Preheader, src, html, nil), len(history), sofia.ID, last,
-			s.sampleAgo(0, 11, 20)); err != nil {
+			s.sampleToday(11, 20)); err != nil {
 			return err
 		}
 	}
 	// Review & send ran at 14:18, before scheduling.
 	r := &readinessSeed{s: s, ws: ws, images: map[string]string{}}
-	checked, compiled := s.sampleAgo(0, 14, 18), last
+	checked, compiled := s.sampleToday(14, 18), last
 	var sched time.Time
 	var version int32
 	if err := s.Tx.QueryRow(ctx, `SELECT coalesce((schedule->>'at')::timestamptz, now()), version FROM campaigns WHERE id = $1`, id).Scan(&sched, &version); err != nil {
@@ -328,12 +332,10 @@ func accessibilityDigestTemplate(ctx context.Context, s *Seeder) error {
 	return err
 }
 
-// sampleAgo is a time of the design expansion's sample (Wed 15 Oct 2026,
-// 14:20 in New York) relative to now: daysAgo days before the sample day at
-// hour:minute, as far before now as it is before 14:20 on the sample day.
-// The times keep their order and their distance from the sample's now, and
-// none of them is in the future.
-func (s *Seeder) sampleAgo(daysAgo, hour, minute int) time.Time {
-	before := time.Duration(14*60+20-(hour*60+minute))*time.Minute + time.Duration(daysAgo)*24*time.Hour
-	return s.Now.Add(-before)
+// sampleToday is a time of the design expansion's sample day (Wed 15 Oct
+// 2026; its clock reads 14:20 in New York) relative to now: hour:minute is
+// as far before now as it is before 14:20, so today's items read the same
+// at any hour and none is in the future. Earlier days use designDay.
+func (s *Seeder) sampleToday(hour, minute int) time.Time {
+	return s.Ago(time.Duration(14*60+20-(hour*60+minute)) * time.Minute)
 }
