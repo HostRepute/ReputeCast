@@ -230,6 +230,7 @@ type AutomationEmailLink struct {
 	Url      string    `json:"url"`
 	Label    string    `json:"label"`
 	Clicks   int64     `json:"clicks"`
+	Language string    `json:"language"`
 }
 
 type AutomationEmailVersion struct {
@@ -560,6 +561,65 @@ type ContactPreference struct {
 	Frequency   string     `json:"frequency"`
 	PausedUntil *time.Time `json:"pausedUntil"`
 	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type ContentSource struct {
+	WorkspaceID   uuid.UUID       `json:"workspaceId"`
+	OwnerKind     string          `json:"ownerKind"`
+	OwnerID       uuid.UUID       `json:"ownerId"`
+	OwnerVersion  int32           `json:"ownerVersion"`
+	Language      string          `json:"language"`
+	Blocks        json.RawMessage `json:"blocks"`
+	SubjectHash   string          `json:"subjectHash"`
+	PreheaderHash string          `json:"preheaderHash"`
+	Version       int32           `json:"version"`
+	NextKey       int32           `json:"nextKey"`
+	UpdatedAt     time.Time       `json:"updatedAt"`
+}
+
+type ContentTranslation struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	OwnerKind      string          `json:"ownerKind"`
+	OwnerID        uuid.UUID       `json:"ownerId"`
+	OwnerVersion   int32           `json:"ownerVersion"`
+	Language       string          `json:"language"`
+	Status         string          `json:"status"`
+	Held           bool            `json:"held"`
+	Subject        string          `json:"subject"`
+	Preheader      string          `json:"preheader"`
+	Mjml           string          `json:"mjml"`
+	Html           string          `json:"html"`
+	PlainText      string          `json:"plainText"`
+	AbTest         json.RawMessage `json:"abTest"`
+	Links          json.RawMessage `json:"links"`
+	Version        int32           `json:"version"`
+	ContentHash    string          `json:"contentHash"`
+	TranslatedFrom int32           `json:"translatedFrom"`
+	TranslatedBy   *uuid.UUID      `json:"translatedBy"`
+	TranslatedAt   *time.Time      `json:"translatedAt"`
+	CreatedBy      *uuid.UUID      `json:"createdBy"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	UpdatedBy      *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
+	AutosavedAt    *time.Time      `json:"autosavedAt"`
+}
+
+type ContentTranslationVersion struct {
+	TranslationID uuid.UUID       `json:"translationId"`
+	Version       int32           `json:"version"`
+	Subject       string          `json:"subject"`
+	Preheader     string          `json:"preheader"`
+	Mjml          string          `json:"mjml"`
+	Html          string          `json:"html"`
+	PlainText     string          `json:"plainText"`
+	AbTest        json.RawMessage `json:"abTest"`
+	Links         json.RawMessage `json:"links"`
+	SavedBy       *uuid.UUID      `json:"savedBy"`
+	SavedAt       time.Time       `json:"savedAt"`
+	Label         string          `json:"label"`
+	Source        string          `json:"source"`
+	SizeBytes     int32           `json:"sizeBytes"`
 }
 
 type CustomField struct {
@@ -976,6 +1036,9 @@ type Message struct {
 	ContentRef        json.RawMessage `json:"contentRef"`
 	HumanOpenedAt     *time.Time      `json:"humanOpenedAt"`
 	SendOrder         int32           `json:"sendOrder"`
+	Language          string          `json:"language"`
+	ContactLanguage   string          `json:"contactLanguage"`
+	LanguageReason    string          `json:"languageReason"`
 }
 
 type MxCache struct {
@@ -1642,6 +1705,21 @@ type Workspace struct {
 	DefaultAutomationSenderID *uuid.UUID      `json:"defaultAutomationSenderId"`
 	DefaultSystemSenderID     *uuid.UUID      `json:"defaultSystemSenderId"`
 	SendingDefaults           json.RawMessage `json:"sendingDefaults"`
+}
+
+type WorkspaceLanguage struct {
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	Code            string     `json:"code"`
+	IsDefault       bool       `json:"isDefault"`
+	IsFallback      bool       `json:"isFallback"`
+	AddedBy         *uuid.UUID `json:"addedBy"`
+	AddedAt         time.Time  `json:"addedAt"`
+	RemovedBy       *uuid.UUID `json:"removedBy"`
+	RemovedAt       *time.Time `json:"removedAt"`
+	PageCopyStatus  string     `json:"pageCopyStatus"`
+	PageCopyMissing int32      `json:"pageCopyMissing"`
+	PageCopyBy      *uuid.UUID `json:"pageCopyBy"`
+	PageCopyAt      *time.Time `json:"pageCopyAt"`
 }
 
 type WorkspaceMember struct {

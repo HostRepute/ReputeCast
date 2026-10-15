@@ -371,7 +371,7 @@ func (q *Queries) ComposerLockCampaign(ctx context.Context, arg ComposerLockCamp
 }
 
 const composerPreviewContactByID = `-- name: ComposerPreviewContactByID :one
-SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier
+SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier, c.language
 FROM contacts c
 WHERE c.workspace_id = $1 AND c.id = $2 AND c.erased_at IS NULL
 `
@@ -388,6 +388,7 @@ type ComposerPreviewContactByIDRow struct {
 	LastName   string          `json:"lastName"`
 	Attributes json.RawMessage `json:"attributes"`
 	Tier       string          `json:"tier"`
+	Language   string          `json:"language"`
 }
 
 func (q *Queries) ComposerPreviewContactByID(ctx context.Context, arg ComposerPreviewContactByIDParams) (ComposerPreviewContactByIDRow, error) {
@@ -400,12 +401,13 @@ func (q *Queries) ComposerPreviewContactByID(ctx context.Context, arg ComposerPr
 		&i.LastName,
 		&i.Attributes,
 		&i.Tier,
+		&i.Language,
 	)
 	return i, err
 }
 
 const composerPreviewContacts = `-- name: ComposerPreviewContacts :many
-SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier
+SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier, c.language
 FROM contacts c
 WHERE c.workspace_id = $1 AND c.erased_at IS NULL AND c.status = 'active'
   AND ($2::text = '' OR c.email ILIKE '%' || $2::text || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || $2::text || '%')
@@ -428,6 +430,7 @@ type ComposerPreviewContactsRow struct {
 	LastName   string          `json:"lastName"`
 	Attributes json.RawMessage `json:"attributes"`
 	Tier       string          `json:"tier"`
+	Language   string          `json:"language"`
 }
 
 // Contacts to preview as: the campaign's audience first, people with a first name first.
@@ -452,6 +455,7 @@ func (q *Queries) ComposerPreviewContacts(ctx context.Context, arg ComposerPrevi
 			&i.LastName,
 			&i.Attributes,
 			&i.Tier,
+			&i.Language,
 		); err != nil {
 			return nil, err
 		}
@@ -464,7 +468,7 @@ func (q *Queries) ComposerPreviewContacts(ctx context.Context, arg ComposerPrevi
 }
 
 const composerRandomContact = `-- name: ComposerRandomContact :one
-SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier
+SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier, c.language
 FROM contacts c
 WHERE c.workspace_id = $1 AND c.erased_at IS NULL AND c.status = 'active' AND c.tier = 'active'
 ORDER BY random()
@@ -478,6 +482,7 @@ type ComposerRandomContactRow struct {
 	LastName   string          `json:"lastName"`
 	Attributes json.RawMessage `json:"attributes"`
 	Tier       string          `json:"tier"`
+	Language   string          `json:"language"`
 }
 
 func (q *Queries) ComposerRandomContact(ctx context.Context, workspaceID uuid.UUID) (ComposerRandomContactRow, error) {
@@ -490,6 +495,7 @@ func (q *Queries) ComposerRandomContact(ctx context.Context, workspaceID uuid.UU
 		&i.LastName,
 		&i.Attributes,
 		&i.Tier,
+		&i.Language,
 	)
 	return i, err
 }

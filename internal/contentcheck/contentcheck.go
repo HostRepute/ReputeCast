@@ -137,6 +137,9 @@ type Input struct {
 	Fields []string
 	// ProbeLinks requests each link (Send Readiness); the composer skips it.
 	ProbeLinks bool
+	// Language is the language version's code ("de"); the subject's
+	// English phrase heuristics only apply to English (or no language).
+	Language string
 }
 
 // Blocklist answers which URI blocklists list a domain.
@@ -317,7 +320,7 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 
 	if strings.TrimSpace(in.Subject) == "" {
 		add(ContentCheckIssue{ID: "subject.missing", Severity: Block, Group: "Subject", Title: "The subject is empty", Detail: "Inbox lists show the subject first; write one before sending.", Section: -1})
-	} else if h := SubjectHeuristics(in.Subject); len(h) > 0 {
+	} else if h := SubjectHeuristicsIn(in.Subject, in.Language); len(h) > 0 {
 		r.SubjectHeuristics = h
 		suggestion := SuggestSubject(in.Subject)
 		is := ContentCheckIssue{ID: "subject.spam", Severity: Warn, Group: "Subject", Title: fmt.Sprintf("Subject trips %d spam %s", len(h), plural(len(h), "heuristic", "heuristics")), Section: -1}
@@ -842,6 +845,28 @@ var (
 	letterRe      = regexp.MustCompile(`\p{L}`)
 	upperRe       = regexp.MustCompile(`\p{Lu}`)
 )
+
+// SubjectHeuristicsIn returns the heuristics a subject in a language trips:
+// the English phrase lists (urgency, money words) apply to English and to
+// emails without a language; other languages get the language-neutral ones
+// (capitals, punctuation).
+func SubjectHeuristicsIn(subject, language string) []string {
+	h := SubjectHeuristics(subject)
+	lang := strings.ToLower(strings.TrimSpace(language))
+	if i := strings.IndexAny(lang, "-_"); i >= 0 {
+		lang = lang[:i]
+	}
+	if lang == "" || lang == "en" {
+		return h
+	}
+	out := []string{}
+	for _, x := range h {
+		if x == "all caps" || x == "repeated punctuation" {
+			out = append(out, x)
+		}
+	}
+	return out
+}
 
 // SubjectHeuristics returns the spam heuristics a subject trips: "all caps",
 // "repeated punctuation", "urgency", "money words".
